@@ -49,6 +49,9 @@
 #ifndef LINUX_PSAM_BALONG_H
 #define LINUX_PSAM_BALONG_H
 
+#include <bsp_print.h>
+
+#define THIS_MODU mod_psam
 #include "mdrv_ipf_comm.h"
 #include "hi_psam.h"
 #include "n_bsp_psam.h"

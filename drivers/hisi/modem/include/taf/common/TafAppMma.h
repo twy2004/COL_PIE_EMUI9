@@ -59,6 +59,10 @@
 
 #include "MnCallApi.h"
 #include "nv_stru_gucnas.h"
+#include "product_config.h"
+#ifdef MBB_COMMON
+#include "MbbTafFactoryAtComm.h"
+#endif
 
 #ifdef  __cplusplus
 #if  __cplusplus
@@ -93,6 +97,7 @@ extern "C"{
 
 #define TAF_MMA_MAX_WHITE_LOCK_SID_NUM                      (5)
 #define TAF_MMA_MAX_ANT_NUM                                 (4)
+#define TAF_MMA_MAX_ANT_NUM_EX                              (8)
 
 #define TAF_MMA_VERSION_INFO_LEN                            (9)
 #define TAF_MMA_MAX_EHPLMN_NUM                              (17)
@@ -236,6 +241,7 @@ typedef VOS_UINT32 TAF_MMA_UPDATE_TYPEC_PDP_COUNT_ENUM_U32;
 #define TAF_UTRANCTRL_UTRAN_MODE_TDD    (1)
 
 #define AT_HS_PARA_MAX_LENGTH           (9)
+
 #define TAF_MMA_UTRA_BLER_INVALID       (99)
 #define TAF_MMA_RSSI_LOWER_LIMIT        (-114)
 #define TAF_MMA_UTRA_RSCP_UNVALID       (-140)
@@ -247,6 +253,9 @@ typedef VOS_UINT32 TAF_MMA_UPDATE_TYPEC_PDP_COUNT_ENUM_U32;
 #define TAF_MMA_MAX_SRCHED_LAI_NUM     (18)
 
 #define TAF_MMA_PLMN_ID_LEN             (6)
+
+#define AT_PLMN_LEN_FIVE                (5)
+#define AT_PLMN_LEN_SIX                 (6)
 
 /*****************************************************************************
   6 消息定义
@@ -371,6 +380,7 @@ enum TAF_MMA_MSG_TYPE_ENUM
     ID_TAF_MMA_CDMA_LOCINFO_QRY_REQ = TAF_MMA_MSG_ID_BASE + 0x54,                                         /* _H2ASN_MsgChoice TAF_MMA_CDMA_LOCINFO_QRY_REQ_STRU */
     ID_TAF_MMA_CDMA_LOCINFO_QRY_CNF = TAF_MMA_MSG_ID_BASE + 0x55,                                         /* _H2ASN_MsgChoice TAF_MMA_CDMA_LOCINFO_QRY_CNF_STRU */
     ID_TAF_MMA_CSID_IND = TAF_MMA_MSG_ID_BASE + 0x56,                                                     /* _H2ASN_MsgChoice TAF_MMA_CSIDNID_IND_STRU */
+
     ID_TAF_MMA_AC_INFO_QRY_REQ = TAF_MMA_MSG_ID_BASE + 0x57,                                              /* _H2ASN_MsgChoice TAF_MMA_AC_INFO_QRY_REQ_STRU */
     ID_TAF_MMA_AC_INFO_QRY_CNF = TAF_MMA_MSG_ID_BASE + 0x58,                                              /* _H2ASN_MsgChoice TAF_MMA_AC_INFO_QRY_CNF_STRU */
     ID_TAF_MMA_AC_INFO_CHANGE_IND = TAF_MMA_MSG_ID_BASE + 0x59,                                           /* _H2ASN_MsgChoice TAF_MMA_AC_INFO_CHANGE_IND_STRU */
@@ -389,6 +399,7 @@ enum TAF_MMA_MSG_TYPE_ENUM
     ID_TAF_MMA_NET_SCAN_REQ = TAF_MMA_MSG_ID_BASE + 0x62,                                              /* _H2ASN_MsgChoice TAF_MMA_NET_SCAN_REQ_STRU */
     ID_TAF_MMA_NET_SCAN_CNF = TAF_MMA_MSG_ID_BASE + 0x63,                                                  /* _H2ASN_MsgChoice TAF_MMA_NET_SCAN_CNF_STRU */
     ID_TAF_MMA_NET_SCAN_ABORT_REQ = TAF_MMA_MSG_ID_BASE + 0x64,                                          /* _H2ASN_MsgChoice TAF_MMA_NET_SCAN_ABORT_REQ_STRU */
+
     ID_TAF_MMA_ACCESS_MODE_QRY_REQ = TAF_MMA_MSG_ID_BASE + 0x65,                                          /* _H2ASN_MsgChoice TAF_MMA_ACCESS_MODE_QRY_REQ_STRU */
     ID_TAF_MMA_ACCESS_MODE_QRY_CNF = TAF_MMA_MSG_ID_BASE + 0x66,                                          /* _H2ASN_MsgChoice TAF_MMA_ACCESS_MODE_QRY_CNF_STRU */
 
@@ -607,6 +618,47 @@ enum TAF_MMA_MSG_TYPE_ENUM
     ID_TAF_MMA_DSDS_STATE_SET_CNF = TAF_MMA_MSG_ID_BASE + 0x102,
     ID_TAF_MMA_DSDS_STATE_NOTIFY  = TAF_MMA_MSG_ID_BASE + 0x103,
 
+    ID_TAF_MMA_CEMODE_SET_REQ                  = TAF_MMA_MSG_ID_BASE + 0x104,
+    ID_TAF_MMA_CEMODE_SET_CNF                  = TAF_MMA_MSG_ID_BASE + 0x105,
+    ID_TAF_MMA_CEMODE_QRY_REQ                  = TAF_MMA_MSG_ID_BASE + 0x106,
+    ID_TAF_MMA_CEMODE_QRY_CNF                  = TAF_MMA_MSG_ID_BASE + 0x107,
+
+    ID_TAF_MMA_VOLTE_EMC_380_FAIL_NTF          = TAF_MMA_MSG_ID_BASE + 0x108,
+
+    ID_TAF_MMA_REJINFO_QRY_REQ                 = TAF_MMA_MSG_ID_BASE + 0x109,
+    ID_TAF_MMA_REJINFO_QRY_CNF                 = TAF_MMA_MSG_ID_BASE + 0x10A,
+
+    ID_TAF_MMA_SMS_STATUS_NOTIFY               = TAF_MMA_MSG_ID_BASE + 0x10B,
+
+    ID_TAF_MMA_EMRSSICFG_SET_REQ               = TAF_MMA_MSG_ID_BASE + 0x110,
+    ID_TAF_MMA_EMRSSICFG_QRY_REQ               = TAF_MMA_MSG_ID_BASE + 0x111,
+    ID_TAF_MMA_EMRSSICFG_SET_CNF               = TAF_MMA_MSG_ID_BASE + 0x112,
+    ID_TAF_MMA_EMRSSICFG_QRY_CNF               = TAF_MMA_MSG_ID_BASE + 0x113,
+    ID_TAF_MMA_EMRSSIRPT_SET_REQ               = TAF_MMA_MSG_ID_BASE + 0x114,
+    ID_TAF_MMA_EMRSSIRPT_SET_CNF               = TAF_MMA_MSG_ID_BASE + 0x115,
+    ID_TAF_MMA_EMRSSIRPT_QRY_REQ               = TAF_MMA_MSG_ID_BASE + 0x116,
+    ID_TAF_MMA_EMRSSIRPT_QRY_CNF               = TAF_MMA_MSG_ID_BASE + 0x117,
+    ID_TAF_MMA_EMRSSIRPT_IND                   = TAF_MMA_MSG_ID_BASE + 0x118,
+    ID_TAF_MMA_CDMA_MT_CALL_START_NTF          = TAF_MMA_MSG_ID_BASE + 0x119,
+
+    ID_TAF_MMA_ELEVATOR_STATE_IND              = TAF_MMA_MSG_ID_BASE + 0X11A,
+
+    ID_TAF_MMA_CLIMS_CFG_INFO_IND              = TAF_MMA_MSG_ID_BASE + 0x11B,
+    ID_TAF_MMA_CL_DBDOMAIN_STATUSE_SET_REQ     = TAF_MMA_MSG_ID_BASE + 0x11C,
+    ID_TAF_MMA_CL_DBDOMAIN_STATUSE_SET_CNF     = TAF_MMA_MSG_ID_BASE + 0x11D,
+    ID_TAF_MMA_CL_DBDOMAIN_STATUSE_INFO_IND    = TAF_MMA_MSG_ID_BASE + 0x11E,
+
+    ID_TAF_MMA_ULFREQRPT_SET_REQ               = TAF_MMA_MSG_ID_BASE + 0x11F,
+    ID_TAF_MMA_ULFREQRPT_SET_CNF               = TAF_MMA_MSG_ID_BASE + 0x120,
+    ID_TAF_MMA_ULFREQRPT_QRY_REQ               = TAF_MMA_MSG_ID_BASE + 0x121,
+    ID_TAF_MMA_ULFREQRPT_QRY_CNF               = TAF_MMA_MSG_ID_BASE + 0x122,
+    ID_TAF_MMA_ULFREQ_CHANGE_IND               = TAF_MMA_MSG_ID_BASE + 0x123,
+
+    ID_TAF_MMA_PS_SCENE_SET_REQ                = TAF_MMA_MSG_ID_BASE + 0x124,
+    ID_TAF_MMA_PS_SCENE_SET_CNF                = TAF_MMA_MSG_ID_BASE + 0x125,
+    ID_TAF_MMA_PS_SCENE_QRY_REQ                = TAF_MMA_MSG_ID_BASE + 0x126,
+    ID_TAF_MMA_PS_SCENE_QRY_CNF                = TAF_MMA_MSG_ID_BASE + 0x127,
+
     ID_TAF_MMA_MSG_TYPE_BUTT
 };
 typedef VOS_UINT32 TAF_MMA_MSG_TYPE_ENUM_UINT32;
@@ -619,6 +671,11 @@ enum TAF_MMA_RAT_TYPE_ENUM
     TAF_MMA_RAT_LTE,                                                             /* LTE接入技术 */
     TAF_MMA_RAT_1X,                                                             /* 1X接入技术 */
     TAF_MMA_RAT_HRPD,                                                           /* HRPD接入技术 */
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    TAF_MMA_RAT_NR,                                                             /* NR接入技术 */
+#endif
+
     TAF_MMA_RAT_BUTT
 
 };
@@ -660,6 +717,30 @@ enum TAF_MMA_RAT_NO_CHANGE_CMD_TYPE_ENUM
     TAF_MMA_RAT_NO_CHANGE_CMD_TYPE_BUTT
 };
 typedef VOS_UINT8 TAF_MMA_RAT_NO_CHANGE_CMD_TYPE_ENUM_UINT8;
+
+
+enum TAF_MMA_SET_CEMODE_ENUM
+{
+    TAF_MMA_MODE_PS_MODE2               = 0,
+    TAF_MMA_MODE_CS_PS_MODE1            = 1,
+    TAF_MMA_MODE_CS_PS_MODE2            = 2,
+    TAF_MMA_MODE_PS_MODE1               = 3,
+    TAF_MMA_MODE_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_SET_CEMODE_ENUM_UINT8;
+
+
+enum TAF_MMA_CEMODE_SET_RST_ENUM
+{
+    TAF_MODE_SET_UE_USAGE_SETTING       = 0,/*切换UE能力中心*/
+    TAF_MODE_SET_SERVICE_DOMAIN         = 1, /*切换服务域*/
+    TAF_MODE_SET_NOT_ALLOWED            = 2,/*not allowed*/
+    TAF_MODE_SET_OK                     = 3,
+    TAF_MODE_SET_FAILED                 = 4,
+    TAF_MODE_SET_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_CEMODE_SET_RST_ENUM_UINT8;
+
 
 /*****************************************************************************
   7 STRUCT定义
@@ -1169,13 +1250,6 @@ typedef VOS_UINT32 TAF_MMA_ICC_APP_TYPE_SWITCH_STATE_ENUM_UINT32;
 #ifndef SUBMOD_NULL
 #define  SUBMOD_NULL                    0
 #endif
-#define  TAF_CCA                        1
-#define  TAF_APS                        2
-#define  TAF_SMA                        3
-#define  TAF_SSA                        4
-#define  TAF_MMA                        5
-#define  TAF_ALL_SUBMODULE              0xFF    /*所有子模块*/
-#define  TAF_TAFM                       0
 
 
 
@@ -1204,6 +1278,7 @@ typedef struct
 {
 
     TAF_UINT8     aucReleaseDate[TAF_PH_RELEASEDATE_LEN+1];         /*发布日期*/
+    VOS_UINT8     ucReserved;
 }TAF_PH_RELEASE_DATE_STRU;
 
 #define TAF_PH_RELEASETIME_LEN             8
@@ -1211,6 +1286,7 @@ typedef struct
 {
 
     TAF_UINT8     aucReleaseTime[TAF_PH_RELEASETIME_LEN+1];         /*发布时间*/
+    VOS_UINT8     aucReserved[3];
 }TAF_PH_RELEASE_TIME_STRU;
 
 
@@ -1276,11 +1352,11 @@ typedef TAF_UINT8 TAF_PH_PLMN_PRIO;
 #define TAF_PLMN_PRIO_DIST_BTWN_CPAM_SYSCFG  1 /*CPAM与SYSCFG的接入优先级设置的差距 1 */
 
 typedef TAF_UINT8 TAF_PH_MS_CLASS_TYPE;
-#define TAF_PH_MS_CLASS_CC        0     /*只支持CS域手机对应于MMC的D_MMC_MODE_CC*/
-#define TAF_PH_MS_CLASS_CG        1     /*只支持PS域手机对应于MMC的D_MMC_MODE_CG*/
-#define TAF_PH_MS_CLASS_A         2
+#define TAF_PH_MS_CLASS_CC              1     /*只支持CS域手机对应于MMC的D_MMC_MODE_CC*/
+#define TAF_PH_MS_CLASS_CG              2     /*只支持PS域手机对应于MMC的D_MMC_MODE_CG*/
+#define TAF_PH_MS_CLASS_A               3
 
-#define TAF_PH_MS_CLASS_ANY       3     /* 相当于只支持CS域 */
+#define TAF_PH_MS_CLASS_ANY             4     /* 相当于只支持CS域 */
 
 #define TAF_PH_MS_CLASS_NULL      5
 #define TAF_PH_MS_CLASS_B         6     /*对应于GSM下B类手机*/
@@ -1511,7 +1587,11 @@ typedef struct
     VOS_UINT8                           ucRxANTNum;                    /*天线总数*/
     VOS_UINT8                           aucRev[3];
     VOS_INT16                           asRsrpRx[TAF_MMA_MAX_ANT_NUM]; /*各天线的rsrp值*/
+#if (FEATURE_ON == FEATURE_LTE_R14)
+    VOS_INT32                           alSINRRx[TAF_MMA_MAX_ANT_NUM_EX]; /*各天线的sinr值*/
+#else
     VOS_INT32                           alSINRRx[TAF_MMA_MAX_ANT_NUM]; /*各天线的sinr值*/
+#endif
 }TAF_MMA_RX_ANT_INFO_STRU;
 
 typedef struct
@@ -1719,7 +1799,9 @@ typedef union
     TAF_OPERATOR_LOCK_INFO_STRU        OperatorLockInfo;
 }TAF_ME_PERSONALISATION_REPORT_CONTENT_UN;
 
+#ifndef MBB_COMMON
 #define TAF_PH_ME_PERSONALISATION_PWD_LEN_MAX   8
+#endif
 typedef struct
 {
     TAF_ME_PERSONALISATION_CMD_TYPE     CmdType;
@@ -1950,7 +2032,9 @@ typedef TAF_UINT8 TAF_PH_RA_MODE;           /*接入模式*/
 #define TAF_PH_RA_GSM                      0
 #define TAF_PH_RA_WCDMA                    1
 #define TAF_PH_RA_LTE                      2
-#define TAF_PH_RA_MODE_DEFAULT             3
+#define TAF_PH_RA_NR                       3
+#define TAF_PH_RA_MODE_DEFAULT             4
+
 #define TAF_NAMELENGTH_MAX                 32
 
 /* STK功能 Access Technology Change Event 相关宏定义 */
@@ -2209,6 +2293,7 @@ typedef struct
 {
     TAF_UINT8         ucDispRplmnMode;
     TAF_UINT8         aucSpnName[TAF_PH_SPN_NAME_MAXLEN];
+    VOS_UINT8         aucReserved[3];
 }TAF_PH_USIM_SPN_CNF_STRU;
 
 /* 上报到应用层的SPN信息 */
@@ -2379,12 +2464,27 @@ typedef TAF_UINT8 AT_COPS_FORMAT_TYPE;
 #define AT_COPS_NUMERIC_TYPE              2
 
 
+enum TAF_MMA_EXTEND_SEARCH_TYPE_ENUM
+{
+    TAF_MMA_EXTEND_SEARCH_TYPE_FULLBAND = 0,
+    TAF_MMA_EXTEND_SEARCH_TYPE_HISTORY  = 1,
+    TAF_MMA_EXTEND_SEARCH_TYPE_PREFBAND = 2,
+    TAF_MMA_EXTEND_SEARCH_TYPE_BUTT
+};
+
+typedef VOS_UINT8 TAF_MMA_EXTEND_SEARCH_TYPE_ENUM_UINT8;
+
+
+
 typedef struct
 {
     AT_COPS_FORMAT_TYPE         ucFormatType;
     TAF_MMA_RAT_TYPE_ENUM_UINT8 enAccessMode;
     VOS_UINT16                  usOperNameLen;
     VOS_CHAR                    ucOperName[TAF_PH_OPER_NAME_LONG];
+    VOS_UINT8                                               ucBgSrchFlag;  /* 0:指定搜；1:背景搜 */
+    TAF_MMA_EXTEND_SEARCH_TYPE_ENUM_UINT8                   enSrchType;
+    VOS_UINT8                                               resv[2];
 }TAF_PLMN_USER_SEL_STRU;
 
 
@@ -2729,10 +2829,19 @@ typedef TAF_UINT8 TAF_PHONE_EVENT;
 
 #define TAF_MMA_EVT_PS_INIT_RESULT_IND        (45)  /* 协议栈初始化结果指示消息 */
 
+#define TAF_PH_EVT_USIM_MATCH_FILES_IND       (46)
+
+#define TAF_PH_EVT_SIMSQ_IND                  (47)
+
 #define TAF_MMA_MAX_GUC_RAT_NUM                             (4)                 /* AT^syscfgex中acqorder代表的接入技术个数 */
-#define TAF_MMA_MAX_GUCL_RAT_NUM                            (5)                 /* AT^syscfgex中acqorder代表的接入技术个数 */
+#define TAF_PH_MAX_SUPPORT_RAT_NUM                          (6)                 /* AT^syscfgex中acqorder代表的接入技术个数,G U L NR 1X HRPD */
 
 #define TAF_PH_MAX_GUL_RAT_NUM                              (3)                 /* AT^syscfgex中acqorder代表的接入技术个数 */
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define TAF_PH_MAX_GULNR_RAT_NUM                            (4)
+#define TAF_PH_MAX_GUNR_RAT_NUM                             (3)
+#endif
+
 #define TAF_PH_MAX_GU_RAT_NUM                               (2)                 /* AT^syscfgex中acqorder代表的接入技术个数 */
 #define TAF_PH_MAX_LU_RAT_NUM                               (2)                 /* AT^syscfgex中acqorder代表的接入技术个数 */
 
@@ -2741,7 +2850,12 @@ typedef TAF_UINT8 TAF_PHONE_EVENT;
 typedef struct
 {
     VOS_UINT8                           ucRatOrderNum;                          /* syscfgex中设置的acqoder中的指示个数 */
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    TAF_MMA_RAT_TYPE_ENUM_UINT8         aenRatOrder[TAF_PH_MAX_GULNR_RAT_NUM];    /* at^syscfgex中设置的acqoder的顺序 */
+    VOS_UINT8                           aucRsv[3];
+#else
     TAF_MMA_RAT_TYPE_ENUM_UINT8         aenRatOrder[TAF_PH_MAX_GUL_RAT_NUM];    /* at^syscfgex中设置的acqoder的顺序 */
+#endif
 }TAF_MMA_RAT_ORDER_STRU;
 
 
@@ -2749,9 +2863,14 @@ typedef struct
 typedef struct
 {
     VOS_UINT8                               ucRatNum;                           /* 当前支持的接入技术个数  */
+
     TAF_MMA_RAT_TYPE_ENUM_UINT8             aenRatOrder[TAF_MMA_RAT_BUTT];       /* 对于GUL的RAT制式，根据当前在数组出现的先后顺序，决定优先级，先出现优先
                                                                                    对于CL模式，则没有RAT优先级概念 */
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    VOS_UINT8                               aucReserved[1];
+#else
     VOS_UINT8                               aucReserved[2];
+#endif
 }TAF_MMA_MULTIMODE_RAT_CFG_STRU;
 
 
@@ -2876,9 +2995,12 @@ typedef struct
 
 
 
+
 typedef struct
 {
-    VOS_UINT16                          usArfcn;                                /* 频点 */
+    VOS_UINT32                          ulArfcn;                                /* 频点 */
+    VOS_UINT32                          ulPhyId;                                /* L需要使用physical cell id和频点结合来确定一个小区,Netscan给锁频/锁单个小区使用 */
+    VOS_UINT16                          usPSC;                                  /* WCDMA:该值是主扰码 */
     VOS_UINT16                          usC1;                                   /* 用于GSM小区重选的C1值(暂不支持) */
     VOS_UINT16                          usC2;                                   /* 用于GSM小区重选的C2值(暂不支持) */
     VOS_UINT16                          usLac;                                  /* 位置区码 */
@@ -2921,7 +3043,6 @@ enum TAF_MMA_NET_SCAN_CAUSE_ENUM
     TAF_MMA_NET_SCAN_CAUSE_BUTT
 };
 typedef VOS_UINT8 TAF_MMA_NET_SCAN_CAUSE_ENUM_UINT8;
-
 
 
 
@@ -3014,6 +3135,24 @@ typedef struct
     TAF_MMA_PLMN_LIST_CNF_PARA_STRU     stPlmnListCnfPara;
 }TAF_MMA_PLMN_LIST_CNF_STRU;
 
+enum TAF_USIM_MATCH_FILE_ENUM
+{
+    TAF_USIM_MATCH_FILE_GID1  = 0,
+    TAF_USIM_MATCH_FILE_GID2  = 1,
+    TAF_USIM_MATCH_FILE_SST   = 2,     /*for USIM is EF-UST, for SIM is EF-SST*/
+    TAF_USIM_MATCH_FILE_SPN   = 3,
+    TAF_USIM_MATCH_FILE_MAX
+};
+
+typedef VOS_UINT8 TAF_USIM_MATCH_FILE_ENUM_UINT8;
+
+typedef struct
+{
+    VOS_UINT16                         usTotalLen;                          /*File length*/
+    VOS_UINT16                         usCurLen;                            /*File length*/
+    VOS_UINT8                          ucFileType;                          /*TAF_USIM_MATCH_FILE_ENUM*/
+    VOS_UINT8                          aucContent[TAF_MAX_USIM_RSP_LEN];    /*File content*/
+}TAF_USIM_MATCH_FILE;
 
 typedef struct
 {
@@ -3056,6 +3195,7 @@ typedef struct
 
 
     TAF_UINT32                         OP_PlmnMode          : 1;
+
     TAF_UINT32                         OP_CurPlmn           : 1;
 
     TAF_UINT32                         Op_CellAcInfo        : 1;
@@ -3100,6 +3240,7 @@ typedef struct
     VOS_UINT8                          aucUnsolicitedRptCfg[TAF_MMA_RPT_CFG_MAX_SIZE];  /* 单个命令设置的主动上报标识 */
 
     TAF_MMA_PS_INIT_RSLT_ENUM_UINT32   ulPsInitRslt;                                    /* 协议栈初始化结果 */
+    TAF_USIM_MATCH_FILE                stUsimMatchFile;
 }TAF_PHONE_EVENT_INFO_STRU;
 
 #define TAF_SIM_LOCK_MCC_LEN            (3)
@@ -3547,6 +3688,10 @@ enum TAF_MMA_SRV_TYPE_ENUM
     TAF_MMA_SRV_TYPE_PS_SUBSCRIB_TRAFFIC_CALL,
     TAF_MMA_SRV_TYPE_PS_MO_EMERGENCY_CALL,
     TAF_MMA_SRV_TYPE_CS_MO_SMS_T3346_RUNNING,
+    TAF_MMA_SRV_TYPE_PS_MO_EMERGENCY_CALL_RETRY,
+
+    TAF_MMA_SRV_TYPE_PS_MO_EMERGENCY_CALL_VOLTE_380,
+
     TAF_MMA_SRV_TYPE_BUTT
 };
 typedef VOS_UINT8 TAF_MMA_SRV_TYPE_ENUM_UINT8;
@@ -3679,6 +3824,8 @@ typedef struct
     VOS_UINT8                                               aucReserved[2];
     TAF_CHAR                                                aucOperatorNameShort[TAF_PH_OPER_NAME_SHORT];
     TAF_CHAR                                                aucOperatorNameLong[TAF_PH_OPER_NAME_LONG];
+    VOS_INT16                                               sSignalValue1;    /* LTE:<RSRP> WCDMA:<RSCP> GSM:<RSSI> */
+    VOS_INT16                                               sSignalValue2;    /* LTE:<RSRQ> WCDMA:<EC/IO> GSM:0 */
 }TAF_MMA_CSG_ID_LIST_INFO_STRU;
 
 
@@ -4150,10 +4297,9 @@ typedef struct
     VOS_UINT16                          usClientId;
     VOS_UINT8                           ucOpid;
     VOS_UINT8                           aucReserved1[1];
-
     TAF_MMA_RAT_TYPE_ENUM_UINT8         enRat;
-    VOS_UINT8                           aucReserved2[3];
-
+    VOS_UINT8                           aucReserved2[1];
+    TAF_PH_NETWORK_STATUS_FLAG          aucPlmnstatus[TAF_MMA_MAX_SRCHED_LAI_NUM];
     VOS_UINT32                          ulLaiNum;
     TAF_LAI_STRU                        astLai[TAF_MMA_MAX_SRCHED_LAI_NUM];
 }TAF_MMA_SRCHED_PLMN_INFO_IND_STRU;
@@ -4235,6 +4381,8 @@ typedef struct
     VOS_UINT8                                               aucReserve[3];
 }TAF_MMA_CDMA_MO_CALL_END_NTF_STRU;
 
+typedef TAF_MMA_CDMA_MO_CALL_START_NTF_STRU TAF_MMA_CDMA_MT_CALL_START_NTF_STRU;
+
 typedef TAF_MMA_CDMA_MO_CALL_END_NTF_STRU TAF_MMA_CDMA_MT_CALL_END_NTF_STRU;
 
 /** ****************************************************************************
@@ -4248,6 +4396,7 @@ typedef struct
     TAF_MMA_MSG_TYPE_ENUM_UINT32                            enMsgId;    /* _H2ASN_Skip */
     TAF_MMA_PS_RAT_TYPE_ENUM_UINT32                         enRatTypeEnterDorm;    /* 进入dormant的接入技术 */
 }TAF_MMA_CDMA_ENTER_DORM_FOR_PRIOR_SYS_NTF_STRU;
+
 
 
 
@@ -4952,6 +5101,7 @@ typedef TAF_MMA_CERSSI_SET_REQ_STRU TAF_MMA_CIND_SET_REQ_STRU;
 
 
 typedef TAF_MMA_CERSSI_SET_CNF_STRU TAF_MMA_CIND_SET_CNF_STRU;
+
 
 
 typedef struct
@@ -6463,6 +6613,388 @@ typedef struct
 }TAF_MMA_PLMN_SEARCH_CNF_STRU;
 
 
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_MMA_SET_CEMODE_ENUM_UINT8       ucCeMode;
+    TAF_UINT8                           aucReserved[3];
+} TAF_MMA_CEMODE_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+} TAF_MMA_CEMODE_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_CEMODE_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+    TAF_MMA_SET_CEMODE_ENUM_UINT8       enCeMode;
+    TAF_UINT8                           aucReserved[3];
+} TAF_MMA_CEMODE_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+} TAF_MMA_VOLTE_EMC_380_FAIL_NTF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_REJINFO_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_PH_REG_REJ_INFO_STRU            stPhoneRejInfo;
+} TAF_MMA_REJINFO_QRY_CNF_STRU;
+
+/*****************************************************************************
+ 枚举名    : TAF_MMA_SIMSQ_STATE_ENUM
+ 枚举说明  : SIMSQ状态枚举变量
+*****************************************************************************/
+enum TAF_MMA_SIMSQ_STATE_ENUM
+{
+    TAF_MMA_SIMSQ_NOT_INSERTED            = 0,
+    TAF_MMA_SIMSQ_INSERTED                = 1,
+    TAF_MMA_SIMSQ_PIN_PUK                 = 2,
+    TAF_MMA_SIMSQ_SIMLOCK                 = 3,
+    TAF_MMA_SIMSQ_INITIALIZING            = 10,
+    TAF_MMA_SIMSQ_INITIALIZED             = 11,
+    TAF_MMA_SIMSQ_READY                   = 12,
+    TAF_MMA_SIMSQ_PUKLOCK_DAMAGE          = 98,
+    TAF_MMA_SIMSQ_REMOVED                 = 99,
+    TAF_MMA_SIMSQ_INIT_FAIL               = 100,
+    TAF_MMA_SIMSQ_BUTT
+};
+typedef VOS_UINT32 TAF_MMA_SIMSQ_STATE_ENUM_UINT32;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    VOS_BOOL                            bSmsReady;
+}TAF_MMA_SMS_STATUS_NOTIFY_STRU;
+
+
+typedef struct
+{
+    VOS_INT16                           sLastGsmEmRssi;
+    VOS_INT16                           sLastWcdmaEmRssi;
+    VOS_INT16                           sLastLteEmRssi;
+    VOS_UINT16                          usReserved;
+    VOS_UINT8                           ucEmRssiCfgGsmThreshold;
+    VOS_UINT8                           ucEmRssiCfgWcdmaThreshold;
+    VOS_UINT8                           ucEmRssiCfgLteThreshold;
+    VOS_UINT8                           ucEmRssiRptSwitch;
+}TAF_MMA_EMRSSIINFO_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucEmRssiCfgRat;
+    VOS_UINT8                           ucEmRssiCfgThreshold;
+    VOS_UINT8                           aucReserved[2];
+}TAF_MMA_EMRSSICFG_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_MMA_EMRSSICFG_REQ_STRU          stEmRssiCfg;
+}TAF_MMA_EMRSSICFG_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpid;
+    VOS_UINT8                           aucReserved;
+    TAF_ERROR_CODE_ENUM_UINT32          enErrorCause;
+}TAF_MMA_EMRSSICFG_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_EMRSSICFG_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucEmRssiCfgGsmThreshold;
+    VOS_UINT8                           ucEmRssiCfgWcdmaThreshold;
+    VOS_UINT8                           ucEmRssiCfgLteThreshold;
+    VOS_UINT8                           ucReserved;
+}TAF_MMA_EMRSSICFG_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enErrorCause;
+    TAF_MMA_EMRSSICFG_STRU              stEmRssiCfgPara;
+}TAF_MMA_EMRSSICFG_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    VOS_UINT8                           ucEmRssiRptSwitch;
+    VOS_UINT8                           aucReserved[3];
+}TAF_MMA_EMRSSIRPT_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpid;
+    VOS_UINT8                           aucReserved;
+    TAF_ERROR_CODE_ENUM_UINT32          enErrorCause;
+}TAF_MMA_EMRSSIRPT_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_EMRSSIRPT_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enErrorCause;
+    VOS_UINT8                           ucEmRssiRptSwitch;
+    VOS_UINT8                           aucReserved[3];
+}TAF_MMA_EMRSSIRPT_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        enMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    VOS_UINT8                           ucClImsSupportFlag;   /* CL下IMS是否支持,VOS_TRUE :支持，VOS_FALSE :不支持 */
+    VOS_UINT8                           ucClVolteMode;        /* 电信Volte配置模式 0:手动切 1:自动切 */
+    VOS_UINT8                           ucLteImsSupportFlag;  /* LTE IMS使能项,VOS_TRUE :支持，VOS_FALSE :不支持 */
+    VOS_UINT8                           ucReserved;
+}TAF_MMA_CLIMS_CFG_INFO_IND_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_UINT8                           ucEnableFlag;
+    TAF_UINT8                           aucReserved[3];
+} TAF_MMA_CL_DBDOMAIN_STATUS_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+} TAF_MMA_CL_DBDOMAIN_STATUS_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    VOS_UINT16                          usClientId;
+    TAF_UINT8                           ucEnableReportFlag;
+    TAF_UINT8                           uc1xSrvStatus;
+    TAF_UINT8                           ucImsVoiceCap;
+    TAF_UINT8                           aucReserved[3];
+} TAF_MMA_CL_DBDOMAIN_STATUS_INFO_IND_STRU;
+
+
+typedef struct
+{
+    MSG_HEADER_STRU                     stMsgHeader;                            /*_H2ASN_Skip*/
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpid;
+    VOS_UINT8                           resv;
+    VOS_UINT32                          ulElevatorState;
+    VOS_UINT32                          ulServiceState;
+} TAF_MMA_ELEVATOR_STATE_IND_STRU;
+
+
+enum TAF_MMA_ULFREQ_RAT_ENUM
+{
+    TAF_MMA_ULFREQ_RAT_NO_SERVICE        = 0,
+    TAF_MMA_ULFREQ_RAT_WCDMA             = 1,
+    TAF_MMA_ULFREQ_RAT_HRPD              = 2,
+    TAF_MMA_ULFREQ_RAT_LTE               = 3,
+    TAF_MMA_ULFREQ_RAT_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_ULFREQ_RAT_ENUM_UINT8;
+
+
+enum TAF_MMA_ULFREQ_SWITCH_ENUM
+{
+    TAF_MMA_ULFREQRPT_DISABLE        = 0,       /* 上行频率主动上报关闭 */
+    TAF_MMA_ULFREQRPT_ENABLE         = 1,       /* 上行频率主动上报打开 */
+    TAF_MMA_ULFREQRPT_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_ULFREQ_SWITCH_ENUM_UINT8;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_MMA_ULFREQ_SWITCH_ENUM_UINT8    enMode;
+    VOS_UINT8                           aucReserved[3];
+}TAF_MMA_ULFREQRPT_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgName;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpid;
+    VOS_UINT8                           aucReserved;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+}TAF_MMA_ULFREQRPT_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_ULFREQRPT_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enErrorCause;
+    VOS_UINT32                          ulUlFreq;          /* 上行频率，单位100kHz */
+    VOS_UINT16                          usBandwidth;       /* 带宽，单位1kHz*/
+    TAF_MMA_ULFREQ_RAT_ENUM_UINT8       enRat;             /* 接入技术，0:无服务，1:WCDMA,2:HRPD */
+    TAF_MMA_ULFREQ_SWITCH_ENUM_UINT8    enMode;            /* 主动上报是否使能，0:关闭，1:使能 */
+}TAF_MMA_ULFREQRPT_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    MSG_HEADER_STRU                     stMsgHeader;                            /*_H2ASN_Skip*/
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpid;
+    TAF_MMA_ULFREQ_RAT_ENUM_UINT8       enRat;              /* 接入技术，0:无服务，1:WCDMA,2:HRPD */
+    VOS_UINT32                          ulFreq;             /* 上行频率，单位100kHz */
+    VOS_UINT16                          usBandWidth;        /* 带宽，单位1kHz*/
+    VOS_UINT8                           aucReserved[2];
+} TAF_MMA_UL_FREQ_IND_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    VOS_UINT16                          usClientId;                             /* 客户端ID */
+    VOS_UINT8                           ucOpId;                                 /* 操作码ID */
+    VOS_UINT8                           aucReserved[1];
+    VOS_UINT32                          ulUlFreq;                               /* 上行频率 */
+    VOS_UINT16                          usUlBandwidth;                          /* 上行带宽 */
+    VOS_UINT8                           aucResrved1[2];
+}TAF_MMA_LTE_UL_FREQ_CHANGE_IND_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucPsServiceState;   /* 副卡PS业务状态，0:结束副卡PS业务;1:开始副卡PS业务 */
+    VOS_UINT8                           ucPsDetachFlag;      /* 是否需要DETACH PS域，0：不需要detach ps；*/
+    VOS_UINT8                           aucReserve[2];
+}TAF_MMA_PS_SCENE_PARA_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_MMA_PS_SCENE_PARA_STRU          stPsStatePara;
+}TAF_MMA_PS_SCENE_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+} TAF_MMA_PS_SCENE_SET_CNF_STRU;
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
+    TAF_MMA_CTRL_STRU                   stCtrl;
+}TAF_MMA_PS_SCENE_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    TAF_MMA_CTRL_STRU                   stCtrl;
+    VOS_UINT32                          ulPsSceneState;
+    TAF_ERROR_CODE_ENUM_UINT32          enResult;
+} TAF_MMA_PS_SCENE_QRY_CNF_STRU;
+
 TAF_UINT32 Taf_DefPhClassType(MN_CLIENT_ID_T        ClientId,
                                       MN_OPERATION_ID_T     OpId,
                                       TAF_PH_MS_CLASS_TYPE  MsClass);
@@ -6494,18 +7026,6 @@ VOS_UINT32 Taf_SetCopsFormatTypeReq(
     MN_CLIENT_ID_T                                          usClientId,
     MN_OPERATION_ID_T                                       ucOpId,
     TAF_MMA_COPS_FORMAT_TYPE_SET_REQ_STRU                  *pstCopsFormatType
-);
-
-VOS_UINT32 TAF_SetUsimStub(
-    MN_CLIENT_ID_T                      usClientId,
-    MN_OPERATION_ID_T                   ucOpId,
-    TAF_MMA_USIM_STUB_SET_REQ_STRU     *pstUsimStub
-);
-
-VOS_UINT32 TAF_SetRefreshStub(
-    MN_CLIENT_ID_T                      usClientId,
-    MN_OPERATION_ID_T                   ucOpId,
-    TAF_MMA_REFRESH_STUB_SET_REQ_STRU  *pstRefreshStub
 );
 
 VOS_UINT32 TAF_SetAutoReselStub(
@@ -6564,16 +7084,6 @@ VOS_UINT8 MN_MMA_GetServiceDomain(VOS_VOID);
 
 TAF_UINT32  Taf_DefMmTestPara(TAF_VOID *pInput,TAF_VOID *pRslt);
 
-
-
-VOS_UINT32  MN_FillAndSndAppReqMsg(
-    MN_CLIENT_ID_T                      ClientId,
-    MN_OPERATION_ID_T                   OpId,
-    VOS_UINT16                          usMsgType,
-    VOS_VOID                            *pPara,
-    VOS_UINT32                          ulParaLen,
-    VOS_UINT32                          ulReceiverPid
-);
 
 VOS_VOID Taf_GetCurrentAttachStatus(
     TAF_MMA_ATTACH_STATUS_ENUM_UINT8    *penCsResult,
@@ -6696,6 +7206,10 @@ VOS_VOID TAF_MMA_SrvAcqReq(
 );
 
 
+VOS_VOID TAF_MMA_SrvAcqStop(
+    VOS_UINT32                          ulModuleId
+);
+
 #if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
 
 
@@ -6755,12 +7269,14 @@ VOS_UINT32 TAF_MMA_ProcCHVerQryReq(
     VOS_UINT16                          usClientId,
     VOS_UINT8                           ucOpId
 );
+#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
 VOS_UINT32 TAF_MMA_SetCSidList(
     VOS_UINT32                          ulModuleId,
     VOS_UINT16                          usClientId,
     VOS_UINT8                           ucOpId,
     TAF_MMA_OPER_LOCK_WHITE_SID_STRU   *pstWhiteSidList
 );
+#endif
 /* 移出CDMA编译开关 */
 
 VOS_UINT32 TAF_MMA_ProcHdrCsqSetReq(
@@ -6910,11 +7426,6 @@ extern VOS_UINT32 TAF_MMA_SetPrefPlmnTypeReq(
     MN_PH_PREF_PLMN_TYPE_ENUM_U8       *penPrefPlmnType
 );
 
-extern VOS_UINT32 TAF_MMA_MtPowerDownReq(
-    VOS_UINT32                          ulModuleId,
-    VOS_UINT16                          usClientId,
-    VOS_UINT8                           ucOpId
-);
 VOS_UINT32 TAF_MMA_SetCerssiReq(
     VOS_UINT32                          ulModuleId,
     VOS_UINT16                          usClientId,
@@ -7077,13 +7588,6 @@ VOS_UINT32 TAF_MMA_QryCopnInfoReq(
     MN_OPERATION_ID_T                   ucOpId
 );
 
-VOS_UINT32 TAF_MMA_SimInsertReq(
-    VOS_UINT32                          ulModuleId,
-    MN_CLIENT_ID_T                      usClientId,
-    MN_OPERATION_ID_T                   ucOpId,
-    TAF_SIM_INSERT_STATE_ENUM_UINT32    enSimInsertState
-);
-
 VOS_UINT32 TAF_MMA_SetEOPlmnReq(
     VOS_UINT32                          ulModuleId,
     MN_CLIENT_ID_T                      usClientId,
@@ -7241,7 +7745,19 @@ VOS_UINT32 TAF_MMA_QryImsSmsCfgReq(
     VOS_UINT16                          usClientId,
     VOS_UINT8                           ucOpId
 );
+
+VOS_VOID TAF_MMA_VolteEmc380FailNotify(VOS_VOID);
 #endif
+
+#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
+VOS_UINT32 TAF_MMA_SetClDbDomainStatus(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    VOS_UINT8                           ucMode
+);
+#endif
+
 VOS_UINT32 TAF_MMA_QryPacspReq(
     VOS_UINT32                          ulModuleId,
     VOS_UINT16                          usClientId,
@@ -7275,7 +7791,101 @@ VOS_UINT32 TAF_MMA_PlmnSearchReq(
     TAF_PLMN_USER_SEL_STRU             *pstPlmnUserSel
 );
 
-#if ((VOS_OS_VER == VOS_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+VOS_UINT32 TAF_MMA_SetCemodeReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    VOS_UINT32                          ulSetValue
+);
+VOS_UINT32 TAF_MMA_QryCemodeReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+
+
+VOS_UINT32 TAF_MMA_QryRejinfoReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+
+VOS_UINT32 TAF_MMA_SetEmRssiCfgReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    TAF_MMA_EMRSSICFG_REQ_STRU         *pstEmRssiCfgPara
+);
+VOS_UINT32 TAF_MMA_QryEmRssiCfgReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+VOS_UINT32 TAF_MMA_SetEmRssiRptReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    VOS_UINT8                          *pucEmRssiRptSwitch
+);
+VOS_UINT32 TAF_MMA_QryEmRssiRptReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+
+VOS_UINT32 TAF_MMA_SetUlFreqRptReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    VOS_UINT8                           ucMode
+);
+
+VOS_UINT32 TAF_MMA_QryUlFreqRptReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+
+#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
+VOS_UINT32 TAF_SetUsimStub(
+    MN_CLIENT_ID_T                      usClientId,
+    MN_OPERATION_ID_T                   ucOpId,
+    TAF_MMA_USIM_STUB_SET_REQ_STRU     *pstUsimStub
+);
+
+VOS_UINT32 TAF_SetRefreshStub(
+    MN_CLIENT_ID_T                      usClientId,
+    MN_OPERATION_ID_T                   ucOpId,
+    TAF_MMA_REFRESH_STUB_SET_REQ_STRU  *pstRefreshStub
+);
+
+VOS_UINT32 TAF_MMA_SimInsertReq(
+    VOS_UINT32                          ulModuleId,
+    MN_CLIENT_ID_T                      usClientId,
+    MN_OPERATION_ID_T                   ucOpId,
+    TAF_SIM_INSERT_STATE_ENUM_UINT32    enSimInsertState
+);
+
+extern VOS_UINT32 TAF_MMA_MtPowerDownReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+#endif
+
+VOS_UINT32 TAF_MMA_SetPsSceneReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId,
+    TAF_MMA_PS_SCENE_PARA_STRU         *pstPsSrvStatePara
+);
+VOS_UINT32 TAF_MMA_QryPsSceneReq(
+	VOS_UINT32                          ulModuleId,
+	VOS_UINT16                          usClientId,
+    	VOS_UINT8                           ucOpId
+ );
+
+#if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else
 #pragma pack(0)

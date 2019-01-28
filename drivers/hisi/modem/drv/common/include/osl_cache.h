@@ -96,12 +96,14 @@ static __inline__ int osl_cache_invalid( OSL_CACHE_TYPE type,void *address,unsig
 
 #define OSL_CACHE_ALIGN_SIZE    32
 
+//lint -esym(528,*)
+/*lint -save -e528*/
 static __inline__ int osl_cache_flush( OSL_CACHE_TYPE type,void *address,unsigned int bytes  )
 {
     int ret = OK;
     if(OSL_DATA_CACHE == type)
     {
-        ret =  SRE_DCacheFlush(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE) ,TRUE);
+        ret =  (int)SRE_DCacheFlush(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE) ,TRUE);
     }
     return ret;
 }
@@ -109,11 +111,11 @@ static __inline__ int osl_cache_invalid( OSL_CACHE_TYPE type,void *address,unsig
 {
     if(OSL_DATA_CACHE == type)
     {
-        return SRE_DCacheInv(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE),TRUE);
+        return (int)SRE_DCacheInv(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE),TRUE);
     }
     else
     {
-        return SRE_ICacheInv(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE),TRUE);
+        return (int)SRE_ICacheInv(address,OSL_ROUND_UP(bytes, OSL_CACHE_ALIGN_SIZE),TRUE);
     }
 }
 
@@ -145,7 +147,8 @@ static __inline__ unsigned int osl_cache_flush_all_nolock(void)
     return SRE_DCacheFlushAll();
 }
 #endif
-
+//lint +esym(528,*)
+/*lint ¨Crestore */
 #else
 
 #endif /* __KERNEL__ */

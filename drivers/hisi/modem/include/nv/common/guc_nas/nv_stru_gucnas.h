@@ -70,7 +70,7 @@ extern "C" {
 #define TAF_NVIM_SN_LEN                                     (20)
 #define TAF_NVIM_MAX_OPER_NAME_SERVICE_PRIO_NUM             (4)
 #define TAF_NV_BLACK_LIST_MAX_NUM                           (51)
-#define TAF_NVIM_MAX_USER_SYS_CFG_RAT_NUM                   (5)
+#define TAF_NVIM_MAX_USER_SYS_CFG_RAT_NUM                   (7)
 #define TAF_MAX_MFR_ID_LEN                                  (31)
 #define TAF_MAX_MFR_ID_STR_LEN                              (TAF_MAX_MFR_ID_LEN + 1)
 #define TAF_PH_PRODUCT_NAME_LEN                             (15)
@@ -85,6 +85,8 @@ extern "C" {
 #define MTA_BODY_SAR_GBAND_MAX_NUM                          (4)
 #define TAF_PH_SIMLOCK_PLMN_STR_LEN                         (8)                 /* Plmn 号段长度 */
 #define TAF_MAX_SIM_LOCK_RANGE_NUM                          (20)
+
+#define TAF_NVIM_MAX_RAT_ORDER_NUM                          (8)
 
 /* WINS可配置NV项的结构体 */
 #define WINS_CONFIG_DISABLE                                 (0)                 /* WINS不使能 */
@@ -140,6 +142,7 @@ enum TAF_MMA_CFREQ_LOCK_MODE_TYPE_ENUM
 };
 typedef VOS_UINT8 TAF_MMA_CFREQ_LOCK_MODE_TYPE_ENUM_UINT8;
 
+/* 实际未使用 */
 
 enum TAF_LSMS_RESEND_FLAG_ENUM
 {
@@ -188,6 +191,8 @@ enum PLATFORM_RAT_TYPE_ENUM
     PLATFORM_RAT_TDS,                                                           /* TDS接入技术 */
     PLATFORM_RAT_1X,                                                            /* CDMA-1X接入技术 */
     PLATFORM_RAT_HRPD,                                                          /* CDMA-EV_DO接入技术 */
+
+    PLATFORM_RAT_NR,                                                            /* NR接入技术 */
     PLATFORM_RAT_BUTT
 };
 typedef VOS_UINT16 PLATFORM_RAT_TYPE_ENUM_UINT16;
@@ -264,6 +269,13 @@ enum NV_MS_MODE_ENUM
 typedef VOS_UINT8 NV_MS_MODE_ENUM_UINT8;
 
 
+enum AT_CVHU_MODE_ENUM
+{
+    CVHU_MODE_0,                                                                /* 下发ATH可以挂断通话 */
+    CVHU_MODE_1,                                                                /* 下发ATH只是返回OK，不会影响通话 */
+    CVHU_MODE_BUTT                                                              /* 其他值按照ATH可以挂断通话处理 */
+};
+typedef VOS_UINT8 AT_CVHU_MODE_ENUM_UINT8;
 /*****************************************************************************
   4 STRUCT定义
 *****************************************************************************/
@@ -327,6 +339,7 @@ typedef struct
 
 
 
+/* 实际未使用 */
 
 typedef struct
 {
@@ -401,14 +414,14 @@ typedef struct
 {
     VOS_UINT8                           ucRatOrderNum;                                      /* syscfgex中设置的acqoder中的指示个数 */
     VOS_UINT8                           aenRatOrder[TAF_NVIM_MAX_USER_SYS_CFG_RAT_NUM];     /* syscfgex中设置的acqoder类型 */
-    VOS_UINT8                           aucReserved[2];
 }TAF_NVIM_MULTIMODE_RAT_CFG_STRU;
 
 
 typedef struct
 {
     TAF_NV_GPS_CHIP_TYPE_ENUM_UINT8     enGpsChipType;
-    VOS_UINT8                           ucReserve1;
+    /* ucPllStubType取值: 0 真实上报RCM值; 1 Modem1锁定是模式固定为CDMA */
+    VOS_UINT8                           ucPllStubType;
     VOS_UINT8                           ucReserve2;
     VOS_UINT8                           ucReserve3;
 }TAF_NVIM_GPS_CUST_CFG_STRU;
@@ -563,10 +576,22 @@ typedef struct
 
 typedef struct
 {
+    VOS_UINT8           ucRatOrderNum;
+    VOS_UINT8           aenRatOrder[TAF_NVIM_MAX_RAT_ORDER_NUM];
+    VOS_UINT8           ucReserved1;
+    VOS_UINT8           ucReserved2;
+    VOS_UINT8           ucReserved3;
+
+}TAF_NVIM_RAT_ORDER_EX_STRU;
+
+
+typedef struct
+{
     VOS_UINT8                           ucLteRoamAllowedFlg;
     VOS_UINT8                           aucReserve[1];
     VOS_UINT8                           aucRoamEnabledMccList[20];              /* 允许漫游的国家码列表 */
 }NAS_MMC_NVIM_LTE_INTERNATIONAL_ROAM_CFG_STRU;
+
 
 
 typedef struct
@@ -576,6 +601,7 @@ typedef struct
     VOS_UINT8                           ucReserve1;
     VOS_UINT8                           ucReserve2;
 }NAS_PREVENT_TEST_IMSI_REG_STRU;
+
 
 
 typedef struct
@@ -718,6 +744,23 @@ typedef struct
     VOS_UINT8                           ucReserved2;
 } TAF_CALL_NVIM_CCWA_CTRL_MODE_STRU;
 
+
+typedef struct
+{
+    AT_CVHU_MODE_ENUM_UINT8             enCvhuMode;                             /* 设置CVHU，控制是否支持ATH挂断语音 */
+    VOS_UINT8                           ucReserved1;
+    VOS_UINT8                           ucReserved2;
+    VOS_UINT8                           ucReserved3;
+}NAS_NVIM_CUSTOM_CALL_CFG_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucSimsqEnable;                          /* USIMM  SIMSQ状态上报开关   0:不使能  1:使能 */
+    VOS_UINT8                           ucReserved1;
+    VOS_UINT8                           ucReserved2;
+    VOS_UINT8                           ucReserved3;
+}NAS_NVIM_CUSTOM_USIMM_CFG_STRU;
 
 #pragma pack(pop)
 

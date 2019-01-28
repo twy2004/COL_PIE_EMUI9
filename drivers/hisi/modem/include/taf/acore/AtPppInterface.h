@@ -46,46 +46,45 @@
 *
 */
 
-#ifndef __ATPPPINTERFACE_H__
-#define __ATPPPINTERFACE_H__
-
-#ifdef __cplusplus
-#if __cplusplus
-extern "C" {
-#endif
-#endif
-
+#ifndef __AT_PPP_INTERFACE_H__
+#define __AT_PPP_INTERFACE_H__
 
 /*****************************************************************************
   1 其他头文件包含
 *****************************************************************************/
+
 #include "vos.h"
-#include "PppInterface.h"
 #include "TafTypeDef.h"
+#include "PppInterface.h"
 #if (OSA_CPU_ACPU == VOS_OSA_CPU)
 #include "ImmInterface.h"
 #endif
 
+
+#ifdef __cplusplus
+#if __cplusplus
+extern "C" {
+#endif /* __cpluscplus */
+#endif /* __cpluscplus */
+
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
+#else
+#pragma pack(push, 4)
+#endif
 
 /*****************************************************************************
-  1 消息头定义
-*****************************************************************************/
-/* 改为APS保存，网络模式下，APS会通知PPP做激活协商，中继模式下不通知PPPC */
-
-
-
-/*****************************************************************************
-  4 全局变量声明
+  2 宏定义
 *****************************************************************************/
 
 /*****************************************************************************
-  6 消息定义
+  3 枚举定义
 *****************************************************************************/
 
 /*****************************************************************************
-  7 STRUCT定义
+  4 STRUCT定义
 *****************************************************************************/
+
 /*对应PPP_AUTH_PAP_CONTENT_STRU，用于消息方式交互*/
 typedef struct
 {
@@ -156,26 +155,26 @@ typedef struct
     AT_PPP_PCO_IPV4_ITEM_STRU           stPcoIpv4Item;                  /*PCO信息*/
 } AT_PPP_IND_CONFIG_INFO_STRU;
 
-/* 改为APS保存，网络模式下，APS会通知PPP做激活协商，中继模式下不通知PPPC */
 
 /*****************************************************************************
-  8 UNION定义
+  5 UNION定义
 *****************************************************************************/
 
 /*****************************************************************************
-  9 OTHERS定义
+  6 函数声明
 *****************************************************************************/
 
-
-/*****************************************************************************
-  10 函数声明
-*****************************************************************************/
 /* 这两个接口使用到新的结构体，因此不放在PppInterface.h */
-extern VOS_UINT32 At_RcvTeConfigInfoReq (VOS_UINT16 usPppId,AT_PPP_REQ_CONFIG_INFO_STRU *pstPppReqConfigInfo);
-extern VOS_UINT32 Ppp_RcvConfigInfoInd (PPP_ID usPppId, AT_PPP_IND_CONFIG_INFO_STRU *pPppIndConfigInfo);
-extern TAF_UINT32 At_RcvPppReleaseInd ( TAF_UINT16 usPppId);
-extern TAF_UINT32 At_PsRab2PppId (TAF_UINT8 ucExRabId, TAF_UINT16 *pusPppId);
-extern TAF_UINT32 At_PppId2PsRab (TAF_UINT16 usPppId, TAF_UINT8 *pucExRabId);
+extern VOS_UINT32 At_RcvTeConfigInfoReq(VOS_UINT16 usPppId, AT_PPP_REQ_CONFIG_INFO_STRU *pstPppReqConfigInfo);
+extern VOS_UINT32 Ppp_RcvConfigInfoInd(PPP_ID usPppId, AT_PPP_IND_CONFIG_INFO_STRU *pPppIndConfigInfo);
+extern VOS_UINT32 At_RcvPppReleaseInd(VOS_UINT16 usPppId);
+extern VOS_UINT32 At_PsRab2PppId(VOS_UINT8 ucExRabId, VOS_UINT16 *pusPppId);
+extern VOS_UINT32 At_PppId2PsRab(VOS_UINT16 usPppId, VOS_UINT8 *pucExRabId);
+
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+extern VOS_UINT32 At_PppId2IfaceId (VOS_UINT16 usPppId, VOS_UINT8 *pucIfaceId);
+extern VOS_UINT32 At_IfaceId2PppId (VOS_UINT8 ucIfaceId, VOS_UINT16 *pusPppId);
+#endif
 
 #if (OSA_CPU_ACPU == VOS_OSA_CPU)
 extern VOS_UINT32 AT_SendZcDataToModem(
@@ -186,19 +185,19 @@ extern VOS_UINT32 AT_SendZcDataToModem(
 
 extern VOS_UINT32 Ppp_RegDlDataCallback(PPP_ID usPppId);
 
-#if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))
+
+
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack()
 #else
-#pragma pack(0)
+#pragma pack(pop)
 #endif
-
 
 #ifdef __cplusplus
-    #if __cplusplus
-        }
-    #endif
-#endif
+#if __cplusplus
+}
+#endif /* __cpluscplus */
+#endif /* __cpluscplus */
 
-#endif
-
+#endif /* __AT_PPP_INTERFACE_H__ */
 

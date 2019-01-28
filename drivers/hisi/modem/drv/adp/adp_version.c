@@ -51,6 +51,7 @@
 #include <linux/string.h>
 #include <linux/ctype.h>
 #include <mdrv_misc_comm.h>
+#include <securec.h>
 #include <nv_stru_drv.h>
 #include <bsp_nvim.h>
 #include "bsp_version.h"
@@ -84,7 +85,7 @@ const MODEM_VER_INFO_S * mdrv_ver_get_info(void)
 ****************************************************************************/
 void mdrv_ver_init(void)
 {
-    memset(&ver_info, 0x0, sizeof(MODEM_VER_INFO_S));
+    memset_s(&ver_info, sizeof(MODEM_VER_INFO_S), 0x0, sizeof(MODEM_VER_INFO_S));
 
     if(NULL == bsp_get_version_info())
     {
@@ -132,7 +133,7 @@ BSP_MODULE_SUPPORT_E mdrv_misc_support_check (BSP_MODULE_TYPE_E module_type)
     ret = bsp_nvm_read(NV_ID_DRV_MODULE_SUPPORT, (u8*)&stSupportNv, (unsigned int)sizeof(DRV_MODULE_SUPPORT_STRU));/*lint !e26 !e119 */
     if(NV_OK != ret)
 	{
-		(void)memset(&stSupportNv, 0xFF,sizeof(DRV_MODULE_SUPPORT_STRU));
+		(void)memset_s(&stSupportNv, sizeof(DRV_MODULE_SUPPORT_STRU), 0xFF,sizeof(DRV_MODULE_SUPPORT_STRU));
 		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_HWADP,
 			"bsp_nvm_read error, ret %#x, item %#x\n, set to default %#x",
 			ret, NV_ID_DRV_MODULE_SUPPORT, *(unsigned int *)&stSupportNv);

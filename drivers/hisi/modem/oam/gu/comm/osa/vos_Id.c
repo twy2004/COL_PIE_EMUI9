@@ -88,8 +88,8 @@
 #define    THIS_FILE_ID        PS_FILE_ID_VOS_ID_C
 
 /* recoed PID info VOS_PID_BUTT comes from v_id.inc */
-VOS_INT                 vos_PidRecordsNumber;
-VOS_PID_RECORD          vos_PidRecords[VOS_PID_BUTT-VOS_PID_DOPRAEND];
+MODULE_EXPORTED VOS_INT                 vos_PidRecordsNumber;
+MODULE_EXPORTED VOS_PID_RECORD          vos_PidRecords[VOS_PID_BUTT-VOS_PID_DOPRAEND];
 
 
 VOS_QUERY_PID_INFO_STRU    g_stVosQueryPidInfo[VOS_CPU_ID_0_PID_BUTT-VOS_PID_CPU_ID_0_DOPRAEND];
@@ -192,7 +192,7 @@ VOS_UINT32 MOD_RegFidPidRSP( VOS_UINT32 ulPID, VOS_UINT32 ulFID,
  Other      :
  *****************************************************************************/
 
-VOS_UINT32 VOS_RegisterPIDInfo( VOS_PID ulPID,
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterPIDInfo( VOS_PID ulPID,
                                 Init_Fun_Type pfnInitFun,
                                 Msg_Fun_Type pfnMsgFun)
 {
@@ -533,7 +533,7 @@ VOS_UINT32 VOS_FidsInit(VOS_VOID)
             : TaskPrio -- priority of normal message handling task
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_RegisterMsgTaskPrio( VOS_FID ulFID,
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterMsgTaskPrio( VOS_FID ulFID,
                                     enum VOS_PRIORITY_DEFINE TaskPrio )
 {
     if(ulFID >= VOS_FID_BUTT)
@@ -560,7 +560,7 @@ VOS_UINT32 VOS_RegisterMsgTaskPrio( VOS_FID ulFID,
             : TaskPrio -- priority of normal message handling task
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_RegisterTaskPrio( VOS_FID ulFID, VOS_UINT32 ulTaskRealPri)
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterTaskPrio( VOS_FID ulFID, VOS_UINT32 ulTaskRealPri)
 {
     if(ulFID >= VOS_FID_BUTT)
     {
@@ -604,7 +604,7 @@ VOS_UINT32 CreateFidsQueque(VOS_VOID)
 }
 
 
-VOS_MSG_HOOK_FUNC   vos_MsgHook = VOS_NULL_PTR;
+MODULE_EXPORTED VOS_MSG_HOOK_FUNC   vos_MsgHook = VOS_NULL_PTR;
 
 /*****************************************************************************
  Function   : VOS_RegisterMsgGetHook
@@ -617,7 +617,7 @@ VOS_MSG_HOOK_FUNC   vos_MsgHook = VOS_NULL_PTR;
               thrown away and the corresponding handling function for this
               message would not be called.
  *****************************************************************************/
-VOS_MSG_HOOK_FUNC VOS_RegisterMsgGetHook( VOS_MSG_HOOK_FUNC pfnMsgHook )
+MODULE_EXPORTED VOS_MSG_HOOK_FUNC VOS_RegisterMsgGetHook( VOS_MSG_HOOK_FUNC pfnMsgHook )
 {
     VOS_MSG_HOOK_FUNC   oldMsgHook;
 
@@ -719,7 +719,7 @@ VOS_UINT32 VOS_IsCoreMaskValid(VOS_UINT32 ulCoreMask)
  Input      : VOS_VOID
  Return     : VOS_UINT32
  *****************************************************************************/
-VOS_UINT32 VOS_GetAllCoresMask(VOS_VOID)
+MODULE_EXPORTED VOS_UINT32 VOS_GetAllCoresMask(VOS_VOID)
 {
     return VOS_CORE_MASK_CORE0;
 }
@@ -731,7 +731,7 @@ VOS_UINT32 VOS_GetAllCoresMask(VOS_VOID)
             : ulCoreMask -- Core to bind
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_RegisterFidTaskCoreBind(
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterFidTaskCoreBind(
     VOS_FID                             ulFID,
     VOS_UINT32                          ulCoreMask
 )
@@ -796,7 +796,7 @@ VOS_UINT32 VOS_RegisterSelfTaskCoreBind(
             : ulCoreMask  -- the core to bind
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_CoreBindFidTask(
+MODULE_EXPORTED VOS_UINT32 VOS_CoreBindFidTask(
     VOS_FID                             ulFID,
     VOS_UINT32                          ulCoreMask
 )
@@ -929,7 +929,7 @@ VOS_UINT32 CreateFidsTask(VOS_VOID)
  Return     : index of self-handling task of this FID(one FID can have several
               self-handling task) and VOS_NULL_BYTE indicates failure.
  *****************************************************************************/
-VOS_UINT8 VOS_RegisterSelfTask( VOS_FID                   ulFID,
+MODULE_EXPORTED VOS_UINT8 VOS_RegisterSelfTask( VOS_FID                   ulFID,
                                 VOS_TASK_ENTRY_TYPE       pfnSelfTask,
                                 enum VOS_PRIORITY_DEFINE  TaskPrio,
                                 VOS_UINT32                ulStackSize)
@@ -1024,7 +1024,7 @@ VOS_UINT8 VOS_RegisterSelfTaskPrio( VOS_FID             ulFID ,
             : void
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_SuspendFidTask(VOS_FID ulFid)
+MODULE_EXPORTED VOS_UINT32 VOS_SuspendFidTask(VOS_FID ulFid)
 {
     if ((VOS_FID_DOPRAEND > ulFid) || (VOS_FID_BUTT <= ulFid))
     {
@@ -1041,7 +1041,7 @@ VOS_UINT32 VOS_SuspendFidTask(VOS_FID ulFid)
             : void
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_ResumeFidTask(VOS_FID ulFid)
+MODULE_EXPORTED VOS_UINT32 VOS_ResumeFidTask(VOS_FID ulFid)
 {
     if ((VOS_FID_DOPRAEND > ulFid) || (VOS_FID_BUTT <= ulFid))
     {
@@ -1167,7 +1167,7 @@ VOS_VOID VOS_SuspendAllTask( VOS_UINT32 Para0, VOS_UINT32 Para1,
               pfnMsgTask -- message handling task's entry
  Return     : VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 VOS_RegisterMsgTaskEntry( VOS_FID ulFID, VOS_VOIDFUNCPTR pfnMsgTask )
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterMsgTaskEntry( VOS_FID ulFID, VOS_VOIDFUNCPTR pfnMsgTask )
 {
     if( ulFID >= VOS_FID_BUTT )
     {
@@ -1211,7 +1211,7 @@ VOS_UINT32 VOS_GetQueueIDFromFid(VOS_UINT32 ulFid)
  Return     : void
  Other      : only for designer
  *****************************************************************************/
-VOS_VOID VOS_ShowFidsQueueInfo(VOS_UINT32 Para0, VOS_UINT32 Para1,
+MODULE_EXPORTED VOS_VOID VOS_ShowFidsQueueInfo(VOS_UINT32 Para0, VOS_UINT32 Para1,
                                 VOS_UINT32 Para2, VOS_UINT32 Para3 )
 {
     VOS_UINT32              i;
@@ -1256,7 +1256,7 @@ VOS_VOID VOS_ShowFidsQueueInfo(VOS_UINT32 Para0, VOS_UINT32 Para1,
  Return     : void
  Other      : only for designer
  *****************************************************************************/
-VOS_UINT32 VOS_AnalyzePidMemory(VOS_VOID *pBUffer, VOS_UINT32 ulSize, VOS_UINT32 *pulNum)
+MODULE_EXPORTED VOS_UINT32 VOS_AnalyzePidMemory(VOS_VOID *pBUffer, VOS_UINT32 ulSize, VOS_UINT32 *pulNum)
 {
     return VOS_ERR;
 }
@@ -1268,7 +1268,7 @@ VOS_UINT32 VOS_AnalyzePidMemory(VOS_VOID *pBUffer, VOS_UINT32 ulSize, VOS_UINT32
  Return     :
  Other      : only for designer
  *****************************************************************************/
-VOS_UINT32 VOS_GetTCBFromPid(VOS_UINT32 ulPid)
+MODULE_EXPORTED VOS_UINT32 VOS_GetTCBFromPid(VOS_UINT32 ulPid)
 {
     VOS_UINT32         ulFid;
 
@@ -1292,53 +1292,6 @@ VOS_UINT32 VOS_GetTCBFromPid(VOS_UINT32 ulPid)
 
 }
 
-/*****************************************************************************
- Function   : VOS_GetModemIDFromPid
- Description: Get Modem ID From Pid
- Input      : Pid
- Return     : Modem ID
- Other      :
- *****************************************************************************/
-MODEM_ID_ENUM_UINT16 VOS_GetModemIDFromPid(VOS_UINT32 ulPid)
-{
-    VOS_UINT32      ulCpuID;
-
-    ulCpuID         = VOS_GetCpuId(ulPid);
-
-
-
-    if ( VOS_CPU_ID_CCPU == ulCpuID )
-    {
-        if((ulPid < VOS_PID_CPU_ID_0_DOPRAEND)||(ulPid >= VOS_CPU_ID_0_PID_BUTT))
-        {
-            Print1("VOS_GetModemIDFromPid: Wrong Pid %d\r\n", ulPid);
-
-            return MODEM_ID_BUTT;
-        }
-
-        return g_stVosQueryPidInfo[ulPid-VOS_PID_CPU_ID_0_DOPRAEND].usModemId;
-    }
-    else if ( VOS_CPU_ID_ACPU == ulCpuID )
-    {
-        /* blank */
-    }
-    else
-    {
-        Print1("VOS_GetModemIDFromPid: Wrong CPU %d\r\n", ulPid);
-
-        return MODEM_ID_BUTT;
-    }
-
-
-    if((ulPid < VOS_PID_DOPRAEND)||(ulPid >= VOS_PID_BUTT))
-    {
-        Print1("VOS_GetModemIDFromPid: Wrong Pid %d\r\n", ulPid);
-
-        return MODEM_ID_BUTT;
-    }
-
-    return (vos_PidRecords[ulPid-VOS_PID_DOPRAEND].usModemId);
-}
 
 /*****************************************************************************
  Function   : VOS_CheckPSPidValidity
@@ -1367,12 +1320,12 @@ VOS_BOOL VOS_CheckPSPidValidity(VOS_UINT32 ulPid)
  *****************************************************************************/
 VOS_VOID VOS_OsaGlobalShow(VOS_VOID)
 {
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_ulOmFidInit = %d\n", g_ulOmFidInit);
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_ulOmPidInit = %d\n", g_ulOmPidInit);
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_usFidInitStep = %d\n", g_usFidInitStep);
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_usFidInitId = %d\n", g_usFidInitId);
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_usPidInitStep = %d\n", g_usPidInitStep);
-    (VOS_VOID)vos_printf("VOS_OsaGlobalShow:g_usPidInitId = %d\n", g_usPidInitId);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_ulOmFidInit =: %d\n", __FUNCTION__, g_ulOmFidInit);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_ulOmPidInit =: %d\n", __FUNCTION__, g_ulOmPidInit);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usFidInitStep =: %d\n", __FUNCTION__, g_usFidInitStep);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usFidInitId =: %d\n", __FUNCTION__, g_usFidInitId);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usPidInitStep =: %d\n", __FUNCTION__, g_usPidInitStep);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usPidInitId =: %d\n", __FUNCTION__, g_usPidInitId);
 
     return;
 }
@@ -1385,7 +1338,7 @@ VOS_VOID VOS_OsaGlobalShow(VOS_VOID)
  Return     : VOS_OK/VOS_ERR
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_GetFIdRelPri(enum VOS_PRIORITY_DEFINE ulFidPri, VOS_UINT32 *pulTaskRealPri)
+MODULE_EXPORTED VOS_UINT32 VOS_GetFIdRelPri(enum VOS_PRIORITY_DEFINE ulFidPri, VOS_UINT32 *pulTaskRealPri)
 {
     if (ulFidPri > VOS_PRIORITY_P6)
     {
@@ -1410,7 +1363,7 @@ VOS_UINT32 VOS_GetFIdRelPri(enum VOS_PRIORITY_DEFINE ulFidPri, VOS_UINT32 *pulTa
  Return     : VOS_PID_INVAILD VOS_PID_AVAILABLE VOS_PID_UNSURE
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_CheckPidValidity(VOS_UINT32 ulPid)
+MODULE_EXPORTED VOS_UINT32 VOS_CheckPidValidity(VOS_UINT32 ulPid)
 {
     VOS_UINT32          ulCpuID;
     VOS_UINT32          ulFid;

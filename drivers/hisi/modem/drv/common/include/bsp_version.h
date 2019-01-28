@@ -58,7 +58,7 @@ extern "C" {
 #endif
 #include "product_config.h"
 #include <osl_types.h>
-#include <bsp_trace.h>
+#include <bsp_print.h>
 #include <bsp_shared_ddr.h>
 
 #ifndef VER_ERROR
@@ -69,7 +69,7 @@ extern "C" {
 #define VER_OK 0
 #endif
 
-#define ver_print_error(fmt, ...)   (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_VERSION, "[version]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define ver_print_error(fmt, ...)   (bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 
 #define HW_VER_INVALID				(BSP_U32)0XFFFFFFFF
 #define HW_VER_UDP_MASK				(BSP_U32)0XFF000000 	    /*MBB UDP单板掩码*/
@@ -115,8 +115,8 @@ typedef enum{
 
 typedef enum
 {
-	TYPE_VDK = 0x000,
-	TYPE_VDK_ZEBU = 0x010,
+	TYPE_ESL = 0x000,
+	TYPE_ESL_EMU = 0x010,
 	TYPE_ES = 0x100,
 	TYPE_CS = 0x110,
 	TYPE_ERR = 0xFFF
@@ -130,7 +130,7 @@ typedef struct
 	u16 chip_type;				/*芯片类型，如CHIP_V711=0x6921*/
 	u8  plat_type;				/*平台类型，如asic/proting/emu*/
 	u8  board_type;				/*平台类型，如BBIT SOC ASIC SFT*/
-	u8  bbit_type;				/*bbit 平台，如dalass bbit/722 BBIT/chicago bbit*/
+	u8  bbit_version;				/*bbit 平台，如dalass bbit/722 BBIT/chicago bbit*/
 	u8  product_type;			/*MBB or PHONE*/
 	u16 product_name;			/*平台名称，如PRODUCT_722，将722 porting/bbit/sft/udp统一归类为722*/
 	u16 cses_type;				/*从boston起，芯片第一版逻辑为es(100)，第二版为cs(110)*/
@@ -243,15 +243,16 @@ char * bsp_version_get_release(void);
 
 int bsp_version_acore_init(void);
 int bsp_version_ccore_init(void);
-void bsp_version_ddr_init(void);
+int bsp_version_ddr_init(void);
 void mdrv_ver_init(void);
 
+bool bsp_b5000_is_esl_emu_version(void);
 const BSP_VERSION_INFO_S* bsp_get_version_info(void);
 const BSP_VERSION_INFO_S* bsp_get_version_info_early(void);
 
 int bsp_version_debug(void);
 
-void update_version_boardid(void);
+int update_version_boardid(void);
 
 
 

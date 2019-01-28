@@ -24,8 +24,8 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "LPSCommon.h"
-#include  "AppRrcInterface.h"
+#include  "LPSCommon.h"    /*lint !e537*/
+
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
@@ -417,6 +417,7 @@ enum NAS_LMM_CS_SERVICE_ENUM
 typedef VOS_UINT32   NAS_LMM_CS_SERVICE_ENUM_UINT32;
 
 
+/* h41410 for ue mode begin */
 /*****************************************************************************
  枚举名    : NAS_LMM_GU_UE_MODE_ENUM
  结构说明  : GU的UE操作模式
@@ -504,6 +505,8 @@ enum    NAS_EMM_USAGE_SETTING_ENUM
 typedef VOS_UINT32  NAS_EMM_USAGE_SETTING_UINT32;
 
 typedef NAS_EMM_USAGE_SETTING_UINT32    LNAS_LMM_UE_CENTER_ENUM_UINT32;
+
+/* h41410 CHANGE for ue mode */
 
 
 /*****************************************************************************
@@ -1008,11 +1011,13 @@ typedef struct
     VOS_UINT32                          ulCellStatus;
     VOS_UINT32                          aulLteBand[NAS_LMM_BAND_MAX_LENTH];
     VOS_UINT32                          ulArfcn;                                /* 驻留频点信息 */
+    VOS_UINT16                          usPhysCellId;               /* 物理小区ID */
     NAS_MM_CELL_TYPE_ENUM_UINT8         ucCellType;
-    VOS_UINT8                           ucAccessType;     /* 接入类型:TDD/FDD */
-    VOS_UINT8                           ucBandWidth;
-    VOS_UINT8                           ucSupportImsEmcFlag;
+    VOS_UINT8                           ucAccessType;
     VOS_UINT32                          ulCsgId;
+    VOS_UINT8                            ucSupportImsEmcFlag;
+    VOS_UINT8                            ucBandWidth;
+    VOS_UINT8                            ucRsv[2];
 }NAS_MM_NETWORK_ID_STRU;
 typedef NAS_MM_NETWORK_ID_STRU          NAS_EMM_NETWORK_ID_STRU;
 typedef NAS_MM_NETWORK_ID_STRU          NAS_MMC_NETWORK_ID_STRU;

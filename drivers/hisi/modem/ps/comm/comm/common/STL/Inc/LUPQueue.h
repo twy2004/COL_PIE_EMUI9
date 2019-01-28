@@ -61,6 +61,7 @@ extern "C" {
   1 Include Headfile
 *****************************************************************************/
 #include "vos.h"
+/*lint --e(537)*/
 #include "PsTypeDef.h"
 
 

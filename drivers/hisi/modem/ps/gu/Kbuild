@@ -1,5 +1,5 @@
 PSDIR = ..
-MODEM_DIR := $(srctree)/$(src)/../..
+MODEM_DIR := $(srctree)/drivers/hisi/modem
 -include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
 
 ifeq ($(TARGET_ARM_TYPE), arm64)
@@ -121,9 +121,9 @@ gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_input.o
 gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/IpsMntn.o
 gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/NetfilterEx.o
 gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/NetfilterExCtrl.o
-gups-objs += $(PSDIR)/comm/comm/acore/HISOCKET/Src/hisocket.o
 
+ifneq ($(strip $(CONFIG_HISI_BALONG_MODEM)),m)
 obj-y  := gups.o
-
+endif
 
 

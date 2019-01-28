@@ -50,35 +50,33 @@
 
 #include "socp_balong.h"
 
+#include "deflate.h"
 
 #include <linux/vmalloc.h>
 #include <linux/device.h>
 #include <linux/of_platform.h>
+#include "bsp_socp.h"
 
 #include <linux/of_reserved_mem.h>
 #include <linux/of_fdt.h>
+#include <nv_stru_drv.h>
 
-
-extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
-
+#define  THIS_MODU mod_socp
 struct socp_enc_dst_log_cfg g_stEncDstBufLogConfig = {NULL,0,0,10,false,10,false,0,0};
 struct socp_enc_dst_log_cfg g_stDeflateDstBufLogConfig = {NULL,0,0,10,false,10,false,0,0};
 u32 g_stDeflateState =0;
 socp_early_cfg_stru         g_stSocpEarlyCfg    = {NULL,0,0,0,0,0};
 socp_mem_reserve_stru       g_stSocpMemReserve  = {NULL,0,0,0,0};
-u32  g_stDeflateSetMode ;
-
+DRV_DEFLATE_CFG_STRU  g_deflate_nv_ctrl={0,0};
 extern u32 socp_version;
 u64 g_socp_dma_mask = (u64)(-1);
-
-void *socp_logbuffer_memremap(unsigned long phys_addr, size_t size);
+extern u32 g_strSocpDeflateStatus;
 s32 deflate_set_compress_mode(SOCP_IND_MODE_ENUM eMode);
 
-/*lint -e528*/
 /*****************************************************************************
-* 函 数 名  : socp_logbuffer_sizeparse
+* 函 数 名  : socp_get_logbuffer_sizeparse
 *
-* 功能描述  : 在代码编译阶段将CMD LINE中的BUFFER大小参数解析出来
+* 功能描述  : 获取socp buffer大小
 *
 * 输入参数  : 无
 *
@@ -86,18 +84,17 @@ s32 deflate_set_compress_mode(SOCP_IND_MODE_ENUM eMode);
 *
 * 返 回 值  : 无
 *****************************************************************************/
-/* cov_verified_start */
-static int __init socp_logbuffer_sizeparse(char *pucChar)
+s32  socp_get_logbuffer_sizeparse(void)
 {
     u32      ulBufferSize;
 
     /* Buffer的大小以Byte为单位，原则上不大于200M，不小于1M */
-    ulBufferSize = (u32)simple_strtoul(pucChar, NULL, 0);
+    ulBufferSize = bsp_socp_get_logbuffer_size();
 
     if ((ulBufferSize > SOCP_MAX_MEM_SIZE )
       || (ulBufferSize < SOCP_MIN_MEM_SIZE))
     {
-        socp_printf("BuffSize too long or short ,BuffSize: 0x%x\n",ulBufferSize);
+        socp_crit("cmdline: BuffSize=0x%x\n",ulBufferSize);
         g_stSocpEarlyCfg.ulBufUsable = BSP_FALSE;
         return -1;
     }
@@ -105,24 +102,24 @@ static int __init socp_logbuffer_sizeparse(char *pucChar)
     /* 为了保持ulBufferSize的长度8字节对齐,如果长度不是8字节对齐地址也不会 */
     if (0 != (ulBufferSize % 8))
     {
-        socp_printf("BuffSize no 8 byte allignment,BuffSize: 0x%x\n",ulBufferSize);
+        socp_error("BuffSize no 8 byte allignment,BuffSize: 0x%x\n",ulBufferSize);
         g_stSocpEarlyCfg.ulBufUsable = BSP_FALSE;
         return -1;
     }
     g_stSocpEarlyCfg.ulBufferSize = ulBufferSize;
-    socp_printf("early_cfg:BufferSize 0x%x, adapt buffer_size: 0x%x\n",
+    socp_crit("BufferSize 0x%x, adapt buffer_size: 0x%x\n",
                 ulBufferSize,
                 g_stSocpEarlyCfg.ulBufferSize);
-    
+
     g_stSocpEarlyCfg.ulBufUsable  =  BSP_TRUE;
     return 0;
 }
-early_param("mdmlogsize", socp_logbuffer_sizeparse);
+
 
 /*****************************************************************************
-* 函 数 名  : socp_logbuffer_timeparse
+* 函 数 名  : socp_get_logbuffer_timeparse
 *
-* 功能描述  : 在代码编译阶段将CMD LINE中的TIMEOUT大小参数解析出来
+* 功能描述  : 获取socp时间
 *
 * 输入参数  : 无
 *
@@ -130,12 +127,12 @@ early_param("mdmlogsize", socp_logbuffer_sizeparse);
 *
 * 返 回 值  : 无
 *****************************************************************************/
-static int __init socp_logbuffer_timeparse(char *pucChar)
+s32  socp_get_logbuffer_timeparse(void)
 {
     u32      ulTimeout;
 
     /* 输入字符串以秒为单位，需要再转换成毫秒，至少为1秒，不大于20分钟 */
-    ulTimeout = (u32)simple_strtoul(pucChar, NULL,0);
+    ulTimeout = bsp_socp_get_logbuffer_time();
 
     if (SOCP_MAX_TIMEOUT < ulTimeout)
     {
@@ -147,17 +144,16 @@ static int __init socp_logbuffer_timeparse(char *pucChar)
 
     g_stSocpEarlyCfg.ulTimeout  = ulTimeout;
 
-    socp_printf("early_cfg: timeout 0x%x\n", g_stSocpEarlyCfg.ulTimeout);
+    socp_crit("early_cfg: timeout=0x%x\n", g_stSocpEarlyCfg.ulTimeout);
 
     return 0;
 }
-early_param("mdmlogtime", socp_logbuffer_timeparse);
 
 
 /*****************************************************************************
-* 函 数 名  : socp_logbuffer_addrparse
+* 函 数 名  : socp_get_logbuffer_addrparse
 *
-* 功能描述  : 在代码编译阶段将CMD LINE中的基地址参数解析出来
+* 功能描述  : 获取内存基地址
 *
 * 输入参数  : 无
 *
@@ -165,34 +161,47 @@ early_param("mdmlogtime", socp_logbuffer_timeparse);
 *
 * 返 回 值  : 无
 *****************************************************************************/
-static int __init socp_logbuffer_addrparse(char *pucChar)
+s32 socp_get_logbuffer_addrparse(void)
 {
     unsigned long  ulBaseAddr;
 
-    ulBaseAddr = simple_strtoul(pucChar, NULL, 0);
+    ulBaseAddr = bsp_socp_get_logbuffer_addr();
 
     /* 物理地址是32位的实地址并且是8字节对齐的 */
     if ((0 != (ulBaseAddr % 8))
         || (0 == ulBaseAddr))
     {
-        socp_printf("early_cfg: BaseAdress 0x%p\n", (char*)ulBaseAddr);
-
         return -1;
     }
 
     g_stSocpEarlyCfg.ulPhyBufferAddr = ulBaseAddr;
 
-    socp_printf("early_cfg: bufferaddr 0x%p\n", (char*)g_stSocpEarlyCfg.ulPhyBufferAddr);
-
     return 0;
 }
-early_param("mdmlogbase", socp_logbuffer_addrparse);
-/* cov_verified_stop */
-
 /*****************************************************************************
-* 函 数 名  : socp_logbuffer_logcfg
+* 函 数 名  : socp_get_cmdline_param
 *
-* 功能描述  : 在代码编译阶段将CMD LINE中的50M申请使能参数解析出来
+* 功能描述  : 获取cmdline参数
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void socp_get_cmdline_param(void)
+{
+    (void)socp_get_logbuffer_sizeparse();
+    (void)socp_get_logbuffer_timeparse();
+    (void)socp_get_logbuffer_addrparse();
+    (void)socp_get_logbuffer_logcfg();
+    return ;
+
+}
+/*****************************************************************************
+* 函 数 名  : socp_get_logbuffer_logcfg
+*
+* 功能描述  : 获取50M buffer使能位
 *
 * 输入参数  : 解析字符串
 *
@@ -200,19 +209,19 @@ early_param("mdmlogbase", socp_logbuffer_addrparse);
 *
 * 返 回 值  : 成功与否
 *****************************************************************************/
-static int __init socp_logbuffer_logcfg(char *pucChar)
+s32  socp_get_logbuffer_logcfg(void)
 {
     unsigned int  ulMemLogCfg;
 
-    ulMemLogCfg= (unsigned int )simple_strtoul(pucChar, NULL, 0);
+    ulMemLogCfg= bsp_socp_get_logbuffer_logcfg();
 
     g_stSocpEarlyCfg.ulLogCfg = ulMemLogCfg;
 
-    socp_printf("early_cfg: memLogCfg 0x%x\n", g_stSocpEarlyCfg.ulLogCfg);
+    socp_crit("early_cfg: memLogCfg=0x%x\n", g_stSocpEarlyCfg.ulLogCfg);
 
     return 0;
 }
-early_param("modemlog_enable", socp_logbuffer_logcfg);
+
 
 /*lint -save -e785*/
 static const struct of_device_id socp_dev_of_memalloc_match[] = {
@@ -244,32 +253,32 @@ static int __init socp_memalloc_probe(struct platform_device *pdev)
         ret=of_reserved_mem_device_init(pdevice);
         if(ret<0)
         {
-             socp_printf("socp_mem_device_init fail!/n" );
+             socp_error("mem_device_init fail\n" );
+             return -1;
         }
-		socp_printf( "socp_mem_device_init sucess!/n");
+		socp_crit( "[init]mem_device_init sucess!\n");
     }
 	else
 	{
-		socp_printf("socp_memalloc_probe: mdmlog not open!/n" );
+		socp_crit("socp_memalloc_probe: mdmlog not open!\n" );
 		return -1;
 	}
 
     dev = of_find_node_by_name(NULL, "hisi_mdmlog");
-
     if(NULL == dev)
     {
-        socp_printf("socp_memalloc_probe:of_find_node_by_name failed!\n");
+        socp_error("of_find_node_by_name failed!\n");
         return -1;
     }
 
     ret = of_property_read_u32_index(dev,"time",0, &ulTimeout);
     if(ret)
     {
-        socp_printf("socp_memalloc_probe:of_property_read_u32_index failed!\n");
+        socp_error("of_property_read_u32_index failed!\n");
         return -1;
     }
 
-    socp_printf("socp_memalloc_probe:of_property_read_u32_index get time 0x%x!\n",ulTimeout);
+    socp_crit("of_property_read_u32_index get time 0x%x!\n",ulTimeout);
 
     if (SOCP_MAX_TIMEOUT < ulTimeout)
     {
@@ -293,60 +302,6 @@ static struct platform_driver socp_mem_driver = {
     .probe = socp_memalloc_probe,
 };
 /*lint -restore +e785 +e64*/
-/*****************************************************************************
-* 函 数 名  : socp_reserve_area
-*
-* 功能描述  : 获取系统预留的base和size
-*
-* 输入参数  : 内存结构体参数
-*
-* 输出参数  : 无
-*
-* 返 回 值  : 成功与否
-*****************************************************************************/
-static int socp_reserve_area(struct reserved_mem *rmem)
-{
-    char *status  ;
-
-    status = (char *)of_get_flat_dt_prop(rmem->fdt_node, "status", NULL);
-    if (status && (strncmp(status, "ok", strlen("ok")) != 0))
-    {
-        socp_printf("[%s]:status is %s!\n", __FUNCTION__,status);
-		return 0;
-    }
-
-    g_stSocpMemReserve.ulBufferSize     = (unsigned int)rmem->size;
-    g_stSocpMemReserve.ulPhyBufferAddr  = rmem->base;
-
-    /* if reserved buffer is too small, set kernel reserved buffer is not usable */
-    if((0 == g_stSocpMemReserve.ulPhyBufferAddr)
-        || (0 != g_stSocpMemReserve.ulPhyBufferAddr % 8))
-    {
-        socp_printf("[%s]: kernel reserved addr is null, , is not 8bits align, base 0x%llx!\n",
-                    __FUNCTION__,rmem->base);
-        g_stSocpMemReserve.ulBufUsable = BSP_FALSE;
-        return -1;
-    }
-
-    if((SOCP_MAX_MEM_SIZE > g_stSocpMemReserve.ulBufferSize)
-        || (0 != g_stSocpMemReserve.ulBufferSize % 8))
-    {
-        socp_printf("[%s]: kernel reserved buffer size is too small, is not 8bits align, size 0x%llx!\n",
-                    __FUNCTION__,rmem->size);
-        g_stSocpMemReserve.ulBufUsable = BSP_FALSE;
-        return -1;
-    }
-
-    g_stSocpMemReserve.ulBufUsable = BSP_TRUE;
-    socp_printf("[%s]:kernel reserved buffer is useful, base 0x%llx, size is 0x%llx\n",
-                 __FUNCTION__, rmem->base, rmem->size );
-
-    return 0;
-}
-
-/*lint -save -e611*/
-RESERVEDMEM_OF_DECLARE(hisilicon, "hisi_mdmlog", (reservedmem_of_init_fn)socp_reserve_area);
-/*lint -restore +e611*/
 
 void *socp_logbuffer_memremap(unsigned long phys_addr, size_t size)
 {
@@ -383,9 +338,9 @@ void *socp_logbuffer_memremap(unsigned long phys_addr, size_t size)
 }
 
 /*****************************************************************************
-* 函 数 名  : socp_logbuffer_bufferinit
+* 函 数 名  : socp_logbuffer_mmap
 *
-* 功能描述  : 在代码初始化阶段将LOG延迟输出使用的内存申请出来
+* 功能描述  : 物理地址转换成虚拟内存
 *
 * 输入参数  : 无
 *
@@ -393,7 +348,7 @@ void *socp_logbuffer_memremap(unsigned long phys_addr, size_t size)
 *
 * 返 回 值  : 无
 *****************************************************************************/
-static int __init socp_logbuffer_mmap(void)
+s32 socp_logbuffer_mmap(void)
 {
     /*step1: if logcfg is on, mmap kernel reserved memory */
     if(SOCP_RESERVED_TRUE == g_stSocpEarlyCfg.ulLogCfg)
@@ -405,19 +360,15 @@ static int __init socp_logbuffer_mmap(void)
                                                                     (size_t)g_stSocpMemReserve.ulBufferSize);
             if(NULL == g_stSocpMemReserve.pVirBuffer)
             {
-                socp_printf("[%s]: kernel reserved buffer mmap failed, virt addr 0x%p!\n",
-                            __FUNCTION__,g_stSocpMemReserve.pVirBuffer);
                 g_stSocpMemReserve.ulBufUsable = BSP_FALSE;
                 return BSP_ERROR;
             }
 
-            socp_printf("[%s]: kernel reserved buffer mmap success, virt addr 0x%p!\n",
-                            __FUNCTION__,g_stSocpMemReserve.pVirBuffer);
+            socp_crit("kernel reserved buffer mmap success\n");
             return BSP_OK;
         }
         else
         {
-            socp_printf("[%s]: kernel reserved buffer is invalid, don't mmap\n",__FUNCTION__);
             return BSP_ERROR;
         }
     }
@@ -427,7 +378,6 @@ static int __init socp_logbuffer_mmap(void)
              or memory reserved is invalid, do nothing*/
     if(BSP_FALSE == g_stSocpEarlyCfg.ulBufUsable)
     {
-        socp_printf("[%s]:BufferSize or BufferAddr is invalid!\n",__FUNCTION__);
         return BSP_OK;
     }
 
@@ -436,24 +386,16 @@ static int __init socp_logbuffer_mmap(void)
                                                           (size_t)g_stSocpEarlyCfg.ulBufferSize);
     if(NULL == g_stSocpEarlyCfg.pVirBuffer)
     {
-        socp_printf("[%s]:virBuffer is invalid!\n",__FUNCTION__);
         g_stSocpEarlyCfg.ulBufUsable = BSP_FALSE;
         return BSP_ERROR;
     }
 
     g_stSocpEarlyCfg.ulBufUsable = BSP_TRUE;
 
-    socp_printf("[%s]:fastboot resered buffer is valid 0x%p 0x%p 0x%x!\n",
-                __FUNCTION__,
-                g_stSocpEarlyCfg.pVirBuffer,
-                (char*)g_stSocpEarlyCfg.ulPhyBufferAddr,
-                g_stSocpEarlyCfg.ulBufferSize);
+    socp_crit("fastboot resered buffer is valid\n");
 
     return BSP_OK;
 }
-
-arch_initcall(socp_logbuffer_mmap); 
-
 
 /* log2.0 2014-03-19 Begin:*/
 /*****************************************************************************
@@ -482,29 +424,34 @@ struct socp_enc_dst_log_cfg * bsp_socp_get_log_cfg(void)
 *
 * 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
 *****************************************************************************/
-
 s32  bsp_socp_get_log_ind_mode(u32 *LofgIndMode)
 {
-    
-
-
-    *LofgIndMode = g_stEncDstBufLogConfig.currentMode;  
+    *LofgIndMode = g_stEncDstBufLogConfig.currentMode;
     return  BSP_OK;
 }
 
 u32 bsp_socp_get_sd_logcfg(SOCP_ENC_DST_BUF_LOG_CFG_STRU* cfg)
 {
     struct socp_enc_dst_log_cfg* LogCfg;
-
+    u32  deflate_stat;
     if(NULL == cfg)
         return BSP_ERR_SOCP_INVALID_PARA;
 
     LogCfg = bsp_socp_get_log_cfg();
 
-    cfg->logOnFlag       = LogCfg->logOnFlag;   
+    cfg->logOnFlag       = LogCfg->logOnFlag;
     cfg->BufferSize      = LogCfg->BufferSize;
-    
-    cfg->overTime        = LogCfg->overTime;
+
+    deflate_stat =bsp_socp_compress_status();
+    if(1 == deflate_stat)
+    {
+        cfg->overTime        = g_stDeflateDstBufLogConfig.overTime;
+    }
+    else
+    {
+
+        cfg->overTime        = LogCfg->overTime;
+    }
     cfg->pVirBuffer      = LogCfg->pVirBuffer;
     cfg->ulCurTimeout    = LogCfg->ulCurTimeout;
     cfg->ulPhyBufferAddr = LogCfg->ulPhyBufferAddr;
@@ -526,16 +473,16 @@ s32 socp_logbuffer_dmalloc(struct device_node* dev)
     u32             aulDstChan[SOCP_DST_CHAN_CFG_BUTT]={0};
     u32             size;
     struct device dev1;
-    
+
     ret = of_property_read_u32_array(dev, "dst_chan_cfg", aulDstChan, (size_t)SOCP_DST_CHAN_CFG_BUTT);
     if(ret)
     {
-        socp_printf("socp_logbuffer_dmalloc:dts don't config dmalloc logbuffer size, use default size 1M!\n");
+        socp_crit("dts don't config dmalloc logbuffer size, use default size 1M!\n");
         size = 1*1024*1024;
     }
     else
     {
-        socp_printf("socp_ind_delay_init:of_property_read_u32_array get size 0x%x!\n", aulDstChan[SOCP_DST_CHAN_CFG_SIZE]);
+        socp_crit("of_property_read_u32_array get size 0x%x!\n", aulDstChan[SOCP_DST_CHAN_CFG_SIZE]);
         size = aulDstChan[SOCP_DST_CHAN_CFG_SIZE];
     }
     memset_s(&dev1,sizeof(dev1),0,sizeof(dev1));
@@ -545,18 +492,23 @@ s32 socp_logbuffer_dmalloc(struct device_node* dev)
 
     if(BSP_NULL == pucBuf)
     {
-        socp_printf("socp_logbuffer_dmalloc alloc buffer failed, pucBuf 0x%p.\n", pucBuf);
+        socp_error("logbuffer_dmalloc buffer failed\n");
         return BSP_ERROR;
     }
 
-    socp_printf("socp_logbuffer_dmalloc success,  ulAddress 0x%lx, pucBuf 0x%p. size 0x%x\n", ulAddress, pucBuf, size);
+    socp_crit("socp_logbuffer_dmalloc success\n");
 
     g_stEncDstBufLogConfig.ulPhyBufferAddr  = (unsigned long)ulAddress;
     g_stEncDstBufLogConfig.pVirBuffer       = pucBuf;
     g_stEncDstBufLogConfig.ulCurTimeout     = 10; /* 使用默认值 */
     g_stEncDstBufLogConfig.BufferSize       = size;
     g_stEncDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DTS;
-    
+
+    g_stDeflateDstBufLogConfig.ulPhyBufferAddr  = (unsigned long)ulAddress;
+    g_stDeflateDstBufLogConfig.pVirBuffer       = pucBuf;
+    g_stDeflateDstBufLogConfig.ulCurTimeout     = 10; /* 使用默认值 */
+    g_stDeflateDstBufLogConfig.BufferSize       = size;
+    g_stDeflateDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DTS;
     return BSP_OK;
 }
 
@@ -587,11 +539,18 @@ s32 bsp_socp_logbuffer_init(struct device_node* dev)
             g_stEncDstBufLogConfig.BufferSize       = g_stSocpMemReserve.ulBufferSize;
             g_stEncDstBufLogConfig.overTime         = g_stSocpMemReserve.ulTimeout;
             g_stEncDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DELAY;
+            g_stDeflateDstBufLogConfig.pVirBuffer       = g_stSocpMemReserve.pVirBuffer;
+            g_stDeflateDstBufLogConfig.ulPhyBufferAddr  = g_stSocpMemReserve.ulPhyBufferAddr;
+            g_stDeflateDstBufLogConfig.BufferSize       = g_stSocpMemReserve.ulBufferSize;
+            g_stDeflateDstBufLogConfig.overTime         = g_stSocpMemReserve.ulTimeout;
+            g_stDeflateDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DELAY;
+
         }
         /*step1.2: if kernel reserved buffer is invalid, disable ind delay, use 1M malloc buffer */
         else
         {
             g_stEncDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_NOT_CFG;
+            g_stDeflateDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_NOT_CFG;
 
         }
     }
@@ -606,11 +565,18 @@ s32 bsp_socp_logbuffer_init(struct device_node* dev)
             g_stEncDstBufLogConfig.BufferSize       = g_stSocpEarlyCfg.ulBufferSize;
             g_stEncDstBufLogConfig.overTime         = g_stSocpEarlyCfg.ulTimeout;
             g_stEncDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DELAY;
+            g_stDeflateDstBufLogConfig.pVirBuffer       = g_stSocpEarlyCfg.pVirBuffer;
+            g_stDeflateDstBufLogConfig.ulPhyBufferAddr  = g_stSocpEarlyCfg.ulPhyBufferAddr;
+            g_stDeflateDstBufLogConfig.BufferSize       = g_stSocpEarlyCfg.ulBufferSize;
+            g_stDeflateDstBufLogConfig.overTime         = g_stSocpEarlyCfg.ulTimeout;
+            g_stDeflateDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DELAY;
+
         }
         /*step2.2: if fastboot reserved memory is invalid, use 1M malloc buffer, disable ind delay*/
         else
         {
              g_stEncDstBufLogConfig.logOnFlag=SOCP_DST_CHAN_NOT_CFG;
+             g_stDeflateDstBufLogConfig.logOnFlag=SOCP_DST_CHAN_NOT_CFG;
         }
     }
 
@@ -621,7 +587,7 @@ s32 bsp_socp_logbuffer_init(struct device_node* dev)
         ret = socp_logbuffer_dmalloc(dev);
         if(ret)
         {
-            socp_printf("socp_ind_delay_init:of_property_read_u32_array failed!\n");
+            socp_error("of_property_read_u32_array failed!\n");
             return BSP_ERROR;
         }
     }
@@ -643,7 +609,7 @@ s32 bsp_socp_logbuffer_init(struct device_node* dev)
 *****************************************************************************/
 void bsp_socp_timeout_init(void)
 {
-    bsp_socp_set_timeout(SOCP_TIMEOUT_TRF,  SOCP_MIN_TIMEOUT*2289/1000);       
+    bsp_socp_set_timeout(SOCP_TIMEOUT_TRF,  SOCP_MIN_TIMEOUT*2289/1000);
 
     return;
 }
@@ -651,16 +617,16 @@ void bsp_socp_timeout_init(void)
 void bsp_socp_set_mode_direct(void)
 {
     u32 ret;
-    
+
     if(SOCP_IND_MODE_DIRECT == g_stEncDstBufLogConfig.currentMode)
     {
-        socp_printf("socp:the ind mode direct is already config!\n");
+        socp_crit("the ind mode direct is already config!\n");
         return;
     }
 
     if(socp_version < SOCP_206_VERSION)
     {
-        (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF, 0x17);        
+        (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF, 0x17);
     }
     else
     {
@@ -671,23 +637,23 @@ void bsp_socp_set_mode_direct(void)
     ret = bsp_socp_encdst_set_cycle(SOCP_CODER_DST_OM_IND, SOCP_IND_MODE_DIRECT);
     if(BSP_OK != ret)
     {
-        socp_printf("socp:the ind  mode direct config failed!\n");
+        socp_error("direct mode config failed!\n");
     }
     else
     {
         g_stEncDstBufLogConfig.currentMode = SOCP_IND_MODE_DIRECT;
-        socp_printf("socp:the ind  mode direct config sucess!\n");
-    }    
+        socp_crit("direct mode config sucess!\n");
+    }
 }
 
 void bsp_socp_set_mode_delay(void)
 {
     u32 time;
-    u32 ret;    
+    u32 ret;
 
     if(SOCP_IND_MODE_DELAY == g_stEncDstBufLogConfig.currentMode)
     {
-        socp_printf("socp:the ind mode delay is already config!\n");
+        socp_crit("socp:the ind mode delay is already config!\n");
         return;
     }
 
@@ -697,38 +663,39 @@ void bsp_socp_set_mode_delay(void)
         if(socp_version < SOCP_206_VERSION)
         {
             time = (g_stEncDstBufLogConfig.overTime * 2289)/1000;
-            (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF, time);            
+            (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF, time);
+            g_stEncDstBufLogConfig.ulCurTimeout = g_stEncDstBufLogConfig.overTime;
         }
         else
         {
-           (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF_LONG, SOCP_TIMEOUT_TRF_LONG_MAX); 
+           (void)bsp_socp_set_timeout(SOCP_TIMEOUT_TRF_LONG, SOCP_TIMEOUT_TRF_LONG_MAX);
         }
-        g_stEncDstBufLogConfig.ulCurTimeout = g_stEncDstBufLogConfig.overTime;
+        g_stEncDstBufLogConfig.ulCurTimeout = SOCP_TIMEOUT_TRF_LONG_MAX;
         bsp_socp_set_enc_dst_threshold((bool)TRUE,SOCP_CODER_DST_OM_IND);
         ret = bsp_socp_encdst_set_cycle(SOCP_CODER_DST_OM_IND, SOCP_IND_MODE_DELAY);
         if(BSP_OK != ret)
         {
-            socp_printf("socp:the ind  mode delay config failed!\n");
+            socp_error("delay mode config failed!\n");
         }
         else
         {
             g_stEncDstBufLogConfig.currentMode = SOCP_IND_MODE_DELAY;
-            socp_printf("socp:the ind delay mode config sucess!\n");
+            socp_crit("delay mode config sucess!\n");
         }
     }
     else
     {
-        socp_printf("socp:ind delay can't config:mem can't be setted!\n");
-    }    
+        socp_crit("delay mode can't config:mem can't be setted!\n");
+    }
 }
 
 void bsp_socp_set_mode_cycle(void)
 {
     u32 ret;
-    
+
     if(SOCP_IND_MODE_CYCLE == g_stEncDstBufLogConfig.currentMode)
     {
-        socp_printf("the ind mode cycle is already config!\n");
+        socp_crit("the ind mode cycle is already config!\n");
         return;
     }
 
@@ -740,18 +707,18 @@ void bsp_socp_set_mode_cycle(void)
         ret = bsp_socp_encdst_set_cycle(SOCP_CODER_DST_OM_IND, SOCP_IND_MODE_CYCLE);
         if(BSP_OK != ret)
         {
-            socp_printf("the ind cycle mode config failed!\n");
+            socp_error("cycle mode config failed!\n");
         }
         else
         {
             g_stEncDstBufLogConfig.currentMode = SOCP_IND_MODE_CYCLE;
-            socp_printf("the ind cycle mode config sucess!\n");
+            socp_crit("the ind cycle mode config sucess!\n");
         }
     }
     else
     {
-        socp_printf("ind delay can't config:mem can't be setted!\n");
-    }    
+        socp_crit("ind delay can't config:mem can't be setted!\n");
+    }
 }
 
 /*****************************************************************************
@@ -770,7 +737,7 @@ s32 bsp_socp_set_ind_mode(SOCP_IND_MODE_ENUM eMode)
     switch (eMode)
     {
         case SOCP_IND_MODE_DIRECT:
-        {            
+        {
             bsp_socp_set_mode_direct();
             break;
         }
@@ -787,18 +754,165 @@ s32 bsp_socp_set_ind_mode(SOCP_IND_MODE_ENUM eMode)
         }
         default:
         {
-            socp_printf("bsp_socp_set_ind_mode: invalid mode: %d!\n",g_stEncDstBufLogConfig.currentMode);
+            socp_error("set invalid mode: %d!\n",g_stEncDstBufLogConfig.currentMode);
             return  BSP_ERROR;
         }
     }
 
     return BSP_OK ;
  }
-s32 bsp_report_ind_mode_ajust(SOCP_IND_MODE_ENUM eMode)
-{
-   return  bsp_socp_set_ind_mode(eMode);
-}
 
+
+
+/*****************************************************************************
+  函 数 名  : bsp_socp_compress_status
+  功能描述  : 查询当前压缩模式是否开启
+  输入参数  : 无
+  输出参数  : 无
+  返 回 值  : 无
+
+*****************************************************************************/
+
+s32 bsp_socp_compress_status(void)
+{
+    return g_strSocpDeflateStatus;
+}
+/*****************************************************************************
+  函 数 名  : bsp_socp_get_cfg_ind_mode
+  功能描述  : 查询获取当前上报模式
+  输入参数  : 无
+  输出参数  : 无
+  返 回 值  : 无
+
+*****************************************************************************/
+
+s32 bsp_socp_get_cfg_ind_mode(u32 *CfgIndMode)
+{
+    u32 ulDeflateState;
+    ulDeflateState = bsp_socp_compress_status();
+    if(SOCP_COMPRESS == ulDeflateState)
+    {
+        bsp_deflate_get_log_ind_mode(CfgIndMode);
+        socp_crit("deflate channel is open!\n");
+        return BSP_OK;
+    }
+    else
+    {
+        bsp_socp_get_log_ind_mode(CfgIndMode);
+        socp_crit("socp channel is open!\n");
+        return BSP_OK;
+    }
+}
+/*****************************************************************************
+  函 数 名  : bsp_socp_set_cfg_ind_mode
+  功能描述  : 设置当前上报模式
+  输入参数  : 无
+  输出参数  : 无
+  返 回 值  : 无
+
+*****************************************************************************/
+
+s32 bsp_socp_set_cfg_ind_mode(SOCP_IND_MODE_ENUM eMode)
+{
+    u32 ulDeflateState;
+    ulDeflateState = bsp_socp_compress_status();
+    if(SOCP_NO_COMPRESS==ulDeflateState)
+    {
+        bsp_socp_set_ind_mode(eMode);
+        socp_crit("socp channel is open!\n");
+        return BSP_OK;
+    }
+    else
+    {
+        bsp_deflate_set_ind_mode(eMode);
+        socp_crit("deflate channel is open!\n");
+    }
+    return   BSP_OK;
+}
+/*****************************************************************************
+  函 数 名  : bsp_socp_get_cps_ind_mode
+  功能描述  : 获取当前压缩模式
+  输入参数  : 无
+  输出参数  : 无
+  返 回 值  : 无
+
+*****************************************************************************/
+s32 bsp_socp_get_cps_ind_mode(u32 *CpsIndMode)
+{
+    u32 ulDeflateState;
+    ulDeflateState = bsp_socp_compress_status();
+    if(SOCP_COMPRESS==ulDeflateState)
+    {
+        *CpsIndMode = DEFLATE_IND_COMPRESS ;
+        socp_crit("deflate channel is open!\n");
+        return BSP_OK;
+    }
+    else
+    {
+        *CpsIndMode = DEFLATE_IND_NO_COMPRESS;
+        socp_crit("socp channel is open!\n");
+        return BSP_OK;
+    }
+
+}
+/*****************************************************************************
+  函 数 名  : bsp_socp_set_cps_ind_mode
+  功能描述  : 设置当前压缩模式
+  输入参数  : 无
+  输出参数  : 无
+  返 回 值  : 无
+
+*****************************************************************************/
+s32 bsp_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode)
+{
+    u32 ulDeflateState;
+    if(0 == g_deflate_nv_ctrl.deflate_enable)
+    {
+        socp_crit("deflate nv not open!\n");
+        return BSP_ERROR;
+
+    }
+    ulDeflateState = bsp_socp_compress_status();
+    if(DEFLATE_IND_NO_COMPRESS==eMode)
+    {
+
+        if(SOCP_NO_COMPRESS== ulDeflateState)
+        {
+           socp_crit("deflate:compress disable is already config!\n");
+           return  BSP_OK;
+        }
+
+        else
+        {
+            bsp_socp_compress_disable(SOCP_CODER_DST_OM_IND);
+            socp_crit("deflate:compress disable is config!\n");
+            return  BSP_OK;
+        }
+
+    }
+    else if (DEFLATE_IND_COMPRESS == eMode)
+    {
+        if(SOCP_COMPRESS == ulDeflateState)
+        {
+           socp_crit("deflate:compress enable is already config!\n");
+           return  BSP_OK;
+
+        }
+        else
+        {
+           bsp_socp_compress_enable(SOCP_CODER_DST_OM_IND);
+           socp_crit("deflate:compress enbale is config!\n");
+           return  BSP_OK;
+        }
+    }
+
+    else
+    {
+        socp_error("deflate invalid mode: %d!\n",eMode);
+        return BSP_ERROR;
+    }
+
+}
 /*****************************************************************************
 * 函 数 名  : socp_ind_delay_init
 *
@@ -818,32 +932,181 @@ s32 bsp_socp_ind_delay_init(void)
     dev = of_find_compatible_node(NULL,NULL,"hisilicon,socp_balong_app");
     if(NULL == dev)
     {
-        socp_printf("socp_ind_delay_init: Socp dev find failed\n");
+        socp_error("Socp dev find failed\n");
         return BSP_ERROR;
     }
+    /*获取cmdline参数*/
+    (void)socp_get_cmdline_param();
 
+    /*获取SOCP预留内存信息*/
+    bsp_socp_get_mem_reserve_stru(&g_stSocpMemReserve);
+
+    /*获取的内存虚拟物理转换*/
+    (void)socp_logbuffer_mmap();
 	ret = platform_driver_register(&socp_mem_driver); /*lint !e64*/
     if(ret)
     {
-        socp_printf("platform driver register failed!\n");
+        socp_error("platform driver register failed!\n");
         return BSP_ERROR;
     }
 
     ret = bsp_socp_logbuffer_init(dev);
     if(ret)
     {
-        socp_printf("socp dst logbuffer init faield!\n");
+        socp_error("socp dst logbuffer init faield!\n");
         return ret;
     }
 
     /* init timeout */
     bsp_socp_timeout_init();
 
-
-    socp_printf("[%s]:socp_ind_delay init sucess!\n", __FUNCTION__);
+    socp_crit("socp_ind_delay init sucess!\n");
 
     return BSP_OK;
 }
+
+
+/*****************************************************************************
+* 函 数 名  : bsp_deflate_get_log_ind_mode
+*
+* 功能描述  : 上报模式接口
+*
+* 输入参数  : 模式参数
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+
+s32  bsp_deflate_get_log_ind_mode(u32 *CfgIndMode)
+{
+
+    *CfgIndMode = g_stDeflateDstBufLogConfig.currentMode;
+
+    return  BSP_OK;
+}
+
+/*****************************************************************************
+* 函 数 名  : bsp_deflate_get_compress_mode
+*
+* 功能描述  : 上报模式接口
+*
+* 输入参数  : 模式参数
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+
+s32  bsp_deflate_get_compress_mode(u32 *CpsIndMode)
+{
+    *CpsIndMode = g_stDeflateDstBufLogConfig.cpsMode;
+
+    return  BSP_OK;
+}
+
+/*****************************************************************************
+* 函 数 名  : bsp_deflate_set_ind_mode
+*
+* 功能描述  : 上报模式接口
+*
+* 输入参数  : 模式参数
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+s32 bsp_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode)
+{
+    u32 ret;
+    switch (eMode)
+    {
+        case SOCP_IND_MODE_DIRECT:
+        {
+
+            if(SOCP_IND_MODE_DIRECT == g_stDeflateDstBufLogConfig.currentMode)
+            {
+                socp_crit("deflate direct mode is already config %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+                break;
+            }
+            (void)deflate_set_time(SOCP_IND_MODE_DIRECT);
+            g_stDeflateDstBufLogConfig.ulCurTimeout = DEFLATE_TIMEOUT_INDIRECT;
+            deflate_set_dst_threshold((bool)FALSE);
+            deflate_set_cycle_mode( SOCP_IND_MODE_DIRECT);
+            g_stDeflateDstBufLogConfig.currentMode = eMode;
+            socp_crit("deflate direct mode config sucess %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+
+            break;
+        }
+        case SOCP_IND_MODE_DELAY:
+        {
+
+            if(SOCP_IND_MODE_DELAY == g_stDeflateDstBufLogConfig.currentMode)
+            {
+                socp_crit("deflate delay mode is already config %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+                break;
+            }
+
+            /* if logbuffer is not configed, can't enable delay mode*/
+            if(g_stDeflateDstBufLogConfig.logOnFlag == DEFLATE_DST_CHAN_DELAY)
+            {
+
+                ret =deflate_set_time(SOCP_IND_MODE_DELAY);
+                if(0!=ret)
+                {
+                    socp_error("deflate set time error !\n");
+                    break;
+
+                }
+                g_stDeflateDstBufLogConfig.ulCurTimeout = DEFLATE_TIMEOUT_DEFLATY;;
+                deflate_set_dst_threshold((bool)TRUE);
+                deflate_set_cycle_mode( SOCP_IND_MODE_DELAY);
+                g_stDeflateDstBufLogConfig.currentMode = eMode;
+                socp_crit("deflate delay mode config sucess %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+
+            }
+            else
+            {
+                socp_crit("deflate delay can't config:mem can't be setted!\n");
+                return DEFLATE_ERR_MEM_NOT_ENOUGH;
+            }
+            break;
+        }
+        case SOCP_IND_MODE_CYCLE:
+        {
+            if(SOCP_IND_MODE_CYCLE == g_stDeflateDstBufLogConfig.currentMode)
+            {
+                socp_crit("deflate cycle mode is already config %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+                break;
+            }
+
+            /* if logbuffer is not configed, can't enable cycle mode*/
+            if(((g_stEncDstBufLogConfig.logOnFlag == DEFLATE_DST_CHAN_DELAY)&&(BSP_TRUE == g_stSocpMemReserve.ulBufUsable))
+                ||(g_stEncDstBufLogConfig.logOnFlag == SOCP_DST_CHAN_DTS))
+            {
+
+                deflate_set_cycle_mode( SOCP_IND_MODE_CYCLE);
+
+                g_stDeflateDstBufLogConfig.currentMode = eMode;
+                socp_crit("deflate cycle cycle mode config sucess %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+            }
+            else
+            {
+                socp_crit("deflate:ind delay can't config:mem can't be setted!\n");
+                return DEFLATE_ERR_MEM_NOT_ENOUGH;
+            }
+            break;
+        }
+
+        default:
+        {
+            socp_error("deflate set invalid mode: %d!\n",g_stDeflateDstBufLogConfig.currentMode);
+            return  BSP_ERROR;
+        }
+    }
+    return BSP_OK ;
+ }
+
 /*****************************************************************************
 * 函 数 名  : bsp_socp_read_cur_mode
 *
@@ -860,7 +1123,7 @@ u32 bsp_socp_read_cur_mode(u32 u32DestChanID)
     u32 u32modestate;
     u32 u32ChanID = SOCP_REAL_CHAN_ID(u32DestChanID);
 
-    /*lint -save -e647*/    
+    /*lint -save -e647*/
     u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);
     /*lint -restore +e647*/
     return u32modestate;
@@ -880,13 +1143,13 @@ u32 bsp_socp_read_cur_mode(u32 u32DestChanID)
 void bsp_socp_logbuffer_cfgshow(void)
 {
 
-    socp_printf("socp_logbuffer_cfgshow: overTime           %d\n", g_stEncDstBufLogConfig.overTime);
-    socp_printf("socp_logbuffer_cfgshow: Current Time Out   %d\n", g_stEncDstBufLogConfig.ulCurTimeout);
-    socp_printf("socp_logbuffer_cfgshow: BufferSize         %d\n", g_stEncDstBufLogConfig.BufferSize);
-    socp_printf("socp_logbuffer_cfgshow: logOnFlag          %d\n", g_stEncDstBufLogConfig.logOnFlag);
-    socp_printf("socp_logbuffer_cfgshow: PhyBufferAddr      0x%lx\n", g_stEncDstBufLogConfig.ulPhyBufferAddr);
-    socp_printf("socp_logbuffer_cfgshow: currentmode        %d\n", g_stEncDstBufLogConfig.currentMode);
-   
+    socp_crit("socp_logbuffer_cfgshow: overTime           %d\n", g_stEncDstBufLogConfig.overTime);
+    socp_crit("socp_logbuffer_cfgshow: Current Time Out   %d\n", g_stEncDstBufLogConfig.ulCurTimeout);
+    socp_crit("socp_logbuffer_cfgshow: BufferSize         %d\n", g_stEncDstBufLogConfig.BufferSize);
+    socp_crit("socp_logbuffer_cfgshow: logOnFlag          %d\n", g_stEncDstBufLogConfig.logOnFlag);
+    socp_crit("socp_logbuffer_cfgshow: PhyBufferAddr      0x%lx\n", g_stEncDstBufLogConfig.ulPhyBufferAddr);
+    socp_crit("socp_logbuffer_cfgshow: currentmode        %d\n", g_stEncDstBufLogConfig.currentMode);
+
     return;
 }
 EXPORT_SYMBOL(bsp_socp_logbuffer_cfgshow);
@@ -905,12 +1168,12 @@ EXPORT_SYMBOL(bsp_socp_logbuffer_cfgshow);
 void bsp_deflate_logbuffer_cfgshow(void)
 {
 
-    socp_printf("deflate_logbuffer_cfgshow: overTime           %d\n", g_stDeflateDstBufLogConfig.overTime);
-    socp_printf("deflate_logbuffer_cfgshow: Current Time Out   %d\n", g_stDeflateDstBufLogConfig.ulCurTimeout);
-    socp_printf("deflate_logbuffer_cfgshow: BufferSize         %d\n", g_stDeflateDstBufLogConfig.BufferSize);
-    socp_printf("deflate_logbuffer_cfgshow: logOnFlag          %d\n", g_stDeflateDstBufLogConfig.logOnFlag);
-    socp_printf("deflate_logbuffer_cfgshow: PhyBufferAddr      0x%lx\n", g_stDeflateDstBufLogConfig.ulPhyBufferAddr);
-    socp_printf("deflate_logbuffer_cfgshow: currentmode        %d\n", g_stDeflateDstBufLogConfig.currentMode);
+    socp_crit("deflate_logbuffer_cfgshow: overTime           %d\n", g_stDeflateDstBufLogConfig.overTime);
+    socp_crit("deflate_logbuffer_cfgshow: Current Time Out   %d\n", g_stDeflateDstBufLogConfig.ulCurTimeout);
+    socp_crit("deflate_logbuffer_cfgshow: BufferSize         %d\n", g_stDeflateDstBufLogConfig.BufferSize);
+    socp_crit("deflate_logbuffer_cfgshow: logOnFlag          %d\n", g_stDeflateDstBufLogConfig.logOnFlag);
+    socp_crit("deflate_logbuffer_cfgshow: PhyBufferAddr      0x%lx\n", g_stDeflateDstBufLogConfig.ulPhyBufferAddr);
+    socp_crit("deflate_logbuffer_cfgshow: currentmode        %d\n", g_stDeflateDstBufLogConfig.currentMode);
 
     return;
 }
@@ -930,12 +1193,12 @@ EXPORT_SYMBOL(bsp_deflate_logbuffer_cfgshow);
 void bsp_socp_logbuffer_early_cfgshow(void)
 {
 
-    socp_printf("socp_logbuffer_early_cfgshow: BufferSize         %d\n", g_stSocpEarlyCfg.ulBufferSize);
-    socp_printf("socp_logbuffer_early_cfgshow: BufUsable          %d\n", g_stSocpEarlyCfg.ulBufUsable);
-    socp_printf("socp_logbuffer_early_cfgshow: logCfg             %d\n", g_stSocpEarlyCfg.ulLogCfg);
-    socp_printf("socp_logbuffer_early_cfgshow: PhyBufferAddr      0x%lx\n", g_stSocpEarlyCfg.ulPhyBufferAddr);
-    socp_printf("socp_logbuffer_early_cfgshow: time               %d\n", g_stSocpEarlyCfg.ulTimeout);
-    
+    socp_crit("socp_logbuffer_early_cfgshow: BufferSize         %d\n", g_stSocpEarlyCfg.ulBufferSize);
+    socp_crit("socp_logbuffer_early_cfgshow: BufUsable          %d\n", g_stSocpEarlyCfg.ulBufUsable);
+    socp_crit("socp_logbuffer_early_cfgshow: logCfg             %d\n", g_stSocpEarlyCfg.ulLogCfg);
+    socp_crit("socp_logbuffer_early_cfgshow: PhyBufferAddr      0x%lx\n", g_stSocpEarlyCfg.ulPhyBufferAddr);
+    socp_crit("socp_logbuffer_early_cfgshow: time               %d\n", g_stSocpEarlyCfg.ulTimeout);
+
 
     return;
 }
@@ -955,11 +1218,11 @@ EXPORT_SYMBOL(bsp_socp_logbuffer_early_cfgshow);
 void bsp_socp_logbuffer_memreserve_cfgshow(void)
 {
 
-    socp_printf("socp_logbuffer_memreserve_cfgshow: BufferSize         %d\n", g_stSocpMemReserve.ulBufferSize);
-    socp_printf("socp_logbuffer_memreserve_cfgshow: BufUsable          %d\n", g_stSocpMemReserve.ulBufUsable);
-    socp_printf("socp_logbuffer_memreserve_cfgshow: PhyBufferAddr      0x%lx\n", g_stSocpMemReserve.ulPhyBufferAddr);
-    socp_printf("socp_logbuffer_memreserve_cfgshow: time               %d\n", g_stSocpMemReserve.ulTimeout);
-    
+    socp_crit("socp_logbuffer_memreserve_cfgshow: BufferSize         %d\n", g_stSocpMemReserve.ulBufferSize);
+    socp_crit("socp_logbuffer_memreserve_cfgshow: BufUsable          %d\n", g_stSocpMemReserve.ulBufUsable);
+    socp_crit("socp_logbuffer_memreserve_cfgshow: PhyBufferAddr      0x%lx\n", g_stSocpMemReserve.ulPhyBufferAddr);
+    socp_crit("socp_logbuffer_memreserve_cfgshow: time               %d\n", g_stSocpMemReserve.ulTimeout);
+
 
     return;
 }

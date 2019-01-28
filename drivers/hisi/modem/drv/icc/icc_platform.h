@@ -57,6 +57,7 @@ extern "C" {
 #include <linux/kernel.h>
 #include <linux/printk.h>
 #include <linux/string.h>
+#include <linux/module.h>
 #include <linux/suspend.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -73,10 +74,10 @@ extern "C" {
 #include <bsp_shared_ddr.h>
 #include <bsp_slice.h>
 #include <bsp_dump.h>
-#include <bsp_trace.h>
 #include <bsp_ipc.h>
 #include <mdrv_sysboot_commmon.h>
 #include <bsp_icc.h>
+#include <bsp_print.h>
 
 #define ICC_CHANNEL_INIT_COMPITABLE  "hisilicon,icc_balong_app"
 
@@ -93,14 +94,17 @@ extern "C" {
 #define ICC_SDDR_START_ADDR_ON_THIS_CORE    (ICC_DBG_MSG_ADDR_IN_DDR + ICC_DBG_MSG_LEN_IN_DDR)
 #define ICC_SRAM_START_ADDR_ON_THIS_CORE    (ADDR_MACORE_SEND)
 #define ICC_SDDR_S_START_ADDR_ON_THIS_CORE  (ICC_DBG_MSG_ADDR_IN_DDR_S + ICC_DBG_MSG_LEN_IN_DDR_S)
+#ifdef CONFIG_NRICC
+#define NRICC_NRSDDR_START_ADDR_ON_THIS_CORE  (NRICC_DBG_MSG_ADDR_IN_NRSDDR + NRICC_DBG_MSG_LEN_IN_NRSDDR)
+#endif
 
-#define  icc_print_error(fmt, ...)    (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_ICC, "icc: %s "fmt, __FUNCTION__, ##__VA_ARGS__))
-#define  icc_print_info                printk
-#define  icc_print_notice(fmt, ...)   (bsp_trace(BSP_LOG_LEVEL_NOTICE, BSP_MODU_ICC, "%s "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  icc_print_error(fmt, ...)    (bsp_err(fmt, ##__VA_ARGS__))
+#define  icc_print_info(fmt, ...)     (bsp_debug(fmt, ##__VA_ARGS__))
+#define  icc_print_notice(fmt, ...)   (bsp_info(fmt, ##__VA_ARGS__))
 #define  icc_print_debug(fmt, ...) \
 do {                               \
     if (g_icc_dbg.msg_print_sw)    \
-        icc_print_error(fmt, ##__VA_ARGS__);\
+        bsp_debug(fmt, ##__VA_ARGS__);\
 } while (0)
 
 //#define icc_safe_memset(dest, destMax, val, count) memset_s(dest, destMax, val, count)

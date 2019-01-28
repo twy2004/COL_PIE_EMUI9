@@ -64,7 +64,6 @@ extern "C" {
 #include "PsLib.h"
 #include "TtfLinkInterface.h"
 
-/*lint -e830*/
 /******************************************************************************
   2 ∫Í∂®“Â
 ******************************************************************************/
@@ -285,7 +284,6 @@ extern TTF_NODE_ST* TTF_LinkRemoveHead(VOS_UINT32 ulPid, TTF_LINK_ST * pLink);
 extern VOS_UINT32   TTF_LinkCnt(VOS_UINT32 ulPid, const TTF_LINK_ST *pLink);
 extern VOS_UINT32   TTF_LinkIsEmpty(VOS_UINT32 ulPid, const TTF_LINK_ST *pLink);
 extern TTF_NODE_ST* TTF_LinkPeekHead(VOS_UINT32 ulPid, const TTF_LINK_ST * pLink);
-/*lint +e830*/
 
 extern VOS_UINT32 TTF_CopyLink_DL_Init(TTF_COPYLINK_DL_STRU *pstTtfCpyLink);
 extern VOS_UINT32 TTF_CopyLink_DL_Reg

@@ -286,8 +286,7 @@ void take_dentry_name_snapshot(struct name_snapshot *name, struct dentry *dentry
 		spin_unlock(&dentry->d_lock);
 		name->name = p->name;
 	} else {
-		memcpy(name->inline_name, dentry->d_iname,
-		       dentry->d_name.len + 1);
+		memcpy(name->inline_name, dentry->d_iname, DNAME_INLINE_LEN);
 		spin_unlock(&dentry->d_lock);
 		name->name = name->inline_name;
 	}
@@ -353,11 +352,14 @@ static void dentry_unlink_inode(struct dentry * dentry)
 	__releases(dentry->d_inode->i_lock)
 {
 	struct inode *inode = dentry->d_inode;
+	bool hashed = !d_unhashed(dentry);
 
-	raw_write_seqcount_begin(&dentry->d_seq);
+	if (hashed)
+		raw_write_seqcount_begin(&dentry->d_seq);
 	__d_clear_type_and_inode(dentry);
 	hlist_del_init(&dentry->d_u.d_alias);
-	raw_write_seqcount_end(&dentry->d_seq);
+	if (hashed)
+		raw_write_seqcount_end(&dentry->d_seq);
 	spin_unlock(&dentry->d_lock);
 	spin_unlock(&inode->i_lock);
 	if (!inode->i_nlink)

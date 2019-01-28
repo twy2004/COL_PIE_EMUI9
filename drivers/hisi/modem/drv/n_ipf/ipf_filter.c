@@ -30,9 +30,9 @@ struct ipf_filter_handler handler[] = {
     },
 };
 
-struct ipf_filter_handler* ipf_get_filter_handler(unsigned int version)
+struct ipf_filter_handler* ipf_get_filter_handler(unsigned int version_id)
 {
-    if(version>IPF_VERSION_140a)
+    if(version_id>IPF_VERSION_140a)
         return (struct ipf_filter_handler*)&handler[0];
     else
         return (struct ipf_filter_handler*)&handler[0];

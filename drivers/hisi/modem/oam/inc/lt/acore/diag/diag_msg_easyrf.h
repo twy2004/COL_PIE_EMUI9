@@ -66,9 +66,6 @@ extern "C" {
 #include "msp_diag_comm.h"
 #include "diag_common.h"
 #include "msp_errno.h"
-#if (VOS_OS_VER != VOS_LINUX)
-#include "TLPhyInterface.h"
-#endif
 #include "diag_bbp_ds.h"
 
 /*****************************************************************************

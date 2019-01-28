@@ -49,6 +49,8 @@
 #include <bsp_hardtimer.h>
 #include "hardtimer_core.h"
 #include "hardtimer_arm.h"
+#undef THIS_MODU
+#define THIS_MODU mod_hardtimer
 /*lint --e{129, 63 ,666,732,746} */
 /*lint -save -e14*/
 static u32 is_timer_enabled(struct timer_device *device)

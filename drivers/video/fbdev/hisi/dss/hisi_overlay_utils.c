@@ -1505,6 +1505,7 @@ void hisi_dss_mif_on(struct hisi_fb_data_type *hisifd)
 	set_reg(hisifd->dss_base + MIF_CH10_OFFSET + MIF_CTRL0, 0x1, 1, 0);
 	set_reg(hisifd->dss_base + MIF_CH11_OFFSET + MIF_CTRL0, 0x1, 1, 0);
 
+	set_reg(mif_base + AIF_CMD_RELOAD, 0x1, 1, 0);
 }
 
 int hisi_dss_mif_config(struct hisi_fb_data_type *hisifd,
@@ -6056,6 +6057,9 @@ int hisi_dss_ov_module_set_regs(struct hisi_fb_data_type *hisifd, dss_overlay_t 
 			goto err_return;
 		}
 	}
+	if (is_first_ov_block && pov_req) {
+		hisifb_video_idle_check_enable(hisifd, pov_req->video_idle_status);
+	}
 
 	if (dss_module->mctl_used[i] == 1) {
 		hisi_dss_mctl_ov_set_reg(hisifd, dss_module->mctl_base[i],	&(dss_module->mctl[i]), ovl_idx, enable_cmdlist);
@@ -6376,7 +6380,11 @@ void hisi_dss_unflow_handler(struct hisi_fb_data_type *hisifd,
 		return;
 	}
 
-	ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+	if (is_dp_panel(hisifd)) {
+		ldi_base = hisifd->dss_base + DSS_LDI_DP_OFFSET;
+	} else {
+		ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+	}
 
 	if (pov_req->ovl_idx == DSS_OVL0) {
 		tmp = inp32(hisifd->dss_base + DSS_LDI0_OFFSET + LDI_CPU_ITF_INT_MSK);
@@ -7514,6 +7522,7 @@ int hisi_overlay_off(struct hisi_fb_data_type *hisifd)
 			HISI_FB_ERR("fb%d, failed to hisi_dss_module_config! ret = %d\n", hisifd->index, ret);
 			goto err_out;
 		}
+		hisifb_video_idle_check_enable(hisifd, 0);
 
 		if (enable_cmdlist) {
 			hisi_cmdlist_config_stop(hisifd, cmdlist_pre_idxs);
@@ -7846,6 +7855,7 @@ int hisi_overlay_init(struct hisi_fb_data_type *hisifd)
 			INIT_WORK(&hisifd->dpp_ce_end_work, hisi_dpp_ace_end_handle_func);
 		}
 
+		hisifb_pipe_clk_updt_work_init(hisifd);
 
 		if (hisifd->panel_info.hiace_support) {
 			snprintf(wq_name, 128, "fb%d_hiace_end", hisifd->index);
@@ -7871,7 +7881,27 @@ int hisi_overlay_init(struct hisi_fb_data_type *hisifd)
 
 		hisi_effect_init(hisifd);
 
+		/*for gmp lut set*/
+		hisifd->gmp_lut_wq = NULL;
+		if (hisifd->panel_info.gmp_support) {
+			snprintf(wq_name, 128, "fb0_gmp_lut");
+			hisifd->gmp_lut_wq = create_singlethread_workqueue(wq_name);
+			if (!hisifd->gmp_lut_wq) {
+				HISI_FB_ERR("create gmp lut workqueue failed!\n");
+				return -EINVAL;
+			}
+			INIT_WORK(&hisifd->gmp_lut_work, hisifb_effect_gmp_lut_workqueue_handler);
+		}
 
+		if (is_mipi_cmd_panel(hisifd)) {
+			snprintf(wq_name, 128, "masklayer_backlight_notify");
+			hisifd->masklayer_backlight_notify_wq = create_singlethread_workqueue(wq_name);
+			if (!hisifd->masklayer_backlight_notify_wq) {
+				HISI_FB_ERR("create masklayer backlight notify workqueue failed!\n");
+				return -EINVAL;
+			}
+			INIT_WORK(&hisifd->masklayer_backlight_notify_work, hisifb_masklayer_backlight_notify_handler);
+		}
 
 	} else if (hisifd->index == EXTERNAL_PANEL_IDX) {
 		hisifd->set_reg = hisifb_set_reg;
@@ -7975,6 +8005,10 @@ int hisi_overlay_deinit(struct hisi_fb_data_type *hisifd)
 	//mmbuf deinit
 	hisi_dss_mmbuf_deinit(hisifd);
 
+	if (hisifd->gmp_lut_wq) {
+		destroy_workqueue(hisifd->gmp_lut_wq);
+		hisifd->gmp_lut_wq = NULL;
+	}
 
 	return 0;
 }
@@ -8340,7 +8374,11 @@ int hisi_vactive0_start_config(struct hisi_fb_data_type *hisifd, dss_overlay_t *
 						inp32(ldi_base + LDI_CTRL),
 						inp32(ldi_base + LDI_FRM_MSK));
 		} else if (pov_req_dump && pov_req_dump->ovl_idx == DSS_OVL1) {
-			ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+			if (is_dp_panel(hisifd)) {
+				ldi_base = hisifd->dss_base + DSS_LDI_DP_OFFSET;
+			} else {
+				ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+			}
 
 			isr_s1 = inp32(hisifd->dss_base + GLB_CPU_SDP_INTS);
 			isr_s2_mask = inp32(ldi_base + LDI_CPU_ITF_INT_MSK);
@@ -8475,7 +8513,11 @@ void hisi_ldi_underflow_handle_func(struct work_struct *work)
 
 	} else if (hisifd->index == EXTERNAL_PANEL_IDX) {
 		isr_s1 = inp32(hisifd->dss_base + GLB_CPU_SDP_INTS);
-		ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+		if (is_dp_panel(hisifd)) {
+			ldi_base = hisifd->dss_base + DSS_LDI_DP_OFFSET;
+		} else {
+			ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+		}
 		isr_s2 = inp32(ldi_base + LDI_CPU_ITF_INTS);
 		outp32(ldi_base + LDI_CPU_ITF_INTS, isr_s2);
 		outp32(hisifd->dss_base + GLB_CPU_SDP_INTS, isr_s1);

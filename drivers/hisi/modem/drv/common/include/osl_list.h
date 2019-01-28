@@ -79,11 +79,14 @@ struct hlist_node {
 	struct hlist_node **pprev;
 };
 
-
+//lint -esym(528,*)
+/*lint -save -e528*/
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 
+//lint -esym(773,*) 
 #define LIST_HEAD(name) \
-	struct list_head name = LIST_HEAD_INIT(name)
+	struct list_head name = LIST_HEAD_INIT(name)/*lint !e773*/
+//lint +esym(773,*) 
 
 static OSL_INLINE void INIT_LIST_HEAD(struct list_head *list)
 {
@@ -122,14 +125,14 @@ static OSL_INLINE void _inline_list_del_cur_entry(struct list_head *entry)
 }
 
 
-#define LIST_POISON_NEXT  ((void *) 0x00100100 + 0)
-#define LIST_POISON_PREV  ((void *) 0x00200200 + 0)
+#define LIST_POISON_NEXT  (0x00100100 + 0)
+#define LIST_POISON_PREV  (0x00200200 + 0)
 
 static OSL_INLINE void list_del(struct list_head *entry)
 {
 	list_delete_between(entry->prev, entry->next);
-	entry->next = LIST_POISON_NEXT;
-	entry->prev = LIST_POISON_PREV;
+	entry->next = (struct list_head *)LIST_POISON_NEXT;
+	entry->prev = (struct list_head *)LIST_POISON_PREV;
 }
 
 
@@ -273,7 +276,7 @@ static OSL_INLINE void list_splice_init(struct list_head *list, struct list_head
 	     position = n, n = list_entry(n->member.next, typeof(*n), member))
 
 #define list_safe_reset_next(position, n, member)				\
-	n = list_entry(position->member.next, typeof(*position), member)
+	(n = list_entry(position->member.next, typeof(*position), member))
 
 #define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
 #define HLIST_HEAD_INIT { .first = NULL }
@@ -317,8 +320,8 @@ static OSL_INLINE void hlist_add_head(struct hlist_node *h_node, struct hlist_he
 static OSL_INLINE void hlist_del(struct hlist_node *hlist)
 {
 	__hlist_del(hlist);
-	hlist->next = LIST_POISON_NEXT;
-	hlist->pprev = LIST_POISON_PREV;
+	hlist->next = (struct hlist_node *)LIST_POISON_NEXT;
+	hlist->pprev = (struct hlist_node **)LIST_POISON_PREV;
 }
 
 static OSL_INLINE void hlist_del_init(struct hlist_node *hlist)
@@ -362,7 +365,8 @@ static OSL_INLINE void hlist_del_init(struct hlist_node *hlist)
 #define hlist_for_each_entry_from(position, member)				\
 	for (; position;							\
 	     position = hlist_entry_safe((position)->member.next, typeof(*(position)), member))
-
+//lint +esym(528,*)
+/*lint ¨Crestore */
 #else
 
 struct list_head {

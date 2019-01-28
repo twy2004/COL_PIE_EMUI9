@@ -77,22 +77,6 @@ extern "C"{
 /************定义在LPS中*********************/
 #define EN_NV_ID_POWER_ON_LOG_SWITCH    (0xD33B)
 
-/*****************************************************************************
- 结构名    : 开机log功能是否打开
-
- 结构说明  : cPowerOnlogC和cPowerOnlogA都为1，此功能才生效
-*****************************************************************************/
-typedef struct
-{
-    /* C核的开机log是否打开*/
-    s8                            cPowerOnlogC;
-
-    /* AP的开机log是否打开,默认为0。在A核linux内核初始化时根据SOCP的50M是否存在修改此NV的值:存在，此值会被修改为1；否则，保持0不变 */
-    s8                            cPowerOnlogA;
-    s8                            cSpare1;
-    s8                            cSpare2;
-}NV_POWER_ON_LOG_SWITCH_STRU;
-
 /* 通道接收数据和数据长度 */
 typedef void (*SCM_CODERDESTFUCN)(u8 *pucData, u8 *pucPHYData, u32 ulSize);
 

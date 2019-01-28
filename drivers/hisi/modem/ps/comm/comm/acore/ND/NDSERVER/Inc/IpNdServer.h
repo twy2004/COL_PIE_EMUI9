@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -321,8 +321,8 @@ extern IP_NDSERVER_ADDR_INFO_STRU       g_astNdServerAddrInfo[];
 *****************************************************************************/
 extern VOS_VOID IP_NDSERVER_Init( VOS_VOID );
 
-VOS_UINT32 NdSer_CheckIpv6PdnInfo(AT_NDIS_IPV6_PDN_INFO_STRU *pstIpv6PdnInfo);
-VOS_VOID NdSer_Ipv6PdnInfoCfg(VOS_UINT8 ucRabId,AT_NDIS_IPV6_PDN_INFO_STRU *pstIpv6PdnInfo);
+VOS_UINT32 NdSer_CheckIpv6PdnInfo(const AT_NDIS_IPV6_PDN_INFO_STRU *pstIpv6PdnInfo);
+VOS_VOID NdSer_Ipv6PdnInfoCfg(VOS_UINT8 ucRabId,const AT_NDIS_IPV6_PDN_INFO_STRU *pstIpv6PdnInfo);
 VOS_VOID NdSer_DhcpV6PktProc(VOS_VOID *pRcvMsg);
 VOS_UINT32 NdSer_GetAddrInfoIdx(VOS_UINT8 ucExRabId);
 VOS_UINT8* NdSer_GetMacFrm(VOS_UINT8 ucIndex, VOS_UINT8 *enTeAddrState);

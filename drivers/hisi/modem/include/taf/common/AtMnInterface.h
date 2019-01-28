@@ -171,7 +171,8 @@ enum AT_MN_MSGTYPE_ENUM
     MN_MSG_MSGTYPE_DELETE_CBMIDS                            = 0x101a,           /* _H2ASN_MsgChoice MN_MSG_CBMIR_LIST_STRU */
     MN_MSG_MSGTYPE_EMPTY_CBMIDS                             = 0x101b,           /* _H2ASN_MsgChoice  */
 #endif
-
+    MN_MSG_MSGTYPE_SET_SMS_SEND_DOMAIN                      = 0x101c,          /* _H2ASN_MsgChoice MN_MSG_SET_SMS_SEND_DOMAIN_STRU */
+    MN_MSG_MSGTYPE_GET_SMS_SEND_DOMAIN                      = 0x101d,          /* _H2ASN_MsgChoice  */
     MN_MSG_MSGTYPE_MAX,
 
     /* AT与SSA模块间消息 */

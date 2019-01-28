@@ -2782,6 +2782,12 @@ static int syna_tcm_irq_bottom_half(struct ts_cmd_node *in_cmd,
 	if (retval < 0) {
 		TS_LOG_ERR("Failed to syna_tcm_read_one_package, try to read F$35\n");
 	}
+	/* 'use_esd_report' setup in DTS; 'esd_report_status' setup in irq function */
+	if(NEED_REPORT == tcm_hcd->esd_report_status && tcm_hcd->use_esd_report) {
+		TS_LOG_INFO("%s, plam_key_report.\n", __func__);
+		out_cmd->command = TS_PALM_KEY;
+		out_cmd->cmd_param.pub_params.ts_key = TS_KEY_IRON;
+	}
 
 exit:
 	return retval;
@@ -2810,6 +2816,7 @@ static int syna_tcm_input_config(struct input_dev *input_dev)
 	set_bit(TS_TOUCHPLUS_KEY2, input_dev->keybit);
 	set_bit(TS_TOUCHPLUS_KEY3, input_dev->keybit);
 	set_bit(TS_TOUCHPLUS_KEY4, input_dev->keybit);
+	set_bit(TS_KEY_IRON, input_dev->keybit);/* report ESD EVENT */
 
 #ifdef INPUT_PROP_DIRECT
 	set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
@@ -3275,6 +3282,12 @@ static void syna_tcm_parse_feature_dts(struct device_node *np, struct ts_kit_dev
 		tcm_hcd->aft_wxy_enable = 0;
 	}
 	TS_LOG_INFO("use dts(retval = %d) for aft_wxy_enable = %d\n", retval, tcm_hcd->aft_wxy_enable);
+
+	retval = of_property_read_u32(np, "use_esd_report", &tcm_hcd->use_esd_report);
+	if(retval) {
+		tcm_hcd->use_esd_report = 0;
+	}
+	TS_LOG_INFO("use dts(retval = %d) for use_esd_report = %d\n", retval, tcm_hcd->use_esd_report);
 
 	retval = of_property_read_u32(np, "use_dma_download_firmware", &tcm_hcd->use_dma_download_firmware);
 	if(retval) {

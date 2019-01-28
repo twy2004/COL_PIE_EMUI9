@@ -53,7 +53,8 @@
 #include "icc_platform.h"
 #include <securec.h>
 
-
+#undef THIS_MODU
+#define THIS_MODU mod_icc
 struct icc_pm_om
 {
 	struct icc_channel_packet packet;
@@ -153,7 +154,7 @@ int icc_channel_packet_dump(struct icc_channel_packet *packet)
 		g_icc_ctrl.sleep_flag = 0;
 	}
 
-	icc_print_info("*******************icc[%s]*******************\n", name);
+	icc_print_info("<icc[%s] begin>\n", name);
 	icc_print_info("channel_id  : 0x%x\n", packet->channel_id);
 	icc_print_info("len         : 0x%x\n", packet->len);
 	icc_print_info("src_cpu_id  : 0x%x\n", packet->src_cpu_id);
@@ -161,19 +162,19 @@ int icc_channel_packet_dump(struct icc_channel_packet *packet)
 	icc_print_info("task_id     : 0x%x\n", packet->task_id);
 	icc_print_info("read_cb     : %pK\n",   read_cb);
 	icc_print_info("read_context: %pK\n",   read_context);
-	icc_print_info("**********************************************\n");
+	icc_print_info("<icc[%s] end>\n");
 	return ret;
 }
 
 void icc_packet_print(struct icc_channel_packet *packet)
 {
-	icc_print_info("*****************icc_packet*******************\n");
+	icc_print_info("<icc_packet begin>\n");
 	icc_print_info("channel_id  : 0x%x\n", packet->channel_id);
 	icc_print_info("len         : 0x%x\n", packet->len);
 	icc_print_info("src_cpu_id  : 0x%x\n", packet->src_cpu_id);
 	icc_print_info("timestamp   : 0x%x\n", packet->timestamp);
 	icc_print_info("task_id     : 0x%x\n", packet->task_id);
-	icc_print_info("**********************************************\n");
+	icc_print_info("<icc_packet end\n");
 }
 
 void icc_dbg_print_sw(u32 sw)
@@ -266,7 +267,7 @@ void icc_dump_init(void)
 	    goto err_ret; /*lint !e801 */
 	}
 
-    g_icc_dbg.dump_buf_addr = (char *)bsp_dump_register_field(ICC_DUMP_SAVE_MOD, "ICC", 0, 0, ICC_DUMP_EXT_SIZE, 0x0001);
+    g_icc_dbg.dump_buf_addr = (char *)bsp_dump_register_field(ICC_DUMP_SAVE_MOD, "ICC", 0, 0, ICC_DUMP_EXT_SIZE,  0x0001);
     if(g_icc_dbg.dump_buf_addr == NULL)
     {
         goto err_ret; /*lint !e801 */

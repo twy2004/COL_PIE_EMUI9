@@ -46,8 +46,8 @@
 *
 */
 
-#ifndef __TAF_MMI_STR_PARSE_H__
-#define __TAF_MMI_STR_PARSE_H__
+#ifndef _TAF_MMI_STR_PARSE_H_
+#define _TAF_MMI_STR_PARSE_H_
 
 
 /*****************************************************************************
@@ -187,7 +187,6 @@ typedef struct
 }MN_MMI_SS_OP_Tbl_STRU;
 
 
-
 typedef struct
 {
     MN_MMI_OPERATION_TYPE_ENUM_U8       MmiOperationType;                       /*当前的操作类型*/
@@ -313,19 +312,19 @@ extern VOS_BOOL MMI_JudgeSsOperation(
     MN_MMI_OPERATION_PARAM_STRU         *pMmiOpParam,
     VOS_UINT32                          *pulErrCode
 );
-#if ((TAF_OS_VER == TAF_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+
+
+
+#if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else
 #pragma pack(0)
 #endif
 
-
-
 #ifdef __cplusplus
-    #if __cplusplus
-        }
-    #endif
+#if __cplusplus
+}
+#endif
 #endif
 
-#endif /* __TAF_MMI_STR_PARSE_H___ */
-
+#endif /* _TAF_MMI_STR_PARSE_H_ */

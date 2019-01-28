@@ -124,7 +124,7 @@ struct new_om_log
 struct new_om_log g_om_log;
 #endif
 
-typedef int (*print_report_hook)(u32 module_id, u32 level, char* print_buff);
+typedef int (*print_report_hook)(u32 module_id, u32 level, u32 sel, char* print_buff);
 extern print_report_hook g_bsp_print_hook;
 u32 bsp_log_module_cfg_get(bsp_module_e mod_id);
 

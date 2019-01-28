@@ -367,6 +367,10 @@ static void hisi_dss_invalid_smmu_ptw_cache(struct hisi_fb_data_type *hisifd)
 	if (hisifd == NULL) {
 		return;
 	}
+	set_reg(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_SCACHEI_ALL, 0x3, 32, 0);
+	set_reg(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_SCACHEI_ALL, 0x2, 32, 0);
+	set_reg(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_SCACHEI_ALL, 0x5, 32, 0);
+	set_reg(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_SCACHEI_ALL, 0x4, 32, 0);
 
 }
 

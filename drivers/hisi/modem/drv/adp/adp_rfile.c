@@ -77,9 +77,12 @@
 #include "mdrv_memory.h"
 #include "bsp_icc.h"
 #include "bsp_rfile.h"
+#include<bsp_print.h>
 
 #include "mdrv_rfile_common.h"
 #include <securec.h>
+
+#define THIS_MODU mod_rfile
 
 
 
@@ -165,7 +168,7 @@ int rfile_getmode(const char *mode, int *flag)
     /* check for garbage in second character */
     if ((*mode != '+') && (*mode != 'b') && (*mode != '\0'))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[%s]:1. mode:%c.\n", __FUNCTION__, *mode);
+         bsp_err( "[%s]:1. mode:%c.\n", __FUNCTION__, *mode);
         return (0);
     }
 
@@ -177,7 +180,7 @@ int rfile_getmode(const char *mode, int *flag)
 
     if ((*mode != '+') && (*mode != 'b') && (*mode != '\0'))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[%s]:3. mode:%c.\n", __FUNCTION__, *mode);
+         bsp_err( "[%s]:3. mode:%c.\n", __FUNCTION__, *mode);
         return (0);
     }
 
@@ -189,7 +192,7 @@ int rfile_getmode(const char *mode, int *flag)
 
     if (*mode != '\0')
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[%s]:5. mode:%c.\n", __FUNCTION__, *mode);
+         bsp_err("[%s]:5. mode:%c.\n", __FUNCTION__, *mode);
         return (0);
     }
     else
@@ -246,8 +249,7 @@ void *mdrv_file_open(const char *path, const char *mode)
     flags = rfile_getmode(mode, &oflags);
     if(0 == flags)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[%s] rfile_getmode failed. ret = %d.\n", __FUNCTION__, flags);
+         bsp_err("[%s] rfile_getmode failed. ret = %d.\n", __FUNCTION__, flags);
         return 0;
     }
 
@@ -263,8 +265,7 @@ void *mdrv_file_open(const char *path, const char *mode)
     /* coverity[example_checked] */
     if(ret < 0)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[%s] bsp_open failed,path=%s, ret = %x.\n", __FUNCTION__, path, ret);
+         bsp_err("[%s] bsp_open failed,path=%s, ret = %x.\n", __FUNCTION__, path, ret);
         ret = rfile_stdioFpDestroy (fp);      /* destroy file pointer */
         g_err = (u32)ret;
         return 0;
@@ -482,7 +483,6 @@ DRV_DIR_S* mdrv_file_opendir(const char *dirName)
     return dir;
 }
 
-DRV_DIRENT_S g_stdirent;
 
 struct rfile_dirent_info
 {
@@ -491,6 +491,7 @@ struct rfile_dirent_info
     int                 len;        /* 总长度 */
     int                 ptr;        /* 当前偏移 */
     struct list_head    stlist;     /* 链表节点 */
+    DRV_DIRENT_S stdirent;
 };
 
 struct rfile_adp_ctrl
@@ -667,31 +668,30 @@ DRV_DIRENT_S* mdrv_file_readdir(DRV_DIR_S *dirp)
 
     if(pstDirent->ptr >= pstDirent->len)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[%s] ptr %d, len %d.\n", __FUNCTION__, pstDirent->ptr, pstDirent->len);
+         bsp_err("[%s] ptr %d, len %d.\n", __FUNCTION__, pstDirent->ptr, pstDirent->len);
         return 0;
     }
 
     /* coverity[var_assign] */
     pdirentcur = (RFILE_DIRENT_STRU *)((u8*)(pstDirent->pdirent) + pstDirent->ptr);
-    g_stdirent.d_ino = pdirentcur->d_ino;
+    pstDirent->stdirent.d_ino = pdirentcur->d_ino;
 
-    memset_s((void*)g_stdirent.d_name,(DRV_NAME_MAX+1),0, (DRV_NAME_MAX+1));
+    memset_s((void*)pstDirent->stdirent.d_name,(DRV_NAME_MAX+1),0, (DRV_NAME_MAX+1));
 
     if(strlen((char*)pdirentcur->d_name) > DRV_NAME_MAX)
     {
-        memcpy_s(g_stdirent.d_name,DRV_NAME_MAX+1,pdirentcur->d_name, DRV_NAME_MAX);
+        memcpy_s(pstDirent->stdirent.d_name,DRV_NAME_MAX+1,pdirentcur->d_name, DRV_NAME_MAX);
     }
     else
     {
         /* coverity[secure_coding] */
-        strncpy_s(g_stdirent.d_name,DRV_NAME_MAX+1,(char*)pdirentcur->d_name, (unsigned long)DRV_NAME_MAX); /* [false alarm]:fortify */
+        strncpy_s(pstDirent->stdirent.d_name,DRV_NAME_MAX+1,(char*)pdirentcur->d_name, (unsigned long)DRV_NAME_MAX); /* [false alarm]:fortify */
     }
 
     pstDirent->ptr += pdirentcur->d_reclen;
 
     /* coverity[leaked_storage] */
-    return &g_stdirent;
+    return &(pstDirent->stdirent);
 }
 
 int mdrv_file_closedir(DRV_DIR_S *dirp)

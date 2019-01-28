@@ -387,6 +387,7 @@ int bsp_ipc_msg_write(u8 *buf, u32 buf_len);
 #ifndef UNUSED
 #define UNUSED(a) (a=a)
 #endif
+/*lint --e{438}*/
 static inline int __attribute__ ((unused))bsp_ipc_msg_register(read_cb_func read_cb, void *read_context)
 {
 	UNUSED(read_cb);

@@ -57,12 +57,14 @@
 
 
 
+
 /*****************************************************************************
   2 全局变量定义
 *****************************************************************************/
 /*lint -e767*/
 #define    THIS_FILE_ID                 PS_FILE_ID_IMM_ZC_C
 /*lint +e767*/
+
 
 /******************************************************************************
    2 函数实现
@@ -105,22 +107,17 @@ unsigned int IMM_ZcAddMacHead (IMM_ZC_STRU *pstImmZc, const unsigned char* pucAd
 
     if ( NULL == pstImmZc )
     {
-        vos_printf("IMM_ZcAddMacHead pstImmZc ptr is null! \n");
         return VOS_ERR;
     }
 
     if ( NULL == pucAddData )
     {
-        vos_printf("IMM_ZcAddMacHead pucData ptr is null! \n");
         return VOS_ERR;
     }
 
 
     if( IMM_MAC_HEADER_RES_LEN > (pstImmZc->data - pstImmZc->head) )
     {
-        vos_printf("IMM_ZcAddMacHead invalid data Len! data = %p, head = %p \n",
-                    pstImmZc->data, pstImmZc->head);
-
         return VOS_ERR;
     }
 
@@ -136,15 +133,11 @@ unsigned int IMM_ZcRemoveMacHead(IMM_ZC_STRU *pstImmZc)
 {
     if ( NULL == pstImmZc )
     {
-        vos_printf("IMM_ZcRemoveMacHead pstImmZc ptr is null! \n");
         return VOS_ERR;
     }
 
     if ( IMM_MAC_HEADER_RES_LEN > pstImmZc->len )
     {
-        vos_printf("IMM_ZcRemoveMacHead invalid data Len! tail = %p, data = %p, len = %d \n",
-                    skb_tail_pointer(pstImmZc), pstImmZc->data, pstImmZc->len);
-
         return VOS_ERR;
     }
 

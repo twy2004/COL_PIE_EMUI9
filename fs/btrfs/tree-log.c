@@ -2967,11 +2967,8 @@ out_wake_log_root:
 	mutex_unlock(&log_root_tree->log_mutex);
 
 	/*
-	 * The barrier before waitqueue_active is needed so all the updates
-	 * above are seen by the woken threads. It might not be necessary, but
-	 * proving that seems to be hard.
+	 * The barrier before waitqueue_active is implied by mutex_unlock
 	 */
-	smp_mb();
 	if (waitqueue_active(&log_root_tree->log_commit_wait[index2]))
 		wake_up(&log_root_tree->log_commit_wait[index2]);
 out:
@@ -2982,11 +2979,8 @@ out:
 	mutex_unlock(&root->log_mutex);
 
 	/*
-	 * The barrier before waitqueue_active is needed so all the updates
-	 * above are seen by the woken threads. It might not be necessary, but
-	 * proving that seems to be hard.
+	 * The barrier before waitqueue_active is implied by mutex_unlock
 	 */
-	smp_mb();
 	if (waitqueue_active(&root->log_commit_wait[index1]))
 		wake_up(&root->log_commit_wait[index1]);
 	return ret;
@@ -3392,11 +3386,8 @@ static noinline int log_dir_items(struct btrfs_trans_handle *trans,
 		 * from this directory and from this transaction
 		 */
 		ret = btrfs_next_leaf(root, path);
-		if (ret) {
-			if (ret == 1)
-				last_offset = (u64)-1;
-			else
-				err = ret;
+		if (ret == 1) {
+			last_offset = (u64)-1;
 			goto done;
 		}
 		btrfs_item_key_to_cpu(path->nodes[0], &tmp, path->slots[0]);

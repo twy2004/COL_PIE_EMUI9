@@ -71,6 +71,8 @@
 
 #define    THIS_FILE_ID        MSP_FILE_ID_MSP_DEBUG_C
 
+#define    DIAG_LOG_PATH       MODEM_LOG_ROOT"/drv/DIAG/"
+
 /*****************************************************************************
   3 Function
 *****************************************************************************/
@@ -92,8 +94,8 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
 {
     void *pFile;
     VOS_UINT32 ret;
-    VOS_CHAR *DirPath = "/modem_log/DIAG";
-    VOS_CHAR *FilePath = "/modem_log/DIAG/DIAG_DebugCommon.bin";
+    VOS_CHAR *DirPath = DIAG_LOG_PATH;
+    VOS_CHAR *FilePath = DIAG_LOG_PATH"DIAG_DebugCommon.bin";
     VOS_UINT32 ulValue;
     VOS_UINT8 *pData;
     VOS_UINT32 ullen,offset;
@@ -116,7 +118,7 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     {
         if (VOS_OK != mdrv_file_mkdir(DirPath))
         {
-            (VOS_VOID)vos_printf(" mdrv_file_mkdir /modem_log/DIAG failed.\n");
+            diag_error(" mdrv_file_mkdir %s failed.\n", DIAG_LOG_PATH);
             VOS_MemFree(DIAG_AGENT_PID, pData);
             return ;
         }
@@ -125,8 +127,8 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     pFile = mdrv_file_open(FilePath, "wb+");
     if(pFile == 0)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_open failed.\n");
-        
+        diag_error(" mdrv_file_open failed.\n");
+
         VOS_MemFree(DIAG_AGENT_PID, pData);
 
         return ;
@@ -135,7 +137,7 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     ret = DIAG_DebugFileHeader(pFile);
     if(VOS_OK != ret)
     {
-        (VOS_VOID)vos_printf(" DIAG_DebugFileHeader failed .\n");
+        diag_error(" DIAG_DebugFileHeader failed .\n");
         (VOS_VOID)mdrv_file_close(pFile);
             VOS_MemFree(DIAG_AGENT_PID, pData);
         return ;
@@ -148,7 +150,7 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     ret = mdrv_file_write(aucInfo, 1, DIAG_DEBUG_INFO_LEN, pFile);
     if(ret != DIAG_DEBUG_INFO_LEN)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write DIAG number info failed.\n");
+        diag_error(" mdrv_file_write DIAG number info failed.\n");
     }
 
     offset  = 0;
@@ -180,7 +182,7 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     ret = mdrv_file_write(pData, 1, offset, pFile);
     if(ret != offset)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write pData failed.\n");
+        diag_error(" mdrv_file_write pData failed.\n");
     }
 
     DIAG_DebugFileTail(pFile, FilePath);
@@ -201,7 +203,7 @@ VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
     ret = (VOS_UINT32)mdrv_file_seek(pFile, 0, DRV_SEEK_SET);
     if(VOS_OK != ret)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_seek failed .\n");
+        diag_error(" mdrv_file_seek failed .\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -211,7 +213,7 @@ VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write start flag failed.\n");
+        diag_error(" mdrv_file_write start flag failed.\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -221,7 +223,7 @@ VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write debug version failed.\n");
+        diag_error(" mdrv_file_write debug version failed.\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -231,7 +233,7 @@ VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write file size failed.\n");
+        diag_error(" mdrv_file_write file size failed.\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -241,7 +243,7 @@ VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write ulTime failed.\n");
+        diag_error(" mdrv_file_write ulTime failed.\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -260,7 +262,7 @@ VOS_VOID DIAG_DebugFileTail(void *pFile, VOS_CHAR *FilePath)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write start flag failed.\n");
+        diag_error(" mdrv_file_write start flag failed.\n");
     }
 
 }
@@ -285,7 +287,7 @@ VOS_VOID diag_numberinfo(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(aucInfo, 1, DIAG_DEBUG_INFO_LEN, pFile);
     if(ret != DIAG_DEBUG_INFO_LEN)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write DIAG number info failed.\n");
+        diag_error(" mdrv_file_write DIAG number info failed.\n");
     }
 
     /* 当前的slice */
@@ -293,7 +295,7 @@ VOS_VOID diag_numberinfo(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write ulTime failed.\n");
+        diag_error(" mdrv_file_write ulTime failed.\n");
     }
 
     /* 变量的size */
@@ -301,14 +303,14 @@ VOS_VOID diag_numberinfo(void *pFile)
     ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
     if(ret != sizeof(ulValue))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write ulTime failed.\n");
+        diag_error(" mdrv_file_write ulTime failed.\n");
     }
 
     /* 各上报次数统计量 */
     ret = (VOS_UINT32)mdrv_file_write(&g_astCBTInfoTbl[0], 1, sizeof(g_astCBTInfoTbl), pFile);
     if(ret != sizeof(g_astCBTInfoTbl))
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write g_astCBTInfoTbl failed.\n");
+        diag_error(" mdrv_file_write g_astCBTInfoTbl failed.\n");
     }
 }
 
@@ -317,8 +319,8 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
 {
     void *pFile;
     VOS_UINT32 ret;
-    VOS_CHAR *DirPath = "/modem_log/DIAG";
-    VOS_CHAR *FilePath = "/modem_log/DIAG/DIAG_AcoreNoIndLog.bin";
+    VOS_CHAR *DirPath = DIAG_LOG_PATH;
+    VOS_CHAR *FilePath = DIAG_LOG_PATH"DIAG_AcoreNoIndLog.bin";
     VOS_UINT32 ulValue;
     VOS_CHAR   aucInfo[DIAG_DEBUG_INFO_LEN];
     VOS_UINT8 *pData;
@@ -346,7 +348,7 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
     {
         if (VOS_OK != mdrv_file_mkdir(DirPath))
         {
-            (VOS_VOID)vos_printf(" mdrv_file_mkdir /modem_log/DIAG failed.\n");
+            diag_error(" mdrv_file_mkdir %s failed.\n", DIAG_LOG_PATH);
             VOS_MemFree(DIAG_AGENT_PID, pData);
             return ;
         }
@@ -355,8 +357,8 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
     pFile = mdrv_file_open(FilePath, "wb+");
     if(pFile == 0)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_open failed.\n");
-        
+        diag_error(" mdrv_file_open failed.\n");
+
         VOS_MemFree(DIAG_AGENT_PID, pData);
 
         return ;
@@ -365,9 +367,9 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
     ret = DIAG_DebugFileHeader(pFile);
     if(VOS_OK != ret)
     {
-        (VOS_VOID)vos_printf(" DIAG_DebugFileHeader failed .\n");
+        diag_error(" DIAG_DebugFileHeader failed .\n");
         (VOS_VOID)mdrv_file_close(pFile);
-        
+
         VOS_MemFree(DIAG_AGENT_PID, pData);
         return ;
     }
@@ -379,7 +381,7 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
     ret = (VOS_UINT32)mdrv_file_write(aucInfo, 1, DIAG_DEBUG_INFO_LEN, pFile);
     if(ret != DIAG_DEBUG_INFO_LEN)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write DIAG config info failed.\n");
+        diag_error(" mdrv_file_write DIAG config info failed.\n");
     }
 
     offset  = 0;
@@ -453,7 +455,7 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
     ret = (VOS_UINT32)mdrv_file_write(pData, 1, offset, pFile);
     if(ret != offset)
     {
-        (VOS_VOID)vos_printf(" mdrv_file_write pData failed.\n");
+        diag_error(" mdrv_file_write pData failed.\n");
     }
 
     diag_numberinfo(pFile);

@@ -62,6 +62,7 @@ extern "C"
 typedef unsigned int       DRV_INO_T;
 typedef unsigned int       DRV_TIME;         /* type for file time fields */
 
+#define MODEM_LOG_ROOT          "/data/hisi_logs/modem_log"
 #define DRV_NAME_MAX            255
 
 #define DRV_S_IFDIR             0x4000          /* directory */

@@ -105,28 +105,6 @@ typedef unsigned int DIAG_LDSP_STATE_ENUM_U32;
 /*****************************************************************************
    5 STRUCT
 *****************************************************************************/
-/* DSP对DIAG发送邮箱消息的回复 */
-typedef struct
-{
-    VOS_UINT32  ulMsgId;
-    VOS_UINT32  ulOpId;
-    VOS_UINT32  ulCnf;
-} DIAG_MSG_FROM_DSP_STRU;
-
-/* 发给DSP的工具连接状态变化请求 */
-typedef struct
-{
-    VOS_UINT32                  ulMsgId;
-    VOS_UINT32                  ulOpId;
-    VOS_UINT32                  ulReq;
-} DIAG_MSG_TO_DSP_STRU;
-
-typedef struct
-{
-    VOS_MSG_HEADER
-    DIAG_MSG_FROM_DSP_STRU  ulMsgData;
-} DIAG_MSG_DSP_CNF_TO_AGENT_STRU;
-
 /* 核间透传通信结构体 */
 typedef struct
 {

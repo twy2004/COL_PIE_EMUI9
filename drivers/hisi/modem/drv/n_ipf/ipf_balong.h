@@ -60,7 +60,9 @@ extern "C" {
 #include "n_bsp_psam.h"
 #include <linux/memblock.h>
 #include <linux/spinlock.h>
+#include <bsp_print.h>
 
+#define THIS_MODU mod_ipf
 #define MODEM_START_ADDR	DDR_MCORE_ADDR
 #define MODEM_START_SIZE	DDR_MCORE_SIZE
 
@@ -210,8 +212,8 @@ void bsp_ipf_set_control_flag_for_ccore_reset(IPF_FORRESET_CONTROL_E eResetFlag)
 unsigned long bsp_ipf_ad0_info(unsigned long * ad0_addr);
 unsigned long bsp_ipf_ad1_info(unsigned long * ad1_addr);
 int bsp_ipf_reset_ccore_cb(DRV_RESET_CB_MOMENT_E eparam, int userdata);
-struct ipf_filter_handler* ipf_get_filter_handler(unsigned int version);
-struct ipf_desc_handler_s* ipf_get_desc_handler(unsigned int version);
+struct ipf_filter_handler* ipf_get_filter_handler(unsigned int version_id);
+struct ipf_desc_handler_s* ipf_get_desc_handler(unsigned int version_id);
 //void ipf_write_filter(unsigned int id, ipf_filter_node_s* match_infos);
 //void ipf_read_filter(unsigned int id, ipf_filter_node_s * filter);
 void bsp_ipf_ad_status(void);

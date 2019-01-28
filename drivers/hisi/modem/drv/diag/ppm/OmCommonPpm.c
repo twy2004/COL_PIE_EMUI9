@@ -67,11 +67,13 @@
 #include "diag_port_manager.h"
 #include "scm_common.h"
 #include "OmCommonPpm.h"
+#include <bsp_icc.h>
 
 
 /* ****************************************************************************
   2 全局变量定义
 **************************************************************************** */
+
 /* 用于ACPU上USB设备的UDI句柄 */
 UDI_HANDLE                              g_astOMPortUDIHandle[OM_PORT_HANDLE_BUTT];
 
@@ -89,23 +91,24 @@ PPM_PORT_CFG_INFO_STRU                  g_stPpmPortSwitchInfo;
 /* 自旋锁，用来作AT命令端口切换的临界资源保护 */
 spinlock_t                            g_stPpmPortSwitchSpinLock;
 
-
-
 OM_ACPU_DEBUG_INFO                      g_stAcpuDebugInfo;
 
 u32                              g_ulOmAcpuDbgFlag = false;
+
+PPM_PORT_SWITCH_NV_INFO             ppm_port_switch;
 /*****************************************************************************
   3 外部引用声明
 *****************************************************************************/
-extern DIAG_CHANNLE_PORT_CFG_STRU         g_stPortCfg;
+extern DIAG_CHANNLE_PORT_CFG_STRU     g_stPortCfg;
 extern spinlock_t                     g_stScmSoftDecodeDataRcvSpinLock;
 extern spinlock_t                     g_stCbtScmDataRcvSpinLock;
+extern spinlock_t                     g_stDiagThroughputSpinLock;
 PPM_DisconnectTLPortFuc g_disconnectCb = NULL;
 
 /*****************************************************************************
   4 函数实现
 *****************************************************************************/
-
+extern u32 PPM_SockPortInit(void);
 
 void PPM_RegDisconnectCb(PPM_DisconnectTLPortFuc cb)
 {
@@ -118,12 +121,12 @@ void PPM_DisconnectAllPort(OM_LOGIC_CHANNEL_ENUM_UINT32 enChannel)
     {
         if(g_disconnectCb())
         {
-            ppm_printf("disconnect error\n");
+            diag_error("disconnect error\n");
         }
     }
     else
     {
-        ppm_printf("disconnect func is null\n");
+        diag_error("disconnect func is null\n");
     }
     return;
 }
@@ -176,7 +179,7 @@ void PPM_PortStatus(OM_PROT_HANDLE_ENUM_UINT32 enHandle, CPM_PHY_PORT_ENUM_UINT3
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOutTime = ulSlicelow;
 
-        ppm_printf("Receive USB disconnect (chan %d) callback at slice 0x%x %08x!\n",enHandle, ulSlicehigh, ulSlicelow);
+        diag_crit("Receive USB disconnect (chan %d) callback at slice 0x%x %08x!\n",enHandle, ulSlicehigh, ulSlicelow);
 
         scm_SpinLockIntLock(&g_stPpmPortSwitchSpinLock, ulLockLevel);
 
@@ -221,7 +224,7 @@ void PPM_PortStatus(OM_PROT_HANDLE_ENUM_UINT32 enHandle, CPM_PHY_PORT_ENUM_UINT3
     }
     else
     {
-        ppm_printf("PPM_PortStatus: The USB Port %d State %d is Unknow", (s32)enPhyPort, (s32)enPortState);
+        diag_error("The USB Port %d State %d is Unknow", (s32)enPhyPort, (s32)enPortState);
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBStateErrNum++;
 
@@ -301,7 +304,7 @@ u32 PPM_ReadPortData(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, UDI_HANDLE UdiHandle, O
 
     if (BSP_ERROR == UdiHandle)
     {
-        ppm_printf(" PPM_PortCloseProc: Input HANDLE  is err. \n");
+        diag_error("Input HANDLE is err\n");
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleErr++;
 
@@ -315,7 +318,7 @@ u32 PPM_ReadPortData(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, UDI_HANDLE UdiHandle, O
     /* 获取USB的IO CTRL口的读缓存 */
     if (BSP_OK != mdrv_udi_ioctl(UdiHandle, UDI_ACM_IOCTL_GET_READ_BUFFER_CB, &stInfo))
     {
-        ppm_printf(" PPM_ReadPortData:Call mdrv_udi_ioctl is Failed\n");
+        diag_error("Call mdrv_udi_ioctl is Failed\n");
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadGetBufferErr++;
         diag_PTR(EN_DIAG_PTR_PPM_ERR2, 0, 0, 0);
@@ -328,7 +331,7 @@ u32 PPM_ReadPortData(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, UDI_HANDLE UdiHandle, O
     ret = CPM_ComRcv(enPhyPort, (u8*)stInfo.pVirAddr, stInfo.u32Size);
     if(BSP_OK != ret)
     {
-        ppm_printf("CPM_ComRcv return error, PhyPort is %d, ret = 0x%x\n", (s32)enPhyPort, ret);
+        diag_error("CPM_ComRcv fail(0x%x), PhyPort is %d\n", ret, (s32)enPhyPort);
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiCommRcvNullPtrErr++;
     }
@@ -338,7 +341,7 @@ u32 PPM_ReadPortData(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, UDI_HANDLE UdiHandle, O
 
     if(BSP_OK != mdrv_udi_ioctl(UdiHandle, UDI_ACM_IOCTL_RETUR_BUFFER_CB, &stInfo))
     {
-        ppm_printf(" PPM_ReadPortData:Call mdrv_udi_ioctl UDI_ACM_IOCTL_RETUR_BUFFER_CB is Failed\n");
+        diag_error("mdrv_udi_ioctlis Fail\n");
 
         g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadBufferFreeErr++;
     }
@@ -358,7 +361,7 @@ u32 PPM_QueryLogPort(u32  *pulLogPort)
 {
     if (NULL == pulLogPort)
     {
-        (void)ppm_printf(" PPM_QueryLogPort: para is NULL %d %d %d!!\n", 0,0,0);
+        diag_error("para is NULL\n");
         return (u32)BSP_ERROR;
     }
 
@@ -372,7 +375,55 @@ u32 PPM_QueryLogPort(u32  *pulLogPort)
     return BSP_OK;
 }
 
+/*****************************************************************************
+ 函 数 名  : ppm_ap_nv_icc_read_cb
+ 功能描述  : 用于注册ICC的回调函数
+ 输入参数  : id: icc通道号
+             len: 数据长度
+             context: 数据内容
+ 输出参数  : 无
+ 返 回 值  : BSP_OK/BSP_ERROR
+*****************************************************************************/
+static s32 ppm_ap_nv_icc_read_cb(u32 id , u32 len, void* context)
+{
+	s32 ret = 0;
+    PPM_PORT_SWITCH_NV_INFO             ppm_port_switch_back = {0};
+    u32 msg_len = sizeof(ppm_port_switch_back);
 
+    if(len != msg_len)
+    {
+        diag_error("readcb_len err, len=%d, msg_len=%d\n", len, msg_len);
+        return BSP_ERROR;
+    }
+    ret = bsp_icc_read(id, (u8 *)(&ppm_port_switch_back), len);
+    if(msg_len != (u32)ret)
+    {
+        diag_error("icc_read err(0x%x), msg_len=%d\n", ret, len);
+        return BSP_ERROR;
+    }
+    if(ppm_port_switch_back.msgid != PPM_MSGID_PORT_SWITCH_NV_C2A)
+    {
+        diag_error("msgid err, msgid=%d\n", ppm_port_switch_back.msgid);
+    }
+    ppm_port_switch.ret= ppm_port_switch_back.ret;
+    if(ppm_port_switch_back.ret)
+    {
+        diag_error("NV_Write fail,sn=%d\n", ppm_port_switch_back.sn);
+    }
+
+	return BSP_OK;
+}
+
+/*****************************************************************************
+ 函 数 名  : PPM_LogPortSwitch
+ 功能描述  : 提供给NAS进行端口切换
+ 输入参数  : enPhyPort: 带切换物理端口枚举值
+             ulEffect:是否立即生效
+ 输出参数  : 无
+ 返 回 值  : BSP_ERROR/BSP_OK
+
+ 修改历史  :
+*****************************************************************************/
 u32 PPM_LogPortSwitch(u32  ulPhyPort, bool ulEffect)
 {
     CPM_PHY_PORT_ENUM_UINT32            enPhyCfgPort;
@@ -384,16 +435,16 @@ u32 PPM_LogPortSwitch(u32  ulPhyPort, bool ulEffect)
 
     if ((CPM_OM_PORT_TYPE_USB != ulPhyPort) && (CPM_OM_PORT_TYPE_VCOM != ulPhyPort))
     {
-        (void)ppm_printf(" PPM_LogPortSwitch: enPhyPort is error.port %d\n", ulPhyPort);
+        diag_error("enPhyPort error, port=%d\n", ulPhyPort);
 
         g_stPpmPortSwitchInfo.ulPortTypeErr++;
 
         return (u32)BSP_ERROR;
     }
 
-    (void)ppm_printf("PPM_LogPortSwitch ulPhyPort:%s ulEffect:%s.\n",
+    diag_crit("ulPhyPort:%s ulEffect:%s.\n",
                      (ulPhyPort == CPM_OM_PORT_TYPE_USB) ? "USB"  : "VCOM",
-                     (ulEffect  == true)             ? "TRUE" : "FALSE");
+                     (ulEffect  == true) ? "TRUE" : "FALSE");
 
     /* 切换的端口与当前端口一致不切换 */
     if (ulPhyPort == g_stPortCfg.enPortNum)
@@ -404,11 +455,11 @@ u32 PPM_LogPortSwitch(u32  ulPhyPort, bool ulEffect)
             ret = bsp_socp_set_ind_mode(SOCP_IND_MODE_DIRECT);
             if(BSP_OK != ret)
             {
-                (void)ppm_printf("PPM_LogPortSwitch: set socp ind mode failed 0x%x %d %d\n", ret, __LINE__, 0);
+                diag_error("set socp ind mode failed(0x%x)\n", ret);
                 return (u32)ret;
             }
         }
-        (void)ppm_printf("PPM_LogPortSwitch Set same port, don't need to do anything.\n");
+        diag_crit("Set same port, don't need to do anything.\n");
 
         return BSP_OK;
     }
@@ -472,21 +523,21 @@ u32 PPM_LogPortSwitch(u32  ulPhyPort, bool ulEffect)
     if (CPM_OM_PORT_TYPE_USB == g_stPortCfg.enPortNum)
     {
 
-        ulCompressState = mdrv_deflate_read_cur_mode();
+        ulCompressState = mdrv_socp_compress_status();
         if(COMPRESS_ENABLE_STATE==ulCompressState)
 
         {
             ret= mdrv_socp_compress_disable(SOCP_CODER_DST_OM_IND);
             if(BSP_OK != ret)
             {
-                (void)ppm_printf("PPM_LogPortSwitch: deflate disable failed 0x%x %d\n", ret, __LINE__, 0);
+                diag_error("deflate disable failed(0x%x)\n", ret);
                 return (u32)ret;
             }
         }
             ret = bsp_socp_set_ind_mode(SOCP_IND_MODE_DIRECT);
             if(BSP_OK != ret)
             {
-                (void)ppm_printf("PPM_LogPortSwitch: set socp ind mode failed 0x%x %d\n", ret, __LINE__, 0);
+                diag_error("set socp ind mode failed(0x%x)\n", ret);
                 return (u32)ret;
 
             }
@@ -496,17 +547,21 @@ u32 PPM_LogPortSwitch(u32  ulPhyPort, bool ulEffect)
 
     if (true == ulEffect)
     {
-        if (BSP_OK != bsp_nvm_write(NV_ID_DRV_DIAG_PORT, (u8 *)&g_stPortCfg, sizeof(DIAG_CHANNLE_PORT_CFG_STRU)))
+        ppm_port_switch.msgid = PPM_MSGID_PORT_SWITCH_NV_A2C;
+        ppm_port_switch.sn ++;
+        /* 默认错误，根据返回值查看是否写NV成功 */
+        ppm_port_switch.ret = (u32)BSP_ERROR;
+        ppm_port_switch.len = sizeof(ppm_port_switch.data);
+        memcpy_s((void *)(&ppm_port_switch.data), sizeof(ppm_port_switch.data), (void *)(&g_stPortCfg), sizeof(g_stPortCfg));
+        ret = (u32)bsp_icc_send(ICC_CPU_MODEM, (ICC_CHN_IFC<<16 | IFC_RECV_FUNC_PPM_NV), (u8*)(&ppm_port_switch), sizeof(ppm_port_switch));
+        if(ret != sizeof(ppm_port_switch))
         {
-            (void)ppm_printf("PPM_LogPortSwitch: NV_Write fail!\n");
-        }
-        else
-        {
-            (void)ppm_printf("PPM_LogPortSwitch: NV_Write success!\n");
+            diag_error("bsp_icc_send fail(0x%x)\n", ret);
+            return (u32)BSP_ERROR;
         }
     }
 
-    (void)ppm_printf("PPM_LogPortSwitch: Set port success!\n");
+    diag_crit("PPM set port success!\n");
 
     return BSP_OK;
 }
@@ -522,7 +577,7 @@ u32 PPM_UdiRegCallBackFun(UDI_HANDLE enHandle, u32 ulCmdType, void* pFunc)
 
     if (BSP_OK != mdrv_udi_ioctl(enHandle, ulCmdType, pFunc))
     {
-        ppm_printf(" PPM_UdiRegCallBackFun, mdrv_udi_ioctl Failed\n");
+        diag_error("mdrv_udi_ioctl Failed\n");
 
         return (u32)BSP_ERROR;
     }
@@ -574,7 +629,7 @@ void PPM_ReadPortDataInit(CPM_PHY_PORT_ENUM_UINT32        enPhyPort,
     /* Add by h59254 for V8R1 OM end */
     else
     {
-        ppm_printf("PPM_ReadPortDataInit: Open Wrong Port %d!", (s32)enPhyPort);
+        diag_error("Open Wrong Port %d\n", (s32)enPhyPort);
 
         return;
     }
@@ -595,7 +650,7 @@ void PPM_ReadPortDataInit(CPM_PHY_PORT_ENUM_UINT32        enPhyPort,
 
     if (BSP_ERROR != g_astOMPortUDIHandle[enHandle])
     {
-        ppm_printf("PPM_ReadPortDataInit: The UDI Handle is not Null !");
+        diag_crit("The UDI Handle is not Null\n");
 
         return;
     }
@@ -605,7 +660,7 @@ void PPM_ReadPortDataInit(CPM_PHY_PORT_ENUM_UINT32        enPhyPort,
 
     if (BSP_ERROR == g_astOMPortUDIHandle[enHandle])
     {
-        ppm_printf("PPM_ReadPortDataInit: Open UDI ACM failed!");
+        diag_error("Open UDI ACM failed!");
 
         return;
     }
@@ -616,7 +671,7 @@ void PPM_ReadPortDataInit(CPM_PHY_PORT_ENUM_UINT32        enPhyPort,
     /* 配置OM使用的USB通道缓存 */
     if (BSP_OK != mdrv_udi_ioctl(g_astOMPortUDIHandle[enHandle], ACM_IOCTL_RELLOC_READ_BUFF, &stReadBuffInfo))
     {
-        ppm_printf(" PPM_ReadPortDataInit, mdrv_udi_ioctl ACM_IOCTL_RELLOC_READ_BUFF Failed\r\n");
+        diag_error("mdrv_udi_ioctl Failed\n");
 
         return;
     }
@@ -624,28 +679,28 @@ void PPM_ReadPortDataInit(CPM_PHY_PORT_ENUM_UINT32        enPhyPort,
     /* 注册OM使用的USB读数据回调函数 */
     if (BSP_OK != PPM_UdiRegCallBackFun(g_astOMPortUDIHandle[enHandle], UDI_ACM_IOCTL_SET_READ_CB, pReadCB))
     {
-        ppm_printf("PPM_ReadPortDataInit, mdrv_udi_ioctl UDI_ACM_IOCTL_SET_READ_CB Failed\r\n");
+        diag_error("mdrv_udi_ioctl Failed\r\n");
 
         return;
     }
 
     if(BSP_OK != PPM_UdiRegCallBackFun(g_astOMPortUDIHandle[enHandle], ACM_IOCTL_SET_WRITE_CB, pWriteCB))
     {
-        ppm_printf("PPM_ReadPortDataInit, mdrv_udi_ioctl ACM_IOCTL_SET_WRITE_CB Failed\r\n");
+        diag_error("mdrv_udi_ioctl Failed\r\n");
 
         return;
     }
 
     if(BSP_OK != PPM_UdiRegCallBackFun(g_astOMPortUDIHandle[enHandle], ACM_IOCTL_SET_EVT_CB, pStateCB))
     {
-        ppm_printf("PPM_ReadPortDataInit, mdrv_udi_ioctl ACM_IOCTL_SET_WRITE_CB Failed\r\n");
+        diag_error("mdrv_udi_ioctl Failed\r\n");
 
         return;
     }
 
     if (BSP_OK != mdrv_udi_ioctl(g_astOMPortUDIHandle[enHandle], ACM_IOCTL_WRITE_DO_COPY, NULL))
     {
-        ppm_printf("PPM_ReadPortDataInit, mdrv_udi_ioctl ACM_IOCTL_WRITE_DO_COPY Failed\r\n");
+        diag_error("mdrv_udi_ioctl Failed\r\n");
 
         return;
     }
@@ -674,9 +729,7 @@ u32 PPM_PortSend(OM_PROT_HANDLE_ENUM_UINT32 enHandle, u8 *pucVirAddr, u8 *pucPhy
 
     if ((NULL == pucVirAddr) || (NULL == pucPhyAddr))
     {
-        /* 打印错误 */
-        ppm_printf("PPM_PortSend: Vir or Phy Addr is Null \n");
-
+        diag_error("Vir or Phy Addr is Null \n");
         return CPM_SEND_PARA_ERR;
     }
 
@@ -742,8 +795,6 @@ u32 PPM_PortSend(OM_PROT_HANDLE_ENUM_UINT32 enHandle, u8 *pucVirAddr, u8 *pucPhy
     }
     else if(MDRV_OK > lRet)    /*临时错误*/
     {
-        /*打印信息，调用UDI接口的错误信息*/
-        ppm_printf("PPM_PortSend: mdrv_udi_ioctl Send Data return Error %d\n", lRet);
         if(OM_USB_IND_PORT_HANDLE == enHandle)
         {
             diag_system_debug_usb_fail_len(ulDataLen);
@@ -763,8 +814,6 @@ u32 PPM_PortSend(OM_PROT_HANDLE_ENUM_UINT32 enHandle, u8 *pucVirAddr, u8 *pucPhy
         {
             diag_system_debug_usb_fail_len(ulDataLen);
         }
-        /*打印信息，调用UDI接口*/
-        ppm_printf("PPM_PortSend: mdrv_udi_ioctl Send Data return Error %d\n", lRet);
 
         /*system_error(DRV_ERRNO_USB_SEND_ERROR, lRet, (s32)enHandle,
                              (s8 *)&g_stAcpuDebugInfo, (s32)sizeof(OM_ACPU_DEBUG_INFO));*/
@@ -833,22 +882,34 @@ OM_ACPU_DEBUG_INFO * PPM_ComPpmGetDebugInfo(void)
     return &g_stAcpuDebugInfo;
 }
 
-
-
+/*****************************************************************************
+ 函 数 名  : PPM_InitPhyPort
+ 功能描述  : 初始化物理通道
+ 输入参数  : void
+ 输出参数  : 无
+ 返 回 值  : BSP_OK:成功，其他为失败
+ 修改历史:
+*****************************************************************************/
 int PPM_InitPhyPort(void)
 {
+    s32 ret = 0;
     if (BSP_OK != PPM_PortInit())
     {
-        ppm_printf("PPM_InitPhyPort: PPM_PortInit failed.\n");
+        diag_error("PPM_PortInit failed\n");
         return BSP_ERROR;
     }
 
+    ret = bsp_icc_event_register((ICC_CHN_IFC<<16 | IFC_RECV_FUNC_PPM_NV), (read_cb_func)ppm_ap_nv_icc_read_cb,  (void *)NULL, (write_cb_func)NULL, (void *)NULL);
+    if(ret)
+    {
+        diag_error("icc_event_register fail(0x%x)\n", ret);
+        return BSP_ERROR;
+    }
+    ppm_port_switch.sn = 0;
 
-    ppm_printf("diag ppm init ok\n");
+    diag_crit("diag ppm init ok\n");
     return BSP_OK;
 }
-module_init(PPM_InitPhyPort);
-
 
 u32 PPM_PortInit(void)
 {
@@ -857,6 +918,7 @@ u32 PPM_PortInit(void)
     (void)memset_s(&g_stPpmPortSwitchInfo, sizeof(g_stPpmPortSwitchInfo), 0, sizeof(g_stPpmPortSwitchInfo));
 
     scm_SpinLockInit(&g_stPpmPortSwitchSpinLock);
+    scm_SpinLockInit(&g_stDiagThroughputSpinLock);   /*代替diag_system_debug初始化diag_ThoughputSpinLock*/
 
     /* USB承载的虚拟端口通道的初始化 */
     PPM_UsbPortInit();
@@ -883,53 +945,53 @@ void OmOpenLog(u32 ulFlag)
 
 void PPM_OmPortInfoShow(OM_PROT_HANDLE_ENUM_UINT32  enHandle)
 {
-    (void)ppm_printf("Invalidchanel num is             %d\n",   g_stAcpuDebugInfo.ulInvaldChannel);
+    diag_crit("Invalidchanel num is             %d\n",   g_stAcpuDebugInfo.ulInvaldChannel);
 
-    (void)ppm_printf("The Port Write num 1 is          %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteNum1);
-    (void)ppm_printf("The Port Write num 2 is          %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteNum2);
-    (void)ppm_printf("The Port Write Max Time is       0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteMaxTime);
+    diag_crit("The Port Write num 1 is          %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteNum1);
+    diag_crit("The Port Write num 2 is          %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteNum2);
+    diag_crit("The Port Write Max Time is       0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteMaxTime);
 
-    (void)ppm_printf("The Port Write CB Num is         %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteCBNum);
+    diag_crit("The Port Write CB Num is         %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteCBNum);
 
-    (void)ppm_printf("The Port Write Err Time is       %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrTime);
-    (void)ppm_printf("The Port Write Err Num  is       %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrNum);
-    (void)ppm_printf("The Port Write Err Value is      0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrValue);
-    (void)ppm_printf("The Port Write Err Len is        0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrLen);
+    diag_crit("The Port Write Err Time is       %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrTime);
+    diag_crit("The Port Write Err Num  is       %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrNum);
+    diag_crit("The Port Write Err Value is      0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrValue);
+    diag_crit("The Port Write Err Len is        0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBWriteErrLen);
 
-    (void)ppm_printf("The Port In CB Num is            %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBINNum);
-    (void)ppm_printf("The Port In CB Time is           0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBINTime);
-    (void)ppm_printf("The Port Out CB Num is           %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOutNum);
-    (void)ppm_printf("The Port Out CB Time is          0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOutTime);
-    (void)ppm_printf("The Port State CB Err Num is     %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBStateErrNum);
-    (void)ppm_printf("The Port State CB Err Time is    0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBStateErrTime);
+    diag_crit("The Port In CB Num is            %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBINNum);
+    diag_crit("The Port In CB Time is           0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBINTime);
+    diag_crit("The Port Out CB Num is           %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOutNum);
+    diag_crit("The Port Out CB Time is          0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOutTime);
+    diag_crit("The Port State CB Err Num is     %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBStateErrNum);
+    diag_crit("The Port State CB Err Time is    0x%x\n", g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBStateErrTime);
 
-    (void)ppm_printf("The Port Open num is            %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenNum);
-    (void)ppm_printf("The Port Open slice is          0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenSlice);
+    diag_crit("The Port Open num is            %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenNum);
+    diag_crit("The Port Open slice is          0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenSlice);
 
-    (void)ppm_printf("The Port Open OK num is         %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOkNum);
-    (void)ppm_printf("The Port Open OK slice is       0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOkSlice);
+    diag_crit("The Port Open OK num is         %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOkNum);
+    diag_crit("The Port Open OK slice is       0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOkSlice);
 
-    (void)ppm_printf("The Port Open OK2 num is        %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOk2Num);
-    (void)ppm_printf("The Port Open OK2 slice is      0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOk2Slice);
+    diag_crit("The Port Open OK2 num is        %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOk2Num);
+    diag_crit("The Port Open OK2 slice is      0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBOpenOk2Slice);
 
-    (void)ppm_printf("The Port Close num is           %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseNum);
-    (void)ppm_printf("The Port Close slice is         0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseSlice);
+    diag_crit("The Port Close num is           %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseNum);
+    diag_crit("The Port Close slice is         0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseSlice);
 
-    (void)ppm_printf("The Port Close OK num is        %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseOkNum);
-    (void)ppm_printf("The Port Close OK slice is      0x%x",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseOkSlice);
+    diag_crit("The Port Close OK num is        %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseOkNum);
+    diag_crit("The Port Close OK slice is      0x%x",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCloseOkSlice);
 
-    (void)ppm_printf("USB IND Pseudo sync fail num is   %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBIndPseudoSyncFailNum);
-    (void)ppm_printf("USB IND Pseudo sync fail slice is 0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBIndPseudoSyncFailSlice);
-    (void)ppm_printf("USB CFG Pseudo sync fail num is   %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCnfPseudoSyncFailNum);
-    (void)ppm_printf("USB CFG Pseudo sync fail slice is 0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCnfPseudoSyncFailSlice);
+    diag_crit("USB IND Pseudo sync fail num is   %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBIndPseudoSyncFailNum);
+    diag_crit("USB IND Pseudo sync fail slice is 0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBIndPseudoSyncFailSlice);
+    diag_crit("USB CFG Pseudo sync fail num is   %d\n",    g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCnfPseudoSyncFailNum);
+    diag_crit("USB CFG Pseudo sync fail slice is 0x%x\n",  g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBCnfPseudoSyncFailSlice);
 
-    (void)ppm_printf("The Port UDI Handle Err num is %d\n",                 g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleErr);
-    (void)ppm_printf("The Port UDI Handle Get Buffer Err num is %d\n",      g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadGetBufferErr);
-    (void)ppm_printf("The Port UDI Handle Comm Rcv Null Ptr num is %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiCommRcvNullPtrErr);
-    (void)ppm_printf("The Port UDI Handle Read Buffer Free Err num is %d\n",g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadBufferFreeErr);
+    diag_crit("The Port UDI Handle Err num is %d\n",                 g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleErr);
+    diag_crit("The Port UDI Handle Get Buffer Err num is %d\n",      g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadGetBufferErr);
+    diag_crit("The Port UDI Handle Comm Rcv Null Ptr num is %d\n",   g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiCommRcvNullPtrErr);
+    diag_crit("The Port UDI Handle Read Buffer Free Err num is %d\n",g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBUdiHandleReadBufferFreeErr);
 
-    (void)ppm_printf("The Port UDI Handle Total Rcv Pkt num is %d\n",       g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBRcvPktNum);
-    (void)ppm_printf("The Port UDI Handle Total Rcv Byte is %d.\n",          g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBRcvPktByte);
+    diag_crit("The Port UDI Handle Total Rcv Pkt num is %d\n",       g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBRcvPktNum);
+    diag_crit("The Port UDI Handle Total Rcv Byte is %d.\n",          g_stAcpuDebugInfo.astPortInfo[enHandle].ulUSBRcvPktByte);
 
     return;
 }
@@ -938,13 +1000,13 @@ EXPORT_SYMBOL(PPM_OmPortInfoShow);
 
 void PPM_OmPortDebugInfoShow(void)
 {
-    (void)ppm_printf("IND ulOmDiscardNum %d, len %d; ulUSBSendErrNum %d, Len %d; ulUSBSendNum %d, len %d, reallen %d.\n",
+    diag_crit("IND ulOmDiscardNum %d, len %d; ulUSBSendErrNum %d, Len %d; ulUSBSendNum %d, len %d, reallen %d.\n",
     g_stAcpuDebugInfo.stIndDebugInfo.ulOmDiscardNum, g_stAcpuDebugInfo.stIndDebugInfo.ulOmDiscardLen,
     g_stAcpuDebugInfo.stIndDebugInfo.ulUSBSendErrNum, g_stAcpuDebugInfo.stIndDebugInfo.ulUSBSendErrLen,
     g_stAcpuDebugInfo.stIndDebugInfo.ulUSBSendNum, g_stAcpuDebugInfo.stIndDebugInfo.ulUSBSendLen,
     g_stAcpuDebugInfo.stIndDebugInfo.ulUSBSendRealLen);
 
-    (void)ppm_printf("CNF ulOmDiscardNum %d, len %d; ulUSBSendErrNum %d, Len %d; ulUSBSendNum %d, len %d, Reallen %d.\n",
+    diag_crit("CNF ulOmDiscardNum %d, len %d; ulUSBSendErrNum %d, Len %d; ulUSBSendNum %d, len %d, Reallen %d.\n",
     g_stAcpuDebugInfo.stCnfDebugInfo.ulOmDiscardNum, g_stAcpuDebugInfo.stCnfDebugInfo.ulOmDiscardLen,
     g_stAcpuDebugInfo.stCnfDebugInfo.ulUSBSendErrNum, g_stAcpuDebugInfo.stCnfDebugInfo.ulUSBSendErrLen,
     g_stAcpuDebugInfo.stCnfDebugInfo.ulUSBSendNum, g_stAcpuDebugInfo.stCnfDebugInfo.ulUSBSendLen,
@@ -955,15 +1017,15 @@ EXPORT_SYMBOL(PPM_OmPortDebugInfoShow);
 
 void PPM_PortSwitchInfoShow(void)
 {
-    (void)ppm_printf("Port Type Err num is %d\n", g_stPpmPortSwitchInfo.ulPortTypeErr);
+    diag_crit("Port Type Err num is %d\n", g_stPpmPortSwitchInfo.ulPortTypeErr);
 
-    (void)ppm_printf("Port Switch Fail time is %d\n", g_stPpmPortSwitchInfo.ulSwitchFail);
+    diag_crit("Port Switch Fail time is %d\n", g_stPpmPortSwitchInfo.ulSwitchFail);
 
-    (void)ppm_printf("Port Switch Success time is %d\n", g_stPpmPortSwitchInfo.ulSwitchSucc);
+    diag_crit("Port Switch Success time is %d\n", g_stPpmPortSwitchInfo.ulSwitchSucc);
 
-    (void)ppm_printf("Port Switch Start slice is 0x%x\n", g_stPpmPortSwitchInfo.ulStartSlice);
+    diag_crit("Port Switch Start slice is 0x%x\n", g_stPpmPortSwitchInfo.ulStartSlice);
 
-    (void)ppm_printf("Port Switch End slice is 0x%x.\n", g_stPpmPortSwitchInfo.ulEndSlice);
+    diag_crit("Port Switch End slice is 0x%x.\n", g_stPpmPortSwitchInfo.ulEndSlice);
 
     return;
 }

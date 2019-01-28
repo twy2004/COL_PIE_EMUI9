@@ -114,7 +114,7 @@ struct rdr_soc_des_s {
 static struct rdr_soc_des_s soc_des;
 
 #define DTS_COMP_HIFICMA_NAME    "hisilicon,hifi-cma"
-#define HIFI_CMA_IMAGE_SIZE    (0x600000UL)
+#define HIFI_CMA_IMAGE_SIZE    (0xA00000UL)
 struct hisi_hifi_cma_struct {
     struct device *device;
 };

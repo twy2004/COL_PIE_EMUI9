@@ -139,6 +139,7 @@ enum NAS_ERR_LOG_ALM_ID_ENUM
 
     NAS_ERR_LOG_ALM_SIM_INFO_CLT                            = 0x2d,            /* 卡文件中网络参数信息收集 */
 
+    NAS_ERR_LOG_ALM_RELATIVE_STILL_MODE_INFO                = 0x2e,            /* 微动模式信息收集 */
     /****************************************************************************************************************************
     **********************************    GUNAS 与CNAS CHR原因值分界线    *******************************************************
     ****************************************************************************************************************************/
@@ -181,7 +182,6 @@ enum NAS_ERR_LOG_ALM_ID_ENUM
     NAS_ERR_LOG_ALM_HRPD_SESSION_CLOSE_PROT_NEG_ERR         = 0x92,            /* HRPD SessionClose原因值为PROT_NEG_ERR的信息 */
     NAS_ERR_LOG_ALM_QUICK_BACK_TO_4G_STATISTIC_INFO         = 0x93,            /* APS触发，3G下快回4G信息统计 */
 
-    NAS_ERR_LOG_ALM_VOLTE_IMS_1X_SWITCH_INFO                = 0x94,             /* 电信VOLTE 1x和ims乒乓切换异常CHR信息 */
     NAS_ERR_LOG_ALM_CSCALL_IMS_FAIL_1X_REDIAL_INFO          = 0x95,             /* 电信VOLTE IMS呼叫失败后换域重播的信息 */
 
     NAS_ERR_LOG_ALM_DO_LTE_OOS_PROCESS_INFO                 = 0x96,             /* CL丢网频繁上报特性:DO_LTE 丢网恢复信息 */
@@ -196,6 +196,15 @@ enum NAS_ERR_LOG_ALM_ID_ENUM
 
     NAS_ERR_LOG_ALM_CNAS_1X_RESEL_INFO                      = 0x9b,             /*  CNAS模块1x Resel 参数信息 */
     NAS_ERR_LOG_ALM_CNAS_ENC_VOICE_FAIL_INFO                = 0x9c,             /* 语音加密失败信息*/
+    NAS_ERR_LOG_ALM_CALL_TYPE_EMC                           = 0x9d,             /* 主动上报当前呼叫类型为 EMC */
+    NAS_ERR_LOG_ALM_EMC_DOMAIN_SEL_AND_RETRY                = 0x9e,             /* 根据AP侧查询返回 EMC域选和重试信息 */
+
+    NAS_ERR_LOG_ALM_CNAS_LOCK_UNLOCK_COUNT                  = 0x9f,             /* 加锁和解锁记录 */
+    NAS_ERR_LOG_ALM_CNAS_UNLOCK_MTMO_COUNT                  = 0xa0,             /* 发起过解锁的主被叫记录 */
+
+    NAS_ERR_LOG_ALM_CL_IMS_INFO                             = 0xa1,             /* cl模式下，电信ims信息统计，包括手动切和自动切*/
+
+    NAS_ERR_LOG_ALM_EVDO_ATTACH_FAIL_INFO                   = 0xa2,             /* cl模式下，EHRPD注册失败或者PDN建链失败信息 */
     NAS_ERR_LOG_ALM_ID_BUTT
 };
 typedef VOS_UINT16  NAS_ERR_LOG_ALM_ID_ENUM_U16;

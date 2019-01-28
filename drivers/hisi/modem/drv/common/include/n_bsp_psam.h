@@ -213,7 +213,7 @@ static inline int bsp_psam_get_cipher_bd(struct tagpsam_cipher_reg * param)
 	return 0;
 }
 
-static inline int bsp_psam_config_cipher_rd(cipher_addr_s *para)
+static inline int bsp_psam_config_cipher_rd(int psam_handle, cipher_addr_s *para)
 {
 	return 0;
 }
@@ -238,7 +238,7 @@ static inline void psam_reset_cbdq_crdq_ptr(void)
 
 }
 
-static inline int bsp_psam_cipher_ch_srst(unsigned int chn)
+static inline int bsp_psam_cipher_ch_srst(int psam_handle)
 {
 	return 0;
 }

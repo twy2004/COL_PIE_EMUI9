@@ -84,7 +84,7 @@ extern "C"{
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-extern void mdrv_om_system_error(int modId, int arg1, int arg2, char * arg3, int arg3Length);
+#include "mdrv.h"
 
 #define VOS_FLOW_REBOOT     0xffffffff
 
@@ -176,6 +176,8 @@ enum
     VOS_MEMCTRL_ADDR_ERROR3,                       /* 0x10000043 */
     VOS_FREE_MSG_AGAIN,                            /* 0x10000044 */
     OM_APP_EICC_INIT_ERROR,                        /* 0x10000045 */
+    START_RELTIMER_WRONG_CPUPID,                   /* 0x10000046 */
+    VOS_GET_64BIT_SLICE_ERROR,                     /* 0x10000047 */
 
     OSA_REBOOT_MODULE_ID_BUTT = 0x1fffffff
 };
@@ -238,7 +240,7 @@ VOS_INT VOS_GetDrvVerInfo(VOS_GET_DRV_VER_INFO_ENUM_UINT32 enVerInfo);
 #endif
 
 #if (OSA_CPU_NRCPU == VOS_OSA_CPU)
-#define DUMP_SAVE_MOD_OSA_MEM OM_NR_OSA
+#define DUMP_SAVE_MOD_OSA_MEM OM_CP_OSA
 #endif
 
 #define VOS_EXCH_MEM_MALLOC\

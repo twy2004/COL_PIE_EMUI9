@@ -55,6 +55,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
+#include "securec.h"
 
 #define DRIVER_NAME "v7r2_ipc_device"
 
@@ -63,12 +64,14 @@
 #include <osl_module.h>
 #include <soc_clk.h>
 #include <bsp_memmap.h>
-#include <bsp_trace.h>
 #include <bsp_ipc.h>
 #include <bsp_slice.h>
 #include <bsp_reset.h>
 #include "ipc_balong.h"
 #include <bsp_pm_om.h>
+
+#undef THIS_MODU
+#define THIS_MODU mod_ipc
 
 
 spinlock_t ipcm_lock[IPC_SEM_BUTTOM];
@@ -87,7 +90,7 @@ static s32 bsp_ipc_int_enable_noirq (IPC_INT_LEV_E ulLvl)
     u32 u32IntMask = 0;
     if (ulLvl >= INTSRC_NUM)
     {
-	   bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+	   ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
            return MDRV_ERROR; 
      } 
     /*写中断屏蔽寄存器*/
@@ -103,7 +106,7 @@ s32 bsp_ipc_int_enable (IPC_INT_LEV_E ulLvl)
     s32 ret = 0;
      if (ulLvl >= INTSRC_NUM)
     {
-	   bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+	   ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
            return MDRV_ERROR; 
      } 
     /*写中断屏蔽寄存器*/
@@ -118,7 +121,7 @@ static s32 bsp_ipc_int_disable_noirq(IPC_INT_LEV_E ulLvl)
 	u32 u32IntMask = 0;
 	 if (ulLvl >= INTSRC_NUM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
 		return MDRV_ERROR; 
 	 } 
 	/*写中断屏蔽寄存器*/
@@ -134,7 +137,7 @@ s32 bsp_ipc_int_disable(IPC_INT_LEV_E ulLvl)
 	s32 ret = 0;
 	 if (ulLvl >= INTSRC_NUM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
 		return MDRV_ERROR; 
 	 } 
 	/*写中断屏蔽寄存器*/
@@ -149,7 +152,7 @@ s32 bsp_ipc_int_connect(IPC_INT_LEV_E ulLvl, voidfuncptr routine, u32 parameter)
 	 unsigned long flags=0;
 	 if (ulLvl >= INTSRC_NUM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
 		return MDRV_ERROR; 
 	 } 
 	 spin_lock_irqsave(&ipc_ctrl.lock,flags);
@@ -165,7 +168,7 @@ s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl,voidfuncptr routine, u32 paramete
 	unsigned long flags = 0;
 	if (ulLvl >= INTSRC_NUM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
 		return MDRV_ERROR; 
 	 } 
 	spin_lock_irqsave(&ipc_ctrl.lock,flags);
@@ -179,8 +182,8 @@ void bsp_ipc_int_mask_status_dump(void)
 {
 	u32 u32IntStat1=readl((const volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_CPU_INT_MASK(ipc_ctrl.core_num)));
 	u32 u32IntStat2=readl((const volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_CPU_INT_STAT(ipc_ctrl.core_num)));
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"bsp_ipc_int_mask = 0x%x\n",u32IntStat1);
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"bsp_ipc_int_stat = 0x%x\n",u32IntStat2);
+	ipc_print_error("bsp_ipc_int_mask = 0x%x\n",u32IntStat1);
+	ipc_print_error("bsp_ipc_int_stat = 0x%x\n",u32IntStat2);
 }
 
 OSL_IRQ_FUNC(irqreturn_t,ipc_int_handler,irq,dev_id)
@@ -214,7 +217,7 @@ OSL_IRQ_FUNC(irqreturn_t,ipc_int_handler,irq,dev_id)
 			}
 			else
 			{
-				bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"BSP_DRV_IpcIntHandler:No IntConnect,MDRV_ERROR!.int num =%d\n",i);
+				ipc_print_error("BSP_DRV_IpcIntHandler:No IntConnect,MDRV_ERROR!.int num =%d\n",i);
 			}
 			ipc_debug.u32IntHandleTimes[i]++;
 		}
@@ -228,12 +231,12 @@ s32 bsp_ipc_int_send(IPC_INT_CORE_E enDstCore, IPC_INT_LEV_E ulLvl)
 	unsigned long flags = 0;
 	 if (ulLvl >= INTSRC_NUM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,ulLvl);
 		return MDRV_ERROR; 
 	 } 
 	 if (enDstCore >= IPC_CORE_BUTTOM)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,enDstCore);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,enDstCore);
 		return MDRV_ERROR; 
 	 } 
 	
@@ -266,7 +269,7 @@ static void  mask_int(u32 u32SignalNum)
  {
 	  if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	 if(true != ipc_ctrl.sem_exist[u32SignalNum])/*避免同一个信号量在没有删除的情况下创建多次*/
@@ -286,19 +289,19 @@ static void  mask_int(u32 u32SignalNum)
  {
 	if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	if(false == ipc_ctrl.sem_exist[u32SignalNum] )
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"semphore not exists,may be deleted already.\n");
+		ipc_print_error("semphore not exists,may be deleted already.\n");
 		return MDRV_ERROR;
 	}
 	else
 	{
 		if (osl_sema_delete(&(ipc_ctrl.sem_ipc_task[u32SignalNum])))
 		{
-			bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"Delete semphore failed.\n");
+			ipc_print_error("Delete semphore failed.\n");
 			return MDRV_ERROR;
 		}
 		ipc_ctrl.sem_exist[u32SignalNum] = false;
@@ -312,7 +315,7 @@ static void  mask_int(u32 u32SignalNum)
 	/*参数检查*/
 	if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	 /*将申请的信号量对应的释放中断清零*/
@@ -329,7 +332,7 @@ static void  mask_int(u32 u32SignalNum)
 	{
 		if(false == ipc_ctrl.sem_exist[u32SignalNum])
 		{
-			bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"need call ipc_sem_create to create this sem before call ipc_sem_take!\n");
+			ipc_print_error("need call ipc_sem_create to create this sem before call ipc_sem_take!\n");
 			return MDRV_ERROR;
 		}
 		if(0 != s32timeout)
@@ -341,7 +344,7 @@ static void  mask_int(u32 u32SignalNum)
 			 if (MDRV_OK != osl_sem_downtimeout(&(ipc_ctrl.sem_ipc_task[u32SignalNum]), s32timeout))  
 			{
 				mask_int(u32SignalNum);
-				bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"semTake timeout!\n");
+				ipc_print_error("semTake timeout!\n");
 				ipc_debug.u32SemTakeFailTimes[u32SignalNum]++;
 				return MDRV_ERROR;
 			}
@@ -365,7 +368,7 @@ s32 bsp_ipc_sem_give(u32 u32SignalNum)
 {
 	 if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	ipc_debug.u32SemGiveTimes[u32SignalNum]++;
@@ -442,7 +445,7 @@ s32 bsp_ipc_spin_lock(u32 u32SignalNum)
 	u32 u32HsCtrl = 0;
         if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	for(;;)
@@ -464,7 +467,7 @@ s32 bsp_ipc_spin_lock_timeout(u32 u32SignalNum, u32 TimeoutMs)
 	u32 start_time = 0, end_time = 0, elapsed = 0;
          if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 
@@ -510,7 +513,7 @@ s32 bsp_ipc_spin_trylock(u32 u32SignalNum)
 	u32 u32HsCtrl = 0;
 	if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	u32HsCtrl = readl(ipc_ctrl.ipc_base + BSP_IPC_HS_CTRL(ipc_ctrl.core_num, u32SignalNum));
@@ -529,7 +532,7 @@ s32 bsp_ipc_spin_unlock (u32 u32SignalNum)
 {
          if (u32SignalNum >= IPC_SEM_BUTTOM_ACORE)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
+		ipc_print_error("[%s]Wrong para , line:%d,para = %d\n",__FUNCTION__, __LINE__,u32SignalNum);
 		return MDRV_ERROR; 
 	 } 
 	writel(0,(volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_HS_CTRL(ipc_ctrl.core_num, u32SignalNum)));
@@ -545,7 +548,7 @@ static void get_ipc_int_stat(void)
 	ipc_resume_int_stat=readl((const volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_CPU_INT_STAT(ipc_ctrl.core_num)));
 	if(ipc_resume_int_stat)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"[C SR]ipc_resume_int_stat = 0x%x\n",ipc_resume_int_stat);
+		ipc_print_error("[C SR]ipc_resume_int_stat = 0x%x\n",ipc_resume_int_stat);
 		if(ipc_resume_int_stat&(temp<<IPC_ACPU_INT_SRC_CCPU_ICC)){
 			icc_wakeup_flag_set();
 			run_icc_pm_debug_callback();
@@ -592,32 +595,32 @@ static int ipc_msg_init(void)
     ptr_device_node = of_find_compatible_node(NULL, NULL, compatible_name);/*lint !e838*/
     if (!ptr_device_node)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc msg of find fail\n");
+        ipc_print_error( "ipc msg of find fail\n");
         return BSP_ERROR;
     }
 
     g_ipc_msg.base_addr = of_iomap(ptr_device_node, 0);
     if (!g_ipc_msg.base_addr)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc msg base fail\n");
+        ipc_print_error( "ipc msg base fail\n");
         return BSP_ERROR;
     }
 
     ret = of_property_read_u32(ptr_device_node, "src_id", &g_ipc_msg.src_id);/*lint !e838*/
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc src_id fail\n");
+        ipc_print_error( "ipc src_id fail\n");
         return BSP_ERROR;
     }
 
     ret = of_property_read_u32(ptr_device_node, "recv_mbx_id", &g_ipc_msg.recv_mbx);
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc recv_mbx_id fail\n");
+        ipc_print_error( "ipc recv_mbx_id fail\n");
         return BSP_ERROR;
     }
 
-    bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"ipc msg init success\n");
+    ipc_print_error("ipc msg init success\n");
     return BSP_OK;
 }
 
@@ -634,14 +637,14 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	phys_addr_t ipc_phy_base = 0;
 	if (BSP_ERROR == ipc_msg_init())
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc msg init fail\n");
+		ipc_print_error( "ipc msg init fail\n");
 		return BSP_ERROR;
 	}
 
 	node = of_find_compatible_node(NULL, NULL, "hisilicon,ipc_balong_app");
 	if (!node)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc of find fail\n");
+		ipc_print_error( "ipc of find fail\n");
 		return MDRV_ERROR;
 	}
 
@@ -651,7 +654,7 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	prop = of_get_property(node, "reg", &len);
 	if (!prop || len < (na + ns) * sizeof(*prop)) /*lint !e574 */
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "ipc of_get_property reg fail\n");
+		ipc_print_error( "ipc of_get_property reg fail\n");
 		return MDRV_ERROR;
 	}
 
@@ -664,7 +667,7 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	p_iomap_ret = of_iomap(node, 0);
 	if (NULL == p_iomap_ret)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC, "acore ipc iomap fail\n");
+		ipc_print_error( "acore ipc iomap fail\n");
 		return MDRV_ERROR;
 	}
 
@@ -675,7 +678,7 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	}
 	array_size = sizeof(struct ipc_entry)*INTSRC_NUM;
 	/* coverity[secure_coding] */
-	memset((void*)(ipc_ctrl.ipc_int_table),0x0,array_size);
+	memset_s((void*)(ipc_ctrl.ipc_int_table),array_size,0x0,array_size);
 	ipc_ctrl.ipc_base = p_iomap_ret;
 
 	writel(0x0,(volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_CPU_INT_MASK(ipc_ctrl.core_num)));
@@ -687,7 +690,7 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	ret = request_irq(ipc_ctrl.irq_int_no, ipc_int_handler, IRQF_NO_SUSPEND, "ipc_irq",(void*) NULL);
 	if (ret )
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"ipc int handler error,init failed\n");
+		ipc_print_error("ipc int handler error,init failed\n");
 		return MDRV_ERROR;
 	}
 
@@ -695,12 +698,12 @@ static s32  bsp_ipc_probe(struct platform_device *dev)
 	ret = request_irq(ipc_ctrl.irq_sem_no, ipc_sem_int_handler, IRQF_NO_SUSPEND, "ipc_sem",(void*) NULL);
 	if (ret )
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"ipc sem handler error,init failed\n");
+		ipc_print_error("ipc sem handler error,init failed\n");
 		return MDRV_ERROR;
 	}
 
 	register_syscore_ops(&ipc_dpm_ops);
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"ipc probe success\n");
+	ipc_print_error("ipc probe success\n");
 	return MDRV_OK;    /*lint !e438*/
 }
 static s32  bsp_ipc_remove(struct platform_device *dev)
@@ -781,7 +784,7 @@ static s32 ipc_suspend_noirq(struct device *dev)
 		ret = readl((const volatile void *)(ipc_ctrl.ipc_base + BSP_IPC_HS_STAT(ipc_ctrl.core_num,i)));
 		if(ret==0x8)
 		{
-			bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"signum id = %d is occupied\n",i);
+			ipc_print_error("signum id = %d is occupied\n",i);
 			pr_info("%s -\n", __func__);
 			return MDRV_ERROR;
 		}
@@ -813,20 +816,20 @@ static struct platform_device balong_ipc_device =
     .id       = -1,
     .num_resources = 0,
 };
-static int __init hi_ipc_init(void)
+int __init hi_ipc_init(void)
 {
 	s32 ret = 0;
 
 	ret = platform_device_register(&balong_ipc_device);
 	if(ret)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"Platform ipc device register is failed!\n");
+		ipc_print_error("Platform ipc device register is failed!\n");
         	return ret;
 	}
 	ret = platform_driver_register(&balong_ipc_driver);
 	if (ret)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"Platform ipc deriver register is failed!\n");
+		ipc_print_error("Platform ipc deriver register is failed!\n");
 		platform_device_unregister(&balong_ipc_device);
 		return ret;
 	}
@@ -842,15 +845,15 @@ static void  bsp_ipc_exit(void)
 void bsp_ipc_debug_show(void)
 {
 	u32 i = 0;
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"\ncurrent sem ID       : \t%d\n", ipc_debug.u32SemId);
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"\ncurrent sem core     : \t%d\n", ipc_debug.u32SemCore);
-	bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"current recv int coreid: \t%d\n", ipc_debug.u32RecvIntCore);
+	ipc_print_error("\ncurrent sem ID       : \t%d\n", ipc_debug.u32SemId);
+	ipc_print_error("\ncurrent sem core     : \t%d\n", ipc_debug.u32SemCore);
+	ipc_print_error("current recv int coreid: \t%d\n", ipc_debug.u32RecvIntCore);
 	for(i = 0; i < INTSRC_NUM; i++)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"sem%2d take count      : \t%d\n", i,ipc_debug.u32SemTakeTimes[i]);
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"sem%2d give count      : \t%d\n", i,ipc_debug.u32SemGiveTimes[i]);
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"int%2d recv count      : \t%d\n",i, ipc_debug.u32IntHandleTimes[i]);
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"int%2d cost time       : \t%d us\n",i, ipc_debug.u32IntTimeDelta[i]*1000000/HI_TCXO_CLK);
+		ipc_print_error("sem%2d take count      : \t%d\n", i,ipc_debug.u32SemTakeTimes[i]);
+		ipc_print_error("sem%2d give count      : \t%d\n", i,ipc_debug.u32SemGiveTimes[i]);
+		ipc_print_error("int%2d recv count      : \t%d\n",i, ipc_debug.u32IntHandleTimes[i]);
+		ipc_print_error("int%2d cost time       : \t%d us\n",i, ipc_debug.u32IntTimeDelta[i]*1000000/HI_TCXO_CLK);
 	}
 }
 
@@ -861,7 +864,7 @@ void bsp_int_send_info(void)
 	{
 		for(j=0;j<INTSRC_NUM;j++)
 		{
-			bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_IPC,"int%2d send to core%d count: \t%d\n",j,i, ipc_debug.u32IntSendTimes[i][j]);
+			ipc_print_error("int%2d send to core%d count: \t%d\n",j,i, ipc_debug.u32IntSendTimes[i][j]);
 		}
 	}
 		
@@ -890,10 +893,6 @@ EXPORT_SYMBOL(ipc_modem_reset_cb);
 EXPORT_SYMBOL(bsp_ipc_spin_lock_timeout);
 EXPORT_SYMBOL(bsp_ipc_int_mask_status_dump);
 
-arch_initcall(hi_ipc_init);
-module_exit(bsp_ipc_exit);
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Hisilicon Drive Group");
 /*lint -restore +e19*/
 
 

@@ -55,7 +55,6 @@
 #include <soc_socp_adapter.h>
 #include <bsp_socp.h>
 #include "diag_port_manager.h"
-#include "soft_decode.h"
 #include "OmCommonPpm.h"
 #include "diag_system_debug.h"
 #include "scm_common.h"
@@ -70,17 +69,18 @@
 **************************************************************************** */
 SCM_CODER_DEST_CFG_STRU     g_astSCMCnfCoderDstCfg=
 {
-    SCM_CHANNEL_UNINIT, 
-    SOCP_CODER_DST_OM_CNF, 
-    SCM_CODER_DST_CNF_SIZE, 
-    SCM_CODER_DST_THRESHOLD, 
+    SCM_CHANNEL_UNINIT,
+    SOCP_CODER_DST_OM_CNF,
+    SCM_CODER_DST_CNF_SIZE,
+    SCM_CODER_DST_THRESHOLD,
     SOCP_TIMEOUT_TRF_SHORT,
-    NULL, 
-    NULL,  
+    NULL,
+    NULL,
     NULL
 };
 
 extern OM_ACPU_DEBUG_INFO g_stAcpuDebugInfo;
+extern u32 g_DiagLogLevel;
 
 
 u32 scm_malloc_cnf_dst_buff(void)
@@ -135,33 +135,28 @@ u32 scm_rls_cnf_dst_buff(u32 ulReadSize)
 {
     u32                          ulDataLen;
     SOCP_BUFFER_RW_STRU                 stBuffer;
-    SOCP_CODER_DST_ENUM_U32             ulChanlID; 
-    
+    SOCP_CODER_DST_ENUM_U32             ulChanlID;
+
     ulChanlID = g_astSCMCnfCoderDstCfg.enChannelID;
 
     if(0 == ulReadSize) /*释放通道所有数据*/
     {
         if (BSP_OK != bsp_socp_get_read_buff(ulChanlID, &stBuffer))
         {
-            SCM_CODER_DST_ERR("SCM_RlsDestBuf: Get Read Buffer is Error", ulChanlID, 0);/* 记录Log */
+            diag_error("Get Read Buffer is Error\n");
             return ERR_MSP_FAILURE;
         }
 
         ulDataLen = stBuffer.u32Size + stBuffer.u32RbSize;
-
-        SCM_CODER_DST_LOG("SCM_RlsDestBuf: Relese All Data", ulChanlID, ulDataLen);
     }
     else
     {
-        /* 记录调用时间 */
-        SCM_CODER_DST_LOG("SCM_RlsDestBuf: Relese Read Data", ulChanlID, ulReadSize);
-
         ulDataLen = ulReadSize;
     }
 
     if (BSP_OK != bsp_socp_read_data_done(ulChanlID, ulDataLen))
     {
-        SCM_CODER_DST_ERR("SCM_RlsDestBuf: Read Data Done is Error", ulChanlID, ulDataLen);/* 记录Log */
+        diag_error("Read Data Done is Error\n");
 
         return ERR_MSP_FAILURE;
     }
@@ -203,7 +198,7 @@ u32 scm_cnf_dst_channel_init(void)
 }
 void scm_reg_cnf_coder_dst_send_fuc(void)
 {
-    scm_printf("SCM_RegCoderDestCnfChan.\n");
+    diag_crit("SCM_RegCoderDestCnfChan.\n");
 
     g_astSCMCnfCoderDstCfg.pfunc = (SCM_CODERDESTFUCN)scm_send_cnf_data_to_udi;
 }
@@ -268,7 +263,7 @@ void scm_send_cnf_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
     }
     else
     {
-        scm_printf("PPM_SocpSendDataToUDI: CPM_ComSend return Error %d", (s32)ulResult);
+        diag_error("CPM_ComSend return Error(0x%x)\n", (s32)ulResult);
     }
 
     if(bUsbSendFlag != true)
@@ -280,7 +275,7 @@ void scm_send_cnf_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
             pstDebugInfo->ulSocpReadDoneErrNum++;
             pstDebugInfo->ulSocpReadDoneErrLen += ulSendDataLen;
 
-            scm_printf("PPM_SocpSendDataToUDI: SCM_RlsDestBuf return Error %d", (s32)ulRet);
+            diag_error("SCM_RlsDestBuf return Error(0x%x)\n", (s32)ulRet);
         }
     }
 
@@ -309,27 +304,27 @@ void scm_cnf_dst_read_cb(void)
 
     if (SOCP_CODER_DEST_CHAN != ulChType)
     {
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Channel Type is Error", ulDstChID, ulChType);/* 记录Log */
+        diag_error("Channel Type(0x%x) is Error\n",ulChType);
         return;
     }
 
     if (BSP_OK != bsp_socp_get_read_buff(ulDstChID, &stBuffer))
     {
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Get Read Buffer is Error", ulDstChID, 0);/* 记录Log */
+        diag_error("Get Read Buffer is Error\n");
         return;
     }
 
      /* 开机log功能，IND通道上报函数为空，使log缓存在本地 */
     if(NULL == g_astSCMCnfCoderDstCfg.pfunc)
     {
-        scm_printf("cnf dst channel is null\n");
+        diag_error("cnf dst channel is null\n");
         return;
     }
 
     if((0 == (stBuffer.u32Size + stBuffer.u32RbSize))||(NULL == stBuffer.pBuffer))
     {
         bsp_socp_read_data_done(ulDstChID, stBuffer.u32Size + stBuffer.u32RbSize);  /* 清空数据 */
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Get RD error ", ulDstChID,0);/* 记录Log */
+        diag_error("Get RD error\n");/* 记录Log */
         return;
     }
 
@@ -346,14 +341,17 @@ void scm_cnf_dst_read_cb(void)
     if((unsigned long)NULL == ulVirtAddr)
     {
         bsp_socp_read_data_done(ulDstChID, stBuffer.u32Size + stBuffer.u32RbSize);  /* 清空数据 */
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB:  stBuffer.pBuffer == VOS_NULL", ulDstChID, 0);/* 记录Log */
+        diag_error("stBuffer.pBuffer==NULL\n");
         return;
     }
     ulTimerIn = bsp_get_slice_value();
     g_astSCMCnfCoderDstCfg.pfunc((u8*)ulVirtAddr, (u8*)stBuffer.pBuffer,(u32)stBuffer.u32Size);
     ulTimerOut = bsp_get_slice_value();
     /* 记录回调函数的执行时间 */
-    SCM_CODER_DST_LOG("SCM_CoderDestReadCB: Call channel Func Proc time", ulDstChID, (ulTimerOut - ulTimerIn));
+    if(g_DiagLogLevel)
+    {
+        diag_crit("g_astSCMCnfCoderDstCfg.pfunc Proc time 0x%x\n", (ulTimerOut - ulTimerIn));        
+    }    
 
     return;
 }

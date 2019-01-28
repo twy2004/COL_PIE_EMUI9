@@ -85,10 +85,12 @@ typedef enum _bsp_module_e
     BSP_MODU_DPM,
     BSP_MODU_IPC,
     BSP_MODU_DFC,
+    BSP_MODU_EICC,
     BSP_MODU_I2C,
     BSP_MODU_RTC,
     BSP_MODU_HI6551_RTC,
     BSP_MODU_MEM,
+    BSP_MODU_MALLOC,
     BSP_MODU_EARLYSUSPEND,
     BSP_MODU_AMON,
     BSP_MODU_TEST,
@@ -161,6 +163,7 @@ typedef enum _bsp_module_e
     BSP_MODU_DSPDVS,
     BSP_MODU_RSRACC,
     BSP_MODU_THERMAL_UP,
+    BSP_MODU_MEMLAT_DFS,
 	BSP_MODU_SYS_PMU,
 	BSP_MODU_MPERF,
     BSP_MODU_DSPDFS,
@@ -181,6 +184,7 @@ typedef enum _bsp_module_e
 	BSP_MODU_CHR,
 	BSP_MODU_NRDSP,
     BSP_MODU_ECIPHER,
+    BSP_MODU_NRCPM,
     BSP_MODU_ALL,   /* 代表所有的模块 */
     BSP_MODU_MAX = 128    /* 边界值 */
 } bsp_module_e;

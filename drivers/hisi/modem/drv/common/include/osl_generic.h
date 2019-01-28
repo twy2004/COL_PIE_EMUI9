@@ -73,19 +73,23 @@ extern "C"
 /*lint +rw( __typeof__ ) */
 /*lint -dmin(a,b)=(((a)<(b))? (a):(b))*/
 
-
+#ifdef max
+#undef max
+#endif
 #define max(a, b) /*lint +rw( typeof ) -e(160) -e(1058)*/ ({	\
 	typeof(a) _max1 = (a);			\
 	typeof(b) _max2 = (b);			\
 	(void) (&_max1 == &_max2);		\
-	_max1 > _max2 ? _max1 : _max2; })
-    
+	_max1 > _max2 ? _max1 : _max2; })/*lint !e547*/
+
+#ifdef min
+#undef min
+#endif
 #define min(a, b) /*lint +rw( typeof ) -e(160) */  ({	\
         typeof(a) _min1 = (a);          \
         typeof(b) _min2 = (b);          \
         (void) (&_min1 == &_min2);      \
-        _min1 < _min2 ? _min1 : _min2; }) 
-
+        _min1 < _min2 ? _min1 : _min2; }) /*lint !e547*/
 
 #define __constant_swab32(a) ((u32)(				\
 	(((u32)(a) & (u32)0x000000ffUL) << 24) |		\

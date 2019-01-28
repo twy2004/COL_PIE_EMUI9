@@ -65,15 +65,13 @@ extern "C" {
 #include "diag_common.h"
 #include "msp_errno.h"
 #include "diag_bbp_ds.h"
+#include "diag_msgbbp_comm.h"
 
 /*****************************************************************************
   2 macro
 *****************************************************************************/
 #define ACCESS_REGISTER_FN_SUB_ID_DDR_MODEM_SEC (0x55bbcce9UL)
 #define ACCESS_REGISTER_FN_MAIN_ID              (0xc500aa01UL)
-
-/* DIAG给TL-PHY发消息的MsgID */
-#define MSG_ID_DIAG2TLPHY_CHAN_ADDR_INFO         0x30002404
 
 /*****************************************************************************
   3 Massage Declare
@@ -88,117 +86,20 @@ extern "C" {
 /*****************************************************************************
    5 STRUCT
 *****************************************************************************/
-/* DIAG_CMD_DRX_DATA_SAMPLE_REG_WR_REQ命令对应的CNF，底软Sleep模块接收到该命令后即可返回成功*/
-typedef struct
-{
-    VOS_UINT32  ulAuid;                     /* 原AUID*/
-    VOS_UINT32  ulSn;                       /* HSO分发，插件命令管理*/
-    VOS_UINT32   ulChnType;  /*通道类型*/
-    VOS_UINT32   ulChnAddr;  /*通道内存起始地址*/
-	VOS_UINT32   ulChnSize;  /*通道大小*/
-    VOS_UINT32   ulRet;      /*命令执行返回值，成功返回0，失败返回-1*/
-} DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_CNF_STRU;
-
-
-/*****************************************************************************
-描述 : 使能SOCP 通道
-ID   : DIAG_CMD_DRX_SAMPLE_REG_WR
-REQ : DIAG_CMD_DRX_SAMPLE_ABLE_CHN_REQ_STRU
-CNF : DIAG_CMD_DRX_SAMPLE_ABLE_CHN_CNF_STRU
-IND : DIAG_CMD_DRX_REG_WR_IND_STRU
-*****************************************************************************/
-typedef enum
-{
-    DRX_SAMPLE_DATA_CHN_ENABLE = 0x00,
-    DRX_SAMPLE_DATA_CHN_DISABLE = 0x01, 
-    
-    DRX_SAMPLE_5G_DATA_CHN_ENABLE = 0x10,
-    DRX_SAMPLE_5G_DATA_CHN_DISABLE = 0x11,
-
-    DRX_SAMPLE_ACCESS_DATA_CHN_ENABLE = 0x20,
-    DRX_SAMPLE_ACCESS_DATA_CHN_DISABLE = 0x21,
-}DIAG_CMD_DRX_SAMPLE_ABLE_CHN_E;
-
-typedef struct
-{
-	DIAG_CMD_DRX_SAMPLE_ABLE_CHN_E eDiagDrxSampleAbleChn;
-}DIAG_CMD_DRX_SAMPLE_ABLE_CHN_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32  ulAuid;                     /* 原AUID*/
-    VOS_UINT32  ulSn;                       /* HSO分发，插件命令管理*/
-    VOS_UINT32   ulRet;  /*命令执行返回值，成功返回0，失败返回-1*/
-} DIAG_CMD_DRX_SAMPLE_ABLE_CHN_CNF_STRU;
-
-
-typedef struct
-{
-    VOS_UINT32  ulAuid;                     /* 原AUID*/
-    VOS_UINT32  ulSn;                       /* HSO分发，插件命令管理*/
-    VOS_UINT32   ulRet;  /*命令执行返回值，成功返回0，失败返回-1*/
-} DIAG_CMD_DRX_SAMPLE_COMM_CNF_STRU;
-
-typedef VOS_UINT32 (*DIAG_BBP_PROC)(DIAG_FRAME_INFO_STRU * pData);
-typedef struct
-{
-    DIAG_BBP_PROC   pFunc;
-    VOS_UINT32      ulCmdId;
-    VOS_UINT32      ulReserve;
-}DIAG_BBP_PROC_FUN_STRU;
-
-
-#define DIAG_BBP_DS_ENABLE           (0x56784321)
-#define DIAG_BBP_BUS_ENABLE          (0x12345678)
 #define DIAG_BBP_XDATA_DS_DISABLE    (0)
 #define DIAG_BBP_XDATA_DS_ENABLE     (1)
-typedef struct
-{
-    VOS_UINT32      ulenable;
-    VOS_UINT32      ulSize;
-    VOS_UINT64      ulAddr;
-}DIAG_BBP_DS_ADDR_INFO_STRU;
-
-typedef struct
-{
-    VOS_UINT32      ulenable;
-    VOS_UINT32      ulSize;
-    VOS_UINT64      ulAddr;
-}DIAG_BBP_BUS_ADDR_INFO_STRU;
-
-/* 核间透传通信结构体 */
-typedef struct
-{
-     VOS_MSG_HEADER                     /*VOS头 */
-     VOS_UINT32                         ulMsgId;
-     DIAG_FRAME_INFO_STRU                 stInfo;
-}DIAG_BBP_MSG_A_TRANS_C_STRU;
-
-/*****************************************************************************
-  6 UNION
-*****************************************************************************/
-
-
-/*****************************************************************************
-  7 Extern Global Variable
-*****************************************************************************/
-
 
 /*****************************************************************************
   8 Fuction Extern
 *****************************************************************************/
-VOS_UINT32 diag_DrxSampleGenProc(DIAG_FRAME_INFO_STRU *pData);
-VOS_UINT32 diag_DrxSampleGetAddrProc(DIAG_FRAME_INFO_STRU *pData);
-VOS_VOID Diag_GetDrxSampleAddr(VOS_VOID);
+VOS_VOID   diag_DsSendChanInfoToLrm(DIAG_FRAME_INFO_STRU *pData);
+#ifdef DIAG_SYSTEM_5G
+VOS_VOID   diag_DsSendChanInfoToNrm(DIAG_FRAME_INFO_STRU *pData);
+#endif
 VOS_UINT32 diag_DrxSampleGetChnSizeProc(DIAG_FRAME_INFO_STRU *pData);
-VOS_UINT32 diag_DrxSampleGetVersionProc(DIAG_FRAME_INFO_STRU *pData);
-VOS_UINT32 diag_DrxSampleAbleChnProc(DIAG_FRAME_INFO_STRU *pData);
 VOS_UINT32 diag_BbpMsgProc(DIAG_FRAME_INFO_STRU *pData);
-VOS_UINT32 diag_AppTransBbpProc(MsgBlock* pMsgBlock);
-VOS_VOID diag_BbpMsgInit(VOS_VOID);
-VOS_VOID diag_BbpInitSocpChan(VOS_VOID);
-VOS_VOID diag_BbpEnableSocpChan(VOS_VOID);
-VOS_VOID diag_BbpShowDebugInfo(VOS_VOID);
+VOS_VOID   diag_BbpMsgInit(VOS_VOID);
+VOS_VOID   diag_BbpShowDebugInfo(VOS_VOID);
 
 /*****************************************************************************
   9 OTHERS

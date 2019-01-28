@@ -64,7 +64,9 @@
 #include "bsp_hds_service.h"
 #include "bsp_hds_ind.h"
 #include "bsp_slice.h"
-#include "bsp_trace.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_hds
 
 print_send_buff* g_print_sendbuf = NULL;
 trans_send_buff* g_trans_sendbuf = NULL;
@@ -84,7 +86,7 @@ static inline void * bsp_MemPhyToVirt(u8 *pucCurPhyAddr, u8 *pucPhyStart, u8 *pu
 {
     if((pucCurPhyAddr < pucPhyStart) || (pucCurPhyAddr >= (pucPhyStart+ulBufLen)))
     {
-        printk(KERN_ERR "bsp_MemPhyToVirt fail!\n");
+        hds_debug("bsp_MemPhyToVirt fail!\n");
         return HDS_NULL;
     }
     return (void *)((pucCurPhyAddr - pucPhyStart) + pucVirtStart);
@@ -117,7 +119,7 @@ s32 bsp_log_write_socp_chan(u8* data,u32 len)
     SOCP_BUFFER_RW_STRU wbuf = {NULL,};
     if( HDS_OK != bsp_socp_get_write_buff(SOCP_CODER_SRC_LOG_IND, &wbuf))
     {
-       printk(KERN_ERR "get print buffer fail,chan=0x%x,len=0x%x\n", SOCP_CODER_SRC_LOG_IND, len);
+       hds_debug("fail to get print buffer,chan=0x%x,len=0x%x\n", SOCP_CODER_SRC_LOG_IND, len);
        return HDS_ERR;
     }
 
@@ -129,7 +131,7 @@ s32 bsp_log_write_socp_chan(u8* data,u32 len)
         //LOG_FLUSH_CACHE(wbuf.pBuffer, (unsigned long)len);
         if(HDS_OK != bsp_socp_write_done(SOCP_CODER_SRC_LOG_IND, len))
         {
-            printk(KERN_ERR "[hds]socp write done fail!\n");
+            hds_debug("socp write done fail!\n");
             return HDS_ERR;
         }
     }
@@ -145,14 +147,14 @@ s32 bsp_log_write_socp_chan(u8* data,u32 len)
 
             if(HDS_OK != bsp_socp_write_done(SOCP_CODER_SRC_LOG_IND, len))
             {
-                printk(KERN_ERR "[hds]socp rb write done fail!\n");
+                hds_debug("socp rb write done fail!\n");
                 return HDS_ERR;
             }
         }
     }
     else
     {
-        printk(KERN_ERR"socp buffer not enough!\n");
+        hds_debug("socp buffer not enough!\n");
         return HDS_ERR;
     }
 
@@ -175,14 +177,14 @@ s32 bsp_transreport(TRANS_IND_STRU *pstData)
     /*判断工具连接状态、开关状态*/
     if(0 == g_translog_conn)
     {
-       printk(KERN_ERR"hids not conn(%d)!\n",g_translog_conn);
+       hds_info("hids not conn(%d)!\n",g_translog_conn);
        return HDS_TRANS_SW_ERR;
     }
 
     /*入参检查*/
     if((NULL == pstData)||(NULL == pstData->pData)||(0 == pstData->ulLength) || ((pstData->ulLength) > (TRANSLOG_MAX_HIDS_BUFF_LEN - 1)))
     {
-       printk(KERN_ERR"pstdata err!\n");
+       hds_info("pstdata err!\n");
        return HDS_ERR;
     }
 
@@ -221,7 +223,7 @@ s32 bsp_transreport(TRANS_IND_STRU *pstData)
     ret = bsp_log_write_socp_chan((u8*)g_trans_sendbuf, socp_packet_len);
     if(ret)
     {
-        printk(KERN_ERR"write transdata to socp fail!\n");
+        hds_info("write transdata to socp fail!\n");
         spin_unlock_irqrestore(&g_hds_lock_ctrl.trans_lock,lock_flag);
         return ret;
     }
@@ -237,38 +239,28 @@ s32 bsp_transreport(TRANS_IND_STRU *pstData)
 
 s32 bsp_printreport(char *logdata,u32 level,u32 module_id)
 {
-    s32 ret;
-    u32 prelen, datalen;
-    u32 socp_packet_len;
-    u32 diag_packet_len;
-    u32 print_packet_len;
-    u64   auctime = 0;
-    diag_print_head_stru *print_head;
-    diag_frame_head_stru *diag_head;
-    diag_socp_head_stru  *socp_head;
+    s32 ret = 0;
+    u32 datalen = 0;
+    u32 socp_packet_len  = 0;
+    u32 diag_packet_len  = 0;
+    u32 print_packet_len = 0;
+    diag_print_head_stru *print_head = NULL;
+    diag_frame_head_stru *diag_head = NULL;
+    diag_socp_head_stru  *socp_head = NULL;
 
     /*入参检查*/
-    if((NULL == logdata)||(level > g_printlog_level))
+    if(NULL == logdata)
     {
-       printk(KERN_ERR"logdata or level err!\n");
+       hds_printf("logdata err!\n");
        return HDS_ERR;
     }
 
-    prelen = (u32)snprintf_s((char *)(g_print_sendbuf->data), (unsigned long)PRINTLOG_MAX_FILENAME_LEN, (unsigned long)(PRINTLOG_MAX_FILENAME_LEN-1), "%s:%d[%d]", "module", module_id, 0);
-    if(prelen > PRINTLOG_MAX_FILENAME_LEN)
-    {
-       printk(KERN_ERR"print prelen err!\n");
-       return HDS_ERR;
-    }
-
-    datalen = (u32)snprintf_s((char *)(g_print_sendbuf->data+prelen), (unsigned long)PRINTLOG_MAX_BUFF_LEN, (unsigned long)(PRINTLOG_MAX_BUFF_LEN-1),"%s", logdata);/* [false alarm]:fortify */
+    datalen = (u32)snprintf_s((char *)g_print_sendbuf->data, PRINTLOG_MAX_BUFF_LEN, (PRINTLOG_MAX_BUFF_LEN - 1),"ap[0]%s", logdata);
     if(datalen > PRINTLOG_MAX_BUFF_LEN)
     {
-       printk(KERN_ERR"print datalen err!\n");
+       hds_info("print datalen err!\n");
        return HDS_ERR;
     }
-
-    datalen = datalen + prelen;
 
     print_head = &g_print_sendbuf->print_head;
     diag_head = &g_print_sendbuf->diag_head;
@@ -279,7 +271,6 @@ s32 bsp_printreport(char *logdata,u32 level,u32 module_id)
     socp_packet_len  = diag_packet_len  + DIAG_SOCP_HEAD_SIZE;
 
     bsp_print_level_cfg(&level);
-    //printk(KERN_ERR "level = %d!\n",level);
 
     /*fill print head*/
     /* 1:error, 2:warning, 3:normal, 4:info */
@@ -289,8 +280,7 @@ s32 bsp_printreport(char *logdata,u32 level,u32 module_id)
     print_head->u32no = g_printlog_pkgnum++;
 
     /*fill diag head*/
-    bsp_slice_getcurtime(&auctime);
-    (void)memcpy_s(diag_head->stService.aucTimeStamp, sizeof(diag_head->stService.aucTimeStamp), &auctime, sizeof(auctime));
+    bsp_slice_getcurtime((u64*)diag_head->stService.aucTimeStamp);
     diag_head->stService.MsgTransId  = g_printlog_transId;
     diag_head->stID.sec5b    = DIAG_FRAME_MSG_PRINT;
     diag_head->stID.mode4b   = DIAG_FRAME_MODE_COMM;
@@ -303,7 +293,7 @@ s32 bsp_printreport(char *logdata,u32 level,u32 module_id)
     ret = bsp_log_write_socp_chan((u8*)g_print_sendbuf, socp_packet_len);
     if(ret)
     {
-        printk(KERN_ERR"write printdata to socp fail!\n");
+        hds_info("write printdata to socp fail!\n");
         return ret;
     }
 
@@ -312,18 +302,51 @@ s32 bsp_printreport(char *logdata,u32 level,u32 module_id)
 
     return HDS_PRINT_RE_SUCC;
 }
+/*****************************************************************************
+new start
+******************************************************************************/
+void match_type(u32 *level)
+{
+	switch(*level){
+		case BSP_P_FATAL:	*level = BSP_LOG_LEVEL_FATAL;break;
+		case BSP_P_ERR: 	*level = BSP_LOG_LEVEL_ERROR;break;
+		case BSP_P_WRN: 	*level = BSP_LOG_LEVEL_WARNING;break;
+		case BSP_P_INFO:	*level = BSP_LOG_LEVEL_INFO;break;
+		default:			*level = BSP_LOG_LEVEL_DEBUG;
+		}
+	return;
+}
+/*****************************************************************************
+new start
+******************************************************************************/
 
-/*lint -save -e550 */
-int bsp_trace_to_hids(u32 module_id, u32 level, char* print_buff)
+/*****************************************************************************
+* 函 数 名  : bsp_trace
+*
+* 功能描述  : 底软打印输出处理接口
+*
+* 输入参数  :  mod_id: 输出模块
+*              print_level: 打印级别
+*              fmt :打印输入参数
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 成功返回0
+*****************************************************************************/
+/*lint -save -e530 -e830 -e64*/
+int bsp_trace_to_hids(u32 module_id, u32 level, u32 sel, char* print_buff)
 {
     unsigned long lock_flag;
     int ret = HDS_PRINT_SW_ERR;
     static bool print_flag = false;
-
+	if(0 == sel)		
+		match_type(&level);
+	if(level < g_printlog_level)
+		return HDS_PRINT_SW_ERR;
     spin_lock_irqsave(&g_hds_lock_ctrl.trace_lock,lock_flag);
     if (print_flag)
     {
-        printk(KERN_ERR "print data report recursion!\n");
+        hds_info("print data report recursion!\n");
         spin_unlock_irqrestore(&g_hds_lock_ctrl.trace_lock,lock_flag);
         return HDS_PRINT_RECURSION;
     }
@@ -336,7 +359,7 @@ int bsp_trace_to_hids(u32 module_id, u32 level, char* print_buff)
 
         if (HDS_PRINT_RE_SUCC != ret)
         {
-            printk(KERN_ERR "print data report fail,ret = 0x%x!\n",ret);
+            hds_info("fail to print data,ret = 0x%x!\n",ret);
         }
         print_flag = false;
         spin_unlock_irqrestore(&g_hds_lock_ctrl.trace_lock,lock_flag);
@@ -344,7 +367,7 @@ int bsp_trace_to_hids(u32 module_id, u32 level, char* print_buff)
     }
     else
     {
-        //printk(KERN_ERR "hids disconnect(0x%x) or print switch off(0x%x)!\n",g_printlog_conn, g_printlog_enable);
+        //hds_printf("hids disconnect(0x%x) or print switch off(0x%x)!\n",g_printlog_conn, g_printlog_enable);
         print_flag = false;
         spin_unlock_irqrestore(&g_hds_lock_ctrl.trace_lock,lock_flag);
         return ret;
@@ -368,7 +391,7 @@ s32 bsp_socp_log_chan_cfg(void)
 
     if(HDS_NULL == p)
     {
-        printk(KERN_ERR"log src chan malloc fail!\n");
+        hds_printf("log src chan malloc fail!\n");
         return HDS_ERR;
     }
 
@@ -388,7 +411,7 @@ s32 bsp_socp_log_chan_cfg(void)
     if(HDS_OK != bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_LOG_IND, &EncSrcAttr))
     {
 
-        printk(KERN_ERR"log src channel set failed!\n");
+        hds_printf("log src channel set failed!\n");
         return HDS_ERR;
     }
 
@@ -407,6 +430,7 @@ s32 bsp_socp_log_chan_cfg(void)
 int __init bsp_hds_init(void)
 {
     int ret;
+	hds_printf("[init]start\n");
 
     bsp_hds_service_init();
 
@@ -414,7 +438,7 @@ int __init bsp_hds_init(void)
     ret=bsp_socp_log_chan_cfg();
     if(ret)
     {
-        printk(KERN_ERR"bsplog src chan fail!\n");
+        hds_printf("bsplog src chan fail!\n");
         return HDS_ERR;
     }
 
@@ -425,7 +449,7 @@ int __init bsp_hds_init(void)
     g_print_sendbuf = (print_send_buff*)osl_malloc((unsigned int)sizeof(print_send_buff));
     if(NULL == g_print_sendbuf)
     {
-        printk(KERN_ERR"printbuf malloc fail!\n");
+        hds_printf("printbuf malloc fail!\n");
         return HDS_ERR;
     }
     bsp_diag_frame_head_init(&g_print_sendbuf->diag_head);
@@ -439,7 +463,7 @@ int __init bsp_hds_init(void)
     g_trans_sendbuf = (trans_send_buff*)osl_malloc((unsigned int)sizeof(trans_send_buff));
     if(NULL == g_trans_sendbuf)
     {
-        printk(KERN_ERR"transbuf malloc fail!\n");
+        hds_printf("transbuf malloc fail!\n");
         return HDS_ERR;
     }
     bsp_diag_frame_head_init(&g_trans_sendbuf->diag_head);
@@ -447,11 +471,8 @@ int __init bsp_hds_init(void)
 
     g_trans_init_state=TRANSLOG_CHN_INIT;
 
-    printk(KERN_ERR"hds_init ok!\n");
+    hds_printf("[init] ok!\n");
     return HDS_OK;
 }
-
-/*lint --e{528}*/
-module_init(bsp_hds_init);
 
 EXPORT_SYMBOL(bsp_transreport);

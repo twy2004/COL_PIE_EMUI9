@@ -86,7 +86,9 @@ extern "C" {
 /*****************************************************************************************************************************
 *各模块定义的偏移和大小,偏移定义:SHM_OFFSET_XXX  大小定义:SHM_SIZE_XXXX，新增不满足KB对齐请从 SHM_OFFSET_SLICE_MEM 添加
 ******************************************************************************************************************************/
-#define SHM_OFFSET_HIFI_MBX		    	(0x0)
+#define SHM_OFFSET_NV  (0)
+
+#define SHM_OFFSET_HIFI_MBX		    	(SHM_OFFSET_NV + SHM_SIZE_NV)
 
 #define SHM_OFFSET_HIFI		    		/*lint -save -e778 -e835*/(SHM_OFFSET_HIFI_MBX + SHM_SIZE_HIFI_MBX)/*lint -restore */
 
@@ -155,11 +157,18 @@ extern "C" {
 /* 电话本使用内存 */
 #define SHM_OFFSET_SIM_MEMORY           /*lint -save -e778 -e835*/(SHM_OFFSET_M3RSRACC_BD + SHM_SIZE_M3RSRACC_BD)/*lint -restore */
 
-#define SHM_OFFSET_NV				    (SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY)
+#ifdef SHM_SIZE_PRODUCT_MEM
+/* 产品线升级使用内存 */
+#define SHM_OFFSET_PRODUCT_MEM           /*lint -save -e778 -e835*/(SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY)/*lint -restore */
 
 /*共享内存剩余部分偏移和大小*/
-#define SHM_OFFSET_MEMMGR               (SHM_OFFSET_NV + SHM_SIZE_NV)
+#define SHM_OFFSET_MEMMGR               (SHM_OFFSET_PRODUCT_MEM + SHM_SIZE_PRODUCT_MEM)
 #define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
+#else
+/*共享内存剩余部分偏移和大小*/
+#define SHM_OFFSET_MEMMGR               (SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY)
+#define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
+#endif
 
 /**************************************用于分配不满足Kb对齐的分配*******************************************************
 *所有小内存的分配都是在SHM_OFFSET_SLICE_MEM 内分配，目前SHM_OFFSET_SLICE_MEM大小0x1000,新增注意不要超了
@@ -253,6 +262,11 @@ extern "C" {
 #define SHM_SIZE_DEFLATE                (0)
 #endif
 #define SHM_OFFSET_DEFLATE              /*lint -save -e778 -e835*/(SHM_SIZE_BUSSTRESS_TEST + SHM_OFFSET_BUSSTRESS_TEST)/*lint -restore */
+
+/* diag openlog flag */
+#define SHM_SIZE_DIAG_POWER_ON_LOG      (0x4)
+#define SHM_OFFSET_DIAG_POWER_ON_LOG    (SHM_OFFSET_DEFLATE + SHM_SIZE_DEFLATE)
+
 /*****************************************************************************************************************************
 *安全共享内存资源分配
 ******************************************************************************************************************************/
@@ -273,9 +287,22 @@ extern "C" {
 
  /* MDMA9_PM_BOOT 使用，8K */
 #define SHM_OFFSET_SEC_MDMA9_PM_BOOT         (SHM_OFFSET_SEC_RESERVED + SHM_SIZE_SEC_RESERVED)
+
+#define SHM_OFFSET_SEC_CERT                 (SHM_OFFSET_SEC_MDMA9_PM_BOOT + SHM_SIZE_SEC_MDMA9_PM_BOOT)
+
+#define SHM_OFFSET_SEC_DUMP                 (SHM_OFFSET_SEC_CERT + SHM_SIZE_SEC_CERT)
+
 #endif
 
-
+/*****************************************************************************************************************************
+*NRCPU  共享内存资源分配
+******************************************************************************************************************************/
+#ifdef DDR_MCORE_NR_SHARED_MEM_SIZE
+#ifdef CONFIG_NRICC
+#define NRSHM_BASE_ADDR          (SHM_BASE_ADDR+DDR_SHARED_MEM_SIZE-DDR_MCORE_NR_SHARED_MEM_SIZE)
+#define NRSHM_OFFSET_NRICC		    	(0x0)
+#endif
+#endif
 
 #ifdef __cplusplus
 }

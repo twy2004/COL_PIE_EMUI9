@@ -189,6 +189,7 @@ enum sensor_power_seq_type_t {
     SENSOR_DRVVDD,
     SENSOR_BVDD, /* using for buck vdd voltage control */
     SENSOR_RXDPHY_CLK,
+    SENSOR_LASER_XSHUT,/*xshut used for laser*/
 };
 
 enum sensor_power_pmic_type_t {
@@ -332,6 +333,7 @@ typedef enum {
 	AVDD2_EN,/*used for power up front sensor's second avdd gpio*/
     MIPI_EN,
     AFVDD_EN,/*used for power up afvdd gpio*/
+    LASER_XSHUT,/*laser*/
     IO_MAX,
 } gpio_t;
 

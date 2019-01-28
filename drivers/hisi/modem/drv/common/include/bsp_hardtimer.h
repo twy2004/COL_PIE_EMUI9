@@ -57,14 +57,15 @@
 #include <osl_common.h>
 #include <osl_math64.h>
 #include <mdrv_timer.h>
-#include <bsp_trace.h>
-
+#include <bsp_print.h>
 
 /*32k timer 一个slice大约为31us*/
 #define TIMER_32K_US_BOUNDARY           31
 #define  Second_To_Millisecond                               1000
 
-#define  hardtimer_print_error(fmt, ...)    (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_HARDTIMER, "timer: <%s> "fmt"", __FUNCTION__, ##__VA_ARGS__))
+#define  hardtimer_print_error(fmt, ...)    (bsp_err("<%s> "fmt"", __FUNCTION__, ##__VA_ARGS__))
+#define  hardtimer_print_debug    bsp_debug
+
 
 struct bsp_hardtimer_control
 {

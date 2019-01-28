@@ -19,9 +19,8 @@
 #include <linux/timer.h>
 #include <linux/delay.h>
 #include <linux/device.h>
-#include "lcdkit_panel.h"
-#include "lcdkit_backlight_ic_common.h"
 
+#include "lcd_kit_utils.h"
 
 
 #include <chipset_common/dubai/dubai.h>
@@ -86,6 +85,7 @@ static uint8_t rgbw_lcd_support = 0;
 #define PWMDUTY_FILTER_NUMBER 20
 #define HIGHLEVEL_PWMDUTY_FILTER_NUMBER 3
 #define BRIGHTNESS_FILTER_FOR_PWMDUTY 100
+#define V501_PWM_MAX_COUNTER_FOR_RGBW   0xffff
 
 static int pwmduty[PWMDUTY_FILTER_NUMBER] = {
 	0xffff,0xffff,0xffff,0xffff,0xffff,
@@ -144,7 +144,7 @@ struct bl_info{
 	struct semaphore bl_semaphore;
 	int (*set_common_backlight)(int bl_level);
 };
-extern struct lcdkit_bl_ic_info g_bl_config;
+static void update_bl(struct hisi_fb_data_type *hisifd, uint32_t backlight);
 
 static struct bl_info g_bl_info;
 extern struct mutex g_rgbw_lock;
@@ -276,29 +276,7 @@ static void update_backlight(struct hisi_fb_data_type *hisifd, uint32_t backligh
 		bl_level = backlight;
 		bl_level = bl_lvl_map(bl_level);
 		HISI_FB_DEBUG("cabc9:bl_level=%d\n",bl_level);
-		/* lm36923_ramp_brightness(bl_level); */
-		if (REG_ONLY_MODE == g_bl_info.bl_ic_ctrl_mode) {
-			lm36923_set_backlight_reg(bl_level);
-		} else if (I2C_ONLY_MODE == g_bl_info.bl_ic_ctrl_mode) {
-			lm36274_set_backlight_reg(bl_level);
-		}
 		return;
-	}
-	else if(g_bl_info.bl_ic_ctrl_mode == COMMON_IC_MODE) {
-		int return_value = -1;
-		bl_level = backlight;
-		switch(g_bl_config.bl_level) {
-			case BL_MAX_12BIT:
-				bl_level = bl_level * g_bl_config.bl_level / g_bl_info.bl_max;
-				break;
-			case BL_MAX_11BIT:
-			default:
-				bl_level = bl_lvl_map(bl_level);
-				break;
-		};
-		return_value = hisi_blpwm_bl_callback(bl_level);
-		if (0 == return_value)
-			return;
 	}
 	else if(g_bl_info.bl_ic_ctrl_mode == AMOLED_NO_BL_IC_MODE) {
 		HISI_FB_INFO("bl_ic_ctrl_mode = %d\n",g_bl_info.bl_ic_ctrl_mode);
@@ -392,7 +370,7 @@ static void get_ap_dimming_to_update_backlight(struct hisi_fb_data_type *hisifd)
                             g_bl_info.ap_brightness, g_bl_info.last_bl_level, backlight, g_bl_info.current_cabc_pwm, pwm_duty, g_bl_info.cabc_pwm,
                             g_bl_info.prev_cabc_pwm, delta_cabc_pwm);
             if (g_bl_info.ap_brightness != 0 && backlight != g_bl_info.last_bl_level) {
-                    update_backlight(hisifd, backlight);
+                    update_bl(hisifd, backlight);
                     g_bl_info.last_bl_level = backlight;
             }
 
@@ -668,13 +646,13 @@ static void rgbw_set(struct hisi_fb_data_type *hisifd, struct hisi_fb_panel_data
 		return;
 	}
 	if (hisifd->panel_power_on && pdata->lcd_rgbw_set_func && hisifd->de_info.ddic_panel_id) {
-		down(&hisifd->power_esd_sem);
+		down(&hisifd->power_sem);
 		hisifb_vsync_disable_enter_idle(hisifd, true);
 		hisifb_activate_vsync(hisifd);
 		pdata->lcd_rgbw_set_func(hisifd);
 		hisifb_vsync_disable_enter_idle(hisifd, false);
 		hisifb_deactivate_vsync(hisifd);
-		up(&hisifd->power_esd_sem);
+		up(&hisifd->power_sem);
 	}
 }
 
@@ -752,7 +730,7 @@ static void get_rgbw_pwmduty_to_update_backlight(struct hisi_fb_data_type *hisif
 		g_bl_info.last_ap_brightness = g_bl_info.ap_brightness;
 
 		if (g_bl_info.ap_brightness != 0 && backlight != g_bl_info.last_bl_level) {
-			update_backlight(hisifd, backlight);
+			update_bl(hisifd, backlight);
 			g_bl_info.last_bl_level = backlight;
 		}
 		msleep(12);
@@ -848,8 +826,8 @@ static int hisi_blpwm_input_enable(struct hisi_fb_data_type *hisifd)
 
 	outp32(blpwm_base + PWM_IN_CTRL_OFFSET, 1);
 	if (rgbw_lcd_support) {
-		outp32(blpwm_base + PWM_IN_DIV_OFFSET, 0x01);
-		outp32(blpwm_base + PWM_IN_MAX_COUNTER, PWM_MAX_COUNTER_FOR_RGBW_JDI_SHARP);
+		outp32(blpwm_base + PWM_IN_DIV_OFFSET, 0x00);
+		outp32(blpwm_base + PWM_IN_MAX_COUNTER, V501_PWM_MAX_COUNTER_FOR_RGBW);
 	} else {
 		outp32(blpwm_base + PWM_IN_DIV_OFFSET, 0x02);
 	}
@@ -981,7 +959,7 @@ int updateCabcPwm(struct hisi_fb_data_type *hisifd)
 
 err_out:
 	if (cabc_is_open == 0 && hiace_refresh) {
-		update_backlight(hisifd, g_bl_info.ap_brightness);
+		update_bl(hisifd, g_bl_info.ap_brightness);
 	}
 
 	return ret;
@@ -1014,6 +992,165 @@ void hisi_blpwm_fill_light(uint32_t backlight)
 	up(&g_bl_info.bl_semaphore);
 
 	return;
+}
+
+#include "lcd_kit_bl.h"
+int hisi_blpwm_set_bl(struct hisi_fb_data_type *hisifd, uint32_t bl_level)
+{
+	struct hisi_panel_info *pinfo = NULL;
+	char __iomem *blpwm_base = NULL;
+	uint32_t brightness = 0;
+	struct lcd_kit_bl_ops *bl_ops = NULL;
+
+	if (NULL == hisifd) {
+		HISI_FB_ERR("hisifd is NULL");
+		return -EINVAL;
+	}
+	pinfo = &(hisifd->panel_info);
+	if (!pinfo) {
+		HISI_FB_ERR("pinfo is null!\n");
+		return -EINVAL;
+	}
+
+	blpwm_base = hisifd_blpwm_base;
+	if (!blpwm_base) {
+		HISI_FB_ERR("blpwm_base is null!\n");
+		return -EINVAL;
+	}
+
+	bl_ops = lcd_kit_get_bl_ops();
+	if (!bl_ops) {
+		HISI_FB_ERR("bl_ops is null!\n");
+		return -EINVAL;
+	}
+
+	if (g_blpwm_on == 0) {
+		HISI_FB_ERR("blpwm is not on, return!\n");
+		return 0;
+	}
+
+	if (pinfo->bl_max < 1) {
+		HISI_FB_ERR("bl_max(%d) is out of range!!", pinfo->bl_max);
+		return -EINVAL;
+	}
+
+	if (bl_level > pinfo->bl_max) {
+		bl_level = pinfo->bl_max;
+	}
+
+	if (pinfo->rgbw_support) {
+		g_bl_info.last_ap_brightness = g_bl_info.ap_brightness;
+	}
+
+	//allow backlight zero
+	if (bl_level < pinfo->bl_min && bl_level) {
+		bl_level = pinfo->bl_min;
+	}
+
+	HISI_FB_DEBUG("cabc:fb%d, bl_level=%d, blpwm_input_ena=%d, blpwm_in_num=%d\n",
+					hisifd->index, bl_level, pinfo->blpwm_input_ena, pinfo->blpwm_in_num);
+	down(&g_bl_info.bl_semaphore);
+
+	hisifb_display_effect_fine_tune_backlight(hisifd, (int)bl_level, (int *)&bl_level);
+
+	g_bl_info.ap_brightness = bl_level;
+
+	if (bl_level && pinfo->rgbw_support && pinfo->blpwm_input_ena) {
+
+		if (g_bl_info.last_ap_brightness  != g_bl_info.ap_brightness) {
+			hisi_cabc_set_backlight(g_bl_info.current_cabc_pwm);
+		}
+
+		up(&g_bl_info.bl_semaphore);
+			return 0;
+	}
+
+	if (pinfo->blpwm_input_ena && pinfo->blpwm_in_num) {
+
+		if(bl_level > 0){
+			bl_level= bl_level * g_bl_info.current_cabc_pwm / pinfo->blpwm_input_precision;
+			bl_level =  bl_level < g_bl_info.bl_min ? g_bl_info.bl_min : bl_level ;
+		}
+		g_bl_info.last_bl_level = bl_level;
+		HISI_FB_DEBUG("cabc:ap_brightness=%d, current_cabc_pwm=%d, blpwm_input_precision=%d, bl_level=%d\n",
+				g_bl_info.ap_brightness, g_bl_info.current_cabc_pwm,
+				pinfo->blpwm_input_precision, bl_level);
+	}
+
+	/* notify dubai module to update brightness */
+	dubai_update_brightness(bl_level);
+
+	switch (g_bl_info.bl_ic_ctrl_mode) {
+		case REG_ONLY_MODE:
+		case I2C_ONLY_MODE:
+			if (bl_ops->set_backlight) {
+				bl_level = bl_lvl_map(bl_level);
+				bl_ops->set_backlight(bl_level);
+				bl_flicker_detector_collect_device_bl(bl_level);
+			}
+			up(&g_bl_info.bl_semaphore);
+			return 0;
+		default:
+			break;
+	}
+
+	brightness = (bl_level << 16) | (pinfo->bl_max - bl_level);
+	outp32(blpwm_base + BLPWM_OUT_CFG, brightness);
+	HISI_FB_DEBUG("cabc:ap_brightness=%d, current_cabc_pwm=%d, blpwm_input_precision=%d, \
+				blpwm_out_precision=%d, bl_level=%d,\
+				brightness=%d\n", g_bl_info.ap_brightness, g_bl_info.current_cabc_pwm,
+				pinfo->blpwm_input_precision, g_bl_info.blpwm_out_precision, bl_level, brightness);
+	up(&g_bl_info.bl_semaphore);
+	return 0;
+}
+
+static void update_bl(struct hisi_fb_data_type *hisifd, uint32_t backlight)
+{
+	char __iomem *blpwm_base = NULL;
+	uint32_t brightness = 0;
+	uint32_t bl_level = get_backlight_level(backlight);
+	struct lcd_kit_bl_ops *bl_ops = NULL;
+
+	if (!hisifd) {
+		return;
+	}
+	bl_ops = lcd_kit_get_bl_ops();
+	if (!bl_ops) {
+		HISI_FB_ERR("bl_ops is null!\n");
+		return;
+	}
+
+	if (hisifd->online_play_count < BACKLIGHT_LOG_PRINTF) {
+		HISI_FB_INFO("cabc8:bl_level=%d, backlight=%d, blpwm_out_precision=%d, bl_max=%d\n",
+				bl_level, backlight, g_bl_info.blpwm_out_precision, g_bl_info.bl_max);
+	} else {
+		HISI_FB_DEBUG("cabc8:bl_level=%d, backlight=%d, blpwm_out_precision=%d, bl_max=%d\n",
+				bl_level, backlight, g_bl_info.blpwm_out_precision, g_bl_info.bl_max);
+	}
+	blpwm_base = hisifd_blpwm_base;
+	if (!blpwm_base) {
+		HISI_FB_ERR("blpwm_base is null!\n");
+		return;
+	}
+
+	/* notify dubai module to update brightness */
+	dubai_update_brightness(backlight);
+
+	switch (g_bl_info.bl_ic_ctrl_mode) {
+		case REG_ONLY_MODE:
+		case I2C_ONLY_MODE:
+			bl_level = backlight;
+			if (bl_ops->set_backlight) {
+				bl_ops->set_backlight(bl_level);
+				bl_flicker_detector_collect_device_bl(bl_level);
+			}
+			return;
+		default:
+			break;
+	}
+
+	brightness = (bl_level << 16) | (g_bl_info.blpwm_out_precision - bl_level);
+	outp32(blpwm_base + BLPWM_OUT_CFG, brightness);
 }
 
 
@@ -1095,36 +1232,9 @@ int hisi_blpwm_set_backlight(struct hisi_fb_data_type *hisifd, uint32_t bl_level
 	if ((g_bl_info.bl_ic_ctrl_mode >= REG_ONLY_MODE ) && (g_bl_info.bl_ic_ctrl_mode <= I2C_ONLY_MODE)) {
 		bl_level = bl_lvl_map(bl_level);
 		HISI_FB_DEBUG("cabc:bl_level=%d\n",bl_level);
-		/* lm36923_ramp_brightness(bl_level); */
-		if (REG_ONLY_MODE == pinfo->bl_ic_ctrl_mode) {
-				if (lcdkit_info.panel_infos.init_lm36923_after_panel_power_on_support) {
-					lm36923_set_backlight_init(bl_level);
-				}
-			lm36923_set_backlight_reg(bl_level);
-		} else if (I2C_ONLY_MODE == pinfo->bl_ic_ctrl_mode) {
-			lm36274_set_backlight_reg(bl_level);
-		}
 		up(&g_bl_info.bl_semaphore);
 		return 0;
 	} else if (BLPWM_AND_CABC_MODE == g_bl_info.bl_ic_ctrl_mode) {
-		lp8556_set_backlight_init(bl_level);
-	}
-	 else if (COMMON_IC_MODE == g_bl_info.bl_ic_ctrl_mode) {
-		int return_value = -1;
-		switch(g_bl_config.bl_level) {
-			case BL_MAX_12BIT:
-				bl_level = bl_level * g_bl_config.bl_level / g_bl_info.bl_max;
-				break;
-			case BL_MAX_11BIT:
-			default:
-				bl_level = bl_lvl_map(bl_level);
-				break;
-		};
-		return_value = hisi_blpwm_bl_callback(bl_level);
-		if (0 == return_value) {
-			up(&g_bl_info.bl_semaphore);
-			return 0;
-		}
 	}
 	bl_level = get_backlight_level(bl_level);
 

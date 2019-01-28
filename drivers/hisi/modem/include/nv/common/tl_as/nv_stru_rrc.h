@@ -6,11 +6,11 @@
   File Name       : RrcNvInterface.h
   Description     : RrcNvInterface.h header file
   History           :
-     1.Name+ID      yyyy-mm-dd  Draft Enact
+     1.Name+ID      yyyy-mm-dd  Draft Enact 
 ******************************************************************************/
 
-#ifndef __RRCNVINTERFACE_H__
-#define __RRCNVINTERFACE_H__
+#ifndef __NV_STRU_RRC_H__
+#define __NV_STRU_RRC_H__
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -45,10 +45,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#ifndef __DUMP_EXC_CTRL_H__
+#define __DUMP_EXC_CTRL_H__
 
-#ifndef __DUMP_CONFIG_H__
-#define __DUMP_CONFIG_H__
-
+#include "osl_types.h"
 #include "bsp_dump.h"
 #include "acore_nv_stru_drv.h"
 #include "nv_stru_drv.h"
@@ -58,16 +58,18 @@
 #include <linux/hisi/rdr_pub.h>
 #endif
 
-#define DUMP_CP_REST_TIME_COUNT  8
-/*单独复位的时间间隔设定为30s*/
-#define DUMP_CP_REST_TIME_SLICE  (30*0x8000)
+#include <bsp_print.h>
 
 
-typedef struct
-{
-    u32 reset_time[DUMP_CP_REST_TIME_COUNT];
-    u32 count;
-}DUMP_CP_RESET_CTRL;
+/**************************************************************************
+  OTHERS定义
+**************************************************************************/
+#define dump_debug(fmt, ...)    (bsp_debug("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define dump_warning(fmt, ...)  (bsp_wrn("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define dump_error(fmt, ...)    (bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define dump_fetal(fmt, ...)    (bsp_fatal("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define dump_ok(fmt, ...)       (bsp_err(fmt,##__VA_ARGS__))
+
 
 void dump_product_type_init(void);
 dump_product_type_t dump_get_product_type(void);
@@ -76,7 +78,22 @@ NV_DUMP_STRU* dump_get_feature_cfg(void);
 enum EDITION_KIND dump_get_edition_type(void);
 void dump_config_init(void);
 s32 dump_check_reset_timestamp(u32 modid);
+
+/*modem ap flag 定义*/
+#define DUMP_INIT_FLAG_CONFIG                 (0x5B5B0000)
+#define DUMP_INIT_FLAG_BASEINFO               (0x5B5B0001)
+#define DUMP_INIT_FLAG_SAVETASK               (0x5B5B0002)
+#define DUMP_INIT_FLAG_RDR_REG                (0x5B5B0003)
+#define DUMP_INIT_FLAG_MDMAP                  (0x5B5B0004)
+#define DUMP_INIT_FLAG_MDMCP                  (0x5B5B0005)
+#define DUMP_INIT_FLAG_APR                    (0x5B5B0005)
+#define DUMP_INIT_FLAG_DONE                   (0x5B5B0006)
+
+void dump_set_exc_flag(u32 flag);
+u32 dump_check_has_error(void);
+u32 dump_get_init_phase(void);
+void dump_set_init_phase(u32 flag);
 dump_access_mdmddr_type_t dump_get_access_mdmddr_type(void);
+void dump_memcpy(u32 * dst, const u32 * src, u32 len);
 
 #endif
-

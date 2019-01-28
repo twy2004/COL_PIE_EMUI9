@@ -63,16 +63,17 @@ extern "C" {
 #include "siapppb.h"
 #include "nv_stru_pam.h"
 #include "UsimPsInterface.h"
-
 #include "msp_diag_comm.h"
 
 #if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #include "pamom.h"
 #include "ccore_nv_stru_pam.h"
+#include "PsCommFunc.h"
 #endif
 
 #if (OSA_CPU_ACPU == VOS_OSA_CPU)
 #include "pamappom.h"
+#include "SiAcoreApi.h"
 #endif
 
 #pragma pack(4)
@@ -138,45 +139,50 @@ extern "C" {
 #define EFEXT7                  0x6FCC      /* 用于CFIS文件 */
 
 #if  ((OSA_CPU_ACPU == VOS_OSA_CPU) || (VOS_OS_VER == VOS_WIN32))
-#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ACPU_PID_PB), DIAG_MODE_COMM, Level))
+#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level))
 
-#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
+#define PB_KEY_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_KEY_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_KEY_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_KEY_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
 
-#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
+#define PB_KEY_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_KEY_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_KEY_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_KEY_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+
+#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+
+#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
 
 #elif (OSA_CPU_CCPU == VOS_OSA_CPU)
 
-#define PB_INFO_LOG_WITH_SLOT_ID(enSlotId, string)                  USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, __FILE__, __LINE__, "Info:%s", string)
+#define PB_KEY_INFO_LOG(string)                 USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Info:%s", string)
+#define PB_KEY_NORMAL_LOG(string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Normal:%s", string)
+#define PB_KEY_WARNING_LOG(string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Warning:%s", string)
+#define PB_KEY_ERROR_LOG(string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Error:%s", string)
 
-#define PB_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, __FILE__, __LINE__, "Normal:%s", string)
+#define PB_KEY_INFO1_LOG(string, para1)         USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Info:%s,%d", string, para1)
+#define PB_KEY_NORMAL1_LOG(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Normal:%s,%d", string, para1)
+#define PB_KEY_WARNING1_LOG(string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Warning:%s,%d", string, para1)
+#define PB_KEY_ERROR1_LOG(string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "Error:%s,%d", string, para1)
 
-#define PB_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PB_PID, __FILE__, __LINE__, "Warning:%s", string)
+#define PB_INFO_LOG(string)                 USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PB_NORMAL_LOG(string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PB_WARNING_LOG(string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PB_ERROR_LOG(string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
 
-#define PB_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)                 USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, __FILE__, __LINE__, "Error:%s", string)
+#define PB_INFO1_LOG(string, para1)         USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PB_NORMAL1_LOG(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PB_WARNING1_LOG(string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PB_ERROR1_LOG(string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
 
-#define PB_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)          USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PB_PID, __FILE__, __LINE__, "Info:%s,%d", string, para1)
-
-#define PB_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, __FILE__, __LINE__, "Normal:%s,%d", string, para1)
-
-#define PB_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PB_PID, __FILE__, __LINE__, "Warning:%s,%d", string, para1)
-
-#define PB_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)         USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PB_PID, __FILE__, __LINE__, "Error:%s,%d", string, para1)
-
-#define PB_INFO_LOG(string)                 PB_INFO_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PB_NORMAL_LOG(string)               PB_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PB_WARNING_LOG(string)              PB_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PB_ERROR_LOG(string)                PB_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)
-
-#define PB_INFO1_LOG(string, para1)         PB_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PB_NORMAL1_LOG(string, para1)       PB_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PB_WARNING1_LOG(string, para1)      PB_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PB_ERROR1_LOG(string, para1)        PB_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
 #endif
 
 #if(VOS_WIN32 == VOS_OS_VER)
@@ -604,6 +610,7 @@ typedef struct
     VOS_UINT16                     usUIDMaxValue;
     VOS_UINT16                     usEXT1FileID;
     VOS_UINT16                     usPBCRecordNum;
+    VOS_UINT8                      aucRcv[2];
 }SI_PB_CONTROL_STRU;
 
 typedef struct
@@ -891,31 +898,31 @@ extern VOS_VOID SI_PB_ClearPBContent(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_
 #define EFEXT7                  0x6FCC      /* 用于CFIS文件 */
 
 #if(OSA_CPU_ACPU == VOS_OSA_CPU)
-#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ACPU_PID_PB), DIAG_MODE_COMM, Level))
+#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level))
 
-#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
-#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, __FILE__, __LINE__, "%s", string)
+#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s", string)
 
-#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, __FILE__, __LINE__, "%s,%d", string, para1)
+#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),ACPU_PID_PB, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
 #endif
 
 #if(OSA_CPU_CCPU == VOS_OSA_CPU)
-#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(MAPS_PB_PID), DIAG_MODE_COMM, Level))
+#define PB_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(MAPS_PB_PID), DIAG_MODE_COMM, Level))
 
-#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, __FILE__, __LINE__, "%s", string)
-#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, __FILE__, __LINE__, "%s", string)
-#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),MAPS_PB_PID, __FILE__, __LINE__, "%s", string)
-#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),MAPS_PB_PID, __FILE__, __LINE__, "%s", string)
+#define PB_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", string)
+#define PB_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s", string)
 
-#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),MAPS_PB_PID, __FILE__, __LINE__, "%s,%d", string, para1)
-#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),MAPS_PB_PID, __FILE__, __LINE__, "%s,%d", string, para1)
+#define PB_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
+#define PB_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PB_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),MAPS_PB_PID, VOS_NULL_PTR, __LINE__, "%s,%d", string, para1)
 #endif
 
 #if(VOS_WIN32 == VOS_OS_VER)
@@ -1360,6 +1367,7 @@ typedef struct
     VOS_UINT16                     usUIDMaxValue;
     VOS_UINT16                     usEXT1FileID;
     VOS_UINT16                     usPBCRecordNum;
+    VOS_UINT8                      aucRsv[2];
 }SI_PB_CONTROL_STRU;
 
 typedef struct
@@ -1742,6 +1750,8 @@ extern VOS_UINT32 SI_PB_FindPBOffset(SI_PB_TYPE_ENUM_UINT32  enPBType, VOS_UINT8
 extern VOS_UINT32 SI_PB_CountADNRecordNum(VOS_UINT16 usIndex, VOS_UINT16 *pusFileId, VOS_UINT8 *pucRecordNum);
 
 extern VOS_UINT32 SI_PB_GetXDNFileID(VOS_UINT32 ulStorage, VOS_UINT16 *pusFileId);
+
+VOS_UINT32 SI_PB_PbStatusInd(VOS_BOOL bPbReady);
 
 #endif /* (FEATURE_ON == FEATURE_PHONE_SC) */
 

@@ -61,7 +61,7 @@ extern "C" {
 *****************************************************************************/
 /* GUCTTF组件A核相关NVID范围定义,[4850-4949],100个 */
 #define     GUCTTF_ACORE_NV_ID_MIN      4850
-#define     GUCTTF_ACORE_NV_ID_MAX      4949
+#define     GUCTTF_ACORE_NV_ID_MAX      4999
 
 /* C核NV_ID定义 */
 enum GUCTTF_ACORE_NV_ID_ENUM
@@ -78,6 +78,9 @@ enum GUCTTF_ACORE_NV_ID_ENUM
 
     /* via:PPP_CONFIG_MRU_TYPE_NV_STRU */
     en_NV_Item_PPP_CONFIG_MRU_Type                          = GUCTTF_ACORE_NV_ID_MIN + 4,   /* 4854 */
+
+    /* via:ACORE_FC_CFG_NV_STRU */
+    en_NV_Item_Acore_Flow_Ctrl_Config                       = GUCTTF_ACORE_NV_ID_MIN + 5,   /* 4855 */
 };
 
 #ifdef __cplusplus

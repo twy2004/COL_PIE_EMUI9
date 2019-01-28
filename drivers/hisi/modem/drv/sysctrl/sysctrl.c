@@ -51,6 +51,9 @@
 #include <osl_module.h>
 #include <bsp_sysctrl.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_sysctrl
+
 struct sysctrl_tag
 {
 	void* addr_virt[sysctrl_max];
@@ -72,7 +75,7 @@ static unsigned long reg_node_info_get(struct device_node *np, unsigned int sc_i
 
 	if (!spec || (unsigned int)len < (unsigned int)(na + ns) * sizeof(*spec))
 	{
-		sc_pr_err("index = %d is out of range\n", sc_index);
+		sc_err_func("index = %d is out of range\n", sc_index);
 		return 0;
 	}
 
@@ -125,6 +128,8 @@ int __init sysctrl_init(void)
 	struct device_node *node = NULL;
 	int ret = 0;
 
+	sc_err("[init]start\n");
+
 	/* 初始化时将结构体中的数组赋值"0"或"NULL"，当底软使用者传入枚举大于reg_num时，返回0地址 */
 	for(i = 0; i < sysctrl_max; i++)
 	{
@@ -135,14 +140,14 @@ int __init sysctrl_init(void)
 	node = of_find_compatible_node(NULL, NULL, "hisilicon,sysctrl_app");
 	if (!node)
 	{
-		sc_pr_err("dts node not found!\n");
+		sc_err_func("can't find dts node\n");
 		return -1;
 	}
 
 	ret = of_property_read_u32(node, "reg_sum", &sysctrl.reg_sum);
 	if(ret)
 	{
-		sc_pr_err("read reg_sum from dts is failed,ret = %d!\n", ret);
+		sc_err_func("can't read reg_sum from dts, ret = %d\n", ret);
 		return -1;
 	}
 
@@ -152,20 +157,20 @@ int __init sysctrl_init(void)
 		sysctrl.addr_virt[i] = of_iomap(node, (int)i);
 		if (NULL == sysctrl.addr_virt[i])
 		{
-			sc_pr_err("of iomap fail!, index=%d\n", i);
+			sc_err_func("of iomap error, index = %d\n", i);
 			return -1;
 		}
 		sysctrl.addr_phy[i] = reg_node_info_get(node, i);
 		if(0 == sysctrl.addr_phy[i])
 		{
-			sc_pr_err("cann't find reg property!, index=%d\n", i);
+			sc_err_func("can't find reg property, index = %d\n", i);
 			return -1;
 		}
 	}
 
 	system_status_init();
 
-	sc_pr_err("ok\n");
+	sc_err("[init]ok\n");
 
 	return 0;
 }
@@ -183,6 +188,3 @@ int get_system_status(void)
 
 EXPORT_SYMBOL_GPL(system_status_init);
 EXPORT_SYMBOL_GPL(get_system_status);
-
-core_initcall(sysctrl_init);
-

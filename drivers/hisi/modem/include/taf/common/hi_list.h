@@ -49,6 +49,13 @@
 #ifndef _HI_LIST_H
 #define _HI_LIST_H
 
+#ifdef __cplusplus
+#if __cplusplus
+extern "C" {
+#endif
+#endif
+
+
 struct msp_list_header {
     struct msp_list_header *next;
     struct msp_list_header *prev;
@@ -152,5 +159,10 @@ extern void msp_list_del(struct msp_list_header *entry);
 extern int msp_list_empty(const struct msp_list_header *head);
 
 
-#endif /* _MG_LIST_H */
+#ifdef __cplusplus
+#if __cplusplus
+}
+#endif
+#endif
 
+#endif /* _HI_LIST_H */

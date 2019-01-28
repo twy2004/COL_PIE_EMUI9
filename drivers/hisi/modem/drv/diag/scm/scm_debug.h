@@ -56,6 +56,7 @@
 #include <mdrv_diag_system.h>
 #include <osl_types.h>
 #include <bsp_dump.h>
+#include <bsp_print.h>
 #include "OmCommonPpm.h"
 
 #ifdef __cplusplus
@@ -67,34 +68,6 @@ extern "C"{
 /**************************************************************************
   5 Log函数定义
 **************************************************************************/
-
-#define scm_printf(fmt, ...) \
-    bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_DIAG_SYSTEM,"[scm]:<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
-
-#define SCM_CODER_SRC_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_CODER_SRCRD_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_CODER_SRCRESET_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d \n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_CODER_SRC_ERR(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d \n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_CODER_DST_ERR(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__,  pucStr, ulP1, ulP2)
-
-#define SCM_DECODER_SRC_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_CODER_DST_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__, pucStr, ulP1, ulP2)
-
-#define SCM_DECODER_DST_LOG(pucStr, ulP1, ulP2)\
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_DIAG_SYSTEM,"[%s]:%s, %d, %d\n", __FUNCTION__, pucStr, ulP1, ulP2)
-
 #define SCM_CODER_SRC_NUM           (2)       /* 编码源通道个数 */
 #define SCM_CODER_DST_NUM           (2)       /* 编码目的通道个数 */
 #define SCM_DECODER_SRC_NUM         (1)       /* 解码源通道个数 */

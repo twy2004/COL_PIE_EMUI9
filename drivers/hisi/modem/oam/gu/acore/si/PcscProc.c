@@ -81,7 +81,7 @@ VOS_UINT32 PCSC_AcpuCmdReq(VOS_UINT32 ulCmdType, VOS_UINT8 *pucAPDU, VOS_UINT32 
     {
         /* 打印错误 */
         PS_LOG(ACPU_PID_PCSC, 0, PS_PRINT_WARNING, "PCSC_AcpuCmdReq: VOS_AllocMsg is Failed");
-        (VOS_VOID)vos_printf("PCSC_AcpuCmdReq: VOS_AllocMsg is Failed.\r\n");
+        (VOS_VOID)vos_printf("[PAM][PCSC] %s: VOS_AllocMsg is Failed.\r\n", __FUNCTION__);
 
         return VOS_ERR; /* 返回函数错误信息 */
     }
@@ -105,7 +105,7 @@ VOS_UINT32 PCSC_AcpuCmdReq(VOS_UINT32 ulCmdType, VOS_UINT8 *pucAPDU, VOS_UINT32 
     {
         /*打印错误*/
         PS_LOG(ACPU_PID_PCSC, 0, PS_PRINT_WARNING, "PCSC_AcpuCmdReq: VOS_SendMsg is Failed.");
-        (VOS_VOID)vos_printf("PCSC_AcpuCmdReq: VOS_SendMsg is Failed.");
+        (VOS_VOID)vos_printf("[PAM][PCSC] %s: VOS_SendMsg is Failed.", __FUNCTION__);
         return VOS_ERR;
     }
 
@@ -130,13 +130,13 @@ VOS_VOID PCSC_UpdateCardStatus(USIMM_CARDSTATUS_IND_STRU *pstMsg)
 {
     if (USIMM_CARDAPP_SERVIC_BUTT == g_enAcpuCardStatus)
     {
-        (VOS_VOID)vos_printf("Reg PCSC Func.\r\n");
+        (VOS_VOID)vos_printf("[PAM][PCSC] %s: Reg PCSC Func.\r\n", __FUNCTION__);
     }
 
     /*更新本地卡状态的全局变量*/
     g_enAcpuCardStatus = pstMsg->stUsimSimInfo.enCardAppService;
 
-    (VOS_VOID)vos_printf("Update Card Status: %d .\r\n", g_enAcpuCardStatus);
+    (VOS_VOID)vos_printf("[PAM][PCSC] %s: g_enAcpuCardStatus =: %d .\r\n", __FUNCTION__, g_enAcpuCardStatus);
 
 
     return;

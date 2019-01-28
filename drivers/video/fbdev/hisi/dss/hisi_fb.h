@@ -451,7 +451,7 @@ struct hisi_fb_data_type {
 	struct semaphore blank_sem0;
 	struct semaphore blank_sem_effect;
 	struct semaphore brightness_esd_sem;
-	struct semaphore power_esd_sem;
+	struct semaphore power_sem;
 	struct semaphore offline_composer_sr_sem;
 	struct semaphore fast_unblank_sem;
 #if defined(CONFIG_HISI_FB_3660) || defined (CONFIG_HISI_FB_V320)

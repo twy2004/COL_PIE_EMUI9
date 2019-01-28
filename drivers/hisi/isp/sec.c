@@ -158,7 +158,6 @@ struct hisi_atfisp_s {
     struct hisi_atfshrdmem_s *shrdmem;
     struct hisi_isp_ops *ispops;
     struct task_struct *secisp_kthread;
-    struct task_struct *secisp_stop_kthread;
     atomic_t secisp_stop_kthread_status;
     wait_queue_head_t secisp_wait;
     bool secisp_wake;
@@ -190,6 +189,8 @@ struct hisi_atfisp_s {
     int clk_powerby_media;
     struct hisi_sec_ion_s *sec_mem_info;
     struct hisi_isp_ion_s *sec_smmuerr_ion;
+    struct workqueue_struct *wq;
+    struct work_struct free_secmem;
 } atfisp_dev;
 
 
@@ -228,7 +229,7 @@ struct map_sglist_s {
 extern struct dsm_client *client_isp;
 unsigned int map_type_info[MAP_TYPE_MAX];
 extern int use_sec_isp(void);
-static int free_secmem_ion(void *data);
+static void free_secmem_ion(struct work_struct *work);
 static int smmu_err_addr_free(void);
 
 static void isp_iova_pool_destroy(struct gen_pool *pool)
@@ -773,14 +774,7 @@ int secisp_device_disable(void)
     atomic_set(&dev->secisp_stop_kthread_status, 1);
     mutex_unlock(&dev->pwrlock);
 
-    dev->secisp_stop_kthread = kthread_create(free_secmem_ion, NULL, "secispmemfree");
-    if (IS_ERR(dev->secisp_stop_kthread)) {
-        pr_err("[%s] Failed : kthread_create.%ld\n", __func__, PTR_ERR(dev->secisp_stop_kthread));
-        goto out;
-    }
-    wake_up_process(dev->secisp_stop_kthread);
-
-out:
+    queue_work(dev->wq, &dev->free_secmem);
 
     if (sync_isplogcat() < 0)
         pr_err("[%s] Failed: sync_isplogcat\n", __func__);
@@ -997,8 +991,14 @@ int get_ispcpu_idle_stat(unsigned int isppd_adb_flag)
         set_ispcpu_idle();
 
     if(isppd_adb_flag) {
-        pr_debug("[%s] USER NOT SUPPORT\n", __func__);
+        ret = atfisp_get_ispcpu_idle();
+        if(ret != 0) {
+            pr_alert("[%s] Failed : ispcpu not in idle.%d!\n", __func__, ret);
+            dump_media1_regs();
+            if ((-1*ret)&(1<<4))
+                dump_smmu500_regs();
         }
+    }
 
     return ret;
 }
@@ -1962,8 +1962,9 @@ static int set_share_pararms(void)
     }
     return 0;
 }
+
 /*lint -save -e429*/
-static int free_secmem_ion(void *data)
+static void free_secmem_ion(struct work_struct *work)
 {
     struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
     struct hisi_sec_ion_s *hisi_secmem_ion = dev->sec_mem_info;
@@ -1980,20 +1981,20 @@ static int free_secmem_ion(void *data)
     if(hisi_secmem_ion == NULL){
         pr_err("[%s] hisi_secmem_ion is NULL\n", __func__);
         mutex_unlock(&dev->sec_mem_mutex);
-        return -ENODEV;
+        return;
     }
     if((hisi_secmem_ion->ion_client      == NULL) || \
        (hisi_secmem_ion->boot_ion_handle == NULL)) {
         pr_err("[%s] ion_client.%pK, boot_ion_handle.%pK\n", __func__, hisi_secmem_ion->ion_client, \
                 hisi_secmem_ion->boot_ion_handle);
         mutex_unlock(&dev->sec_mem_mutex);
-        return -ENODEV;
-        }
+        return;
+    }
     if(dev->is_heap_flag) {
         if(hisi_secmem_ion->fw_ion_handle == NULL){
             pr_err("[%s] fw_ion_handle.%pK\n", __func__,hisi_secmem_ion->fw_ion_handle);
             mutex_unlock(&dev->sec_mem_mutex);
-            return -ENODEV;
+            return;
         }
         ion_free(hisi_secmem_ion->ion_client, hisi_secmem_ion->fw_ion_handle);
         hisi_secmem_ion->fw_ion_handle= NULL;
@@ -2003,12 +2004,9 @@ static int free_secmem_ion(void *data)
     hisi_secmem_ion->boot_ion_handle= NULL;
     kfree(hisi_secmem_ion);
     dev->sec_mem_info = NULL;
-
-    dev->secisp_stop_kthread = NULL;
     dev->shrdmem->sec_pgt = 0;
     pr_info("[%s] -\n", __func__);
     mutex_unlock(&dev->sec_mem_mutex);
-    return 0;
 }
 
 static int hisp_secmem_init(void)
@@ -2278,6 +2276,13 @@ int hisi_atfisp_probe(struct platform_device *pdev)
 
     wake_up_process(dev->secisp_kthread);
 
+    dev->wq = create_singlethread_workqueue("secispmemfree");
+    if (!dev->wq) {
+        pr_err("%s: create_singlethread_workqueue failed.\n", __func__);
+        goto out;
+    }
+
+    INIT_WORK(&dev->free_secmem, free_secmem_ion);
     return 0;
 
 out:
@@ -2295,6 +2300,10 @@ int hisi_atfisp_remove(struct platform_device *pdev)
     if (dev->sec_client) {
         ion_client_destroy(dev->sec_client);
         dev->sec_client = NULL;
+    }
+    if (dev->wq) {
+        destroy_workqueue(dev->wq);
+        dev->wq = NULL;
     }
     return 0;
 }

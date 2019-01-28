@@ -51,7 +51,7 @@
 
 #include "osl_types.h"
 #include "product_config.h"
-
+#include<bsp_print.h>
 #define EFUSE_OK               (0)
 #define EFUSE_ERROR            (-1)
 
@@ -78,8 +78,8 @@
 #define BIT_INDEX_IN_GROUP(bit)             (bit & 0x1F)
 #define GROUP_INDEX(bit)                    (bit >> 0x5)
 
-#define  efuse_print_error(fmt, ...)    (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_EFUSE, "[efuse]: <%s> <%d> "fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__))
-#define  efuse_print_info(fmt, ...)     (bsp_trace(BSP_LOG_LEVEL_INFO,  BSP_MODU_EFUSE, "[efuse]: "fmt, ##__VA_ARGS__))
+#define  efuse_print_error(fmt, ...)    (bsp_err("<%s> <%d> "fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#define  efuse_print_info(fmt, ...)     (bsp_info(fmt, ##__VA_ARGS__))
 
 
 typedef enum
@@ -184,18 +184,18 @@ void bsp_efuse_ops_complete(void);
 int bsp_efuse_write_prepare(void);
 void bsp_efuse_write_complete(void);
 #else
-static inline int bsp_efuse_ops_prepare(void)
+static inline int __attribute__((unused)) bsp_efuse_ops_prepare(void)
 {
     return 0;
 }
-static inline void bsp_efuse_ops_complete(void)
+static inline __attribute__((unused)) void bsp_efuse_ops_complete(void)
 {
 }
-static inline int bsp_efuse_write_prepare(void)
+static inline __attribute__((unused)) int bsp_efuse_write_prepare(void)
 {
     return 0;
 }
-static inline void bsp_efuse_write_complete(void)
+static inline __attribute__((unused)) void bsp_efuse_write_complete(void)
 {
 }
 #endif
@@ -203,37 +203,39 @@ static inline void bsp_efuse_write_complete(void)
 
 #else
 
-static inline int efuse_init(void)
+static inline __attribute__((unused)) int efuse_init(void)
 {
     return 0;
 }
-static inline int bsp_efuse_read(u32* pbuffer, u32 group, u32 count)
+static inline __attribute__((unused)) int bsp_efuse_read(u32* pbuffer __attribute__((unused)),
+    u32 group __attribute__((unused)), u32 count __attribute__((unused)))
 {
     return 0;
 }
-static inline int bsp_efuse_write(u32* pbuffer, u32 group, u32 count)
+static inline __attribute__((unused)) int bsp_efuse_write(u32* pbuffer __attribute__((unused)),
+    u32 group __attribute__((unused)), u32 count __attribute__((unused)))
 {
     return 0;
 }
-static inline void bsp_efuse_show(void)
+static inline __attribute__((unused)) void bsp_efuse_show(void)
 {
     return;
 }
-static inline int bsp_efuse_ops_prepare(void)
+static inline __attribute__((unused)) int bsp_efuse_ops_prepare(void)
 {
     return 0;
 }
-static inline void bsp_efuse_ops_complete(void)
+static inline __attribute__((unused)) void bsp_efuse_ops_complete(void)
 {
 }
-static inline int bsp_efuse_write_prepare(void)
+static inline __attribute__((unused)) int bsp_efuse_write_prepare(void)
 {
     return 0;
 }
-static inline void bsp_efuse_write_complete(void)
+static inline __attribute__((unused)) void bsp_efuse_write_complete(void)
 {
 }
-static inline int bsp_efuse_ate_vector(void)
+static inline __attribute__((unused)) int bsp_efuse_ate_vector(void)
 {
     return 0;
 }

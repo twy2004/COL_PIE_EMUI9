@@ -80,7 +80,7 @@
 
 #include "dopra_def.h"
 
-#if ((VOS_VXWORKS == VOS_OS_VER) || (VOS_RTOSCK == VOS_OS_VER) || (VOS_WIN32 == VOS_OS_VER))
+#if (VOS_WIN32 == VOS_OS_VER)
 #include "stdio.h"
 #endif
 

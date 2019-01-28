@@ -21,18 +21,23 @@
 #define __HISI_SIM_HOTPLUG_H
 
 #include <linux/irqdomain.h>
-#ifdef CONFIG_HISI_BALONG_MODEM
 #include "bsp_icc.h"
-#endif
 
 #define SIM0                (0)
 #define SIM1                (1)
 #define SIM_CARD_OUT        (0)
 #define SIM_CARD_IN         (1)
 
-#ifdef CONFIG_HISI_BALONG_MODEM
 #define SIM0_CHANNEL_ID     ((ICC_CHN_IFC<< 16) | IFC_RECV_FUNC_SIM0)
 #define SIM1_CHANNEL_ID     ((ICC_CHN_IFC<< 16) | IFC_RECV_FUNC_SIM1)
-#endif
+
+#define SIMHP_FIRST_MINOR		0
+#define SIMHP_DEVICES_NUMBER		1
+
+#define SIMHP_NAME_BASE			"simhotplug"
+
+#define SIMHOTPLUG_IOC_MAGIC		'k'
+
+#define SIMHOTPLUG_IOC_INFORM_CARD_INOUT	_IOWR(SIMHOTPLUG_IOC_MAGIC, 1,int32_t)
 
 #endif      /* __HISI_SIM_HOTPLUG_H */

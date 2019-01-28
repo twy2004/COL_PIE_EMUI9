@@ -9,8 +9,8 @@
      1.Name+ID      yyyy-mm-dd  Draft Enact
 ******************************************************************************/
 
-#ifndef __LPSNVINTERFACE_H__
-#define __LPSNVINTERFACE_H__
+#ifndef __NV_STRU_LPS_H__
+#define __NV_STRU_LPS_H__
 
 #ifdef __cplusplus
 #if __cplusplus

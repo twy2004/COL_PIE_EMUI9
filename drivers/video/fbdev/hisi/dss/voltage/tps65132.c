@@ -33,8 +33,10 @@
 
 #include "tps65132.h"
 #include "../hisi_fb_def.h"
-#include "lcdkit_fb_util.h"
 
+#include "lcd_kit_common.h"
+#include "lcd_kit_core.h"
+#include "lcd_kit_bias.h"
 #define DTS_COMP_TPS65132 "hisilicon,tps65132_phy"
 static int gpio_vsp_enable;
 static int gpio_vsn_enable;
@@ -211,18 +213,50 @@ static int tps65132_reg_init(struct i2c_client *client, u8 vpos_cmd, u8 vneg_cmd
 exit:
 	return nRet;
 }
+int tps65132_get_bias_voltage(int *vpos_target, int *vneg_target)
+{
+	int i = 0;
+
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct tps65132_voltage);i ++) {
+		if(vol_table[i].voltage == *vpos_target) {
+			pr_err("tps65132 vsp voltage:0x%x\n",vol_table[i].value);
+			*vpos_target = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct tps65132_voltage)) {
+		pr_err("not found vsp voltage, use default voltage:TPS65132_VOL_55\n");
+		*vpos_target = TPS65132_VOL_55;
+	}
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct tps65132_voltage);i ++) {
+		if(vol_table[i].voltage == *vneg_target) {
+			pr_err("tps65132 vsn voltage:0x%x\n",vol_table[i].value);
+			*vneg_target = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct tps65132_voltage)) {
+		pr_err("not found vsn voltage, use default voltage:TPS65132_VOL_55\n");
+		*vpos_target = TPS65132_VOL_55;
+	}
+	return 0;
+}
 static void tps65132_get_target_voltage(int *vpos_target, int *vneg_target)
 {
 	int ret = 0;
 
 
-	if (get_lcdkit_support()) {
-		HISI_FB_INFO("vpos and vneg target from dts\n");
-		*vpos_target = lcdkit_get_vsp_voltage();
-		*vneg_target = lcdkit_get_vsn_voltage();
-		return;
-	}
 
+	struct lcd_kit_ops *lcd_ops = lcd_kit_get_ops();
+	if (lcd_ops && lcd_ops->lcd_kit_support) {
+		if (lcd_ops->lcd_kit_support()) {
+			if (common_ops->get_bias_voltage) {
+				common_ops->get_bias_voltage(vpos_target, vneg_target);
+				tps65132_get_bias_voltage(vpos_target, vneg_target);
+			}
+			return;
+		}
+	}
 
 	ret = get_lcd_type();
 	if (ret == VAL_5V8) {
@@ -313,6 +347,45 @@ static int tps65132_finish_setting(void)
 	return retval;
 }
 
+struct i2c_client *g_client = NULL;
+static int tps65132_dbg_set_bias(int vpos, int vneg)
+{
+	int i = 0;
+
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct tps65132_voltage);i++) {
+		if(vol_table[i].voltage == vpos) {
+			pr_info("tps65132 vsp voltage:0x%x\n",vol_table[i].value);
+			vpos = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct tps65132_voltage)) {
+		pr_err("not found vsp voltage, use default voltage:TPS65132_VOL_55\n");
+		vpos = TPS65132_VOL_55;
+	}
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct tps65132_voltage);i++) {
+		if(vol_table[i].voltage == vneg) {
+			pr_info("tps65132 vsn voltage:0x%x\n",vol_table[i].value);
+			vneg = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct tps65132_voltage)) {
+		pr_err("not found vsn voltage, use default voltage:TPS65132_VOL_55\n");
+		vneg = TPS65132_VOL_55;
+	}
+	pr_info("vpos = 0x%x, vneg = 0x%x\n", vpos, vneg);
+	if (!g_client) {
+		pr_err("g_client is null\n");
+		return -1;
+	}
+	return tps65132_reg_init(g_client, vpos, vneg);
+}
+
+static struct lcd_kit_bias_ops bias_ops = {
+	.set_bias_voltage = NULL,
+	.dbg_set_bias_voltage = tps65132_dbg_set_bias,
+};
 
 static int tps65132_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -376,6 +449,9 @@ static int tps65132_probe(struct i2c_client *client, const struct i2c_device_id 
 		/* detect current device successful, set the flag as present */
 		set_hw_dev_flag(DEV_I2C_DC_DC);
 
+	g_client = client;
+	lcd_kit_bias_register(&bias_ops);
+	return retval;
 
 failed_2:
 	if (!fastboot_display_enable) {

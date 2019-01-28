@@ -65,9 +65,10 @@ extern "C" {
 #define MNTN_ERRLOG_DIR                     "/mnvm3:0/Errlog"
 #define MNTN_ERRLOG0_PATH                   "/mnvm3:0/Errlog/Errorlog0.bin"  /*log文件0地址*/
 #define MNTN_ERRLOG1_PATH                   "/mnvm3:0/Errlog/Errorlog1.bin"  /*log文件1地址*/
-#define MNTN_ERRLOG_UNITARY_DIR             "/modem_log/Errlog"
-#define MNTN_ERRLOG0_UNITARY_PATH           "/modem_log/Errlog/Errorlog0.bin"  /*log文件0地址*/
-#define MNTN_ERRLOG1_UNITARY_PATH           "/modem_log/Errlog/Errorlog1.bin"  /*log文件1地址*/
+
+#define MNTN_ERRLOG_UNITARY_DIR             "/data/hisi_logs/modem_log/Errlog"
+#define MNTN_ERRLOG0_UNITARY_PATH           "/data/hisi_logs/modem_log/Errlog/Errorlog0.bin"  /*log文件0地址*/
+#define MNTN_ERRLOG1_UNITARY_PATH           "/data/hisi_logs/modem_log/Errlog/Errorlog1.bin"  /*log文件1地址*/
 
 
 #define MNTN_ERRLOG_IMEI_SIZE               (16)

@@ -51,6 +51,7 @@
 
 #include <mdrv_udi.h>
 #include <bsp_udi.h>
+#include "bsp_print.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -59,8 +60,8 @@ extern "C"
 
 #define bsp_assert(expr)                                            \
 	if (!(expr)) {                                          \
-		printk("Assertion failed! %s,%s,%s,line=%d\n",  \
-		#expr, __FILE__, __func__, __LINE__);    \
+		bsp_err("Assertion failed! %s,%s,line=%d\n",  \
+		#expr, __FILE__, __LINE__);    \
 	}
 
 #define UDI_GET_MAIN_DEV_ID(id)	(((id) & 0xff00) >> 8 )

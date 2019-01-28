@@ -62,9 +62,13 @@ extern "C" {
 #include "vos.h"
 #include "product_config.h"
 #include "PsTypeDef.h"
-#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#if (OSA_CPU_ACPU == VOS_OSA_CPU) || (VOS_WIN32 == VOS_OS_VER)
 #include "ImmInterface.h"
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+#include "ads_dev_i.h"
+#else
 #include "AdsDeviceInterface.h"
+#endif
 #endif
 /******************************************************************************
   2 宏定义
@@ -261,18 +265,25 @@ extern VOS_UINT32 PPP_RcvAtCtrlOperEvent(VOS_UINT16 usPppId, PPP_AT_CTRL_OPER_TY
 extern VOS_VOID   PPP_UpdateWinsConfig(VOS_UINT8 ucWins);
 extern VOS_VOID   PPP_SetRawDataByPassMode(VOS_UINT32 ulRawDataByPassMode);
 
-#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#if (OSA_CPU_ACPU == VOS_OSA_CPU) || (VOS_WIN32 == VOS_OS_VER)
 /* IP方式下提供的上行数据接收接口 */
 extern VOS_UINT32 PPP_PullPacketEvent(VOS_UINT16 usPppId, IMM_ZC_STRU *pstImmZc);
 
-/* IP方式下提供的下行数据接收接口 */
-extern VOS_UINT32 PPP_PushPacketEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
-
 /* PPP方式下提供的上行数据接收接口 */
 extern VOS_UINT32 PPP_PullRawDataEvent(VOS_UINT16 usPppId, IMM_ZC_STRU *pstImmZc);
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+/* IP方式下提供的下行数据接收接口 */
+extern VOS_INT PPP_PushPacketEvent(VOS_ULONG ulUserData, IMM_ZC_STRU *pstImmZc);
 
 /* PPP方式下提供的下行数据接收接口 */
-extern VOS_UINT32 PPP_PushRawDataEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
+extern VOS_INT PPP_PushRawDataEvent(VOS_ULONG ulUserData, IMM_ZC_STRU *pstImmZc);
+#else
+/* IP方式下提供的下行数据接收接口 */
+extern VOS_INT PPP_PushPacketEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
+
+/* PPP方式下提供的下行数据接收接口 */
+extern VOS_INT PPP_PushRawDataEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
+#endif
 #endif
 
 

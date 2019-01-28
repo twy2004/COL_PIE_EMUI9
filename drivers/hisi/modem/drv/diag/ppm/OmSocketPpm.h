@@ -211,6 +211,8 @@ u32 PPM_SockUdpInit(void);
 bool PPM_SockIsEnable(void);
 u32 PPM_SocketGetUdpInfo(void);
 u32 PPM_SockInitTask(void);
+u32 PPM_SocketAtRevFun(u8  *pucData, u32 ulLen);
+void PPM_SocketRevFunReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc);
 
 
 #pragma pack(pop)

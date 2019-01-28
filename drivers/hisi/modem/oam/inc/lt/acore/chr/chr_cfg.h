@@ -3,6 +3,7 @@
 #include "omerrorlog.h"
 #include "blist.h"
 #include "mdrv_sysboot.h"
+#include "mdrv.h"
 
 /*优先级包数开始结束*/
 #define   PRIORITY_PACKET_START            (0)
@@ -19,12 +20,21 @@
 #define   PERIOD_CHK_CONTINUE        (1)
 #define   PERIOD_CHK_RESTART         (2)
 
-#define CHR_ID_RESET_CCORE   (0x1001)
-#define CHR_ID_BLACKLIST_MSG     (0x2002)
-#define CHR_ID_PRIORITY_MSG      (0x3003)
-#define CHR_ID_PERIOD_MSG        (0x4004)
+/*a核CHR 任务收到的消息ID名*/
+enum CHR_ID_REQ_MSG_ENUM
+{ 
+    CHR_ID_RESET_CCORE        = 0x1001,
+    CHR_ID_ERR_LOG_REQ        = 0x1002,
+    CHR_ID_BLACKLIST_REQ      = 0x1003,
+    CHR_ID_PRIORITY_REQ       = 0x1004,
+    CHR_ID_PERIOD_REQ         = 0x1005,
+    
+    CHR_ID_REQ_BUTT 
+   
+};
 
-#define chr_print(fmt, ...)    (printk(KERN_ERR "[CHR]<%s:%d> "fmt, __FUNCTION__, __LINE__ ,##__VA_ARGS__))
+//#define chr_print(fmt, ...)    (printk(KERN_ERR "[chr]:<%s> line = %d, "fmt, __FUNCTION__, __LINE__ ,##__VA_ARGS__))
+#define chr_print(fmt, ...)    (mdrv_err("<%s>"fmt, __FUNCTION__, ##__VA_ARGS__))
 
 /*保存黑名单的结构体*/
 typedef struct
@@ -116,29 +126,6 @@ typedef struct
     CHR_PERIOD_CFG_STRU           stOmAcpuPeriodCfg[0];  
     
 }OM_ACPU_PERIOD_CFG_STRU;
-
-
-
-
-/* 单独复位时给a核发消息*/
-typedef struct
-{
-    VOS_MSG_HEADER
-    VOS_UINT32                          ulMsgName;
-}CHR_MSG_HEADER_STRU;
-
-typedef struct
-{
-    CHR_MSG_HEADER_STRU           stMsgHeader;                
-    VOS_UINT32                    ulReserved;
-}CHR_APP_RESET_MSG_STRU;
-
-
-typedef struct
-{
-    CHR_MSG_HEADER_STRU           stMsgHeader;                
-    OM_APP_PRIORITY_CFG_STRU      stOmAppPrioCfg;
-}CHR_APP_PRIORITY_CFG_MSG_STRU;
 
 VOS_UINT32 OM_AcpuBlackListProc(VOS_UINT8 *pucData, VOS_UINT32 ulLen);
 VOS_UINT32 OM_AcpuPriorityCfgProc(VOS_UINT8 *pucData, VOS_UINT32 ulLen);

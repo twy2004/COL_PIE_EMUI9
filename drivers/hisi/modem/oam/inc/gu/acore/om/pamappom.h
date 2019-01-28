@@ -70,16 +70,13 @@ extern "C"{
 /*****************************************************************************
   2 宏定义
 ******************************************************************************/
-#define  OM_ICC_LOG_PATH                "/data/modemlog/Log/Icc-log"
-#define  OM_ICC_UNITARY_LOG_PATH        "/modem_log/Log/Icc-log"
-
 #define OM_ICC_BUFFER_SIZE              (16*1024)
 
 #define OM_DRV_MAX_IO_COUNT             (8)        /*一次提交给底软接口的最大数目*/
 
 #define OM_LOG1(Mod, SubMod, Level, String, Para1) \
-           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(Mod), DIAG_MODE_UMTS, (Level)), \
-                           (Mod), __FILE__, __LINE__, "%s, %d \r\n", (String), (VOS_INT32)(Para1) )
+           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
+                           (Mod), VOS_NULL_PTR, __LINE__, "%s, %d \r\n", (String), (VOS_INT32)(Para1) )
 
 #define OM_NORMAL_LOG1(string, para1)  OM_LOG1(ACPU_PID_PAM_OM, 0, PS_LOG_LEVEL_NORMAL, string, para1)
 

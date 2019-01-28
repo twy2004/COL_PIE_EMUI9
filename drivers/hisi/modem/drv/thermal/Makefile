@@ -5,7 +5,7 @@ ifeq ($(strip $(llt_gcov)),y)
 GCOV_PROFILE := y
 endif
 
-obj-y			+= thermal.o
+obj-$(CONFIG_THERMAL_BALONG)			+= thermal.o
 
 subdir-ccflags-y := -Werror
 

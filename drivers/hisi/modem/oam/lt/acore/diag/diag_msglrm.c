@@ -63,6 +63,7 @@
 #include <mdrv_diag_system.h>
 #include "soc_socp_adapter.h"
 #include "diag_connect.h"
+#include "diag_msgbsp.h"
 #include "diag_msglrm.h"
 
 
@@ -71,7 +72,7 @@
 DIAG_MSGLRM_CTRL g_DiagLrmCtrl =
 {
     DIAG_LRM_SRC_NUM,
-    {SOCP_CODER_SRC_BSP_CCORE, SOCP_CODER_SRC_LOM_IND2, SOCP_CODER_SRC_BBP_LOG, SOCP_CODER_SRC_BBP_DS}
+    {SOCP_CODER_SRC_BSP_CCORE, SOCP_CODER_SRC_LOM_IND2, SOCP_CODER_SRC_LDSP1, SOCP_CODER_SRC_LDSP2, SOCP_CODER_SRC_BBP_LOG, SOCP_CODER_SRC_BBP_DS}
 };
 
 VOS_VOID diag_LRMMsgInit(VOS_VOID)
@@ -82,7 +83,7 @@ VOS_VOID diag_LRMMsgInit(VOS_VOID)
                                 g_DiagLrmCtrl.ulChannelId, diag_LRMSendConnMsg);
     if(ulRet)
     {
-        diag_printf("LR Reg Connect Fail, ret:0x%x\n", ulRet);
+        diag_error("LRM Reg ConnMsg Fail(0x%x)\n", ulRet);
     }
 
     return;
@@ -100,7 +101,7 @@ VOS_UINT32 diag_LRMSendConnMsg(VOS_UINT8 *pData)
     ulRet = diag_SendMsg(MSP_PID_DIAG_APP_AGENT, MSP_PID_DIAG_AGENT, pConnMsg->ulMsgId, (VOS_UINT8 *)&(pConnMsg->ulSn), sizeof(pConnMsg->ulSn));
     if(ulRet)
     {
-        diag_printf("send msg to lrm fail, ulRet:0x%x\n", ulRet);
+        diag_error("send msg to lrm fail(0x%x)\n", ulRet);
         for(ulIndex = 0; ulIndex < DIAG_LRM_SRC_NUM; ulIndex++)
         {
             pstResult[ulIndex].ulChannelId  = g_DiagLrmCtrl.ulChannelId[ulIndex];
@@ -125,11 +126,11 @@ VOS_VOID diag_LRMConnCnfProc(VOS_UINT8* pMsgBlock)
     pstCnf = (DIAG_CONN_CNF_MSG_STRU *)pstMsgTmp->pContext;
 
     pstResult = pstCnf->pstResult;
-    ulCount = (pstMsgTmp->ulLen)/sizeof(DIAG_CONNECT_RESULT);
+    ulCount = (pstMsgTmp->ulLen - sizeof(pstCnf->ulSn))/sizeof(DIAG_CONNECT_RESULT);
 
     if(ulCount != DIAG_LRM_SRC_NUM)
     {
-        diag_printf("LRM cnf channel num not valid, except:0x%x cnf:0x%x\n", DIAG_LRM_SRC_NUM, ulCount);
+        diag_error("ChanNum is invalid, except:0x%x cnf:0x%x\n", DIAG_LRM_SRC_NUM, ulCount);
         return;
     }
 
@@ -144,7 +145,7 @@ VOS_VOID diag_LRMConnCnfProc(VOS_UINT8* pMsgBlock)
         }
         if(ulLocalIndex == ulCount)
         {
-            diag_printf("LRM cnf channel id is error, invalid cnf channel:0x%x\n", pstResult[ulCnfIndex].ulChannelId);
+            diag_error("ChanId(0x%x) is invalid\n", pstResult[ulCnfIndex].ulChannelId);
             return;
         }
     }
@@ -152,7 +153,30 @@ VOS_VOID diag_LRMConnCnfProc(VOS_UINT8* pMsgBlock)
     ulRet = diag_ConnCnf(DIAG_CONN_ID_ACPU_LRM, pstCnf->ulSn, ulCount, pstResult);
     if(ulRet)
     {
-        diag_printf("LRM connect cnf fail, ulRet:0x%x\n", ulRet);
+        diag_error("cnf fail, ulRet:0x%x\n", ulRet);
+    }
+}
+
+
+VOS_VOID diag_LrmAgentMsgProc(MsgBlock* pMsgBlock)
+{
+    DIAG_DATA_MSG_STRU* pMsgTmp;
+
+    pMsgTmp = (DIAG_DATA_MSG_STRU*)pMsgBlock;
+
+    switch(pMsgTmp->ulMsgId)
+    {
+        case DIAG_MSG_BSP_CMD_LIST_REQ:
+            diag_BspRecvCmdList(pMsgBlock);
+            break;
+
+        case ID_MSG_DIAG_CMD_CONNECT_CNF:
+        case ID_MSG_DIAG_CMD_DISCONNECT_CNF:
+            diag_LRMConnCnfProc((VOS_UINT8 *)pMsgTmp);
+            break;
+
+        default:
+            break;
     }
 }
 

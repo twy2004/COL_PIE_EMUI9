@@ -13,7 +13,7 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/list.h>
-
+#include "securec.h"
 //BSP
 //#include "bsp_icc.h"
 #include "mdrv_icc.h"
@@ -89,6 +89,7 @@ s32 act_rcsSrvMsgProc(u32 channel_id , u32 len, void* context)
         return ret;
     }
 
+    memset_s(data, sizeof(struct act_cdev_data) + len, 0, sizeof(struct act_cdev_data) + len);
     ret = mdrv_icc_read(channel_id, data->data, len);
     if(ret == len)
     {
@@ -100,8 +101,8 @@ s32 act_rcsSrvMsgProc(u32 channel_id , u32 len, void* context)
         kfree(data);
         return -1;
     }
-    
-    
+
+
     //获取信号量 spinlock_irq_save(lock)
     spin_lock_irqsave(&(act_cdevp->stInstance[1].list_lock), flags);
 
@@ -112,7 +113,7 @@ s32 act_rcsSrvMsgProc(u32 channel_id , u32 len, void* context)
     spin_unlock_irqrestore(&(act_cdevp->stInstance[1].list_lock), flags);
     act_cdevp->stInstance[1].hasData = true;
     wake_up(&(act_cdevp->stInstance[1].inq)); //wake up the read process
-    
+
     printk(KERN_INFO "End act_rcsSrvMsgProc result(%d).\n", ret);
 
     return ret;
@@ -145,6 +146,7 @@ s32 act_msgProc(u32 channel_id , u32 len, void* context)
     }
 
     //调用mdrv_icc_read读取数据到分配的内存中
+    memset_s(data, sizeof(struct act_cdev_data) + len, 0, sizeof(struct act_cdev_data) + len);
     ret = mdrv_icc_read(channel_id, data->data, len);
     data->len = len;
 
@@ -160,7 +162,7 @@ s32 act_msgProc(u32 channel_id , u32 len, void* context)
     act_cdevp->stInstance[0].hasData = true;
     wake_up(&(act_cdevp->stInstance[0].inq)); //wake up the read process
 
-    
+
     printk(KERN_INFO "End act_msgProc result(%d).\n", ret);
 
     return ret;
@@ -204,12 +206,17 @@ static int act_release(struct inode *node, struct file *filp)
 }
 
 /*lint -e571*/
-static size_t act_read(struct file *filp, char __user *buf, size_t size, loff_t *ppos)
+static ssize_t act_read(struct file *filp, char __user *buf, size_t size, loff_t *ppos)
 {
     int ret = 0;
-    unsigned long flags    = NULL;
+    unsigned long flags    = 0;
     struct act_cdev_data *data = NULL;
     struct act_instance *pstInstance = NULL;
+
+    if (NULL == filp || NULL == buf)
+    {
+        return -EFAULT;
+    }
 
     printk(KERN_INFO "Enter act_read to bufSize(%u).\n", (unsigned int)size);
 
@@ -236,19 +243,28 @@ static size_t act_read(struct file *filp, char __user *buf, size_t size, loff_t 
     if (! list_empty(&(pstInstance->msg_list)))
     {
         data = list_first_entry(&(pstInstance->msg_list), struct act_cdev_data, msg_list);
+        if (NULL == data)
+        {
+            printk(KERN_INFO "act_read data is NULL.\n");
+            return -EFAULT;
+        }
 
         /*read data to user space*/
-        if (copy_to_user(buf, (void*)(data->data), data->len))
+        if (0 < data->len && size >= data->len)
         {
-            ret = -EFAULT;
-            printk(KERN_ERR "act_read error\n");
+            if (copy_to_user(buf, (void*)(data->data), data->len))
+            {
+                ret = -EFAULT;
+                printk(KERN_ERR "act_read error\n");
+            }
+            else
+            {
+               ret = (int)(data->len);
+               printk(KERN_INFO "act_read has read %d bytes.\n", ret);
+            }
         }
-        else
-        {
-           ret = (int)(data->len);
-           printk(KERN_INFO "act_read has read %d bytes.\n", ret);
-        }
-        list_del(data);
+
+        list_del((struct list_head *)data);
         kfree(data);
     }
     else
@@ -270,20 +286,20 @@ static size_t act_read(struct file *filp, char __user *buf, size_t size, loff_t 
     spin_unlock_irqrestore(&(pstInstance->list_lock), flags);
 
     //osl_sem_up(&g_ActSemId);
-    return (size_t)ret;
+    return (ssize_t)ret;
 }
 /*lint +e571*/
 
-static size_t act_write(struct file *filp, const char __user *buf, size_t size, loff_t *ppos)
+static ssize_t act_write(struct file *filp, const char __user *buf, size_t size, loff_t *ppos)
 {
-    size_t len = size;
+    ssize_t len = size;
     struct act_instance *pstInstance =  NULL;
 
-    if (NULL == filp)
+    if (NULL == filp || NULL == buf)
     {
         return -EFAULT;
     }
-    
+
     pstInstance = (struct act_instance*)(filp->private_data);
     if(NULL == pstInstance || NULL == pstInstance->ucData)
     {
@@ -298,7 +314,7 @@ static size_t act_write(struct file *filp, const char __user *buf, size_t size, 
             printk(KERN_ERR "act_write input size long than buffer, channel:%u, size:%u.", pstInstance->iChannelID, (unsigned int)size);
             return -E2BIG;
         }
-        memset(pstInstance->ucData, 0, BUFFERSIZE);
+        memset_s(pstInstance->ucData, BUFFERSIZE, 0, BUFFERSIZE);
     }
 
     if(MDRV_ICC_RCS_SERV == pstInstance->iChannelID)
@@ -308,7 +324,7 @@ static size_t act_write(struct file *filp, const char __user *buf, size_t size, 
             printk(KERN_ERR "act_write input size long than buffer, channel:%u, size:%u.", pstInstance->iChannelID, (unsigned int)size);
             return -E2BIG;
         }
-        memset(pstInstance->ucData, 0, RCSSRVBUFSIZE);
+        memset_s(pstInstance->ucData, RCSSRVBUFSIZE, 0, RCSSRVBUFSIZE);
     }
 
     if (copy_from_user(pstInstance->ucData, buf, size))
@@ -387,7 +403,7 @@ static void act_instance_init(struct act_instance *pstInstance)
 }
 
 /* Init the ACT device*/
-static int __init act_cdev_init(void)
+int __init act_cdev_init(void)
 {
     int ret = 0;
     dev_t devno = MKDEV(DEVICE_MAJOR, 0);
@@ -425,7 +441,7 @@ static int __init act_cdev_init(void)
         return ret;
     }
 
-    memset(act_cdevp, 0, sizeof(struct act_cdev));
+    memset_s(act_cdevp, sizeof(struct act_cdev), 0, sizeof(struct act_cdev));
 
     act_cdev_setup(act_cdevp, 0);
 
@@ -458,14 +474,14 @@ static int __init act_cdev_init(void)
        }
     	act_instance_init(pstInstance);
     }
-	memset(&chanAttr, 0, sizeof(chanAttr));
+    memset_s(&chanAttr, sizeof(chanAttr), 0, sizeof(chanAttr));
 
     //osl_sem_init(1, &g_ActSemId);
     chanAttr.read_cb = (icc_read_cb)act_msgProc;
     //ret = bsp_icc_event_register(VT_AP_CP_CHID, act_msgProc, NULL, NULL, NULL);
     ret = mdrv_icc_open (MDRV_ICC_VT_VOIP, &chanAttr);
 
-    memset(&rcsChanAttr, 0, sizeof(rcsChanAttr));
+    memset_s(&rcsChanAttr, sizeof(chanAttr), 0, sizeof(rcsChanAttr));
     rcsChanAttr.read_cb = (icc_read_cb)act_rcsSrvMsgProc;
     ret = mdrv_icc_open(MDRV_ICC_RCS_SERV, &rcsChanAttr);
 
@@ -476,7 +492,7 @@ static int __init act_cdev_init(void)
     return ret;
 }
 
-static void __exit act_cdev_exit(void)
+void __exit act_cdev_exit(void)
 {
     dev_t devno = MKDEV(act_major, 0);
 
@@ -494,8 +510,3 @@ static void __exit act_cdev_exit(void)
     unregister_chrdev_region(devno, 1);
 }
 
-MODULE_AUTHOR("HUAWEI");
-MODULE_LICENSE("Dual BSD/GPL");
-
-module_init(act_cdev_init);
-module_exit(act_cdev_exit);

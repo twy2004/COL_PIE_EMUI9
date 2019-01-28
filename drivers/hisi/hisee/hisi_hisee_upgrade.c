@@ -127,6 +127,79 @@ static int first_check_newest_cosimage(unsigned int cos_id,
 	}
 }
 
+/*************************************************************
+函数原型：int check_cosid_valid(unsigned int cos_id, hisee_img_header *p_img_header)
+函数功能：根据cos_id为输入、和系统启动时解析的hisee.img文件的信息做比较，判断cos_id是否有效
+参数：
+输入：cos_id:cos_id；p_img_header:指向保存系统启动时解析的hisee.img文件的信息结构体
+输出：无。
+返回值：1:cos_id检查OK；0:cos_id检查不OK
+前置条件：系统启动时解析的hisee.img文件的信息的操作完成
+后置条件： 无
+*************************************************************/
+static int check_cosid_valid(unsigned int cos_id)
+{
+	if (cos_id < HISEE_SUPPORT_COS_FILE_NUMBER) {
+		return HISEE_TRUE;
+	}
+
+	return HISEE_FALSE;
+}
+
+/*************************************************************
+函数原型：int second_check_newest_cosimage(unsigned int cos_id, const multicos_upgrade_info *curr_ptr)
+函数功能：根据cos_id对应的cos镜像，做第二级检查返回是否是新cos镜像(根据cos镜像的升级版本号和时间戳)
+参数：
+输入：cos_id:当前cos镜像id；curr_ptr:指向系统前次保存在hisee_img分区的cos镜像的升级版本号和时间戳信息结构体
+输出：无。
+返回值：HISEE_TRUE:当前cos_id对应的cos镜像是新镜像；HISEE_FALSE:当前cos_id对应的cos镜像是老镜像
+前置条件： 无
+后置条件： 无
+*************************************************************/
+static int second_check_newest_cosimage(unsigned int cos_id, const multicos_upgrade_info *curr_ptr)
+{
+	int ret;
+	multicos_upgrade_info previous;
+
+	if (NULL == curr_ptr || HISEE_SUPPORT_COS_FILE_NUMBER <= cos_id) {
+		return HISEE_FALSE;
+	}
+	memset((void *)&previous, 0, sizeof(multicos_upgrade_info));
+	ret = access_hisee_image_partition((char *)&previous, COS_UPGRADE_INFO_READ_TYPE);
+	if (HISEE_OK != ret) {
+		pr_err("HISEE:%s() access_hisee_image_partition fail,ret=%d\n", __func__, ret);
+		ret = HISEE_MULTICOS_READ_UPGRADE_ERROR;
+		return ret;
+	}
+	/*sw_upgrade_version is 0, only compare the timestamp*/
+	if (HISEE_DEFAULT_SW_UPGRADE_VERSION == curr_ptr->sw_upgrade_version[cos_id]) {
+		if (curr_ptr->sw_upgrade_timestamp[cos_id].img_timestamp.value
+				> previous.sw_upgrade_timestamp[cos_id].img_timestamp.value) {
+			return HISEE_TRUE;
+		} else {
+			return HISEE_FALSE;
+		}
+	} else {/*sw_upgrade_version is not 0, only compare the upgrade version*/
+		if (curr_ptr->sw_upgrade_version[cos_id] > previous.sw_upgrade_version[cos_id]) {
+			return HISEE_TRUE;
+		} else {
+			return HISEE_FALSE;
+		}
+	}
+}
+
+static void copy_hisee_image_sw_version(cosimage_version_info *info, hisee_partition_version_info * hisee_partition_info)
+{
+	unsigned int i = 0;
+
+	info->magic = hisee_partition_info->magic;
+	for (i = 0; i < HISEE_MAX_SW_VERSION_NUMBER / 2; i++) {
+		info->img_version_num[i] = hisee_partition_info->img_version_num[i];
+		info->img_version_num[i + HISEE_MAX_SW_VERSION_NUMBER / 2] = /*lint !e679*/
+					 hisee_partition_info->img_version_num1[i];
+	}
+	info->img_timestamp.value = hisee_partition_info->img_timestamp.value;
+}
 
 
 int check_new_cosimage(unsigned int cos_id, int *is_new_cosimage)
@@ -134,6 +207,8 @@ int check_new_cosimage(unsigned int cos_id, int *is_new_cosimage)
 	hisee_img_header local_img_header;
 	cosimage_version_info curr = {0};
 	cosimage_version_info previous = {0};
+	multicos_upgrade_info *curr_upgrade_info = NULL;
+	hisee_partition_version_info hisee_partition_info = { 0 };
 	int ret;
 
 	if (NULL == is_new_cosimage) {
@@ -146,21 +221,34 @@ int check_new_cosimage(unsigned int cos_id, int *is_new_cosimage)
 		pr_err("%s():hisee_parse_img_header failed, ret=%d\n", __func__, ret);
 		set_errno_and_return(ret);
 	}
+	if (HISEE_FALSE == check_cosid_valid(cos_id)) {
+		*is_new_cosimage = HISEE_FALSE;
+		return HISEE_OK;
+	}
 	parse_timestamp(local_img_header.time_stamp, &(curr.img_timestamp));
 	curr.img_version_num[cos_id] = (unsigned char)local_img_header.sw_version_cnt[cos_id];
 	curr.magic = HISEE_SW_VERSION_MAGIC_VALUE;
 
-	ret = access_hisee_image_partition((char *)&previous, SW_VERSION_READ_TYPE);
+	ret = access_hisee_image_partition((char *)&hisee_partition_info, SW_VERSION_READ_TYPE);
 	if (HISEE_OK != ret) {
 		pr_err("%s access_hisee_image_partition fail,ret=%d\n", __func__, ret);
 		return ret;
 	}
 
+	copy_hisee_image_sw_version(&previous, &hisee_partition_info);
 
 	if (check_sw_version_null(&previous, cos_id)) {
 		*is_new_cosimage = HISEE_TRUE;
 	} else {
 		*is_new_cosimage = first_check_newest_cosimage(cos_id, &curr, &previous);
+		/*do second phase check to find new cos image*/
+		curr_upgrade_info = &(local_img_header.cos_upgrade_info);
+		if (HISEE_COS_EXIST == local_img_header.is_cos_exist[cos_id]) {
+			*is_new_cosimage = second_check_newest_cosimage(cos_id, curr_upgrade_info);
+		} else {
+			pr_err("%s: there is no image for cos%d in hisee_img!\n", __func__, cos_id);
+			*is_new_cosimage = HISEE_FALSE;
+		}
 	}
 	return HISEE_OK;
 }
@@ -406,6 +494,8 @@ int cos_upgrade_image_read(unsigned int cos_id, hisee_img_file_type img_type)
 	phys_addr_t buff_phy = 0;
 	unsigned int image_size;
 	atf_message_header *p_message_header;
+	size_t file_size = 0;
+	char fullname[MAX_PATH_NAME_LEN] = {0};
 
 	buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, HISEE_SHARE_BUFF_SIZE,
 											&buff_phy, GFP_KERNEL);
@@ -418,6 +508,20 @@ int cos_upgrade_image_read(unsigned int cos_id, hisee_img_file_type img_type)
 	memset(buff_virt, 0, HISEE_SHARE_BUFF_SIZE);
 	p_message_header = (atf_message_header *)buff_virt;
 	set_message_header(p_message_header, CMD_UPGRADE_COS);
+	/*only for read cos_flash image */
+	if (COS_FLASH_IMG_ID == cos_id && COS_FLASH_IMG_TYPE == img_type) {
+		strncat(fullname, HISEE_FS_PARTITION_NAME, (MAX_PATH_NAME_LEN - 1) - strlen(fullname));
+		strncat(fullname, HISEE_COS_FLASH_IMG_NAME, strlen(HISEE_COS_FLASH_IMG_NAME));
+
+		file_size = 0;
+		ret = filesys_read_img_from_file(fullname, (buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN), &file_size, HISEE_MAX_IMG_SIZE);
+		if (HISEE_OK != ret) {
+			pr_err("hisee:%s(): filesys_read_cos_flash_file failed, ret=%d\n", __func__, ret);
+			dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
+			set_errno_and_return(ret);
+		}
+		image_size = (unsigned int)(file_size + HISEE_ATF_MESSAGE_HEADER_LEN);
+	} else
 	{
 		ret = filesys_hisee_read_image(img_type, (buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN));
 		if (ret < HISEE_OK) {
@@ -431,6 +535,11 @@ int cos_upgrade_image_read(unsigned int cos_id, hisee_img_file_type img_type)
 
 	ret = send_smc_process(p_message_header, buff_phy, image_size,
 							g_hisee_cos_upgrade_time, CMD_UPGRADE_COS);
+	if ((HISEE_OK) == ret && (COS_IMG_ID_3 <= cos_id)
+		&& (COS_FLASH_IMG_TYPE != img_type)) {
+		ret = hisee_encos_write((buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN), 
+								(image_size - HISEE_ATF_MESSAGE_HEADER_LEN), cos_id);
+	}
 	dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
 	check_and_print_result();
 	return ret;
@@ -455,13 +564,17 @@ static int cos_image_upgrade_basic_process(void *buf, int para,
 	int ret, ret1, ret2;
 	unsigned int upgrade_run_flg = 0;
 	int retry = 2; /* retry 2 more times if failed */
-	cosimage_version_info curr = {0};
+	multicos_upgrade_info store_upgrade_info;
+	multicos_upgrade_info *p_upgrade_info = NULL;
+	hisee_partition_version_info curr = { 0 };
 
 	if (OTP_IMG_TYPE <= img_type || MAX_COS_IMG_ID <= cos_id) {
 		pr_err("hisee:%s(): params is invalid\n", __func__);
 		return HISEE_COS_IMG_ID_ERROR;
 	}
 
+	memset((void *)&store_upgrade_info, 0, sizeof(multicos_upgrade_info));
+	access_hisee_image_partition((char *)&store_upgrade_info, COS_UPGRADE_INFO_READ_TYPE);
 	upgrade_run_flg = HISEE_COS_UPGRADE_RUNNING_FLG;
 	access_hisee_image_partition((char *)&upgrade_run_flg, COS_UPGRADE_RUN_WRITE_TYPE);
 
@@ -476,13 +589,23 @@ upgrade_retry:
 			return ret;
 		}
 
-		curr.img_version_num[cos_id] = g_hisee_data.hisee_img_head.sw_version_cnt[cos_id];
+		if ((HISEE_MAX_SW_VERSION_NUMBER / 2) <= cos_id) {
+			curr.img_version_num1[cos_id - (HISEE_MAX_SW_VERSION_NUMBER / 2)] =
+					 g_hisee_data.hisee_img_head.sw_version_cnt[cos_id];
+		} else {
+			curr.img_version_num[cos_id] = g_hisee_data.hisee_img_head.sw_version_cnt[cos_id];
+		}
 
 		curr.magic = HISEE_SW_VERSION_MAGIC_VALUE;
 		access_hisee_image_partition((char *)&curr, SW_VERSION_WRITE_TYPE);
 		upgrade_run_flg = 0;
 		access_hisee_image_partition((char *)&upgrade_run_flg, COS_UPGRADE_RUN_WRITE_TYPE);
 
+		p_upgrade_info = &(g_hisee_data.hisee_img_head.cos_upgrade_info);
+		store_upgrade_info.sw_upgrade_version[cos_id] = p_upgrade_info->sw_upgrade_version[cos_id];
+		store_upgrade_info.sw_upgrade_timestamp[cos_id].img_timestamp.value =
+				p_upgrade_info->sw_upgrade_timestamp[cos_id].img_timestamp.value;
+		access_hisee_image_partition((char *)&store_upgrade_info, COS_UPGRADE_INFO_WRITE_TYPE);
 
 		hisee_mntn_update_local_ver_info();
 		pr_err("hisee:%s(): upgrade_exit,cos_id=%d\n", __func__, cos_id);
@@ -559,11 +682,23 @@ int cos_image_upgrade_func(void *buf, int para)
 {
 	int ret;
 	char buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
-	buf_para[0] = HISEE_CHAR_SPACE;
-	buf_para[1] = '0' + COS_IMG_ID_0;/* '0': int to char */
-	buf_para[2] = '0' + COS_PROCESS_UPGRADE;/* '0': int to char */
 
-	ret = handle_cos_image_upgrade((void *)buf_para, para);
+	/*if the @buf parameters is NULL ,need do all cos image upagrade while multicos scenario*/
+	if (HISEE_CHAR_NEWLINE == *(char *)buf || '\0' == *(char *)buf) {
+		buf_para[0] = HISEE_CHAR_SPACE;
+		buf_para[1] = '0' + COS_IMG_ID_0;
+		buf_para[2] = '0' + COS_PROCESS_UPGRADE;
+		pr_err("hisee:%s() enter cos self-upgrade process, need to poweroff hisee in advance\n", __func__);
+		ret = hisee_poweroff_func((void *)buf_para, 0);
+		if (HISEE_OK != ret) {
+			pr_err("hisee:%s() poweroff failed. retcode=%d\n", __func__, ret);
+			return ret;
+		}
+		ret = cos_image_upgrade_by_self();
+		check_and_print_result();
+		return ret;
+	}
+	ret = handle_cos_image_upgrade(buf, para);
 	check_and_print_result();
 	return ret;
 }

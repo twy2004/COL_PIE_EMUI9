@@ -161,25 +161,6 @@ void*  mdrv_virt_to_phy (MEM_MODE_TYPE_E mode, void* lPAddr);
 ****************************************************************************/
 void*  mdrv_phy_to_virt (MEM_MODE_TYPE_E mode, void* pMem);
 
-/*****************************************************************************
-* 函 数 名  : mdrv_memcpy
-*
-* 功能描述  : 数据拷贝接口，底层基于汇编实现的最优化接口，只能用于memory到
-*             memory的拷贝
-* 约束条件  :
-*             只能用于memory 到memory的拷贝，不能用于memory到寄存器的拷贝
-*             需要4字节对齐
-*             在A核 ARMv8 架构中，需要8字节对齐或者是normal memory 属性，
-*             采用ioremap_wc映射的 uncachable 的内存 或者cachable的内存
-*
-* 输入参数  : dest :  拷贝的目的地址
-*             src  :  拷贝的源地址
-*             count:  拷贝数据的大小
-* 输出参数  : 无
-* 返 回 值  :  无
-****************************************************************************/
-void *mdrv_memcpy(void * dest, const void * src, unsigned long count);
-
 #ifdef __cplusplus
 }
 #endif

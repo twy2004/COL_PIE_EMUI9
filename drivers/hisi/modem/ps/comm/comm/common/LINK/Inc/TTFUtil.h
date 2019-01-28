@@ -99,8 +99,7 @@ extern "C" {
 #define TTF_MEM_ALLOC_CACHE_MEM         (0xE3500002)    /* TTF MEME申请CACHE内存使用 */
 #define TTF_CIPHER_CACHE_MEM            (0xE3500003)    /* CIPHER申请CACHE内存使用 */
 #define TTF_HDLC_UNCACHE_MEM            (0xE3500004)    /* HDLC申请UNCACHE内存使用 */
-
-
+#define TTF_MEM_ALLOC_UNCACHE_MEM       (0xE3500005)    /* TTFMEM申请UNCACHE内存使用 */
 
 
 /* CTTF SYS ERR ID */

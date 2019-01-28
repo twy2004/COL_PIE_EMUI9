@@ -97,8 +97,8 @@ typedef struct
     VOS_UINT32                  ulPppTaskId;
     VOS_UINT32                  ulPppInitFlag;
 
-    TTF_BOOL_ENUM_UINT8         enChapEnable;           /* 是否使能Chap鉴权 */
-    TTF_BOOL_ENUM_UINT8         enPapEnable;            /* 是否使能Pap鉴权 */
+    TTF_ACORE_BOOL_ENUM_UINT8   enChapEnable;           /* 是否使能Chap鉴权 */
+    TTF_ACORE_BOOL_ENUM_UINT8   enPapEnable;            /* 是否使能Pap鉴权 */
     VOS_UINT16                  usLcpEchoMaxLostCnt;    /* 发送LcpEchoRequest允许丢弃的最大个数 */
 
     VOS_UINT16                  usQueneMaxCnt;          /* 队列最大允许个数 */

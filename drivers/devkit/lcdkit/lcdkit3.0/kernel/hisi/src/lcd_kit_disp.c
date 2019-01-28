@@ -205,7 +205,7 @@ static int lcd_kit_on(struct platform_device* pdev)
 			}
 			pinfo->lcd_init_step = LCD_INIT_MIPI_LP_SEND_SEQUENCE;
 			panel_name = common_info->panel_model != NULL ? common_info->panel_model : disp_info->compatible;
-			LCD_KIT_INFO("lcd_name is %s\n", panel_name);
+			//LCD_KIT_INFO("lcd_name is %s\n", panel_name);
 			LOG_JANK_D(JLID_KERNEL_LCD_POWER_ON, "%s", "LCD_POWER_ON");
 			break;
 		case LCD_INIT_MIPI_LP_SEND_SEQUENCE:

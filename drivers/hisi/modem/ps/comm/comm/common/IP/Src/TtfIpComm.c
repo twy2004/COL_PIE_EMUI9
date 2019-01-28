@@ -98,7 +98,7 @@
 
     if (usMemUsedLen < (usIpTotalLen) || (usIpTotalLen < usIpHeadLen))
     {
-        /* 数据包长度，小于IP总长度直接退出 
+        /* 数据包长度，小于IP总长度直接退出
 		   usIpTotalLen 字段异常，小于IP包头，直接退出 */
         return PS_FAIL;
     }
@@ -169,10 +169,12 @@
     return PS_SUCC;
 }
 
-IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
+MODULE_EXPORTED IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
 (
     VOS_UINT32                          ulPid,
-    TTF_MEM_ST                         *pMemPt
+    VOS_UINT8                          *pData,
+    VOS_UINT16                          usLen,
+    TTF_PS_DATA_PRIORITY_ENUM_UINT8     enDataPriority
 )
 {
     VOS_UINT16                                  usIpHeadLen;
@@ -183,13 +185,12 @@ IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
     VOS_UINT16                                 *pusPort;
     VOS_UINT16                                 *pusFragmentOffset;
     VOS_UINT8                                   usTcpFlags;
-    VOS_UINT8                                  *pData       = pMemPt->pData;
 
     /* 初始化设置为Null */
     enDataType = IP_DATA_TYPE_NULL;
 
     /* 内存至少有20字节，才能解析IP头的协议字段 ROTOCOL_POS(9), PROTOCOL_POS(6)*/
-    if (pMemPt->usUsed <= IPV4_HEAD_NORMAL_LEN)
+    if (usLen <= IPV4_HEAD_NORMAL_LEN)
     {
         TTF_LOG(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_ParseIpDataType IPHeadLen is exception.");
         return IP_DATA_TYPE_BUTT;
@@ -213,16 +214,16 @@ IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
         return IP_DATA_TYPE_BUTT;
     }
 
-    if(TTF_PS_DATA_PRIORITY_HIGH == pMemPt->ucDataPriority)
+    if(TTF_PS_DATA_PRIORITY_HIGH == enDataPriority)
     {
         TTF_LOG(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_ParseIpDataType user high priority data.");
         return IP_DATA_TYPE_USER_HIGH;
     }
 
     /* 安全检查: 检查数据包大小是否能够容纳对应协议包头，不能容纳的异常包，就不用继续解析了*/
-    if (PS_FAIL == TTF_CheckIpDataByProtocalType(pData, pMemPt->usUsed, usIpHeadLen, usIpTotalLen, enDataProtocalType))
+    if (PS_FAIL == TTF_CheckIpDataByProtocalType(pData, usLen, usIpHeadLen, usIpTotalLen, enDataProtocalType))
     {
-        TTF_LOG2(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_ParseIpDataType datalen<1> ProtocalType<2> is exception.",pMemPt->usUsed,enDataProtocalType);
+        TTF_LOG2(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_ParseIpDataType datalen<1> ProtocalType<2> is exception.", usLen, enDataProtocalType);
         return IP_DATA_TYPE_BUTT;
     }
 
@@ -318,7 +319,7 @@ IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
 } /* TTF_ParseIpDataType */
 
 
-VOS_UINT16 TTF_GetIpDataTraceLen
+MODULE_EXPORTED VOS_UINT16 TTF_GetIpDataTraceLen
 (
     VOS_UINT32                          ulPid,
     VOS_UINT8                          *pData,

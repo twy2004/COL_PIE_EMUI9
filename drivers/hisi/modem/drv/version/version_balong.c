@@ -54,6 +54,10 @@
 #include <nv_stru_drv.h>
 #include <bsp_nvim.h>
 #include <bsp_version.h>
+#include <securec.h>
+
+#undef THIS_MODU
+#define THIS_MODU mod_version
 
 PRODUCT_INFO_NV_STRU huawei_product_info = {0};
 NV_SW_VER_STRU nv_sw_ver={0};
@@ -109,7 +113,7 @@ static __inline__ int bsp_version_productinfo_init(void)
 int bsp_version_acore_init(void)
 {
     int ret = VER_ERROR;
-    memset((void *)(&huawei_product_info), 0, sizeof(PRODUCT_INFO_NV_STRU));
+    memset_s((void *)(&huawei_product_info), sizeof(PRODUCT_INFO_NV_STRU), 0, sizeof(PRODUCT_INFO_NV_STRU));
 
     ret = bsp_version_productinfo_init();
     if(VER_ERROR==ret)
@@ -152,10 +156,11 @@ char * bsp_version_get_hardware(void)
         /*lint -save -e18 -e718 -e746*/
         len = (unsigned int)(strlen(huawei_product_info.hwVer) + strlen(" Ver.X"));
         hardware_sub_ver = (char)huawei_product_info.hwIdSub+'A';
-        (void)memset((void *)hardware_version, 0, MemparamType(len));
+        (void)memset_s((void *)hardware_version, MemparamType(len), 0, MemparamType(len));
         /*lint -restore*/
         /* coverity[secure_coding] */
-        strncat(strncat(hardware_version, huawei_product_info.hwVer, strlen(huawei_product_info.hwVer)), " Ver.", strlen(" Ver."));
+        strncat_s(hardware_version, VERSION_MAX_LEN, huawei_product_info.hwVer, strlen(huawei_product_info.hwVer));
+        strncat_s(hardware_version, VERSION_MAX_LEN, " Ver.", strlen(" Ver."));
         *((hardware_version + len) - 1) = hardware_sub_ver;
         *(hardware_version + len) = 0;
         b_geted=true;
@@ -182,10 +187,11 @@ char * bsp_version_get_product_inner_name(void)
 
     if(!b_geted){
         len = (unsigned int)(strlen(huawei_product_info.name)+ strlen(huawei_product_info.namePlus));
-        (void)memset((void*)product_inner_name, 0, MemparamType(len));
+        (void)memset_s((void*)product_inner_name, MemparamType(len), 0, MemparamType(len));
 
         /* coverity[secure_coding] */
-        strncat(strncat(product_inner_name,huawei_product_info.name, strlen(huawei_product_info.name)), huawei_product_info.namePlus, strlen(huawei_product_info.namePlus));
+        strncat_s(product_inner_name, len, huawei_product_info.name, strlen(huawei_product_info.name));
+        strncat_s(product_inner_name, len, huawei_product_info.namePlus, strlen(huawei_product_info.namePlus));
         *(product_inner_name+len) = 0;
         b_geted=true;
     }
@@ -342,7 +348,7 @@ int bsp_version_debug(void)
     ver_print_error("plat_type           :0x%x  (0:asic a:fpga e:emu)\n",bsp_get_version_info()->plat_type);
     ver_print_error("board_type(for drv) :0x%x  (0:bbit 1:sft 2:asic 3:soc 4:porting)\n",bsp_get_version_info()->board_type);
     ver_print_error("board_type(for mdrv):0x%x  (0:bbit 1:sft 2:asic)\n",(BOARD_ACTUAL_TYPE_E)bsp_get_version_info()->board_type);
-    ver_print_error("bbit_type           :0x%x  (1:dallas 2:722 3:chicago)\n",bsp_get_version_info()->bbit_type);
+    ver_print_error("bbit_version           :0x%x  (1:dallas 2:722 3:chicago)\n",bsp_get_version_info()->bbit_version);
     ver_print_error("product_type        :0x%x  (0:mbb 1:phone)\n",bsp_get_version_info()->product_type);
     ver_print_error("product_name        :0x%x\n",bsp_get_version_info()->product_name);
     ver_print_error("cses_type           :0x%x(100:es 110:cs)\n",bsp_get_version_info()->cses_type);
@@ -350,10 +356,6 @@ int bsp_version_debug(void)
 
     return VER_OK;
 }
-/*lint -restore*/
-/*注意:需在nv模块初始化之后*/
-module_init(bsp_version_acore_init);
-
 EXPORT_SYMBOL_GPL(huawei_product_info);
 EXPORT_SYMBOL_GPL(bsp_version_acore_init);
 EXPORT_SYMBOL_GPL(bsp_version_get_hardware);

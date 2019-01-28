@@ -65,7 +65,11 @@ extern "C" {
 /*****************************************************************************
   2 macro
 *****************************************************************************/
-#define DIAG_LRM_SRC_NUM        (4)
+#ifdef DIAG_SYSTEM_5G
+#define DIAG_LRM_SRC_NUM        (8)
+#else
+#define DIAG_LRM_SRC_NUM        (6)
+#endif
 
 typedef struct
 {
@@ -77,6 +81,7 @@ typedef struct
 VOS_VOID diag_LRMMsgInit(VOS_VOID);
 VOS_UINT32 diag_LRMSendConnMsg(VOS_UINT8 *pData);
 VOS_VOID diag_LRMConnCnfProc(VOS_UINT8* pMsgBlock);
+VOS_VOID diag_LrmAgentMsgProc(MsgBlock* pMsgBlock);
 
 #ifdef __cplusplus
     #if __cplusplus

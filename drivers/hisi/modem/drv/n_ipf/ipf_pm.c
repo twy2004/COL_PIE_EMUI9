@@ -75,7 +75,7 @@ static int ipf_pm_prepare(struct device *pdev)
 
     if(g_ipf_ctx.psam_pm->is_idle&&(!g_ipf_ctx.psam_pm->is_idle()))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_IPF,"\r PSAM CHANNEL NOT IDLE! \n");
+        bsp_err("\r PSAM CHANNEL NOT IDLE! \n");
         g_ipf_ctx.psam_pm_busy++;
         return IPF_ERROR;
     }
@@ -88,7 +88,7 @@ static int ipf_pm_suspend(struct device *pdev)
 {
     unsigned long flags;
     struct ipf_share_mem_map* sm = bsp_ipf_get_sharemem();
-    pr_info("%s +\n", __func__);
+    bsp_err("%s +\n", __func__);
 
     spin_lock_irqsave(&g_ipf_ctx.filter_spinlock, flags);
     bsp_ipc_spin_lock(IPC_SEM_IPF_PWCTRL);
@@ -105,7 +105,7 @@ static int ipf_pm_suspend(struct device *pdev)
 
     g_ipf_ctx.stax.suspend++;
     (void)pdev;
-    pr_info("%s -\n", __func__);
+    bsp_err("%s -\n", __func__);
     return IPF_SUCCESS;
 }
 
@@ -115,7 +115,7 @@ static int ipf_pm_resume(struct device *pdev)
     unsigned long flags;
     struct ipf_share_mem_map* sm = bsp_ipf_get_sharemem();
 	
-    pr_info("%s +\n", __func__);
+    bsp_err("%s +\n", __func__);
     spin_lock_irqsave(&g_ipf_ctx.filter_spinlock, flags);
     bsp_ipc_spin_lock(IPC_SEM_IPF_PWCTRL);
 
@@ -143,7 +143,7 @@ static int ipf_pm_resume(struct device *pdev)
 
     g_ipf_ctx.stax.resume++;
     (void)pdev;
-    pr_info("%s -\n", __func__);
+    bsp_err("%s -\n", __func__);
     return IPF_SUCCESS;
 }
 

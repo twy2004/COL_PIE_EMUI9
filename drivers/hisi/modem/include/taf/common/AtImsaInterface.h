@@ -55,7 +55,7 @@
 #include "vos.h"
 #include "TafTypeDef.h"
 
-#include "TafApsApi.h"
+#include "TafPsApi.h"
 #include "AtMnInterface.h"
 #include "MnCallApi.h"
 
@@ -76,9 +76,9 @@ extern "C" {
 /* equals IMSA_MAX_CALL_NUMBER_LENGTH */
 #define AT_IMSA_CALL_ASCII_NUM_MAX_LENGTH     (40)
 
-#define IMSA_PHONECONTEXT_MAX_LENGTH     (128)
+#define AT_IMSA_PHONECONTEXT_MAX_LENGTH  (128)
 
-#define IMSA_PUBLICEUSERID_MAX_LENGTH    (128)
+#define AT_IMSA_PUBLICEUSERID_MAX_LENGTH (128)
 #define AT_IMSA_IPV4_ADDR_LEN              (4)
 
 #define AT_IMSA_IPV6_ADDR_LEN              (16)
@@ -91,10 +91,14 @@ extern "C" {
 
 /* 当前ims注册失败网侧上报最大字符串长度为255 */
 #define IMSA_AT_REG_FAIL_CAUSE_STR_MAX_LEN              (256)
-
+#define IMSA_AT_PDN_FAIL_CAUSE_WIFI_NW_CAUSE_SECTION_BEGIN      (0x10000)
 #define AT_IMSA_MAX_EMERGENCY_AID_LEN                   (256)
 
 #define AT_IMSA_USER_AGENT_STR_LEN          (16)
+
+#define IMSA_AT_DIALOG_NOTIFY_MAX_LEN                       (500)
+#define IMSA_AT_RTT_REASON_TEXT_MAX_LEN                     (64)
+
 /*****************************************************************************
   2 枚举定义
 *****************************************************************************/
@@ -152,6 +156,12 @@ enum AT_IMSA_MSG_TYPE_ENUM
 
     ID_AT_IMSA_USER_AGENT_CFG_SET_REQ      = 0x0023,
 
+    ID_AT_IMSA_VICECFG_SET_REQ              = 0x0024,                           /* _H2ASN_MsgChoice AT_IMSA_VICECFG_SET_REQ_STRU */
+    ID_AT_IMSA_VICECFG_QRY_REQ              = 0x0025,                           /* _H2ASN_MsgChoice AT_IMSA_VICECFG_QRY_REQ_STRU */
+    ID_AT_IMSA_RTTCFG_SET_REQ               = 0x0026,                           /* _H2ASN_MsgChoice AT_IMSA_RTTCFG_SET_REQ_STRU */
+    ID_AT_IMSA_RTT_MODIFY_SET_REQ           = 0x0027,                           /* _H2ASN_MsgChoice AT_IMSA_RTT_MODIFY_SET_REQ_STRU */
+    ID_AT_IMSA_TRANSPORT_TYPE_SET_REQ       = 0x0028,                           /* _H2ASN_MsgChoice AT_IMSA_TRANSPORT_TYPE_SET_REQ_STRU*/
+    ID_AT_IMSA_TRANSPORT_TYPE_QRY_REQ       = 0x0029,                           /* _H2ASN_MsgChoice AT_IMSA_TRANSPORT_TYPE_QRY_REQ_STRU*/
     /* IMSA->AT */
     ID_IMSA_AT_CIREG_SET_CNF                = 0x1001,                           /* _H2ASN_MsgChoice IMSA_AT_CIREG_SET_CNF_STRU */
     ID_IMSA_AT_CIREG_QRY_CNF                = 0x1002,                           /* _H2ASN_MsgChoice IMSA_AT_CIREG_QRY_CNF_STRU */
@@ -223,9 +233,19 @@ enum AT_IMSA_MSG_TYPE_ENUM
     ID_IMSA_AT_CALL_ALT_SRV_IND             = 0x102E,                           /* _H2ASN_MsgChoice IMSA_AT_CALL_ALT_SRV_IND_STRU */
     ID_IMSA_AT_DM_RCS_CFG_SET_CNF           = 0x102F,                           /* _H2ASN_MsgChoice IMSA_AT_DM_RCS_CFG_SET_CNF_STRU */
 
-    ID_IMSA_AT_USER_AGENT_CFG_SET_CNF       = 0x1030,
+    ID_IMSA_AT_USER_AGENT_CFG_SET_CNF       = 0x1030,                           /* _H2ASN_MsgChoice IMSA_AT_USER_AGENT_CFG_SET_CNF_STRU */
 
     ID_IMSA_AT_IMPU_TYPE_IND                = 0x1031,
+
+    ID_IMSA_AT_VICECFG_SET_CNF              = 0x1032,                           /* _H2ASN_MsgChoice IMSA_AT_VICECFG_SET_CNF_STRU */
+    ID_IMSA_AT_VICECFG_QRY_CNF              = 0x1033,                           /* _H2ASN_MsgChoice IMSA_AT_VICECFG_QRY_CNF_STRU */
+    ID_IMSA_AT_DIALOG_NOTIFY                = 0x1034,                           /* _H2ASN_MsgChoice IMSA_AT_DIALOG_NOTIFY_STRU */
+    ID_IMSA_AT_RTTCFG_SET_CNF               = 0x1035,                           /* _H2ASN_MsgChoice IMSA_AT_RTTCFG_SET_CNF_STRU */
+    ID_IMSA_AT_RTT_MODIFY_SET_CNF           = 0x1036,                           /* _H2ASN_MsgChoice IMSA_AT_RTT_MODIFY_SET_CNF_STRU */
+    ID_IMSA_AT_RTT_EVENT_IND                = 0x1037,                           /* _H2ASN_MsgChoice IMSA_AT_RTT_EVENT_IND_STRU */
+    ID_IMSA_AT_RTT_ERROR_IND                = 0x1038,                           /* _H2ASN_MsgChoice IMSA_AT_RTT_ERROR_IND_STRU */
+    ID_IMSA_AT_TRANSPORT_TYPE_SET_CNF       = 0x1039,                           /*_H2ASN_MsgChoice IMSA_AT_TRANSPORT_TYPE_SET_CNF_STRU*/
+    ID_IMSA_AT_TRANSPORT_TYPE_QRY_CNF       = 0x103A,                           /*_H2ASN_MsgChoice IMSA_AT_TRANSPORT_TYPE_QRY_CNF_STRU*/
     ID_AT_IMSA_MSG_BUTT
 };
 typedef  VOS_UINT32  AT_IMSA_MSG_TYPE_ENUM_UINT32;
@@ -481,7 +501,8 @@ enum IMSA_AT_PDN_FAIL_CAUSE_ENUM
     IMSA_AT_PDN_FAIL_CAUSE_SM_NW_MSG_NOT_COMPATIBLE                   = (IMSA_AT_PDN_FAIL_CAUSE_SM_NW_SECTION_BEGIN + 101),
     IMSA_AT_PDN_FAIL_CAUSE_SM_NW_PROTOCOL_ERR_UNSPECIFIED             = (IMSA_AT_PDN_FAIL_CAUSE_SM_NW_SECTION_BEGIN + 111),
     IMSA_AT_PDN_FAIL_CAUSE_SM_NW_APN_RESTRICTION_INCOMPATIBLE         = (IMSA_AT_PDN_FAIL_CAUSE_SM_NW_SECTION_BEGIN + 112),
-
+    IMSA_AT_PDN_FAIL_CAUSE_WIFI_NW_CAUSE_BEGIN                        = (IMSA_AT_PDN_FAIL_CAUSE_WIFI_NW_CAUSE_SECTION_BEGIN),
+    IMSA_AT_PDN_FAIL_CAUSE_WIFI_NW_CAUSE_END                          = (IMSA_AT_PDN_FAIL_CAUSE_WIFI_NW_CAUSE_SECTION_BEGIN + 0xFFFF),
     IMSA_AT_PDN_FAIL_CAUSE_BUTT
 };
 typedef VOS_UINT32 IMSA_AT_PDN_FAIL_CAUSE_ENUM_UINT32;
@@ -525,6 +546,46 @@ enum AT_IMSA_IMPU_TYPE_ENUM
     AT_IMSA_IMPU_TYPE_BUTT
 };
 typedef  VOS_UINT32  AT_IMSA_IMPU_TYPE_ENUM_UINT32;
+
+
+enum AT_IMSA_RTT_MODIFY_OPT_ENUM
+{
+    AT_IMSA_RTT_MODIFY_ADD             = 0,
+    AT_IMSA_RTT_MODIFY_CLOSE           = 1,
+    AT_IMSA_RTT_MODIFY_ALLOW           = 2,
+    AT_IMSA_RTT_MODIFY_REJECT          = 3,
+    AT_IMSA_RTT_MODIFY_OPT_BUTT
+};
+typedef VOS_UINT8 AT_IMSA_RTT_MODIFY_OPT_ENUM_UINT8;
+
+
+enum IMSA_AT_RTT_EVENT_ENUM
+{
+    IMSA_AT_RTT_EVENT_ADD               = 0,
+    IMSA_AT_RTT_EVENT_CLOSE             = 1,
+    IMSA_AT_RTT_EVENT_REQ_ADD           = 2,
+    IMSA_AT_RTT_EVENT_PARM_CHG          = 3,
+    IMSA_AT_RTT_EVENT_BUTT
+};
+typedef VOS_UINT8 IMSA_AT_RTT_EVENT_ENUM_UINT8;
+
+
+enum IMSA_AT_RTT_EVT_REASON_ENUM
+{
+    IMSA_AT_RTT_EVT_REASON_LOC_USER_TRIGGER                 = 0,
+    IMSA_AT_RTT_EVT_REASON_RMT_USER_TRIGGER                 = 1,
+    IMSA_AT_RTT_EVT_REASON_BUTT
+};
+typedef VOS_UINT8 IMSA_AT_RTT_EVT_REASON_ENUM_UINT8;
+
+
+enum IMSA_AT_RTT_OPERATION_ENUM
+{
+    IMSA_AT_RTT_OPERATION_ADD                               = 0,
+    IMSA_AT_RTT_OPERATION_CLOSE                             = 1,
+    IMSA_AT_RTT_OPERATION_BUTT
+};
+typedef VOS_UINT8 IMSA_AT_RTT_OPERATION_ENUM_UINT8;
 
 /*****************************************************************************
   3 类型定义
@@ -977,9 +1038,9 @@ typedef struct
     VOS_UINT32                          ulVideoEnd;
     VOS_UINT32                          ulRetryBaseTime;
     VOS_UINT32                          ulRetryMaxTime;
-    VOS_CHAR                            acPhoneContext[IMSA_PHONECONTEXT_MAX_LENGTH + 1];
+    VOS_CHAR                            acPhoneContext[AT_IMSA_PHONECONTEXT_MAX_LENGTH + 1];
     VOS_UINT8                           aucReserved1[3];
-    VOS_CHAR                            acPhoneContextImpu[IMSA_PUBLICEUSERID_MAX_LENGTH + 1];
+    VOS_CHAR                            acPhoneContextImpu[AT_IMSA_PUBLICEUSERID_MAX_LENGTH + 1];
     VOS_UINT8                           aucReserved2[3];
 
 } AT_IMSA_DMDYN_STRU;
@@ -1503,6 +1564,146 @@ typedef struct
 
     AT_IMSA_IMPU_TYPE_ENUM_UINT32           enImpuType;
 } IMSA_AT_IMPU_TYPE_IND_STRU;
+
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpId;
+    VOS_UINT8                           ucReserved;
+    VOS_UINT8                           ucViceCfg;      /*0-1，VICE功能开关，0:功能关闭  */
+    VOS_UINT8                           aucReserved[3];
+} AT_IMSA_VICECFG_SET_REQ_STRU;
+
+
+typedef IMSA_AT_CNF_MSG_STRU IMSA_AT_VICECFG_SET_CNF_STRU;
+
+
+typedef AT_IMSA_MSG_STRU AT_IMSA_VICECFG_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    AT_APPCTRL_STRU                     stAppCtrl;
+    VOS_UINT32                          ulResult;        /* 成功返回VOS_OK, 失败返回 VOS_ERR  */
+    VOS_UINT8                           ucViceCfg;       /* VICE特性开关，0:功能关闭 */
+    VOS_UINT8                           aucReserved[3];
+} IMSA_AT_VICECFG_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpId;
+    VOS_UINT8                           ucReserved;
+    VOS_UINT32                          ulTxtLength;
+    VOS_UINT8                           aucNotify[IMSA_AT_DIALOG_NOTIFY_MAX_LEN];
+} IMSA_AT_DIALOG_NOTIFY_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucOpId;
+    VOS_UINT8                           ucReserved;
+    VOS_UINT8                           ucRttCfg;                               /* RTT功能开关，0:功能关闭 1:功能开启  */
+    VOS_UINT8                           aucReserved[3];
+} AT_IMSA_RTTCFG_SET_REQ_STRU;
+
+
+typedef IMSA_AT_CNF_MSG_STRU IMSA_AT_RTTCFG_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucCallId;        /*1-7，呼叫ID */
+    AT_IMSA_RTT_MODIFY_OPT_ENUM_UINT8   enOperation;     /*RTT特性Modify操作类型 */
+    VOS_UINT8                           aucReserved[2];
+}AT_IMSA_RTT_MODIFY_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    AT_APPCTRL_STRU                     stAppCtrl;
+    AT_IMSA_RTT_MODIFY_STRU             stRttModify;
+} AT_IMSA_RTT_MODIFY_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                              ulMsgId;
+    AT_APPCTRL_STRU                         stAppCtrl;
+    VOS_UINT32                              ulTcpThreshold;
+} AT_IMSA_TRANSPORT_TYPE_SET_REQ_STRU;
+
+
+typedef AT_IMSA_MSG_STRU AT_IMSA_TRANSPORT_TYPE_QRY_REQ_STRU;
+
+
+
+typedef IMSA_AT_CNF_MSG_STRU IMSA_AT_RTT_MODIFY_SET_CNF_STRU;
+
+
+typedef IMSA_AT_CNF_MSG_STRU IMSA_AT_TRANSPORT_TYPE_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                              ulMsgId;
+    AT_APPCTRL_STRU                         stAppCtrl;
+    VOS_UINT32                              ulResult;        /* 成功返回VOS_OK, 失败返回 VOS_ERR  */
+    VOS_UINT32                              ulTcpThreshold;
+} IMSA_AT_TRANSPORT_TYPE_QRY_CNF_STRU;
+
+
+
+typedef struct
+{
+    VOS_UINT8                           ucCallId;        /*呼叫ID指示，1-7  */
+    IMSA_AT_RTT_EVENT_ENUM_UINT8        enEvent;         /*RTT事件类型，0-3 */
+    IMSA_AT_RTT_EVT_REASON_ENUM_UINT8   enEvtReason;     /*RTT事件触发原因,0-1 */
+    VOS_UINT8                           ucReserved;
+} IMSA_AT_RTT_EVENT_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    AT_APPCTRL_STRU                     stAppCtrl;
+    IMSA_AT_RTT_EVENT_STRU              stRttEvent;
+} IMSA_AT_RTT_EVENT_IND_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucCallId;           /* 呼叫ID指示，1-7  */
+    IMSA_AT_RTT_OPERATION_ENUM_UINT8    enOperation;        /* RTT异常操作类型，0-1 */
+    VOS_INT16                           sCauseCode;         /* RTT异常原因，缺省-1，1-127:Q850，400-699:Sip响应码  */
+    VOS_CHAR                            acReasonText[IMSA_AT_RTT_REASON_TEXT_MAX_LEN];  /*字符串类型，RTT异常原因，缺省为"unknown" */
+} IMSA_AT_RTT_ERROR_STRU;
+
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    AT_APPCTRL_STRU                     stAppCtrl;
+    IMSA_AT_RTT_ERROR_STRU              stRttError;
+} IMSA_AT_RTT_ERROR_IND_STRU;
+
 
 /*****************************************************************************
   4 宏定义

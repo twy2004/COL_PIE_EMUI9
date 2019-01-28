@@ -71,7 +71,7 @@ extern "C" {
 #include "mdrv.h"
 #endif
 
-#if (OSA_CPU_CCPU == VOS_OSA_CPU)
+#if ( (OSA_CPU_CCPU == VOS_OSA_CPU) || (OSA_CPU_NRCPU == VOS_OSA_CPU) )
 #include "UsimInterface_ccore.h"
 #endif
 

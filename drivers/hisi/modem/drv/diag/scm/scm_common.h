@@ -62,6 +62,30 @@ extern "C"{
 #endif
 #endif
 
+/*****************************************************************************
+ 结构名    : 开机log功能是否打开
+
+ 结构说明  : cPowerOnlogC和cPowerOnlogA都为1，此功能才生效
+*****************************************************************************/
+typedef struct
+{
+    /* C核的开机log是否打开*/
+    char                            cPowerOnlogC;
+
+    /* AP的开机log是否打开,默认为0。在A核linux内核初始化时根据SOCP的50M是否存在修改此NV的值:存在，此值会被修改为1；否则，保持0不变 */
+    char                            cPowerOnlogA;
+    char                            cSpare1;
+    char                            cSpare2;
+}NV_POWER_ON_LOG_SWITCH_STRU;
+
+/*open log使用共享内存的标志结构体 */
+typedef struct
+{
+    char cPowerOnlogA;
+    char cDsSocpBuffer;
+    char reserved1;
+    char reserved2;
+}SHM_POWER_ON_LOG_FLAG_STRU;
 
 /* 自旋锁初始化 */
 #define scm_SpinLockInit( s )           spin_lock_init((s))
@@ -73,6 +97,8 @@ extern "C"{
 void *scm_UnCacheMemAlloc(u32 ulSize, unsigned long *pulRealAddr);
 void scm_FlushCpuWriteBuf(void);
 unsigned long scm_UncacheMemPhyToVirt(u8 *pucCurPhyAddr, u8 *pucPhyStart, u8 *pucVirtStart, u32 ulBufLen);
+u32 diag_shared_mem_write(u32 eType, u32 len, char *pData);
+u32 diag_shared_mem_read(u32 eType);
 
 
 #ifdef __cplusplus

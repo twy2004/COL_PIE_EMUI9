@@ -1874,11 +1874,43 @@ void scp_stop_charging_para_reset(struct direct_charge_device* di)
 	}
 }
 
+/**********************************************************
+*  Function:       direct_charge_restore_adaptor_voltage
+*  Description:    restore the adaptor voltage to voltage_min_threshold step by step(500mv)
+*  Parameters:   NULL
+*  return value:  void
+**********************************************************/
+void direct_charge_restore_adaptor_voltage(struct direct_charge_device* di)
+{
+	int adp_vol = 0;
+	int voltage_min_threshold = 5500; /*min voltage check threshold  mv*/
+	int voltage_reduce_delt = 500; /*mv*/
+
+	if (di->adaptor_vset > di->max_adaptor_vset)
+	{
+		hwlog_err("[%s]: get_adaptor_voltage exceed max_adaptor_vset = %d!\n", __func__, di->max_adaptor_vset);
+		di->adaptor_vset = di->max_adaptor_vset;
+	}
+
+	while ((di->adaptor_vset - voltage_reduce_delt) >= voltage_min_threshold)
+	{
+		di->adaptor_vset -= voltage_reduce_delt;
+		set_adaptor_voltage();
+		msleep(200); /*reduce 500mv need 200ms at least*/
+		adp_vol = get_adaptor_voltage();
+		hwlog_info("get_adaptor_voltage after reduce voltage_reduce_delt= %d!\n", adp_vol);
+	}
+
+	di->adaptor_vset = voltage_min_threshold;
+	set_adaptor_voltage();
+}
+
 void scp_stop_charging(void)
 {
 	int ret;
 	int vbus_vol = 0;
 	int vbat;
+	int voltage_max_threshold = 7500; /*max voltage check threshold  mv*/
 	struct direct_charge_device *lvc_di = NULL;
 	struct direct_charge_device *sc_di = NULL;
 	struct direct_charge_device *di = NULL;
@@ -1914,6 +1946,15 @@ void scp_stop_charging(void)
 	{
 		hwlog_err("[%s]: ls enable fail!\n", __func__);
 	}
+
+	di->adaptor_vset = get_adaptor_voltage();
+	hwlog_info("[%s] get_adaptor_voltage = %d!\n", __func__, di->adaptor_vset);
+
+	if (SCP_STAGE_CHARGE_DONE == di->scp_stage && di->adaptor_vset > voltage_max_threshold)
+	{
+		direct_charge_restore_adaptor_voltage(di);
+	}
+
 	pd_dpm_notify_direct_charge_status(false);
 	ret = di->scp_ops->scp_exit(di);
 	if (ret)

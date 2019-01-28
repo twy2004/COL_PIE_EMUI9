@@ -118,7 +118,7 @@ typedef void (*ACM_MODEM_REL_IND_CB_T)(unsigned int bEnable);
 typedef void (*USB_UDI_ENABLE_CB_T)(void);
 typedef void (*USB_UDI_DISABLE_CB_T)(void);
 
-
+#ifdef CONFIG_USB
 /*****************************************************************************
  *  函 数 名  : mdrv_usb_reg_enablecb
  *  功能描述  : 协议栈注册USB使能通知回调函数
@@ -142,7 +142,16 @@ unsigned int mdrv_usb_reg_enablecb(USB_UDI_ENABLE_CB_T pFunc);
  *
  ******************************************************************************/
 unsigned int mdrv_usb_reg_disablecb(USB_UDI_DISABLE_CB_T pFunc);
-
+#else
+static inline unsigned int mdrv_usb_reg_enablecb(USB_UDI_ENABLE_CB_T pFunc)
+{
+	return 0;
+}
+static inline unsigned int mdrv_usb_reg_disablecb(USB_UDI_DISABLE_CB_T pFunc)
+{
+	return 0;
+}
+#endif
 
 #ifdef _cplusplus
 }

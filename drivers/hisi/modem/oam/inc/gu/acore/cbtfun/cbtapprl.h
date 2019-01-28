@@ -131,11 +131,31 @@ extern VOS_UINT32                       g_ulCbtAcpuDbgFlag;
 #define APP_OM_NV_BACKUP_REQ                      0x8025
 #define OM_APP_NV_BACKUP_CNF                      0x8026
 
+/* OM<->APP :*/
+#define APP_OM_C1C2_NV_WRITE_REQ                  0x8030
+#define OM_APP_C1C2_NV_WRITE_CNF                  0x8031
 
 /*****************************************************************************
   6 STRUCT定义
 *****************************************************************************/
+/*****************************************************************************
+结构名    : CBT_SET_C1C2_VALUE_REQ_STRU
+结构说明  :
+*****************************************************************************/
+typedef struct
+{
+    CBT_MSG_HEAD_STRU           stMsgHead;
+    VOS_UINT16                  usMsgId;            /* 消息ID */
+    CBT_COMPONENT_MODE_STRU     stCompMode;
+    VOS_UINT32                  ulMsgLength;
+    VOS_UINT16                  usC1Value;          /*C1值*/
+    VOS_UINT16                  usC2Value;          /*C2值*/
+}CBT_SET_C1C2_VALUE_REQ_STRU;
 
+/*****************************************************************************
+结构名    : CBT_ESTABLISH_IND_PARA_STRU
+结构说明  :
+*****************************************************************************/
 typedef struct
 {
     VOS_UINT32     ulResult;                            /*返回执行结果*/
@@ -143,7 +163,45 @@ typedef struct
     VOS_UINT16     usRsv;
     MSW_VER_INFO_S stswverinfo;
     VOS_UINT8      ausReserve[CBT_EST_IND_RSV_LEN];
+}CBT_ESTABLISH_IND_PARA_STRU;
+
+/*****************************************************************************
+结构名    : CBT_ESTABLISH_IND_STRU
+结构说明  :
+*****************************************************************************/
+typedef struct
+{
+    CBT_MSG_HEAD_STRU               stMsgHeader;
+    VOS_UINT16                      usMsgId;      /* 消息ID */
+    CBT_COMPONENT_MODE_STRU         stCompMode;
+    VOS_UINT32                      ulMsgLength;
+    CBT_ESTABLISH_IND_PARA_STRU     stMsgData;
 }CBT_ESTABLISH_IND_STRU;
+
+
+/*****************************************************************************
+结构名    : CBT_ESTABLISH_REQ_STRU
+结构说明  :
+*****************************************************************************/
+typedef struct
+{
+    CBT_MSG_HEAD_STRU               stMsgHeader;
+    VOS_UINT16                      usMsgId;      /* 消息ID */
+    CBT_COMPONENT_MODE_STRU         stCompMode;
+    VOS_UINT32                      ulMsgLength;
+    VOS_UINT32                      ulLinkType;     /* 0表示HDLC,1表示usb */
+    VOS_UINT32                      aulRsv[4];
+}CBT_ESTABLISH_REQ_STRU;
+
+/*****************************************************************************
+结构名    : CBT_ESTABLISH_REQ_ATOC_STRU
+结构说明  : A核发给C核的建链消息
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    CBT_ESTABLISH_REQ_STRU          stData;
+}CBT_ESTABLISH_REQ_ATOC_STRU;
 
 typedef struct
 {

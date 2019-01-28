@@ -223,10 +223,7 @@ VOS_UINT32 PPP_MemCutHeadData
          (VOS_NULL_PTR == *ppMemSrc) ||
          (VOS_NULL_PTR == pucDest) )
     {
-        PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, LOG_LEVEL_WARNING,
-                     "PPP_MemCutHeadData input parameters error, \
-                     src addr'addr: 0x%p, dest addr: 0x%p\r\n",
-                    (VOS_UINT_PTR)ppMemSrc, (VOS_UINT_PTR)pucDest);
+        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, LOG_LEVEL_WARNING, "Para Err");
 
         return PS_FAIL;
     }

@@ -934,6 +934,10 @@ int lcd_kit_panel_power_off(void* hld)
 		}
 		pevent++;
 	}
+	if(common_info->set_vss.support) {
+		common_info->set_vss.power_off = 1;
+		common_info->set_vss.new_backlight = 0;
+	}
 	return ret;
 }
 
@@ -1617,7 +1621,14 @@ static int lcd_kit_set_mipi_backlight(void* hld, u32 level)
 {
 	int ret = LCD_KIT_OK;
 	struct lcd_kit_adapt_ops* adapt_ops = NULL;
-	
+	struct lcd_kit_ops *lcd_ops = NULL;
+
+	lcd_ops = lcd_kit_get_ops();
+	if (!lcd_ops) {
+		LCD_KIT_ERR("lcd_ops is null\n");
+		return 0;
+	}
+
 	adapt_ops = lcd_kit_get_adapt_ops();
 	if (!adapt_ops) {
 		LCD_KIT_ERR("can not register adapt_ops!\n");
@@ -1643,6 +1654,12 @@ static int lcd_kit_set_mipi_backlight(void* hld, u32 level)
 		default:
 			LCD_KIT_ERR("not support order\n");
 			break;
+	}
+	if(common_info->set_vss.support) {
+		common_info->set_vss.new_backlight = level;
+		if(lcd_ops->set_vss_by_thermal) {
+			lcd_ops->set_vss_by_thermal();
+		}
 	}
 	ret = adapt_ops->mipi_tx(hld, &common_info->backlight.bl_cmd);
 	return ret;
@@ -1903,6 +1920,16 @@ static void lcd_kit_panel_parse_util(struct device_node* np)
 	if (common_info->check_thread.enable) {
 		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-bl-support", &common_info->check_thread.check_bl_support, 0);
 	}
+	/*vss*/
+	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,vss-support", &common_info->set_vss.support, 0);
+	if (common_info->set_vss.support) {
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,vss-cmds-fir", "lcd-kit,vss-cmds-fir-state",
+								&common_info->set_vss.cmds_fir);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,vss-cmds-sec", "lcd-kit,vss-cmds-sec-state",
+								&common_info->set_vss.cmds_sec);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,vss-cmds-thi", "lcd-kit,vss-cmds-thi-state",
+								&common_info->set_vss.cmds_thi);
+	}
 	return ;
 }
 
@@ -1976,17 +2003,22 @@ static void lcd_kit_check_wq_handler(struct work_struct *work)
 {
 	int ret = LCD_KIT_OK;
 	struct lcd_kit_bl_ops* bl_ops = NULL;
+	struct lcd_kit_ops *lcd_ops = NULL;
 
+	lcd_ops = lcd_kit_get_ops();
 	bl_ops = lcd_kit_get_bl_ops();
-	if (!bl_ops) {
-		LCD_KIT_ERR("bl_ops is null!\n");
-		return;
-	}
-
 	if (common_info->check_thread.enable) {
+		if(common_info->set_vss.support){
+			if(lcd_ops && lcd_ops->set_vss_by_thermal) {
+				ret =lcd_ops->set_vss_by_thermal();
+				if (ret) {
+					LCD_KIT_ERR("Setting vss by thermal and backlight failed!\n");
+				}
+			}
+		}
 		if (common_info->check_thread.check_bl_support) {
 			/*check backlight*/
-			if (bl_ops->check_backlight) {
+			if (bl_ops && bl_ops->check_backlight) {
 				ret = bl_ops->check_backlight();
 				if (ret) {
 					LCD_KIT_ERR("backlight check abnomal!\n");

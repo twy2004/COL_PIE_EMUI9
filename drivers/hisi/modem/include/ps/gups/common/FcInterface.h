@@ -56,7 +56,9 @@
 *****************************************************************************/
 #include  "vos.h"
 #include  "PsTypeDef.h"
-#include "nv_stru_gucttf.h"
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#include "acore_nv_stru_gucttf.h"
+#endif
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -94,9 +96,9 @@ enum FC_POLICY_ID_ENUM
     FC_POLICY_ID_GPRS,
     FC_POLICY_ID_TMP,
     FC_POLICY_ID_CPU_C,
-#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)    
+#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
     FC_POLICY_ID_CDMA,
-#endif    
+#endif
     FC_POLICY_ID_BUTT
 };
 typedef VOS_UINT8 FC_POLICY_ID_ENUM_UINT8;
@@ -256,9 +258,6 @@ extern VOS_UINT32  FC_ChangePoint
     MODEM_ID_ENUM_UINT16                enModemId
 );
 
-typedef VOS_UINT32 (*FC_ACORE_DRV_ASSEMBLE_PARA_FUNC)(FC_DRV_ASSEM_PARA_STRU *pstFcDrvAssemPara);
-
-
 #if(FEATURE_ON == FEATURE_ACPU_FC_POINT_REG)
 extern VOS_VOID FC_ChannelMapCreate (
     FC_ID_ENUM_UINT8                   enFcId,
@@ -271,11 +270,9 @@ extern VOS_VOID FC_ChannelMapDelete (
     MODEM_ID_ENUM_UINT16                enModemId
 );
 
-extern VOS_UINT32 FC_ACORE_RegDrvAssemFunc
-(
-    FC_ACORE_DRV_ASSEMBLE_PARA_FUNC pFcDrvSetAssemParaFuncUe,
-    FC_ACORE_DRV_ASSEMBLE_PARA_FUNC pFcDrvSetAssemParaFuncPc
-);
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+typedef VOS_UINT32 (*FC_ACORE_DRV_ASSEMBLE_PARA_FUNC)(FC_DRV_ASSEM_PARA_STRU *pstFcDrvAssemPara);
+#endif
 #endif
 
 #pragma pack()

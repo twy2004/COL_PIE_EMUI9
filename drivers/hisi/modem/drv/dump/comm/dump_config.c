@@ -49,7 +49,7 @@
 #include <linux/of.h>
 #include <linux/delay.h>
 #include <asm/string.h>
-#include "securec.h"
+#include "product_config.h"
 #include "osl_types.h"
 #include "bsp_version.h"
 #include "bsp_sram.h"
@@ -57,21 +57,113 @@
 #include "bsp_coresight.h"
 #include "mdrv_om.h"
 #include "nv_stru_drv.h"
-#include "bsp_nvim.h" 
-#include "bsp_dump.h" 
+#include "bsp_nvim.h"
+#include "bsp_dump.h"
 #include "dump_config.h"
-#include "dump_print.h"
-#include "dump_modem_rdr.h"
 #include "bsp_slice.h"
- 
+
+#undef	THIS_MODU
+#define THIS_MODU mod_dump
+
+u32                             g_init_phase = DUMP_INIT_FLAG_CONFIG;
 DUMP_FILE_CFG_STRU              g_dump_file_cfg;
 NV_DUMP_STRU                    g_dump_cfg;
 dump_product_type_t             g_product_type = DUMP_PRODUCT_BUTT;
 enum EDITION_KIND               g_edition = EDITION_MAX;
-DUMP_CP_RESET_CTRL              g_dump_cp_reset_timestamp;
 dump_access_mdmddr_type_t       g_dump_access_ddr_type = DUMP_ACCESS_MDD_DDR_SEC_BUTT;
+/*****************************************************************************
+* 函 数 名  : dump_memcpy
+* 功能描述  : 拷贝寄存器函数
+*
+* 输入参数  :
+* 输出参数  :
 
- 
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_memcpy(u32 * dst, const u32 * src, u32 len)
+{
+    while(len-- > 0)
+    {
+        *dst++ = *src++;
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_get_edition_type
+* 功能描述  : 获取当前的版本类型
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+dump_access_mdmddr_type_t dump_get_access_mdmddr_type(void)
+{
+    struct device_node *node = NULL;
+
+    if(g_dump_access_ddr_type != DUMP_ACCESS_MDD_DDR_SEC_BUTT)
+    {
+        return g_dump_access_ddr_type;
+    }
+
+    node = of_find_compatible_node(NULL, NULL, "hisilicon,ap_sec_access_mdmddr");
+    if (!node)
+    {
+        dump_error("fail to read ap_sec_access_mdmddr mntn type from dts!\n");
+        return DUMP_ACCESS_MDD_DDR_SEC_BUTT;
+    }
+
+    if(of_property_read_u32(node, "ap_sec_access_mdmddr", &g_dump_access_ddr_type))
+    {
+        dump_error("fail to read read ap_sec_access_mdmddr !\n");
+        return DUMP_ACCESS_MDD_DDR_SEC_BUTT;
+    }
+    return g_dump_access_ddr_type;
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_get_init_phase
+* 功能描述  : 获取当前的初始化阶段
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+u32 dump_get_init_phase(void)
+{
+    return g_init_phase;
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_set_init_phase
+* 功能描述  : 设置当前的初始化阶段
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_set_init_phase(u32 phase)
+{
+    g_init_phase = phase;
+}
 
 /*****************************************************************************
 * 函 数 名  : dump_product_type_init
@@ -94,13 +186,13 @@ void dump_product_type_init(void)
     node = of_find_compatible_node(NULL, NULL, "hisilicon,smntn_type");
     if (!node)
     {
-        dump_fetal("dts node mntn type not found!\n");
+        dump_error("fail to read dts node mntn type !\n");
         return;
     }
 
     if(of_property_read_string(node, "product_type", &product_type))
     {
-        dump_fetal("read product_type failed!\n");
+        dump_error("fail to read product_type !\n");
         return;
     }
 
@@ -170,8 +262,7 @@ int dump_file_cfg_init(void)
         g_dump_file_cfg.file_list.file_bits.ap_etb   = 0x1;
         g_dump_file_cfg.file_list.file_bits.reset_log= 0x1;
 
-        dump_error("read nv 0x%x fail, use default config\n", NV_ID_DRV_DUMP_FILE);
-
+        dump_error("fail to read dump nv,nv id = 0x%x\n", NV_ID_DRV_DUMP_FILE);
         return BSP_ERROR;
     }
     return BSP_OK;
@@ -233,7 +324,7 @@ s32 dump_feature_init(void)
         g_dump_cfg.dump_cfg.Bits.reset_log       = 0x1;
         g_dump_cfg.dump_cfg.Bits.fetal_err       = 0x1;
         g_dump_cfg.dump_cfg.Bits.dumpTextClip    = 0x0;
-        dump_error("read NV failed, use the default value!.ret = %d nv id = 0x%x\n", ret, NVID_DUMP);
+        dump_error("fail to read dump nv,nv id = 0x%x\n", NVID_DUMP);
         return ret;
     }
 
@@ -259,80 +350,6 @@ NV_DUMP_STRU* dump_get_feature_cfg(void)
 }
 
 /*****************************************************************************
-* 函 数 名  : dump_set_cp_reset_feature
-* 功能描述  : 打开或者关闭DUMP的复位流程
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_set_cp_reset_feature(u32 onoff)
-{
-    g_dump_cfg.dump_cfg.Bits.sysErrReboot = onoff;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_set_cp_reset_freq_feature
-* 功能描述  : 打开或者关闭频繁单独复位功能
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_set_cp_reset_freq_feature(u32 onoff)
-{
-    g_dump_cfg.dump_cfg.Bits.fetal_err= onoff;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_get_edition_type
-* 功能描述  : 获取当前的版本类型
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-dump_access_mdmddr_type_t dump_get_access_mdmddr_type(void)
-{
-    struct device_node *node = NULL;
-
-    if(g_dump_access_ddr_type != DUMP_ACCESS_MDD_DDR_SEC_BUTT)
-    {
-        return g_dump_access_ddr_type;
-    }
-    
-    node = of_find_compatible_node(NULL, NULL, "hisilicon,ap_sec_access_mdmddr");
-    if (!node)
-    {
-        dump_fetal("dts ap_sec_access_mdmddr mntn type not found!\n");
-        return DUMP_ACCESS_MDD_DDR_SEC_BUTT;
-    }
-
-    if(of_property_read_u32(node, "ap_sec_access_mdmddr", &g_dump_access_ddr_type))
-    {
-        dump_fetal("read ap_sec_access_mdmddr failed!\n");
-        return DUMP_ACCESS_MDD_DDR_SEC_BUTT;
-    }
-    return g_dump_access_ddr_type;
-}
-
-
-/*****************************************************************************
 * 函 数 名  : dump_get_edition_type
 * 功能描述  : 获取当前的版本类型
 *
@@ -355,24 +372,6 @@ enum EDITION_KIND dump_get_edition_type(void)
 
     return g_edition;
 }
-/*****************************************************************************
-* 函 数 名  : dump_set_edition_type
-* 功能描述  : 设定当前版本，只用于版本调试，不能用于其他用途
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_set_edition_type(enum EDITION_KIND editon_type)
-{
-    g_edition = editon_type;
-
-}
 
 /*****************************************************************************
 * 函 数 名  : dump_config_init
@@ -390,71 +389,21 @@ void dump_set_edition_type(enum EDITION_KIND editon_type)
 void dump_config_init(void)
 {
     s32 ret ;
-    
+
     dump_product_type_init();
 
     ret = dump_feature_init();
     if(BSP_OK != ret)
     {
-        dump_error("dump_config_init fail\n");
+        dump_error("fail to init dump feature\n");
     }
 
     ret = dump_file_cfg_init();
     if(BSP_OK != ret)
     {
-        dump_error("bsp_om_debug_init fail\n");
+        dump_error("fail to init dump config\n");
     }
-    /*coverity[secure_coding]*/
-    memset_s(&g_dump_cp_reset_timestamp,sizeof(g_dump_cp_reset_timestamp),0,sizeof(g_dump_cp_reset_timestamp));
-
-}
-/*****************************************************************************
-* 函 数 名  : dump_check_reset_timestamp
-* 功能描述  : modem 频繁单独复位的特殊处理
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-
-s32 dump_check_reset_timestamp(u32 modid)
-{
-    u32 diff = 0;
-    NV_DUMP_STRU* cfg = NULL;
-    cfg = dump_get_feature_cfg();
-    if( cfg!= NULL && cfg->dump_cfg.Bits.fetal_err == 0)
-    {
-        dump_fetal("close modem  frequently sigle reset\n");
-        return BSP_OK;
-    }
-
-    if(g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT == 0 
-        && g_dump_cp_reset_timestamp.count !=0)
-    {
-        diff = (g_dump_cp_reset_timestamp.reset_time[DUMP_CP_REST_TIME_COUNT -1] - g_dump_cp_reset_timestamp.reset_time[0]);
-        if( diff < DUMP_CP_REST_TIME_COUNT*DUMP_CP_REST_TIME_SLICE)
-        {
-           dump_fetal("so many sing modem reset reset whole system\n ");
-           return BSP_ERROR;
-        }
-        /*coverity[secure_coding]*/
-        memset_s(&g_dump_cp_reset_timestamp,sizeof(g_dump_cp_reset_timestamp),0,sizeof(g_dump_cp_reset_timestamp));
-    }
-    if(modid != RDR_MODEM_CP_RESET_SIM_SWITCH_MOD_ID &&  modid != RDR_MODEM_CP_RESET_USER_RESET_MOD_ID)
-    {
-        g_dump_cp_reset_timestamp.reset_time[g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT] = bsp_get_slice_value();        
-        dump_fetal("recod reset timestamp[%d] 0x%x",g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT,g_dump_cp_reset_timestamp.reset_time[g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT]);
-        g_dump_cp_reset_timestamp.count++;
-    }
-    return BSP_OK;
 
 }
 
-EXPORT_SYMBOL_GPL(dump_set_cp_reset_feature);
-EXPORT_SYMBOL_GPL(dump_set_cp_reset_freq_feature);
 

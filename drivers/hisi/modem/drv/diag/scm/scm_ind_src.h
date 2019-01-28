@@ -124,15 +124,16 @@ typedef struct
     u8                              *pucSrcPHY;
     u8                              *pucRDBuf;      /* 编码源通道RD数据空间内存指针 */
     u8                              *pucRDPHY;
+    unsigned long                   pRptrImgPhyAddr; /* 编码源通道读指针镜像物理地址 */
+    unsigned long                   pRptrImgVirtAddr;/* 编码源通道读指针镜像虚拟地址 */
 }SCM_CODER_SRC_CFG_STRU;
 
 u32 scm_init_ind_src_buff(void);
 u32 scm_create_ind_src_buff(u8 **pBufVir, u8 **pBufPhy, u32 ulLen);
-u32 scm_get_ind_src_buff(u32 ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-void scm_ind_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf);
 u32 scm_send_ind_src_data(u8 *pucSendDataAddr, u32 ulSendLen);
 u32 scm_ind_src_chan_init(void);
 u32 scm_ind_src_chan_cfg(SCM_CODER_SRC_CFG_STRU *pstCfg);
+unsigned long scm_ind_src_phy_to_virt(u8 * phyAddr);
 
 #ifdef __cplusplus
 #if __cplusplus

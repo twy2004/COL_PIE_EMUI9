@@ -54,10 +54,14 @@
 #include <linux/platform_device.h>
 
 #include <osl_module.h>
-#include <bsp_trace.h>
 #include <bsp_hardtimer.h>
 #include <bsp_slice.h>
+#include <bsp_version.h>
 #include "hardtimer_core.h"
+#include "securec.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_hardtimer
 static LIST_HEAD(timer_drivers_head);
 #define DRIVER_NAME "balong_timer_device"
 
@@ -172,7 +176,7 @@ s32 bsp_hardtimer_config_init(struct bsp_hardtimer_control  *timer_ctrl)
 		return BSP_ERROR;
 	}
 	spin_lock_irqsave(&core_timer_control.timer[timer_ctrl->timerId].lock,flags);
-	memcpy((void*)&core_timer_control.timer[timer_ctrl->timerId].timer_ctrl,(const void*)timer_ctrl,(size_t)sizeof(struct bsp_hardtimer_control));
+	memcpy_s((void*)&core_timer_control.timer[timer_ctrl->timerId].timer_ctrl,(size_t)sizeof(struct bsp_hardtimer_control),(const void*)timer_ctrl,(size_t)sizeof(struct bsp_hardtimer_control));
 	ret = core_timer_control.timer[timer_ctrl->timerId].driver->ops->timer_init(&core_timer_control.timer[timer_ctrl->timerId]);
 	spin_unlock_irqrestore(&core_timer_control.timer[timer_ctrl->timerId].lock,flags);
 	if(timer_ctrl->func)
@@ -349,6 +353,29 @@ static struct timer_driver *get_timer_driver(struct timer_device *device)
 
     return NULL;
 }
+/*ESL+EMU, osa timer use emu timer*/
+static inline int hybird_timer_init(void)
+{
+    struct device_node *node = NULL;
+    if(!bsp_get_version_info() && bsp_get_version_info()->cses_type == TYPE_ESL_EMU)/*ESL+EMU osa timer & om tcxo timer*/
+	{
+        node = of_find_compatible_node(NULL, NULL, "hisilicon,esl_emu_osatimer");
+        if(node)
+        {
+            core_timer_control.timer[TIMER_ACPU_OSA_ID].base_addr = of_iomap(node, 0);
+            if(!core_timer_control.timer[TIMER_ACPU_OSA_ID].base_addr)
+                return BSP_ERROR;
+        }
+        node = of_find_compatible_node(NULL, NULL, "hisilicon,esl_emu_omtcxotimer");
+        if(node)
+        {
+            core_timer_control.timer[TIMER_ACPU_OM_TCXO_ID].base_addr = of_iomap(node, 0);
+            if(!core_timer_control.timer[TIMER_ACPU_OM_TCXO_ID].base_addr)
+                return BSP_ERROR;
+        }
+	}
+	return BSP_OK;
+}
 
 static int timer_device_init(void){
 	struct device_node *node = NULL, *child_node=NULL;
@@ -401,7 +428,8 @@ static int timer_device_init(void){
 			}
 			spin_lock_init(&core_timer_control.timer[index].lock);
 		}
-		return BSP_OK;
+
+		return hybird_timer_init();
 	}
 	else
 		return BSP_ERROR;
@@ -409,7 +437,7 @@ static int timer_device_init(void){
 
 static int bsp_timer_probe(struct platform_device *dev){
 	s32 ret = 0;
-	(void)memset((void*)&core_timer_control,0x0,sizeof(struct timercore_ctrl_s));
+	(void)memset_s((void*)&core_timer_control,sizeof(struct timercore_ctrl_s),0x0,sizeof(struct timercore_ctrl_s));
 	spin_lock_init(&core_timer_control.list_lock);
 	arm_timer_drviver_init();
 	ret = timer_device_init();
@@ -476,7 +504,7 @@ static struct platform_device balong_timer_device =
     .id       = -1,
     .num_resources = 0,
 };
-static int __init hi_timer_init(void)
+int __init hi_timer_init(void)
 {
 	s32 ret = 0;
 	ret = platform_device_register(&balong_timer_device);
@@ -494,7 +522,6 @@ static int __init hi_timer_init(void)
 	}
 	return ret;
 }
-arch_initcall(hi_timer_init);
 
 
 void bsp_timer_show(void){

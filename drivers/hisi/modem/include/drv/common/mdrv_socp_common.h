@@ -358,6 +358,8 @@ typedef struct tagSOCP_CODER_SRC_CHAN_S
     SOCP_ENC_DEBUG_EN_ENUM_UIN32     eDebugEn;           /* 调试位使能*/
     SOCP_ENCSRC_CHNMODE_ENUM_UIN32   eMode;              /* 通道数据模式*/
     SOCP_CHAN_PRIORITY_ENUM_UIN32    ePriority;          /* 通道优先级*/
+    unsigned long                    eRptrImgPhyAddr;
+    unsigned long                    eRptrImgVirtAddr;
     SOCP_SRC_SETBUF_STRU            sCoderSetSrcBuf;
 }SOCP_CODER_SRC_CHAN_S;
 
@@ -479,6 +481,12 @@ typedef  enum
    SOCP_IND_MODE_CYCLE
 }SOCP_IND_MODE_ENUM;
 
+typedef  enum
+{
+   DEFLATE_IND_NO_COMPRESS,
+   DEFLATE_IND_COMPRESS
+   
+}DEFLATE_IND_COMPRESSS_ENUM;
 
 /*数据压缩状态枚举*/
 enum DEFLATE_COMPRESS_STATE_ENUM
@@ -864,6 +872,8 @@ unsigned int  DRV_SOCP_INIT_LTE_DSP(unsigned int ulChanId,unsigned int ulPhyAddr
 
 unsigned int  DRV_SOCP_INIT_LTE_BBP_LOG(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize);
 
+unsigned int DRV_SOCP_INIT_RFIC_DS_CHAN(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize, unsigned int RptrImageAddr);
+
 unsigned int  DRV_SOCP_INIT_LTE_BBP_DS(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize);
 
 void DRV_SOCP_ENABLE_LTE_BBP_DSP(unsigned int ulChanId, unsigned char state);
@@ -913,7 +923,14 @@ int DRV_SOCP_VOTE(SOCP_VOTE_ID_ENUM_U32 id, SOCP_VOTE_TYPE_ENUM_U32 type);
 * 返 回 值  : int 0 --- 投票成功，0xFFFFFFFF --- 投票失败
 *****************************************************************************/
 int DRV_SOCP_VOTE_TO_MCORE(SOCP_VOTE_TYPE_ENUM_U32 type);
-
+/*****************************************************************************
+* 函 数 名      : mdrv_clear_socp_buff
+* 功能描述  : 清除SOCP编码源buffer
+* 输入参数  : u32SrcChanID:通道ID
+* 输出参数  :
+* 返 回 值     :
+*****************************************************************************/
+int mdrv_clear_socp_buff(unsigned int u32SrcChanID);
 
 
 #ifdef __cplusplus

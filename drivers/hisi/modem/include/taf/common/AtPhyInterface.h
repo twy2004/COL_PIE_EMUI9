@@ -75,6 +75,8 @@ extern "C" {
 #define WDSP_CTRL_TX_ONE_TONE            8       /* 表示打开同相单音信号 */
 #define WDSP_CTRL_TX_TWO_TONE            9       /* 表示打开反相单音信号 */
 
+#define WDSP_CTRL_TX_THREE_TONE          3       /* 表示打开调制 */
+
 #define GDSP_CTRL_TX_OFF                0xAAAA   /*表示DSP强制上行RF关闭*/
 #define GDSP_CTRL_TX_ON                 0x5555   /*表示DSP强制上行RF打开*/
 
@@ -153,7 +155,8 @@ extern "C" {
 #define W_RF_MASK_RX_LNAMODE            AT_BIT9
 #define W_RF_MASK_RX_PGC                AT_BIT10
 #define W_RF_MASK_TX_POWDET             AT_BIT11
-
+#define W_RF_MASK_TX_CLT                AT_BIT12
+#define W_RF_MASK_TX_DCXOTEMPCOMP       AT_BIT14
 /* G_RF_RX_CFG_REQ_STRU结构中uhwMask的比特位定义 */
 #define G_RF_MASK_RX_ARFCN              AT_BIT0            /* 下发频点 */
 #define G_RF_MASK_RX_MODE               AT_BIT1            /* 下发接收模式 */
@@ -299,6 +302,9 @@ typedef VOS_UINT16 AT_HPA_CFG_RLST_ENUM_UINT16;
 
 #define ID_AT_HPA_PDM_CTRL_REQ          0x2494
 #define ID_HPA_AT_PDM_CTRL_CNF          0x4294
+
+#define ID_WPHY_AT_TX_CLT_IND           0x62e5
+
 
         /* CDMA慢速校准原语ID*/
 #define ID_AT_CHPA_RF_CFG_REQ            0x6300
@@ -477,6 +483,25 @@ typedef struct
     VOS_INT16                           sRSSI;            /* RSSI测量值 [-2048,+2047]，单位0.125dBm*/
     VOS_INT16                           sAGCGain;         /* 取得测量值时的增益状态，-1表示出错 */
 }HPA_AT_RF_RX_RSSI_IND_STRU;
+
+
+typedef struct  
+{
+    HPA_AT_HEADER_STRU                  stMsgHeader;                            /* 消息头 */
+    VOS_INT16                           shwGammaReal;                           /* 反射系数实部 */
+    VOS_INT16                           shwGammaImag;                           /* 反射系数虚部 */
+    VOS_UINT16                          ushwGammaAmpUc0;                        /* 驻波检测场景0反射系数幅度 */
+    VOS_UINT16                          ushwGammaAmpUc1;                        /* 驻波检测场景1反射系数幅度 */
+    VOS_UINT16                          ushwGammaAmpUc2;                        /* 驻波检测场景2反射系数幅度 */
+    VOS_UINT16                          ushwGammaAntCoarseTune;                 /* 粗调格点位置 */
+    VOS_UINT32                          ulwFomcoarseTune;                       /* 粗调FOM值 */
+    VOS_UINT16                          ushwCltAlgState;                        /* 闭环算法收敛状态 */
+    VOS_UINT16                          ushwCltDetectCount;                     /* 闭环收敛总步数 */
+    VOS_UINT16                          ushwDac0;                               /* DAC0 */
+    VOS_UINT16                          ushwDac1;                               /* DAC1 */
+    VOS_UINT16                          ushwDac2;                               /* DAC2 */
+    VOS_UINT16                          ushwDac3;                               /* DAC3 */
+} WPHY_AT_TX_CLT_IND_STRU;
 
 
 typedef struct

@@ -95,7 +95,7 @@ struct dsp_sect_desc_stru
     u32                              ulTargetAddr;           /* 加载的目标地址 */
     u32                              ulSectSize;             /* 段的大小 */
 };
-
+/*lint -e43*/
 /* TLBBE16/CBBE16镜像头 */
 struct dsp_bin_header_stru
 {
@@ -104,7 +104,7 @@ struct dsp_bin_header_stru
     u32                         ulSectNum;              /* 段个数 */
     struct dsp_sect_desc_stru   astSect[0];             /* 段信息 */
 };
-
+/*lint +e43*/
 #ifndef CONFIG_CBBE
 
 #ifdef __KERNEL__
@@ -316,16 +316,6 @@ static inline void bsp_bbe_refclk_disable_ex(enum bsp_dsp_type_e etype)
     return;
 }
 
-static inline void bsp_bbe_peri_refclk_enable_ex(enum bsp_dsp_type_e etype)
-{
-    return;
-}
-
-static inline void bsp_bbe_peri_refclk_disable_ex(enum bsp_dsp_type_e etype)
-{
-    return;
-}
-
 static inline void bsp_dsp_om_log_ex(enum bsp_dsp_type_e etype)
 {
     return;
@@ -381,6 +371,10 @@ static inline int bsp_dsp_pll_disable_ex(enum bsp_dsp_type_e etype)
     return 0;
 }
 
+static inline void bsp_dsp_dfs_en_auto(enum bsp_dsp_type_e etype)
+{
+    return;
+}
 #endif
 
 #else
@@ -428,8 +422,6 @@ int bsp_dsp_get_addr_info(enum bsp_dsp_type_e etype, BSP_DSP_ADDR_INFO_STRU *pAd
 void bsp_dsp_om_log_ex(enum bsp_dsp_type_e etype);
 void bsp_bbe_refclk_enable_ex(enum bsp_dsp_type_e etype);
 void bsp_bbe_refclk_disable_ex(enum bsp_dsp_type_e etype);
-void bsp_bbe_peri_refclk_enable_ex(enum bsp_dsp_type_e etype);
-void bsp_bbe_peri_refclk_disable_ex(enum bsp_dsp_type_e etype);
 void dsp_load_help(enum bsp_dsp_type_e etype);
 int bsp_dsp_load_init(struct device_node * dsp_device);
 int bsp_dsp_pwrctrl_init(struct device_node * dsp_device);
@@ -443,6 +435,7 @@ void bsp_bbe_chose_pll_ex(enum bsp_dsp_type_e etype, u32 flag);
 int bsp_dsp_pll_enable_ex(enum bsp_dsp_type_e etype);
 int bsp_dsp_pll_disable_ex(enum bsp_dsp_type_e etype);
 int bsp_is_dsp_pll_enable(enum bsp_dsp_type_e etype);
+void bsp_dsp_dfs_en_auto(enum bsp_dsp_type_e etype);
 #if (FEATURE_TCM_RETENTION == FEATURE_ON)
 int bsp_bbe_l2mem_restore(enum bsp_dsp_type_e etype, enum bsp_dsp_wait_edma_type edma_type);
 int bsp_bbe_l2mem_store(enum bsp_dsp_type_e etype, enum bsp_dsp_wait_edma_type edma_type);

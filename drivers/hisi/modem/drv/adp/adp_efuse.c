@@ -55,11 +55,11 @@
 #include "bsp_efuse.h"
 
 #include "securec.h"
-#include "bsp_trace.h"
 #include "bsp_shared_ddr.h"
 
 #include "mdrv_efuse.h"
-
+#include <bsp_print.h>
+#define THIS_MODU mod_efuse
 #include <mdrv.h>
 #include "../../adrv/adrv.h"
 

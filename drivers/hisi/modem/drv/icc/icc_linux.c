@@ -50,7 +50,8 @@
 #include "icc_core.h"
 #include <securec.h>
 
-
+#undef THIS_MODU
+#define THIS_MODU mod_icc
 extern struct icc_control g_icc_ctrl;
 //extern struct icc_dynamic_info dynamic_info[ICC_DYNAMIC_CHAN_NUM_MAX];
 
@@ -151,7 +152,7 @@ int icc_pm_notify(struct notifier_block *nb, unsigned long event, void *dummy)
 static void icc_pm_notify_init(void)
 {
 	/* coverity[secure_coding] */
-	memset(&g_icc_ctrl.pm_notify, 0, sizeof(g_icc_ctrl.pm_notify));
+	memset_s(&g_icc_ctrl.pm_notify,sizeof(g_icc_ctrl.pm_notify), 0, sizeof(g_icc_ctrl.pm_notify));
 	g_icc_ctrl.pm_notify.notifier_call = icc_pm_notify;
 	register_pm_notifier(&g_icc_ctrl.pm_notify);
 }

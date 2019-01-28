@@ -145,6 +145,9 @@ typedef enum{
     DUMP_CP_PMU                  = (0x02000095),
     DUMP_CP_FIQ                  = (0x02000096),
     DUMP_CP_DSP0                 = (0x02000097),
+    DUMP_CP_BBP                  = (0x02000098),
+    DUMP_CP_DSP1                 = (0x02000099),
+    DUMP_CP_CPM_LTEV             = (0x0200009a),
     /*0x02F00000-- 专用于smp修改新增的特定格式段其他模块不得使用*/
     DUMP_CP_BASE_INFO_SMP        = (0x02f00000),
     DUMP_CP_CPUINFO              = (0x02f00001),
@@ -155,6 +158,7 @@ typedef enum{
     DUMP_CP_DEBUGREG_CPU         = (0x02f00006),/*0x02f00006 ~ 0x02f0000d :8个预留给Debug Reg保存使用*/
     DUMP_CP_DEBUGREG_CPU_END     = (0x02f0000d),
     DUMP_CP_TASK_TCB_SMP_NEW     = (0x02f0000e),
+    DUMP_CP_SEC_DUMP_TARNS       = (0x02f0000f),
 
     DUMP_CP_FIELD_LLT            = (0x02fffffe),
     DUMP_CP_FIELD_END            = (0x02ffffff),
@@ -206,6 +210,7 @@ typedef enum{
     DUMP_M3_REGS                = (0x04000029),
     DUMP_M3_TCM0                = (0x0400002A),
     DUMP_M3_TCM1                = (0x0400002B),
+    DUMP_M3_DDRMNT              = (0x0400002C),
     DUMP_M3_BOOST               = (0x04000064),
 
     /*0x04100000--0x04200000 专用于smp修改新增的段其他模块不得使用*/
@@ -227,6 +232,16 @@ typedef enum{
     DUMP_TEE_FIELD_BEGIN  = (0x06000000),
     DUMP_TEE_FIELD_LOG    = (0x06000001),
     DUMP_TEE_FIELD_END,
+    DUMP_NRCCPU_FIELD_BEGIN  = (0x07000000),
+    DUMP_NRCCPU_FIELD_END    = (0x07FFFFFF),
+    DUMP_NRL2HAC_FIELD_BEGIN  = (0x08000000),
+    DUMP_NRL2HAC_FIELD_END    = (0x08FFFFFF),
+    DUMP_NRHL1C_FIELD_BEGIN  = (0x09000000),
+    DUMP_NRHL1C_FIELD_END    = (0x09FFFFFF),
+    DUMP_NRPHY_FIELD_BEGIN  = (0x0a000000),
+    DUMP_NRPHY_FIELD_END    = (0x0aFFFFFF),
+    DUMP_RF_FIELD_BEGIN  = (0x0b000000),
+    DUMP_RF_FIELD_END    = (0x0bFFFFFF),
 }DUMP_SAVE_MOD_ENUM;
 
 

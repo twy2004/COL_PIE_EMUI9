@@ -50,9 +50,9 @@
 #ifndef __MDM_TLPHY_TCM_H__
 #define __MDM_TLPHY_TCM_H__
 
-#define NXP_MAX_SECTNUM 0x100
 
 void dump_save_lphy_tcm(char * dst_path);
+void dump_lphy_init(void);
 
 
 #endif

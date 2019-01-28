@@ -184,20 +184,20 @@ VOS_VOID lcp_GetAuthConfig(VOS_VOID)
     if (NV_OK != ulRslt)
     {
         PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING, "Warning: Read en_NV_Item_PPP_CONFIG Error!");
-        g_stPppEntInfo.enChapEnable  = TTF_TRUE;
-        g_stPppEntInfo.enPapEnable   = TTF_TRUE;
+        g_stPppEntInfo.enChapEnable  = TTF_ACORE_TRUE;
+        g_stPppEntInfo.enPapEnable   = TTF_ACORE_TRUE;
 
         return;
     }
 
-    if (TTF_BOOL_BUTT <= stPppConfigAuthType.enChapEnable)
+    if (TTF_ACORE_BOOL_BUTT <= stPppConfigAuthType.enChapEnable)
     {
-        stPppConfigAuthType.enChapEnable     = TTF_TRUE;
+        stPppConfigAuthType.enChapEnable     = TTF_ACORE_TRUE;
     }
 
-    if (TTF_BOOL_BUTT <= stPppConfigAuthType.enPapEnable)
+    if (TTF_ACORE_BOOL_BUTT <= stPppConfigAuthType.enPapEnable)
     {
-        stPppConfigAuthType.enPapEnable      = TTF_TRUE;
+        stPppConfigAuthType.enPapEnable      = TTF_ACORE_TRUE;
     }
 
     g_stPppEntInfo.enChapEnable  = stPppConfigAuthType.enChapEnable;
@@ -233,7 +233,7 @@ lcp_Init(struct lcp *lcp, struct link *l, const struct fsm_parent *parent)
 /* CDMA模式下只有PC拨号才会用到PPPA,此时只支持PAP不支持CHAP */
 
   lcp->cfg.pap  = NEG_ACCEPTED;
-  if (TTF_TRUE == g_stPppEntInfo.enPapEnable)
+  if (TTF_ACORE_TRUE == g_stPppEntInfo.enPapEnable)
   {
       lcp->cfg.pap = NEG_ENABLED|NEG_ACCEPTED;
   }

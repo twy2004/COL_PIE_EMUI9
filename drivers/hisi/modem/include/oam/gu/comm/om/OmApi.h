@@ -246,10 +246,6 @@ extern VOS_VOID Spy_UpGradeRegister(SPY_UPGRADE_PROC_FUNC pFnUpgradeProcFunc);
 
 extern VOS_VOID Spy_RestoreRegister(SPY_RESTORE_PROC_FUNC pFnRestoreProcFunc);
 
-extern VOS_VOID GUSLEEP_MasterAwakeSlave(VOS_VOID);
-
-extern VOS_VOID TLSLEEP_MasterAwakeSlave(VOS_VOID);
-
 extern VOS_UINT32 SLEEP_NotifyStateReg(VOS_UINT32 ulRcvPid, MODEM_ID_ENUM_UINT16 enModem, VOS_RATMODE_ENUM_UINT32 enRatMode);
 
 extern VOS_UINT32 SLEEP_NotifyStateUnreg(VOS_UINT32 ulRcvPid, MODEM_ID_ENUM_UINT16 enModem);

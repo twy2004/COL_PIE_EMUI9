@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -58,30 +58,10 @@
 #include <scm_ind_dst.h>
 #include <diag_port_manager.h>
 #include <OmVcomPpm.h>
-#include <scm_cfg.h>
 #include <scm_common.h>
+#include <OmSocketPpm.h>
+#include <soft_cfg.h>
 
-
-unsigned int mdrv_scm_get_ind_src_buff(unsigned int ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf)
-{
-    return scm_get_ind_src_buff(ulDataLen, pstCoderHeader, pstSocpBuf);
-}
-void mdrv_scm_ind_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf)
-{
-    scm_ind_src_buff_mempy(pInfo, pstSocpBuf);
-}
-unsigned int mdrv_scm_get_cnf_src_buff(unsigned int ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf)
-{
-    return scm_get_cnf_src_buff(ulDataLen, pstCoderHeader, pstSocpBuf);
-}
-void mdrv_scm_cnf_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf)
-{
-    scm_cnf_src_buff_mempy(pInfo, pstSocpBuf);
-}
-unsigned int mdrv_scm_send_cnf_src_data(unsigned char *pucSendDataAddr, unsigned int ulSendLen)
-{
-    return scm_send_cnf_src_data(pucSendDataAddr, ulSendLen);
-}
 
 void mdrv_diag_PTR(DIAG_PTR_ID_ENUM enType, u32 paraMark, u32 para0, u32 para1)
 {
@@ -114,7 +94,7 @@ unsigned int mdrv_CPM_ComSend(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, unsigned c
 }
 void mdrv_CPM_LogicRcvReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc)
 {
-    CPM_LogicRcvReg(enLogicPort, pRcvFunc);
+    PPM_SocketRevFunReg(enLogicPort, pRcvFunc);
 }
 unsigned int mdrv_SCM_RegDecoderDestProc(SOCP_DECODER_DST_ENUM_U32 enChanlID, SCM_DECODERDESTFUCN func)
 {
@@ -123,10 +103,6 @@ unsigned int mdrv_SCM_RegDecoderDestProc(SOCP_DECODER_DST_ENUM_U32 enChanlID, SC
 void mdrv_scm_ind_dst_read_cb(void)
 {
     scm_ind_dst_read_cb();
-}
-unsigned int mdrv_scm_send_ind_src_data(unsigned char *pucSendDataAddr, unsigned int ulSendLen)
-{
-    return scm_send_ind_src_data(pucSendDataAddr, ulSendLen);
 }
 void mdrv_diag_get_dst_mntn_info(DIAG_MNTN_DST_INFO_STRU * dst_mntn)
 {
@@ -140,4 +116,23 @@ void  mdrv_scm_set_power_on_log(void)
 {
     scm_set_power_on_log();
 }
+
+unsigned int mdrv_diag_shared_mem_write(unsigned int eType, unsigned int len, char *pData)
+{
+    return diag_shared_mem_write(eType, len, pData);
+}
+
+unsigned int mdrv_diag_shared_mem_read(unsigned int eType)
+{
+    return diag_shared_mem_read(eType);
+}
+unsigned long mdrv_scm_ind_src_phy_to_virt(u8 * phyAddr)
+{
+    return scm_ind_src_phy_to_virt(phyAddr);
+}
+unsigned long mdrv_scm_cnf_src_phy_to_virt(u8 * phyAddr)
+{
+    return scm_cnf_src_phy_to_virt(phyAddr);
+}
+
 

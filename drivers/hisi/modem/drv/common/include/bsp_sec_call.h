@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -60,14 +60,15 @@ extern "C"
 typedef enum FUNC_SEC_CMD_ID {
     FUNC_CMD_ID_MIN = 0x800,
     FUNC_ICC_CHANNEL_RESET = FUNC_CMD_ID_MIN,    /* ICC通道复位 */
-    FUNC_ICC_MSG_SWITCH_ON,              /* 允许ICC往modem发送消息 */
-    FUNC_ICC_MSG_SWITCH_OFF,             /* 禁止ICC往modem发送消息 */
-    FUNC_EFUSE_READ,                     /* Efuse Read控制命令 */
-    FUNC_EFUSE_WRITE,                    /* Efuse Write控制命令 */
-    FUNC_PM_RESET_NONBOOT,               /*pm对从核复位*/
-    FUNC_PM_BOOT_NONBOOT,                /*pm对从核解复位*/
-
-	FUNC_CMD_ID_MIN_BUTTOM  /* 请在此之前添加 */
+    FUNC_ICC_MSG_SWITCH_ON,                 /* 允许ICC往modem发送消息 */
+    FUNC_ICC_MSG_SWITCH_OFF,                /* 禁止ICC往modem发送消息 */
+    FUNC_SEC_DUMP_CHANNEL_ENABLE,           /*异常场景通道使能传输*/
+    FUNC_EFUSE_READ,                        /* Efuse Read控制命令 */
+    FUNC_EFUSE_WRITE,                       /* Efuse Write控制命令 */
+    FUNC_PM_RESET_NONBOOT,                  /*pm对从核复位*/
+    FUNC_PM_BOOT_NONBOOT,                   /*pm对从核解复位*/
+    FUNC_PM_TEST_SECBOOT,                   /*just for test*/
+	FUNC_CMD_ID_MIN_BUTTOM                  /* 请在此之前添加 */
 
 }FUNC_CMD_ID;
 

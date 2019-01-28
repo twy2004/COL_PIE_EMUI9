@@ -207,7 +207,7 @@ void CPM_DisconnectPorts(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, CPM_LOGIC_PORT_ENUM
 *****************************************************************************/
 int CPM_PortAssociateInit(void)
 {
-    u32                          i;
+    u32 i;
 
     for (i = 0; i < CPM_COMM_BUTT; i++)
     {
@@ -260,12 +260,9 @@ int CPM_PortAssociateInit(void)
         bsp_socp_set_ind_mode(SOCP_IND_MODE_DIRECT);
     }
 
-    diag_system_printf("diag port manager init ok\n");
+    diag_crit("diag port manager init ok\n");
     return BSP_OK;
 }
-
-module_init(CPM_PortAssociateInit);
-
 /*****************************************************************************
  函 数 名  : CPM_ComSend
  功能描述  : 发送数据函数，提供给逻辑通道使用
@@ -342,7 +339,7 @@ u32 CPM_ComRcv(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, u8 *pucData, u32 ulLen)
 
     if (NULL == CPM_PHY_RCV_FUNC(enPhyPort - CPM_IND_PORT))
     {
-        (void)diag_system_printf("CPM_ComRcv The Phy Port %d Rec Func is NULL\n", (s32)enPhyPort);
+        diag_error("CPM_ComRcv The Phy Port %d Rec Func is NULL\n", (s32)enPhyPort);
 
         g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort - CPM_IND_PORT].ulNullPtr++;
         diag_PTR(EN_DIAG_PTR_CPM_ERR3, 0, 0, 0);
@@ -368,7 +365,7 @@ void CPM_Show(void)
     CPM_PHY_PORT_ENUM_UINT32    enPhyPort;
     CPM_LOGIC_PORT_ENUM_UINT32  enLogicPort;
 
-    (void)diag_system_printf("CPM_Show The Logic and Phy Relation is :");
+    (void)diag_crit("CPM_Show The Logic and Phy Relation is :");
 
     for(enLogicPort=CPM_AT_COMM; enLogicPort<CPM_COMM_BUTT; enLogicPort++)
     {
@@ -376,41 +373,41 @@ void CPM_Show(void)
 
         if(CPM_OM_IND_COMM == enLogicPort) 
         {
-            (void)diag_system_printf("The Logic Port %d OM IND is connnect PHY ", enLogicPort);
+            diag_crit("The Logic Port %d OM IND is connnect PHY ", enLogicPort);
         }
         else if(CPM_OM_CFG_COMM == enLogicPort) 
         {
-            (void)diag_system_printf("The Logic Port %d OM CFG is connnect PHY ", enLogicPort);
+            diag_crit("The Logic Port %d OM CFG is connnect PHY ", enLogicPort);
         }
         else
         {
-            (void)diag_system_printf("The Logic Port %d        is connnect PHY ", enLogicPort);
+            diag_crit("The Logic Port %d        is connnect PHY ", enLogicPort);
         }
         
         if((CPM_IND_PORT == enPhyPort) || (CPM_CFG_PORT == enPhyPort))
         {
-            (void)diag_system_printf("Port %d(USB Port).", enPhyPort);
+            diag_crit("Port %d(USB Port).", enPhyPort);
         }
         else if((CPM_WIFI_OM_IND_PORT == enPhyPort) || (CPM_WIFI_OM_CFG_PORT == enPhyPort))
         {
-            (void)diag_system_printf("Port %d(socket).", enPhyPort);
+            diag_crit("Port %d(socket).", enPhyPort);
         }
         else if((CPM_VCOM_IND_PORT == enPhyPort) || (CPM_VCOM_CFG_PORT == enPhyPort))
         {
-            (void)diag_system_printf("Port %d(netlink).", enPhyPort);
+            diag_crit("Port %d(netlink).", enPhyPort);
         }
         else
         {
-            (void)diag_system_printf("Port %d.", enPhyPort);
+            diag_crit("Port %d.", enPhyPort);
         }
     }
 
-    (void)diag_system_printf("CPM_Show The Phy Info is :\n");
+    (void)diag_crit("CPM_Show The Phy Info is :\n");
 
     for(enPhyPort=0; enPhyPort<(CPM_PORT_BUTT - CPM_IND_PORT); enPhyPort++)
     {
         /* 为打印出函数名称，使用printk */
-        (void)printk("The Phy %d Port's Rec Func is %pS.\n \
+        diag_crit("The Phy %d Port's Rec Func is %pS.\n \
                 Send Func is %pS.\n", \
                         enPhyPort, \
                         g_astCPMPhyPortCfg[enPhyPort].pRcvFunc, \
@@ -420,7 +417,7 @@ void CPM_Show(void)
     for(enLogicPort=0; enLogicPort<CPM_COMM_BUTT; enLogicPort++)
     {
         /* 为打印出函数名称，使用printk */
-        (void)printk("The Logic %d Port's Rec Func is %pS.\n \
+        diag_crit("The Logic %d Port's Rec Func is %pS.\n \
                   Send Func is %pS.\n", \
                         enLogicPort, \
                         g_astCPMLogicPortCfg[enLogicPort].pRcvFunc, \
@@ -443,22 +440,22 @@ void CPM_ComErrShow(void)
     CPM_LOGIC_PORT_ENUM_UINT32  enLogicPort;
     CPM_PHY_PORT_ENUM_UINT32    enPhyPort;
 
-    (void)diag_system_printf("CPM_ComErrShow:");
+    (void)diag_crit("CPM_ComErrShow:");
 
-    (void)diag_system_printf("Logic Port Err Times: %d", g_stCPMSndErrInfo.ulPortErr);
+    (void)diag_crit("Logic Port Err Times: %d", g_stCPMSndErrInfo.ulPortErr);
 
     for (enLogicPort = 0; enLogicPort < CPM_COMM_BUTT; enLogicPort++)
     {
-        (void)diag_system_printf("Logic %d Port Para Err Times: %d", enLogicPort, g_stCPMSndErrInfo.astCPMSndErrInfo[enLogicPort].ulParaErr);
-        (void)diag_system_printf("Logic %d Port Null Ptr Times: %d", enLogicPort, g_stCPMSndErrInfo.astCPMSndErrInfo[enLogicPort].ulNullPtr);
+        diag_crit("Logic %d Port Para Err Times: %d", enLogicPort, g_stCPMSndErrInfo.astCPMSndErrInfo[enLogicPort].ulParaErr);
+        diag_crit("Logic %d Port Null Ptr Times: %d", enLogicPort, g_stCPMSndErrInfo.astCPMSndErrInfo[enLogicPort].ulNullPtr);
     }
 
-    (void)diag_system_printf("Phy Port Err Times: %d", g_stCPMRcvErrInfo.ulPortErr);
+    diag_crit("Phy Port Err Times: %d", g_stCPMRcvErrInfo.ulPortErr);
 
     for (enPhyPort = 0; enPhyPort < (CPM_PORT_BUTT - CPM_IND_PORT); enPhyPort++)
     {
-        (void)diag_system_printf("Phy %d Port Para Err Times: %d", enPhyPort, g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort].ulParaErr);
-        (void)diag_system_printf("Phy %d Port Null Ptr Times: %d", enPhyPort, g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort].ulNullPtr);
+        diag_crit("Phy %d Port Para Err Times: %d", enPhyPort, g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort].ulParaErr);
+        diag_crit("Phy %d Port Null Ptr Times: %d", enPhyPort, g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort].ulNullPtr);
     }
 
     return;

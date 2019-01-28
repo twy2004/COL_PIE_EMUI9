@@ -59,6 +59,7 @@ extern "C"
 #include <linux/suspend.h>
 #include <linux/workqueue.h>
 #include <linux/completion.h>
+#include <bsp_print.h>
 
 #include <osl_sem.h>
 #include <osl_spinlock.h>
@@ -66,6 +67,7 @@ extern "C"
 #include <gunas_errno.h>
 
 #include <bsp_reset.h>
+#include <bsp_print.h>
 
 /************************** 宏和枚举定义 **************************/
 #define RESET_WAIT_RESP_TIMEOUT          (5000)   /*ms, time of wating for reply from hifi/mcu*/
@@ -74,7 +76,9 @@ extern "C"
 #define RESET_WAIT_CCORE_WAKEUP_REPLY_TIMEOUT (100)   /*ms, time of wating for modem wakeup*/
 #define RESET_WAIT_CCPU_STARTUP_TIMEOUT  (20000)
 #define DRV_RESET_MODULE_NAME_LEN        (9)
-#define reset_print_err(fmt, ...)        (printk(KERN_ERR "[%s] "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define THIS_MODU mod_reset
+#define reset_print_err(fmt, ...)        (bsp_err("[%s] "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define reset_print_shorterr(fmt, ...) (bsp_err(fmt, ##__VA_ARGS__))
 #define RESET_RETRY_TIMES (3)
 #define CP_RESET_DUMP_SIZE          (1024)
 #define CP_RESET_DUMP_INVOKE_END    (750)
@@ -265,21 +269,6 @@ static inline void cp_reset_timestamp_dump(enum RESET_DUMP_MOD_ID reset_dumpid)
         g_reset_debug.dump_info.entry_tbl[reset_dumpid] = bsp_get_slice_value();
 }
 
-/* 打点invoke调用name */
-static inline void cp_reset_invoke_dump(char *cb_name)
-{
-    u32 slice;
-    if (g_reset_debug.dump_state == (u32)RESET_DUMP_MAGIC) {
-        /* coverity[secure_coding] */
-        (void)strncpy(g_reset_debug.dump_info.invoke_addr, cb_name, DRV_RESET_MODULE_NAME_LEN);
-        slice = bsp_get_slice_value();
-        /* coverity[secure_coding] */
-        (void)memcpy((void *)(g_reset_debug.dump_info.invoke_addr + (DRV_RESET_MODULE_NAME_LEN + 3)), (void *)(&slice), sizeof(u32));
-
-        if (g_reset_debug.dump_info.invoke_addr < (char *)((unsigned long)g_reset_debug.dump_info.base_addr + CP_RESET_DUMP_INVOKE_END))
-            g_reset_debug.dump_info.invoke_addr += 2*(DRV_RESET_MODULE_NAME_LEN - 1);
-    }
-}
 
 /* 函数声明 */
 struct modem_reset_ctrl *bsp_reset_control_get(void);

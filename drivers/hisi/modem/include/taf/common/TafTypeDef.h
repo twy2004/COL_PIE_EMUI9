@@ -50,6 +50,7 @@
 
 #include "v_typdef.h"
 
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -124,7 +125,11 @@ enum TAF_OM_GREENCHANNEL_ERR_ENUM
 #endif
 
 #ifndef STATIC
+#if (defined(LLT_OS_VER))
+#define STATIC
+#else
 #define STATIC static
+#endif
 #endif
 
 #undef PUBLIC
@@ -286,6 +291,8 @@ enum TAF_ERROR_CODE_ENUM
 
     TAF_ERR_NETWORK_FAILURE                                 = (TAF_ERR_CODE_BASE + 68),     /* 写nv超时 */
 
+    TAF_ERR_SCI_ERROR                                       = (TAF_ERR_CODE_BASE + 69),     /* PAM 逻辑通道打开失败，AP需要识别，细化新错误类型 */
+
     TAF_ERR_PHONE_MSG_UNMATCH                               = (TAF_ERR_PHONE_BASE + 1),     /*消息关系不匹配*/
     TAF_ERR_PHONE_ATTACH_FORBIDDEN                          = (TAF_ERR_PHONE_BASE + 2),     /*禁止ATTACH过程*/
     TAF_ERR_PHONE_DETACH_FORBIDDEN                          = (TAF_ERR_PHONE_BASE + 3),     /*禁止DETACH过程*/
@@ -446,8 +453,158 @@ typedef struct
     TIME_ZONE_TIME_STRU             stUniversalTimeandLocalTimeZone;
 }NAS_MM_INFO_IND_STRU;
 
+
+typedef struct
+{
+    VOS_UINT32                          ulModemId;
+    VOS_UINT32                          ulNvItemId;
+    VOS_UINT32                          ulNvLength;
+    VOS_UINT32                          ulIsNeedCheck;
+    VOS_UINT32                          ulOffset;
+    VOS_VOID                           *pData;
+}TAF_WRITE_ACORE_NV_STRU;
+
+
+enum TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM
+{
+    ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FLUSH,
+
+    ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_UPGRADE_BACKUP,
+
+    ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_BACKUP_FNV,
+
+    ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FREVERT_FNV,
+
+    ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_BUTT
+};
+typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
+
+
 #define TAF_REBOOT_MOD_ID_MEM     0x68000000
 #define TAF_REBOOT_MOD_ID_BUTT    0X6FFFFFFF
+
+#if (VOS_OS_VER == VOS_WIN32)
+#define TAF_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) VOS_MemCpy_s( pDestBuffer, (VOS_UINT32)ulDestLen,  pSrcBuffer, (VOS_UINT32)ulCount)
+
+#define TAF_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) VOS_MemSet_s( pDestBuffer, (VOS_UINT32)ulDestLen, (VOS_CHAR)(ucData), (VOS_UINT32)ulCount )
+
+#define TAF_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) VOS_MemMove_s( pDestBuffer, ulDestLen, pucSrcBuffer, ulCount )
+
+#define TAF_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
+                    memcmp(pucDestBuffer, pucSrcBuffer, ulBufferLen )
+
+#else
+#define TAF_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) { \
+            TAF_STD_MemCpy_s( (pDestBuffer), (VOS_UINT32)(ulDestLen), (pSrcBuffer), (VOS_UINT32)(ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
+        }
+
+#define TAF_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) { \
+            TAF_STD_MemSet_s( (pDestBuffer), (VOS_UINT32)(ulDestLen), ((VOS_CHAR)(ucData)), (VOS_UINT32)(ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
+        }
+
+#define TAF_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) { \
+            TAF_STD_MemMove_s( (pDestBuffer), (ulDestLen), (pucSrcBuffer), (ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
+        }
+
+#define TAF_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
+                VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
+
+#endif
+
+
+#define TAF_MIN(x, y)\
+        (((x)<(y))?(x):(y))
+
+#define TAF_BIT_TO_BYTE_LEN(a) (((a)+7)/8)
+
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+/* 仅供AT^NVSTUB使用 */
+#define TAF_ACORE_NV_READ(modemid, id, item, len)                   mdrv_nv_readex(modemid, id, item, len)
+
+/*  读取出厂区nv配置 */
+#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)           mdrv_nv_readex_factory(modemid, id, item, len)
+
+
+/* 对应mdrv_nv_writeex接口，在C需要对NV项做安全校验 */
+#define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteStru(ulModemId, ulNvItemId, pData, ulNvLength))
+
+/* 对应mdrv_nv_write_partex接口，在C需要对NV项做安全校验 */
+#define TAF_ACORE_NV_WRITE_PART(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWritePartStru(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength))
+
+#ifdef FEATURE_AT_NV_WRITE_SUPPORT
+/* 对应mdrv_nv_writeex接口，仅供AT^NVWR使用，C核无需做安全校验，仅在ENG版本中开启 */
+#define TAF_ACORE_NV_WRITE_NO_CHECK(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteNoCheckStru(ulModemId, ulNvItemId, pData, ulNvLength))
+
+/* 对应mdrv_nv_write_partex接口，仅供AT^NVWRPART使用，C核无需做安全校验，仅在ENG版本中开启 */
+#define TAF_ACORE_NV_WRITE_PART_NO_CHECK(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWritePartNoCheckStru(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength))
+#endif
+
+
+
+#ifdef FEATURE_NV_SEC_ON
+#define TAF_ACORE_NV_FLUSH()                                        TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FLUSH)
+#define TAF_ACORE_NV_UPGRADE_BACKUP(uloption)                       TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_UPGRADE_BACKUP)
+#define TAF_ACORE_NV_BACKUP_FNV()                                   TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_BACKUP_FNV)
+#define TAF_ACORE_NV_FREVERT_FNV()                                  TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FREVERT_FNV)
+#else
+#define TAF_ACORE_NV_FLUSH()                                        mdrv_nv_flush()
+#define TAF_ACORE_NV_UPGRADE_BACKUP(uloption)                       mdrv_nv_backup()
+#define TAF_ACORE_NV_BACKUP_FNV()                                   mdrv_nv_backup_factorynv()
+#define TAF_ACORE_NV_FREVERT_FNV()                                  mdrv_nv_revert_factorynv()
+#endif
+
+#define TAF_ACORE_NV_READ_PART(modemid, id, off, item, len)         mdrv_nv_read_partex(modemid, id, off, item, len)
+#define TAF_ACORE_NV_GET_LENGTH(id, len)                            mdrv_nv_get_length(id, len)
+#define TAF_ACORE_NV_RESTORE_RESULT()                               mdrv_nv_restore_result()
+#define TAF_ACORE_NV_GET_NV_LIST_NUM()                              mdrv_nv_get_nvid_num()
+#define TAF_ACORE_NV_GET_NV_ID_LIST(list)                           mdrv_nv_get_nvid_list(list)
+#define TAF_ACORE_NV_UPGRADE_RESTORE()                              mdrv_nv_restore()
+#define TAF_ACORE_NV_GET_REVERT_NUM(enNvItem)                       mdrv_nv_get_revert_num(enNvItem)
+#define TAF_ACORE_NV_GET_REVERT_LIST(enNvItem, pusNvList, ulNvNum)  mdrv_nv_get_revert_list(enNvItem, pusNvList, ulNvNum)
+#endif
+
+#if ( VOS_WIN32 == VOS_OS_VER )
+#ifdef DMT
+#define TAF_ACORE_NV_READ(modemid, id, item, len)                   mdrv_nv_readex(modemid, id, item, len)
+
+#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)           mdrv_nv_readex(modemid, id, item, len)
+
+#define TAF_ACORE_NV_WRITE_OLD(modemid, id, item, len)              mdrv_nv_writeex(modemid, id, item, len)
+
+#define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteStru(ulModemId, ulNvItemId, pData, ulNvLength))
+
+#define TAF_ACORE_NV_WRITE_NO_CHECK(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteNoCheckStru(ulModemId, ulNvItemId, pData, ulNvLength))
+
+#define TAF_ACORE_NV_WRITE_PART(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWritePartStru(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength))
+
+#define TAF_ACORE_NV_WRITE_PART_NO_CHECK(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWritePartNoCheckStru(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength))
+
+#define TAF_ACORE_NV_FLUSH()                                        TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FLUSH)
+#define TAF_ACORE_NV_UPGRADE_BACKUP(uloption)                       TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_UPGRADE_BACKUP)
+#define TAF_ACORE_NV_UPGRADE_RESTORE()                              mdrv_nv_restore()
+#define TAF_ACORE_NV_BACKUP_FNV()                                   TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_BACKUP_FNV)
+#define TAF_ACORE_NV_FREVERT_FNV()                                  TAF_AGENT_ProcACoreNv(ID_TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_NV_FREVERT_FNV)
+#else
+#define TAF_ACORE_NV_READ(modemid, id, item, len)                                             mdrv_nv_readex(modemid, id, item, len)
+
+#define TAF_ACORE_NV_WRITE_OLD(modemid, id, item, len)                                        mdrv_nv_writeex(modemid, id, item, len)
+
+#define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)                          mdrv_nv_writeex(ulModemId, ulNvItemId, pData, ulNvLength)
+
+#define TAF_ACORE_NV_WRITE_NO_CHECK(ulModemId, ulNvItemId, pData, ulNvLength)                 mdrv_nv_writeex(ulModemId, ulNvItemId, pData, ulNvLength)
+
+#define TAF_ACORE_NV_WRITE_PART(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)           mdrv_nv_write_partex(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)
+
+#define TAF_ACORE_NV_WRITE_PART_NO_CHECK(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  mdrv_nv_write_partex(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)
+
+#define TAF_ACORE_NV_GET_LENGTH(id, len)                            mdrv_nv_get_length(id, len)
+#define TAF_ACORE_NV_FLUSH()                                        mdrv_nv_flush()
+#define TAF_ACORE_NV_UPGRADE_BACKUP(uloption)                       mdrv_nv_backup()
+#define TAF_ACORE_NV_UPGRADE_RESTORE()                              mdrv_nv_restore()
+#define TAF_ACORE_NV_BACKUP_FNV()                                   mdrv_nv_backup_factorynv()
+#define TAF_ACORE_NV_FREVERT_FNV()                                  mdrv_nv_revert_factorynv()
+#endif
+#endif
 
 /*lint -save -e752*/
 extern VOS_VOID TAF_STD_MemCpy_s(
@@ -474,85 +631,45 @@ extern VOS_VOID TAF_STD_MemMove_s(
     VOS_INT32                           lFileIdAndLine
 );
 
+extern VOS_UINT32 TAF_AGENT_WriteACoreNv(
+    TAF_WRITE_ACORE_NV_STRU            *pstWriteAcoreNv
+);
+extern VOS_UINT32 TAF_AGENT_ProcACoreNv(
+    TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32             enProcACoreNvType
+);
+extern TAF_WRITE_ACORE_NV_STRU * AT_FillACoreNvWriteStru(
+    VOS_UINT32                          ulModemId,
+    VOS_UINT32                          ulNvItemId,
+    VOS_VOID                           *pData,
+    VOS_UINT32                          ulNvLength
+);
+extern TAF_WRITE_ACORE_NV_STRU * AT_FillACoreNvWriteNoCheckStru(
+    VOS_UINT32                          ulModemId,
+    VOS_UINT32                          ulNvItemId,
+    VOS_VOID                           *pData,
+    VOS_UINT32                          ulNvLength
+);
+extern TAF_WRITE_ACORE_NV_STRU * AT_FillACoreNvWritePartStru(
+    VOS_UINT32                          ulModemId,
+    VOS_UINT32                          ulNvItemId,
+    VOS_UINT32                          ulOffset,
+    VOS_VOID                           *pData,
+    VOS_UINT32                          ulNvLength
+);
+extern TAF_WRITE_ACORE_NV_STRU * AT_FillACoreNvWritePartNoCheckStru(
+    VOS_UINT32                          ulModemId,
+    VOS_UINT32                          ulNvItemId,
+    VOS_UINT32                          ulOffset,
+    VOS_VOID                           *pData,
+    VOS_UINT32                          ulNvLength
+);
+
+extern MN_CLIENT_ID_T MN_GetRealClientId(
+    MN_CLIENT_ID_T                      usClientId,
+    VOS_UINT32                          ulPid
+);
+
 #if (VOS_OS_VER == VOS_WIN32)
-#define TAF_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) VOS_MemCpy_s( pDestBuffer, ulDestLen,  pSrcBuffer, ulCount)
-
-#define TAF_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) VOS_MemSet_s( pDestBuffer, ulDestLen, (VOS_CHAR)(ucData), ulCount )
-
-#define TAF_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) VOS_MemMove_s( pDestBuffer, ulDestLen, pucSrcBuffer, ulCount )
-
-#define TAF_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
-                    memcmp(pucDestBuffer, pucSrcBuffer, ulBufferLen )
-
-#elif (FEATURE_ON == FEATURE_MEMCPY_REBOOT_CFG)
-#define TAF_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) { \
-            if (VOS_NULL_PTR == VOS_MemCpy_s( pDestBuffer, (VOS_SIZE_T)(ulDestLen),  pSrcBuffer, (VOS_SIZE_T)(ulCount))) \
-            {\
-                mdrv_om_system_error(TAF_REBOOT_MOD_ID_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 ); \
-            }\
-        }
-
-#define TAF_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) { \
-            if (VOS_NULL_PTR == VOS_MemSet_s( pDestBuffer, (VOS_SIZE_T)(ulDestLen), (VOS_CHAR)(ucData), (VOS_SIZE_T)(ulCount) )) \
-            { \
-                mdrv_om_system_error(TAF_REBOOT_MOD_ID_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 ); \
-            } \
-        }
-
-#define TAF_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) { \
-            if (VOS_NULL_PTR == VOS_MemMove_s( pDestBuffer, (VOS_SIZE_T)(ulDestLen), pucSrcBuffer, (VOS_SIZE_T)(ulCount) )) \
-            { \
-                mdrv_om_system_error(TAF_REBOOT_MOD_ID_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 ); \
-            } \
-        }
-
-#define TAF_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
-                VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
-
-#else
-#define TAF_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) { \
-            TAF_STD_MemCpy_s( (pDestBuffer), (ulDestLen), (pSrcBuffer), (ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
-        }
-
-#define TAF_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) { \
-            TAF_STD_MemSet_s( (pDestBuffer), (ulDestLen), ((VOS_CHAR)(ucData)), (ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
-        }
-
-#define TAF_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) { \
-            TAF_STD_MemMove_s( (pDestBuffer), (ulDestLen), (pucSrcBuffer), (ulCount), (VOS_INT)((THIS_FILE_ID << 16) | __LINE__) ); \
-        }
-
-#define TAF_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
-                VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
-
-#endif
-
-#define TAF_MIN(x, y)\
-        (((x)<(y))?(x):(y))
-
-
-#if (OSA_CPU_ACPU == VOS_OSA_CPU)
-#define TAF_ACORE_NV_READ(modemid, id, item, len)                   mdrv_nv_readex(modemid, id, item, len)
-#define TAF_ACORE_NV_WRITE(modemid, id, item, len)                  mdrv_nv_writeex(modemid, id, item, len)
-#define TAF_ACORE_NV_READ_PART(modemid, id, off, item, len)         mdrv_nv_read_partex(modemid, id, off, item, len)
-#define TAF_ACORE_NV_WRITE_PART(modemid, id, off, item, len)        mdrv_nv_write_partex(modemid, id, off, item, len)
-#define TAF_ACORE_NV_GET_LENGTH(id, len)                            mdrv_nv_get_length(id, len)
-#define TAF_ACORE_NV_FLUSH()                                        mdrv_nv_flush()
-#define TAF_ACORE_NV_RESTORE_RESULT()                               mdrv_nv_restore_result()
-
-#define TAF_ACORE_NV_GET_NV_LIST_NUM()                              mdrv_nv_get_nvid_num()
-#define TAF_ACORE_NV_GET_NV_ID_LIST(list)                           mdrv_nv_get_nvid_list(list)
-#define TAF_ACORE_NV_UPGRADE_BACKUP(uloption)                       mdrv_nv_backup()
-#define TAF_ACORE_NV_UPGRADE_RESTORE()                              mdrv_nv_restore()
-#define TAF_ACORE_NV_BACKUP_FNV()                                   mdrv_nv_backup_factorynv()
-#define TAF_ACORE_NV_FREVERT_FNV()                                  mdrv_nv_revert_factorynv()
-#define TAF_ACORE_NV_GET_REVERT_NUM(enNvItem)                       mdrv_nv_get_revert_num(enNvItem)
-#define TAF_ACORE_NV_GET_REVERT_LIST(enNvItem, pusNvList, ulNvNum)  mdrv_nv_get_revert_list(enNvItem, pusNvList, ulNvNum)
-#endif
-
-
-
-#if ((VOS_OS_VER == VOS_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
 #pragma pack()
 #else
 #pragma pack(0)

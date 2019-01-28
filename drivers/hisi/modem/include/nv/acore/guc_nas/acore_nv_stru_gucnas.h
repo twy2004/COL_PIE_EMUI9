@@ -363,16 +363,16 @@ typedef struct
 
 typedef struct
 {
-    VOS_UINT8                                     ucNetInterfaceMode;           /* RNIC网卡下行数据到Linux网络协议栈的接口模式, 0: Net_rx(默认)，1：NAPI接口 */
+    VOS_UINT8                                     ucNapiEnable;                 /* NAPI开启 */
     NAPI_WEIGHT_ADJ_MODE_ENUM_UINT8               enNapiWeightAdjMode;          /* NAPI Weight调整模式, 0: 静态模式，1：动态调整模式 */
     VOS_UINT8                                     ucNapiPollWeight;             /* RNIC网卡NAPI方式一次poll的最大报文数 */
-    VOS_UINT8                                     ucReserved0;                  /* 保留位 */
+    VOS_UINT8                                     ucGroEnable;                  /* GRO开启 */
     VOS_UINT16                                    usNapiPollQueMaxLen;          /* Napi poll队列最大支持长度 */
     VOS_UINT8                                     ucReserved1;                  /* 保留位 */
     VOS_UINT8                                     ucReserved2;                  /* 保留位 */
     RNIC_NAPI_WEIGHT_DYNAMIC_ADJ_CFG_STRU         stNapiWeightDynamicAdjCfg;    /* Napi Weight动态调整配置 */
 
-} TAF_NV_RNIC_NET_IF_CFG_STRU;
+} TAF_NV_RNIC_NAPI_CFG_STRU;
 
 
 typedef struct
@@ -397,14 +397,6 @@ typedef struct
     VOS_UINT8                           ucReserve2;
 }TAF_AT_NV_GMM_INFO_STRU;
 
-
-typedef struct
-{
-    VOS_UINT8                           ucActFlg;
-    VOS_UINT8                           ucSendDomain;
-    VOS_UINT8                           ucReserve1;
-    VOS_UINT8                           ucReserve2;
-}AT_NVIM_SEND_DOMAIN_STRU;/* NVIM项中短信发送域的结构 */
 
 
 typedef struct

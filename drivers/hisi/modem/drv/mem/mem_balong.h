@@ -56,7 +56,6 @@
 #include <asm/tlbflush.h>
 #include <linux/module.h>
 #include <bsp_shared_ddr.h>
-#include <bsp_trace.h>
 #include <mdrv_ipc.h>
 #include <bsp_ipc.h>
 #include <mdrv_memory.h>
@@ -64,6 +63,7 @@
 #include "mem_balong_drv.h"
 #include <osl_spinlock.h>
 #include <bsp_reset.h>
+#include <bsp_print.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -84,9 +84,11 @@ extern "C"
 #define VX_PBXA9_DRAM_SHARE_SIZE            SZ_64M
 
 
-#define  mem_print_error(fmt,...)      (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_MEM, "[mem]: <%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
-#define  mem_print_dbg(fmt,...)		       (bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_MEM, "[mem]: <%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
-
+#undef THIS_MODU
+#define THIS_MODU mod_mem
+#define  mem_print_error(fmt,...)      (bsp_err("<%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#define  mem_print_dbg(fmt,...)		       (bsp_debug("<%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#define  mem_print_info(fmt,...)		(bsp_info(fmt"\n", ##__VA_ARGS__))
 /**************************************************************************
   º¯ÊýÉùÃ÷
 **************************************************************************/

@@ -14,8 +14,6 @@
 #include "mipi_lcd_utils.h"
 uint32_t g_mipi_lcd_name = 0;
 
-extern void mipi_lgd_NT36870_mode_switch(struct hisi_fb_data_type *hisifd, uint8_t mode_switch_to);
-extern void mipi_sharp_NT36870_mode_switch(struct hisi_fb_data_type *hisifd, uint8_t mode_switch_to);
 
 static void init_dsc_para(struct dsc_panel_info *vesa_dsc, uint32_t basic_para[],
 	uint32_t rc_buf_thresh[], uint32_t rc_minqp[], uint32_t rc_maxqp[], uint32_t rc_offset[])
@@ -256,15 +254,6 @@ int switch_panel_mode(struct hisi_fb_data_type *hisifd, uint8_t mode_switch_to)
 
 	get_vesa_dsc_para(pinfo, mode_switch_to);
 
-	if (mode_switch_to == MODE_10BIT_VIDEO_3X) {
-		if (g_mipi_lcd_name == JDI_2LANE_NT36860C) {
-			;
-		} else if (g_mipi_lcd_name == LG_2LANE_NT36870) {
-			mipi_lgd_NT36870_mode_switch(hisifd, mode_switch_to);
-		} else if (g_mipi_lcd_name == SHARP_2LANE_NT36870) {
-			mipi_sharp_NT36870_mode_switch(hisifd, mode_switch_to);
-		}
-	}
 
 	init_ifbc(hisifd);
 
@@ -280,15 +269,6 @@ int switch_panel_mode(struct hisi_fb_data_type *hisifd, uint8_t mode_switch_to)
 		set_reg(hisifd->mipi_dsi0_base + MIPIDSI_CMD_MODE_CFG_OFFSET, 0x0, 1, 24);
 	}
 
-	if (mode_switch_to == MODE_8BIT) {
-		if (g_mipi_lcd_name == JDI_2LANE_NT36860C) {
-			;
-		} else if (g_mipi_lcd_name == LG_2LANE_NT36870) {
-			mipi_lgd_NT36870_mode_switch(hisifd, mode_switch_to);
-		} else if (g_mipi_lcd_name == SHARP_2LANE_NT36870) {
-			mipi_sharp_NT36870_mode_switch(hisifd, mode_switch_to);
-		}
-	}
 
 	init_ldi(hisifd, true);
 

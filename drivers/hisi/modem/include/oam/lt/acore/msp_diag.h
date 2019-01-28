@@ -56,6 +56,11 @@ extern "C"
 
 #include <msp_diag_comm.h>
 
+
+VOS_VOID DIAG_LogShowToFile(VOS_BOOL bIsSendMsg);
+
+VOS_UINT32 DIAG_LogPortSwich(VOS_UINT32 ulPhyPort, VOS_BOOL ulEffect);
+
 #ifdef __cplusplus
 }
 #endif

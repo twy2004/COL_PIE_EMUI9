@@ -49,18 +49,17 @@
 
 
 
-
 /*****************************************************************************
   1 头文件包含
 **************************************************************************** */
 #include <linux/module.h>
 #include "OmCommonPpm.h"
-#include "soft_decode.h"
 #include "scm_ind_src.h"
 #include "scm_ind_dst.h"
 #include "scm_cnf_src.h"
 #include "scm_cnf_dst.h"
 #include "scm_debug.h"
+#include "diag_system_debug.h"
 
 u32 scm_src_buff_init(void)
 {
@@ -69,13 +68,13 @@ u32 scm_src_buff_init(void)
     ulRet = scm_init_ind_src_buff();
     if(ulRet)
     {
-        scm_printf("init ind src buff fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init ind src buff fail(0x%x)\n", ulRet);
         return ulRet;
     }
     ulRet = scm_init_cnf_src_buff();
     if(ulRet)
     {
-        scm_printf("init cnf src buff fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init cnf src buff fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
@@ -90,14 +89,14 @@ u32 scm_src_chan_init(void)
     ulRet = scm_ind_src_chan_init();
     if(ulRet)
     {
-        scm_printf("init ind src chann fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init ind src chann fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
     ulRet = scm_cnf_src_chan_init();
     if(ulRet)
     {
-        scm_printf("init cnf src chan fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init cnf src chan fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
@@ -115,14 +114,14 @@ u32 scm_dst_mem_init(void)
     ulRet = scm_ind_dst_buff_init();
     if(ulRet)
     {
-        scm_printf("init ind dst buff fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init ind dst buff fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
     ulRet = scm_cnf_dst_buff_init();
     if(ulRet)
     {
-        scm_printf("init cnf dst buff fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init cnf dst buff fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
@@ -135,13 +134,13 @@ u32 scm_dst_chan_init(void)
     ulRet = scm_ind_dst_channel_init();
     if(ulRet)
     {
-        scm_printf("init ind dst chan fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init ind dst chan fail(0x%x)\n", ulRet);
         return ulRet;
     }
     ulRet = scm_cnf_dst_channel_init();
     if(ulRet)
     {
-        scm_printf("init cnf dst chan fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init cnf dst chan fail(0x%x)\n", ulRet);
         return ulRet;
     }
 
@@ -157,13 +156,13 @@ int scm_init(void)
     ulRet = scm_dst_mem_init();
     if(ulRet)
     {
-        scm_printf("init dst mem fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init dst mem fail(0x%x)\n", ulRet);
         return BSP_ERROR;
     }
     ulRet = scm_dst_chan_init();
     if(ulRet)
     {
-        scm_printf("init dst chan fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init dst chan fail(0x%x)\n", ulRet);
         return BSP_ERROR;
     }
 
@@ -172,23 +171,18 @@ int scm_init(void)
     ulRet = scm_src_buff_init();
     if(ulRet)
     {
-        scm_printf("init src mem fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init src mem fail(0x%x)\n", ulRet);
         return BSP_ERROR;
     }
     ulRet = scm_src_chan_init();
     if(ulRet)
     {
-        scm_printf("init src chan fail, ulRet = 0x%x\n", ulRet);
+        diag_error("init src chan fail(0x%x)\n", ulRet);
         return BSP_ERROR;
     }
 
-    scm_soft_decode_init();
-
-    scm_printf("scm_init ok\n");
+    diag_crit("[init]scm_init ok\n");
 
     return BSP_OK;
 }
-
-module_init(scm_init);
-
 

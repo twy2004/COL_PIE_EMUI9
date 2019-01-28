@@ -57,13 +57,18 @@ extern "C"
 #include <bsp_ipc.h>
 #include <teek_client_api.h>
 #include <teek_client_id.h>
+#include <bsp_print.h>
+#include <bsp_cold_patch.h>
 
-
-#define sec_print_err(fmt, ...)   (printk(KERN_ERR "[sec]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
-#define sec_print_info(fmt, ...)   (printk(KERN_INFO "[sec]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define sec_print_err(fmt, ...)   (bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define sec_print_info(fmt, ...)   (bsp_info("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 
 #define SEC_OK      			(0)
 #define SEC_ERROR  				(-1)
+
+#define LOADM_FILE_NAME_LEN     (256)
+
+int modem_dir_init(void);
 
 /* 加载所有modem镜像，初始化和modem单独复位时使用 */
 int bsp_load_modem_images(void);

@@ -62,12 +62,19 @@
 
 #include "v_typdef.h"
 
+#ifdef MBB_COMMON
+#include "MbbTafFactoryAtComm.h"
+#endif
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
 #endif
 #endif
 
+#ifdef WIN32
+#pragma warning(disable:4200) /* zero-sized array in struct/union */
+#endif
 
 #pragma pack(4)
 
@@ -126,7 +133,9 @@ extern "C" {
 
 #if (FEATURE_ON == FEATURE_SECURITY_SHELL)
 /* 增强SHELL口密码保护相关定义 */
+#ifndef MBB_COMMON
 #define AT_SHELL_PWD_LEN                (8)
+#endif
 #endif
 
 /* 设定一个门限值100（考虑到PAD 的NAND为256MB，典型block size为128kB，则共有2048块，
@@ -139,15 +148,9 @@ extern "C" {
 #define DRV_AGENT_CHIP_TEMP_ERR         (65535)
 
 #define DRV_AGENT_HUK_LEN                       (16)        /* HUK为128Bits的码流, 长度为16Bytes */
-#if (FEATURE_ON == FEATURE_SC_SEC_UPDATE)
 #define DRV_AGENT_PUBKEY_LEN                    (1032)                          /* 鉴权公钥码流, 长度为1032Bytes */
 #define DRV_AGENT_RSA_CIPHERTEXT_LEN            (256)                           /* RSA密文长度, 统一为256Bytes */
 #define DRV_AGENT_SIMLOCKDATAWRITE_STRU_LEN     (516)                           /* 锁网锁卡改制命令参数结构体长度 */
-#else
-#define DRV_AGENT_PUBKEY_LEN                    (520)                           /* 鉴权公钥码流, 长度为520Bytes */
-#define DRV_AGENT_RSA_CIPHERTEXT_LEN            (128)                           /* RSA密文长度, 统一为128Bytes */
-#define DRV_AGENT_SIMLOCKDATAWRITE_STRU_LEN     (548)                           /* 锁网锁卡改制命令参数结构体长度 */
-#endif
 #define DRV_AGENT_PUBKEY_SIGNATURE_LEN          (32)        /* 鉴权公钥SSK签名长度 */
 
 #define DRV_AGENT_SUPPORT_CATEGORY_NUM          (4)         /* 支持的锁网锁卡CATEGORY类别数，目前只支持四种:network/network subset/SP/CP */
@@ -335,7 +338,6 @@ enum DRV_AGENT_MFREELOCKSIZE_QRY_ERROR_ENUM
     DRV_AGENT_MFREELOCKSIZE_QRY_BUTT
 };
 typedef VOS_UINT32 DRV_AGENT_MFREELOCKSIZE_QRY_ERROR_ENUM_UINT32;
-
 
 
 
@@ -528,6 +530,7 @@ enum DRV_AGENT_MSG_TYPE_ENUM
     DRV_AGENT_TSELRF_SET_REQ             = 0x0084,                              /* _H2ASN_MsgChoice DRV_AGENT_TSELRF_SET_REQ_STRU */
     DRV_AGENT_HKADC_GET_REQ              = 0x0086,                              /* _H2ASN_MsgChoice  */
     DRV_AGENT_TBAT_QRY_REQ               = 0x0088,
+    /* Added by f62575 for B050 Project, 2012-2-3, Begin   */
     DRV_AGENT_SECUBOOT_SET_REQ           = 0x008A,
 
     DRV_AGENT_SIMLOCK_NV_SET_REQ         = 0x008c,
@@ -551,6 +554,7 @@ enum DRV_AGENT_MSG_TYPE_ENUM
     DRV_AGENT_PHONEPHYNUM_SET_REQ        = 0x00A8,                              /* _H2ASN_MsgChoice DRV_AGENT_PHONEPHYNUM_SET_REQ_STRU */
     DRV_AGENT_PHONEPHYNUM_QRY_REQ        = 0x00AA,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU */
     DRV_AGENT_SARREDUCTION_SET_REQ       = 0x00B4,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU */
+
     DRV_AGENT_INFORRS_SET_REQ            = 0x0100,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU */
 
     DRV_AGENT_MAX_LOCK_TIMES_SET_REQ     = 0x0102,
@@ -564,8 +568,6 @@ enum DRV_AGENT_MSG_TYPE_ENUM
 
     DRV_AGENT_NVMANUFACTUREEXT_SET_REQ   = 0x010C,
 
-    DRV_AGENT_ANTSWITCH_SET_REQ          = 0x010E,                              /* _H2ASN_MsgChoice DRV_AGENT_ANTSWITCH_SET_STRU */
-    DRV_AGENT_ANTSWITCH_QRY_REQ          = 0x0110,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU */
 
     DRV_AGENT_SIMLOCKWRITEEX_SET_REQ     = 0x0112,
     DRV_AGENT_SIMLOCKDATAREADEX_READ_REQ = 0x0114,
@@ -588,8 +590,10 @@ enum DRV_AGENT_MSG_TYPE_ENUM
     DRV_AGENT_AUTHORITYID_QRY_CNF        = 0x0031,                              /* _H2ASN_MsgChoice DRV_AGENT_AUTHORITYID_QRY_CNF_STRU*/
     DRV_AGENT_GODLOAD_SET_CNF            = 0x0033,                              /* _H2ASN_MsgChoice DRV_AGENT_GODLOAD_SET_CNF_STRU*/
     DRV_AGENT_HWNATQRY_QRY_CNF           = 0x0035,                              /* _H2ASN_MsgChoice DRV_AGENT_HWNATQRY_QRY_CNF_STRU*/
+    /* Added by 傅映君/f62575 for CPULOAD&MFREELOCKSIZE处理过程移至C核, 2011/11/15, begin */
     DRV_AGENT_CPULOAD_QRY_CNF            = 0x0037,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU*/
     DRV_AGENT_MFREELOCKSIZE_QRY_CNF      = 0x0039,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU*/
+    /* Added by 傅映君/f62575 for CPULOAD&MFREELOCKSIZE处理过程移至C核, 2011/11/15, end */
 
     DRV_AGENT_MEMINFO_QRY_CNF            = 0x003A,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU*/
 
@@ -655,8 +659,6 @@ enum DRV_AGENT_MSG_TYPE_ENUM
 
     DRV_AGENT_NVMANUFACTUREEXT_SET_CNF   = 0x010B,
 
-    DRV_AGENT_ANTSWITCH_SET_CNF          = 0x010D,                              /* _H2ASN_MsgChoice DRV_AGENT_ANTSWITCH_SET_CNF_STRU */
-    DRV_AGENT_ANTSWITCH_QRY_CNF          = 0x010F,                              /* _H2ASN_MsgChoice DRV_AGENT_ANTSWITCH_QRY_CNF_STRU */
 
     DRV_AGENT_QRY_CCPU_MEM_INFO_CNF      = 0x0111,
 
@@ -900,6 +902,7 @@ typedef struct
     DRV_AGENT_MFREELOCKSIZE_QRY_ERROR_ENUM_UINT32   enResult;
     VOS_INT32                                       lMaxFreeLockSize;
 }DRV_AGENT_MFREELOCKSIZE_QRY_CNF_STRU;
+/* Added by 傅映君/f62575 for CPULOAD&MFREELOCKSIZE处理过程移至C核, 2011/11/15, end */
 
 
 typedef struct
@@ -1162,6 +1165,7 @@ typedef struct
     AT_GSM_BAND_SET_UN                  unGRFSptBand;
 }AT_UE_BAND_CAPA_ST;
 
+#ifndef MBB_COMMON
 
 enum AT_FEATURE_DRV_TYPE_ENUM
 {
@@ -1184,6 +1188,8 @@ enum AT_FEATURE_DRV_TYPE_ENUM
 typedef VOS_UINT32  AT_FEATURE_DRV_TYPE_ENUM_UINT32;
 
 #define AT_FEATURE_NAME_LEN_MAX       (16)
+#endif
+
 #define AT_FEATURE_CONTENT_LEN_MAX    (56)
 
 
@@ -1373,6 +1379,25 @@ enum AT_DSP_RF_ON_OFF_ENUM
 };
 typedef VOS_UINT8 AT_DSP_RF_ON_OFF_ENUM_UINT8;
 
+
+enum AT_DSP_CLT_ENABLE_ENUM
+{
+    AT_DSP_CLT_DISABLE = 0,
+    AT_DSP_CLT_ENABLE,
+
+    AT_DSP_CLT_BUTT
+};
+typedef VOS_UINT8 AT_DSP_CLT_ENABLE_ENUM_UINT8;
+
+
+enum AT_DCXOTEMPCOMP_ENABLE_ENUM
+{
+    AT_DCXOTEMPCOMP_DISABLE = 0,
+    AT_DCXOTEMPCOMP_ENABLE,
+
+    AT_DCXOTEMPCOMP_BUTT
+};
+typedef VOS_UINT8 AT_DCXOTEMPCOMP_ENABLE_ENUM_UINT8;
 
 typedef struct
 {
@@ -1585,7 +1610,7 @@ typedef struct
     AT_APPCTRL_STRU                     stAtAppCtrl;                            /* 消息头 */
     VOS_UINT32                          ulResult;                               /* 返回结果 */
     VOS_UINT32                          ulBadBlockNum;                          /* 坏块总数 */
-    VOS_UINT32                          aulBadBlockIndex[0];                    /* 坏块索引表 */
+    VOS_UINT32                          aulBadBlockIndex[0]; //lint !e43                 /* 坏块索引表 */
 } DRV_AGENT_NANDBBC_QRY_CNF_STRU;
 
 
@@ -1622,30 +1647,6 @@ typedef struct
 } DRV_AGENT_CHIPTEMP_QRY_CNF_STRU;
 
 
-
-
-typedef struct
-{
-    VOS_UINT32                          ulState;                    /* 设置状态 */
-
-} DRV_AGENT_ANTSWITCH_SET_STRU;
-
-
-typedef struct
-{
-    AT_APPCTRL_STRU                     stAtAppCtrl;                 /* 消息头 */
-    VOS_UINT32                          ulResult;                    /* 返回结果 */
-
-} DRV_AGENT_ANTSWITCH_SET_CNF_STRU;
-
-
-typedef struct
-{
-    AT_APPCTRL_STRU                     stAtAppCtrl;                 /* 消息头 */
-    VOS_UINT32                          ulState;                     /* 天线状态 */
-    VOS_UINT32                          ulResult;                    /* 返回结果 */
-
-} DRV_AGENT_ANTSWITCH_QRY_CNF_STRU;
 
 
 
@@ -1952,6 +1953,7 @@ typedef struct
     AT_APPCTRL_STRU                                 stAtAppCtrl;                /* 消息头 */
     DRV_AGENT_HVPDH_ERR_ENUM_UINT32                 enResult;                   /* 命令执行结果 */
 }DRV_AGENT_HVPDH_CNF_STRU;
+/* Added by L47619 for V9R1 vSIM Project, 2013-8-27, end */
 
 
 typedef struct
@@ -2032,7 +2034,6 @@ typedef struct
 extern DRV_AGENT_CONTEXT_STRU* DRVAGENT_GetCtxAddr(VOS_VOID);
 
 extern VOS_VOID MMA_GetProductionVersion(VOS_CHAR *pcDest);
-extern VOS_UINT32 MMA_VerifyOperatorLockPwd(VOS_UINT8 *pucPwd);
 extern VOS_UINT32 AT_GetWcdmaBandStr(VOS_UINT8 *pucGsmBandstr, AT_UE_BAND_CAPA_ST *pstBandCapa);
 extern VOS_UINT32 AT_GetGsmBandStr(VOS_UINT8 *pucGsmBandstr , AT_UE_BAND_CAPA_ST *pstBandCapa);
 extern VOS_UINT32 At_SendRfCfgAntSelToHPA(

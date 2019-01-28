@@ -82,9 +82,9 @@ extern struct psam_hal_handle psam32_hal;
 extern struct psam_hal_handle psam64_hal;
 
 
-struct psam_hal_handle* psam_get_hal(unsigned int version)
+struct psam_hal_handle* psam_get_hal(unsigned int version_id)
 {
-	if(version < PSAM_VERSION_160)
+	if(version_id < PSAM_VERSION_160)
 		return &psam32_hal;
 	else
 		return &psam64_hal;
@@ -111,7 +111,7 @@ int bsp_psam_get_used_dlad(IPF_AD_TYPE_E ad_type, unsigned int * ad_num, IPF_AD_
     unsigned int adq_wptr;
     unsigned int adq_rptr;
     if((NULL == ad_num)||(NULL == pst_ad_desc)){
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PSAM,"\r input para ERROR!NULL == ad_num or NULL == pst_ad_desc\n");
+        bsp_err("\r input para ERROR!NULL == ad_num or NULL == pst_ad_desc\n");
         return BSP_ERR_IPF_INVALID_PARA;
     }
 
@@ -126,7 +126,7 @@ int bsp_psam_get_used_dlad(IPF_AD_TYPE_E ad_type, unsigned int * ad_num, IPF_AD_
         msleep(20);
     }while(--time_out);
     if (!time_out){
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PSAM,"\r After 20ms psam dl channel still on, unable to free AD \n");
+        bsp_err("\r After 20ms psam dl channel still on, unable to free AD \n");
         return IPF_ERROR;
     }
 
@@ -151,7 +151,7 @@ int bsp_psam_get_used_dlad(IPF_AD_TYPE_E ad_type, unsigned int * ad_num, IPF_AD_
 	    }
 	}
 	else{
-	    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PSAM,"\r para ERROR! u32AdType >= IPF_AD_MAX\n");
+	    bsp_err("\r para ERROR! u32AdType >= IPF_AD_MAX\n");
 	    return BSP_ERR_IPF_INVALID_PARA;
 	}
 	
@@ -408,7 +408,7 @@ struct psam_pm_cb* bsp_psam_set_ipf_para(struct tagpsam_ipf_reg *para)
 	}
 	else
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PSAM,"get cipher para is NULL!\n");
+		bsp_err("get cipher para is NULL!\n");
 		return NULL;
 	}
 
@@ -470,12 +470,12 @@ static int psam_probe(struct platform_device *pdev)
         return PTR_ERR(g_psam_device->regs);
     g_psam_device->clk = devm_clk_get(g_psam_device->dev, "psam_aclk");
     if (IS_ERR(g_psam_device->clk)) {
-        dev_err(g_psam_device->dev, "psam clock not available\n");
+        bsp_err("psam clock not available\n");
         return -EPERM;
     } else {
         ret = clk_prepare_enable(g_psam_device->clk);
         if (ret) {
-            dev_err(g_psam_device->dev, "failed to enable psam clock\n");
+            bsp_err("failed to enable psam clock\n");
             return ret;
         }
     }
@@ -487,7 +487,6 @@ static int psam_probe(struct platform_device *pdev)
     g_psam_device->pm = &psam_pm;
 
     dma_set_mask_and_coherent(g_psam_device->dev, mask);
-    of_dma_configure(g_psam_device->dev, g_psam_device->dev->of_node);
 
     for (i = 0; i < PSAM_ADQ_NUM; i++) {
         g_psam_device->desc[i] = dmam_alloc_coherent(g_psam_device->dev,
@@ -502,7 +501,7 @@ static int psam_probe(struct platform_device *pdev)
     ret = devm_request_irq(g_psam_device->dev, g_psam_device->irq, psam_interrupt,
                    g_psam_device->irq_flags, "psam", g_psam_device);
     if(ret){
-        dev_err(g_psam_device->dev, "failed to request psam irq\n");
+        bsp_err("failed to request psam irq\n");
         return ret;
     }
 
@@ -511,7 +510,6 @@ static int psam_probe(struct platform_device *pdev)
     bsp_ipf_set_debug_para(&(g_psam_device->ipf_deb));
     /*only dallas platform need to juduge idle by p_ctrl.*/
     (void)of_property_read_u32_array(pdev->dev.of_node, "idle_ctrl", idle_p_ctrl, 3);
-    dev_info(g_psam_device->dev, "idle_p_ctrl %x, %x, %x\n", idle_p_ctrl[0],idle_p_ctrl[1],idle_p_ctrl[2]);
     if(idle_p_ctrl[0]){
         p_ctrl_base_addr=(void *)ioremap_nocache(idle_p_ctrl[0], P_CTRL_4K);
     }
@@ -521,22 +519,22 @@ static int psam_probe(struct platform_device *pdev)
     }
     
     g_psam_device->debug.init_ok = 1;
-    printk(KERN_ALERT "psam init ok!\n");
+    bsp_err("psam init ok!\n");
 
     return 0;
 }
 
 static int psam_remove(struct platform_device *pdev)
 {
-	struct psam_device *psam = NULL;
+	struct psam_device *psam_dev = NULL;
 
-	psam = platform_get_drvdata(pdev);
-	if (!psam)
+	psam_dev = platform_get_drvdata(pdev);
+	if (!psam_dev)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, NULL);
 
-	clk_disable_unprepare(psam->clk);
+	clk_disable_unprepare(psam_dev->clk);
 
 	return 0;
 }
@@ -550,7 +548,10 @@ static struct platform_driver psam_pltfm_driver = {
 	},
 };
 
-module_platform_driver(psam_pltfm_driver);//lint !e64
+__init int psam_pltfm_driver_init(void)
+{
+    return platform_driver_register(&psam_pltfm_driver);
+}
 EXPORT_SYMBOL(g_psam_device);
 EXPORT_SYMBOL(psam_srset);
 EXPORT_SYMBOL(psam_reinit_regs);

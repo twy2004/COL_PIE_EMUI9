@@ -62,9 +62,11 @@
 
 #include <bsp_hardtimer.h>
 #include <bsp_slice.h>
-#include <bsp_trace.h>
+#include <bsp_version.h>
+#include "securec.h"
 
-
+#undef THIS_MODU
+#define THIS_MODU mod_hardtimer
 /* begin: add for timer debug*/
 #define ADP_TIMER_ENABLE_TIMES 30
 #define ADP_TIMER_CALLBACK_TIMES 30
@@ -311,11 +313,26 @@ static int connect_timer_isr(void){
 			}
 		}/*for_each_available_child_of_node*/
 	}/*if(node)*/
+	if(!bsp_get_version_info() && bsp_get_version_info()->cses_type == TYPE_ESL_EMU)/*ESL+EMU osa timer & om tcxo timer*/
+	{
+        node = of_find_compatible_node(NULL, NULL, "hisilicon,esl_emu_osatimer");
+        if(node)
+        {
+            adp_timer_ctrl[TIMER_ACPU_OSA_ID].irq_num = irq_of_parse_and_map(node, 0);
+            timer_handler_connect((DRV_TIMER_ID)TIMER_ACPU_OSA_ID,adp_timer_ctrl[TIMER_ACPU_OSA_ID].name,IRQF_NO_SUSPEND);
+        }
+        node = of_find_compatible_node(NULL, NULL, "hisilicon,esl_emu_omtcxotimer");
+        if(node)
+        {
+            adp_timer_ctrl[TIMER_ACPU_OM_TCXO_ID].irq_num = irq_of_parse_and_map(node, 0);
+            timer_handler_connect((DRV_TIMER_ID)TIMER_ACPU_OM_TCXO_ID,adp_timer_ctrl[TIMER_ACPU_OM_TCXO_ID].name,0);
+        }
+	}
 	return BSP_OK;
 }
 int set_adp_timer_isr_and_pm(void)
 {
-	(void)memset((void*)adp_timer_ctrl,0x0,sizeof(struct adp_timer_control)*TIMER_ID_MAX);
+	(void)memset_s((void*)adp_timer_ctrl,sizeof(struct adp_timer_control)*TIMER_ID_MAX,0x0,sizeof(struct adp_timer_control)*TIMER_ID_MAX);
 	if(connect_timer_isr()){
 		hardtimer_print_error("get dts failed,set_adp_timer_isr_and_pm failed\n");
 		return BSP_ERROR;

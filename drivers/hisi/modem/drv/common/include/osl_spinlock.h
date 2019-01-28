@@ -179,14 +179,15 @@ do { \
 #endif
 
 
-
+//lint -esym(607,*)
 #define ALT_SMP(smp, up)					      \
 	"9998:	" smp "\n"					          \
-	"	.pushsection \".alt.smp.init\", \"a\"\n"  \
+	"	.pushsection \".alt.smp.init\", \"a\"\n"  /*lint !e607*/\
 	"	.long	9998b\n"				\
 	"	" up "\n"					\
 	"	.popsection\n"
 
+//lint +esym(607,*)
 
 #define SEV		ALT_SMP("sev", "nop")
 #define WFE(cond)	ALT_SMP("wfe" cond, "nop")
@@ -208,9 +209,9 @@ typedef struct spinlock {
 		};
 } spinlock_t;
 #define DEFINE_SPINLOCK(_lock)	spinlock_t _lock = (spinlock_t ) { .slock = 0x0 }
-
+#ifndef ACCESS_ONCE
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-
+#endif
 #define TICKET_SHIFT	16
 #define wfe()	__asm__ __volatile__ ("wfe" : : : "memory")
 
@@ -231,13 +232,13 @@ static inline void raw_smp_spin_lock(spinlock_t *p_lock)
 	: "r" (&p_lock->slock), "I" (1 << TICKET_SHIFT)
 	: "cc");
 
-	while ( lock_val.tickets.owner != lock_val.tickets.next) {
+	while ( lock_val.tickets.owner != lock_val.tickets.next) {/*lint !e530*/
 		wfe();
 		lock_val.tickets.owner = ACCESS_ONCE(p_lock->tickets.owner);
 	}
 
 	smp_mb();
-}
+}/*lint !e529*/
 
 static inline void raw_smp_spin_unlock(spinlock_t *p_lock)
 {
@@ -266,15 +267,15 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 		: "=&r" (slock), "=&r" (contended), "=&r" (res)
 		: "r" (&p_lock->slock), "I" (1 << TICKET_SHIFT)
 		: "cc");
-	} while (res);
+	} while (res);/*lint !e530*/
 
-	if (!contended) {
+	if (!contended) {/*lint !e530*/
 		smp_mb();
 		return 1;
 	} else {
 		return 0;
 	}
-}
+}/*lint !e529*/
 
  static inline void spin_lock(spinlock_t *p_lock)
 {
@@ -300,13 +301,14 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 *spinlock_t *  __specific_lock,
 *unsigned long __specific_flags
 */
+//lint -esym(683,*)
 #define spin_lock_irqsave(__specific_lock, __specific_flags)				\
 do { \
 		local_irq_save(__specific_flags); \
 		if(!osl_int_context()&&!(__specific_flags&I_BIT)) \
 		{osl_task_lock();}\
 		spin_lock(__specific_lock); \
-	} while (0)
+	} while (0)/*lint !e683*/
 
 /*
 *参数类型
@@ -319,7 +321,10 @@ do { \
     local_irq_restore(__specific_flags);   \
     if(!osl_int_context()&&!(__specific_flags&I_BIT)) \
 	{osl_task_unlock();}\
-    } while (0)
+    } while (0)/*lint !e683*/
+
+//lint +esym(683,*)
+
 #elif defined(__CMSIS_RTOS)
 #include "osl_types.h"
 #include "osl_irq.h"

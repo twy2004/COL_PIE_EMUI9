@@ -34,6 +34,9 @@
 #include "rt4801h.h"
 #include "../hisi_fb_def.h"
 
+#include "lcd_kit_common.h"
+#include "lcd_kit_core.h"
+#include "lcd_kit_bias.h"
 #define DTS_COMP_RT4801H "hisilicon,rt4801h_phy"
 static int gpio_vsp_enable = 0;
 static int gpio_vsn_enable = 0;
@@ -127,6 +130,34 @@ exit:
 	return nRet;
 }
 
+int rt4801h_get_bias_voltage(int *vpos_target, int *vneg_target)
+{
+	int i = 0;
+
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct rt4801h_voltage);i ++) {
+		if(vol_table[i].voltage == *vpos_target) {
+			pr_err("rt4801h vsp voltage:0x%x\n",vol_table[i].value);
+			*vpos_target = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct rt4801h_voltage)) {
+		pr_err("not found vsp voltage, use default voltage:RT4801H_VOL_55\n");
+		*vpos_target = RT4801H_VOL_55;
+	}
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct rt4801h_voltage);i ++) {
+		if(vol_table[i].voltage == *vneg_target) {
+			pr_err("rt4801h vsn voltage:0x%x\n",vol_table[i].value);
+			*vneg_target = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct rt4801h_voltage)) {
+		pr_err("not found vsn voltage, use default voltage:RT4801H_VOL_55\n");
+		*vpos_target = RT4801H_VOL_55;
+	}
+	return 0;
+}
 
 
 static bool rt4801h_device_verify(void)
@@ -162,6 +193,16 @@ static void rt4801h_get_target_voltage(int *vpos_target, int *vneg_target)
 	}
 
 
+        struct lcd_kit_ops *lcd_ops = lcd_kit_get_ops();
+        if (lcd_ops && lcd_ops->lcd_kit_support) {
+            if (lcd_ops->lcd_kit_support()) {
+                if (common_ops->get_bias_voltage) {
+                    common_ops->get_bias_voltage(vpos_target, vneg_target);
+                    rt4801h_get_bias_voltage(vpos_target, vneg_target);
+                }
+                return;
+            }
+        }
 
 
 	ret = get_lcd_type();
@@ -252,6 +293,41 @@ static int rt4801h_finish_setting(void)
 	return retval;
 }
 
+static int rt4801h_set_bias(int vpos, int vneg)
+{
+	int i = 0;
+
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct rt4801h_voltage);i++) {
+		if(vol_table[i].voltage == vpos) {
+			pr_err("rt4801h vsp voltage:0x%x\n",vol_table[i].value);
+			vpos = vol_table[i].value;
+			break;
+		}
+	}
+	if (i >= sizeof(vol_table) / sizeof(struct rt4801h_voltage)) {
+		pr_err("not found vsp voltage, use default voltage:RT4801H_VOL_55\n");
+		vpos = RT4801H_VOL_55;
+	}
+	for(i = 0;i < sizeof(vol_table) / sizeof(struct rt4801h_voltage);i++) {
+		if(vol_table[i].voltage == vneg) {
+			pr_err("rt4801h vsn voltage:0x%x\n",vol_table[i].value);
+			vneg = vol_table[i].value;
+			break;
+		}
+	}
+
+	if (i >= sizeof(vol_table) / sizeof(struct rt4801h_voltage)) {
+		pr_err("not found vsn voltage, use default voltage:RT4801H_VOL_55\n");
+		vneg = RT4801H_VOL_55;
+	}
+	pr_err("vpos = 0x%x, vneg = 0x%x\n", vpos, vneg);
+	rt4801h_reg_init(rt4801h_client->client, vpos_cmd, vneg_cmd);
+	return 0;
+}
+
+static struct lcd_kit_bias_ops bias_ops = {
+	.set_bias_voltage = rt4801h_set_bias,
+};
 
 static int rt4801h_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -319,6 +395,7 @@ static int rt4801h_probe(struct i2c_client *client, const struct i2c_device_id *
 	}
 	pr_info("rt4801h inited succeed\n");
 
+	lcd_kit_bias_register(&bias_ops);
 
 	/* detect current device successful, set the flag as present */
 	set_hw_dev_flag(DEV_I2C_DC_DC);

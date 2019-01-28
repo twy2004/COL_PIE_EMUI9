@@ -14,6 +14,7 @@ extern "C" {
   1 Include Headfile
 *****************************************************************************/
 #include "AppNasComm.h"
+#include "AppRrcInterface.h"
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)

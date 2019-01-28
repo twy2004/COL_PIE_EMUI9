@@ -48,78 +48,65 @@
 #ifndef __IMSA_RNIC_INTERFACE_H__
 #define __IMSA_RNIC_INTERFACE_H__
 
+
+/*****************************************************************************
+  1 头文件包含
+*****************************************************************************/
+
+#include "vos.h"
+
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
-#endif
-#endif
+#endif /* __cpluscplus */
+#endif /* __cpluscplus */
 
-
-/*****************************************************************************
-  1 其他头文件包含
-*****************************************************************************/
-#include "vos.h"
-
-#include "RnicInterface.h"
-
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
+#else
+#pragma pack(push, 4)
+#endif
 
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
-/*================================================*/
-/* 数值宏定义 */
-/*================================================*/
+
 #define   IMSA_RNIC_IPV4_ADDR_LENGTH                (4)     /* IPV4地址长度，单位字节 */
 #define   IMSA_RNIC_IPV6_ADDR_LENGTH                (16)    /* IPV6地址长度, 单位字节 */
-
 #define   IMSA_RNIC_MAX_DNS_SERVER_NUM              (4)     /* 最多可设置4个DNS服务器，一主三辅 */
-
 #define   IMSA_RNIC_IMS_PORT_RANGE_GROUP_MAX_NUM    (32)    /* IMS端口号组最大值 */
-
 #define   IMSA_RNIC_SIP_PORT_RANGE_GROUP_MAX_NUM    (4)     /* IMS SIP端口号组最大值 */
 
-/*================================================*/
-/* 功能函数宏定义 */
-/*================================================*/
 
 /*******************************************************************************
   3 枚举定义
 *******************************************************************************/
 
 /*****************************************************************************
-  4 全局变量声明
+ 枚举名称: IMSA_RNIC_MSG_ID_ENUM
+ 枚举说明: IMSA与RNIC的消息定义
 *****************************************************************************/
-
-/*****************************************************************************
-  5 消息头定义
-*****************************************************************************/
-
-/*****************************************************************************
-  6 消息定义
-*****************************************************************************/
-
 enum IMSA_RNIC_MSG_ID_ENUM
 {
     /* IMSA发给RNIC的消息枚举 */
-    ID_IMSA_RNIC_PDN_ACT_IND        = 0x0001,   /* PDN激活指示 */               /* _H2ASN_MsgChoice IMSA_RNIC_PDN_ACT_IND_STRU */
-    ID_IMSA_RNIC_PDN_DEACT_IND      = 0x0002,   /* PDN去激活指示 */             /* _H2ASN_MsgChoice IMSA_RNIC_PDN_DEACT_IND_STRU */
-    ID_IMSA_RNIC_PDN_MODIFY_IND     = 0x0003,   /* PDN修改指示 */               /* _H2ASN_MsgChoice IMSA_RNIC_PDN_MODIFY_IND_STRU */
-    ID_IMSA_RNIC_RESERVED_PORTS_CONFIG_IND     = 0x0004, /* IMS端口号配置指示 *//* _H2ASN_MsgChoice IMSA_RNIC_RESERVED_PORTS_CONFIG_IND_STRU */
-
-    ID_IMSA_RNIC_SOCKET_EXCEPTION_IND          = 0x0005, /* SOCKET异常指示 */   /* _H2ASN_MsgChoice IMSA_RNIC_SOCKET_EXCEPTION_IND_STRU */
-    ID_IMSA_RNIC_SIP_PORTS_RANGE_IND           = 0x0006, /* SIP端口号范围指示 */ /* _H2ASN_MsgChoice IMSA_RNIC_SIP_PORT_RANGE_IND_STRU */
+    ID_IMSA_RNIC_PDN_ACT_IND                = 0x0001,                           /* PDN激活指示 */
+    ID_IMSA_RNIC_PDN_DEACT_IND              = 0x0002,                           /* PDN去激活指示 */
+    ID_IMSA_RNIC_PDN_MODIFY_IND             = 0x0003,                           /* PDN修改指示 */
+    ID_IMSA_RNIC_RESERVED_PORTS_CONFIG_IND  = 0x0004,                           /* IMS端口号配置指示 */
+    ID_IMSA_RNIC_SOCKET_EXCEPTION_IND       = 0x0005,                           /* SOCKET异常指示 */
+    ID_IMSA_RNIC_SIP_PORTS_RANGE_IND        = 0x0006,                           /* SIP端口号范围指示 */
 
     /* RNIC发给IMSA的消息枚举 */
 
-
     ID_IMSA_RNIC_MSG_ID_ENUM_BUTT
-
 };
 typedef VOS_UINT32 IMSA_RNIC_MSG_ID_ENUM_UINT32;
 
-
-
+/*****************************************************************************
+ 枚举名称: IMSA_RNIC_IMS_RAT_TYPE_ENUM
+ 枚举说明: IMS注册域类型
+*****************************************************************************/
 enum IMSA_RNIC_IMS_RAT_TYPE_ENUM
 {
     IMSA_RNIC_IMS_RAT_TYPE_LTE          = 0x00,
@@ -129,8 +116,8 @@ enum IMSA_RNIC_IMS_RAT_TYPE_ENUM
 typedef VOS_UINT8 IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8;
 
 /*****************************************************************************
- 枚举名称  : IMSA_RNIC_PDN_EMC_IND_ENUM
- 枚举说明  : IMS PDN 是否用于emergency service
+ 枚举名称: IMSA_RNIC_PDN_EMC_IND_ENUM
+ 枚举说明: IMS PDN 是否用于emergency service
 *****************************************************************************/
 enum IMSA_RNIC_PDN_EMC_IND_ENUM
 {
@@ -143,117 +130,146 @@ typedef VOS_UINT8 IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8;
 
 
 /*****************************************************************************
-  7 STRUCT定义
+  4 STRUCT&UNION定义
 *****************************************************************************/
 
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_IPV4_PDN_INFO_STRU
+ 结构说明: IPV4 配置信息结构
+*****************************************************************************/
 typedef struct
 {
-    VOS_UINT32                          bitOpDnsPrim         :1;                     /* 外部模块填写，指示aucDnsPrimAddr是否需要配置 */
-    VOS_UINT32                          bitOpDnsSec          :1;                     /* 外部模块填写，指示aucDnsSecAddr是否需要配置 */
+    VOS_UINT32                          bitOpDnsPrim         :1;                    /* 外部模块填写，指示aucDnsPrimAddr是否需要配置 */
+    VOS_UINT32                          bitOpDnsSec          :1;                    /* 外部模块填写，指示aucDnsSecAddr是否需要配置 */
     VOS_UINT32                          bitOpSpare           :30;
 
-    VOS_UINT8                           aucIpV4Addr[IMSA_RNIC_IPV4_ADDR_LENGTH];       /* IP地址 */
-    VOS_UINT8                           aucDnsPrimAddr[IMSA_RNIC_IPV4_ADDR_LENGTH];    /* 主DNS服务器IP */
-    VOS_UINT8                           aucDnsSecAddr[IMSA_RNIC_IPV4_ADDR_LENGTH];     /* 辅DNS服务器IP */
-}IMSA_RNIC_IPV4_PDN_INFO_STRU;
+    VOS_UINT8                           aucIpV4Addr[IMSA_RNIC_IPV4_ADDR_LENGTH];    /* IP地址 */
+    VOS_UINT8                           aucDnsPrimAddr[IMSA_RNIC_IPV4_ADDR_LENGTH]; /* 主DNS服务器IP */
+    VOS_UINT8                           aucDnsSecAddr[IMSA_RNIC_IPV4_ADDR_LENGTH];  /* 辅DNS服务器IP */
+} IMSA_RNIC_IPV4_PDN_INFO_STRU;
 
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_IPV6_PDN_INFO_STRU
+ 结构说明: IPV6 配置信息结构
+*****************************************************************************/
 typedef struct
 {
-    VOS_UINT32                          bitOpDnsPrim         :1;                     /* 外部模块填写，指示aucDnsPrimAddr是否需要配置 */
-    VOS_UINT32                          bitOpDnsSec          :1;                     /* 外部模块填写，指示aucDnsSecAddr是否需要配置 */
+    VOS_UINT32                          bitOpDnsPrim         :1;                    /* 外部模块填写，指示aucDnsPrimAddr是否需要配置 */
+    VOS_UINT32                          bitOpDnsSec          :1;                    /* 外部模块填写，指示aucDnsSecAddr是否需要配置 */
     VOS_UINT32                          bitOpSpare           :30;
 
-    VOS_UINT32                          ulBitPrefixLen;                              /* IPV6前缀长度,单位为bit */
-    VOS_UINT8                           aucIpV6Addr[IMSA_RNIC_IPV6_ADDR_LENGTH];       /* IP地址 */
-    VOS_UINT8                           aucDnsPrimAddr[IMSA_RNIC_IPV6_ADDR_LENGTH];    /* 主DNS服务器IP */
-    VOS_UINT8                           aucDnsSecAddr[IMSA_RNIC_IPV6_ADDR_LENGTH];     /* 辅DNS服务器IP */
-}IMSA_RNIC_IPV6_PDN_INFO_STRU;
+    VOS_UINT32                          ulBitPrefixLen;                             /* IPV6前缀长度,单位为bit */
+    VOS_UINT8                           aucIpV6Addr[IMSA_RNIC_IPV6_ADDR_LENGTH];    /* IP地址 */
+    VOS_UINT8                           aucDnsPrimAddr[IMSA_RNIC_IPV6_ADDR_LENGTH]; /* 主DNS服务器IP */
+    VOS_UINT8                           aucDnsSecAddr[IMSA_RNIC_IPV6_ADDR_LENGTH];  /* 辅DNS服务器IP */
+} IMSA_RNIC_IPV6_PDN_INFO_STRU;
 
-
-typedef struct
-{
-    VOS_UINT16                          usSockMinPort;      /* socket 端口范围下限 */
-    VOS_UINT16                          usSockMaxPort;      /* socket 端口范围上限 */
-}IMSA_RNIC_SOCK_PORT_INFO_STRU;
-
-
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_PDN_INFO_CONFIG_STRU
+ 结构说明: IMSA给RNIC虚拟网卡的PDN配置信息
+*****************************************************************************/
 typedef struct
 {
     VOS_UINT32                          bitOpIpv4PdnInfo : 1;
     VOS_UINT32                          bitOpIpv6PdnInfo : 1;
-    VOS_UINT32                          bitOpSockPortInfo: 1;
     VOS_UINT32                          bitOpMtuInfo     : 1;
-    VOS_UINT32                          bitOpSpare       : 28;
+    VOS_UINT32                          bitOpSpare       : 29;
 
-    MODEM_ID_ENUM_UINT16                enModemId;                  /* 当前Modem号 */
-    VOS_UINT8                           ucRabId;                    /* 承载号，取值范围[5,15] */
-    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType;                  /* 注册域 */
-
+    MODEM_ID_ENUM_UINT16                enModemId;
+    union
+    {
+        VOS_UINT8                       ucRabId;
+        VOS_UINT8                       ucPduSessionId;
+    };
+    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType;
     IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8    enEmcInd;
     VOS_UINT8                           aucReserved[3];
 
     IMSA_RNIC_IPV4_PDN_INFO_STRU        stIpv4PdnInfo;
     IMSA_RNIC_IPV6_PDN_INFO_STRU        stIpv6PdnInfo;
-    IMSA_RNIC_SOCK_PORT_INFO_STRU       stSockPortInfo;
 
     VOS_UINT32                          ulMtuSize;
-}IMSA_RNIC_PDN_INFO_CONFIG_STRU;
+} IMSA_RNIC_PDN_INFO_CONFIG_STRU;
 
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_PDN_ACT_IND_STRU
+ 结构说明: IMSA给RNIC的PDN激活指示
+*****************************************************************************/
 typedef struct
 {
-    VOS_MSG_HEADER                                                  /* 消息头 */    /* _H2ASN_Skip */
-    VOS_UINT32                          ulMsgId;                    /* 消息类型 */  /* _H2ASN_Skip */
-    IMSA_RNIC_PDN_INFO_CONFIG_STRU      stPdnInfo;
-}IMSA_RNIC_PDN_ACT_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                  /* 消息头 */    /* _H2ASN_Skip */
-    VOS_UINT32                          ulMsgId;                    /* 消息类型 */  /* _H2ASN_Skip */
-    MODEM_ID_ENUM_UINT16                enModemId;                  /* 当前Modem号 */
-    VOS_UINT8                           ucRabId;                    /* RAB标识，取值范围:[5,15] */
-    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType;                  /* 注册域 */
-
-    IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8    enEmcInd;
-    VOS_UINT8                           aucReserved[3];
-}IMSA_RNIC_PDN_DEACT_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */    /* _H2ASN_Skip */
+    VOS_MSG_HEADER                                                              /* 消息头 */     /* _H2ASN_Skip */
     VOS_UINT32                          ulMsgId;                                /* 消息类型 */  /* _H2ASN_Skip */
     IMSA_RNIC_PDN_INFO_CONFIG_STRU      stPdnInfo;
-}IMSA_RNIC_PDN_MODIFY_IND_STRU;
+} IMSA_RNIC_PDN_ACT_IND_STRU;
 
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_PDN_DEACT_IND_STRU
+ 结构说明: IMSA给RNIC的PDN去激活指示
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* 消息头 */     /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                                /* 消息类型 */  /* _H2ASN_Skip */
 
+    MODEM_ID_ENUM_UINT16                enModemId;
+    union
+    {
+        VOS_UINT8                       ucRabId;
+        VOS_UINT8                       ucPduSessionId;
+    };
+    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType;
+    IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8    enEmcInd;
+    VOS_UINT8                           aucReserved[3];
+} IMSA_RNIC_PDN_DEACT_IND_STRU;
+
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_PDN_MODIFY_IND_STRU
+ 结构说明: IMSA给RNIC的PDN修改指示
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* 消息头 */     /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                                /* 消息类型 */  /* _H2ASN_Skip */
+    IMSA_RNIC_PDN_INFO_CONFIG_STRU      stPdnInfo;
+} IMSA_RNIC_PDN_MODIFY_IND_STRU;
+
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_IMS_PORT_RANGE_STRU
+ 结构说明: IMSA给RNIC的IMS端口号组范围结构
+*****************************************************************************/
 typedef struct
 {
     VOS_UINT16                          usMinPort;
     VOS_UINT16                          usMaxPort;
-}IMSA_RNIC_IMS_PORT_RANGE_STRU;
+} IMSA_RNIC_IMS_PORT_RANGE_STRU;
 
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_IMS_PORT_INFO_STRU
+ 结构说明: IMSA给RNIC的IMS端口号配置结构
+*****************************************************************************/
 typedef struct
 {
     VOS_UINT32                          ulImsPortRangeNum;                      /* IMS端口组个数 */
     MODEM_ID_ENUM_UINT16                enModemId;                              /* 当前Modem号 */
     VOS_UINT16                          usReserved;
     IMSA_RNIC_IMS_PORT_RANGE_STRU       astImsPortRange[IMSA_RNIC_IMS_PORT_RANGE_GROUP_MAX_NUM];  /* IMS端口配置 */
-}IMSA_RNIC_IMS_PORT_INFO_STRU;
+} IMSA_RNIC_IMS_PORT_INFO_STRU;
 
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_RESERVED_PORTS_CONFIG_IND_STRU
+ 结构说明: IMSA给RNIC的IMS端口号配置指示消息结构
+*****************************************************************************/
 typedef struct
 {
     VOS_MSG_HEADER                                                              /* 消息头 */    /* _H2ASN_Skip */
     VOS_UINT32                          ulMsgId;                                /* 消息类型 */  /* _H2ASN_Skip */
     IMSA_RNIC_IMS_PORT_INFO_STRU        stImsPortInfo;                          /* IMS端口配置信息 */
-}IMSA_RNIC_RESERVED_PORTS_CONFIG_IND_STRU;
+} IMSA_RNIC_RESERVED_PORTS_CONFIG_IND_STRU;
 
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_SOCKET_EXCEPTION_IND_STRU
+ 结构说明: IMSA给RNIC的SOCKET异常指示
+*****************************************************************************/
 typedef struct
 {
     VOS_MSG_HEADER                                                              /* 消息头 */    /* _H2ASN_Skip */
@@ -261,9 +277,12 @@ typedef struct
     VOS_INT16                           sSocketErrorNo;
     VOS_UINT16                          usRsv;
     IMSA_RNIC_PDN_INFO_CONFIG_STRU      stPdnInfo;
-}IMSA_RNIC_SOCKET_EXCEPTION_IND_STRU;
+} IMSA_RNIC_SOCKET_EXCEPTION_IND_STRU;
 
-
+/*****************************************************************************
+ 结构名称: IMSA_RNIC_IMS_SIP_PORT_RANGE_STRU
+ 结构说明: IMSA给RNIC的IMS端口号配置指示消息结构
+*****************************************************************************/
 typedef struct
 {
     VOS_MSG_HEADER                                                              /* 消息头 */    /* _H2ASN_Skip */
@@ -271,52 +290,30 @@ typedef struct
     MODEM_ID_ENUM_UINT16                enModemId;
     VOS_UINT16                          usSipPortRangeNum;
     IMSA_RNIC_IMS_PORT_RANGE_STRU       astSipPortRange[IMSA_RNIC_SIP_PORT_RANGE_GROUP_MAX_NUM];
-}IMSA_RNIC_SIP_PORT_RANGE_IND_STRU;
+} IMSA_RNIC_SIP_PORT_RANGE_IND_STRU;
+
 
 /*****************************************************************************
-  8 UNION定义
+  5 OTHERS定义
 *****************************************************************************/
 
 /*****************************************************************************
-  9 OTHERS定义
-*****************************************************************************/
-
-/*****************************************************************************
-  H2ASN顶级消息结构定义
-*****************************************************************************/
-typedef struct
-{
-    IMSA_RNIC_MSG_ID_ENUM_UINT32        enMsgId;            /* _H2ASN_MsgChoice_Export IMSA_RNIC_MSG_ID_ENUM_UINT32 */
-    VOS_UINT8                           aucMsg[4];
-    /***************************************************************************
-        _H2ASN_MsgChoice_When_Comment          IMSA_RNIC_MSG_ID_ENUM_UINT32
-    ****************************************************************************/
-} IMSA_RNIC_INTERFACE_MSG_DATA;
-/* _H2ASN_Length UINT32 */
-
-typedef struct
-{
-    VOS_MSG_HEADER
-    IMSA_RNIC_INTERFACE_MSG_DATA          stMsgData;
-} ImsaRnicInterface_MSG;
-
-/*****************************************************************************
-  10 函数声明
+  6 函数声明
 *****************************************************************************/
 
 
 
-#if (VOS_OS_VER == VOS_WIN32)
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack()
 #else
-#pragma pack(0)
+#pragma pack(pop)
 #endif
 
 #ifdef __cplusplus
-    #if __cplusplus
-        }
-    #endif
-#endif
+#if __cplusplus
+}
+#endif /* __cpluscplus */
+#endif /* __cpluscplus */
 
-#endif /* ImsaRnicInterface.h */
+#endif /* __IMSA_RNIC_INTERFACE_H__ */
 

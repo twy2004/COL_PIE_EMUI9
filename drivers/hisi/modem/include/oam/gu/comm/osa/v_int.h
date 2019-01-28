@@ -170,9 +170,11 @@ VOS_VOID V_IntUnlock(VOS_INT lLockKey);
 
 #else
 
+/*lint -esym(683,VOS_SplIMP)*/
 #define VOS_SplIMP() \
         (VOS_INT)SRE_IntLock()
 
+/*lint -esym(683,VOS_Splx)*/
 #define VOS_Splx( s ) \
         SRE_IntRestore( (VOS_UINT32)(s) )
 

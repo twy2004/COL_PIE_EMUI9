@@ -52,6 +52,7 @@
 #include <mdrv.h>
 #include <mdrv_diag_system.h>
 #include "diag_msgphy.h"
+#include "diag_msgmsp.h"
 #include "diag_msgbbp.h"
 #include "diag_debug.h"
 #include "diag_common.h"
@@ -72,7 +73,7 @@ VOS_UINT32 diag_GuDspTransProc(DIAG_FRAME_INFO_STRU *pData)
 
     if(pData->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU) + sizeof(DIAG_OSA_MSG_STRU))
     {
-        diag_error("rev tool data len:0x%x error\n", pData->ulMsgLen);
+        diag_error("DataLen(0x%x) error\n", pData->ulMsgLen);
         return ERR_MSP_INALID_LEN_ERROR;
     }
 
@@ -80,7 +81,7 @@ VOS_UINT32 diag_GuDspTransProc(DIAG_FRAME_INFO_STRU *pData)
 
     if(VOS_CheckPidValidity(pstMsg->ulReceiverPid) != VOS_PID_AVAILABLE)
     {
-        diag_error("pid:0x%x is invalid, please check\n", pstMsg->ulReceiverPid);
+        diag_error("pid:0x%x is invalid\n", pstMsg->ulReceiverPid);
         return ERR_MSP_DIAG_ERRPID_CMD;
     }
 
@@ -95,7 +96,7 @@ VOS_UINT32 diag_GuDspTransProc(DIAG_FRAME_INFO_STRU *pData)
         if (ulRet != VOS_OK)
         {
             ulRet = ERR_MSP_DIAG_SEND_MSG_FAIL;
-            diag_printf("diag_debug_write VOS_SendMsg failed!\n");
+            diag_error("VOS_SendMsg failed!\n");
         }
     }
 
@@ -145,19 +146,30 @@ VOS_UINT32 diag_DspMsgProc(DIAG_FRAME_INFO_STRU *pData)
     pstInfo = (DIAG_PHY_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);
     if(VOS_NULL == pstInfo)
     {
-        diag_printf("VOS_AllocMsg failed!\n");
+        diag_error("VOS_AllocMsg failed!\n");
         ulRet = ERR_MSP_MALLOC_FAILUE;
         goto DIAG_ERROR;
     }
-    pstInfo->ulReceiverPid = MSP_PID_DIAG_AGENT;
-    pstInfo->ulSenderPid   = MSP_PID_DIAG_APP_AGENT;
-    pstInfo->ulMsgId       = DIAG_MSG_PHY_A_TRANS_C_REQ;
+
+	pstInfo->ulSenderPid   = MSP_PID_DIAG_APP_AGENT;
+
+	if((DIAG_MODE_NR == pData->stID.mode4b) || (DIAG_MODE_COMM == pData->stID.mode4b))
+	{
+	    pstInfo->ulReceiverPid = MSP_PID_DIAG_NRM_AGENT;
+	    pstInfo->ulMsgId       = DIAG_MSG_HL1C_A_TRANS_NRM_REQ;
+	}
+	else
+	{
+	    pstInfo->ulReceiverPid = MSP_PID_DIAG_AGENT;
+	    pstInfo->ulMsgId       = DIAG_MSG_PHY_A_TRANS_C_REQ;
+	}
+
     ulLen = sizeof(DIAG_FRAME_INFO_STRU)+pData->ulMsgLen;
     (VOS_VOID)VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pData, ulLen);
     ulRet = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstInfo);
     if(ulRet)
     {
-        diag_printf("VOS_SendMsg failed!\n");
+        diag_error("VOS_SendMsg failed!\n");
         ulRet = ERR_MSP_DIAG_SEND_MSG_FAIL;
         goto DIAG_ERROR;
     }

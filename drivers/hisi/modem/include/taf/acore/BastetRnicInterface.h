@@ -53,8 +53,6 @@
   1 其他头文件包含
 *****************************************************************************/
 #include "vos.h"
-#include "RnicLinuxInterface.h"
-
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -143,10 +141,9 @@ typedef struct
  返 回 值  : VOS_OK/VOS_ERROR
 *****************************************************************************/
 VOS_INT RNIC_BST_GetModemInfo(
-    struct net_device                  *pstNetDev,
+    char                               *pNetDevName,
     BST_RNIC_MODEM_INFO_STRU           *pstModemInfo
 );
-
 
 
 #if (VOS_OS_VER == VOS_WIN32)

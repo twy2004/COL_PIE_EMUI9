@@ -80,8 +80,9 @@
 #include "bsp_softtimer.h"
 #include "bsp_version.h"
 #include "of.h"
-#include "dump_print.h"
-
+#include "dump_config.h"
+#undef	THIS_MODU
+#define THIS_MODU mod_dump
 u32 g_wdt_int_no = 0;
 
 wdt_timeout_cb g_wdt_reboot_func = NULL;
@@ -90,7 +91,7 @@ static irqreturn_t watchdog_mdm_int(int irq, void *dev_id)
 {
     disable_irq_nosync(g_wdt_int_no);
 
-    dump_fetal("wdt irq,irq:0x%x\n",irq);
+    dump_ok("wdt irq,irq:0x%x\n",irq);
     if(g_wdt_reboot_func)
     {
         g_wdt_reboot_func();
@@ -130,7 +131,7 @@ int bsp_wdt_register_hook(WDT_CORE_ID core_id, void *func)
             g_wdt_int_no = (u32)irq_of_parse_and_map(node, 0);
             if (BSP_OK != request_irq(g_wdt_int_no, watchdog_mdm_int, 0, "watchdog mdm", NULL))
             {
-                dump_error("watchdog mdm int err\n");
+                dump_error(" mdm watchdog int err\n");
             }
         }
     }

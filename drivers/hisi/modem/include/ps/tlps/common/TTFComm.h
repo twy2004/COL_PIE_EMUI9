@@ -68,6 +68,9 @@ extern "C" {
 #include "LPSCommon.h"
 #include "product_config.h"
 #include "msp_diag_comm.h"
+#if (OSA_CPU_CCPU == VOS_OSA_CPU)
+#include "PsCommFunc.h"
+#endif
 
 /******************************************************************************
   2 宏定义
@@ -405,6 +408,7 @@ usSn:当前期望获取其存储位置的块的块号*/
 #define IP_IPV4_TCP_ACK_POS          8      /* 去除IP头，TCP的ACK字段偏移 */
 #define IP_IPV4_DST_PORT_POS         2      /* 去除IP头，IPV4的目的端口字段偏移 */
 #define IP_PROTO_VERSION_POS         4      /* IP数据包的协议版本字段偏移 */
+#define IP_IPV4_HEAD_MAX_LEN         60     /* IPV4数据头头部最大长度 */
 
 #define IP_IPV6_PROTO_VERSION        6      /* IPV6协议版本号 */
 #define IP_IPV6_HEAD_LEN             40     /* IPV6数据头头部长度 */
@@ -443,20 +447,37 @@ usSn:当前期望获取其存储位置的块的块号*/
 #define TTF_MASK_ON                     (0x1)
 
 /* TTF Log输出 */
+#if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #define TTF_LOG(ModulePID, ModeType, Level, String) \
-        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "\r\n"))
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "\r\n"))
 
 #define TTF_LOG1(ModulePID, ModeType, Level, String, Para1) \
-        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d \r\n", Para1))
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d \r\n", Para1))
 
 #define TTF_LOG2(ModulePID, ModeType, Level, String, Para1, Para2) \
-        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d \r\n", Para1, Para2))
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d \r\n", Para1, Para2))
 
 #define TTF_LOG3(ModulePID, ModeType, Level, String,Para1, Para2, Para3) \
-        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d \r\n", Para1, Para2, Para3))
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d \r\n", Para1, Para2, Para3))
 
 #define TTF_LOG4(ModulePID, ModeType, Level, String, Para1, Para2, Para3, Para4) \
-        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d, %d \r\n", Para1, Para2, Para3, Para4))
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(PS_GetModemIdFromPid(ModulePID), ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d, %d \r\n", Para1, Para2, Para3, Para4))
+#else
+#define TTF_LOG(ModulePID, ModeType, Level, String) \
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, ModeType, Level), (ModulePID), __FILE__, __LINE__, "\r\n"))
+
+#define TTF_LOG1(ModulePID, ModeType, Level, String, Para1) \
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d \r\n", Para1))
+
+#define TTF_LOG2(ModulePID, ModeType, Level, String, Para1, Para2) \
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d \r\n", Para1, Para2))
+
+#define TTF_LOG3(ModulePID, ModeType, Level, String,Para1, Para2, Para3) \
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d \r\n", Para1, Para2, Para3))
+
+#define TTF_LOG4(ModulePID, ModeType, Level, String, Para1, Para2, Para3, Para4) \
+        ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(0, ModeType, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d, %d \r\n", Para1, Para2, Para3, Para4))
+#endif
 
 /******************************************************************************
   3 枚举定义

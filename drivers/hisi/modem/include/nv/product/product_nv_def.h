@@ -75,6 +75,15 @@ typedef struct
     SINGLE_TL_BAND_NV_ID_STRU astNVIDCheckItem[MAX_NV_TL_CHECK_ITEM_NUM];   	/* 保存需要检查的NV_ID值 */
 }NV_TL_CHECK_ITEM_STRU;
 
+typedef struct
+{
+    u16 uhwWorkStationNum;
+    u16 auhwNV50001InsertPoint[5];
+    u16 auhwNV50002InsertPoint[5];
+    u16 auhwNV50003InsertPoint[5];
+    u32 rsv;
+}NV_WORKSTATION_INFO_STRU;
+
 /*****************************************************************************
  结构名    : CHG_BATTERY_LOW_TEMP_PROTECT_NV
  结构说明  : CHG_BATTERY_LOW_TEMP_PROTECT_NV结构 ID=52005

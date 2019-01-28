@@ -152,3 +152,8 @@ config HW_GET_P2P_TX_RATE
         bool "BCM GET P2P DEVICE TX RATE"
         depends on BCMDHD
         default n
+
+config HW_WIFI_DMA_ADDR_CTRL
+	bool "BCM WIFI DMA ADDR CTRL"
+	depends on BCMDHD
+	default n

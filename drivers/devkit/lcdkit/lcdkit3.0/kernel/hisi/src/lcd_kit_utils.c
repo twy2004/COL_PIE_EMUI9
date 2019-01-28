@@ -2063,6 +2063,37 @@ error:
 	return ret;
 }
 
+static int lcd_kit_set_vss_by_thermal(void)
+{
+	int ret = 0;
+	struct hisi_fb_data_type *hisifd = NULL;
+	struct lcd_kit_panel_ops * panel_ops = NULL;
+
+	hisifd = hisifd_list[PRIMARY_PANEL_IDX];
+	if(NULL == hisifd){
+		LCD_KIT_ERR("NULL Pointer\n");
+		return LCD_KIT_FAIL;
+	}
+
+	panel_ops = lcd_kit_panel_get_ops();
+	if (panel_ops && panel_ops->lcd_set_vss_by_thermal) {
+		down(&hisifd->power_sem);
+		if (!hisifd->panel_power_on) {
+			LCD_KIT_ERR("panel is power off\n");
+			up(&hisifd->power_sem);
+			return LCD_KIT_FAIL;
+		}
+		hisifb_vsync_disable_enter_idle(hisifd, true);
+		hisifb_activate_vsync(hisifd);
+		ret = panel_ops->lcd_set_vss_by_thermal((void *)hisifd);
+		hisifb_vsync_disable_enter_idle(hisifd, false);
+		hisifb_deactivate_vsync(hisifd);
+		up(&hisifd->power_sem);
+	}
+
+	return ret;
+}
+
 struct lcd_kit_ops g_lcd_ops = {
 	.lcd_kit_support = lcd_kit_support,
 	.get_project_id = lcd_kit_get_project_id,
@@ -2073,6 +2104,7 @@ struct lcd_kit_ops g_lcd_ops = {
 	.power_monitor_on = lcd_kit_power_monitor_on,
 	.power_monitor_off = lcd_kit_power_monitor_off,
 	.write_otp_gamma = lcd_kit_write_otp_gamma,
+	.set_vss_by_thermal = lcd_kit_set_vss_by_thermal,
 };
 
 void lcd_kit_set_mipi_clk(struct hisi_fb_data_type* hisifd, uint32_t clk)

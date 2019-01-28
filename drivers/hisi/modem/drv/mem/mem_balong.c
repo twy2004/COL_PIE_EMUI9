@@ -305,14 +305,14 @@ s32 bsp_init_poll(u32 u32PoolType)
         break;
 
     default:
-        printk("Invalid pool type:%d, line:%d\n",  u32PoolType,  __LINE__);
+        mem_print_error("Invalid pool type:%d, line:%d\n",  u32PoolType,  __LINE__);
         return BSP_ERROR;
     }
     if(u32PoolType == MEM_ICC_DDR_POOL)
     {
         if (!pAllocInfo->memPoolInfo.u32BaseAddr )
         {
-            printk("Invalid pool ptr, line:%d\n", __LINE__);
+            mem_print_error("Invalid pool ptr, line:%d\n", __LINE__);
             return BSP_ERROR;
         }
         /* 初始化其他全局变量 */
@@ -432,7 +432,7 @@ u8* bsp_memory_alloc(u32 u32PoolType, u32 u32Size)
     /* 如果没有找到则直接返回失败 */
     if (cnt >= MEM_ALLOC_LIST_NUM)
     {
-        printk(
+        mem_print_error(
                   "Invalid malloc size:%d, line:%d\n", u32Size, __LINE__);
         return NULL;
     }
@@ -483,7 +483,7 @@ void bsp_memory_free(u32 u32PoolType, void* pMem, u32 u32Size)
     /* 判断该节点是否有效 */
     if (cnt >= MEM_ALLOC_LIST_NUM)
     {
-        printk("bsp_pool_alloc Fail, size:%d, line:%d\n", u32Size, __LINE__);
+        mem_print_error("bsp_pool_alloc Fail, size:%d, line:%d\n", u32Size, __LINE__);
         return;
     }
 #endif
@@ -566,7 +566,7 @@ s32 bsp_mem_init(void)
     u32MaxInitNum = MEM_POOL_MAX;
     if (bsp_usr_init() != BSP_OK)
     {
-        printk("bsp_usr_init call fail, line:%d\n", __LINE__);
+        mem_print_error("bsp_usr_init call fail, line:%d\n", __LINE__);
     }
 
     for (u32PoolType = (u32)MEM_NORM_DDR_POOL; u32PoolType < (u32)u32MaxInitNum; u32PoolType++)
@@ -580,14 +580,12 @@ s32 bsp_mem_init(void)
         (void)bsp_set_most_used_size(512, u32PoolType);
         mb();
     }
-    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_MEM, "[mem]: <bsp_mem_init> memory init OK!\n");
+    mem_print_error("[init]OK!\n");
     /*初始化成功标示*/
     *g_mem_init_mark = 1;
     mb();
     return BSP_OK;
 }
-module_init(bsp_mem_init);
-
 s32 bsp_set_most_used_size(u32 u32Size, u32 u32PoolType)
 {
     u32 u32Item;
@@ -602,7 +600,7 @@ s32 bsp_set_most_used_size(u32 u32Size, u32 u32PoolType)
 
     if (u32Item >= MEM_ALLOC_LIST_NUM)
     {
-        printk("invalid size:%d, line:%d\n", u32Size, __LINE__);
+        mem_print_error("invalid size:%d, line:%d\n", u32Size, __LINE__);
         return BSP_ERROR;
     }
 
@@ -624,11 +622,12 @@ s32 bsp_set_most_used_size(u32 u32Size, u32 u32PoolType)
 *****************************************************************************/
 void* bsp_malloc(u32 u32Size, MEM_POOL_TYPE enFlags)
 {
-    u8 *pItem;
+    u8 *pItem = NULL;
     pItem = (u8 *)kmalloc(u32Size, GFP_KERNEL);
     if(pItem == NULL) {
         return NULL;
     }
+    memset((void*)pItem , 0 , u32Size);
     return (void*)pItem;
 }
 EXPORT_SYMBOL(bsp_malloc);
@@ -647,7 +646,7 @@ EXPORT_SYMBOL(bsp_malloc);
 *****************************************************************************/
 void* bsp_malloc_dbg(u32 u32Size, MEM_POOL_TYPE enFlags, u8* pFileName, u32 u32Line)
 {
-    u8 *pItem;
+    u8 *pItem = NULL;
 
     /* 分配内存 */
     pItem = bsp_memory_alloc((u32)enFlags, (u32)u32Size);
@@ -699,14 +698,14 @@ void  bsp_free_dbg(void* pMem, u8* pFileName, u32 u32Line)
     /* 检查当前内存是否有效 */
     if (bsp_ptr_invalid(pMem))
     {
-        printk("invalid mem block, ptr:0x%lx, line:%d\n", (unsigned long)pMem, __LINE__);
+        mem_print_error("invalid mem block, ptr:0x%lx, line:%d\n", (unsigned long)pMem, __LINE__);
         return;
     }
 
     if (MEM_FREE == MEM_ITEM_STATUS(pMem) ||
         MEM_NORM_DDR_POOL != MEM_ITEM_FLAGS(pMem))
     {
-        printk("warning! ptr:0x%lx, may free twice, or wrong mem flags line:%d\n", (unsigned long)pMem, __LINE__);
+        mem_print_error("error! ptr:0x%lx, may free twice, or wrong mem flags line:%d\n", (unsigned long)pMem, __LINE__);
         return;
     }
 #endif
@@ -763,7 +762,7 @@ void* bsp_smalloc_dbg(u32 u32Size, MEM_POOL_TYPE enFlags, u8* pFileName, u32 u32
 #ifdef __BSP_MEM_DEBUG__
     if ((u32)enFlags >= MEM_POOL_MAX)
     {
-        printk("invalid mem enFlags:%d, line:%d\n", (u32)enFlags, __LINE__);
+        mem_print_error("invalid mem enFlags:%d, line:%d\n", (u32)enFlags, __LINE__);
         return NULL;
     }
 #endif
@@ -805,7 +804,7 @@ void  bsp_sfree(void* pMem)
         MEM_FREE == MEM_ITEM_STATUS(pMem)       ||
         MEM_ITEM_FLAGS(pMem) == MEM_NORM_DDR_POOL)
     {
-        printk("warning! ptr:0x%lx, invalid mem block, or may free twice, or wrong mem flags line:%d\n", (unsigned long)pMem, __LINE__);
+        mem_print_error("error! ptr:0x%lx, invalid mem block, or may free twice, or wrong mem flags line:%d\n", (unsigned long)pMem, __LINE__);
         return;
     }
 #endif

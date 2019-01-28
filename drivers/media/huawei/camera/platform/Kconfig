@@ -938,6 +938,11 @@ config HUAWEI_CAMERA_USE_IMX498IMX550HYBIRD_RAVEL
     default n
     depends on HUAWEI_CAMERA
 
+config HUAWEI_CAMERA_USE_OV16B10OV24AHYBIRD_RAVEL
+    bool "ov16b10ov24ahybird_ravel"
+    default n
+    depends on HUAWEI_CAMERA
+
 config HUAWEI_CAMERA_USE_OV13855_RAVEL
     bool "ov13855_ravel"
     default n
@@ -1014,5 +1019,15 @@ config HUAWEI_CAMERA_USE_IMX586
 
 config HUAWEI_CAMERA_USE_IMX481
         bool "imx481"
+    default n
+        depends on HUAWEI_CAMERA
+
+config HUAWEI_CAMERA_USE_IMX350VCE
+        bool "imx350VCE"
+    default n
+        depends on HUAWEI_CAMERA
+
+config HUAWEI_CAMERA_USE_OV20880VCE
+        bool "ov20880VCE"
     default n
         depends on HUAWEI_CAMERA

@@ -93,22 +93,6 @@ extern "C" {
   7 STRUCT定义
 *****************************************************************************/
 
-typedef VOS_VOID (*ADS_DRV_ASSEM_FUNC)(VOS_VOID);
-
-/*****************************************************************************
- 结构名   : FC_ADS_DRV_ASSEM_STRU
- 结构说明 : 底软动态组包参数
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT8               ucEnableMask;
-    VOS_UINT8               aucRsv[3];
-    VOS_UINT32              ulDlRateUpLev;
-    VOS_UINT32              ulDlRateDownLev;
-    VOS_UINT32              ulExpireTmrLen;
-    ADS_DRV_ASSEM_FUNC      pDrvAssemFunc;
-}FC_ADS_DRV_ASSEM_STRU;
-
 
 /*****************************************************************************
   8 UNION定义
@@ -123,23 +107,6 @@ typedef struct
 /*****************************************************************************
   10 函数声明
 *****************************************************************************/
-extern VOS_UINT32 ADS_GetCurrentRate
-(
-    VOS_UINT32                         *pulUlBpsRate,
-    VOS_UINT32                         *pulDlBpsRate
-);
-
-/*****************************************************************************
- 函 数 名  : ADS_DL_RegDrvAssemFunc
- 功能描述  : 下行流控注册函数, 用于解决下行突发流量, FC无法及时调整流程参数,
-             FC向ADS注册流控的回调函数, 以及触发流控阈值参数
- 输入参数  : pstDrvAssemParam - 触发流控阈值参数
- 输出参数  : 无
- 返 回 值  : VOS_VOID
- 调用函数  :
- 被调函数  :
-*****************************************************************************/
-extern VOS_VOID ADS_DL_RegDrvAssemFunc(FC_ADS_DRV_ASSEM_STRU *pstDrvAssemParam);
 
 
 #if (VOS_OS_VER == VOS_WIN32)

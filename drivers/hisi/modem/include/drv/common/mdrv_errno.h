@@ -117,6 +117,9 @@ typedef enum _mdrv_errno_e
     DRV_ERRNO_CDMA_FORCE_AWAKE_TIMEOUT  = 0x109d,
 	DRV_ERRNO_DMSS              = 0x109e,
 	DRV_ERRNO_REGULATOR_TIMEOUT = 0x109f, /* 调压过程中等待ready状态超时 */
+	DRV_ERRNO_ACPU_SLAVE_UP_FAIL = 0x10a0,
+    DRV_ERRNO_NOC_DSPSLAVE_PD_FAIL = 0x10a1,    /*dsp下电后noc dsp slave握手失败*/
+    DRV_ERRNO_LTEV_FORCE_AWAKE_TIMEOUT  = 0x10a2,
     DRV_ERRNO_BUTT              = 0x1FFF
 }mdrv_errno_enum;
 

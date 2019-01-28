@@ -42,7 +42,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * POSSIBILITY OF SUCH DAMAGE .
  *
  */
 
@@ -62,6 +62,9 @@ extern "C" {
 #endif
 #endif
 
+#ifdef WIN32
+#pragma warning(disable:4200) /* zero-sized array in struct/union */
+#endif
 
 #pragma pack(4)
 
@@ -75,6 +78,7 @@ extern "C" {
 #define     ID_OM_ERR_LOG_REPORT_CNF        (0x9003)
 
 
+
 /* 平台检测故障主动上报消息名称 */
 #define     ID_OM_FAULT_ERR_LOG_IND         (0x9009) /* haojian 提议该处以后可能不止媒体组，还有其他组，所有改名 */
 
@@ -85,6 +89,7 @@ extern "C" {
 #define     ID_OM_INFO_CLT_REPORT_REQ       (0x9010)
 #define     ID_OM_INFO_CLT_REPORT_CNF       (0x9011)
 
+#define     ID_OM_MTA_NV_REFRESH_RSP        (0x2002) /* 防止OM->MTA新增消息和ID_MTA_NV_REFRESH_RSP取值重复*/
 
 /*OM内部a核和c核使用*/
 #define OM_ACPU_REPORT_BLACKLIST_NAME  0x8001 
@@ -191,35 +196,43 @@ enum OM_ERR_LOG_MOUDLE_ID_ENUM
 typedef VOS_UINT32    OM_ERR_LOG_MOUDLE_ID_ENUM_UINT32;
 
 
-/* 错误码 */
+/* 错误码,与ap之间的错误码 */
 enum OM_APP_SEND_RESULT_ENUM
 {
     OM_APP_MSG_OK                   = 0x00,
     OM_APP_VCOM_DEV_INDEX_ERR       = 0x01,
     OM_APP_MSG_LENGTH_ERR           = 0x02,
-    OM_APP_MSG_TYPE_ERR             = 0x03,
-    OM_APP_SEND_MODEM_ID_ERR        = 0x04,
-    OM_APP_OMACPU_ALLOC_MSG_ERR     = 0x05,
-    OM_APP_OMACPU_WRITE_NV_ERR      = 0x06,
-    OM_APP_OMACPU_READ_NV_ERR       = 0x07,
-    OM_APP_MSG_MODULE_ID_ERR        = 0x08,
-    OM_APP_SEND_FAULT_ID_ERR        = 0x09,
-    OM_APP_NO_FAULT_ID_ERR          = 0x0A,
-    OM_APP_REPORT_NOT_FINISH_ERR    = 0x0B,
-    OM_APP_ERRLOG_SWITCH_CLOSE_ERR  = 0x0C,
-    OM_APP_ERRLOG_START_TIMER_ERR   = 0x0D,
-    OM_APP_OMCCPU_ALLOC_MSG_ERR     = 0x0E,
-    OM_APP_PID_ALLOC_ERR            = 0x0F,
-    OM_APP_GET_PID_ERR              = 0x10,
-    OM_APP_FLAG_ALLOC_ERR           = 0x11,
-    OM_APP_MEM_ALLOC_ERR            = 0x12,
-    OM_APP_LENG_ERR                 = 0x13,
-    OM_APP_PARAM_INAVALID           = 0x14,
-    OM_APP_SEND_CCPU_FAIL           = 0x15,
-    OM_APP_SAVE_LIST_FAIL           = 0x16,
+    OM_APP_MSG_TYPE_ERR             = 0x03, 
+    OM_APP_SEND_MODEM_ID_ERR        = 0x04, 
+    OM_APP_MEM_ALLOC_MSG_ERR        = 0x06,
+    OM_APP_READ_NV_ERR              = 0x07,
+    OM_APP_GET_NVID_ERR             = 0x08,
+    OM_APP_MSG_MODULE_ID_ERR        = 0x09,
+    OM_APP_REPORT_NOT_FINISH_ERR    = 0x0A,
+    OM_APP_ERRLOG_START_TIMER_ERR   = 0x0B,
+    OM_APP_MEM_ALLOC_ERR            = 0x0C,
+    OM_APP_PARAM_INAVALID           = 0x0D,
+    OM_APP_SEND_CCPU_FAIL           = 0x0E,
+    OM_APP_SAVE_LIST_FAIL           = 0x0F,
     
     OM_APP_SEND_RESULT_BUTT
 };
+
+/* 错误码,与IMS之间的错误码 */
+enum OM_IMS_SEND_RESULT_ENUM
+{   
+    OM_IMS_MSG_OK                   = 0x00,
+    OM_IMS_MSG_TYPE_ERR             = 0x01,
+    OM_IMS_MSG_LENGTH_ERR           = 0x02,
+    OM_IMS_MSG_MODULE_ID_ERR        = 0x03,
+    OM_IMS_MSG_ALLOC_MSG_ERR        = 0x04,
+    OM_IMS_MSG_NULL                 = 0x05,
+    OM_IMS_SEND_RESULT_BUTT
+    
+};
+    
+
+
 
 /* 各组件主动上报OM返回给各组件的错误码 */
 enum  CHR_REPORT_RESULT_ENUM
@@ -228,7 +241,8 @@ enum  CHR_REPORT_RESULT_ENUM
     CHR_THRESHOLD_NOT_ALLOW          =0x101,
     CHR_MSG_NAME_ERR                 =0x102,
     CHR_INPUT_PARAM_NULL             =0x103,
-
+    CHR_NV_READ_FAIL                 =0x104,
+    CHR_NV_SWITCH_CLOSE              =0x105,
     
     CHR_REPORT_RESULT_BUTT
 };
@@ -328,7 +342,7 @@ typedef struct
 typedef struct
 {
     OM_ALARM_MSG_HEAD_STRU        stOmHeader;
-    CHR_LIST_INFO_S               stBlackList[0];
+    CHR_LIST_INFO_S               stBlackList[0];/*lint !e43 */
 } OM_APP_BLACK_LIST_STRU;
 
 
@@ -348,9 +362,9 @@ typedef struct
 {
     OM_ALARM_MSG_HEAD_STRU        stOmHeader;
     VOS_UINT8                     ucPacketSN;            /* sn号，标识为第几包数据， 从0开始，最后一包数据值定义为0xFF */
-    VOS_UINT8                     ucCount;	             /* 当前包中AlarmID配置个数 */
+    VOS_UINT8                     ucCount;             /* 当前包中AlarmID配置个数 */
     VOS_UINT16                    usResved;           /* 预留 */
-    CHR_PRIORITY_INFO_S           alarmMap[0];
+    CHR_PRIORITY_INFO_S           alarmMap[0];/*lint !e43 */
 } OM_APP_PRIORITY_CFG_STRU;
 
 /*APP-->OM  type=0x15  周期配置下发给 OM*/
@@ -366,7 +380,7 @@ typedef struct{
     VOS_UINT8                     ucCount;       /*  当前包中AlarmID配置个数*/
     VOS_UINT8                     ucperiod;      /* 上报周期，以第一包为准，单位小时 */
     VOS_UINT8                     ucResved;      /*  预留 */
-    CHR_PERIOD_CFG_STRU           alarmMap[0];
+    CHR_PERIOD_CFG_STRU           alarmMap[0];/*lint !e43 */
 } OM_APP_PERIOD_CFG_STRU;
 
 /*****************************************************************************

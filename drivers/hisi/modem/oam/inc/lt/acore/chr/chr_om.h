@@ -8,13 +8,6 @@
 #define    ERRLOG_IDLE         0
 #define    ERRLOG_BUSY         1
 
-#define    CHR_FAULTID_GUTL_MIN     (0x0)
-#define    CHR_FAULTID_GUTL_MAX     (0xA0)
-#define    CHR_FAULTID_CDMA_MIN     (0xA1)
-#define    CHR_FAULTID_CDMA_MAX     (0xFF)
-
-#define    CHR_FAULTID_NUM_MAX      (24)
-
 
 #define                                 OM_MSG_RECEIVE_FLAG               (1) 
 #define                                 OM_MSG_NO_RECEIVE_FLAG            (0)
@@ -68,6 +61,15 @@ typedef struct
     
 }OM_APP_MSG_RECORD_STRU;
 
+/* 用于记录Error Log收到和发送给Ap侧消息 */
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32      ulMsgName;
+    VOS_UINT32      ulMsgLen;
+    VOS_UINT8       aucData[0];
+    
+}CHR_APP_REQ_STRU;
 /*打印码流使用*/
 
 #define OM_ACPU_ERRLOG_SEND               (0x01 << (6))
@@ -79,14 +81,13 @@ typedef struct
         if(VOS_FALSE != (g_ulChrOmAcpuDbgFlag&ulSwitch)) \
         { \
             VOS_UINT32 ulChrOmDbgIndex; \
-            (VOS_VOID)vos_printf("\n%s, Data Len: = %d\n", __FUNCTION__, ulDataLen); \
+            (VOS_VOID)chr_print("Data Len = %d\n", ulDataLen); \
             for (ulChrOmDbgIndex = 0 ; ulChrOmDbgIndex < ulDataLen; ulChrOmDbgIndex++) \
             { \
-                (VOS_VOID)vos_printf("%02x ", *((VOS_UINT8*)pucData + ulChrOmDbgIndex)); \
+                (VOS_VOID)mdrv_print(MDRV_P_ERR, "%02x ", *((VOS_UINT8*)pucData + ulChrOmDbgIndex)); \
             } \
-            (VOS_VOID)vos_printf("\r\n"); \
+            (VOS_VOID)chr_print("\r\n"); \
         }
-
 
 
 /*OM收到各组件上报的结构，解析头信息是否要上报*/

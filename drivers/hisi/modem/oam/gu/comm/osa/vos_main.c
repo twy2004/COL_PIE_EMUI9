@@ -89,7 +89,7 @@
 #include "vos_Id.h"
 #include "v_int.h"
 #include "NVIM_Interface.h"
-#include "mdrv.h"
+#include "v_private.h"
 
 /* LINUX ²»Ö§³Ö */
 
@@ -126,7 +126,7 @@ VOS_UINT32 g_ulVosStartStep = 0;
 
 HTIMER  g_VosProtectInitTimer = VOS_NULL_PTR;
 
-VOS_UINT32 *g_pulOsaLogTmp;
+VOS_UINT32 *g_pulOsaLogTmp    = VOS_NULL_PTR;
 
 VOS_VOID V_LogInit(VOS_VOID)
 {
@@ -145,7 +145,7 @@ VOS_VOID V_LogRecord(VOS_UINT32 ulIndex, VOS_UINT32 ulValue)
  Return     : void
  Other      :
  *****************************************************************************/
-VOS_VOID root( VOS_VOID)
+MODULE_EXPORTED VOS_VOID root( VOS_VOID)
 {
     Print1("%s", "\n!!!!! VOS_Startup Begin !!!!!\n");
 
@@ -246,22 +246,19 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
                 ulStartUpFailStage |= 0x0100;
             }
 
-            /* Added by g47350 for DRX timer Project, 2012/11/5, begin */
-            /* Added by g47350 for DRX timer Project, 2012/11/5, end */
-
             if ( VOS_OK != VOS_PidCtrlBlkInit() )
             {
-                ulStartUpFailStage |= 0x0400;
+                ulStartUpFailStage |= 0x0200;
             }
 
             if ( VOS_OK != VOS_FidCtrlBlkInit() )
             {
-                ulStartUpFailStage |= 0x0800;
+                ulStartUpFailStage |= 0x0400;
             }
 
             if ( VOS_OK != CreateFidsQueque() )
             {
-                ulStartUpFailStage |= 0x1000;
+                ulStartUpFailStage |= 0x0800;
             }
             break;
 
@@ -284,9 +281,6 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
             {
                 ulStartUpFailStage |= 0x0002;
             }
-
-            /* Added by g47350 for DRX timer Project, 2012/11/5, begin */
-            /* Added by g47350 for DRX timer Project, 2012/11/5, end */
 
             break;
 
@@ -392,11 +386,7 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
  Output     :
  Return     :
  *****************************************************************************/
-extern VOS_INT RNIC_InitNetCard(VOS_VOID);
 extern VOS_INT APP_VCOM_Init(VOS_VOID);
-
-extern VOS_INT NM_CTRL_Init(VOS_VOID);
-
 
 VOS_INT VOS_ModuleInit(VOS_VOID)
 {

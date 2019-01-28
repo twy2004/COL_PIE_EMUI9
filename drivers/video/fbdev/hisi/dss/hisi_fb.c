@@ -21,8 +21,8 @@
 #include <linux/device.h>
 #include "tui.h"
 
-#include "lcdkit_fb_util.h"
 
+#include "lcd_kit_core.h"
 
 uint8_t color_temp_cal_buf[32] = {0};
 
@@ -69,6 +69,7 @@ static char __iomem *hisifd_dp_base = NULL;
 static uint32_t hisifd_irq_pdp;
 static uint32_t hisifd_irq_sdp;
 static uint32_t hisifd_irq_adp;
+static uint32_t hisifd_irq_dp;
 static uint32_t hisifd_irq_mdc;
 static uint32_t hisifd_irq_dsi0;
 static uint32_t hisifd_irq_dsi1;
@@ -229,7 +230,11 @@ struct platform_device *hisi_fb_add_device(struct platform_device *pdev)
 		hisifd->mediacrg_regulator = &(g_dpe_regulator[2]);
 	} else if (hisifd->index == EXTERNAL_PANEL_IDX) {
 		hisifd->fb_num = HISI_FB1_NUM;
-		hisifd->dpe_irq = hisifd_irq_sdp;
+		if (type & PANEL_DP) {
+			hisifd->dpe_irq = hisifd_irq_dp;
+		} else {
+			hisifd->dpe_irq = hisifd_irq_sdp;
+		}
 
 		hisifd->dpe_regulator = &(g_dpe_regulator[0]);
 		hisifd->mmbuf_regulator = &(g_dpe_regulator[1]);
@@ -325,9 +330,9 @@ int hisi_fb_blank_sub(int blank_mode, struct fb_info *info)
 			}
 
 			curr_pwr_state = hisifd->panel_power_on;
-			down(&hisifd->power_esd_sem);
+			down(&hisifd->power_sem);
 			hisifd->panel_power_on = false;
-			up(&hisifd->power_esd_sem);
+			up(&hisifd->power_sem);
 
 			hisifd->mask_layer_xcc_flag = 0;
 
@@ -347,6 +352,9 @@ int hisi_fb_blank_sub(int blank_mode, struct fb_info *info)
 	up(&hisifd->blank_sem_effect);
 	up(&hisifd->blank_sem0);
 	up(&hisifd->blank_sem);
+	if ((hisifd->index == PRIMARY_PANEL_IDX) && (blank_mode == FB_BLANK_UNBLANK)) {
+		hisifb_pipe_clk_updt_handler(hisifd, true);
+	}
 	return ret;
 }
 
@@ -460,7 +468,6 @@ static void hisi_fb_displayeffect_update(struct hisi_fb_data_type *hisifd) {
 	hisifd->effect_updated_flag.igm_effect_updated = true;
 	hisifd->effect_updated_flag.xcc_effect_updated = true;
 	hisifd->effect_updated_flag.gamma_effect_updated = true;
-	hisifd->effect_updated_flag.acm_effect_updated = true;
 	hisifd->effect_updated_flag.hiace_effect_updated = true;
 	hisifd->hiace_info.algorithm_result = 0;
 
@@ -988,6 +995,7 @@ static int hisifb_dirty_region_updt_set(struct fb_info *info, void __user *argp)
 		&& !hisifd->esd_happened
 		&& (DSS_SEC_DISABLE == hisifd->secure_ctrl.secure_event)
 		&& !hisifd->aod_mode
+		&& (!hisifd->pipe_clk_ctrl.dirty_region_updt_disable)
 		&& !hisifd->vr_mode) {
 		enable = 1;
 		hisifd->dirty_region_updt_enable = 1;
@@ -1655,6 +1663,7 @@ static int hisifb_sysfs_create(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct hisi_fb_data_type *hisifd = NULL;
+	struct lcd_kit_ops *lcd_ops = NULL;
 
 	if (NULL == pdev) {
 		HISI_FB_ERR("pdev is NULL");
@@ -1672,11 +1681,13 @@ static int hisifb_sysfs_create(struct platform_device *pdev)
 			hisifd->index, ret);
 	}
 
-
-	if (get_lcdkit_support()) {
-		HISI_FB_INFO("lcdkit is support!\n");
-		lcdkit_fb_create_sysfs(&hisifd->fbi->dev->kobj);
+	lcd_ops = lcd_kit_get_ops();
+	if (lcd_ops && lcd_ops->lcd_kit_support) {
+		if (lcd_ops->lcd_kit_support()) {
+			ret = lcd_ops->create_sysfs(&hisifd->fbi->dev->kobj);
+		}
 	}
+
 
 	return ret;
 }
@@ -1697,9 +1708,6 @@ static void hisifb_sysfs_remove(struct platform_device *pdev)
 
 	sysfs_remove_group(&hisifd->fbi->dev->kobj, &(hisifd->sysfs_attr_group));
 
-	if (get_lcdkit_support()) {
-		lcdkit_fb_remove_sysfs(&hisifd->fbi->dev->kobj);
-	}
 
 	hisifb_sysfs_init(hisifd);
 }
@@ -2066,7 +2074,7 @@ static int hisi_fb_register(struct hisi_fb_data_type *hisifd)
 	sema_init(&hisifd->blank_sem0, 1);
 	sema_init(&hisifd->blank_sem_effect, 1);
 	sema_init(&hisifd->brightness_esd_sem, 1);
-	sema_init(&hisifd->power_esd_sem, 1);
+	sema_init(&hisifd->power_sem, 1);
 	sema_init(&hisifd->fast_unblank_sem, 1);
 
 	sema_init(&hisifd->hiace_hist_lock_sem, 1);
@@ -2134,11 +2142,11 @@ static int hisi_fb_register(struct hisi_fb_data_type *hisifd)
 		hisifd->debug_register = hisifb_debug_register;
 		hisifd->debug_unregister = hisifb_debug_unregister;
 		hisifd->cabc_update = updateCabcPwm;
-		hisifd->video_idle_ctrl_register = NULL;
-		hisifd->video_idle_ctrl_unregister = NULL;
-		hisifd->pipe_clk_updt_isr_handler = NULL;
-		hisifd->overlay_online_wb_register = NULL;
-		hisifd->overlay_online_wb_unregister = NULL;
+		hisifd->video_idle_ctrl_register = hisifb_video_idle_ctrl_register;
+		hisifd->video_idle_ctrl_unregister = hisifb_video_idle_ctrl_unregister;
+		hisifd->pipe_clk_updt_isr_handler = hisifb_pipe_clk_updt_isr_handler;
+		hisifd->overlay_online_wb_register = hisifb_ovl_online_wb_register;
+		hisifd->overlay_online_wb_unregister = hisifb_ovl_online_wb_unregister;
 
 		if (hisifb_check_ldi_porch(panel_info)) {
 			HISI_FB_ERR("check ldi porch failed, return!\n");
@@ -2486,6 +2494,11 @@ static int hisi_fb_probe(struct platform_device *pdev)
 			return -ENXIO;
 		}
 
+		hisifd_irq_dp = irq_of_parse_and_map(np, 7);
+		if (!hisifd_irq_dp) {
+			dev_err(dev, "failed to get hisifd_irq_dp resource.\n");
+			return -ENXIO;
+		}
 
 		/* get dss reg base */
 		hisifd_dss_base = of_iomap(np, 0);

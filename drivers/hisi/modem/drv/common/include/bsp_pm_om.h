@@ -45,7 +45,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 #ifndef  __BSP_PM_OM_H__
 #define  __BSP_PM_OM_H__
 
@@ -62,10 +61,10 @@ extern "C"
 #include <bsp_icc.h>
 
 #ifndef PMOM_CAT_APP
-#include <bsp_trace.h>
 #include <bsp_ring_buffer.h>
 #endif
 #include <bsp_modem_log.h>
+#include <bsp_print.h>
 #ifndef CCPU_CORE_NUM
 #define CCPU_CORE_NUM 1
 #endif
@@ -273,7 +272,6 @@ void pm_om_wakeup_log(void);
 #define STAMP_AFTER_UTRACE_SUSPEND  (4+STAMP_AFTER_BAK_GIC)
 #define STAMP_AFTER_TCXO_SUSPEND    (4+STAMP_AFTER_UTRACE_SUSPEND)
 #define STAMP_AFTER_PIN_POWERDOWN   (4+STAMP_AFTER_TCXO_SUSPEND)
-
 /*in sleep ASM power down*/
 #define STAMP_SLEEP_ASM_ENTER       (4+STAMP_AFTER_PIN_POWERDOWN)
 #define STAMP_BAK_COREG_BEGIN       (4+STAMP_SLEEP_ASM_ENTER)
@@ -438,15 +436,15 @@ do{\
 }while(0)
 
 #define pmom_pr_debug(fmt, ...)    \
-	(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PM_OM, "<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_debug("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 #define pmom_pr_warn(fmt, ...)      \
-	(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PM_OM, "<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_wrn("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 #define pmom_pr_info(fmt, ...)      \
-	(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PM_OM, "<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_info("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 #define pmom_pr_err(fmt, ...)      \
-	(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PM_OM, "<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 #define pmom_print(fmt, ...)      \
-	(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PM_OM, fmt, ##__VA_ARGS__))
+	(bsp_err(fmt, ##__VA_ARGS__))
 
 /*
  * struct pm_om_entry - The pm_om file header entry table structure
@@ -505,7 +503,7 @@ struct pm_om_smem_cfg
 	u32                      sn;
 	struct pm_om_nv          nv_cfg;
 	struct log_mem           mem_info;
-};
+};/*lint !e959*/
 
 struct pm_om_log
 {

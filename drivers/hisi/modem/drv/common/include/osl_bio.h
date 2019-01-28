@@ -59,47 +59,54 @@ static __inline__  void cache_sync(void)
 }
 #endif
 
-#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)&& !defined(__ASSEMBLY__)
+#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) || defined(__OS_RTOSCK_TSP__)&& !defined(__ASSEMBLY__)
 #include <sre_cache.h>
+
+#if defined(__OS_RTOSCK_TSP__)
+#define isb() 
+#define dsb()
+#define dmb()
+#else
 #define isb() __asm__ __volatile__ ("isb" : : : "memory")
 #define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
 #define dmb() __asm__ __volatile__ ("dmb" : : : "memory")
-
+#endif
 #define mb()	do { dsb(); SRE_L2CacheWait(); } while (0)
 #define rmb()	dmb()
 #define wmb()	mb()
 static inline void WFI(void)
 {
-	asm volatile ( "dsb;" );/*lint !e123*/
-    asm volatile ( "isb;");/*lint !e123*/
-	asm volatile ( "wfi;");/*lint !e123*/
-	asm volatile ( "nop;");/*lint !e123*/
-	asm volatile ( "nop;");/*lint !e123*/
+	__asm__ __volatile__ ( "dsb;" );/*lint !e123*/
+    __asm__ __volatile__ ( "isb;");/*lint !e123*/
+	__asm__ __volatile__ ( "wfi;");/*lint !e123*/
+	__asm__ __volatile__ ( "nop;");/*lint !e123*/
+	__asm__ __volatile__ ( "nop;");/*lint !e123*/
 }
-
-static __inline__ void DWB(void) /* drain write buffer */
+//lint -esym(528,*)
+/*lint -save -e528*/
+ static __inline__ void DWB(void) /* drain write buffer */
 {
-//    asm volatile ( "mcr p15, 0, r0, c7, c10, 4;");
-    asm volatile ( "dsb;" );
+//    __asm__ __volatile__ ( "mcr p15, 0, r0, c7, c10, 4;");
+    __asm__ __volatile__ ( "dsb;" );
 }
 static __inline__  void cache_sync(void)
 {
     dsb();
     SRE_L2CacheWait();
 }
-
+ 
 static __inline__ void writel_relaxed(unsigned val, void* addr)
 {
     (*(volatile unsigned *) (addr)) = (val);
 }
 static inline void writew_relaxed(unsigned val, void* addr)
 {
-    (*(volatile unsigned short *) (addr)) = (val);
+    (*(volatile unsigned short *) (addr)) = (unsigned short)(val);
 }
 
 static __inline__ void writeb_relaxed(unsigned val, void* addr)
 {
-    (*(volatile unsigned char *) (addr)) = (val);
+    (*(volatile unsigned char *) (addr)) = (unsigned char)(val);
 }
 
 static __inline__ void writel(unsigned val, void* addr)
@@ -113,7 +120,7 @@ static inline void writew(unsigned val, void* addr)
     mb();
     writew_relaxed(val, addr);
 }
-
+ 
 static __inline__ void writeb(unsigned val, void* addr)
 {
     mb();
@@ -124,7 +131,6 @@ static __inline__ unsigned readl_relaxed(void* addr)
 {
     return (*(volatile unsigned *) (addr));
 }
-
 static inline unsigned readw_relaxed(void* addr)
 {
     return (*(volatile unsigned short*) (addr));
@@ -149,7 +155,8 @@ static __inline__ unsigned readb(const void* addr)
 {
     return (*(volatile unsigned char*)(addr));
 }
-
+//lint +esym(528,*) 
+/*lint ¨Crestore */
 #endif/*__KERNEL__*/
 
 
@@ -189,17 +196,17 @@ static __inline__ void *ioremap_memory(unsigned phy_addr, unsigned int len)
  /* drain write buffer */
 static inline void DWB(void)
 {
-	  //asm volatile ( "dsb;" );
+	  //__asm__ __volatile__ ( "dsb;" );
 }
 
 static inline void ISB(void) /* drain write buffer */
 {
-	asm volatile ( "isb;");
+	__asm__ __volatile__ ( "isb;");
 }
 
 static inline void WFI(void)
 {
-	asm volatile ( "wfi;");
+	__asm__ __volatile__ ( "wfi;");
 }
 
 #ifndef writel
@@ -318,33 +325,37 @@ static __inline__ unsigned osl_reg_get_bit(void *reg, unsigned bit_start, unsign
 {
 	unsigned tmp;
 	tmp = readl(reg);
-	return ((tmp >> bit_start)&((1 << (bit_end - bit_start + 1))-1));
+	return ((tmp >> bit_start)&((1U << (bit_end - bit_start + 1))-1));
 }
 
 static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned bit_end, unsigned reg_val)
 {
 	unsigned tmp;
 	tmp = readl(reg);
-	tmp &= (~(((1 << (bit_end - bit_start + 1))-1) << bit_start));
+	tmp &= (~(((1U << (bit_end - bit_start + 1))-1) << bit_start));
 	tmp |= (reg_val << bit_start);
 	writel(tmp, reg);
 }
 #elif defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
-static __inline__ unsigned osl_reg_get_bit(void *reg, unsigned bit_start, unsigned bit_end)
+//lint -esym(528,*) 
+/*lint -save -e528*/
+ static __inline__ unsigned osl_reg_get_bit(void *reg, unsigned bit_start, unsigned bit_end)
 {
 	unsigned tmp;
 	tmp = readl(reg);
-	return ((tmp >> bit_start)&((1 << (bit_end - bit_start + 1))-1));
+	return ((tmp >> bit_start)&((1U << (bit_end - bit_start + 1))-1));
 }
 
-static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned bit_end, unsigned reg_val)
+static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned bit_end, unsigned reg_val) 
 {
 	unsigned tmp;
 	tmp = readl(reg);
-	tmp &= (~(((1 << (bit_end - bit_start + 1))-1) << bit_start));
+	tmp &= (~(((1U << (bit_end - bit_start + 1))-1) << bit_start));
 	tmp |= (reg_val << bit_start);
 	writel(tmp, reg);
 }
+//lint +esym(528,*)
+/*lint ¨Crestore */
 #endif
 
 #endif	/* __OSL_BIO_H */

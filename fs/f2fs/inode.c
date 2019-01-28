@@ -645,7 +645,11 @@ void f2fs_evict_inode(struct inode *inode)
 	if (inode->i_nlink || is_bad_inode(inode))
 		goto no_delete;
 
-	dquot_initialize(inode);
+	err = dquot_initialize(inode);
+	if (err) {
+		err = 0;
+		set_sbi_flag(sbi, SBI_QUOTA_NEED_REPAIR);
+	}
 
 	remove_ino_entry(sbi, inode->i_ino, APPEND_INO);
 	remove_ino_entry(sbi, inode->i_ino, UPDATE_INO);
@@ -678,9 +682,10 @@ retry:
 		goto retry;
 	}
 
-	if (err)
+	if (err) {
 		update_inode_page(inode);
-	dquot_free_inode(inode);
+		set_sbi_flag(sbi, SBI_QUOTA_NEED_REPAIR);
+	}
 
 	if (unlikely(is_inode_flag_set(inode, FI_DIRTY_INODE))) {
 		f2fs_inode_synced(inode);

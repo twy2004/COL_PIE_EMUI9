@@ -49,8 +49,10 @@
 
 
 
-
-
+#include <product_config.h>
+#include <vos.h>
+#include <mdrv.h>
+#include <msp.h>
 #include "diag_msgps.h"
 #include "diag_msgmsp.h"
 #include "diag_debug.h"
@@ -68,7 +70,6 @@ DIAG_MSGPS_CTRL g_DiagPsCtrl =
     .ulChannelId    = SOCP_CODER_SRC_LOM_IND1,
 };
 
-extern HTIMER          g_DebugTimer;
 
 
 VOS_UINT32 diagPsTransProcEntry(DIAG_FRAME_INFO_STRU* pstReq)
@@ -94,46 +95,7 @@ VOS_UINT32 diag_PsConnMgr(VOS_UINT8 * pData)
 
 VOS_UINT32 diag_PsConnect(VOS_UINT8 * pData)
 {
-    VOS_UINT32 ulCnfRst = ERR_MSP_UNAVAILABLE;
-    DIAG_CMD_REPLAY_SET_REQ_STRU stReplay={0};
-    DIAG_CONNECT_RESULT stResult;
-    DIAG_CONN_MSG_SEND_T *pstRevMsg;
-
-    pstRevMsg = (DIAG_CONN_MSG_SEND_T *)pData;
-
-    stResult.ulChannelId = g_DiagPsCtrl.ulChannelId;
-
-    /*设置连接状态开关值*/
-    ulCnfRst = diag_CfgSetGlobalBitValue(&g_ulDiagCfgInfo,DIAG_CFG_CONN_BIT,DIAG_CFG_SWT_OPEN);
-    if(ulCnfRst)
-    {
-        stResult.ulResult = ulCnfRst;
-        diag_printf("Open DIAG_CFG_CONN_BIT failed.\n");
-        return diag_ConnCnf(DIAG_CONN_ID_ACPU_PS, pstRevMsg->ulSn, g_DiagPsCtrl.ulChannelNum, &stResult);
-    }
-
-    ulCnfRst = diag_SendMsg(MSP_PID_DIAG_APP_AGENT,PS_PID_MM,ID_MSG_DIAG_CMD_REPLAY_TO_PS,(VOS_UINT8*)&stReplay,\
-                (VOS_UINT32)sizeof(DIAG_CMD_REPLAY_SET_REQ_STRU));
-    if(ulCnfRst)
-    {
-        stResult.ulResult = ERR_MSP_DIAG_SEND_MSG_FAIL;
-        return diag_ConnCnf(DIAG_CONN_ID_ACPU_PS, pstRevMsg->ulSn, g_DiagPsCtrl.ulChannelNum, &stResult);
-    }
-
-    /*复位维测信息记录*/
-    diag_reset_src_mntn_info();
-    mdrv_diag_reset_dst_mntn_info();
-
-    /* 启动定时器上报可维可测信息给工具定位丢包问题 */
-    ulCnfRst = VOS_StartRelTimer(&g_DebugTimer, MSP_PID_DIAG_APP_AGENT, DIAG_DEBUG_TIMER_LEN, DIAG_DEBUG_TIMER_NAME, \
-                            DIAG_DEBUG_TIMER_PARA, VOS_RELTIMER_NOLOOP, VOS_TIMER_NO_PRECISION);
-    if(ulCnfRst != ERR_MSP_SUCCESS)
-    {
-        diag_printf("start dbug timer fail [%s]\n", __FUNCTION__);
-    }
-
-    stResult.ulResult = ERR_MSP_SUCCESS;
-    return diag_ConnCnf(DIAG_CONN_ID_ACPU_PS, pstRevMsg->ulSn, g_DiagPsCtrl.ulChannelNum, &stResult);
+    return ERR_MSP_SUCCESS;
 }
 
 VOS_VOID diag_ConnReset(VOS_VOID)
@@ -142,7 +104,7 @@ VOS_VOID diag_ConnReset(VOS_VOID)
     if(DIAG_IS_POLOG_ON)
     {
         g_ulDiagCfgInfo = DIAG_CFG_INIT | DIAG_CFG_POWERONLOG;
-        diag_printf("diag_ConnReset, keep init&poweronlog flag.\n");
+        diag_info("diag_ConnReset, keep init&poweronlog flag.\n");
     }
     else
     {
@@ -154,22 +116,7 @@ VOS_VOID diag_ConnReset(VOS_VOID)
 
 VOS_UINT32 diag_PsDisconnect(VOS_UINT8 * pData)
 {
-    DIAG_CONNECT_RESULT stResult;
-    DIAG_CONN_MSG_SEND_T *pstRevMsg;
-
-    pstRevMsg = (DIAG_CONN_MSG_SEND_T *)pData;
-
-    /*重置所有开关状态为未打开*/
-    diag_ConnReset();
-    diag_CfgResetAllSwt();
-
-    /* 删除定时器 */
-    (VOS_VOID)VOS_StopRelTimer(&g_DebugTimer);
-
-    stResult.ulChannelId = g_DiagPsCtrl.ulChannelId;
-    stResult.ulResult = ERR_MSP_SUCCESS;
-    return diag_ConnCnf(DIAG_CONN_ID_ACPU_PS, pstRevMsg->ulSn, g_DiagPsCtrl.ulChannelNum, &stResult);
-
+    return ERR_MSP_SUCCESS;
 }
 /*****************************************************************************
  Function Name   : diag_PsMsgInit
@@ -188,7 +135,7 @@ VOS_VOID diag_PsMsgInit(VOS_VOID)
     ulRet = VOS_SmBCreate("DTP", 1, VOS_SEMA4_FIFO,&g_stPSTransHead.TransSem);
     if(VOS_OK != ulRet)
     {
-        diag_printf("diag_PsMsgInit VOS_SmBCreate failed.\n");
+        diag_error("VOS_SmBCreate failed.\n");
     }
 
     /* 初始化请求链表 */
@@ -200,7 +147,7 @@ VOS_VOID diag_PsMsgInit(VOS_VOID)
     ulRet = diag_ConnMgrSendFuncReg(DIAG_CONN_ID_ACPU_PS, g_DiagPsCtrl.ulChannelNum, &g_DiagPsCtrl.ulChannelId, diag_PsConnMgr);
     if(ulRet)
     {
-        diag_printf("acpu ps reg connect msg fail, ret:0x%x\n", ulRet);
+        diag_error("acpu ps reg ConnMsg fail(0x%x)\n", ulRet);
     }
 }
 
@@ -210,7 +157,7 @@ VOS_VOID DIAG_ShowTransList(VOS_VOID)
 {
     LIST_S* me = NULL;
 
-    diag_printf("PS trans header 0x%p, 0x%p.\n", g_stPSTransHead.TransHead.next, g_stPSTransHead.TransHead.prev);
+    diag_crit("PS trans header 0x%pK, 0x%pK.\n", g_stPSTransHead.TransHead.next, g_stPSTransHead.TransHead.prev);
 
     /*添加信号量保护*/
     (VOS_VOID)VOS_SmP(g_stPSTransHead.TransSem,0);
@@ -218,7 +165,7 @@ VOS_VOID DIAG_ShowTransList(VOS_VOID)
     /* 在链表中查找每个子命令结点*/
     blist_for_each(me, &g_stPSTransHead.TransHead)
     {
-        diag_printf("header 0x%p, 0x%p.\n", me->next, me->prev);
+        diag_crit("header 0x%pK, 0x%pK.\n", me->next, me->prev);
     }
     (VOS_VOID)VOS_SmV(g_stPSTransHead.TransSem);
 

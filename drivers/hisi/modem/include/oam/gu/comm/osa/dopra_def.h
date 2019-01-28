@@ -127,6 +127,7 @@ extern "C" {
 #define OSA_CPU_CCPU                   0
 #define OSA_CPU_ACPU                   1
 #define OSA_CPU_NRCPU                  2
+#define OSA_CPU_L2HAC                  16
 
 /* To define VOS_BYTE_ORDER (the CPU byte order) */
 #define VOS_LITTLE_ENDIAN              1234

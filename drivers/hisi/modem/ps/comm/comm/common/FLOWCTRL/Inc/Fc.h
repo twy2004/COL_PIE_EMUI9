@@ -57,8 +57,11 @@
 #include "PsLib.h"
 #include "FcInterface.h"
 #include "FcIntraMsg.h"
-#include "nv_id_gucttf.h"
-#include "nv_stru_gucttf.h"
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#include "acore_nv_stru_gucttf.h"
+#else
+#include "ccore_nv_stru_gucttf.h"
+#endif
 #include "TTFComm.h"
 
 #ifdef __cplusplus
@@ -74,9 +77,20 @@ extern "C" {
 *****************************************************************************/
 #if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #define FC_MAX_POINT_NUM                (22)    /* C核CPU和温保会初始化最多2*FC_UL_RATE_MAX_LEV个 */
+#define UEPS_FID_FLOWCTRL               (UEPS_FID_FLOWCTRL_C)
+#define UEPS_PID_FLOWCTRL               (UEPS_PID_FLOWCTRL_C)
+
+typedef FC_CCORE_CFG_CPU_STRU FC_CFG_CPU_STRU;
+typedef FC_CCORE_CFG_MEM_THRESHOLD_STRU FC_CFG_MEM_THRESHOLD_STRU;
 #else
 #define FC_MAX_POINT_NUM                (10)    /* A核暂定值 */
+#define UEPS_FID_FLOWCTRL               (UEPS_FID_FLOWCTRL_A)
+#define UEPS_PID_FLOWCTRL               (UEPS_PID_FLOWCTRL_A)
+
+typedef FC_ACORE_CFG_CPU_STRU FC_CFG_CPU_STRU;
+typedef FC_ACORE_CFG_MEM_THRESHOLD_STRU FC_CFG_MEM_THRESHOLD_STRU;
 #endif
+
 #define FC_MEM_THRESHOLD_MAX_NUM        (4)
 
 #define FC_PRI_LOWEST                   (FC_PRI_1)
@@ -85,18 +99,6 @@ extern "C" {
 #define FC_MAX_NUM                      (10)
 #define FC_RAB_MASK_ALL                 (0x0000FFFE)                            /* RAB范围 1~15 */
 
-#if (OSA_CPU_CCPU == VOS_OSA_CPU)
-#define UEPS_FID_FLOWCTRL               (UEPS_FID_FLOWCTRL_C)
-#else
-#define UEPS_FID_FLOWCTRL               (UEPS_FID_FLOWCTRL_A)
-#endif
-
-#if (OSA_CPU_CCPU == VOS_OSA_CPU)
-#define UEPS_PID_FLOWCTRL               (UEPS_PID_FLOWCTRL_C)
-#else
-#define UEPS_PID_FLOWCTRL               (UEPS_PID_FLOWCTRL_A)
-#endif
-
 #define FC_MAX_BRIDGE_BYTE_CNT          (0x80000)  /* 2^32 >> 10 >> 3 */
 
 #define FC_GET_MSG_NAME16(pRcvMsg)      (*((VOS_UINT16 *)((VOS_UINT8 *)(pRcvMsg) + VOS_MSG_HEAD_LENGTH)))
@@ -104,7 +106,7 @@ extern "C" {
 
 #define FC_POLICY_MASK(enPolicyId)      (((VOS_UINT32)1) << (enPolicyId))
 
-#define FC_POLICY_GetEnableMask(enPolicyId) ((FC_POLICY_MASK(enPolicyId) & g_stFcCfg.ulFcEnbaleMask))
+#define FC_POLICY_GetEnableMask(enPolicyId) ((FC_POLICY_MASK(enPolicyId) & g_ulFcEnableMask))
 #define FC_POLICY_Get( enPolicyId )      (&g_astFcPolicy[enPolicyId])
 
 #define FC_DOWN_RATE_LIMIT_MASK         (0xFFFF)
@@ -388,14 +390,6 @@ typedef struct
 
 typedef struct
 {
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    FC_MNTN_EVENT_TYPE_ENUM_UINT16      enMsgName;                              /* _H2ASN_Skip */
-    VOS_UINT8                           aucRsv[2];
-    FC_DRV_ASSEM_PARA_STRU              stDrvAssemPara;
-}FC_MNTN_DRV_ASSEM_PARA_STRU;
-
-typedef struct
-{
     VOS_UINT32                          ulSmoothTimerLen;       /* CPU流控的平滑次数，连续若干次CPU超标，才进行CPU流控 */
     VOS_UINT8                           aucRsv[4];
     HTIMER                              pstStopAttemptTHandle;  /* CPU流控解除优化定时器 */
@@ -408,120 +402,12 @@ typedef struct
     HTIMER                              pstTraceCpuLoadTHandle; /* 上报CCPU负载定时器 */
 } FC_TRACE_CPULOAD_STRU;
 
-
-/*****************************************************************************
- 结构名    : FC_CFG_MEM_STRU
- 协议表格  : 无
- ASN.1描述 : 无
- 结构说明  : MEM流控的门限和配置值
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32                          ulThresholdCnt;
-    FC_CFG_MEM_THRESHOLD_STRU           astThreshold[FC_MEM_THRESHOLD_LEV_BUTT];/* A核内存流控门限 */
-} FC_CFG_MEM_STRU;
-
-
-/*****************************************************************************
- 结构名    : FC_CFG_GPRS_STRU
- 协议表格  : 无
- ASN.1描述 : 无
- 结构说明  : GPRS流控门限
-*****************************************************************************/
-typedef struct
-{
-    FC_CFG_MEM_THRESHOLD_STRU           stThresholdMemSize;                     /* G模内存总量流控门限 */
-    FC_CFG_MEM_THRESHOLD_STRU           stThresholdMemCnt;                      /* G模内存块数流控门限 */
-} FC_CFG_GPRS_STRU;
-
-
-/*****************************************************************************
- 结构名    : FC_CFG_CDMA_STRU
- 协议表格  : 无
- ASN.1描述 : 无
- 结构说明  : CDMA流控门限
-*****************************************************************************/
-typedef struct
-{
-    FC_CFG_MEM_THRESHOLD_STRU           stThresholdMemSize;                     /* X模内存总量流控门限 */
-    FC_CFG_MEM_THRESHOLD_STRU           stThresholdMemCnt;                      /* X模内存块数流控门限 */
-} FC_CFG_CDMA_STRU;
-
-
-/*****************************************************************************
- 结构名    : FC_CFG_CST_STRU
- 协议表格  : 无
- ASN.1描述 : 无
- 结构说明  : CST流控门限
-*****************************************************************************/
-typedef struct
-{
-    FC_CFG_MEM_THRESHOLD_STRU           stThreshold;                            /* CST内存门限 */
-} FC_CFG_CST_STRU;
-
-
-/*****************************************************************************
- 结构名    : FC_CFG_STRUs
- 协议表格  : 无
- ASN.1描述 : 无
- 结构说明  : 流控配置项，可以从NV读取
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32                          ulFcEnbaleMask;                         /* 流控使能标识 */
-    FC_CFG_CPU_STRU                     stFcCfgCpuA;                            /* A核CPU流控门限 */
-    FC_CFG_MEM_STRU                     stFcCfgMem;                             /* A核内存流控门限 */
-    FC_CFG_CST_STRU                     stFcCfgCst;                             /* CSD业务流控门限 */
-    FC_CFG_GPRS_STRU                    stFcCfgGprs;                            /* G模流控门限 */
-    FC_CFG_CPU_STRU                     stFcCfgCpuC;                            /* C核CPU流控门限 */
-    FC_CFG_UM_UL_RATE_STRU              stFcCfgUmUlRateForCpu;                  /* C核CPU流控上行速率档位配置 */
-    FC_CFG_UM_UL_RATE_STRU              stFcCfgUmUlRateForTmp;                  /* C核温度流控上行行速率档位配置 */
-#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)    
-    FC_CFG_CDMA_STRU                    stFcCfgCdma;                            /* X模流控门限 */
-#endif
-} FC_CFG_STRU;
-
-
-
-typedef struct
-{
-    VOS_UINT32                          ulLev;
-    VOS_UINT8                           aucRsv[4];
-    FC_CPU_DRV_ASSEM_PARA_STRU         *pstCpuDrvAssemPara;
-}FC_CPU_DRV_ASSEM_PARA_LEV_STRU;
-
-typedef struct
-{
-    VOS_UINT8                               ucSmoothCntUp;
-    VOS_UINT8                               ucSmoothCntDown;
-    VOS_UINT8                               ucSetDrvFailCnt;
-    VOS_UINT8                               ucRsv;
-    VOS_UINT32                              ulCurLev;
-    VOS_UINT8                               aucRsv[4];
-    FC_CPU_DRV_ASSEM_PARA_STRU              stCurAssemPara;
-    FC_ACORE_DRV_ASSEMBLE_PARA_FUNC         pDrvSetAssemParaFuncUe;             /* _H2ASN_Replace VOS_UINT32  pDrvSetAssemParaFuncUe; */
-    FC_ACORE_DRV_ASSEMBLE_PARA_FUNC         pDrvSetAssemParaFuncPc;             /* _H2ASN_Replace VOS_UINT32  pDrvSetAssemParaFuncPc; */
-}FC_CPU_DRV_ASSEM_PARA_ENTITY_STRU;
-
-/*****************************************************************************
- 结构名    : FC_CPU_DRV_ASSEM_PARA_NV_STRU
- 结构说明  : FC_CPU_DRV_ASSEM对应的NV结构
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT8                              ucEnableMask;
-    VOS_UINT8                              ucSmoothCntUpLev;
-    VOS_UINT8                              ucSmoothCntDownLev;
-    VOS_UINT8                              ucRsv;
-    FC_CPU_DRV_ASSEM_PARA_STRU             stCpuDrvAssemPara[FC_ACPU_DRV_ASSEM_LEV_BUTT];
-}FC_CPU_DRV_ASSEM_CONFIG_PARA_STRU;
-
 /*****************************************************************************
   4 全局变量声明
 *****************************************************************************/
 extern FC_POLICY_STRU                          g_astFcPolicy[]; /* 流控策略实体 */
 extern FC_POINT_MGR_STRU                       g_stFcPointMgr;  /* 流控点管理实体 */
-extern FC_CFG_STRU                             g_stFcCfg;       /* 流控配置实体 */
+extern VOS_UINT32                              g_ulFcEnableMask;
 /* 流控内部策略表 */
 extern FC_PRIVATE_POLICY_ID_ENUM_UINT8         g_aenPrivatePolicyTbl[FC_MODEM_ID_NUM][FC_POLICY_ID_BUTT];
 
@@ -563,10 +449,15 @@ typedef struct
 /*****************************************************************************
   10 函数声明
 *****************************************************************************/
+
+VOS_VOID  FC_SetFcEnableMask( VOS_UINT32 ulEnableMask );
+
 extern VOS_UINT32 FC_SndTemperatureMsg
 (
     FC_MSG_TYPE_ENUM_UINT16 usMsgName
 );
+
+VOS_UINT32  FC_CFG_CheckCpuParam( FC_CFG_CPU_STRU *pstFcCfgCpu );
 
 extern VOS_UINT32 FC_SndCpuMsg
 (
@@ -629,8 +520,8 @@ extern VOS_UINT32  FC_POINT_Change
 
 extern VOS_UINT32  FC_CommInit( VOS_VOID );
 
+VOS_VOID FC_MNTN_TraceEvent(VOS_VOID *pMsg);
 extern VOS_UINT32  FC_MNTN_TraceCpuLoad(FC_MNTN_EVENT_TYPE_ENUM_UINT16 enMsgName, VOS_UINT32  ulCpuLoad );
-extern VOS_UINT32  FC_MNTN_TraceDrvAssemPara(FC_DRV_ASSEM_PARA_STRU *pstDrvAssenPara);
 extern VOS_VOID FC_MNTN_TracePointFcEvent
 (
     FC_MNTN_EVENT_TYPE_ENUM_UINT16      enMsgName,

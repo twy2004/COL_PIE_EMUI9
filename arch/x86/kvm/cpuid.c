@@ -376,10 +376,6 @@ static inline int __do_cpuid_ent(struct kvm_cpuid_entry2 *entry, u32 function,
 	/* cpuid 7.0.ecx*/
 	const u32 kvm_cpuid_7_0_ecx_x86_features = F(PKU) | 0 /*OSPKE*/;
 
-	/* cpuid 7.0.edx*/
-	const u32 kvm_cpuid_7_0_edx_x86_features =
-		F(SPEC_CTRL) | F(SPEC_CTRL_SSBD) | F(ARCH_CAPABILITIES);
-
 	/* all calls to cpuid_count() should be made on the same cpu */
 	get_cpu();
 
@@ -462,14 +458,6 @@ static inline int __do_cpuid_ent(struct kvm_cpuid_entry2 *entry, u32 function,
 			/* PKU is not yet implemented for shadow paging. */
 			if (!tdp_enabled || !boot_cpu_has(X86_FEATURE_OSPKE))
 				entry->ecx &= ~F(PKU);
-
-			entry->edx &= kvm_cpuid_7_0_edx_x86_features;
-			cpuid_mask(&entry->edx, CPUID_7_EDX);
-			/*
-			 * We emulate ARCH_CAPABILITIES in software even
-			 * if the host doesn't support it.
-			 */
-			entry->edx |= F(ARCH_CAPABILITIES);
 		} else {
 			entry->ebx = 0;
 			entry->ecx = 0;

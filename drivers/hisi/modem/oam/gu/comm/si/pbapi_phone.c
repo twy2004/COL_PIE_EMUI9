@@ -53,6 +53,8 @@
 #include "si_pb.h"
 #include "product_config.h"
 
+#include "si_pih.h"
+
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -60,10 +62,10 @@
 
 
 
-
 VOS_UINT32 SI_PB_GetReceiverPid(MN_CLIENT_ID_T  ClientId, VOS_UINT32 *pulReceiverPid)
 {
-    MODEM_ID_ENUM_UINT16    enModemID;
+    MODEM_ID_ENUM_UINT16                enModemID;
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId;
 
     /* 调用接口获取Modem ID */
     if(VOS_OK != AT_GetModemIdFromClient(ClientId,&enModemID))
@@ -71,21 +73,29 @@ VOS_UINT32 SI_PB_GetReceiverPid(MN_CLIENT_ID_T  ClientId, VOS_UINT32 *pulReceive
         return VOS_ERR;
     }
 
-    if(MODEM_ID_1 == enModemID)
+    enSlotId = SI_GetSlotIdByModemId(enModemID);
+
+    if (SI_PIH_CARD_SLOT_BUTT <= enSlotId)
+    {
+        return VOS_ERR;
+    }
+
+    if(SI_PIH_CARD_SLOT_0 == enSlotId)
+    {
+        *pulReceiverPid = I0_MAPS_PB_PID;
+    }
+    else if (SI_PIH_CARD_SLOT_1 == enSlotId)
     {
         *pulReceiverPid = I1_MAPS_PB_PID;
     }
-    else if (MODEM_ID_2 == enModemID)
-    {
-        *pulReceiverPid = I2_MAPS_PB_PID;
-    }
     else
     {
-        *pulReceiverPid = I0_MAPS_PB_PID;
+        *pulReceiverPid = I2_MAPS_PB_PID;
     }
 
     return VOS_OK;
 }
+
 
 
 SI_UINT32 SI_PB_Read(  MN_CLIENT_ID_T           ClientId,
@@ -349,7 +359,7 @@ VOS_UINT32 SI_PB_GetSPBFlag(VOS_VOID)
 
 
 
-VOS_VOID SI_PB_MemSet(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem)
+VOS_VOID SI_PB_InitContent(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem)
 {
     VOS_UINT8 i;
 

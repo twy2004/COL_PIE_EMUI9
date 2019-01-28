@@ -121,7 +121,7 @@ void PPM_UsbCfgPortOpen(void)
                             PPM_UsbCfgWriteDataCB,
                             PPM_UsbCfgStatusCB);
 
-    ppm_printf("usb cfg port open\n");
+    diag_crit("usb cfg port open\n");
     return;
 }
 
@@ -151,7 +151,7 @@ void PPM_UsbIndPortOpen(void)
                             PPM_UsbIndWriteDataCB,
                             PPM_UsbIndStatusCB);
     
-    ppm_printf("usb ind port open\n");
+    diag_crit("usb ind port open\n");
     return;
 }
 

@@ -61,54 +61,6 @@
 
 
 /*****************************************************************************
-* 函 数 名  : mdrv_nv_get_nvid_num
-*
-* 功能描述  : 获取NV项数量
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_get_nvid_num()
-{
-    return bsp_nvm_get_nv_num();
-}
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_get_nvid_list
-*
-* 功能描述  : 获取NV列表
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_get_nvid_list(NV_LIST_INFO_STRU *pstNvIdList)
-{
-    if(pstNvIdList == NULL)
-    {
-        return NV_ERROR;
-    }
-    return bsp_nvm_get_nvidlist(pstNvIdList);
-
-}
-
-void mdrv_nv_get_nvauth_list(unsigned int ** list_adr, unsigned int * list_num)
-{
-    bsp_nvm_get_auth_list(list_adr, list_num);
-
-    return;
-}
-
-/*****************************************************************************
 * 函 数 名  : mdrv_nv_readex
 *
 * 功能描述  : 读不同Modem NV项数据
@@ -137,20 +89,7 @@ unsigned int mdrv_nv_readex(unsigned int modemid, unsigned int itemid, void *pda
 
 }
 
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_writeex
-*
-* 功能描述  : 写不同Modem NV项数据
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pdata, unsigned int ulLength)
+unsigned int mdrv_nv_readex_factory(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength)
 {
     BSP_U32 card_id = 0;
 
@@ -162,9 +101,73 @@ unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pda
         card_id = NV_USIMM_CARD_3;
     else
         return BSP_ERR_NV_INVALID_PARAM;
+    return nv_readEx_factory(card_id, itemid, 0,(BSP_U8*)pdata,ulLength);
 
-    return bsp_nvm_dcwrite(card_id, itemid,(BSP_U8*)pdata,ulLength);
+}
 
+
+/*****************************************************************************
+* 函 数 名  : mdrv_nv_write_debug
+*
+* 功能描述  : 维测写NV接口，HIMS、AT^NVWR、AT^NVWRPART、CBT
+*
+* 输入参数  :
+* 输出参数  : 无
+*
+* 返 回 值  : OK
+*
+* 修改记录  :
+*
+*****************************************************************************/
+unsigned int mdrv_nv_om_write(unsigned int modemid, unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength)
+{
+    return NV_ERROR;
+}
+
+/*****************************************************************************
+* 函 数 名  : mdrv_nv_get_modem_num
+*
+* 功能描述  : 获取NV镜像支持的odem个数
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : modem个数
+*
+* 修改记录  :
+*
+*****************************************************************************/
+unsigned int mdrv_nv_get_modem_num(void)
+{
+    return bsp_nvm_get_modem_num();
+}
+
+/*****************************************************************************
+* 函 数 名  : mdrv_nv_get_length
+*
+* 功能描述  : 获取NV长度
+*
+* 输入参数  :
+* 输出参数  : 无
+*
+* 返 回 值  : OK
+*
+* 修改记录  : Yangzhi create
+*
+*****************************************************************************/
+unsigned int mdrv_nv_get_length(unsigned int itemid, unsigned int *pulLength)
+{
+    BSP_U32 len = 0;
+    BSP_U32 ret = 0;
+
+    ret = bsp_nvm_get_len(itemid,&len);
+    if(ret)
+    {
+        return ret;
+    }
+    *pulLength = len;
+    return 0;
 }
 
 /*****************************************************************************
@@ -198,81 +201,6 @@ unsigned int mdrv_nv_read_partex(unsigned int modemid, unsigned int itemid, unsi
 }
 
 /*****************************************************************************
-* 函 数 名  : mdrv_nv_write_partex
-*
-* 功能描述  : 写部分NV项数据
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_write_partex(unsigned int modemid, unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength)
-{
-    BSP_U32 card_id = 0;
-
-    if(modemid == MODEM_ID_0)
-        card_id = NV_USIMM_CARD_1;
-    else if(modemid == MODEM_ID_1)
-        card_id = NV_USIMM_CARD_2;
-    else if(modemid == MODEM_ID_2)
-        card_id = NV_USIMM_CARD_3;
-    else
-        return BSP_ERR_NV_INVALID_PARAM;
-
-    return bsp_nvm_dcwritepart(card_id,itemid,ulOffset,(BSP_U8*)pdata,ulLength);
-}
-
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_flush
-*
-* 功能描述  : 将内存中的nv数据刷到flash 文件系统中
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_flush(void)
-{
-   return bsp_nvm_flush() & NV_RESULT_CODE;
-}
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_get_length
-*
-* 功能描述  : 获取NV长度
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_get_length(unsigned int itemid, unsigned int *pulLength)
-{
-    BSP_U32 len = 0;
-    BSP_U32 ret = 0;
-
-    ret = bsp_nvm_get_len(itemid,&len);
-    if(ret)
-    {
-        return ret;
-    }
-    *pulLength = len;
-    return 0;
-}
-
-/*****************************************************************************
 * 函 数 名  : mdrv_nv_read
 *
 * 功能描述  : 读NV项数据
@@ -291,24 +219,6 @@ unsigned int mdrv_nv_read(unsigned int itemid, void *pdata, unsigned int ulLengt
 }
 
 /*****************************************************************************
-* 函 数 名  : mdrv_nv_write
-*
-* 功能描述  : 写NV项数据
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_write(unsigned int itemid, void *pdata, unsigned int ulLength)
-{
-    return bsp_nvm_write(itemid,pdata,ulLength);
-}
-
-/*****************************************************************************
 * 函 数 名  : mdrv_nv_readpart
 *
 * 功能描述  : 读部分NV项数据
@@ -324,42 +234,6 @@ unsigned int mdrv_nv_write(unsigned int itemid, void *pdata, unsigned int ulLeng
 unsigned int mdrv_nv_readpart(unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength)
 {
     return bsp_nvm_readpart(itemid,ulOffset,pdata,ulLength);
-}
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_writepart
-*
-* 功能描述  : 写部分NV项数据
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_writepart(unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength)
-{
-    return bsp_nvm_writepart(itemid,ulOffset,pdata,ulLength);
-}
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_backup
-*
-* 功能描述  :  备份NV数据
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_backup()
-{
-    return bsp_nvm_backup(NV_FLAG_NEED_CRC) & NV_RESULT_CODE;
 }
 
 /*****************************************************************************
@@ -412,28 +286,39 @@ unsigned int mdrv_nv_restore()
 
 
 /*****************************************************************************
-* 函 数 名  : mdrv_nv_backup_factorynv
+* 函 数 名  : mdrv_nv_flush
 *
-* 功能描述  : 备份NV到出厂区，用于AT命令^inforbu
+* 功能描述  : 将内存中的nv数据刷到flash 文件系统中
 *
 * 输入参数  :
 * 输出参数  : 无
 *
 * 返 回 值  : OK
 *
-* 修改记录  :
+* 修改记录  : Yangzhi create
 *
 *****************************************************************************/
-unsigned int mdrv_nv_backup_factorynv()
+unsigned int mdrv_nv_flush(void)
 {
-    return bsp_nvm_update_default();
+   return NV_ERROR;
 }
 
-unsigned int mdrv_nv_revert_factorynv()
+/*****************************************************************************
+* 函 数 名  : mdrv_nv_backup
+*
+* 功能描述  :  备份NV数据
+*
+* 输入参数  :
+* 输出参数  : 无
+*
+* 返 回 值  : OK
+*
+*
+*****************************************************************************/
+unsigned int mdrv_nv_backup()
 {
-    return bsp_nvm_revert_default();
+   return NV_ERROR;
 }
-
 /*****************************************************************************
 * 函 数 名  : mdrv_nv_readex
 *
@@ -454,43 +339,15 @@ unsigned int mdrv_nv_check_factorynv(u32 mode)
 }
 
 
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_get_modem_num
-*
-* 功能描述  : 获取NV镜像支持的odem个数
-*
-* 输入参数  : 无
-*
-* 输出参数  : 无
-*
-* 返 回 值  : modem个数
-*
-* 修改记录  : 
-*
-*****************************************************************************/
-unsigned int mdrv_nv_get_modem_num(void)
-{
-    return bsp_nvm_get_modem_num();
-}
-
-
 EXPORT_SYMBOL(mdrv_nv_restore);
 EXPORT_SYMBOL(mdrv_nv_flush);
-EXPORT_SYMBOL(mdrv_nv_get_nvid_list);
-EXPORT_SYMBOL(mdrv_nv_revert_factorynv);
-EXPORT_SYMBOL(mdrv_nv_get_nvid_num);
-EXPORT_SYMBOL(mdrv_nv_writeex);
-EXPORT_SYMBOL(mdrv_nv_write_partex);
+EXPORT_SYMBOL(mdrv_nv_backup);
 EXPORT_SYMBOL(mdrv_nv_readex);
 EXPORT_SYMBOL(mdrv_nv_read_partex);
-EXPORT_SYMBOL(mdrv_nv_write);
-EXPORT_SYMBOL(mdrv_nv_writepart);
 EXPORT_SYMBOL(mdrv_nv_read);
 EXPORT_SYMBOL(mdrv_nv_readpart);
 EXPORT_SYMBOL(mdrv_nv_get_length);
 EXPORT_SYMBOL(mdrv_nv_restore_result);
-EXPORT_SYMBOL(mdrv_nv_backup);
-EXPORT_SYMBOL(mdrv_nv_backup_factorynv);
 EXPORT_SYMBOL(mdrv_nv_check_factorynv);
 
 /*lint -restore*/

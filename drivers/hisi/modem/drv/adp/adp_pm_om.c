@@ -50,6 +50,8 @@
 #include <mdrv_pm.h>
 #include <bsp_pm_om.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_pm_om
 
 int mdrv_pm_log(int mod_id,  unsigned int data_len , void *data)
 {

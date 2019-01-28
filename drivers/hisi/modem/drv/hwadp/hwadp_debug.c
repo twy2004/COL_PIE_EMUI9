@@ -52,15 +52,17 @@
 #include <mdrv_misc_comm.h>
 #include <mdrv_int_comm.h>
 #include <mdrv_errno.h>
-#include <bsp_trace.h>
 #include <bsp_dump.h>
 #include <bsp_om_enum.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_sram.h>
+#include <bsp_print.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_hwadp
 /*lint -save -e778 -e835*/
 
-#define hwadp_printf(fmt, ...) printk(fmt , ##__VA_ARGS__)
+#define hwadp_printf(fmt, ...) bsp_err(fmt , ##__VA_ARGS__)
 
 extern BSP_DDR_SECT_INFO_S g_ddr_info[BSP_DDR_SECT_TYPE_BUTTOM];
 
@@ -160,13 +162,11 @@ struct show_mem_info global_ddr_infos[]={
 int show_global_ddr_status(void)
 {
     int i,num;
-    /* name phy_addr size */
-    char* str_format ="%-30s %10lx %10x \n";
 
     hwadp_printf("%-30s %10s %10s (hex)\n", "name", "phy_addr", "size");
     num = sizeof(global_ddr_infos)/sizeof(global_ddr_infos[0]);
     for(i = 0; i < num; ++i){
-        hwadp_printf(str_format,global_ddr_infos[i].name, global_ddr_infos[i].value, global_ddr_infos[i].size);
+        hwadp_printf("%-30s %10lx %10x \n",global_ddr_infos[i].name, global_ddr_infos[i].value, global_ddr_infos[i].size);
     }
     return 0;
 }
@@ -196,7 +196,6 @@ struct show_mem_info sram_infos[]={
 #define OFFSET_SRAM_MIN_CPUFREQ_PROFILE      offsetof(SRAM_SMALL_SECTIONS, SRAM_MIN_CPUFREQ_PROFILE    )
 #define OFFSET_SRAM_REBOOT_INFO              offsetof(SRAM_SMALL_SECTIONS, SRAM_REBOOT_INFO            )
 #define OFFSET_SRAM_TEMP_PROTECT             offsetof(SRAM_SMALL_SECTIONS, SRAM_TEMP_PROTECT           )
-#define OFFSET_SRAM_DLOAD                    offsetof(SRAM_SMALL_SECTIONS, SRAM_DLOAD                  )
 #define OFFSET_SRAM_SEC_SHARE                offsetof(SRAM_SMALL_SECTIONS, SRAM_SEC_SHARE              )
 #define OFFSET_SRAM_DSP_MNTN_INFO            offsetof(SRAM_SMALL_SECTIONS, SRAM_DSP_MNTN_INFO          )
 #define OFFSET_SRAM_DFS_DDRC_CFG             offsetof(SRAM_SMALL_SECTIONS, SRAM_DFS_DDRC_CFG           )
@@ -221,7 +220,6 @@ struct show_mem_info sram_small_section_infos[]={
     {"MIN_CPUFREQ_PROFILE_ADDR    " , OFFSET_SRAM_MIN_CPUFREQ_PROFILE     , 0 },
     {"REBOOT_ADDR                 " , OFFSET_SRAM_REBOOT_INFO             , 0 },
     {"TEMP_PROTECT_ADDR           " , OFFSET_SRAM_TEMP_PROTECT            , 0 },
-    {"DLOAD_ADDR                  " , OFFSET_SRAM_DLOAD                   , 0 },
     {"SEC_SHARE                   " , OFFSET_SRAM_SEC_SHARE               , 0 },
     {"DSP_MNTN_INFO_ADDR          " , OFFSET_SRAM_DSP_MNTN_INFO           , 0 },
     {"DFS_DDRC_CFG_ADDR           " , OFFSET_SRAM_DFS_DDRC_CFG            , 0 },
@@ -240,23 +238,19 @@ struct show_mem_info sram_small_section_infos[]={
 int show_sram_status(void)
 {
     int i,num;
-    /* "name", "offset", "size" */
-    char* str_format ="%-30s %10x %10x\n";
-    /* "name", "offset" */
-    char* str_format2 ="%-30s %10x \n";
 
     hwadp_printf("sram phy_addr %10pK, virt_addr %10pK, size 0x%x (hex)\n", SRAM_V2P((unsigned long)SRAM_BASE_ADDR),SRAM_BASE_ADDR,HI_SRAM_SIZE);
     hwadp_printf("%-30s %10s %10s \n", "name", "offset", "size");
     num = sizeof(sram_infos)/sizeof(sram_infos[0]);
     for(i = 0; i < num; ++i){
-        hwadp_printf(str_format,sram_infos[i].name, sram_infos[i].value, sram_infos[i].size);
+        hwadp_printf("%-30s %10x %10x\n",sram_infos[i].name, sram_infos[i].value, sram_infos[i].size);
     }
 
     hwadp_printf("\n detailed info of SMALL_SECTIONS:offset:0x%x size:0x%x \n",SRAM_OFFSET_SMALL_SECTIONS , SRAM_SIZE_SMALL_SECTIONS );
     hwadp_printf("%-30s %10s\n", "name", "offset");
     num = sizeof(sram_small_section_infos)/sizeof(sram_small_section_infos[0]);
     for(i = 0; i < num; ++i){
-        hwadp_printf(str_format2,sram_small_section_infos[i].name, sram_small_section_infos[i].value);
+        hwadp_printf("%-30s %10x \n",sram_small_section_infos[i].name, sram_small_section_infos[i].value);
     }
     return 0;
 }
@@ -324,21 +318,19 @@ struct show_mem_info shared_ddr_slice_infos[]={
 int show_shared_ddr_status(void)
 {
     int i,num;
-    /* "name", "offset", "size" */
-    char* str_format ="%-30s %10x %10x\n";
 
     hwadp_printf("shared_ddr phy_addr %10pK virt_addr %10pK size:0x%x (hex)\n", SHD_DDR_V2P((unsigned long)SHM_BASE_ADDR), SHM_BASE_ADDR,DDR_SHARED_MEM_SIZE);
     hwadp_printf("%-30s %10s %10s\t\n", "name", "offset", "size");
     num = sizeof(shared_ddr_infos)/sizeof(shared_ddr_infos[0]);
     for(i = 0; i < num; ++i){
-        hwadp_printf(str_format,shared_ddr_infos[i].name, shared_ddr_infos[i].value, shared_ddr_infos[i].size);
+        hwadp_printf("%-30s %10x %10x\n",shared_ddr_infos[i].name, shared_ddr_infos[i].value, shared_ddr_infos[i].size);
     }
 
     hwadp_printf("\n detailed info of SLICE_MEM offset:0x%x size:0x%x \n", SHM_OFFSET_SLICE_MEM , SHM_SIZE_SLICE_MEM );
     hwadp_printf("%-30s %10s %10s\t\n", "name", "offset", "size");
     num = sizeof(shared_ddr_slice_infos)/sizeof(shared_ddr_slice_infos[0]);
     for(i = 0; i < num; ++i){
-        hwadp_printf(str_format,shared_ddr_slice_infos[i].name, shared_ddr_slice_infos[i].value, shared_ddr_slice_infos[i].size);
+        hwadp_printf("%-30s %10x %10x\n",shared_ddr_slice_infos[i].name, shared_ddr_slice_infos[i].value, shared_ddr_slice_infos[i].size);
     }
     return 0;
 }

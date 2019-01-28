@@ -7,7 +7,8 @@
 #include <linux/statfs.h>
 
 #include <product_config.h>
-
+#include <bsp_print.h>
+#define THIS_MODU mod_mmc
 #include <adrv.h>
 
 /*lint --e{585}*/
@@ -31,12 +32,12 @@ int bsp_blk_size(const char *part_name, u32 *size)
 	/* check param */
 	if(!part_name || !size)
 	{
-		printk(KERN_ERR "%s:invalid param.\n", __func__);
+		bsp_err("%s:invalid param.\n", __func__);
 		return -1;
 	}
 	ret = (long)flash_find_ptn(part_name, blk_path);
 	if (ret < 0) {
-		printk(KERN_ERR "%s not found from partition table!\n", part_name);
+		bsp_err("%s not found from partition table!\n", part_name);
 		return -1;
 	}
 
@@ -45,7 +46,7 @@ int bsp_blk_size(const char *part_name, u32 *size)
 
 	ret = sys_open(blk_path, O_RDONLY, 0600);
 	if (ret < 0) {
-		printk(KERN_ERR"fail to open file %s, ret %ld!\n", blk_path, ret);
+		bsp_err("fail to open file %s, ret %ld!\n", blk_path, ret);
 		goto open_err;
 	}
 
@@ -53,7 +54,7 @@ int bsp_blk_size(const char *part_name, u32 *size)
 
 	ret = sys_ioctl(fd, BLKGETSIZE64, (unsigned long)&isize);
 	if (ret < 0) {
-		printk(KERN_ERR "get %s size is failed, ret %ld!\n",
+		bsp_err("get %s size is failed, ret %ld!\n",
 				blk_path, ret);
 		goto ioctl_err;
 	}
@@ -63,7 +64,7 @@ ioctl_err:
 	ret_close = sys_close(fd);
 	if(ret_close) {
 		ret = -1;
-        printk(KERN_ERR "%s close failed??, ret %ld\n", blk_path, ret_close);
+        bsp_err("%s close failed??, ret %ld\n", blk_path, ret_close);
 	}
 
 open_err:
@@ -94,13 +95,13 @@ int bsp_blk_read(const char *part_name, loff_t part_offset, void *data_buf, size
 	/* check param */
 	if(!part_name || !data_buf)
 	{
-		printk(KERN_ERR "%s:invalid param.\n", __func__);
+		bsp_err("%s:invalid param.\n", __func__);
 		return -1;
 	}
 
 	ret = flash_find_ptn(part_name, blk_path);
 	if (ret < 0) {
-		printk(KERN_ERR "%s not found from partition table!\n", part_name);
+		bsp_err("%s not found from partition table!\n", part_name);
 		return -1;
     }
 	fs = get_fs();
@@ -108,7 +109,7 @@ int bsp_blk_read(const char *part_name, loff_t part_offset, void *data_buf, size
 
 	ret = sys_open(blk_path, O_RDONLY, 0600);
 	if (ret < 0) {
-		printk(KERN_ERR"fail to open file %s, ret %ld!\n", blk_path, ret);
+		bsp_err("fail to open file %s, ret %ld!\n", blk_path, ret);
 		goto open_err;
 	}
 
@@ -116,21 +117,21 @@ int bsp_blk_read(const char *part_name, loff_t part_offset, void *data_buf, size
 
 	ret = sys_ioctl(fd, BLKGETSIZE64, (unsigned long)&size);
 	if (ret < 0) {
-		printk(KERN_ERR "get %s size is failed, ret %ld!\n",
+		bsp_err("get %s size is failed, ret %ld!\n",
 				blk_path, ret);
 		goto ioctl_err;
 	}
 
 	if (part_offset > size || (part_offset + (loff_t)data_len > size)) {
 		ret = -1;
-		printk(KERN_ERR "%s invalid offset %lld data_len %zu size %lld!\n",
+		bsp_err("%s invalid offset %lld data_len %zu size %lld!\n",
 				blk_path, part_offset, data_len, size);
 		goto ioctl_err;
 	}
 
 	ret = sys_lseek(fd, part_offset, SEEK_SET);
 	if (ret < 0) {
-		printk(KERN_ERR "%s lseek %lld failed, ret %ld!\n",
+		bsp_err("%s lseek %lld failed, ret %ld!\n",
 				blk_path, part_offset, ret);
 		goto ioctl_err;
 	}
@@ -139,7 +140,7 @@ int bsp_blk_read(const char *part_name, loff_t part_offset, void *data_buf, size
 	if (len != data_len)
 	{
 		ret = -1;
-		printk(KERN_ERR "%s read error, data_len %zu read_len %ld!\n",
+		bsp_err("%s read error, data_len %zu read_len %ld!\n",
 				blk_path, data_len, len);
 		goto ioctl_err;
 	}
@@ -149,7 +150,7 @@ ioctl_err:
 	ret_close = sys_close(fd);
 	if(ret_close) {
 		ret = -1;
-        printk(KERN_ERR "%s close failed??, ret %ld\n", blk_path, ret_close);
+        bsp_err("%s close failed??, ret %ld\n", blk_path, ret_close);
 	}
 
 open_err:
@@ -179,13 +180,13 @@ int bsp_blk_write(const char *part_name, loff_t part_offset, void *data_buf, siz
 	/* check param */
 	if(!part_name || !data_buf)
 	{
-		printk(KERN_ERR "%s:invalid param.\n", __func__);
+		bsp_err("%s:invalid param.\n", __func__);
 		return -1;
 	}
 
 	ret = flash_find_ptn(part_name, blk_path);
 	if (ret < 0) {
-		printk(KERN_ERR "%s not found from partition table!\n", part_name);
+		bsp_err("%s not found from partition table!\n", part_name);
 		return -1;
 	}
 
@@ -194,7 +195,7 @@ int bsp_blk_write(const char *part_name, loff_t part_offset, void *data_buf, siz
 
 	ret = sys_open(blk_path, O_WRONLY | O_DSYNC, 0600);
 	if (ret < 0) {
-		printk(KERN_ERR"fail to open file %s, ret %ld!\n", blk_path, ret);
+		bsp_err("fail to open file %s, ret %ld!\n", blk_path, ret);
 		goto open_err;
 	}
 
@@ -202,21 +203,21 @@ int bsp_blk_write(const char *part_name, loff_t part_offset, void *data_buf, siz
 
 	ret = sys_ioctl(fd, BLKGETSIZE64, (unsigned long)&size);
 	if (ret < 0) {
-		printk(KERN_ERR "get %s size is failed, ret %ld!\n",
+		bsp_err("get %s size is failed, ret %ld!\n",
 				blk_path, ret);
 		goto ioctl_err;
 	}
 
 	if (part_offset > size || (part_offset + (loff_t)data_len > size)) {
 		ret = -1;
-		printk(KERN_ERR "%s invalid offset %lld data_len %zu size %lld!\n",
+		bsp_err("%s invalid offset %lld data_len %zu size %lld!\n",
 				blk_path, part_offset, data_len, size);
 		goto ioctl_err;
 	}
 
 	ret = sys_lseek(fd, part_offset, SEEK_SET);
 	if (ret < 0) {
-		printk(KERN_ERR "%s lseek %lld failed, ret %ld!\n",
+		bsp_err("%s lseek %lld failed, ret %ld!\n",
 				blk_path, part_offset, ret);
 		goto ioctl_err;
 	}
@@ -225,14 +226,14 @@ int bsp_blk_write(const char *part_name, loff_t part_offset, void *data_buf, siz
 	if (len != data_len)
 	{
 		ret = -1;
-		printk(KERN_ERR "%s read error, data_len %zu read_len %ld!\n",
+		bsp_err("%s read error, data_len %zu read_len %ld!\n",
 				blk_path, data_len, len);
 		goto ioctl_err;
 	}
 
 	ret = sys_fsync(fd);
 	if (ret < 0) {
-		printk(KERN_ERR "%s fsync failed, ret %ld!\n",
+		bsp_err("%s fsync failed, ret %ld!\n",
 				blk_path, ret);
 		goto ioctl_err;
 	}
@@ -242,7 +243,7 @@ ioctl_err:
 	ret_close = sys_close(fd);
 	if(ret_close) {
 		ret = -1;
-        printk(KERN_ERR "%s close failed??, ret %ld\n", blk_path, ret_close);
+        bsp_err("%s close failed??, ret %ld\n", blk_path, ret_close);
 	}
 
 open_err:

@@ -182,8 +182,8 @@ typedef struct
     noc_test_addr test_addr;
     enum noc_test_modid_e modid;
     enum noc_test_mode_e test_mode;
-    bool noc_exc_flag;  /* 正常触发noc异常标志 */
     osl_sem_id noc_test_sem;
+    bool noc_exc_flag;  /* 正常触发noc异常标志 */
 }noc_err_test_stru;
 
 typedef struct
@@ -204,8 +204,6 @@ extern noc_err_probe_nv_cfg g_noc_err_probe_nv_cfg;
 
 extern bsp_noc_hook_func g_NocTestFunc;
 
-
-extern struct dsp_mainctrl *g_dsp_ctrl;
 /*****************************************************************************
   3 函数声明
 *****************************************************************************/

@@ -9,3 +9,9 @@ config IMAGE_LOAD
 	default n
 	help
 	  ccore image load driver
+
+config COLD_PATCH
+	tristate "ccore patch image load"
+	default n
+	help
+	  ccore patch image load driver

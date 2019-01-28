@@ -14,6 +14,7 @@
 #pragma GCC diagnostic ignored "-Wformat"
 
 #include "hisi_fb.h"
+#include <huawei_platform/fingerprint_interface/fingerprint_interface.h>
 
 /*
 ** /sys/class/graphics/fb0/vsync_event
@@ -81,6 +82,7 @@ void hisifb_masklayer_backlight_notify_handler(struct work_struct *work)
 				HISI_FB_INFO("mask layer max backlight done notify.\n");
 				vsync_count = 0;
 				hisifd->masklayer_maxbacklight_flag = false;
+				ud_fp_on_hbm_completed();
 			}
 		} else {
 			vsync_count = 0;

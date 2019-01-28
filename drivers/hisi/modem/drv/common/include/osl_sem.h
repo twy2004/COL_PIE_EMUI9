@@ -218,6 +218,9 @@ static __inline__ int osl_sem_ccreate (osl_sem_id *mutex,int count, int options)
 #define OSL_SEM_DELETE_SAFE     0x0    /* owner delete safe (mutex opt.) RTOSCK no this*/
 
 typedef  SEM_HANDLE_T osl_sem_id;
+
+//lint -esym(732,*)
+
 #if (OS_HARDWARE_PLATFORM != OS_CORTEX_RX)
 static inline unsigned int osl_sem_init(u32 val, osl_sem_id* mutex)
 {
@@ -334,7 +337,7 @@ static inline unsigned int osl_sem_init(u32 val, osl_sem_id* mutex)
     osl_sem_id semId = 0;
     UINT32 ret = SRE_OK;
     u32 cookis=0;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     if(val != SEM_FULL)
     {
         ret = SRE_SemBCreateDebug(val, &semId, SEM_MODE_PRIOR, cookis);
@@ -363,7 +366,7 @@ static inline int osl_sem_mcreate (osl_sem_id * mutex, int options)
     osl_sem_id semId = 0;
     UINT32 ret = OK;
     u32 cookis=0;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     if(options&OSL_SEM_INVERSION_SAFE)
     {
         ret = SRE_SemBCreateDebug(SEM_FULL, &semId, (OS_SEM_MODE_E)(options&~OSL_SEM_INVERSION_SAFE),cookis);
@@ -396,8 +399,8 @@ static inline int osl_sem_bcreate (osl_sem_id *mutex,int count, int options)
     osl_sem_id semId = 0;
     UINT32 ret = OK;
     u32 cookis=0;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
-    ret = SRE_SemBCreateDebug(count, &semId, (OS_SEM_MODE_E)options,cookis);
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
+    ret = SRE_SemBCreateDebug((UINT32)count, &semId, (OS_SEM_MODE_E)options,cookis);
     if(ret)
     {
         (void)SRE_Printf("SRE_SemBCreate fail!,ret=0x%x\n",ret);
@@ -412,8 +415,8 @@ static inline int osl_sem_bcreate (osl_sem_id *mutex,int count, int options)
     osl_sem_id semId = 0;
     unsigned int ret = OK;
     u32 cookis=0;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
-    ret = SRE_SemCCreateDebug(count, &semId, (OS_SEM_MODE_E)options,cookis);
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
+    ret = SRE_SemCCreateDebug((UINT32)count, &semId, (OS_SEM_MODE_E)options,cookis);
     if(ret != SRE_OK)
     {
         (void)SRE_Printf("SRE_SemCCreate fail!,ret=0x%x\n",ret);
@@ -435,7 +438,7 @@ static inline unsigned int osl_sem_down(osl_sem_id* sem)
 
 static inline unsigned int osl_sem_downtimeout(osl_sem_id* sem, long jiffies)
 {
-    return SRE_SemPend(*sem, jiffies);
+    return SRE_SemPend(*sem, (UINT32)jiffies);
 }
 
 static inline unsigned int osl_sema_delete(osl_sem_id *sem)
@@ -449,7 +452,7 @@ struct semaphore{
 
 static inline unsigned int sema_init(struct semaphore *sem, int val)
 {
-   return osl_sem_init(val,(osl_sem_id*)(&(sem->handle)));
+   return (unsigned int)osl_sem_init((u32)val,(osl_sem_id*)(&(sem->handle)));
 }
 
 static inline unsigned int up(struct semaphore *sem)
@@ -472,6 +475,7 @@ static inline unsigned int  osl_sem_delete(struct semaphore *sem)
     return SRE_SemDelete(sem->handle);
 }
 
+//lint +esym(732,*)
 
 #else
 

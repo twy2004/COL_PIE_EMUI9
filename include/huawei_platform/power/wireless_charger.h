@@ -29,7 +29,7 @@
 #define PERCENT                     100
 #define RX_IOUT_MIN                 150
 #define RX_IOUT_MID                 500
-#define RX_VRECT_MIN                4500
+#define RX_VOUT_ERR_RATIO           81
 #define TX_BOOST_VOUT               12000
 #define TX_DEFAULT_VOUT             5000
 #define RX_DEFAULT_VOUT             5500
@@ -45,7 +45,7 @@
 #define RX_IOUT_REG_STEP            100
 #define RX_VRECT_LOW_RESTORE_TIME   10000
 #define RX_VRECT_LOW_IOUT_MIN       300
-#define RX_VRECT_ERR_CHECK_TIME     1000
+#define RX_VOUT_ERR_CHECK_TIME      1000
 
 #define TX_ID_HW                    0x8866
 
@@ -146,6 +146,7 @@ enum wireless_etp_type {
 	WIRELESS_EPT_RESERVED       = 0x07,
 	WIRELESS_EPT_NO_RESPONSE    = 0x08,
 	WIRELESS_EPT_ERR_VRECT      = 0xA0,
+	WIRELESS_EPT_ERR_VOUT       = 0xA1,
 };
 enum wireless_charge_stage {
 	WIRELESS_STAGE_DEFAULT = 0,
@@ -394,6 +395,7 @@ struct wireless_charge_device_info {
 	struct work_struct wired_vbus_disconnect_work;
 	struct work_struct rx_program_otp_work;
 	struct work_struct wireless_rx_event_work;
+	struct work_struct wireless_pwroff_reset_work;
 	struct delayed_work wireless_vbus_disconnect_work;
 	struct delayed_work wireless_ctrl_work;
 	struct delayed_work wireless_monitor_work;
@@ -418,7 +420,7 @@ struct wireless_charge_device_info {
 	int rx_iout_max;
 	int rx_vout_max;
 	int rx_iout_step;
-	int rx_vrect_min;
+	int rx_vout_err_ratio;
 	enum wireless_charge_stage stage;
 	int ctrl_interval;
 	int monitor_interval;
@@ -442,6 +444,7 @@ struct wireless_charge_device_info {
 	enum tx_power_state tx_pg_state;
 	struct completion wc_af_completion;
 	u8 antifake_key_index;
+	int pwroff_reset_flag;
 };
 enum wireless_charge_sysfs_type {
 	WIRELESS_CHARGE_SYSFS_CHIP_ID = 0,

@@ -50,11 +50,12 @@
 #include <osl_common.h>
 #include <drv_comm.h>
 #include <bsp_sec_call.h>
-
-#define sec_print_err(fmt, ...)   (printk(KERN_ERR "sec_call: %s "fmt, __FUNCTION__, ##__VA_ARGS__))
+#include <bsp_print.h>
 
 #include <teek_client_api.h>
 #include <teek_client_id.h>
+
+#define THIS_MODU mod_sec_call
 
 DEFINE_MUTEX(trans_lock);
 typedef enum SVC_SECBOOT_CMD_ID SECBOOT_CMD_ID;
@@ -78,7 +79,7 @@ static int TEEK_init(TEEC_Session *session, TEEC_Context *context)
     result = TEEK_InitializeContext(NULL, context);
 
     if(result != TEEC_SUCCESS) {
-        sec_print_err("TEEK_InitializeContext failed,result = 0x%x!\n",result);
+        bsp_err("TEEK_InitializeContext failed,result = 0x%x!\n",result);
         return BSP_ERROR;
     }
 
@@ -104,7 +105,7 @@ static int TEEK_init(TEEC_Session *session, TEEC_Context *context)
 
     if (result != TEEC_SUCCESS) 
     {
-        sec_print_err("TEEK_OpenSession failed,result = 0x%x!\n",result);
+        bsp_err("TEEK_OpenSession failed,result = 0x%x!\n",result);
         TEEK_FinalizeContext(context);
         return BSP_ERROR;
     }  
@@ -148,7 +149,7 @@ static int TEEK_cmd_session(TEEC_Session   *session,
                            &operation,
                            &origin);
     if (result != TEEC_SUCCESS) {
-        sec_print_err("invoke failed!result = 0x%x!\n",result);
+        bsp_err("invoke failed!result = 0x%x!\n",result);
         return BSP_ERROR;
     }
 
@@ -163,7 +164,7 @@ int bsp_sec_call(FUNC_CMD_ID func_cmd, unsigned int param)
 
     if (!((FUNC_CMD_ID_MIN <= func_cmd) && (FUNC_CMD_ID_MIN_BUTTOM > func_cmd)))
 	{
-	    sec_print_err("Invalid func_cmd 0x%x\n", func_cmd);
+	    bsp_err("Invalid func_cmd 0x%x\n", func_cmd);
 		return BSP_ERROR;
 	}
 
@@ -171,7 +172,7 @@ int bsp_sec_call(FUNC_CMD_ID func_cmd, unsigned int param)
     ret = TEEK_init(&session, &context);
     if(BSP_ERROR == ret)
     {
-        sec_print_err("TEEK_InitializeContext failed!\n");
+        bsp_err("TEEK_InitializeContext failed!\n");
         mutex_unlock(&trans_lock);
         return ret;
     }
@@ -179,7 +180,7 @@ int bsp_sec_call(FUNC_CMD_ID func_cmd, unsigned int param)
     ret = TEEK_cmd_session(&session, SECBOOT_CMD_ID_BSP_MODEM_CALL, (FUNC_CMD_ID)func_cmd, param);
     if(BSP_ERROR == ret)
     {
-        sec_print_err("TEEK_cmd_session fail!\n");
+        bsp_err("TEEK_cmd_session fail!\n");
     }
 
     TEEK_CloseSession(&session);

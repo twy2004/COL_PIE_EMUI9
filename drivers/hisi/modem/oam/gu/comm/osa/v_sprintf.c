@@ -113,7 +113,7 @@ VOS_INT VOS_vsprintf_s(VOS_CHAR * str, VOS_SIZE_T ulDestSize, const VOS_CHAR *fo
  *****************************************************************************/
 VOS_INT VOS_sprintf_s(VOS_CHAR *str, VOS_SIZE_T ulDestSize, const VOS_CHAR *fmt, ...)
 {
-    /*lint -e530 -e830 */
+    /*lint -e530 */
     va_list arg;
     register VOS_INT nc;
 
@@ -137,7 +137,7 @@ VOS_INT VOS_sprintf_s(VOS_CHAR *str, VOS_SIZE_T ulDestSize, const VOS_CHAR *fmt,
     va_end(arg);
     /*lint +e586*/
     return (nc);
-    /*lint +e530 +e830 */
+    /*lint +e530 */
 }
 
 #define LENGTH_OF_PRINT_LINE_BUF        (1024)
@@ -150,7 +150,7 @@ VOS_INT VOS_sprintf_s(VOS_CHAR *str, VOS_SIZE_T ulDestSize, const VOS_CHAR *fmt,
  Output     : None
  Return     : None
  *****************************************************************************/
-VOS_VOID vos_assert( VOS_UINT32 ulFileID, VOS_INT LineNo)
+MODULE_EXPORTED VOS_VOID vos_assert( VOS_UINT32 ulFileID, VOS_INT LineNo)
 {
     /*lint -e813 */
     VOS_CHAR vos_PrintBuf[LENGTH_OF_PRINT_LINE_BUF];
@@ -160,7 +160,7 @@ VOS_VOID vos_assert( VOS_UINT32 ulFileID, VOS_INT LineNo)
 
     (VOS_VOID)VOS_sprintf_s( vos_PrintBuf, LENGTH_OF_PRINT_LINE_BUF, "%s File: %d, Line: %d", String, ulFileID, LineNo );
 
-    vos_printf("\n %s.\r\n",vos_PrintBuf);
+    vos_printf("\n[PAM][OSA] %s.\r\n",vos_PrintBuf);
 
     return;
 }

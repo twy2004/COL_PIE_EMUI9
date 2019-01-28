@@ -51,14 +51,28 @@
 #ifndef __MSP_ERRNO_H__
 #define __MSP_ERRNO_H__
 
-#include <mdrv_diag_system.h>
+/*****************************************************************************
+  1 Include Headfile
+*****************************************************************************/
+/*****************************************************************************
+  2 macro
+*****************************************************************************/
+#ifndef ERR_MSP_SUCCESS
+#define  ERR_MSP_SUCCESS                (0)
+#endif
 
+#ifndef ERR_MSP_FAILURE
+#define  ERR_MSP_FAILURE                (0xFFFFFFFFU)
+#endif
+/*****************************************************************************
+  3 Enum
+*****************************************************************************/
 /* The definition of error number which result in reboot */
 enum
 {
-    MSP_REBOOT_FTM_ERR  = 0xb0000000,
-	MSP_REBOOT_USB_SEND_ERROR = 0xb0000001,
-    MSP_REBOOT_ID_BUTT  = 0xbfffffff
+    MSP_REBOOT_ID_BEGIN         = 0xb0000000,
+	MSP_REBOOT_USB_SEND_ERROR   = 0xb0000001,
+    MSP_REBOOT_ID_BUTT          = 0xbfffffff
 };
 
 

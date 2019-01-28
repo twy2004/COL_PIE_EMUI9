@@ -47,7 +47,8 @@
  */
 
 
-
+#include <mdrv.h>
+#include <linux/wakelock.h>
 #include "msp_errno.h"
 #include "diag_common.h"
 #include "diag_debug.h"
@@ -55,13 +56,15 @@
 #include "soc_socp_adapter.h"
 #include "diag_acore_common.h"
 #include "msp_diag_comm.h"
-#include  <linux/wakelock.h>
+#include "diag_service.h"
 
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_SERVICE_C
 
 
 DIAG_DFR_INFO_STRU g_stDFRcnf;
+VOS_SPINLOCK                    g_stSrvIndSrcBuffSpinLock;
+VOS_SPINLOCK                    g_stSrvCnfSrcBuffSpinLock;
 
 
 typedef struct
@@ -88,35 +91,53 @@ DIAG_DFR_INFO_STRU g_stDFRreq;
 
 DIAG_SRVC_MAIN_STRU  g_stDiagSrvc;
 
-VOS_VOID diag_SrvcFillServiceHead(DIAG_SRVICE_HEAD_BASE_INFO *pstServInfo, DIAG_FRAME_INFO_STRU *stFrame)
+DIAG_SRV_CTRL g_SrvCtrl = {
+    SOCP_CODER_SRC_PS_IND,
+    SOCP_CODER_SRC_CNF,
+};
+
+VOS_VOID diag_SvcFillHeader(DIAG_SRV_HEADER_STRU *pstSrvHeader)
 {
-    stFrame->stService.sid8b       = MSP_SID_DIAG_SERVICE;
-    stFrame->stService.ssid4b      = pstServInfo->ssid;
-    stFrame->stService.mdmid3b     = pstServInfo->mdmid;
-    stFrame->stService.rsv1b       = 0;
-    stFrame->stService.sessionid8b = MSP_SERVICE_SESSION_ID;
+    VOS_UINT8 auctime[8];
+    VOS_UINT32 ulTimeStampLen = sizeof(pstSrvHeader->frame_header.stService.aucTimeStamp);
 
-    stFrame->stService.ff1b        = pstServInfo->split;
-    stFrame->stService.eof1b       = pstServInfo->end;
-    stFrame->stService.index4b     = pstServInfo->index;
+    /* 默认不分包主动上报 */
+    pstSrvHeader->socp_header.ulHisiMagic = DIAG_SRV_HISI_HEADER_MAGIC;
+    pstSrvHeader->socp_header.ulDataLen = 0;
 
-    stFrame->stService.mt2b        = pstServInfo->dirction;
-    stFrame->stService.ulMsgTransId  = pstServInfo->ulMsgTransId;
+    pstSrvHeader->frame_header.stService.sid8b = MSP_SID_DIAG_SERVICE;
+    pstSrvHeader->frame_header.stService.mdmid3b = 0;
+    pstSrvHeader->frame_header.stService.rsv1b = 0;
+    pstSrvHeader->frame_header.stService.ssid4b = DIAG_SSID_CPU;
+    pstSrvHeader->frame_header.stService.sessionid8b = MSP_SERVICE_SESSION_ID;
+    /*默认为主动上报*/
+    pstSrvHeader->frame_header.stService.mt2b = DIAG_MT_IND;
+    pstSrvHeader->frame_header.stService.index4b = 0;
+    pstSrvHeader->frame_header.stService.eof1b = 0;
+    pstSrvHeader->frame_header.stService.ff1b = 0;
+    pstSrvHeader->frame_header.stService.ulMsgTransId = 0;
 
-    (VOS_VOID)VOS_MemCpy_s(stFrame->stService.aucTimeStamp, (VOS_UINT32)sizeof(stFrame->stService.aucTimeStamp),
-                    pstServInfo->aucTimeStamp, sizeof(stFrame->stService.aucTimeStamp));
+    (VOS_VOID)mdrv_timer_get_accuracy_timestamp((VOS_UINT32*)&(auctime[4]), (VOS_UINT32*)&(auctime[0]));
+    VOS_MemCpy_s(pstSrvHeader->frame_header.stService.aucTimeStamp, sizeof(pstSrvHeader->frame_header.stService.aucTimeStamp), \
+                auctime, ulTimeStampLen);
 }
 
 VOS_VOID diag_PktTimeoutClear(VOS_VOID)
 {
     LIST_S* me = NULL;
-    DIAG_SRVC_FRAME_NODE_STRU *pTempNode;
+    DIAG_SRVC_FRAME_NODE_STRU *pTempNode = VOS_NULL_PTR;
     VOS_UINT32 ulCurSlice = mdrv_timer_get_normal_timestamp();
+    VOS_UINT32 del_flag = 0;
 
     (VOS_VOID)VOS_SmP(g_stDiagSrvc.ListSem,0);
 
     blist_for_each(me, &g_stDiagSrvc.ListHeader)
     {
+        if((pTempNode != VOS_NULL_PTR)&&(del_flag))
+        {
+            VOS_MemFree(MSP_PID_DIAG_APP_AGENT, pTempNode);
+            del_flag = 0;
+        }
         pTempNode = blist_entry(me, DIAG_SRVC_FRAME_NODE_STRU, FrameList);
 
         if((ulCurSlice > pTempNode->ulSlice) && ((ulCurSlice - pTempNode->ulSlice) > DIAG_PKT_TIMEOUT_LEN))
@@ -134,9 +155,14 @@ VOS_VOID diag_PktTimeoutClear(VOS_VOID)
                 VOS_MemFree(MSP_PID_DIAG_APP_AGENT, pTempNode->pFrame);
             }
 
-            VOS_MemFree(MSP_PID_DIAG_APP_AGENT, pTempNode);
+            del_flag = 1;
         }
     }
+    if((pTempNode != VOS_NULL_PTR)&&(del_flag))
+    {
+            VOS_MemFree(MSP_PID_DIAG_APP_AGENT, pTempNode);
+        }
+
     (VOS_VOID)VOS_SmV(g_stDiagSrvc.ListSem);
 }
 
@@ -158,7 +184,7 @@ VOS_VOID diag_SrvcCreatePkt(DIAG_FRAME_INFO_STRU *pFrame)
     /*消息长度不能大于最大长度*/
     if(pFrame->ulMsgLen + sizeof(DIAG_FRAME_INFO_STRU) > DIAG_FRAME_SUM_LEN)
     {
-        diag_error("msg len too large, msglen = 0x%x\n", pFrame->ulMsgLen);
+        diag_error("MsgLen(0x%x) too large\n", pFrame->ulMsgLen);
         return;
     }
 
@@ -176,7 +202,7 @@ VOS_VOID diag_SrvcCreatePkt(DIAG_FRAME_INFO_STRU *pFrame)
         {
             (VOS_VOID)VOS_SmV(g_stDiagSrvc.ListSem);
 
-            diag_printf("%s : there is a uniform packet in list.\n", __FUNCTION__);
+            diag_error("there is a uniform packet in list\n");
             return ;
         }
     }
@@ -269,7 +295,7 @@ DIAG_FRAME_INFO_STRU * diag_SrvcSavePkt(DIAG_FRAME_INFO_STRU *pFrame, VOS_UINT32
                     ||  (pTempNode->ulFrameOffset + ulLocalLen > DIAG_FRAME_SUM_LEN)
                     ||  (pTempNode->pFrame->ulMsgLen != ulLen + ulLocalLen))
                 {
-                    diag_error("rev data len error, ulLen:0x%x ulLocalLen:0x%x\n", ulLen, ulLocalLen);
+                    diag_error("DataLen error, ulLen:0x%x ulLocalLen:0x%x\n", ulLen, ulLocalLen);
                     (VOS_VOID)VOS_SmV(g_stDiagSrvc.ListSem);
                     return VOS_NULL_PTR;
                 }
@@ -296,7 +322,7 @@ DIAG_FRAME_INFO_STRU * diag_SrvcSavePkt(DIAG_FRAME_INFO_STRU *pFrame, VOS_UINT32
                     ||  (uloffset + ulLocalLen > DIAG_FRAME_SUM_LEN)
                     ||  (pTempNode->pFrame->ulMsgLen < (uloffset - sizeof(DIAG_FRAME_INFO_STRU) + ulLocalLen)))
                 {
-                    diag_error("msg len error, uloffset:0x%x ulLocallen:0x%x\n", uloffset, ulLocalLen);
+                    diag_error("MsgLen error, uloffset:0x%x ulLocallen:0x%x\n", uloffset, ulLocalLen);
                     (VOS_VOID)VOS_SmV(g_stDiagSrvc.ListSem);
                     return VOS_NULL_PTR;
                 }
@@ -381,7 +407,7 @@ VOS_VOID diag_SrvcDestroyPkt(DIAG_FRAME_INFO_STRU *pFrame)
     1.c64416         2014-11-18  Draft Enact
 
 *****************************************************************************/
-VOS_UINT32 diag_ServiceProc(MSP_SERVICE_HEAD_STRU *pData, VOS_UINT32 ulDatalen)
+VOS_UINT32 diag_ServiceProc(VOS_VOID *pData, VOS_UINT32 ulDatalen)
 {
     VOS_UINT32 ulRet = VOS_ERR;
     DIAG_FRAME_INFO_STRU *pHeader;
@@ -441,14 +467,14 @@ VOS_UINT32 diag_ServiceProc(MSP_SERVICE_HEAD_STRU *pData, VOS_UINT32 ulDatalen)
         }
         else
         {
-            /*if(ulDatalen < pHeader->ulMsgLen + sizeof(DIAG_FRAME_INFO_STRU))
+            if(ulDatalen < pHeader->ulMsgLen + sizeof(DIAG_FRAME_INFO_STRU))
             {
                 wake_unlock(&diag_wakelock);
                 diag_error("rev tools data len error, rev:0x%x except:0x%x\n", \
                     ulDatalen, pHeader->ulMsgLen + (VOS_UINT32)sizeof(DIAG_FRAME_INFO_STRU));
                 return ERR_MSP_INVALID_PARAMETER;
             }
-            */
+
             pProcHead = pHeader;
 
             diag_SaveDFR(&g_stDFRreq, (VOS_UINT8*)pHeader, (sizeof(DIAG_FRAME_INFO_STRU) + pHeader->ulMsgLen));
@@ -506,7 +532,7 @@ VOS_VOID diag_ServiceInit(VOS_VOID)
     ret = VOS_SmBCreate("SRVC", 1, VOS_SEMA4_FIFO, &g_stDiagSrvc.ListSem);
     if(VOS_OK != ret)
     {
-        diag_printf("diag_ServiceInit VOS_SmBCreate failed.\n");
+        diag_error("VOS_SmBCreate failed.\n");
     }
 
     /* 初始化请求链表 */
@@ -518,7 +544,7 @@ VOS_VOID diag_ServiceInit(VOS_VOID)
     ret = diag_CreateDFR("DFRReqA", DIAG_DFR_BUFFER_MAX, &g_stDFRreq);
     if(ret)
     {
-        diag_printf("%s : diag_CreateDFR DFR_Req failed.\n", __FUNCTION__);
+        diag_error("diag_CreateDFR DFR_Req failed\n");
     }
 
     /* coverity[alloc_arg] */
@@ -526,8 +552,51 @@ VOS_VOID diag_ServiceInit(VOS_VOID)
 
     if(ret)
     {
-        diag_printf("%s : diag_CreateDFR DFR_Cnf failed.\n", __FUNCTION__);
+        diag_error("diag_CreateDFR DFR_Cnf failed\n");
     }
+}
+
+/*****************************************************************************
+* 函 数 名  :iqi_data_buffer_write
+* 功能描述  : 写入数据，更新写指针
+* 输入参数  : id、消息内容、长度
+* 输出参数  : 无
+* 返 回 值  : 是否成功标志
+*****************************************************************************/
+VOS_VOID diag_SrvcPackWrite(SOCP_BUFFER_RW_STRU *pRWBuffer, const VOS_VOID * pPayload, VOS_UINT32 u32DataLen )
+{
+    VOS_UINT32 ulTempLen;
+    VOS_UINT32 ulTempLen1;
+
+    if(u32DataLen == 0)
+    {
+        return;
+    }
+
+    if(pRWBuffer->u32Size > u32DataLen)
+    {
+       (void)VOS_MemCpy_s(((VOS_UINT8*)pRWBuffer->pBuffer), u32DataLen, pPayload, u32DataLen);
+        pRWBuffer->pBuffer = pRWBuffer->pBuffer + u32DataLen;
+        pRWBuffer->u32Size = pRWBuffer->u32Size - u32DataLen;
+    }
+    else
+    {
+        ulTempLen = pRWBuffer->u32Size;
+        (void)VOS_MemCpy_s(((VOS_UINT8*)pRWBuffer->pBuffer), pRWBuffer->u32Size, pPayload,ulTempLen);
+
+        ulTempLen1 = u32DataLen - pRWBuffer->u32Size;
+        if(ulTempLen1)
+        {
+            (void)VOS_MemCpy_s(pRWBuffer->pRbBuffer, pRWBuffer->u32RbSize, ((VOS_UINT8 *)pPayload + ulTempLen) ,ulTempLen1);
+        }
+        pRWBuffer->pBuffer = pRWBuffer->pRbBuffer + ulTempLen1;
+        pRWBuffer->u32Size = pRWBuffer->u32RbSize - ulTempLen1;
+        pRWBuffer->pRbBuffer = VOS_NULL;
+        pRWBuffer->u32RbSize = 0;
+
+    }
+
+    return;
 }
 
 
@@ -539,252 +608,55 @@ VOS_VOID diag_ServiceInit(VOS_VOID)
     1.c64416         2015-03-12  Draft Enact
 
 *****************************************************************************/
-VOS_UINT32 diag_SrvcPackFirst(DIAG_MSG_REPORT_HEAD_STRU *pData, VOS_UINT8 *puctime)
+VOS_UINT32 diag_SrvcPackIndSend(DIAG_MSG_REPORT_HEAD_STRU *pData)
 {
-    DIAG_FRAME_INFO_STRU stFrame;
-    VOS_UINT32 ulTmpLen =0;
-    VOS_UINT32 ret = ERR_MSP_FAILURE;
-    VOS_UINT32 ulSplit = 0;
-    VOS_ULONG  ulLockLevel;
-    SCM_CODER_SRC_PACKET_HEADER_STRU* pstCoderSrc;
     SOCP_BUFFER_RW_STRU stSocpBuf = {VOS_NULL, VOS_NULL, 0, 0};
-    SCM_CODER_SRC_MEMCPY_STRU stCpy;
-    DIAG_SRVICE_HEAD_BASE_INFO stServInfo = {};
-    VOS_UINT32 ulDataSize = 0;
-
-    ulTmpLen = (sizeof(DIAG_FRAME_INFO_STRU) + pData->ulHeaderSize + pData->ulDataSize);
-
-    if(ulTmpLen > DIAG_FRAME_MAX_LEN)
-    {
-        ulTmpLen = DIAG_FRAME_MAX_LEN;
-        ulSplit = 1;
-    }
-    else
-    {
-        ulSplit = 0;
-    }
-
-    stServInfo.mdmid    = pData->ulModemId;
-    stServInfo.ssid     = pData->ulSsid;
-    stServInfo.dirction = pData->ulDirection;
-    stServInfo.index    = 0;
-    stServInfo.end      = 0;
-    stServInfo.split    = ulSplit;
-    stServInfo.ulMsgTransId = pData->ulMsgTransId;
-
-    (VOS_VOID)VOS_MemCpy_s(stServInfo.aucTimeStamp, (VOS_UINT32)sizeof(stServInfo.aucTimeStamp),
-                            puctime, sizeof(stServInfo.aucTimeStamp));
-
-    diag_SrvcFillServiceHead(&stServInfo, &stFrame);
-
-    stFrame.ulCmdId               = pData->u.ulID;
-    stFrame.ulMsgLen              = pData->ulDataSize + pData->ulHeaderSize;
-
-    if(SCM_CODER_SRC_LOM_IND == pData->ulChanId)
-    {
-        VOS_SpinLockIntLock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-        ret = mdrv_scm_get_ind_src_buff(ulTmpLen, &pstCoderSrc, &stSocpBuf);
-        if(ret != ERR_MSP_SUCCESS)
-        {
-            VOS_SpinUnlockIntUnlock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-            diag_debug_ind_src_lost(EN_DIAG_SRC_LOST_ALLOC, ulTmpLen);
-            return ERR_MSP_FAILURE;
-        }
-        stCpy.pHeader   = pstCoderSrc;
-        stCpy.pSrc      = &stFrame;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH;
-        stCpy.ulLen     = sizeof(stFrame);
-        mdrv_scm_ind_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        if(pData->ulHeaderSize)
-        {
-            stCpy.pHeader   = pstCoderSrc;
-            stCpy.pSrc      = pData->pHeaderData;
-            stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame);
-            stCpy.ulLen     = pData->ulHeaderSize;
-            mdrv_scm_ind_src_buff_mempy(&stCpy, &stSocpBuf);
-        }
-
-        ulDataSize = (ulTmpLen - sizeof(DIAG_FRAME_INFO_STRU) - pData->ulHeaderSize);
-        if((pData->pData)&&(ulDataSize))
-        {
-            stCpy.pHeader   = pstCoderSrc;
-            stCpy.pSrc      = pData->pData;
-            stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame) + pData->ulHeaderSize;
-            stCpy.ulLen     = ulDataSize;
-            mdrv_scm_ind_src_buff_mempy(&stCpy, &stSocpBuf);
-        }
-
-        ret = mdrv_scm_send_ind_src_data((VOS_UINT8*)pstCoderSrc, ulTmpLen);
-
-        VOS_SpinUnlockIntUnlock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-        if(ret)
-        {
-            diag_debug_ind_src_lost(EN_DIAG_SRC_LOST_ALLOC, ulTmpLen);
-
-            DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 2);
-        }
-    }
-    else if(SCM_CODER_SRC_LOM_CNF == pData->ulChanId)
-    {
-        VOS_SpinLockIntLock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-        ret = mdrv_scm_get_cnf_src_buff(ulTmpLen, &pstCoderSrc, &stSocpBuf);
-        if(ret != ERR_MSP_SUCCESS)
-        {
-            VOS_SpinUnlockIntUnlock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-            mdrv_diag_PTR(EN_DIAG_PTR_DIAG_SERVICE_ERR3, 1, stFrame.ulCmdId, 0);
-            return ERR_MSP_FAILURE;
-        }
-        stCpy.pHeader   = pstCoderSrc;
-        stCpy.pSrc      = &stFrame;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH;
-        stCpy.ulLen     = sizeof(stFrame);
-        mdrv_scm_cnf_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        if(pData->ulHeaderSize)
-        {
-            stCpy.pHeader   = pstCoderSrc;
-            stCpy.pSrc      = pData->pHeaderData;
-            stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame);
-            stCpy.ulLen     = pData->ulHeaderSize;
-            mdrv_scm_cnf_src_buff_mempy(&stCpy, &stSocpBuf);
-        }
-
-        stCpy.pHeader   = pstCoderSrc;
-        stCpy.pSrc      = pData->pData;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame) + pData->ulHeaderSize;
-        stCpy.ulLen     = (ulTmpLen - sizeof(DIAG_FRAME_INFO_STRU) - pData->ulHeaderSize);
-        mdrv_scm_cnf_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        ret = mdrv_scm_send_cnf_src_data((VOS_UINT8*)pstCoderSrc,ulTmpLen);
-
-        VOS_SpinUnlockIntUnlock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-        if(ret)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 4);
-        }
-    }
-    else
-    {
-        diag_printf("channeld id is error,  channel id = 0x%x\n", pData->ulChanId);
-    }
-
-    return ERR_MSP_SUCCESS;
-}
-
-
-/*****************************************************************************
- Function Name   : diag_SrvcPackOther
- Description     : 分包时，除第一包外其他包的封装
-
- History         :
-    1.c64416         2015-03-12  Draft Enact
-
-*****************************************************************************/
-VOS_UINT32 diag_SrvcPackOther(DIAG_PACKET_INFO_STRU *pPacket, DIAG_MSG_REPORT_HEAD_STRU *pstMsg)
-{
-    DIAG_FRAME_INFO_STRU stFrame;
+    DIAG_SRV_SOCP_HEADER_STRU *pstSocpHeader;
     VOS_UINT32 ulTmpLen =0;
     VOS_UINT32 ret = ERR_MSP_FAILURE;
     VOS_ULONG  ulLockLevel;
-    SCM_CODER_SRC_PACKET_HEADER_STRU * pstCoderSrc;
-    SOCP_BUFFER_RW_STRU stSocpBuf = {VOS_NULL, VOS_NULL, 0, 0};
-    SCM_CODER_SRC_MEMCPY_STRU stCpy;
-    DIAG_SRVICE_HEAD_BASE_INFO stServInfo = {};
 
-    ulTmpLen = pPacket->ulLen + sizeof(DIAG_SERVICE_HEAD_STRU);
+    ulTmpLen = ALIGN_DDR_WITH_8BYTE(pData->ulHeaderSize + pData->ulDataSize);
 
-    if(ulTmpLen > DIAG_FRAME_MAX_LEN)
+    pstSocpHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->socp_header);
+    pstSocpHeader->ulDataLen = pData->ulHeaderSize + pData->ulDataSize - sizeof(DIAG_SRV_SOCP_HEADER_STRU);
+
+    VOS_SpinLockIntLock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+
+    if(mdrv_socp_get_write_buff(g_SrvCtrl.ulIndChannelID, &stSocpBuf))
     {
-        return ERR_MSP_FAILURE;
+        VOS_SpinUnlockIntUnlock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+        return ERR_MSP_GET_WRITE_BUFF_FAIL;/* 返回失败 */
     }
-
-    stServInfo.mdmid    = pstMsg->ulModemId;
-    stServInfo.ssid     = pstMsg->ulSsid;
-    stServInfo.dirction = pstMsg->ulDirection;
-    stServInfo.index    = pPacket->ulIndex;
-    stServInfo.end      = pPacket->ulEnd;
-    stServInfo.split    = 1;
-    stServInfo.ulMsgTransId = pstMsg->ulMsgTransId;
-
-    (VOS_VOID)VOS_MemCpy_s(stServInfo.aucTimeStamp, (VOS_UINT32)sizeof(stServInfo.aucTimeStamp),
-                       pPacket->auctime, sizeof(pPacket->auctime));
-
-    diag_SrvcFillServiceHead(&stServInfo, &stFrame);
-
-    if(SCM_CODER_SRC_LOM_IND == pstMsg->ulChanId)
+    /* 虚拟地址转换 */
+    if((stSocpBuf.u32Size + stSocpBuf.u32RbSize) >= ulTmpLen)
     {
-        VOS_SpinLockIntLock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-        ret = mdrv_scm_get_ind_src_buff(ulTmpLen, &pstCoderSrc, &stSocpBuf);
-        if(ERR_MSP_SUCCESS != ret)
-        {
-            VOS_SpinUnlockIntUnlock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-            diag_debug_ind_src_lost(EN_DIAG_SRC_LOST_ALLOC, ulTmpLen);
-
-            return ERR_MSP_FAILURE;
-        }
-
-        /* 只拷贝service头 */
-        stCpy.pHeader   = pstCoderSrc;
-        stCpy.pSrc      = &stFrame.stService;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH;
-        stCpy.ulLen     = sizeof(stFrame.stService);
-        mdrv_scm_ind_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        /* 非第一个分包，从service头往后都是数据，不再有cmdid */
-        stCpy.pSrc      = pPacket->pData;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame.stService);
-        stCpy.ulLen     = pPacket->ulLen;
-        mdrv_scm_ind_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        ret = mdrv_scm_send_ind_src_data((VOS_UINT8*)pstCoderSrc,ulTmpLen);
-
-        VOS_SpinUnlockIntUnlock(&g_stScmIndSrcBuffSpinLock, ulLockLevel);
-        if(ret)
-        {
-            diag_debug_ind_src_lost(EN_DIAG_SRC_LOST_SEND, ulTmpLen);
-
-            DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 2);
-        }
-    }
-    else if(SCM_CODER_SRC_LOM_CNF == pstMsg->ulChanId)
-    {
-        VOS_SpinLockIntLock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-        ret = mdrv_scm_get_cnf_src_buff(ulTmpLen, &pstCoderSrc, &stSocpBuf);
-        if(ERR_MSP_SUCCESS != ret)
-        {
-            VOS_SpinUnlockIntUnlock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-            mdrv_diag_PTR(EN_DIAG_PTR_DIAG_SERVICE_ERR3, 1, stFrame.ulCmdId, 0);
-            return ERR_MSP_FAILURE;
-        }
-
-        /* 只拷贝service头 */
-        stCpy.pHeader   = pstCoderSrc;
-        stCpy.pSrc      = &stFrame.stService;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH;
-        stCpy.ulLen     = sizeof(stFrame.stService);
-        mdrv_scm_cnf_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        /* 非第一个分包，从service头往后都是数据，不再有cmdid */
-        stCpy.pSrc      = pPacket->pData;
-        stCpy.uloffset  = SCM_HISI_HEADER_LENGTH + sizeof(stFrame.stService);
-        stCpy.ulLen     = pPacket->ulLen;
-        mdrv_scm_cnf_src_buff_mempy(&stCpy, &stSocpBuf);
-
-        ret = mdrv_scm_send_cnf_src_data((VOS_UINT8*)pstCoderSrc,ulTmpLen);
-
-        VOS_SpinUnlockIntUnlock(&g_stScmCnfSrcBuffSpinLock, ulLockLevel);
-        if(ret)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 4);
-        }
-
-        diag_SaveDFR(&g_stDFRcnf, (VOS_UINT8*)&stFrame.stService, sizeof(stFrame.stService));
+        stSocpBuf.pBuffer = (char *)mdrv_scm_ind_src_phy_to_virt((VOS_UINT8*)stSocpBuf.pBuffer);
+        stSocpBuf.pRbBuffer = (char *)mdrv_scm_ind_src_phy_to_virt((VOS_UINT8*)stSocpBuf.pRbBuffer);
     }
     else
     {
-        diag_printf("channeld id is error,  channel id = 0x%x\n", pstMsg->ulChanId);
+        VOS_SpinUnlockIntUnlock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+        return ERR_MSP_NOT_FREEE_SPACE;
     }
+
+    if(!(stSocpBuf.pBuffer) && (!stSocpBuf.pRbBuffer))
+    {
+        VOS_SpinUnlockIntUnlock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+        diag_error("get virt fail, pBuffer:%pK pRbBuffer:%pK\n", stSocpBuf.pBuffer, stSocpBuf.pRbBuffer);
+        return ERR_MSP_GET_VIRT_ADDR_FAIL;
+    }
+    diag_SrvcPackWrite(&stSocpBuf, pData->pHeaderData, pData->ulHeaderSize);
+    diag_SrvcPackWrite(&stSocpBuf, pData->pData, pData->ulDataSize);
+
+    ret = mdrv_socp_write_done(g_SrvCtrl.ulIndChannelID, ulTmpLen);
+    VOS_SpinUnlockIntUnlock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+    if(ret)
+    {
+        diag_debug_ind_src_lost(EN_DIAG_SRC_LOST_ALLOC, ulTmpLen);
+        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 2);
+    }
+
     return ERR_MSP_SUCCESS;
 }
 
@@ -804,67 +676,244 @@ VOS_UINT32 diag_SrvcPackOther(DIAG_PACKET_INFO_STRU *pPacket, DIAG_MSG_REPORT_HE
 *****************************************************************************/
 VOS_UINT32 diag_ServicePackData(DIAG_MSG_REPORT_HEAD_STRU *pData)
 {
+    DIAG_MSG_REPORT_HEAD_STRU stReportInfo;
+    DIAG_FRAME_INFO_STRU      *pstFrameHeader;
     VOS_UINT32 ret = ERR_MSP_FAILURE;
-    VOS_INT32  lDataLen =0;         /* 总长度 */
+    VOS_INT32  lDataLen = 0;         /* 数据总长度 */
     VOS_UINT32 ulCurlen = 0;        /* 当前已封包的数据长度 */
-    VOS_UINT32 ulEnd = 0;           /* 分包结束标记 */
-    DIAG_PACKET_INFO_STRU stPacket = {0};
+    VOS_UINT32 ulIndex = 0;
+    VOS_UINT32 ulFrameHeaderSize = 0;
+    VOS_UINT32 ulSendLen = 0;
 
-    if(SCM_CODER_SRC_LOM_CNF == pData->ulChanId)
-    {
-        mdrv_diag_PTR(EN_DIAG_PTR_SERVICE_PACKETDATA, 1, pData->u.ulID, 0);
-    }
+    ulFrameHeaderSize = pData->ulHeaderSize - sizeof(DIAG_SRV_SOCP_HEADER_STRU);
 
     /* 所要发送数据的总长度 */
-    lDataLen = (VOS_INT32)(pData->ulHeaderSize + pData->ulDataSize + sizeof(DIAG_FRAME_INFO_STRU));
-
+    lDataLen = (VOS_INT32)(ulFrameHeaderSize + pData->ulDataSize);
     if(lDataLen > (VOS_INT32)(DIAG_FRAME_SUM_LEN - 15*sizeof(DIAG_FRAME_INFO_STRU)))
     {
-        diag_printf("[error] : diag report length is %d.\n", lDataLen);
+        diag_error("report length error(0x%x).\n", lDataLen);
         return ERR_MSP_FAILURE;
     }
 
-    /* 统计数据通道的吞吐率 */
-    if(SCM_CODER_SRC_LOM_IND == pData->ulChanId)
+    diag_ThroughputSave(EN_DIAG_THRPUT_DATA_CHN_ENC, (VOS_UINT32)lDataLen);
+    pstFrameHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->frame_header);
+
+    ulCurlen = (VOS_UINT32)lDataLen;
+    if(lDataLen > DIAG_FRAME_MAX_LEN)
     {
-        diag_ThroughputSave(EN_DIAG_THRPUT_DATA_CHN_ENC, \
-            (sizeof(DIAG_FRAME_INFO_STRU) + pData->ulHeaderSize + pData->ulDataSize));
+        ulCurlen = DIAG_FRAME_MAX_LEN;
+        pstFrameHeader->stService.ff1b = 1;
+    }
+    else
+    {
+        pstFrameHeader->stService.ff1b = 0;
     }
 
-    /* 分包时，各分包需要用同一个时间戳 */
-    (VOS_VOID)mdrv_timer_get_accuracy_timestamp((VOS_UINT32*)&(stPacket.auctime[4]), (VOS_UINT32*)&(stPacket.auctime[0]));
+    stReportInfo.pHeaderData    = pData->pHeaderData;
+    stReportInfo.ulHeaderSize   = pData->ulHeaderSize;
+    stReportInfo.pData          = pData->pData;
+    stReportInfo.ulDataSize     = ulCurlen  - ulFrameHeaderSize;
+    ulSendLen += stReportInfo.ulDataSize;
 
     /* 由于分包时第一包中有cmdid需要填充，其他包没有，所以第一包单独处理 */
-    ret = diag_SrvcPackFirst(pData, stPacket.auctime);
+    ret = diag_SrvcPackIndSend(&stReportInfo);
     if(ret)
     {
         return ERR_MSP_FAILURE;
     }
 
     /* 需要分包 */
-    if(lDataLen > (VOS_INT32)DIAG_FRAME_MAX_LEN)
+    if(pstFrameHeader->stService.ff1b)
     {
         /* 剩余的没有发送的数据的长度 */
-        lDataLen = lDataLen - (VOS_INT32)DIAG_FRAME_MAX_LEN;
+        lDataLen = lDataLen - (VOS_INT32)ulCurlen;
 
         while(lDataLen > 0)
         {
-            if((lDataLen + sizeof(DIAG_SERVICE_HEAD_STRU)) > DIAG_FRAME_MAX_LEN)
+            pstFrameHeader->stService.index4b = ++ulIndex;
+            if( (lDataLen + sizeof(DIAG_SERVICE_HEAD_STRU)) > DIAG_FRAME_MAX_LEN )
             {
                 ulCurlen = DIAG_FRAME_MAX_LEN - sizeof(DIAG_SERVICE_HEAD_STRU);
             }
             else
             {
                 ulCurlen = (VOS_UINT32)lDataLen;
-                ulEnd = 1;    /* 记录分包结束标记 */
+                pstFrameHeader->stService.eof1b = 1;    /* 记录分包结束标记 */
+            }
+            stReportInfo.pHeaderData    = pData->pHeaderData;
+            stReportInfo.ulHeaderSize   = sizeof(DIAG_SRV_SOCP_HEADER_STRU) + sizeof(DIAG_SERVICE_HEAD_STRU);
+            stReportInfo.pData          = (VOS_UINT8*)(pData->pData) + ulSendLen;
+            stReportInfo.ulDataSize     = ulCurlen;
+            ulSendLen += stReportInfo.ulDataSize;
+
+            ret = diag_SrvcPackIndSend(&stReportInfo);
+            if(ret)
+            {
+                return ERR_MSP_FAILURE;
             }
 
-            stPacket.ulIndex++;
-            stPacket.ulEnd = ulEnd;
-            stPacket.ulLen = ulCurlen;
-            stPacket.pData = (VOS_UINT8*)(pData->pData) + (pData->ulDataSize - lDataLen);
+            lDataLen -= (VOS_INT32)ulCurlen;
+        }
+    }
 
-            ret = diag_SrvcPackOther(&stPacket, pData);
+    return ERR_MSP_SUCCESS;
+}
+
+/*****************************************************************************
+ Function Name   : diag_SrvcPackFirst
+ Description     : 不分包时的封装，或分包时，第一包的封装
+
+ History         :
+    1.c64416         2015-03-12  Draft Enact
+
+*****************************************************************************/
+VOS_UINT32 diag_SrvcPackCnfSend(DIAG_MSG_REPORT_HEAD_STRU *pData)
+{
+    SOCP_BUFFER_RW_STRU         stSocpBuf = {VOS_NULL, VOS_NULL, 0, 0};
+    DIAG_SRV_SOCP_HEADER_STRU*  pstSocpHeader;
+    VOS_UINT32 ulTmpLen =0;
+    VOS_UINT32 ret = ERR_MSP_FAILURE;
+    VOS_ULONG  ulLockLevel;
+
+    ulTmpLen = ALIGN_DDR_WITH_8BYTE(pData->ulHeaderSize + pData->ulDataSize);
+
+    pstSocpHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->socp_header);
+    pstSocpHeader->ulDataLen = pData->ulHeaderSize + pData->ulDataSize - sizeof(DIAG_SRV_SOCP_HEADER_STRU);
+
+    VOS_SpinLockIntLock(&g_stSrvCnfSrcBuffSpinLock, ulLockLevel);
+
+    if(mdrv_socp_get_write_buff(g_SrvCtrl.ulCnfChannelID, &stSocpBuf))
+    {
+        VOS_SpinUnlockIntUnlock(&g_stSrvCnfSrcBuffSpinLock, ulLockLevel);
+        return ERR_MSP_GET_WRITE_BUFF_FAIL;/* 返回失败 */
+    }
+    /* 虚拟地址转换 */
+    if((stSocpBuf.u32Size + stSocpBuf.u32RbSize) >= ulTmpLen)
+    {
+        stSocpBuf.pBuffer = (char *)mdrv_scm_cnf_src_phy_to_virt((VOS_UINT8*)stSocpBuf.pBuffer);
+        stSocpBuf.pRbBuffer = (char *)mdrv_scm_cnf_src_phy_to_virt((VOS_UINT8*)stSocpBuf.pRbBuffer);
+    }
+    else
+    {
+        VOS_SpinUnlockIntUnlock(&g_stSrvCnfSrcBuffSpinLock, ulLockLevel);
+        return ERR_MSP_NOT_FREEE_SPACE;
+    }
+
+    if(!(stSocpBuf.pBuffer) && (!stSocpBuf.pRbBuffer))
+    {
+        VOS_SpinUnlockIntUnlock(&g_stSrvIndSrcBuffSpinLock, ulLockLevel);
+        diag_error("get virt fail, pBuffer:%pK pRbBuffer:%pK\n", stSocpBuf.pBuffer, stSocpBuf.pRbBuffer);
+        return ERR_MSP_GET_VIRT_ADDR_FAIL;
+    }
+
+    diag_SrvcPackWrite(&stSocpBuf, pData->pHeaderData, pData->ulHeaderSize);
+    diag_SrvcPackWrite(&stSocpBuf, pData->pData, pData->ulDataSize);
+
+    ret = mdrv_socp_write_done(g_SrvCtrl.ulCnfChannelID, ulTmpLen);
+    VOS_SpinUnlockIntUnlock(&g_stSrvCnfSrcBuffSpinLock, ulLockLevel);
+    if(ret)
+    {
+        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_PACKET_ERR_REQ, ret, __LINE__, 4);
+    }
+
+    return ERR_MSP_SUCCESS;
+}
+
+
+/*****************************************************************************
+ Function Name   : diag_ServicePackData
+ Description     : DIAG service层封包上报数据接口
+
+ History         :
+    1.c64416         2014-11-18  Draft Enact
+    2.c64416         2015-03-14  新增分包组包处理
+                    受帧结构限制，分包组包有如下约束:
+                    A. 第一包有ulCmdId和ulMsgLen，其余包直接跟数据
+                    B. 除最后一包外，其他每包都必须保证按最大长度填充
+                    C. transid和timestamp作为区分一组分包的标志
+
+*****************************************************************************/
+VOS_UINT32 diag_ServicePackCnfData(DIAG_MSG_REPORT_HEAD_STRU *pData)
+{
+    DIAG_MSG_REPORT_HEAD_STRU stReportInfo;
+    DIAG_FRAME_INFO_STRU      *pstFrameHeader;
+    VOS_UINT32 ret = ERR_MSP_FAILURE;
+    VOS_INT32  lDataLen = 0;         /* 数据总长度 */
+    VOS_UINT32 ulCurlen = 0;        /* 当前已封包的数据长度 */
+    VOS_UINT32 ulSplit = 0;
+    VOS_UINT32 ulIndex = 0;
+    VOS_UINT32 ulFrameHeaderSize = 0;
+    VOS_UINT32 ulSendLen = 0;
+
+    ulFrameHeaderSize = pData->ulHeaderSize - sizeof(DIAG_SRV_SOCP_HEADER_STRU);
+    pstFrameHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->frame_header);
+
+    mdrv_diag_PTR(EN_DIAG_PTR_SERVICE_PACKETDATA, 1, pstFrameHeader->ulCmdId, 0);
+
+    /* 所要发送数据的总长度 */
+    lDataLen = (VOS_INT32)(ulFrameHeaderSize + pData->ulDataSize);
+    if(lDataLen > (VOS_INT32)(DIAG_FRAME_SUM_LEN - 15*sizeof(DIAG_FRAME_INFO_STRU)))
+    {
+        diag_error("report length error(0x%x).\n", lDataLen);
+        return ERR_MSP_FAILURE;
+    }
+
+    diag_ThroughputSave(EN_DIAG_THRPUT_DATA_CHN_ENC, (VOS_UINT32)lDataLen);
+
+    ulCurlen = (VOS_UINT32)lDataLen;
+    if(lDataLen > DIAG_FRAME_MAX_LEN)
+    {
+        ulCurlen = DIAG_FRAME_MAX_LEN;
+        ulSplit = 1;
+    }
+    else
+    {
+        ulSplit = 0;
+    }
+
+    /* 更新数据头 */
+    pstFrameHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->frame_header);
+    pstFrameHeader->stService.mt2b = DIAG_MT_CNF;
+    pstFrameHeader->stService.ff1b = ulSplit;
+
+    stReportInfo.pHeaderData    = pData->pHeaderData;
+    stReportInfo.ulHeaderSize   = pData->ulHeaderSize;
+    stReportInfo.pData          = pData->pData;
+    stReportInfo.ulDataSize     = ulCurlen  - ulFrameHeaderSize;
+    ulSendLen += stReportInfo.ulDataSize;
+
+    /* 由于分包时第一包中有cmdid需要填充，其他包没有，所以第一包单独处理 */
+    ret = diag_SrvcPackCnfSend(&stReportInfo);
+    if(ret)
+    {
+        return ERR_MSP_FAILURE;
+    }
+
+    /* 需要分包 */
+    if(ulSplit)
+    {
+        /* 剩余的没有发送的数据的长度 */
+        lDataLen = lDataLen - (VOS_INT32)ulCurlen;
+
+        while(lDataLen > 0)
+        {
+            pstFrameHeader->stService.index4b = ++ulIndex;
+            if( (lDataLen + sizeof(DIAG_SERVICE_HEAD_STRU)) > DIAG_FRAME_MAX_LEN )
+            {
+                ulCurlen = DIAG_FRAME_MAX_LEN - sizeof(DIAG_SERVICE_HEAD_STRU);
+            }
+            else
+            {
+                ulCurlen = (VOS_UINT32)lDataLen;
+                pstFrameHeader->stService.eof1b = 1;    /* 记录分包结束标记 */
+            }
+            stReportInfo.pHeaderData    = pData->pHeaderData;
+            stReportInfo.ulHeaderSize   = sizeof(DIAG_SRV_SOCP_HEADER_STRU) + sizeof(DIAG_SERVICE_HEAD_STRU);
+            stReportInfo.pData          = (VOS_UINT8*)(pData->pData) + ulSendLen;
+            stReportInfo.ulDataSize     = ulCurlen;
+            ulSendLen += stReportInfo.ulDataSize;
+
+            ret = diag_SrvcPackCnfSend(&stReportInfo);
             if(ret)
             {
                 return ERR_MSP_FAILURE;
@@ -878,13 +927,56 @@ VOS_UINT32 diag_ServicePackData(DIAG_MSG_REPORT_HEAD_STRU *pData)
 }
 
 
+VOS_UINT32 diag_ServicePacketResetData(DIAG_MSG_REPORT_HEAD_STRU *pData)
+{
+    DIAG_MSG_REPORT_HEAD_STRU   stReportInfo;
+    DIAG_FRAME_INFO_STRU*       pstFrameHeader;
+    VOS_UINT32 ret = ERR_MSP_FAILURE;
+    VOS_INT32  lDataLen = 0;         /* 数据总长度 */
+    VOS_UINT32 ulCurlen = 0;        /* 当前已封包的数据长度 */
+
+    pstFrameHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->frame_header);
+
+    /* 所要发送数据的总长度 */
+    lDataLen = (VOS_INT32)(pData->ulHeaderSize + pData->ulDataSize);
+    if(lDataLen - sizeof(DIAG_SRV_SOCP_HEADER_STRU) > (VOS_INT32)(DIAG_FRAME_SUM_LEN - 15*sizeof(DIAG_FRAME_INFO_STRU)))
+    {
+        diag_error("report length error(0x%x).\n", lDataLen);
+        return ERR_MSP_FAILURE;
+    }
+
+    ulCurlen = (VOS_UINT32)lDataLen;
+    if(lDataLen > DIAG_FRAME_MAX_LEN)
+    {
+        return ERR_MSP_INALID_LEN_ERROR;
+    }
+
+    /* 更新数据头 */
+    pstFrameHeader = &(((DIAG_SRV_HEADER_STRU *)(pData->pHeaderData))->frame_header);
+    pstFrameHeader->stService.mt2b = DIAG_MT_IND;
+    pstFrameHeader->stService.ff1b = 0;
+    pstFrameHeader->ulMsgLen = (VOS_UINT32)lDataLen - sizeof(DIAG_SRV_HEADER_STRU);
+
+    stReportInfo.pHeaderData    = pData->pHeaderData;
+    stReportInfo.ulHeaderSize   = pData->ulHeaderSize;
+    stReportInfo.pData          = pData->pData;
+    stReportInfo.ulDataSize     = ulCurlen  - pData->ulHeaderSize;
+
+    /* 由于分包时第一包中有cmdid需要填充，其他包没有，所以第一包单独处理 */
+    ret = diag_SrvcPackCnfSend(&stReportInfo);
+    if(ret)
+    {
+        return ERR_MSP_FAILURE;
+    }
+
+    return ERR_MSP_SUCCESS;
+}
 
 VOS_VOID DIAG_DebugDFR(VOS_VOID)
 {
-    diag_printf("%d, %s, %d.\n", g_stDFRreq.ulMagicNum, g_stDFRreq.name, g_stDFRreq.ulLen);
+    diag_crit("%d, %s, %d.\n", g_stDFRreq.ulMagicNum, g_stDFRreq.name, g_stDFRreq.ulLen);
     diag_GetDFR(&g_stDFRreq);
-    diag_printf("%d, %s, %d.\n", g_stDFRcnf.ulMagicNum, g_stDFRcnf.name, g_stDFRcnf.ulLen);
-
+    diag_crit("%d, %s, %d.\n", g_stDFRcnf.ulMagicNum, g_stDFRcnf.name, g_stDFRcnf.ulLen);
     diag_GetDFR(&g_stDFRcnf);
 }
 

@@ -39,8 +39,7 @@
 #define REG_SCBAKDATA8_OFFSET	SOC_SCTRL_SCBAKDATA8_ADDR(0)
 #define REG_SCBAKDATA9_OFFSET	SOC_SCTRL_SCBAKDATA9_ADDR(0)
 
-#define CPUIDLE_FLAG_REG(cluster)	\
-	((cluster == 0) ? REG_SCBAKDATA8_OFFSET :  REG_SCBAKDATA9_OFFSET)
+#define CPUIDLE_FLAG_REG(cluster)	REG_SCBAKDATA8_OFFSET
 
 
 #define AP_SUSPEND_FLAG		BIT(16)
@@ -54,6 +53,25 @@
 #define LITTLE_CLUSTER		(0x0)
 
 #define PMU_WRITE_SR_TICK(offset, pos)	hisi_pmic_reg_write(offset, pos)
+
+#define LITTLE_CLUSTER_ID		0
+#define MID_CLUSTER_ID			1
+#define BIG_CLUSTER_ID			2
+
+#define MPIDR_AFFINITY_BITS		8
+#define MPIDR_AFFLVL_MASK		0xff
+#define MPIDR_CLUSTER_MASK		(MPIDR_AFFLVL_MASK << MPIDR_AFFINITY_BITS)
+
+#define PLATFORM_CLUSTER0_CORE_COUNT		4
+#define PLATFORM_CLUSTER1_CORE_COUNT		2
+#define PLATFORM_CLUSTER2_CORE_COUNT		2
+
+#define LITTLE_CLUSTER_BASE		0
+#define MID_CLUSTER_BASE        PLATFORM_CLUSTER0_CORE_COUNT
+#define BIG_CLUSTER_BASE        (PLATFORM_CLUSTER0_CORE_COUNT + PLATFORM_CLUSTER1_CORE_COUNT)
+
+#define CLUSTER_ID(cpuid)	((cpuid) < MID_CLUSTER_BASE ? LITTLE_CLUSTER_ID : \
+							((cpuid) < BIG_CLUSTER_BASE ? MID_CLUSTER_ID : BIG_CLUSTER_ID ))
 
 
 static void __iomem *g_bbpdrx1_base;
@@ -217,7 +235,7 @@ static int hisi_test_pwrdn_othercores(unsigned int cluster, unsigned int core)
 
 	} else {
 		/* boot core mask */
-		mask = (0x1 << (11 + cluster * 4 + core));
+		mask = (0x1 << (11 + core));
 		pwrack_stat = readl(SOC_CRGPERIPH_PERPWRACK_ADDR(crgctrl_base_addr));
 		/* non boot core mask */
 		mask = (unsigned int)COREPWRACK_MASK & (~mask);
@@ -255,8 +273,8 @@ static int hisi_pm_enter(suspend_state_t state)
 	PMU_WRITE_SR_TICK(PMUOFFSET_SR_TICK, KERNEL_SUSPEND_IN);
 	pr_err("%s ++\n", __func__);
 
-	cluster = (mpidr >> 8) & 0xff;
-	core = mpidr & 0xff;
+	core = ((mpidr & MPIDR_CLUSTER_MASK) >> MPIDR_AFFINITY_BITS);
+	cluster = CLUSTER_ID(core);
 
 	pr_err("%s: mpidr is 0x%lx, cluster = %d, core = %d.\n", __func__, mpidr, cluster, core);
 

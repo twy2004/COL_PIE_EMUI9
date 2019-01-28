@@ -83,7 +83,7 @@ int mdrv_socp_compress_disable(unsigned int u32DestChanID);
 
 int mdrv_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode);
 /*****************************************************************************
-* 函 数 名  : mdrv_deflate_read_cur_mode
+* 函 数 名  : mdrv_socp_compress_status
 *
 * 功能描述  : 获取压缩状态接口
 *
@@ -93,7 +93,7 @@ int mdrv_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode);
 *
 * 返 回 值  : 无
 *****************************************************************************/
-int mdrv_deflate_read_cur_mode(void);
+int mdrv_socp_compress_status(void);
 
 /*****************************************************************************
 * 函 数 名  : mdrv_deflate_get_log_ind_mode
@@ -122,10 +122,12 @@ int mdrv_deflate_get_log_ind_mode(unsigned int *eMode);
 *****************************************************************************/
 int mdrv_socp_get_log_ind_mode(unsigned int *eMode);
 
+
+
 /*****************************************************************************
-* 函 数 名  : mdrv_report_ind_mode_ajust
+* 函 数 名  : mdrv_socp_bbpmemenable
 *
-* 功能描述  : 上报模式调整接口
+* 功能描述  : bbp采数内存开关使能
 *
 * 输入参数  : 模式参数
 *
@@ -133,7 +135,7 @@ int mdrv_socp_get_log_ind_mode(unsigned int *eMode);
 *
 * 返 回 值  :
 *****************************************************************************/
-int mdrv_report_ind_mode_ajust(SOCP_IND_MODE_ENUM eMode);
+int mdrv_socp_bbpmemenable(void);
 
 
 #ifdef __cplusplus

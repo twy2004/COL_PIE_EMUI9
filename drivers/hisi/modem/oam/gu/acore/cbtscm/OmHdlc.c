@@ -121,21 +121,21 @@ VOS_BOOL Om_HdlcEncapCheckPara(
 {
     if ((VOS_NULL_PTR == pucSrc) || (VOS_NULL_PTR == pucDest) ||(VOS_NULL_PTR == pusDestLen))
     {
-        (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcEncapCheckPara, Pointer Para is NULL !\n\r");
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, Para is NULL !\n\r", __FUNCTION__);
         return VOS_FALSE;
     }
 
     if (0 == usSrcLen)
     {
         *pusDestLen = 0;
-        (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcEncapCheckPara, Src Data Len is 0 !\n\r");
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Src Data Len is 0 !\n\r", __FUNCTION__);
         return VOS_FALSE;
     }
 
     if (usDestBuffLen <= 4)             /* 信息域长度不为0的HDLC帧长度至少为5 */
     {
         *pusDestLen = 0;
-        (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcEncapCheckPara, Dst Buf is not Enough #1:BufLen:%d !\n\r", usDestBuffLen);
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Dst Buf is not Enough #1:BufLen=:%d !\n\r", __FUNCTION__, usDestBuffLen);
         return VOS_FALSE;
     }
 
@@ -196,7 +196,7 @@ VOS_UINT32 Om_HdlcEncap(
     if ((pucDestPos - pucDest) > (usDestBuffLen - 3))
     {
         *pusDestLen = 0;
-        (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcEncap, Dst Buf is not Enough #2:BufLen:%d !\n\r", usDestBuffLen);
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Dst Buf is not Enough #2:BufLen=:%d !\n\r", __FUNCTION__, usDestBuffLen);
         return VOS_ERR;
     }
 
@@ -218,7 +218,7 @@ VOS_UINT32 Om_HdlcEncap(
     if ((pucDestPos - pucDest) > (usDestBuffLen - 2))
     {
         *pusDestLen = 0;
-        (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcEncap, Dst Buf is not Enough #3:BufLen:%d !\n\r", usDestBuffLen);
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Dst Buf is not Enough #3:BufLen=:%d !\n\r", __FUNCTION__, usDestBuffLen);
         return VOS_ERR;
     }
 
@@ -238,7 +238,7 @@ VOS_UINT32 Om_HdlcEncap(
     if ((pucDestPos - pucDest) > (usDestBuffLen - 1))
     {
         *pusDestLen = 0;
-        (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcEncap, Dst Buf is not Enough #4:BufLen:%d !\n\r", usDestBuffLen);
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Dst Buf is not Enough #4:BufLen=:%d !\n\r", __FUNCTION__, usDestBuffLen);
         return VOS_ERR;
     }
 
@@ -253,7 +253,7 @@ VOS_VOID Om_HdlcInit( OM_HDLC_STRU *pstHdlc )
 {
     if (VOS_NULL_PTR == pstHdlc)
     {
-        (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcInit, OM_HDLC_STRU Pointer is NULL !\n\r");
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, OM_HDLC_STRU Pointer is NULL !\n\r", __FUNCTION__);
         return;
     }
 
@@ -280,13 +280,13 @@ VOS_BOOL Om_HdlcDecapCheckPara(OM_HDLC_STRU *pstHdlc)
 {
     if (VOS_NULL_PTR == pstHdlc)
     {
-        (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcDecapCheckPara, Pointer Para is NULL !\n\r");
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, Pointer Para is NULL !\n\r", __FUNCTION__);
         return VOS_FALSE;
     }
 
     if (VOS_NULL_PTR == pstHdlc->pucDecapBuff)
     {
-        (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcDecapCheckPara, Dst Buff is NULL !\n\r");
+        (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, Dst Buff is NULL !\n\r", __FUNCTION__);
         return VOS_FALSE;
     }
 
@@ -357,7 +357,7 @@ OM_HDLC_RESULT_ENUM_UINT32 Om_HdlcDecap(OM_HDLC_STRU *pstHdlc, VOS_UINT8 ucChar)
                 pstHdlc->ulMode &= ~OM_HDLC_MODE_ESC;       /* 清标记 */
                 pstHdlc->ulMode |= OM_HDLC_MODE_HUNT;       /* 置标记 */
                 pstHdlc->ulLength = 0;
-                (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcDecap, Esc Char Error:0x%x !\n\r", ucChar);
+                (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, Esc Char Error=:0x%x !\n\r", __FUNCTION__, ucChar);
                 return HDLC_FRAME_DISCARD;
             }
             break;
@@ -367,7 +367,7 @@ OM_HDLC_RESULT_ENUM_UINT32 Om_HdlcDecap(OM_HDLC_STRU *pstHdlc, VOS_UINT8 ucChar)
             {                           /* 异常情况: 解封装BUFFER不足 */
                 pstHdlc->ulMode |= OM_HDLC_MODE_HUNT;        /* 置标记 */
                 pstHdlc->ulLength = 0;
-                (VOS_VOID)vos_printf("\n\rWARNING, Om_HdlcDecap, Dst Buf is full #1:BufLen:%d !\n\r", (VOS_INT32)pstHdlc->ulDecapBuffSize);
+                (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: WARNING, Dst Buf is full #1:BufLen=:%d !\n\r", __FUNCTION__, (VOS_INT32)pstHdlc->ulDecapBuffSize);
                 return HDLC_BUFF_FULL;
             }
 
@@ -383,7 +383,7 @@ OM_HDLC_RESULT_ENUM_UINT32 Om_HdlcDecap(OM_HDLC_STRU *pstHdlc, VOS_UINT8 ucChar)
                 {                           /* 异常情况: OM_HDLC_ESC后面的字符不正确 */
                     pstHdlc->ulMode |= OM_HDLC_MODE_HUNT;        /* 置标记 */
                     pstHdlc->ulLength = 0;
-                    (VOS_VOID)vos_printf("\n\rERROR, Om_HdlcDecap, Esc Char Error:0x%x !\n\r", ucChar);
+                    (VOS_VOID)vos_printf("\n\r[PAM][CBT] %s: ERROR, Esc Char Error=:0x%x !\n\r", __FUNCTION__, ucChar);
                     return HDLC_FRAME_DISCARD;
                 }
             }

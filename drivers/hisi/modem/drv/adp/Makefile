@@ -23,7 +23,7 @@ KBUILD_CPPFLAGS += -Idrivers/hisi/modem/drv/diag/scm \
                    -Idrivers/hisi/modem/drv/diag/cpm \
                    -Idrivers/hisi/modem/drv/diag/debug \
                    -Idrivers/hisi/modem/drv/diag/ppm \
-                   -Idrivers/hisi/modem/drv/diag/soft_decode
+                   -Idrivers/hisi/modem/drv/socp/soft_decode
 
 ifneq ($(strip $(CFG_ATE_VECTOR)),YES)
 obj-y           += adp_ipc.o
@@ -65,7 +65,13 @@ obj-y           += adp_reset.o
 obj-y           += adp_timer.o
 obj-y           += adp_vic.o
 endif
-
+ifeq ($(strip $(CFG_FEATURE_HISOCKET)),FEATURE_ON)
+obj-y           += hisocket.o
+endif
 obj-y           += adp_diag_system.o
-obj-y           += adp_iqi.o
+obj-y           += adp_slt.o
 
+
+ifeq ($(strip $(CFG_ENABLE_BUILD_OM)),YES)
+obj-y           += adp_print.o
+endif

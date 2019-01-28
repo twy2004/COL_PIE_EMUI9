@@ -1159,12 +1159,12 @@ oal_void  hmac_tx_tcp_ack_buf_switch(oal_uint32 ul_rx_throughput_mbps)
     mac_device_stru  *pst_mac_device;
     mac_vap_stru     *pst_mac_vap = OAL_PTR_NULL;
     mac_cfg_tcp_ack_buf_stru       st_tcp_ack_param = {0};
-    oal_uint32      ul_limit_throughput_high;
-    oal_uint32      ul_limit_throughput_low;
+    oal_uint32      ul_limit_throughput_high = 550;
+    oal_uint32      ul_limit_throughput_low = 450;
     oal_uint32      ul_ret;
-    oal_bool_enum_uint8   en_tcp_ack_buf;
+    oal_bool_enum_uint8   en_tcp_ack_buf = OAL_FALSE;
 
-    /* 如果定制化不支持硬件聚合 */
+    /* 如果定制化开关不支持切换，直接返回 */
     if (OAL_FALSE ==  g_st_tcp_ack_buf_switch.uc_ini_tcp_ack_buf_en)
     {
         return;
@@ -1182,13 +1182,6 @@ oal_void  hmac_tx_tcp_ack_buf_switch(oal_uint32 ul_rx_throughput_mbps)
     {
         return;
     }
-
-    /* 非STA模式不切换 */
-    if ( WLAN_VAP_MODE_BSS_STA != pst_mac_vap->en_vap_mode)
-    {
-        return;
-    }
-
     if (pst_mac_vap->st_channel.en_bandwidth == WLAN_BAND_WIDTH_20M)
     {
         /* 每秒吞吐量门限 */
@@ -1254,42 +1247,26 @@ oal_void  hmac_tx_tcp_ack_buf_switch(oal_uint32 ul_rx_throughput_mbps)
     {
         return;
     }
-
     if (ul_rx_throughput_mbps > ul_limit_throughput_high)
     {
-        /* 高于100M,打开tcp ack buf*/
+        /* 高于上门限,打开tcp ack buf */
         en_tcp_ack_buf = OAL_TRUE;
     }
     else if (ul_rx_throughput_mbps < ul_limit_throughput_low)
     {
-        /* 低于50M,关闭tcp ack buf */
+        /* 低于下门限,关闭tcp ack buf */
         en_tcp_ack_buf = OAL_FALSE;
     }
     else
     {
-        /* 介于50M-100M之间,不作切换 */
+        /* 介于上下门限之间, 不作切换 */
         return;
     }
 
-     /* 当前聚合方式相同,不处理 */
     if (g_st_tcp_ack_buf_switch.uc_cur_tcp_ack_buf_en == en_tcp_ack_buf)
     {
         return;
     }
-
-    /* HT模式实测也有收益，去掉协议模式的限制 */
-#if 0
-    /* VHT/HE才支持切换 */
-    if ((WLAN_VHT_MODE != pst_mac_vap->en_protocol) &&
-        (WLAN_VHT_ONLY_MODE != pst_mac_vap->en_protocol)
-#ifdef _PRE_WLAN_FEATURE_11AX
-         &&(WLAN_HE_MODE != pst_mac_vap->en_protocol)
-#endif
-        )
-    {
-        return;
-    }
-#endif
 
     OAM_WARNING_LOG4(0,OAM_SF_ANY,"{hmac_tx_tcp_ack_buf_switch: limit_high = [%d],limit_low = [%d],rx_throught= [%d]! en_tcp_ack_buf=%d}",
           ul_limit_throughput_high,ul_limit_throughput_low, ul_rx_throughput_mbps, en_tcp_ack_buf);

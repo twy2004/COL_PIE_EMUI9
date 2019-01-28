@@ -65,6 +65,7 @@
 #include "nv_stru_gucnas.h"
 #include "acore_nv_stru_gucnas.h"
 #include "NdisDrv.h"
+
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -80,6 +81,10 @@
 
 #define NDIS_PERIOD_ARP_TMRNAME     1
 #define NDIS_ARP_REQ_TMRNAME        2
+
+#define NDIS_ARP_FRAME_REV_OFFSET   (((VOS_UINT64)(&(((ETH_ARP_FRAME_STRU*)0)->aucRev[0]))) & 0xFFFFFFFF)
+
+
 
 /*****************************************************************************
   3 function
@@ -141,7 +146,45 @@ VOS_UINT8* Ndis_GetMacAddr(VOS_VOID)
 }
 
 
-VOS_UINT32 Ndis_DlAdsDataRcv(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pData, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
+
+VOS_UINT32 Ndis_SndMsgToAt(const VOS_UINT8 *pucBuf,VOS_UINT16 usMsgLen,VOS_UINT32 ulMsgId)
+{
+    MsgBlock                     *pstMsgBlock   = VOS_NULL_PTR;
+    MSG_HEADER_STRU              *pstMsgHeader  = VOS_NULL_PTR;
+
+   
+    /*lint -e516 -esym(516,*)*/
+    pstMsgBlock = (MsgBlock*)PS_ALLOC_MSG(NDIS_TASK_PID, usMsgLen - VOS_MSG_HEAD_LENGTH);
+    /*lint -e516 +esym(516,*)*/
+   
+
+    if (VOS_NULL_PTR == pstMsgBlock)
+    {
+        return PS_FAIL;
+    }
+
+    pstMsgHeader = (MSG_HEADER_STRU *)(VOS_VOID*)pstMsgBlock;
+
+    NDIS_MEM_CPY_S(pstMsgBlock->aucValue, usMsgLen - VOS_MSG_HEAD_LENGTH, (pucBuf + VOS_MSG_HEAD_LENGTH), usMsgLen - VOS_MSG_HEAD_LENGTH);
+
+    pstMsgHeader->ulSenderPid   = NDIS_TASK_PID;
+    pstMsgHeader->ulReceiverPid = APP_AT_PID;
+    pstMsgHeader->ulMsgName     = ulMsgId;
+
+
+    if(VOS_OK != PS_SEND_MSG(NDIS_TASK_PID, pstMsgBlock))
+    {
+        /*异常打印*/
+        return PS_FAIL;
+    }
+
+    return PS_SUCC;
+}
+
+
+
+
+VOS_INT Ndis_DlAdsDataRcv(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pData, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
 {
     if (VOS_NULL_PTR == pData)
     {
@@ -185,6 +228,7 @@ VOS_UINT32 AppNdis_UsbReadCb(UDI_HANDLE ulhandle, VOS_VOID *pPktNode)
     VOS_UINT16                  usFrameType;
     ETHFRM_IPV4_PKT_STRU       *pstIpPacket;
     VOS_UINT8                  *pucData;
+    VOS_UINT32                  ulDataLen;
 
     if (VOS_NULL_PTR == pstImmZc)
     {
@@ -199,6 +243,18 @@ VOS_UINT32 AppNdis_UsbReadCb(UDI_HANDLE ulhandle, VOS_VOID *pPktNode)
         IMM_ZcFree(pstImmZc);
         /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, IMM_ZcGetDataPtr fail!");
+        NDIS_STAT_UL_DISCARD_USBPKT(1);
+        return PS_FAIL;
+    }
+
+    /*长度异常判断*/
+    ulDataLen = IMM_ZcGetUsedLen(pstImmZc);
+    if (ulDataLen < ETH_MAC_HEADER_LEN)
+    {
+        /*lint -e522*/
+        IMM_ZcFree(pstImmZc);
+        /*lint +e522*/
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, ulDataLen less than ETH_MAC_HEADER_LEN!");
         NDIS_STAT_UL_DISCARD_USBPKT(1);
         return PS_FAIL;
     }
@@ -235,6 +291,8 @@ VOS_UINT32 AppNdis_SpeReadCb(VOS_INT32 lSpePort, VOS_VOID *pPktNode)
     ETHFRM_IPV4_PKT_STRU       *pstIpPacket;
     VOS_UINT8                  *pucData;
     VOS_UINT8                   ucExRabId;
+    VOS_UINT32                  ulDataLen;
+
     if (VOS_NULL_PTR == pstImmZc)
     {
         NDIS_ERROR_LOG(NDIS_TASK_PID, "AppNdis_UsbReadCb read NULL PTR!");
@@ -250,6 +308,17 @@ VOS_UINT32 AppNdis_SpeReadCb(VOS_INT32 lSpePort, VOS_VOID *pPktNode)
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, IMM_ZcGetDataPtr fail!");
        // NDIS_STAT_UL_DISCARD_USBPKT(1);
         return PS_FAIL;
+    }
+
+    /*长度异常判断*/
+    ulDataLen = IMM_ZcGetUsedLen(pstImmZc);
+    if (ulDataLen < ETH_MAC_HEADER_LEN)
+    {
+         /*lint -e522*/
+         IMM_ZcFree(pstImmZc);
+         /*lint +e522*/
+         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, ulDataLen less than ETH_MAC_HEADER_LEN!");
+         return PS_FAIL;
     }
 
     pstIpPacket = (ETHFRM_IPV4_PKT_STRU  *)(VOS_VOID*)pucData;
@@ -272,44 +341,6 @@ VOS_UINT32 AppNdis_SpeReadCb(VOS_INT32 lSpePort, VOS_VOID *pPktNode)
 
     Ndis_LomTraceRcvUlData();
     Ndis_UlNcmFrmProc(ucExRabId, pstImmZc);
-
-    return PS_SUCC;
-}
-
-
-VOS_UINT32  Ndis_InitRegToAt( VOS_VOID )
-{
-    MsgBlock                        *pMsgBlock = VOS_NULL_PTR;
-    AT_FW_CLIENT_REGISTER_REQ_STRU  *pRegClient = VOS_NULL_PTR;
-    AT_FW_MSG_STRU                  *pAtMsg = VOS_NULL_PTR;
-    VOS_UINT32                       ulRslt;
-
-    pMsgBlock = (MsgBlock*)PS_ALLOC_MSG(NDIS_TASK_PID, sizeof(MsgBlock)+sizeof(AT_FW_MSG_STRU)+sizeof(AT_FW_CLIENT_REGISTER_REQ_STRU));
-    if (VOS_NULL_PTR == pMsgBlock)
-    {
-        return PS_FAIL;
-    }
-
-    pMsgBlock->ulReceiverPid = APP_AT_PID;
-    pMsgBlock->ulSenderPid   = NDIS_TASK_PID;
-    /*lint -e826*/
-    pAtMsg                   = (AT_FW_MSG_STRU*)((VOS_VOID*)(pMsgBlock->aucValue));
-    /*lint +e826*/
-    pAtMsg->ulMsgId          = ID_MSG_AT_FW_CLIENT_REGISTER_REQ;
-
-    pRegClient = (AT_FW_CLIENT_REGISTER_REQ_STRU*)((VOS_VOID*)(pAtMsg->pMsgParam));
-    pRegClient->bRegister          = TRUE;
-    pRegClient->pstDiscardUrc      = NULL;
-    pRegClient->ucClientId         = EN_AT_FW_CLIENT_ID_NDIS;
-    pRegClient->ucSysMode          = AT_FW_SYS_MODE_NULL;
-    pRegClient->ucInterfaceCfg     = AT_FW_PACKET_FMT_BINARY;
-
-    ulRslt = PS_SEND_MSG(NDIS_TASK_PID, pMsgBlock);
-
-    if (VOS_OK != ulRslt)
-    {
-        return PS_FAIL;
-    }
 
     return PS_SUCC;
 }
@@ -390,7 +421,6 @@ VOS_UINT32 Ndis_Init( VOS_VOID )
     VOS_UINT8     *pucMacAddr;
     VOS_UINT16     usPayLoad;
     NDIS_ARP_PERIOD_TIMER_STRU    *pstArpPeriodTimer;
-
 
     /*lint -e746*/
     pucMacAddr = (VOS_UINT8 *)Ndis_GetMacAddr();                                 /*获得单板MAC地址*/
@@ -568,6 +598,13 @@ VOS_VOID Ndis_ProcARPTimerExp(VOS_VOID)
 
 VOS_VOID Ndis_ProcTmrMsg(const REL_TIMER_MSG *pRcvMsg)
 {
+
+    if ( sizeof(REL_TIMER_MSG) - VOS_MSG_HEAD_LENGTH > pRcvMsg->ulLength )
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_ProcTmrMsg, input msg length less than struc", pRcvMsg->ulLength);
+        return;
+    }
+
     switch(pRcvMsg->ulName)
     {
         case NDIS_PERIOD_ARP_TMRNAME:
@@ -590,13 +627,13 @@ VOS_VOID Ndis_DHCPPkt_Proc(VOS_VOID *pRcvMsg)
     VOS_UINT8                ucExRabId;
     VOS_UINT32               ulPktMemLen;
 
-    pucData  = IMM_ZcGetDataPtr(pstAdsNdisMsg->pstSkBuff);
+    pucData  = IMM_ZcGetDataPtr(pstAdsNdisMsg->pstData);
     if (VOS_NULL_PTR == pucData)
     {
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_DHCPPkt_Proc, IMM_ZcGetDataPtr fail!");
         return;
     }
-    ulPktMemLen = IMM_ZcGetUsedLen(pstAdsNdisMsg->pstSkBuff);
+    ulPktMemLen = IMM_ZcGetUsedLen(pstAdsNdisMsg->pstData);
 
     ucExRabId = NDIS_FORM_EXBID(pstAdsNdisMsg->enModemId, pstAdsNdisMsg->ucRabId);
     if (PS_SUCC != Ndis_ChkRabIdValid(ucExRabId))
@@ -726,8 +763,21 @@ VOS_VOID Ndis_UlNcmFrmProc(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pstImmZc)
     /*ARP处理*/
     if(ARP_PAYLOAD == usFrameType)
     {
+        /*长度异常判断*/
+        ulDataLen = IMM_ZcGetUsedLen(pstImmZc);
+        /*lint -e413*/
+        if (ulDataLen < NDIS_ARP_FRAME_REV_OFFSET)
+        {
+            /*lint -e522*/
+            IMM_ZcFree(pstImmZc);
+            /*lint +e522*/
+            NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, ulDataLen less than NDIS_ARP_FRAME_REV_OFFSET!");
+            NDIS_STAT_UL_DISCARD_USBPKT(1);
+            return;
+        }
+
         /*ARP处理函数入参中增加RabId，后续以RabId作为Ndis实体遍历索引*/
-        (VOS_VOID)Ndis_ProcArpMsg((ETH_ARP_FRAME_STRU*)(VOS_VOID*)pstIpPacket, ucExRabId);
+        (VOS_VOID)Ndis_ProcArpMsg((ETH_ARP_FRAME_STRU*)(VOS_VOID*)pstIpPacket, ucExRabId);/*lint !e527*/
 
         /*处理完ARP后调用Imm_ZcFree释放ImmZc*/
         /*lint -e522*/
@@ -792,6 +842,18 @@ VOS_VOID Ndis_UlNcmFrmProc(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pstImmZc)
 
         NDIS_SPE_MEM_UNMAP(pstImmZc, ulCacheLen);
 
+        /*长度异常判断*/
+        /*lint -e644*/
+        if (ulDataLen < sizeof(ETH_IPFIXHDR_STRU))
+        {
+            /*lint -e522*/
+            IMM_ZcFree(pstImmZc);
+            /*lint +e522*/
+            NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, ulDataLen less than size of ETH_IPFIXHDR_STRU!");
+            NDIS_STAT_UL_DISCARD_USBPKT(1);
+            return;
+        }
+        /*lint +e644*/
         pstIpFixHdr = (ETH_IPFIXHDR_STRU *)((VOS_VOID*)pucData);
         ulIpLen = IP_NTOHS(pstIpFixHdr->usTotalLen);
         if (ulIpLen < pstImmZc->len)
@@ -803,11 +865,9 @@ VOS_VOID Ndis_UlNcmFrmProc(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pstImmZc)
         NDIS_SPE_MEM_MAP(pstImmZc, ulCacheLen);
     }
 
+    /*NR版本上暂不编译该部分，待NR Ndis迭代开始后再调整该部分*/
     if (VOS_OK != ADS_UL_SendPacket(pstImmZc, ucExRabId))
     {
-        /*lint -e522*/
-        IMM_ZcFree(pstImmZc);
-        /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, ADS_UL_SendPacket fail!");
         return;
     }
@@ -1148,51 +1208,6 @@ VOS_VOID Ndis_StopARPTimer(NDIS_ARP_PERIOD_TIMER_STRU *pstArpPeriodTimer)
 }
 
 
-VOS_UINT32 Ndis_SndMsgToAt(const VOS_UINT8 *pucBuf,VOS_UINT16 usMsgLen,VOS_UINT32 ulMsgId)
-{
-    VOS_UINT32                    ulAllocSize;
-    AT_FW_MSG_STRU               *pstFwMsg    = VOS_NULL_PTR;
-    AT_FW_CMD_BINARY_MSG_STRU    *pstAtCnf    = VOS_NULL_PTR;
-    MsgBlock                     *pstMsgBlock = VOS_NULL_PTR;
-
-    /*消息体比实际大了一点，处理方便*/
-    ulAllocSize = sizeof(MsgBlock) + sizeof(AT_FW_MSG_STRU)
-                  + sizeof(AT_FW_CMD_BINARY_MSG_STRU) + usMsgLen;
-
-    /*lint -e516 -esym(516,*)*/
-    pstMsgBlock = (MsgBlock*)PS_ALLOC_MSG(NDIS_TASK_PID, ulAllocSize);
-    /*lint -e516 +esym(516,*)*/
-    if (VOS_NULL_PTR == pstMsgBlock)
-    {
-        return PS_FAIL;
-    }
-
-    /*lint -e826*/
-    pstFwMsg          = (AT_FW_MSG_STRU *)(VOS_VOID*)(pstMsgBlock->aucValue);
-    pstFwMsg->ulMsgId = ID_MSG_AT_FW_CMD_BINARY_MSG;
-
-    pstAtCnf  = (AT_FW_CMD_BINARY_MSG_STRU  *)((VOS_VOID*)pstFwMsg->pMsgParam);
-    /*lint +e826*/
-    pstAtCnf->usMsgSize  = usMsgLen;
-    pstAtCnf->ulMsgId    = ulMsgId;
-    pstAtCnf->ucClientId = EN_AT_FW_CLIENT_ID_NDIS;   /*待MSP完整头文件*/
-    pstAtCnf->ucSysMode  = AT_FW_SYS_MODE_NULL;
-
-    pstMsgBlock->ulSenderPid   = NDIS_TASK_PID;
-    pstMsgBlock->ulReceiverPid = APP_AT_PID;
-
-    NDIS_MEM_CPY_S(pstAtCnf->pMsg,usMsgLen,pucBuf,usMsgLen);
-
-    if(VOS_OK != PS_SEND_MSG(NDIS_TASK_PID, pstMsgBlock))
-    {
-        /*异常打印*/
-        return PS_FAIL;
-    }
-
-    return PS_SUCC;
-}
-
-
 VOS_UINT32 Ndis_ChkRabIdValid(VOS_UINT8 ucExRabId)
 {
     VOS_UINT16 usModemId;
@@ -1301,7 +1316,7 @@ VOS_UINT32  Ndis_PdnV4PdnCfg( const AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInfo
 }
 
 
-VOS_UINT32  Ndis_PdnV6PdnCfg( AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInfo,
+VOS_UINT32  Ndis_PdnV6PdnCfg(const AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInfo,
                                      NDIS_ENTITY_STRU  *pstNdisEntity)
 {
     VOS_UINT8                       ucExRabId;
@@ -1363,7 +1378,7 @@ VOS_UINT8 Ndis_AtCnfResultProc(const AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInf
     return enResult;
 }
 
-VOS_VOID Ndis_PdnInfoCfgProc(const AT_FW_CMD_BINARY_MSG_STRU *pstAtReq)
+VOS_VOID Ndis_PdnInfoCfgProc(const AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInfo)
 {
     VOS_UINT8                       ucExRabId;
     UDI_HANDLE                      ulHandle;
@@ -1373,11 +1388,15 @@ VOS_VOID Ndis_PdnInfoCfgProc(const AT_FW_CMD_BINARY_MSG_STRU *pstAtReq)
     VOS_UINT32                      ulV6Ret;
     VOS_INT32                       lSpePort;
     VOS_UINT32                      ulSpeIpfFlag;
-    /*lint -e826*/
-    AT_NDIS_PDNINFO_CFG_REQ_STRU   *pstNasNdisInfo = (AT_NDIS_PDNINFO_CFG_REQ_STRU *)pstAtReq->pMsg;
-    /*lint +e826*/
 
     NDIS_INFO_LOG(NDIS_TASK_PID, "Ndis_PdnInfoCfgProc entered!");
+
+    /*长度异常检查*/
+    if ((sizeof(AT_NDIS_PDNINFO_CFG_REQ_STRU) - VOS_MSG_HEAD_LENGTH) > pstNasNdisInfo->ulLength)
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_PdnInfoCfgProc: input msg length less than struc", pstNasNdisInfo->ulMsgId);
+        return;
+    }
 
     /*生成扩展的RabId*/
     ucExRabId  = NDIS_FORM_EXBID(pstNasNdisInfo->enModemId, pstNasNdisInfo->ucRabId);
@@ -1446,6 +1465,8 @@ VOS_VOID Ndis_PdnInfoCfgProc(const AT_FW_CMD_BINARY_MSG_STRU *pstAtReq)
     }
 
     pstNdisEntity->lSpePort = NDIS_INVALID_SPEPORT;
+
+    /*NR版本上暂不编译该部分，待NR Ndis迭代开始后再调整该部分*/
     /*向ADS注册下行回调:只注册一次*/
     if (VOS_OK != (ADS_DL_RegDlDataCallback(ucExRabId, Ndis_DlAdsDataRcv, 0)))
     {
@@ -1467,17 +1488,21 @@ VOS_VOID Ndis_PdnInfoCfgProc(const AT_FW_CMD_BINARY_MSG_STRU *pstAtReq)
 }
 
 
-VOS_VOID Ndis_PdnRel(const AT_FW_CMD_BINARY_MSG_STRU *pstAtReq)
+VOS_VOID Ndis_PdnRel(const AT_NDIS_PDNINFO_REL_REQ_STRU *pstNasNdisRel)
 {
     VOS_UINT8                      ucExRabId;
     NDIS_ENTITY_STRU              *pstNdisEntity;
     NDIS_ARP_PERIOD_TIMER_STRU    *pstArpPeriodTimer;
-    /*lint -e826*/
-    AT_NDIS_PDNINFO_REL_REQ_STRU  *pstNasNdisRel = (AT_NDIS_PDNINFO_REL_REQ_STRU  *)pstAtReq->pMsg;
-    /*lint +e826*/
     AT_NDIS_PDNINFO_REL_CNF_STRU   stRelCnf;
 
     NDIS_INFO_LOG(NDIS_TASK_PID, "Ndis_PdnRel entered!");
+
+    /*长度异常检查*/
+    if ((sizeof(AT_NDIS_PDNINFO_REL_REQ_STRU) - VOS_MSG_HEAD_LENGTH) > pstNasNdisRel->ulLength)
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_PdnRel: input msg length less than struc", pstNasNdisRel->ulMsgId);
+        return;
+    }
 
     stRelCnf.enResult  = AT_NDIS_FAIL;
     stRelCnf.ucRabId   = pstNasNdisRel->ucRabId;
@@ -1597,32 +1622,29 @@ VOS_UINT32 Ndis_ProcArpMsg(ETH_ARP_FRAME_STRU* pstArpMsg, VOS_UINT8 ucRabId)
 
 VOS_VOID Ndis_AtMsgProc( const MsgBlock *pMsgBlock )
 {
-    /*lint -e826*/
-    AT_FW_MSG_STRU                   *pstAtFw  = (AT_FW_MSG_STRU *)((VOS_VOID*)(pMsgBlock->aucValue));
-    /*lint +e826*/
-    AT_FW_CMD_BINARY_MSG_STRU        *pstAtMsg;
-    AT_NDIS_MSG_TYPE_ENUM_UINT32      ulMsgId;
+    AT_NDIS_MSG_ID_ENUM_UINT32      ulMsgId;
 
     /*begin: 鹰眼插桩*/
     COVERITY_TAINTED_SET(pMsgBlock->aucValue);
     /*end: 鹰眼插桩*/
 
-    if (ID_MSG_AT_FW_CMD_BINARY_MSG != pstAtFw->ulMsgId)
+    /*长度异常保护*/
+    if (sizeof(MSG_HEADER_STRU) - VOS_MSG_HEAD_LENGTH > pMsgBlock->ulLength )
     {
-        PS_PRINTF("Ndis_AtMsgProc: Fw msg type Error,ID is %x!",pstAtFw->ulMsgId);
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_AtMsgProc: input msg length less than struc MSG_HEADER_STRU", pMsgBlock->ulLength);
         return;
     }
-    pstAtMsg  = (AT_FW_CMD_BINARY_MSG_STRU*)(VOS_VOID*)pstAtFw->pMsgParam;
-    ulMsgId  = pstAtMsg->ulMsgId;
+
+    ulMsgId  = ((MSG_HEADER_STRU *)(VOS_VOID*)pMsgBlock)->ulMsgName;
 
     switch (ulMsgId)
     {
         case ID_AT_NDIS_PDNINFO_CFG_REQ :/*根据消息的不同处理AT不同的请求*/
-            Ndis_PdnInfoCfgProc(pstAtMsg);
+            Ndis_PdnInfoCfgProc((AT_NDIS_PDNINFO_CFG_REQ_STRU *)(VOS_VOID*)pMsgBlock);
             break;
 
         case ID_AT_NDIS_PDNINFO_REL_REQ :
-            Ndis_PdnRel(pstAtMsg);
+            Ndis_PdnRel((AT_NDIS_PDNINFO_REL_REQ_STRU *)(VOS_VOID*)pMsgBlock);
             break;
 
         default:
@@ -1642,16 +1664,21 @@ VOS_VOID Ndis_AdsMsgProc(const MsgBlock* pMsgBlock )
     COVERITY_TAINTED_SET(pMsgBlock->aucValue);
     /*end: 鹰眼插桩*/
 
-    if (VOS_NULL_PTR == pstAdsNdisMsg->pstSkBuff)
+    if ( sizeof(ADS_NDIS_DATA_IND_STRU) - VOS_MSG_HEAD_LENGTH > pMsgBlock->ulLength )
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_AdsMsgProc, input msg length less than struc", pMsgBlock->ulLength);
+        return;
+    }
+    if (VOS_NULL_PTR == pstAdsNdisMsg->pstData)
     {
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_AdsMsgProc recv NULL PTR!");
         return;
     }
 
-    if (ID_ADS_NDIS_DATA_IND != pstAdsNdisMsg->enMsgId)
+    if (ID_ADS_NDIS_DATA_IND != pstAdsNdisMsg->ulMsgId)
     {
         /*lint -e522*/
-        IMM_ZcFree(pstAdsNdisMsg->pstSkBuff);
+        IMM_ZcFree(pstAdsNdisMsg->pstData);
         /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_AdsMsgProc, MsgId error!");
         return;
@@ -1676,7 +1703,7 @@ VOS_VOID Ndis_AdsMsgProc(const MsgBlock* pMsgBlock )
 
      /*处理完成后释放ImmZc*/
      /*lint -e522*/
-     IMM_ZcFree(pstAdsNdisMsg->pstSkBuff);
+     IMM_ZcFree(pstAdsNdisMsg->pstData);
      /*lint +e522*/
 
     return;
@@ -1807,7 +1834,7 @@ VOS_UINT32 APP_NDIS_FidInit(enum VOS_INIT_PHASE_DEFINE enPhase)
 
 *****************************************************************************/
 VOS_UINT32 Ndis_MsgHook (VOS_UINT8 *pucData,VOS_UINT32 ulLength,
-     AT_NDIS_MSG_TYPE_ENUM_UINT32 enMsgId)
+     AT_NDIS_MSG_ID_ENUM_UINT32 enMsgId)
 {
 /* OM融合二阶段,HOOK接口变更，入参为标准OSA消息 */
 

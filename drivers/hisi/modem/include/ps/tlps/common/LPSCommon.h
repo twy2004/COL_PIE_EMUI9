@@ -7,7 +7,7 @@
   1 Include Headfile
 *****************************************************************************/
 #include  "vos.h"
-
+#include  "PsTypeDef.h"
 /*****************************************************************************
   1.1 Cplusplus Announce
 *****************************************************************************/
@@ -94,7 +94,6 @@ BYTE4  消息号:0~255
 
 /* boston add begin */
 
-
 #if (FEATURE_ON == FEATURE_MODEM1_SUPPORT_LTE)
 #define LPS_MAX_MODEM_NUM                2
 #else
@@ -102,6 +101,7 @@ BYTE4  消息号:0~255
 #endif
 /* boston add end */
 
+#define NAS_MM_MAX_SHARE_PLMN_NUM       (16)
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
@@ -389,14 +389,20 @@ enum PS_MSG_ID_SECTION_ENUM
     PS_MSG_ID_IMSA_TO_GRR_BASE   = PS_MSG_ID_WRR_TO_IMSA_BASE + 0x20,
     PS_MSG_ID_GRR_TO_IMSA_BASE   = PS_MSG_ID_IMSA_TO_GRR_BASE + 0x20,
     /* zhangdongfeng, 00353461 , add it for cellular prefer project, end in 2016-09-28 */
-    
+
+    /* LMM和REGM之间的消息接口取值范围 */
+    PS_MSG_ID_LMM_TO_REGM_BASE   = PS_MSG_ID_GRR_TO_IMSA_BASE + 0x20,
+    PS_MSG_ID_REGM_TO_LMM_BASE   = PS_MSG_ID_LMM_TO_REGM_BASE + 0x40,
+
+    PS_MSG_ID_TC_TO_LRRC_BASE   = PS_MSG_ID_REGM_TO_LMM_BASE + 0x20,
+    PS_MSG_ID_LRRC_TO_TC_BASE   = PS_MSG_ID_TC_TO_LRRC_BASE + 0x40,
 
     /* RRC的路测消息ID是从0x8D00-0x8DFF */
     PS_MSG_ID_RRC_TO_DT_BASE  = PS_DT_MSG_ID_BASE,
 
     /* Modem errlog report, relation event lps-om message base address begin */
     PS_MSG_ID_LPSOM_PS_BASE   = PS_ERR_LOG_MSG_ID_BASE,
-
+    PS_MSG_ID_LPSOM_EMM_BASE  = PS_MSG_ID_LPSOM_PS_BASE + 0x40,
 };
 
 enum TL_KPI_MSG_ID_SECTION_ENUM
@@ -604,7 +610,82 @@ typedef struct
 typedef VOS_UINT64 LPS_32K_TSTAMP_UINT64;
 typedef VOS_UINT64 LPS_MS_TSTAMP_UINT64;
 
+/*****************************************************************************
+?á11??3?    :NAS_MM_PLMN_ID_STRU?D
+ê1ó??μ?÷    :
+    MCC, Mobile country code (aucPlmnId[0], aucPlmnId[1] bits 1 to 4)
+    MNC, Mobile network code (aucPlmnId[2], aucPlmnId[1] bits 5 to 8).
 
+    The coding of this field is the responsibility of each administration but BCD
+    coding shall be used. The MNC shall consist of 2 or 3 digits. For PCS 1900 for NA,
+    Federal regulation mandates that a 3-digit MNC shall be used. However a network
+    operator may decide to use only two digits in the MNC over the radio interface.
+    In this case, bits 5 to 8 of octet 4 shall be coded as "1111". Mobile equipment
+    shall accept MNC coded in such a way.
+
+    ---------------------------------------------------------------------------
+                 ||(BIT8)|(BIT7)|(BIT6)|(BIT5)|(BIT4)|(BIT3)|(BIT2)|(BIT1)
+    ---------------------------------------------------------------------------
+    aucPlmnId[0] ||    MCC digit 2            |           MCC digit 1
+    ---------------------------------------------------------------------------
+    aucPlmnId[1] ||    MNC digit 3            |           MCC digit 3
+    ---------------------------------------------------------------------------
+    aucPlmnId[2] ||    MNC digit 2            |           MNC digit 1
+    ---------------------------------------------------------------------------
+
+    AT?üá?￡o
+    at+cops=1,2,"mcc digit 1, mcc digit 2, mcc digit 3, mnc digit 1, mnc digit 2, mnc
+
+digit 3",2 :
+
+    e.g.
+    at+cops=1,2,"789456",2 :
+    --------------------------------------------------------------------------------
+    (mcc digit 1)|(mcc digit 2)|(mcc digit 3)|(mnc digit 1)|(mnc digit 2)|(mnc digit 3)
+    --------------------------------------------------------------------------------
+       7         |     8       |      9      |     4       |      5      |     6
+    --------------------------------------------------------------------------------
+
+    ?úaucPlmnId[3]?Dμ?′?·???ê?:
+    ---------------------------------------------------------------------------
+                 ||(BIT8)|(BIT7)|(BIT6)|(BIT5)|(BIT4)|(BIT3)|(BIT2)|(BIT1)
+    ---------------------------------------------------------------------------
+    aucPlmnId[0] ||    MCC digit 2 = 8        |           MCC digit 1 = 7
+    ---------------------------------------------------------------------------
+    aucPlmnId[1] ||    MNC digit 3 = 6        |           MCC digit 3 = 9
+    ---------------------------------------------------------------------------
+    aucPlmnId[2] ||    MNC digit 2 = 5        |           MNC digit 1 = 4
+    ---------------------------------------------------------------------------
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8                           aucPlmnId[3];
+    VOS_UINT8                           ucRsv;
+}NAS_LPSCOMM_PLMN_ID_STRU;
+
+
+/*****************************************************************************
+?á11??3?    :NAS_MM_TAC_STRU
+ê1ó??μ?÷    :TACD??￠  24.301  9.9.3.26
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8                           ucTac;
+    VOS_UINT8                           ucTacCnt;
+    VOS_UINT8                           aucRsv[2];
+}NAS_LPSCOMM_TAC_STRU;
+
+/*****************************************************************************
+ 结构名    : NAS_MM_TAC_AND_SHARE_PLMN_INFO_STRU
+ 结构说明  : TA信息数据结构
+*****************************************************************************/
+typedef struct
+{
+    NAS_LPSCOMM_TAC_STRU                     stTac;
+    /*共享网络中，在同一个TAC下可能有多个PLMN的情况; 目前代码只选取第一个PLMN进行判断*/
+    VOS_UINT32                          ulPlmnNum;
+    NAS_LPSCOMM_PLMN_ID_STRU                 astPlmnIdList[NAS_MM_MAX_SHARE_PLMN_NUM];
+}NAS_MM_TAC_AND_SHARE_PLMN_INFO_STRU;
 /*****************************************************************************
   6 UNION
 *****************************************************************************/
@@ -614,7 +695,11 @@ typedef VOS_UINT64 LPS_MS_TSTAMP_UINT64;
   7 Extern Global Variable
 *****************************************************************************/
 
-
+extern PS_BOOL_ENUM_UINT8  IMSA_LRRC_Get23GNeighCellStatus( MODEM_ID_ENUM_UINT16 enModemId );
+extern VOS_UINT32 NAS_IsSpecCellInLimitService(
+    MODEM_ID_ENUM_UINT16                            enModemId,
+    NAS_MM_TAC_AND_SHARE_PLMN_INFO_STRU             *pstTacSharePlmnInfo
+);
 /*****************************************************************************
   8 Fuction Extern
 *****************************************************************************/

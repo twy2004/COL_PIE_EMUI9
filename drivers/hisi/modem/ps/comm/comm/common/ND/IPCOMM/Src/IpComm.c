@@ -154,7 +154,6 @@ VOS_VOID IP_BuildIPv6Header
 }
 
 
-/*lint -e830*/
 /*lint -e438*/
 VOS_VOID IP_ND_FormIPv6HeaderMsg
 (
@@ -198,7 +197,6 @@ VOS_VOID IP_ND_FormIPv6HeaderMsg
                 IP_IPV6_ADDR_LEN);
     pucData += IP_IPV6_ADDR_LEN;
 }
-/*lint +e830*/
 /*lint +e438*/
 
 IP_BOOL_ENUM_UINT8 IP_IsValidRAPacket
@@ -320,6 +318,7 @@ IP_ERR_ENUM_UINT32 IP_AffirmNdParam
 
     /* Hop Limit 255 */
     ulTmp = *(pucIpMsg + IP_IPV6_BASIC_HOP_LIMIT_OFFSET);
+
     if(IP_IPV6_ND_HOP_LIMIT != ulTmp)
     {
         IPND_ERROR_LOG1(ND_TASK_PID, "IP_AffirmNdParam: Illegal Hop Limit:!", ulTmp);
@@ -358,6 +357,11 @@ IP_BOOL_ENUM_UINT8 IP_IsIcmpv6Packet
     IP_ASSERT_RTN(VOS_NULL_PTR != pulDecodedLen, IP_FALSE);
 
     /* 获取IP版本号 */
+    if (0 == ulIpMsgLen)
+    {
+        IPND_INFO_LOG(ND_TASK_PID, "\nIP_IsIcmpv6Packet: MsgLen Is ZERO!");
+        return IP_FALSE;
+    }
     ucIpVersion = IP_GetIpVersion(pucIpMsg);
 
     /* 如果版本号不是IPV6，则不是ICMPv6包 */
@@ -368,6 +372,11 @@ IP_BOOL_ENUM_UINT8 IP_IsIcmpv6Packet
     }
 
     /* 获取PAYLOAD */
+    if ((IP_IPV6_BASIC_HEAD_PAYLOAD_OFFSET + 1) >= ulIpMsgLen)
+    {
+        IPND_INFO_LOG(ND_TASK_PID, "\nIP_IsIcmpv6Packet: MsgLen Is Less Than IP_IPV6_BASIC_HEAD_PAYLOAD_OFFSET + 1!");
+        return IP_FALSE;
+    }
     IP_GetUint16Data(usPayLoad, pucIpMsg + IP_IPV6_BASIC_HEAD_PAYLOAD_OFFSET);
 
     /* 长度合法检查 */
@@ -560,6 +569,13 @@ IP_BOOL_ENUM_UINT8 IP_IsValidNdMsg
     {
         IPND_ERROR_LOG(ND_TASK_PID, "IP_IsValidNdMsg: Not Icmpv6 Packet");
         return IP_FALSE;
+    }
+
+    /* 长度不足以携带checksum，作为非法包处理 */
+    if (ulDecodedLen + IP_ICMPV6_CHECKSUM_OFFSET + 1 >= ulIpMsgLen)
+    {
+        IPND_WARNING_LOG(ND_TASK_PID, "IP_VerifyICMPv6: NONE CHECKSUM!");
+        return IP_FAIL;
     }
 
     if (IP_SUCC != IP_VerifyICMPv6(pucIpMsg, ulDecodedLen))

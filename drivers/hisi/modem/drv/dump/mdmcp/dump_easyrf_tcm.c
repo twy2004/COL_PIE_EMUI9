@@ -54,6 +54,7 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <asm/string.h>
+#include "product_config.h"
 #include "osl_types.h"
 #include "osl_bio.h"
 #include "osl_io.h"
@@ -62,15 +63,16 @@
 #include "bsp_dsp.h"
 #include "bsp_dump.h"
 #include "bsp_ddr.h"
-#include "dump_file.h"
-#include "dump_print.h"
 #include "dump_config.h"
 #include "dump_easyrf_tcm.h"
+#include "dump_file.h"
 #include <bsp_slice.h>
 #include <bsp_nvim.h>
 #include "securec.h"
+#undef	THIS_MODU
+#define THIS_MODU mod_dump
 
-void dump_save_rfdsp_tcm(char* dst_path)
+void dump_rfdsp_init(void)
 {
 }
 

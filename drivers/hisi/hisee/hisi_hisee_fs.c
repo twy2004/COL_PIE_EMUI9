@@ -434,6 +434,7 @@ int hisee_parse_img_header(char *buffer)
 	loff_t pos;
 	ssize_t cnt;
 	mm_segment_t old_fs;
+	unsigned int cos_id = 0;
 
 	ret = flash_find_ptn(HISEE_IMAGE_PARTITION_NAME, fullname);
 	if (0 != ret || NULL == buffer) {
@@ -498,7 +499,18 @@ int hisee_parse_img_header(char *buffer)
 			goto error;
 		}
 		sw_version_num = *((unsigned int *)(&cos_img_rawdata[HISEE_COS_VERSION_OFFSET]));/*lint !e826*/
-		p_img_header->sw_version_cnt[i] = sw_version_num;
+		cos_id = *((unsigned int *)(&cos_img_rawdata[HISEE_COS_ID_OFFSET]));/*lint !e826*/
+		if (HISEE_MAX_SW_VERSION_NUMBER <= cos_id) {
+			pr_err("%s():read %d cosid failed, cos_id[%d]\n", __func__, i, cos_id);
+			ret = HISEE_READ_COSID_ERROR;
+			goto error;
+		}
+		p_img_header->sw_version_cnt[cos_id] = sw_version_num;
+		p_img_header->is_cos_exist[cos_id] = HISEE_COS_EXIST;
+		p_img_header->cos_upgrade_info.sw_upgrade_version[cos_id] =
+						(unsigned char)p_img_header->file[i].name[HISEE_IMG_SUB_FILE_NAME_LEN - 1];/*lint !e661*/
+		parse_timestamp(p_img_header->time_stamp,
+						&(p_img_header->cos_upgrade_info.sw_upgrade_timestamp[cos_id].img_timestamp));
 	}
 
 error:
@@ -519,6 +531,16 @@ static int get_sub_file_name(hisee_img_file_type type, char *sub_file_name)
 	case COS_IMG_TYPE:
 		strncat(sub_file_name, HISEE_IMG_COS_NAME, HISEE_IMG_SUB_FILE_NAME_LEN);
 		break;
+	case COS1_IMG_TYPE:
+	case COS2_IMG_TYPE:
+	case COS3_IMG_TYPE:
+	case COS4_IMG_TYPE:
+	case COS5_IMG_TYPE:
+	case COS6_IMG_TYPE:
+	case COS7_IMG_TYPE:
+		strncat(sub_file_name, HISEE_IMG_COS_NAME, (unsigned long)HISEE_IMG_SUB_FILE_NAME_LEN);
+		sub_file_name[3] = (char)'0' + (char)(type - COS_IMG_TYPE);/*lint !e734*/
+		break;
 	case OTP_IMG_TYPE:
 	case OTP1_IMG_TYPE:
 		strncat(sub_file_name, HISEE_IMG_OTP0_NAME, HISEE_IMG_SUB_FILE_NAME_LEN);
@@ -528,8 +550,27 @@ static int get_sub_file_name(hisee_img_file_type type, char *sub_file_name)
 	case MISC2_IMG_TYPE:
 	case MISC3_IMG_TYPE:
 	case MISC4_IMG_TYPE:
+	case MISC5_IMG_TYPE:
+	case MISC6_IMG_TYPE:
+	case MISC7_IMG_TYPE:
+	case MISC8_IMG_TYPE:
+	case MISC9_IMG_TYPE:
 		strncat(sub_file_name, HISEE_IMG_MISC_NAME, HISEE_IMG_SUB_FILE_NAME_LEN);
 		sub_file_name[4] = (char)'0' + (char)(type - MISC0_IMG_TYPE);
+		break;
+	case MISC10_IMG_TYPE:
+	case MISC11_IMG_TYPE:
+	case MISC12_IMG_TYPE:
+	case MISC13_IMG_TYPE:
+	case MISC14_IMG_TYPE:
+	case MISC15_IMG_TYPE:
+	case MISC16_IMG_TYPE:
+	case MISC17_IMG_TYPE:
+	case MISC18_IMG_TYPE:
+	case MISC19_IMG_TYPE:
+		strncat(sub_file_name, HISEE_IMG_MISC_NAME, HISEE_IMG_SUB_FILE_NAME_LEN);
+		sub_file_name[4] = (char)'1';
+		sub_file_name[5] = (char)'0' + (char)(type - MISC10_IMG_TYPE);
 		break;
 	default:
 		return HISEE_IMG_SUB_FILE_NAME_ERROR;
@@ -691,6 +732,376 @@ int filesys_read_img_from_file(const char *filename, char *buffer, size_t *file_
 
 
 
+hisee_encos_header g_hisee_encos_header;
+
+static int check_encos_header_is_valid(void)
+{
+	unsigned int i;
+	int ret = HISEE_OK;
+
+	if (strncmp(g_hisee_encos_header.magic, HISEE_ENCOS_MAGIC_VALUE, (unsigned long)HISEE_ENCOS_MAGIC_LEN)) {
+			pr_err("%s():magic check %s failed\n", __func__, g_hisee_encos_header.magic);
+			ret = HISEE_ENCOS_PARTITION_MAGIC_ERROR;
+			return ret;
+	}
+
+	if (g_hisee_encos_header.file_cnt != HISEE_ENCOS_SUB_FILE_MAX) {
+			pr_err("%s():file cnt check failed\n", __func__);
+			ret = HISEE_ENCOS_PARTITION_FILES_ERROR;
+			return ret;
+	}
+
+	if (g_hisee_encos_header.total_size != sizeof(g_hisee_encos_header) + HISEE_ENCOS_TOTAL_FILE_SIZE) {
+			pr_err("%s():total size check failed\n", __func__);
+			ret = HISEE_ENCOS_PARTITION_SIZE_ERROR;
+			return ret;
+	}
+
+	for (i = 0; i < g_hisee_encos_header.file_cnt; i++) {
+		if ((g_hisee_encos_header.file[i].offset > ((unsigned int)sizeof(g_hisee_encos_header) + (i * HISEE_ENCOS_SUB_FILE_LEN)))
+			|| (HISEE_ENCOS_SUB_FILE_LEN < g_hisee_encos_header.file[i].size)) {
+			pr_err("%s():file %d offset check %s failed\n", __func__, i, g_hisee_encos_header.file[i].name);
+			ret = HISEE_ENCOS_SUBFILE_SIZE_CHECK_ERROR;
+			return ret;
+		}
+	}
+
+	return ret;
+}
+
+
+int hisee_encos_header_init(void)
+{
+	unsigned int i;
+	struct file *fp;
+	char fullname[MAX_PATH_NAME_LEN + 1] = { 0 };
+	int ret;
+	loff_t pos;
+	ssize_t cnt;
+	mm_segment_t old_fs;
+
+	ret = flash_find_ptn(HISEE_ENCOS_PARTITION_NAME, fullname);
+	if (0 != ret) {
+		pr_err("%s():flash_find_ptn fail\n", __func__);
+		ret = HISEE_ENCOS_FIND_PTN_ERROR;
+		set_errno_and_return(ret);
+	}
+
+	old_fs = get_fs();/*lint !e501*/
+	set_fs(KERNEL_DS);/*lint !e501*/
+	fp = filp_open(fullname, O_RDWR , 0600);
+	if (IS_ERR_OR_NULL(fp)) {
+		pr_err("%s():open %s failed\n", __func__, fullname);
+		ret = HISEE_ENCOS_OPEN_FILE_ERROR;
+		set_fs(old_fs);
+		set_errno_and_return(ret);
+	}
+
+	ret = vfs_llseek(fp, 0L, SEEK_SET);/*lint !e712*/
+	if (ret < 0) {
+		pr_err("%s():lseek %s failed from end.\n", __func__, fullname);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	pos = fp->f_pos;/*lint !e613*/
+	cnt = vfs_read(fp, (char __user *)&g_hisee_encos_header, sizeof(hisee_encos_header), &pos);
+	if (cnt < (ssize_t)sizeof(hisee_encos_header)) {
+		pr_err("%s():read %s failed, return [%ld]\n", __func__, fullname, cnt);
+		goto first_init;
+	}
+	fp->f_pos = pos;/*lint !e613*/
+	ret = check_encos_header_is_valid();
+	if (HISEE_OK != ret) {
+		pr_err("%s(): check_encos_header_is_valid fail,ret=%d.\n", __func__, ret);
+		goto first_init;
+	}
+
+	ret = HISEE_OK;
+	goto out;
+first_init:
+	memset(&g_hisee_encos_header, 0x0, sizeof(g_hisee_encos_header));
+	memcpy((void *)g_hisee_encos_header.magic, HISEE_ENCOS_MAGIC_VALUE, (unsigned long)HISEE_ENCOS_MAGIC_LEN);
+	g_hisee_encos_header.total_size = sizeof(g_hisee_encos_header) + HISEE_ENCOS_TOTAL_FILE_SIZE;
+	g_hisee_encos_header.file_cnt = HISEE_ENCOS_SUB_FILE_MAX;
+
+	for(i = 0; i < HISEE_ENCOS_SUB_FILE_MAX; i++) {
+		g_hisee_encos_header.file[i].offset = (unsigned int)sizeof(g_hisee_encos_header) + i * HISEE_ENCOS_SUB_FILE_LEN;
+	}
+
+	ret = vfs_llseek(fp, 0L, SEEK_SET);/*lint !e712*/
+	if (ret < 0) {
+		pr_err("%s():lseek %s failed from end.\n", __func__, fullname);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	pos = fp->f_pos;/*lint !e613*/
+	cnt = vfs_write(fp, (char __user *)&g_hisee_encos_header, sizeof(hisee_encos_header), &pos);
+	if (cnt < (ssize_t)sizeof(hisee_encos_header)) {
+		pr_err("%s():write %s failed, return [%ld]\n", __func__, fullname, cnt);
+		ret = HISEE_ENCOS_WRITE_FILE_ERROR;
+		goto out;
+	}
+
+	ret = HISEE_OK;
+out:
+	filp_close(fp, NULL);/*lint !e668*/
+	set_fs(old_fs);
+	set_errno_and_return(ret);
+}
+
+
+int hisee_encos_read(char *data_buf, unsigned int size, unsigned int cos_id)
+{
+	int fd;
+	ssize_t cnt;
+	mm_segment_t old_fs;
+	char fullpath[128] = {0};
+	long file_offset;
+	unsigned int file_id;
+	int ret;
+
+	if (NULL == data_buf) {
+		set_errno_and_return(HISEE_INVALID_PARAMS);
+	}
+
+	if (0 == size || size > HISEE_MAX_IMG_SIZE) {
+		pr_err("%s():img size error\n", __func__);
+		ret = HISEE_ENCOS_SUBFILE_SIZE_CHECK_ERROR;
+		set_errno_and_return(ret);
+	}
+
+	/*1. find the partition path name. */
+	ret = flash_find_ptn(HISEE_ENCOS_PARTITION_NAME, fullpath);
+	if (0 != ret) {
+		pr_err("%s():flash_find_ptn fail\n", __func__);
+		ret = HISEE_ENCOS_FIND_PTN_ERROR;
+		set_errno_and_return(ret);
+	}
+	old_fs = get_fs();/*lint !e501*/
+	set_fs(KERNEL_DS);/*lint !e501*/
+
+	/*2. open file by read or write according to usr input. */
+	fd = (int)sys_open(fullpath, O_RDONLY, HISEE_FILESYS_DEFAULT_MODE);
+	if (fd < 0) {
+		pr_err("%s():open %s failed\n", __func__, fullpath);
+		ret = HISEE_ENCOS_OPEN_FILE_ERROR;
+		set_fs(old_fs);
+		set_errno_and_return(ret);
+	}
+
+	/*3. check the encos header is ok or not. */
+	if (check_encos_header_is_valid()) {
+		pr_err("%s():check img header err\n", __func__);
+		ret = HISEE_ENCOS_CHECK_HEAD_ERROR;
+		goto out;
+	}
+
+	file_id = cos_id - COS_IMG_ID_3;
+	/*if file name is null, do not need to read. */
+	if (g_hisee_encos_header.file[file_id].name[0] == 0) {
+		pr_err("%s(): sys_lseek failed,ret=%d.\n", __func__, ret);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	/*4. read the cos data from image partiton. */
+	file_offset = (long)(g_hisee_encos_header.file[file_id].offset);
+	ret = (int)sys_lseek((unsigned int)fd, file_offset, SEEK_SET);
+	if (ret < 0) {
+		pr_err("%s(): sys_lseek failed,ret=%d.\n", __func__, ret);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	cnt = sys_read((unsigned int)fd, (char __user *)data_buf, (unsigned long)size);
+	ret = HISEE_OK;
+	if (cnt < (ssize_t)(size)) {
+		pr_err("%s(): access %s failed, return [%ld]\n", __func__, fullpath, cnt);
+		ret = HISEE_ENCOS_ACCESS_FILE_ERROR;
+	}
+
+out:
+	sys_close((unsigned int)fd);
+	set_fs(old_fs);
+	set_errno_and_return(ret);
+}
+
+int hisee_encos_write(char *data_buf, unsigned int size, unsigned int cos_id)
+{
+	int fd;
+	ssize_t cnt;
+	mm_segment_t old_fs;
+	char fullpath[128] = {0};
+	long file_offset;
+	unsigned int file_id;
+	int ret;
+	if (NULL == data_buf) {
+		set_errno_and_return(HISEE_INVALID_PARAMS);
+	}
+	/*1. find the partition path name. */
+	ret = flash_find_ptn(HISEE_ENCOS_PARTITION_NAME, fullpath);
+	if (0 != ret) {
+		pr_err("%s():flash_find_ptn fail\n", __func__);
+		ret = HISEE_ENCOS_FIND_PTN_ERROR;
+		set_errno_and_return(ret);
+	}
+	old_fs = get_fs();/*lint !e501*/
+	set_fs(KERNEL_DS);/*lint !e501*/
+
+	/*2. open file by read or write according to usr input. */
+	fd = (int)sys_open(fullpath, O_WRONLY, HISEE_FILESYS_DEFAULT_MODE);
+	if (fd < 0) {
+		pr_err("%s():open %s failed\n", __func__, fullpath);
+		ret = HISEE_ENCOS_OPEN_FILE_ERROR;
+		set_fs(old_fs);
+		set_errno_and_return(ret);
+	}
+
+	/*3. check the encos header is ok or not. */
+	if (check_encos_header_is_valid()) {
+		pr_err("%s():check img header err\n", __func__);
+		ret = HISEE_ENCOS_CHECK_HEAD_ERROR;
+		goto out;
+	}
+
+	file_id = cos_id - COS_IMG_ID_3;
+	/*4. write the file name if it is not set. */
+	strncpy(g_hisee_encos_header.file[file_id].name, HISEE_IMG_COS_NAME, (unsigned long)HISEE_IMG_SUB_FILE_LEN);
+	g_hisee_encos_header.file[file_id].name[HISEE_IMG_SUB_FILE_LEN-1] = (char)('0' + (char)cos_id);
+	g_hisee_encos_header.file[file_id].name[HISEE_IMG_SUB_FILE_LEN] = '\0';
+	g_hisee_encos_header.file[file_id].size = size;
+
+	ret = (int)sys_lseek((unsigned int)fd, 0L, SEEK_SET);
+	if (ret < 0) {
+		pr_err("%s():lseek %s failed from end.\n", __func__, fullpath);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	cnt = sys_write((unsigned int)fd, (char __user *)&g_hisee_encos_header, sizeof(hisee_encos_header));
+	if (cnt < (ssize_t)sizeof(hisee_encos_header)) {
+		pr_err("%s():read %s failed, return [%ld]\n", __func__, fullpath, cnt);
+		ret = HISEE_ENCOS_WRITE_FILE_ERROR;
+		goto out;
+	}
+	ret = sys_fsync((unsigned int)fd);
+	if (ret < 0) {
+		pr_err("%s():fail to sync %s.\n", __func__, fullpath);
+		ret = HISEE_ENCOS_SYNC_FILE_ERROR;
+		goto out;
+	}
+
+	/*5. write the cos data to image partiton. */
+	file_offset = (long)(g_hisee_encos_header.file[file_id].offset);
+	ret = (int)sys_lseek((unsigned int)fd, file_offset, SEEK_SET);
+	if (ret < 0) {
+		pr_err("%s(): sys_lseek failed,ret=%d.\n", __func__, ret);
+		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
+		goto out;
+	}
+
+	cnt = sys_write((unsigned int)fd, (char __user *)data_buf, (unsigned long)size);
+	ret = HISEE_OK;
+	if (cnt < (ssize_t)(size)) {
+		pr_err("%s(): access %s failed, return [%ld]\n", __func__, fullpath, cnt);
+		ret = HISEE_ENCOS_ACCESS_FILE_ERROR;
+		goto out;
+	}
+	ret = sys_fsync((unsigned int)fd);
+	if (ret < 0) {
+		pr_err("%s():fail to sync %s.\n", __func__, fullpath);
+		ret = HISEE_ENCOS_SYNC_FILE_ERROR;
+	}
+out:
+	sys_close((unsigned int)fd);
+	set_fs(old_fs);
+	set_errno_and_return(ret);
+}
+
+/*************************************************************
+函数原型：int check_cos_flash_file_exist(unsigned int *exist_flg)
+函数功能：检查设备内的/mnt/hisee_fs目录下是否存在cos_flash.img文件，存在是返回HISEE_OK，不存在返回HISEE_FALSE
+参数：
+输入：无
+输出：exist_flg:文件是否存在的标志，存在返回HISEE_OK，不存在返回HISEE_FALSE。
+返回值：HISEE_OK:函数执行成功；HISEE_FALSE:函数执行失败
+前置条件：无
+后置条件： 无
+*************************************************************/
+int check_cos_flash_file_exist(unsigned int *exist_flg)
+{
+	int retry = 2;
+	mm_segment_t old_fs;
+	int ret;
+
+	if (NULL == exist_flg) {
+		pr_err("hisee:%s(): invalid params.\n", __func__);
+		return HISEE_INVALID_PARAMS;
+	}
+
+	*exist_flg = HISEE_FALSE;
+	old_fs = get_fs();/*lint !e501*/
+	set_fs(KERNEL_DS);/*lint !e501*/
+	do {
+		ret = sys_access(HISEE_COS_FLASH_IMG_FULLNAME, 0);
+		if (0 == ret) {
+			*exist_flg = HISEE_TRUE;
+			break;
+		} else {
+			pr_err("%s(): sys_access fail,ret=%d\n", __func__, ret);
+		}
+		hisee_mdelay(100);
+	} while (--retry);
+
+	set_fs(old_fs);
+	if(0 == retry) {
+		pr_err("hisee:%s(): %s is not exist.\n", __func__, HISEE_COS_FLASH_IMG_FULLNAME);
+		*exist_flg = HISEE_FALSE;
+	}
+	return HISEE_OK;
+}
+
+/*************************************************************
+函数原型：int filesys_rm_cos_flash_file(void)
+函数功能：删除指定的cos镜像文件(ext4文件系统格式)
+参数：
+输入：filename:指定的cos镜像文件。
+输出：无。
+返回值：0:删除指定的cos文件成功；非0:失败
+前置条件：当前系统的指定路径下存在fullname执行的文件
+后置条件： 无
+*************************************************************/
+int filesys_rm_cos_flash_file(void)
+{
+
+/*USER version need to delete cos_flash.img file*/
+    int ret = HISEE_OK;
+	mm_segment_t old_fs;
+	int retry = 2;
+
+	old_fs = get_fs();/*lint !e501*/
+	set_fs(KERNEL_DS);/*lint !e501*/
+	hisee_mdelay(100);
+
+	ret = (int)sys_access(HISEE_COS_FLASH_IMG_FULLNAME, 0);
+	if (0 == ret) {/*success*/
+		do {
+	        ret = (int)sys_unlink(HISEE_COS_FLASH_IMG_FULLNAME);
+	        if (-EBUSY == ret) {
+	            pr_err("hisee:%s() cos_flash file busy, do retry,retry=%d!\n", __func__, retry);
+				hisee_mdelay(100);
+	        } else {
+				pr_err("hisee:%s() rm cos_flash file exit, ret=%d!\n", __func__, ret);
+				break;
+	        }
+		} while (--retry);
+	}
+
+	set_fs(old_fs);
+    return ret;
+}
 
 
 static void access_hisee_file_prepare(hisee_image_a_access_type access_type, int *flags, long *file_offset, unsigned long *size)
@@ -706,7 +1117,7 @@ static void access_hisee_file_prepare(hisee_image_a_access_type access_type, int
 	if ((SW_VERSION_WRITE_TYPE == access_type)
 		|| (SW_VERSION_READ_TYPE == access_type)) {
 		*file_offset = HISEE_IMG_PARTITION_SIZE - SIZE_1K;
-		*size = sizeof(cosimage_version_info);
+		*size = sizeof(hisee_partition_version_info);
 	} else if ((COS_UPGRADE_RUN_WRITE_TYPE == access_type)
 		|| (COS_UPGRADE_RUN_READ_TYPE == access_type)){
 		*file_offset = (long)((HISEE_IMG_PARTITION_SIZE - SIZE_1K) + HISEE_COS_VERSION_STORE_SIZE);

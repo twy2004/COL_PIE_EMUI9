@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -74,8 +74,6 @@ enum NV_FACTORY_CHECK_E
 *
 * 返 回 值  : OK
 *
-* 修改记录  : Fuxin create
-*
 *****************************************************************************/
 unsigned int mdrv_nv_check_factorynv(unsigned int mode);
 
@@ -89,56 +87,10 @@ unsigned int mdrv_nv_check_factorynv(unsigned int mode);
 *
 * 返 回 值	: modem个数
 *
-* 修改记录	: 
+* 修改记录	:
 *
 ***************************************************************************/
 unsigned int mdrv_nv_get_modem_num(void);
-
-/*****************************************************************************
-* 函 数 名	: mdrv_nv_get_nvid_num
-*
-* 功能描述	: 获取NV项数量
-*
-* 输入参数	:
-* 输出参数	: 无
-*
-* 返 回 值	: OK
-*
-* 修改记录	: Yangzhi create
-*
-***************************************************************************/
-unsigned int mdrv_nv_get_nvid_num(void);
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_get_nvid_list
-*
-* 功能描述  : 获取NV列表
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
-*****************************************************************************/
-unsigned int mdrv_nv_get_nvid_list(NV_LIST_INFO_STRU *pstNvIdList);
-
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_get_nvauth_list
-*
-* 功能描述  : 获取鉴权NV列表
-*
-* 输入参数  :
-* 输出参数  : list_adr 列表地址
-*             list_num 列表NV个数  
-*
-* 返 回 值  : 无
-*
-* 修改记录  : wangwanqing create
-*
-*****************************************************************************/
-void mdrv_nv_get_nvauth_list(unsigned int ** list_adr, unsigned int * list_num);
 
 /*****************************************************************************
 * 函 数 名  : mdrv_nv_backup
@@ -149,12 +101,17 @@ void mdrv_nv_get_nvauth_list(unsigned int ** list_adr, unsigned int * list_num);
 * 输出参数  : 无
 *
 * 返 回 值  : OK
-*
-* 修改记录  : Yangzhi create
-*
+*             MBB 的CBT会使用，765装备需要更改在C核或者
 *****************************************************************************/
 unsigned int mdrv_nv_backup(void);
 
+#ifndef FEATURE_NV_SEC_ON
+/*备份出厂NV项*/
+unsigned int mdrv_nv_backup_factorynv(void);
+
+/*恢复出厂NV项*/
+unsigned int mdrv_nv_revert_factorynv(void);
+#endif
 /*****************************************************************************
 * 函 数 名  : mdrv_nv_restore
 *
@@ -165,18 +122,12 @@ unsigned int mdrv_nv_backup(void);
 *
 * 返 回 值  : OK
 *
-* 修改记录  : Yangzhi create
-*
 *****************************************************************************/
+
 unsigned int mdrv_nv_restore(void);
 
 unsigned int mdrv_nv_restore_result(void);
 
-/*备份出厂NV项*/
-unsigned int mdrv_nv_backup_factorynv(void);
-
-/*恢复出厂NV项*/
-unsigned int mdrv_nv_revert_factorynv(void);
 
 #ifdef __cplusplus
 }

@@ -226,12 +226,12 @@ typedef union ipf_desc_attr
 {
 	struct
 	{
-		unsigned short	int_en			: 1; 
-		unsigned short	mode			: 2;
-		unsigned short	cd_en			: 1;
-		unsigned short	dl_direct_set	: 1;
-		unsigned short	fc_head			: 4; 
-		unsigned short	reserved		: 7; 
+		unsigned short	int_en			: 1;    //lint !e46
+		unsigned short	mode			: 2;    //lint !e46
+		unsigned short	cd_en			: 1;    //lint !e46
+		unsigned short	dl_direct_set	: 1;    //lint !e46
+		unsigned short	fc_head			: 4;    //lint !e46
+		unsigned short	reserved		: 7;    //lint !e46
 	} bits;
 
 	unsigned short u16;
@@ -282,8 +282,8 @@ typedef struct
 
 union ipf_addr{
     struct{
-        unsigned long long ptr  :48;
-        unsigned long long reserved :16;
+        unsigned long long ptr  :48;        //lint !e46
+        unsigned long long reserved :16;    //lint !e46
     }bits;
     unsigned long long addr;
 };
@@ -323,9 +323,9 @@ typedef struct
 
 typedef struct
 {
-	unsigned long long blk_len	:15;
-	unsigned long long cd_last	:1;
-	unsigned long long input_ptr	:48;
+	unsigned long long blk_len	:15;        //lint !e46
+	unsigned long long cd_last	:1;         //lint !e46
+	unsigned long long input_ptr	:48;    //lint !e46
 } __attribute__((packed, aligned(4))) ipf64_cd_s;
 
 typedef struct
@@ -471,60 +471,60 @@ struct ipf_runtime_info{
 #endif
 
 typedef struct ipf_ddr {
-	unsigned int start;
-	unsigned int ul_start;
-	unsigned int filter_pwc_start;
-	unsigned int pwc_info_start;
-	unsigned int dlcdrptr;
-	unsigned int debug_dlcd_start;
-	unsigned int debug_dlcd_size;
-	unsigned int end;
-	unsigned int len;
+    unsigned int    start;
+    unsigned int    ul_start;
+    unsigned int    filter_pwc_start;
+    unsigned int    pwc_info_start;
+    unsigned int    dlcdrptr;
+    unsigned int    debug_dlcd_start;
+    unsigned int    debug_dlcd_size;
+    unsigned int    end;
+    unsigned int    len;
 } ipf_ddr_t;
 
 struct ipf_debug
 {
-	int	init_ok;
-	int	mdrv_called_not_init;
-	unsigned int ad_thred;
-	unsigned int flt_chain_loop;
-	int get_rd_times;
-	int get_rd_num_times;
-	unsigned int	get_rd_cnt[IPF_AD_MAX];
-	int get_ad_num_times;
-	int cfg_ad_times;
-	unsigned int	cfg_ad_cnt[IPF_AD_MAX];
-	int	ad_out_ptr_null[IPF_AD_MAX];
-	int	busy_cnt;
-	int	occupy_cnt;
-	int get_bd_num_times;
-	int	cfg_bd_times;
-	unsigned int	cfg_bd_cnt;
-	int	bd_full;
-	int	bd_len_zero_err;
-	int	cd_not_enough;
-	int	suspend;
-	int	resume;
-	int	resume_with_intr;
-	unsigned int	timestamp_en;
-	int rd_len_update;
-	int	rd_len;
-	unsigned int	rd_ts;
-	int	rate_en;
-	int	dump_mem_alloc_ok;
-	int invalid_para;
-	ipf_ddr_t share_ddr_info;
-	int reg_scur_wr_err;
-	int reg_scur_rd_err;
-	unsigned int ccore_rst_err;
-    unsigned int ccore_reset;
-    unsigned int core_rst_done;
-    unsigned int cp_flag;
-    unsigned int rst_ts;
-	int rsr_suspend_begin;
-	int rsr_suspend_end;
-	int rsr_resume_begin;
-	int rsr_resume_end;
+    unsigned int    init_ok;
+    unsigned int    mdrv_called_not_init;
+    unsigned int    ad_thred;
+    unsigned int    flt_chain_loop;
+    unsigned int    get_rd_times;
+    unsigned int    get_rd_num_times;
+    unsigned int    get_rd_cnt[IPF_AD_MAX];
+    unsigned int    get_ad_num_times;
+    unsigned int    cfg_ad_times;
+    unsigned int    cfg_ad_cnt[IPF_AD_MAX];
+    unsigned int    ad_out_ptr_null[IPF_AD_MAX];
+    unsigned int    busy_cnt;
+    unsigned int    occupy_cnt;
+    unsigned int    get_bd_num_times;
+    unsigned int    cfg_bd_times;
+    unsigned int    cfg_bd_cnt;
+    unsigned int    bd_full;
+    unsigned int    bd_len_zero_err;
+    unsigned int    cd_not_enough;
+    unsigned int    suspend;
+    unsigned int    resume;
+    unsigned int    resume_with_intr;
+    unsigned int    timestamp_en;
+    unsigned int    rd_len_update;
+    unsigned int    rd_len;
+    unsigned int    rd_ts;
+    unsigned int    rate_en;
+    unsigned int    dump_mem_alloc_ok;
+    unsigned int    invalid_para;
+    ipf_ddr_t   share_ddr_info;
+    unsigned int    reg_scur_wr_err;
+    unsigned int    reg_scur_rd_err;
+    unsigned int    ccore_rst_err;
+    unsigned int    ccore_reset;
+    unsigned int    core_rst_done;
+    unsigned int    cp_flag;
+    unsigned int    rst_ts;
+    unsigned int    rsr_suspend_begin;
+    unsigned int    rsr_suspend_end;
+    unsigned int    rsr_resume_begin;
+    unsigned int    rsr_resume_end;
 };
 
 #ifdef __KERNEL__
@@ -732,7 +732,7 @@ struct ipf_share_mem_map
 //    ipf_dad_u dad0;
 //    ipf_dad_u dad1;
     
-    unsigned int bottom[0];
+    unsigned int bottom[0];     //lint !e43
 }__attribute__((packed, aligned(1)));
 
 #define IPF_ACORE_MAP(sm)   0

@@ -1917,7 +1917,6 @@ static struct xt_match ipt_builtin_mt[] __read_mostly = {
 		.checkentry = icmp_checkentry,
 		.proto      = IPPROTO_ICMP,
 		.family     = NFPROTO_IPV4,
-		.me	    = THIS_MODULE,
 	},
 };
 

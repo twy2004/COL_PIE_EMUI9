@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (C) Huawei Technologies Co., Ltd. 2012-2015. All rights reserved.
  * foss@huawei.com
  *
@@ -67,6 +67,7 @@ extern "C" {
 enum GUCNAS_NV_ID_ENUM
 {
 /*     6 */     en_NV_Item_Serial_Num                       = 6,        /* TAF_NVIM_SERIAL_NUM_STRU */
+/*    21 */     en_NV_Item_USB_Enum_Status                  = 21,       /* USB_ENUM_STATUS_STRU */
 /*    60 */     en_NV_Item_SVLTE_FLAG                       = 60,       /* SVLTE_SUPPORT_FLAG_STRU */
 /*    70 */     en_NV_Item_LC_Ctrl_PARA                     = 70,       /* TAF_NV_LC_CTRL_PARA_STRU */
 /*   121 */     en_NV_Item_System_APP_Config                = 121,      /* NAS_NVIM_SYSTEM_APP_CONFIG_STRU */
@@ -83,6 +84,12 @@ enum GUCNAS_NV_ID_ENUM
 /*  2387 */     en_NV_Item_USER_SYS_CFG_RAT_INFO            = 2387,     /* TAF_NVIM_MULTIMODE_RAT_CFG_STRU 用户SYS CFG RAT配置 */
 /*  2396 */     en_NV_Item_Gps_Cust_CFG                     = 2396,     /* TAF_NVIM_GPS_CUST_CFG_STRU 查询GPS芯片类型 */
 
+/* 2512 */      en_NV_Item_RAT_PRIO_LIST_EX                 = 2512,     /* TAF_NVIM_RAT_ORDER_EX_STRU */
+
+/*  2525 */     en_NV_Item_Custom_Call_Cfg                  = 2525,     /* NAS_NVIM_CUSTOM_CALL_CFG_STRU */
+
+/*  2526 */     en_NV_Item_Custom_Usimm_Cfg                 = 2526,     /* NAS_NVIM_CUSTOM_USIMM_CFG_STRU */
+
 /*  2611 */     en_NV_Item_ProductName                      = 2611,     /* TAF_PH_PRODUCT_NAME_STRU */
 /*  2615 */     en_NV_Item_MMA_AccessMode                   = 2615,     /* NAS_MMA_NVIM_ACCESS_MODE_STRU */
 /*  2626 */     en_NV_Item_WINS_Config                      = 2626,     /* WINS_CONFIG_STRU */
@@ -91,6 +98,7 @@ enum GUCNAS_NV_ID_ENUM
 
 /*  2695 */     en_NV_Item_JAM_DETECT_CFG                   = 2695,     /* NV_NAS_JAM_DETECT_CFG_STRU */
 /*  2698 */     en_NV_Item_FREQ_LOCK_CFG                    = 2698,     /* TAF_NVIM_FREQ_LOCK_CFG_STRU */
+/*  2705 */     en_NV_Item_PRODUCT_ID                       = 2705,     /* TAF_AT_PRODUCT_ID_STRU */
 /*  2707 */     en_NV_Item_CUST_USSD_MODE                   = 2707,     /* TAF_USSD_NVIM_TRANS_MODE_STRU */
 
 /*  6656 */     en_NV_Item_FollowOn_OpenSpeed_Flag          = 6656,     /* NAS_NVIM_FOLLOWON_OPENSPEED_FLAG_STRU */

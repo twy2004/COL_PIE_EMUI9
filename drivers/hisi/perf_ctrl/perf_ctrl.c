@@ -18,6 +18,7 @@
 #include <libhwsecurec/securec.h>
 #include <linux/hisi_rtg.h>
 
+#include <linux/sched/frame.h>
 
 extern int get_ipa_status(struct ipa_stat *status);
 
@@ -210,6 +211,13 @@ static long perf_ctrl_ioctl(struct file *file, unsigned int cmd, unsigned long a
 	void __user *uarg = (void __user *)arg;
 	struct task_struct *leader, *pos;
 	struct related_tid_info *r_t_info = NULL;
+	struct drg_dev_freq dev_freq;
+	struct rtg_group_task task;
+	struct rtg_cpus cpus;
+	struct rtg_freq freqs;
+	struct rtg_interval interval;
+	int frame_rate, frame_margin;
+	unsigned long frame_status;
 
 	if (!uarg) {
 		pr_err("perf_ctrl: invalid user uarg!\n");
@@ -337,7 +345,25 @@ free:
 err:
 		break;
 	case PERF_CTRL_DRG_GET_DEV_FREQ:
-		ret = -EFAULT;
+		if (copy_from_user(&dev_freq, uarg, sizeof(struct drg_dev_freq))) {
+			pr_err("get_drg_dev_freq copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		if (dev_freq.type == DRG_NONE_DEV) {
+			pr_err("get_drg_dev_freq type is DRG_NONE_DEV.\n");
+			return -ENODEV;
+		}
+
+		if (dev_freq.type != drg_get_freq_range(&dev_freq)) {
+			pr_err("get_drg_dev_freq get fail.\n");
+			return -ENODEV;
+		}
+
+		if (copy_to_user(uarg, &dev_freq, sizeof(struct drg_dev_freq))) {
+			pr_err("get_drg_dev_freq copy_from_user fail.\n");
+			return -EFAULT;
+		}
 		break;
 	case PERF_CTRL_GET_THERMAL_CDEV_POWER:
 		ret = perf_ctrl_ioctl_get_power(uarg);
@@ -348,6 +374,81 @@ err:
 		}
 		break;
 
+	case PERF_CTRL_SET_FRAME_RATE:
+		if (copy_from_user(&frame_rate, uarg, sizeof(int))) {
+			pr_err("frame_qos copy_from_user fail.\n");
+			return -EFAULT;
+		}
+		set_frame_rate(frame_rate);
+
+		ret = sched_set_group_window_size(DEFAULT_RT_FRAME_ID, frame_rate);
+		break;
+
+	case PERF_CTRL_SET_FRAME_MARGIN:
+		if (copy_from_user(&frame_margin, uarg, sizeof(int))) {
+			pr_err("frame_margin copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = set_frame_margin(frame_margin);
+		break;
+
+	case PERF_CTRL_SET_FRAME_STATUS:
+		if (copy_from_user(&frame_status, uarg, sizeof(unsigned long))) {
+			pr_err("frame_status copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_group_window_rollover(DEFAULT_RT_FRAME_ID);
+
+		if (!ret)
+			ret = set_frame_status(frame_status);
+		break;
+
+	case PERF_CTRL_SET_TASK_RTG:
+		if (copy_from_user(&task, uarg, sizeof(struct rtg_group_task))) {
+			pr_err("set_rtg_task copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_group_id(task.pid, task.grp_id);
+		break;
+
+	case PERF_CTRL_SET_RTG_CPUS:
+		if (copy_from_user(&cpus, uarg, sizeof(struct rtg_cpus))) {
+			pr_err("set_rtg_cpus copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_preferred_cluster(cpus.grp_id, cpus.cluster_id);
+		break;
+
+	case PERF_CTRL_SET_RTG_FREQ:
+		if (copy_from_user(&freqs, uarg, sizeof(struct rtg_freq))) {
+			pr_err("set_rtg_freq copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_group_freq(freqs.grp_id, freqs.freq);
+		break;
+
+	case PERF_CTRL_SET_RTG_FREQ_UPDATE_INTERVAL:
+		if (copy_from_user(&interval, uarg, sizeof(struct rtg_interval))) {
+			pr_err("set_rtg_interval copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_group_freq_update_interval(interval.grp_id, interval.interval);
+		break;
+
+	case PERF_CTRL_SET_RTG_UTIL_INVALID_INTERVAL:
+		if (copy_from_user(&interval, uarg, sizeof(struct rtg_interval))) {
+			pr_err("set_rtg_interval copy_from_user fail.\n");
+			return -EFAULT;
+		}
+
+		ret = sched_set_group_util_invalid_interval(interval.grp_id, interval.interval);
+		break;
 	default:
 		pr_err("cmd error, here is default, cmd = %d\n", cmd);
 		ret = -EINVAL;

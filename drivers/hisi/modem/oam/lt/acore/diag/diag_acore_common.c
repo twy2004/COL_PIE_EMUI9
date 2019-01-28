@@ -51,12 +51,15 @@
 /*****************************************************************************
   1 Include HeadFile
 *****************************************************************************/
-#include "vos.h"
-#include "vos_Id.h"
+#include <vos.h>
 #include <linux/debugfs.h>
 #include <mdrv.h>
 #include <mdrv_diag_system.h>
-#include "msp_errno.h"
+#include <msp.h>
+#include <omerrorlog.h>
+#include <nv_stru_sys.h>
+#include <soc_socp_adapter.h>
+#include <eagleye.h>
 #include "msp_service.h"
 #include "diag_common.h"
 #include "diag_msgbsp.h"
@@ -66,18 +69,20 @@
 #include "diag_msgps.h"
 #include "diag_msghifi.h"
 #include "diag_msgapplog.h"
-#include "diag_acore_common.h"
-#include "omerrorlog.h"
 #include "diag_api.h"
 #include "diag_cfg.h"
 #include "diag_debug.h"
-#include "nv_stru_sys.h"
-#include "soc_socp_adapter.h"
-#include "diag_debug.h"
 #include "diag_connect.h"
 #include "diag_msglrm.h"
+#include "diag_msgnrm.h"
 #include "diag_msgapplog.h"
 #include "diag_time_stamp.h"
+#include "diag_message.h"
+#include "diag_msg_def.h"
+#include "diag_service.h"
+#include "diag_time_stamp.h"
+#include "diag_acore_common.h"
+
 
 /*****************************************************************************
   2 Declare the Global Variable
@@ -98,8 +103,8 @@ extern DIAG_TRANS_HEADER_STRU g_stPSTransHead;
 struct wake_lock diag_wakelock;
 
 /* 自旋锁，用来作编码源buff的临界资源保护 */
-VOS_SPINLOCK             g_stScmIndSrcBuffSpinLock;
-VOS_SPINLOCK             g_stScmCnfSrcBuffSpinLock;
+extern VOS_SPINLOCK             g_stSrvIndSrcBuffSpinLock;
+extern VOS_SPINLOCK             g_stSrvCnfSrcBuffSpinLock;
 
 /*****************************************************************************
   3 Function
@@ -116,13 +121,14 @@ extern VOS_VOID SCM_StopAllSrcChan(VOS_VOID);
 *****************************************************************************/
 VOS_INT diag_ResetCcoreCB(DRV_RESET_CB_MOMENT_E enParam, int userdata)
 {
+    DIAG_SRV_TRANS_HEADER_STRU  stTransHeader;
+    DIAG_CMD_TRANS_IND_STRU*    pstTransInfo = {0};
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
     VOS_INT ret = ERR_MSP_SUCCESS;
-    DIAG_CMD_TRANS_IND_STRU stTransInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
 
     if(enParam == MDRV_RESET_CB_BEFORE)
     {
-        diag_printf("Diag receive ccore reset Callback.\n");
+        diag_crit("Diag receive ccore reset Callback.\n");
 
         g_DiagResetingCcore = MDRV_RESET_CB_BEFORE;
 
@@ -131,33 +137,33 @@ VOS_INT diag_ResetCcoreCB(DRV_RESET_CB_MOMENT_E enParam, int userdata)
             return ERR_MSP_SUCCESS;
         }
 
-        stTransInfo.ulModule = MSP_PID_DIAG_APP_AGENT;
-        stTransInfo.ulMsgId  = DIAG_CMD_MODEM_WILL_RESET;
-        stTransInfo.ulNo     = (g_DiagLogPktNum.ulTransNum)++;
+        pstTransInfo = &stTransHeader.trans_header;
+        pstTransInfo->ulModule = MSP_PID_DIAG_APP_AGENT;
+        pstTransInfo->ulMsgId  = DIAG_CMD_MODEM_WILL_RESET;
+        pstTransInfo->ulNo     = (g_DiagLogPktNum.ulTransNum)++;
 
         (VOS_VOID)VOS_MemSet_s(&stDiagHead, sizeof(stDiagHead), 0, sizeof(stDiagHead));
 
-        stDiagHead.u.ulID           = DIAG_CMD_MODEM_WILL_RESET;
-        stDiagHead.ulSsid           = DIAG_SSID_CPU;
-        stDiagHead.ulModemId        = 0;
-        stDiagHead.ulDirection      = DIAG_MT_IND;
-        stDiagHead.ulMsgTransId     = g_ulTransId++;
+        /* 填充数据头 */
+        diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stTransHeader);
+        DIAG_SRV_SET_MODEM_ID(&stTransHeader.frame_header, 0);
+        DIAG_SRV_SET_TRANS_ID(&stTransHeader.frame_header, g_ulTransId++);
+        DIAG_SRV_SET_COMMAND_ID_EX(&stTransHeader.frame_header, DIAG_CMD_MODEM_WILL_RESET);
+        DIAG_SRV_SET_MSG_LEN(&stTransHeader.frame_header, sizeof(stTransHeader.trans_header) + sizeof(VOS_UINT32));
 
-        stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_CNF;
-
-        stDiagHead.ulHeaderSize     = sizeof(stTransInfo);
-        stDiagHead.pHeaderData      = &stTransInfo;
+        stDiagHead.ulHeaderSize     = sizeof(stTransHeader);
+        stDiagHead.pHeaderData      = &stTransHeader;
 
         stDiagHead.ulDataSize       = sizeof(VOS_UINT32);
         stDiagHead.pData            = &enParam;
 
-        ret = diag_ServicePackData(&stDiagHead);
+        ret = diag_ServicePacketResetData(&stDiagHead);
         if(ret)
         {
-            diag_printf("Report ccore reset fail\n");
+            diag_error("Report ccore reset fail\n");
         }
 
-        diag_printf("Diag report ccore reset to HIDP,and reset SOCP timer.\n");
+        diag_crit("Diag report ccore reset to HIDP,and reset SOCP timer.\n");
         /* modem单独复位时，把中断超时时间恢复为默认值，让HIDP尽快收到复位消息 */
         mdrv_socp_set_ind_mode(SOCP_IND_MODE_DIRECT);
 
@@ -169,7 +175,7 @@ VOS_INT diag_ResetCcoreCB(DRV_RESET_CB_MOMENT_E enParam, int userdata)
     }
     else
     {
-        diag_printf("diag_ResetCcoreCB enParam error\n");
+        diag_error("enParam(0x%x) error\n", enParam);
     }
     return ERR_MSP_SUCCESS;
 }
@@ -187,7 +193,7 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
         ret = (VOS_UINT32)mdrv_sysboot_register_reset_notify(resetName, (pdrv_reset_cbfun)diag_ResetCcoreCB, 0, resetLevel);
         if(ret)
         {
-            diag_printf("diag register ccore reset fail\n");
+            diag_error("diag register ccore reset fail\n");
         }
 
         diag_MspMsgInit();
@@ -202,6 +208,7 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
         msp_ServiceInit();
         diag_AppLogMsgInit();
         diag_LRMMsgInit();
+        diag_NrmMsgInit();
 
         VOS_SpinLockInit(&g_DiagLogPktNum.ulPrintLock);
         VOS_SpinLockInit(&g_DiagLogPktNum.ulAirLock);
@@ -213,7 +220,7 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
     }
     else if(ip == VOS_IP_RESTART)
     {
-        diag_InitAuthVariable();
+        //diag_InitAuthVariable();
 
         diag_ConnReset();
 
@@ -232,7 +239,7 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
         mdrv_scm_reg_ind_coder_dst_send_fuc();
 
 
-        diag_printf("Diag PowerOnLog is %s.\n", (g_ulDiagCfgInfo&DIAG_CFG_POWERONLOG) ? "open" : "close");
+        diag_crit("Diag PowerOnLog is %s.\n", (g_ulDiagCfgInfo&DIAG_CFG_POWERONLOG) ? "open" : "close");
     }
 
     return ret;
@@ -313,11 +320,49 @@ VOS_VOID diag_DumpDFInfo(DIAG_FRAME_INFO_STRU * pFrame)
 }
 
 
+VOS_VOID diag_ApAgentMsgProc(MsgBlock* pMsgBlock)
+{
+    DIAG_DATA_MSG_STRU* pMsgTmp;
+
+    COVERITY_TAINTED_SET((VOS_VOID *)(pMsgBlock->aucValue));
+
+    pMsgTmp = (DIAG_DATA_MSG_STRU*)pMsgBlock;
+
+    switch(pMsgTmp->ulMsgId)
+    {
+        case ID_MSG_DIAG_HSO_DISCONN_IND:
+            (VOS_VOID)diag_SetChanDisconn(pMsgBlock);
+            break;
+
+        case ID_MSG_DIAG_CMD_CONNECT_REQ:
+            (VOS_VOID)diag_ConnMgrProc(pMsgTmp->pContext);
+            break;
+        case ID_MSG_DIAG_CMD_DISCONNECT_REQ:
+            (VOS_VOID)diag_DisConnMgrProc(pMsgTmp->pContext);
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+
+/*****************************************************************************
+ Function Name   : diag_AppAgentMsgProc
+ Description        : DIAG APP AGENT接收到的消息处理入口
+ Input                : MsgBlock* pMsgBlock
+
+ 注意事项:
+    由于errorlog的消息不能识别发送PID，所以需要进入errorlog的处理函数中检查
+    当已知消息被成功处理时，则不需要再进行errorlog的消息检查
+    通过ulErrorLog的值判断是否进行errorlog的消息检查
+    后续函数扩展时需要注意
+*****************************************************************************/
 VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
 {
     VOS_UINT32  ulErrorLog = ERR_MSP_CONTINUE; /* 见函数头中的注意事项的描述 */
     REL_TIMER_MSG *pTimer =NULL;
-    DIAG_DATA_MSG_STRU* pMsgTmp;
 
     /*入参判断*/
     if (NULL == pMsgBlock)
@@ -346,6 +391,11 @@ VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
             {
                 (VOS_VOID)diag_ConnTimerProc();
             }
+            else if((DIAG_HIGH_TS_PUSH_TIMER_NAME == pTimer->ulName) && (DIAG_HIGH_TS_PUSH_TIMER_PARA == pTimer->ulPara))
+            {
+                /* 推送时间戳高位 */
+                diag_PushHighTs();
+            }
             else
             {
                 diag_TransTimeoutProc(pTimer);
@@ -361,55 +411,15 @@ VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
             break;
 
         case MSP_PID_DIAG_APP_AGENT:
-
-            pMsgTmp = (DIAG_DATA_MSG_STRU*)pMsgBlock;
-            if(ID_MSG_DIAG_HSO_DISCONN_IND == pMsgTmp->ulMsgId)
-            {
-                (VOS_VOID)diag_SetChanDisconn(pMsgBlock);
-            }
-            else if(ID_MSG_DIAG_CMD_CONNECT_REQ == pMsgTmp->ulMsgId)
-            {
-                (VOS_VOID)diag_ConnMgrProc(pMsgTmp->pContext);
-            }
-            else if(ID_MSG_DIAG_CMD_DISCONNECT_REQ == pMsgTmp->ulMsgId)
-            {
-                (VOS_VOID)diag_DisConnMgrProc(pMsgTmp->pContext);
-            }
-
+            diag_ApAgentMsgProc(pMsgBlock);
             ulErrorLog = VOS_OK;
             break;
         /*lint -save -e826*/
-        /*投票消息*/
         case MSP_PID_DIAG_AGENT:
-
-            pMsgTmp = (DIAG_DATA_MSG_STRU*)pMsgBlock;
-            if(DIAG_MSG_BSP_CMD_LIST_REQ == pMsgTmp->ulMsgId)
-            {
-                diag_BspRecvCmdList(pMsgBlock);
-                ulErrorLog = VOS_OK;
-            }
-            else if(ID_MSG_DIAG_CMD_CONNECT_CNF == pMsgTmp->ulMsgId)
-            {
-                diag_LRMConnCnfProc((VOS_UINT8 *)pMsgTmp);
-            }
-            else
-            {
-                ulErrorLog = ERR_MSP_CONTINUE;
-            }
+            diag_LrmAgentMsgProc(pMsgBlock);
             break;
-
-        case I0_UEPS_PID_MTA:
-
-            pMsgTmp = (DIAG_DATA_MSG_STRU*)pMsgBlock;
-            if(ID_MTA_DIAG_RSA_VERIFY_CNF == pMsgTmp->ulMsgId)
-            {
-                diag_AuthNvCfg(pMsgBlock);
-                ulErrorLog = VOS_OK;
-            }
-            else
-            {
-                ulErrorLog = ERR_MSP_CONTINUE;
-            }
+        case MSP_PID_DIAG_NRM_AGENT:
+            diag_NrmAgentMsgProc(pMsgBlock);
             break;
         /*lint -restore +e826*/
         case DSP_PID_APM:
@@ -467,7 +477,7 @@ DIAG_TRANS_NODE_STRU* diag_AddTransInfoToList(VOS_UINT8 * pstReq, VOS_UINT32 ulR
                             ulLow32, VOS_RELTIMER_NOLOOP, VOS_TIMER_NO_PRECISION);
     if(ret != ERR_MSP_SUCCESS)
     {
-        diag_printf("VOS_StartRelTimer fail [%s]\n", __FUNCTION__);
+        diag_error("VOS_StartRelTimer fail\n");
     }
 
     /* 添加信号量保护 */
@@ -524,7 +534,7 @@ VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADE
     pNode = diag_AddTransInfoToList((VOS_UINT8*)pstReq, ulSize, pstHead);
     if(VOS_NULL == pNode)
     {
-        diag_printf("%s diag_AddTransCmdToList failed.\n", __FUNCTION__);
+        diag_error("diag_AddTransCmdToList failed\n");
         return ERR_MSP_FAILURE;
     }
 
@@ -540,7 +550,7 @@ VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADE
 
     if(DIAG_DEBUG_TRANS & g_ulDebugCfg)
     {
-        diag_printf("[debug] trans req : cmdid 0x%x, pid %d, msgid 0x%x.\n",
+        diag_crit("trans req: cmdid 0x%x, pid %d, msgid 0x%x.\n",
            pstReq->ulCmdId, pstSendReq->ulReceiverPid, pstSendReq->ulMsgId);
     }
 
@@ -555,7 +565,7 @@ VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADE
         ret = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstMsg);
         if (ret != VOS_OK)
         {
-			diag_printf("diag_TransReqProcEntry VOS_SendMsg failed!\n");
+			diag_error("VOS_SendMsg failed!\n");
         }
         else
         {
@@ -620,7 +630,7 @@ VOS_VOID diag_TransTimeoutProc(REL_TIMER_MSG *pTimer)
 
     if(DIAG_DEBUG_TRANS & g_ulDebugCfg)
     {
-        diag_printf("[debug] trans timeout : cmdid 0x%x.\n", pFrame->ulCmdId);
+        diag_error("trans timeout : cmdid 0x%x.\n", pFrame->ulCmdId);
     }
 
     /* 删除节点 */
@@ -744,7 +754,7 @@ VOS_UINT32 diag_TransCnfProc(VOS_UINT8* pstCnf ,VOS_UINT32 ulLen, DIAG_MESSAGE_T
 
     if(DIAG_DEBUG_TRANS & g_ulDebugCfg)
     {
-        diag_printf("[debug] trans cnf : cmdid 0x%x, pid %d, msgid 0x%x.\n",
+        diag_error("cmdid 0x%x, pid %d, msgid 0x%x.\n",
             stDiagInfo.ulMsgId, pstPsCnf->ulSenderPid, pstPsCnf->ulMsgId);
     }
 
@@ -801,16 +811,16 @@ static ssize_t diag_debug_write(struct file *filp, const char __user *ubuf, size
     DIAG_A_DEBUG_C_REQ_STRU *pstFlag = NULL;
     VOS_UINT32              ulret = ERR_MSP_FAILURE;
 
-    if(!ubuf)
+    if((!ubuf)||(!cnt))
     {
-        diag_printf("input NULL\n");
+        diag_error("input error\n");
         return 0;
     }
 
     cnt = (cnt > 127) ? 127 : cnt;
     if(copy_from_user(buf, ubuf, cnt))
     {
-        diag_printf("copy from user fail\n");
+        diag_error("copy from user fail\n");
         ret = -EFAULT;
         goto out;
     }
@@ -835,7 +845,7 @@ static ssize_t diag_debug_write(struct file *filp, const char __user *ubuf, size
             ulret = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstFlag);
             if (ulret != VOS_OK)
             {
-                diag_printf("diag_debug_write VOS_SendMsg failed!\n");
+                diag_error("VOS_SendMsg failed!\n");
             }
         }
     }
@@ -886,13 +896,13 @@ VOS_UINT32 MSP_AppDiagFidInit(enum VOS_INIT_PHASE_DEFINE ip)
             d_file = debugfs_create_dir("modem_diag", NULL);
             if(!d_file)
             {
-                diag_printf("create debugfs dir modem_diag fail\n");
+                diag_error("create debugfs dir modem_diag fail\n");
                 return VOS_ERR;
             }
 
             if(!debugfs_create_file("diag", 0640, d_file, NULL, &diag_debug_fops))
             {
-                diag_printf("create debugfs file modem_diag/diag file\n");
+                diag_error("create debugfs file modem_diag/diag file\n");
                 return VOS_ERR;
             }
 
@@ -912,8 +922,8 @@ VOS_UINT32 MSP_AppDiagFidInit(enum VOS_INIT_PHASE_DEFINE ip)
 
             VOS_RegisterMsgGetHook((VOS_MSG_HOOK_FUNC)DIAG_LayerMsgReport);
 
-            VOS_SpinLockInit(&g_stScmIndSrcBuffSpinLock);
-            VOS_SpinLockInit(&g_stScmCnfSrcBuffSpinLock);
+            VOS_SpinLockInit(&g_stSrvIndSrcBuffSpinLock);
+            VOS_SpinLockInit(&g_stSrvCnfSrcBuffSpinLock);
 
 
             return VOS_OK;

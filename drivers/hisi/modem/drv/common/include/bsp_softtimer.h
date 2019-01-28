@@ -179,6 +179,34 @@ s32 bsp_softtimer_free(struct softtimer_list *timer);
 *****************************************************************************/
 
 u32 check_softtimer_support_type(enum wakeup type);
+/*****************************************************************************
+* 函 数 名  :bsp_softtimer_suspend
+*
+* 功能描述  : 备份No Wake Timer的value及ctrl寄存器，只在M核实现
+*
+* 输入参数  :  无
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*
+* 修改记录  :  2018年5月23日
+*****************************************************************************/
+
+void bsp_softtimer_suspend(void);
+/*****************************************************************************
+* 函 数 名  :bsp_softtimer_resume
+*
+* 功能描述  : 恢复No Wake Timer的value及ctrl寄存器，只在M核实现
+*
+* 输入参数  :  无
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*
+* 修改记录  :  2018年5月23日
+*****************************************************************************/
+
+void bsp_softtimer_resume(void);
 
 #else
 static inline int  bsp_softtimer_init(void) {return 0;}
@@ -188,6 +216,8 @@ static inline s32 bsp_softtimer_modify(struct softtimer_list * softtimer,u32 new
 static inline void bsp_softtimer_add(struct softtimer_list * timer) {}
 static inline s32 bsp_softtimer_free(struct softtimer_list *timer) {return 0;}
 static inline u32 check_softtimer_support_type(enum wakeup type){return 0;}
+static inline void bsp_softtimer_suspend(void){}
+static inline void bsp_softtimer_resume(void){}
 
 #endif
 #endif

@@ -62,6 +62,8 @@
 #include <securec.h>
 #include "hisocket.h"
 #include "diag_port_manager.h"
+#include "diag_system_debug.h"
+#include "scm_common.h"
 #include "OmCommonPpm.h"
 #include "OmSocketPpm.h"
 
@@ -70,6 +72,7 @@
 /* ****************************************************************************
   2 全局变量定义
 **************************************************************************** */
+
 COMM_SOCKET_CTRL_INFO_STRU g_astSockInfo[SOCKET_BUTT] =
             {{SOCK_NULL, SOCK_NULL, {}, CPM_WIFI_OM_IND_PORT, SOCK_OM_IND_SRC_PORT_NUM,       {0,}},
              {SOCK_NULL, SOCK_NULL, {}, CPM_WIFI_OM_CFG_PORT, SOCK_OM_CFG_SRC_PORT_NUM,       {0,}},
@@ -80,6 +83,14 @@ COMM_SOCKET_CTRL_INFO_STRU g_astSockInfo[SOCKET_BUTT] =
   3 外部引用声明
 *****************************************************************************/
 
+void PPM_SocketRevFunReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc)
+{
+    return;
+}
+u32 PPM_SocketAtRevFun(u8  *pucData, u32 ulLen)
+{
+    return 0 ;
+}
 
 
 

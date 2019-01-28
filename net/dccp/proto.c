@@ -278,8 +278,6 @@ int dccp_disconnect(struct sock *sk, int flags)
 		sk->sk_err = ECONNRESET;
 
 	dccp_clear_xmit_timers(sk);
-	ccid_hc_rx_delete(dp->dccps_hc_rx_ccid, sk);
-	dp->dccps_hc_rx_ccid = NULL;
 
 	__skb_queue_purge(&sk->sk_receive_queue);
 	__skb_queue_purge(&sk->sk_write_queue);

@@ -49,7 +49,6 @@
 #include <product_config.h>
 
 
-
 #include <bsp_cpufreq.h>
 #include <drv_comm.h>
 

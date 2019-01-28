@@ -47,6 +47,7 @@
  */
 
 
+
 #ifndef __ERRLOG_CFG_H__
 #define __ERRLOG_CFG_H__
 
@@ -73,8 +74,15 @@ extern "C" {
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
+//pclint清理 xuziheng/306651 20180515
+#ifndef FAULT_ID_CONTAIN_ALARM_ID_MAX_NUM
 #define   FAULT_ID_CONTAIN_ALARM_ID_MAX_NUM   (256) /* ERRLOG 支持一个faultid关联256个alarm_id */
+#endif
+
+//pclint清理 xuziheng/306651 20180515
+#ifndef ERR_LOG_PID_MAX_NUM
 #define   ERR_LOG_PID_MAX_NUM                 (256) /* ERRLOG 支持256个PID */
+#endif
 
 
 /*****************************************************************************

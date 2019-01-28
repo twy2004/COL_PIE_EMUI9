@@ -65,7 +65,6 @@ extern "C" {
 *****************************************************************************/
 enum GUCNAS_ACORE_NV_ID_ENUM
 {
-/*    21 */     en_NV_Item_USB_Enum_Status                  = 21,       /* USB_ENUM_STATUS_STRU */
 /*    36 */     en_NV_Item_SW_VERSION_FLAG                  = 36,       /* OM_SW_VER_FLAG_STRU */
 /*    90 */     en_NV_Item_BATTERY_ADC                      = 90,       /* VBAT_CALIBART_TYPE */
 
@@ -84,7 +83,7 @@ enum GUCNAS_ACORE_NV_ID_ENUM
 
 /*  2413 */     en_NV_Item_PDP_REDIAL_FOR_NO_CAUSE_CFG      = 2413,     /* TAF_NV_PDP_REDIAL_FOR_NO_CAUSE_CFG_STRU      PDP双栈激活，网侧无原因值重拨功能开关配置 */
 
-/*  2421 */     en_NV_Item_Rnic_Net_If_Cfg                  = 2421,     /* TAF_NV_RNIC_NET_IF_CFG_STRU                  RNIC下行数据到Linux网络协议栈的接口模式配置 */
+/*  2421 */     en_NV_Item_Rnic_Napi_Cfg                    = 2421,     /* TAF_NV_RNIC_NAPI_CFG_STRU                    RNIC NAPI GRO配置 */
 
 /*  2437 */     en_NV_Item_AT_CLIENT_CFG                    = 2437,     /* TAF_AT_NVIM_AT_CLIENT_CFG_STRU               双卡双通控制AT通道归属哪个Modem信息 */
 
@@ -128,15 +127,12 @@ enum GUCNAS_ACORE_NV_ID_ENUM
 
 /*  2696 */     en_NV_Item_ADS_DYNAMIC_THRESHOLD_CFG        = 2696,     /* ADS_NV_DYNAMIC_THRESHOLD_STRU */
 
-/*  2705 */     en_NV_Item_PRODUCT_ID                       = 2705,     /* TAF_AT_PRODUCT_ID_STRU */
-
 /*  2713 */     en_NV_Item_AP_RPT_SRV_URL                   = 2713,     /* TAF_AT_NVIM_AP_RPT_SRV_URL_STRU */
 /*  2714 */     en_NV_Item_AP_XML_INFO_TYPE                 = 2714,     /* TAF_AT_NVIM_AP_XML_INFO_TYPE_STRU */
 /*  2715 */     en_NV_Item_AP_XML_RPT_FLAG                  = 2715,     /* TAF_AT_NVIM_AP_XML_RPT_FLG_STRU */
 
 /*  8200 */     en_NV_Item_GmmInfo                          = 8200,     /* TAF_AT_NV_GMM_INFO_STRU */
 
-/*  8295 */     en_NV_Item_SMS_SEND_DOMAIN                  = 8295,     /* AT_NVIM_SEND_DOMAIN_STRU */
 
 /*  8340 */     en_NV_Item_REPORT_REG_ACT_FLG               = 8340,     /* TAF_AT_NVIM_REPORT_REG_ACT_FLG_STRU */
 

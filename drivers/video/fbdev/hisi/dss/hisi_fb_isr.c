@@ -277,16 +277,31 @@ irqreturn_t dss_sdp_isr(int irq, void *ptr)
 
 	ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
 
-	isr_s1 = inp32(hisifd->dss_base + GLB_CPU_SDP_INTS);
-	isr_s2 = inp32(ldi_base + LDI_CPU_ITF_INTS);
-	isr_s2_smmu = inp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTSTAT_NS);
+	if (is_dp_panel(hisifd)) {
+		ldi_base = hisifd->dss_base + DSS_LDI_DP_OFFSET;
+		isr_s1 = inp32(hisifd->dss_base + GLB_CPU_DP_INTS);
+		isr_s2 = inp32(ldi_base + LDI_CPU_ITF_INTS);
+		isr_s2_smmu = inp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTSTAT_NS);
 
-	outp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTCLR_NS, isr_s2_smmu);
-	outp32(ldi_base + LDI_CPU_ITF_INTS, isr_s2);
-	outp32(hisifd->dss_base + GLB_CPU_SDP_INTS, isr_s1);
+		outp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTCLR_NS, isr_s2_smmu);
+		outp32(ldi_base + LDI_CPU_ITF_INTS, isr_s2);
+		outp32(hisifd->dss_base + GLB_CPU_DP_INTS, isr_s1);
 
-	isr_s1 &= ~(inp32(hisifd->dss_base + GLB_CPU_SDP_INT_MSK));
-	isr_s2 &= ~(inp32(ldi_base + LDI_CPU_ITF_INT_MSK));
+		isr_s1 &= ~(inp32(hisifd->dss_base + GLB_CPU_DP_INT_MSK));
+		isr_s2 &= ~(inp32(ldi_base + LDI_CPU_ITF_INT_MSK));
+
+	} else {
+		isr_s1 = inp32(hisifd->dss_base + GLB_CPU_SDP_INTS);
+		isr_s2 = inp32(ldi_base + LDI_CPU_ITF_INTS);
+		isr_s2_smmu = inp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTSTAT_NS);
+
+		outp32(hisifd->dss_base + DSS_SMMU_OFFSET + SMMU_INTCLR_NS, isr_s2_smmu);
+		outp32(ldi_base + LDI_CPU_ITF_INTS, isr_s2);
+		outp32(hisifd->dss_base + GLB_CPU_SDP_INTS, isr_s1);
+
+		isr_s1 &= ~(inp32(hisifd->dss_base + GLB_CPU_SDP_INT_MSK));
+		isr_s2 &= ~(inp32(ldi_base + LDI_CPU_ITF_INT_MSK));
+	}
 
 	if (isr_s2 & BIT_VACTIVE0_END) {
 		hisifd->vactive0_end_flag = 1;

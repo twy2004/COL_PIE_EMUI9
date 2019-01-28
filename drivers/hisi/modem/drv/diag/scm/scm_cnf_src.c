@@ -59,11 +59,11 @@
 #include <bsp_dump.h>
 #include <securec.h>
 #include "diag_port_manager.h"
-#include "soft_decode.h"
 #include "OmCommonPpm.h"
 #include "scm_debug.h"
 #include "scm_common.h"
 #include "scm_cnf_src.h"
+#include "diag_system_debug.h"
 
 
 #define SOCP_CODER_SRC_CNF     SOCP_CODER_SRC_LOM_CNF1
@@ -73,24 +73,23 @@
 **************************************************************************** */
 SCM_CODER_SRC_CFG_STRU      g_astSCMCnfCoderSrcCfg=
 {
-    SCM_CHANNEL_UNINIT, 
+    SCM_CHANNEL_UNINIT,
     SOCP_CODER_SRC_CNF,
-    SOCP_CODER_DST_OM_CNF,   
-    SOCP_DATA_TYPE_0, 
-    SOCP_ENCSRC_CHNMODE_CTSPACKET, 
-    SOCP_CHAN_PRIORITY_2,       
-    SOCP_TRANS_ID_EN,
-    SOCP_PTR_IMG_DIS,    
-    SCM_CODER_SRC_BDSIZE, 
-    SCM_CODER_SRC_RDSIZE, 
-    NULL, 
-    NULL, 
-    NULL, 
-    NULL
+    SOCP_CODER_DST_OM_CNF,
+    SOCP_DATA_TYPE_0,
+    SOCP_ENCSRC_CHNMODE_CTSPACKET,
+    SOCP_CHAN_PRIORITY_2,
+    SOCP_TRANS_ID_DIS,
+    SOCP_PTR_IMG_DIS,
+    SCM_CODER_SRC_BDSIZE,
+    SCM_CODER_SRC_RDSIZE,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    0,
+    0
 };
-
-
-extern SCM_CODER_SRC_DEBUG_STRU g_astScmCnfSrcDebugInfo;
 
 u32 scm_init_cnf_src_buff(void)
 {
@@ -102,11 +101,11 @@ u32 scm_init_cnf_src_buff(void)
                                 SCM_CODER_SRC_CNF_BUFFER_SIZE);
     if(BSP_OK != ulRet)
     {
-        g_astSCMCnfCoderSrcCfg.enInitState   = SCM_CHANNEL_MEM_FAIL;  
+        g_astSCMCnfCoderSrcCfg.enInitState   = SCM_CHANNEL_MEM_FAIL;
         return (u32)BSP_ERROR;
     }
     g_astSCMCnfCoderSrcCfg.ulSrcBufLen   = SCM_CODER_SRC_CNF_BUFFER_SIZE;
-    g_astSCMCnfCoderSrcCfg.enInitState   = SCM_CHANNEL_INIT_SUCC;  
+    g_astSCMCnfCoderSrcCfg.enInitState   = SCM_CHANNEL_INIT_SUCC;
 
     return BSP_OK;
 }
@@ -137,256 +136,16 @@ u32 scm_create_cnf_src_buff(u8 **pBufVir, u8 **pBufPhy, u32 ulLen)
 }
 
 
-
-u32 scm_get_cnf_src_buff(
-                                    u32 ulDataLen, 
-                                    SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader,
-                                    SOCP_BUFFER_RW_STRU *pstSocpBuf)
+unsigned long scm_cnf_src_phy_to_virt(u8 * phyAddr)
 {
-    SOCP_BUFFER_RW_STRU                 stRwBuf = {0};
-    SCM_CODER_SRC_PACKET_HEADER_STRU    *pstBuff;
-    u32                          *pstBuftmp;
-    u32                          ulTrueLen;
-    SOCP_CODER_SRC_ENUM_U32             enChanlID;
-
-    /* 判断数据不能大于4K */
-    if ((0 == ulDataLen) || (ulDataLen > SCM_CODER_SRC_MAX_LEN))
+    if((phyAddr < g_astSCMCnfCoderSrcCfg.pucSrcPHY) || (phyAddr >= (g_astSCMCnfCoderSrcCfg.pucSrcBuf + g_astSCMCnfCoderSrcCfg.ulSrcBufLen)))
     {
-        (void)scm_printf("ulDataLen %d.\n", ulDataLen);
-        return (u32)BSP_ERROR;
+        return (unsigned long)NULL;
     }
 
-    if (g_astSCMCnfCoderSrcCfg.enInitState != SCM_CHANNEL_INIT_SUCC)/* 判断通道参数 */
-    {
-        scm_printf("cnf channel buff is not init\n");
-        return (u32)BSP_ERROR;/* 返回失败 */
-    }
-
-    if(SOCP_ENCSRC_CHNMODE_LIST == g_astSCMCnfCoderSrcCfg.enCHMode)
-    {
-        scm_printf("cnf channel mode is list, error\n");
-        return (u32)BSP_ERROR;
-    }
-
-    enChanlID = g_astSCMCnfCoderSrcCfg.enChannelID;
-    if(BSP_OK != bsp_socp_get_write_buff(enChanlID, &stRwBuf))
-    {
-        g_astScmCnfSrcDebugInfo.ulGetWriteBufErr ++;
-        return (u32)BSP_ERROR;/* 返回失败 */
-    }
-
-    ulTrueLen = ALIGN_DDR_WITH_8BYTE(ulDataLen);
-    if((stRwBuf.u32Size + stRwBuf.u32RbSize) >= (ulTrueLen + SCM_HISI_HEADER_LENGTH))
-    {
-        /*需要返回虚拟地址给上层*/
-        pstBuff = (SCM_CODER_SRC_PACKET_HEADER_STRU*)scm_UncacheMemPhyToVirt((u8*)stRwBuf.pBuffer,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcPHY,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcBuf,
-                                    g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
-
-        if(stRwBuf.u32Size >= SCM_HISI_HEADER_LENGTH)
-        {
-            pstBuff->ulHisiMagic = SCM_HISI_HEADER_MAGIC;
-            pstBuff->ulDataLen   = ulDataLen;
-        }
-        else if(stRwBuf.u32Size >= 4)
-        {
-            pstBuff->ulHisiMagic = SCM_HISI_HEADER_MAGIC;
-
-            pstBuftmp = (u32*)g_astSCMCnfCoderSrcCfg.pucSrcBuf;
-            *pstBuftmp      = ulDataLen;
-        }
-        else    /* TODO: 应该没有stRwBuf.u32Size为0的场景 */
-        {
-            pstBuftmp = (u32*)g_astSCMCnfCoderSrcCfg.pucSrcBuf;
-
-            *(pstBuftmp++)  = SCM_HISI_HEADER_MAGIC;
-            *pstBuftmp      = ulDataLen;
-        }
-
-        *pstCoderHeader     = pstBuff;
-        (void)memcpy_s(pstSocpBuf, sizeof(*pstSocpBuf), &stRwBuf, sizeof(stRwBuf));
-
-        return BSP_OK;
-    }
-    else
-    {
-        g_astScmCnfSrcDebugInfo.ulGetCoherentBuffErr++;
-        return (u32)BSP_ERROR;
-    }
-
+    return (unsigned long)((phyAddr - g_astSCMCnfCoderSrcCfg.pucSrcPHY) + g_astSCMCnfCoderSrcCfg.pucSrcBuf);
 }
 
-
-
-void scm_cnf_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf)
-{
-    void    *pDst;
-
-    /* 本函数的拷贝处理流程不检查越界情况，由调用的地方保证 */
-    if(pInfo->uloffset < pstSocpBuf->u32Size)
-    {
-        if((pInfo->uloffset + pInfo->ulLen) <= pstSocpBuf->u32Size)
-        {
-            (void)memcpy_s(((u8*)pInfo->pHeader + pInfo->uloffset), pstSocpBuf->u32Size-pInfo->uloffset, pInfo->pSrc, pInfo->ulLen);          
-            scm_FlushCpuWriteBuf();
-        }
-        else
-        {
-            (void)memcpy_s(((u8*)pInfo->pHeader + pInfo->uloffset),pstSocpBuf->u32Size-pInfo->uloffset,
-                pInfo->pSrc, (pstSocpBuf->u32Size - pInfo->uloffset));
-            scm_FlushCpuWriteBuf();
-            
-            pDst = g_astSCMCnfCoderSrcCfg.pucSrcBuf;
-            (void)memcpy_s(pDst, (pInfo->uloffset + pInfo->ulLen - pstSocpBuf->u32Size),
-                ((u8*)pInfo->pSrc + (pstSocpBuf->u32Size - pInfo->uloffset)),
-                (pInfo->uloffset + pInfo->ulLen - pstSocpBuf->u32Size));           
-            scm_FlushCpuWriteBuf();
-            
-        }
-    }
-    else
-    {
-        pDst = g_astSCMCnfCoderSrcCfg.pucSrcBuf;
-
-        pDst = (u8*)pDst + (pInfo->uloffset - pstSocpBuf->u32Size);
-        (void)memcpy_s(pDst, pInfo->ulLen, pInfo->pSrc, pInfo->ulLen);
-        scm_FlushCpuWriteBuf();
-        
-    }
-}
-
-static u32 scm_send_cnf_src_data_list(SOCP_CODER_SRC_ENUM_U32 enChanlID, SOCP_BUFFER_RW_STRU stRwBuf, u8 *pucSendDataAddr, u32 ulSendLen)
-{
-    u32 ulBDNum;
-    SOCP_BD_DATA_STRU stBDData;
-    
-    /* 计算空闲BD的值 */
-    ulBDNum = (stRwBuf.u32Size + stRwBuf.u32RbSize) / sizeof(SOCP_BD_DATA_STRU);
-
-    /* 判断是否还有空间 */
-    if (1 >= ulBDNum)
-    {
-        return (u32)BSP_ERROR;
-    }
-
-    stRwBuf.pBuffer = (char*)scm_UncacheMemPhyToVirt((u8*)stRwBuf.pBuffer,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcPHY,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcBuf,
-                                    g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
-
-   	memset_s(&stBDData, sizeof(stBDData), 0, sizeof(stBDData));
-	 
-	stBDData.ulDataAddr = (u32)((unsigned long)pucSendDataAddr);
-    stBDData.usMsgLen   = (u16)ulSendLen;
-    stBDData.enDataType = SOCP_BD_DATA;
-
-    if(stRwBuf.u32Size >= sizeof(stBDData))
-    {
-        (void)memcpy_s(stRwBuf.pBuffer, stRwBuf.u32Size, &stBDData, sizeof(stBDData));    /* 复制数据到指定的地址 */
-        scm_FlushCpuWriteBuf();            
-    }
-    else  /*回卷的情况*/
-    {
-        (void)memcpy_s(stRwBuf.pBuffer, stRwBuf.u32Size, &stBDData, stRwBuf.u32Size);
-        (void)memcpy_s(stRwBuf.pRbBuffer, stRwBuf.u32RbSize, ((u8*)(&stBDData))+stRwBuf.u32Size, sizeof(stBDData)-stRwBuf.u32Size);
-        scm_FlushCpuWriteBuf();             
-    }
-     
-    if (BSP_OK != bsp_socp_write_done(enChanlID, sizeof(stBDData)))   /* 当前数据写入完毕 */
-    {
-        SCM_CODER_SRC_ERR("SCM_SendCoderSrc: Write Buffer is Error", enChanlID, 0);/* 记录Log */
-        return (u32)BSP_ERROR;/* 返回失败 */
-    }
-
-    return BSP_OK;
-}
-
-static u32 scm_send_cnf_src_data_ctspacket(SOCP_CODER_SRC_ENUM_U32 enChanlID, SOCP_BUFFER_RW_STRU stRwBuf, u8 *pucSendDataAddr, u32 ulSendLen)
-{
-    SCM_CODER_SRC_PACKET_HEADER_STRU*   pstCoderHeader;
-    
-    if(stRwBuf.u32Size < SCM_HISI_HEADER_LENGTH)
-    {
-        g_astScmCnfSrcDebugInfo.ulSendFirstNotEnough ++;
-        return (u32)BSP_ERROR;
-    }
-
-    stRwBuf.pBuffer = (char*)scm_UncacheMemPhyToVirt((u8*)stRwBuf.pBuffer,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcPHY,
-                                    g_astSCMCnfCoderSrcCfg.pucSrcBuf,
-                                    g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
-    if(stRwBuf.pBuffer != (char*)pucSendDataAddr)
-    {
-        g_astScmCnfSrcDebugInfo.ulSendAddrErr++;
-        return (u32)BSP_ERROR;
-    }
-
-    pstCoderHeader = (SCM_CODER_SRC_PACKET_HEADER_STRU*)pucSendDataAddr;
-    if((pstCoderHeader->ulDataLen != ulSendLen)||(pstCoderHeader->ulHisiMagic != SCM_HISI_HEADER_MAGIC))
-    {
-        g_astScmCnfSrcDebugInfo.ulSendHeaderErr++;
-        return (u32)BSP_ERROR;
-    }
-    scm_FlushCpuWriteBuf();
-    /*第一段连续空间不足HISI包头长度*/
-    ulSendLen = ALIGN_DDR_WITH_8BYTE(ulSendLen);
-    if(BSP_OK != bsp_socp_write_done(enChanlID, (ulSendLen + SCM_HISI_HEADER_LENGTH)))
-    {
-        g_astScmCnfSrcDebugInfo.ulSendWriteDoneErr ++;
-        return (u32)BSP_ERROR;
-    }
-    g_astScmCnfSrcDebugInfo.ulSendDataLen += ulSendLen;
-    g_astScmCnfSrcDebugInfo.ulSendPacketNum ++;
-
-    return BSP_OK;
-}
-
-
-u32 scm_send_cnf_src_data(u8 *pucSendDataAddr, u32 ulSendLen)
-{
-    SOCP_BUFFER_RW_STRU                 stRwBuf = {0};
-    SOCP_CODER_SRC_ENUM_U32             enChanlID;
-    u32 ret;
-
-    /* 判断数据指针和长度的正确，长度不能大于4K */
-    if ((NULL == pucSendDataAddr)
-        ||(0 == ulSendLen)
-        /*||(SCM_CODER_SRC_MAX_LEN < ulSendLen)*/)
-    {
-        return (u32)BSP_ERROR;
-    }
-
-    if (g_astSCMCnfCoderSrcCfg.enInitState != SCM_CHANNEL_INIT_SUCC)/* 判断通道参数 */
-    {
-        scm_printf("cnf channel buff is not init\n");
-        return (u32)BSP_ERROR;/* 返回失败 */
-    }
-
-    enChanlID = g_astSCMCnfCoderSrcCfg.enChannelID;
-    if (BSP_OK != bsp_socp_get_write_buff(enChanlID, &stRwBuf))
-    {
-        g_astScmCnfSrcDebugInfo.ulGetWriteBufErr ++;
-        return (u32)BSP_ERROR;/* 返回失败 */
-    }
-
-
-    if(SOCP_ENCSRC_CHNMODE_LIST == g_astSCMCnfCoderSrcCfg.enCHMode)
-    {
-
-       ret = scm_send_cnf_src_data_list(enChanlID, stRwBuf, pucSendDataAddr, ulSendLen);
-
-    }
-    else if(SOCP_ENCSRC_CHNMODE_CTSPACKET == g_astSCMCnfCoderSrcCfg.enCHMode)
-    {
-        ret = scm_send_cnf_src_data_ctspacket(enChanlID, stRwBuf, pucSendDataAddr, ulSendLen);
-    }
-    else
-    {
-        return (u32)BSP_ERROR;
-    }
-    return ret;
-}
 
 u32 scm_cnf_src_chan_init(void)
 {
@@ -432,9 +191,22 @@ u32 scm_cnf_src_chan_cfg(SCM_CODER_SRC_CFG_STRU *pstCfg)
     stChannel.sCoderSetSrcBuf.pucRDEnd       = (pstCfg->pucRDPHY + pstCfg->ulRDBufLen)-1;     /*  RD buffer结束地址 */
     stChannel.sCoderSetSrcBuf.u32RDThreshold = SCM_CODER_SRC_RD_THRESHOLD;                    /* RD buffer数据上报阈值 */
 
+    if(pstCfg->enPtrImgEn)
+    {
+        /* 由于芯片只能做8Bytes的写，所以读指针镜像地址需要预留8Bytes的空间*/
+        pstCfg->pRptrImgVirtAddr = (unsigned long)scm_UnCacheMemAlloc(sizeof(u64), &(pstCfg->pRptrImgPhyAddr));
+        if(0 == pstCfg->pRptrImgVirtAddr)
+        {
+            return ERR_MSP_NOT_FREEE_SPACE;
+        }
+
+        stChannel.eRptrImgPhyAddr = pstCfg->pRptrImgPhyAddr;
+        stChannel.eRptrImgVirtAddr = pstCfg->pRptrImgVirtAddr;
+    }
+
     if (BSP_OK != bsp_socp_coder_set_src_chan(pstCfg->enChannelID, &stChannel))
     {
-        SCM_CODER_SRC_ERR("SCM_CoderSrcChannelCfg: Search Channel ID Error", pstCfg->enChannelID, 0);/* 打印失败 */
+        diag_error("Channel ID Error\n");
 
         return (u32)BSP_ERROR;/* 返回错误 */
     }

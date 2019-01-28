@@ -21,6 +21,7 @@
 #include <linux/cpu.h>
 #include <linux/security.h>
 #include <linux/cpuset.h>
+#include <linux/hisi/hisi_core_ctl.h>
 #include <libhwsecurec/securec.h>
 #include "../../../kernel/sched/sched.h"
 #include <trace/events/sched.h>
@@ -58,6 +59,7 @@ static int bind_cpu_cluster(unsigned int setmask, pid_t pid)
 			cpumask_set_cpu(i, &mask);
 	}
 
+	core_ctl_spread_affinity(&mask);
 
 	get_online_cpus();
 	rcu_read_lock();
@@ -110,6 +112,11 @@ static int bind_cpu_cluster(unsigned int setmask, pid_t pid)
 	}
 
 again:
+	cpumask_andnot(&mask, new_mask, cpu_isolated_mask);
+	if (!cpumask_intersects(cpu_active_mask, &mask)) {
+		retval = -EINVAL;
+		goto out_unlock;
+	}
 	retval = set_cpus_allowed_ptr(p, new_mask);
 
 	if (!retval) {

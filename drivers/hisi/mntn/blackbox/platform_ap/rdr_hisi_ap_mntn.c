@@ -20,16 +20,6 @@ static u32 reboot_reason_flag;
 
 
 
-static int reentrant_exception_num = 0;
-
-void reentrant_exception(void)
-{
-	reentrant_exception_num++;
-
-	if (reentrant_exception_num > 5)
-		machine_restart("AP_S_PANIC");
-}
-
 int rdr_press_key_to_fastboot(struct notifier_block *nb,
 		unsigned long event, void *buf)
 {

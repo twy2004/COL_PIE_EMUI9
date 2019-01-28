@@ -75,7 +75,6 @@ extern "C" {
 /*******************************************************************************
 2 宏定义
 *******************************************************************************/
-
 #define PS_USIM_SERVICE_NOT_AVAILIABLE          (0)
 #define PS_USIM_SERVICE_AVAILIABLE              (1)
 
@@ -101,93 +100,7 @@ extern "C" {
 /* APDU回复数据的最大长度 */
 #define USIMM_APDU_RSP_MAX_LEN                  (260)
 
-/* APDU数据首部长度 */
 #define USIMM_APDU_HEADLEN                      (5)
-
-/* APDU数据CLA的定义 */
-#define USIMM_USIM_CLA                          (0x00)
-#define USIMM_SIM_CLA                           (0xA0)
-#define USIMM_CAT_CLA                           (0X80)
-
-/* APDU 头定义 */
-#define CLA                                     (0)
-#define INS                                     (1)
-#define P1                                      (2)
-#define P2                                      (3)
-#define P3                                      (4)
-
-/*INS字节定义 */
-#define CMD_INS_END                             (0x00)
-#define CMD_INS_ANY                             (0xFF)
-
-#define CMD_INS_DEACTIVATE_FILE                 (0x04)
-#define CMD_INS_TERMINAL_PROFILE                (0x10)
-#define CMD_INS_FETCH                           (0x12)
-#define CMD_INS_TERMINAL_RESPONSE               (0x14)
-#define CMD_INS_VERIFY                          (0x20)
-#define CMD_INS_CHANGE_PIN                      (0x24)
-#define CMD_INS_DISABLE_PIN                     (0x26)
-#define CMD_INS_ENABLE_PIN                      (0x28)
-#define CMD_INS_UNBLOCK_PIN                     (0x2C)
-#define CMD_INS_INCREASE                        (0x32)
-#define CMD_INS_ACTIVATE_FILE                   (0x44)
-#define CMD_INS_MANAGE_CHANNEL                  (0x70)
-#define CMD_INS_MANAGE_UIM_FOR_USER             (0x72)
-#define CMD_INS_MANAGE_SECURE_CHANNEL           (0x73)
-#define CMD_INS_TRANSACT_DATA                   (0x75)
-#define CMD_INS_GET_CHALLENGE                   (0x84)
-#define CMD_INS_AUTHENTICATE                    (0x88)
-#define CMD_INS_SEARCH_RECORD                   (0xA2)
-#define CMD_INS_SELECT                          (0xA4)
-#define CMD_INS_READ_BINARY                     (0xB0)
-#define CMD_INS_READ_RECORD                     (0xB2)
-#define CMD_INS_UPDATE_BINARY                   (0xD6)
-#define CMD_INS_UPDATE_RECORD                   (0xDC)
-#define CMD_INS_GET_RESPONSE                    (0xC0)
-#define CMD_INS_ENVELOPE                        (0xC2)
-#define CMD_INS_RETRIEVE_DATA                   (0xCB)
-#define CMD_INS_SET_DATA                        (0xDB)
-#define CMD_INS_TERMINAL_CAPABILITY             (0xAA)
-#define CMD_INS_STATUS                          (0xF2)
-#define CMD_INS_SLEEP                           (0xFA)
-
-#define CMD_INS_LCS_SSAVE_VERIFY                (0x40)
-#define CMD_INS_OTASP_MMS_CFG                   (0x42)  /*UIM*/
-#define CMD_INS_LCS_TLS_GMASTER                 (0x42)
-#define CMD_INS_LCS_TLS_GVERIFY                 (0x44)
-#define CMD_INS_VANDG_KEYBLOCK                  (0x46)
-#define CMD_INS_OTASP_MMS_DOWNLOAD              (0x46)  /*UIM*/
-#define CMD_INS_OTASP_3GPD_DOWNLOAD             (0x48)  /*UIM*/
-#define CMD_INS_OTASP_SUCURE_MODE               (0x4A)
-#define CMD_INS_OTASP_FRESH                     (0x4C)
-#define CMD_INS_OTASP_SKEY_GENERATION           (0x4E)  /*UIM*/
-#define CMD_INS_OTASP_GENERIC_KEY               (0x50)
-#define CMD_INS_OTASP_KEY_GENERATION            (0x52)  /*UIM*/
-#define CMD_INS_OTASP_GENERIC_CFG               (0x54)
-#define CMD_INS_OTASP_DOWNLOAD                  (0x56)
-#define CMD_INS_BCMCS                           (0x58)
-#define CMD_INS_APP_AUTH                        (0x5A)
-#define CMD_INS_UMAC_GENERATION                 (0x5E)
-#define CMD_INS_CONFIRM_KEYS                    (0x5C)
-#define CMD_INS_COMPUTE_IP_AUTH                 (0x80)
-#define CMD_INS_CONFIRM_SSD                     (0x82)  /*UIM*/
-#define CMD_INS_MANAGE_SSD                      (0x82)
-#define CMD_INS_UPDATE_SSD                      (0x84)  /*UIM*/
-#define CMD_INS_BASE_STATION_CHALLENGE          (0x8A)
-#define CMD_INS_GENERATE_KEY                    (0x8E)
-#define CMD_INS_OTASP_MMD_CFG                   (0xC4)  /*UIM*/
-#define CMD_INS_OTASP_MMD_DOWNLOAD              (0xC6)  /*UIM*/
-#define CMD_INS_OTASP_SYSTAG_CFG                (0xC8)  /*UIM*/
-#define CMD_INS_OTASP_COMMIT                    (0xCC)
-#define CMD_INS_OTASP_VALIDATE                  (0xCE)
-#define CMD_INS_STORE_ESNMEID                   (0xDE)
-#define CMD_INS_OTASP_SSPR_CFG                  (0xEA)  /*UIM*/
-#define CMD_INS_OTASP_SSPR_DOWNLOAD             (0xEC)  /*UIM*/
-#define CMD_INS_OTASP_SYSTAG_DOWNLOAD           (0xCA)  /*UIM*/
-#define CMD_INS_OTASP_OTAPA_REQUEST             (0xEE)
-#define CMD_INS_OTASP_PUZL_CFG                  (0xF4)  /*UIM*/
-#define CMD_INS_OTASP_PUZL_DOWNLOAD             (0xF6)  /*UIM*/
-#define CMD_INS_OTASP_3GPD_CFG                  (0xFC)  /*UIM*/
 
 #define USIMM_EF_IMSI_LEN                       (9)
 #define USIMM_EF_CIMSI_LEN                      (10)
@@ -195,10 +108,8 @@ extern "C" {
 #define USIMM_EF_AD_MIN_LEN                     (3)
 
 #define USIMM_EF_GID_LEN                        (1)      /* 目前锁网锁卡校验场景只会用到第一个字节 */
-#define USIMM_EF_GID1_LEN                       (3)
-#define USIMM_EF_GID2_LEN                       (3)
-
-#define ARRAYSIZE(array)                        (sizeof(array)/sizeof(array[0]))
+#define USIMM_EF_GID1_LEN                       (16)
+#define USIMM_EF_GID2_LEN                       (16)
 
 #define MFLAB                                   (0x3F)
 #define DFUNDERMFLAB                            (0x7F)
@@ -210,60 +121,12 @@ extern "C" {
 #define DFIDUNDERMF                             (0x7F00)
 #define DFIDUNDERMFDF                           (0x5F00)
 
-/*  FID宏定义*/
-#define MFTAG                                   (0x3F)
-#define DFUNDERMF                               (0x7F)
-#define DFUNDERDF                               (0x5F)
-#define EFUNDERMF                               (0x2F)
-#define EFUNDERDF                               (0x6F)
-#define EFUNDERGRANDADF                         (0x4F)
-#define EFUNDERATTANDDF                         (0x4F)
-#define EFUNDERATT                              (0x6F)
-
-#define MF                                      (0x3F00)
-#define EFDIR                                   (0x2F00)
-
-#define ADF                                     (0x7FFF)
-#define DFGSM                                   (0x7F20)
-#define DFGSM1800                               (0x7F21)
-#define DFCDMA                                  (0x7F25)
-#define DFGSMACCESS                             (0x5F3B)
-#define DFMExE                                  (0x5F3C)
-#define DFWLAN                                  (0x5F40)
-#define DFSoLSA                                 (0x5F70)
-
-#define DFTELCOM                                (0x7F10)
-#define DFGRAPHICS                              (0x5F20)
-#define DFUGRAPHICS                             (0x5F50)
-#define DFPHONEBOOK                             (0x5F3A)
-#define DFMULTIMEDIA                            (0x5F3B)
-
-#define DFCDMA                                  (0x7F25)
-
-/* ATT自定义DF名称 */
-#define DFATT                                   (0x7F66)
-#define DFUNDERDFATT                            (0x5F30)
-
-#define EFEST                                   (0x6F56)
-#define EFADN                                   (0x6F3A)
 #define EFBDN                                   (0x6F4D)
 #define EFFDN                                   (0x6F3B)
-#define EFECC                                   (0x6FB7)
 #define EFMSISDN                                (0x6F40)
-#define EFPHASE                                 (0x6FAE)
-#define EFACC                                   (0x6F78)
-
-#define EFPSC                                   (0x4F22)
-#define EFCC                                    (0x4F23)
-#define EFPUID                                  (0x4F24)
-
 /* AID长度最小值和最大值 */
 #define USIMM_AID_LEN_MIN                       (5)
 #define USIMM_AID_LEN_MAX                       (16)
-
-/* APDU长度最小值和最大值 */
-#define USIMM_APDU_LEN_MIN                      (4)
-#define USIMM_APDU_LEN_MAX                      (261)
 
 #define USIMM_TPDU_HEAD_LEN                     (5)
 #define USIMM_TPDU_DATA_LEN_MAX                 (256)
@@ -274,11 +137,6 @@ extern "C" {
 #define USIMM_ERROR_INFO_MAX                    (20)
 
 #define USIMM_ICCID_FILE_LEN                    (10)
-
-
-/*数据定位*/
-#define USIMM_TAGNOTFOUND                       (0xFFFFFFFF)
-#define USIMM_BITNOFOUNE                        (0xFFFFFFFF)
 
 #define USIMM_FILE_OPEN_MODE_R                  "rb"            /* open binary file for reading */
 #define USIMM_FILE_OPEN_MODE_W                  "wb"            /* open binary file for writing */
@@ -469,6 +327,12 @@ extern "C" {
 #define USIMM_USIM_EFOHNBN_STR               "3F007FFF5F504F86"
 
 #define USIMM_USIM_DFPROSE_STR               "3F007FFF5F90"
+
+#define USIMM_USIM_EF5GS3GPPLOCI_STR         "3F007FFF6FFF"
+#define USIMM_USIM_EF5GAUTHKEYS_STR          "3F007FFF6F01"
+#define USIMM_USIM_EF5GS3GPPNSC_STR          "3F007FFF6F02"
+#define USIMM_USIM_EFUAC_AIC_STR             "3F007FFF6F0A"
+
 #define USIMM_USIM_EFPST_STR                 "3F007FFF5F904F10"
 
 #define USIMM_USIM_DFACDC_STR                "3F007FFF5FA0"
@@ -884,10 +748,11 @@ enum USIMM_CMDTYPE_REQ_ENUM
     USIMM_QUERYVOLTAGE_REQ      = 31,
     USIMM_UPDATEFILE_WITHIMSI_REQ = 32,
     USIMM_PRIVATECGLAHANDLE_REQ = 33,
-
     USIMM_CARDTYPEEX_REQ        = 34,
-
     USIMM_SILENTPINHANDLE_REQ   = 35,
+    USIMM_NVREFRESH_REQ         = 36,
+    USIMM_SCI_CFG_SET_REQ       = 37,
+    USIMM_SCICHG_IND            = 38,
 
     USIMM_CMDTYPE_REQ_BUTT
 };
@@ -926,6 +791,9 @@ enum USIMM_CMDTYPE_CNF_ENUM
     USIMM_PRIVATECGLAHANDLE_CNF = 28,
     USIMM_CARDTYPEEX_CNF        = 29,
     USIMM_SILENTPINHANDLE_CNF   = 30,
+    USIMM_NVREFRESH_CNF         = 31,
+    USIMM_SCI_CFG_SET_CNF       = 32,
+    USIMM_STKENVELOPE_RETRY     = 33,
 
     USIMM_CARDSTATUS_IND        = 100,
     USIMM_STKREFRESH_IND        = 101,
@@ -943,6 +811,12 @@ enum USIMM_CMDTYPE_CNF_ENUM
     USIMM_PRIVATECGLAHANDLE_IND = 113,
     USIMM_CARDFETCH_IND         = 114,
 
+    USIMM_ATR_RPT_IND           = 115,
+    USIMM_PB_STATUS_IND         = 116,
+
+    USIMM_SCICHG_CARDSTATUS_IND = 117,
+
+    ID_USIMM_MTA_NV_REFRESH_RSP = 0x2002, /* 防止USIMM->MTA新增消息和ID_MTA_NV_REFRESH_RSP取值重复*/
     USIMM_CMDTYPE_BUTT
 };
 typedef VOS_UINT32 USIMM_CMDTYPE_CNF_ENUM_UINT32;
@@ -1255,6 +1129,10 @@ enum USIMM_DEF_FILEID_ENUM
     USIMM_USIM_EFPST_ID                ,
     USIMM_USIM_DFACDC_ID               ,
     USIMM_USIM_EFACDCLIST_ID           ,
+    USIMM_USIM_EF5GS3GPPLOCI_ID        ,
+    USIMM_USIM_EF5GAUTHKEYS_ID         ,
+    USIMM_USIM_EF5GS3GPPNSC_ID         ,
+    USIMM_USIM_EFUAC_AIC_ID            ,
     USIMM_TELE_ID                      ,
     USIMM_TELE_EFADN_ID                ,
     USIMM_TELE_EFFDN_ID                ,
@@ -1607,15 +1485,12 @@ enum USIMM_DEF_FILEID_ENUM
     USIMM_ISIM_EFSMSS_ID               ,
     USIMM_ISIM_EFSMSR_ID               ,
     USIMM_ISIM_EFSMSP_ID               ,
-
     USIMM_DEF_FILEID_BUTT
 };
 typedef VOS_UINT32      USIMM_DEF_FILEID_ENUM_UINT32;
 typedef VOS_UINT16      USIMM_DEF_FILEID_ENUM_UINT16;
 
-#define EF_CUIM_TMSI                            (0x6F24) /*暂时为CAS保留*/
 #define EFPLMNsel                               (0x6F30) /*暂时为NAS保留*/
-#define EF_CUIM_ECC                             (0x6F47)   /*T*/
 #define EF_CUIM_PRL                             (0x6F30)   /*T*/
 
 #define EF_CUIM_SSCI                            (0x6F2E)   /*T*/
@@ -2204,6 +2079,19 @@ enum USIMM_REALISIM_STATE_ENUM
 };
 typedef VOS_UINT32 USIMM_REALISIM_STATE_ENUM_UINT32;
 
+/*****************************************************************************
+ 枚举名    : USIMM_STATUS_IND_ENUM
+ 枚举说明  : 卡状态通知类型枚举
+ *****************************************************************************/
+enum USIMM_CARD_STATUS_IND_ENUM
+{
+    USIMM_CARD_STATUS_INIT_IND               = 0,
+    USIMM_CARD_STATUS_NV_REFRESH_IND         = 1,
+    USIMM_CARD_STATUS_SWITCH_CARD_IND        = 2,
+    USIMM_CARD_STATUS_IND_BUTT
+};
+typedef VOS_UINT8  USIMM_CARD_STATUS_IND_ENUM_UINT8;
+
 enum USIMM_CARD_TYPE_ENUM
 {
     USIMM_CARD_SIM          = 0x00,
@@ -2273,10 +2161,21 @@ enum SI_PIH_CARD_SLOT_ENUM
 };
 typedef VOS_UINT32  SI_PIH_CARD_SLOT_ENUM_UINT32;
 
+/*****************************************************************************
+ 枚举名    : USIMM_SIMSQ_STATE_ENUM
+ 枚举说明  : SIMSQ状态枚举变量
+*****************************************************************************/
+enum USIMM_SIMSQ_STATE_ENUM
+{
+    USIMM_SIMSQ_NOT_INSERTED            = 0,
+    USIMM_SIMSQ_INSERTED                = 1,
+    USIMM_SIMSQ_BUTT
+};
+typedef VOS_UINT32 USIMM_SIMSQ_STATE_ENUM_UINT32;
+
 /*******************************************************************************
 4 struct定义
 *******************************************************************************/
-
 typedef struct
 {
     VOS_UINT8                           ucPin1RemainTime;       /* PIN1码剩余次数      */
@@ -2507,6 +2406,7 @@ typedef struct
     VOS_UINT8                           aucResponse[255];                        /*Len+Data*/
     VOS_UINT8                           aucSessionKey[255];                      /*Len+Data*/
     VOS_UINT8                           aucKs_ext_NAF[6];                   /*Len+Data*/
+    VOS_UINT8                           aucRsv[2];
 }USIMM_IMS_AUTH_CNF_STRU;
 
 typedef struct
@@ -2611,7 +2511,7 @@ typedef struct
 {
     VOS_UINT8                           ucChapID;
     VOS_UINT8                           ucNAI_Enter_Index;
-    VOS_UINT8                           aucRsv;
+    VOS_UINT8                           aucRsv[2];
     USIMM_U8_DATA_STRU                  stChapChallenge;
 }USIMM_COMPUTEIP_CHAP_STRU;
 
@@ -2642,6 +2542,7 @@ typedef struct
 typedef struct
 {
     USIMM_SPECAUTH_BLOCK_ENUM_UINT8     enBlockType;
+    VOS_UINT8                           aucRsv[3];
     USIMM_U8_DATA_STRU                  stMIPRRQData;
     USIMM_U8_DATA_STRU                  stMNAAAExHeader;
 }USIMM_COMPUTEIP_MIPRRQHASH_STRU;
@@ -3174,7 +3075,7 @@ typedef struct
 }USIMM_CDMASPECAUTH_REQ_STRU;
 #endif
 
-#if ((FEATURE_VSIM == FEATURE_ON) && (FEATURE_ON == FEATURE_VSIM_ICC_SEC_CHANNEL))
+#if (FEATURE_VSIM == FEATURE_ON)
 typedef struct
 {
     USIMM_CMDHEADER_REQ_STRU            stMsgHeader;
@@ -3186,6 +3087,15 @@ typedef struct
     VOS_UINT8                           aucContent[4];          /* FILE DATA 内容 */
 }USIMM_VSIMFILEDATAWRITE_REQ_STRU;
 #endif
+
+
+typedef struct
+{
+    USIMM_CMDHEADER_REQ_STRU            stMsgHeader;        /* PIH消息头 */
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enCard0Slot;
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enCard1Slot;
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enCard2Slot;
+} USIMM_SCICFG_SET_REQ_STRU;
 
 
 /*****************************************************************************
@@ -3202,10 +3112,11 @@ typedef struct
     VOS_UINT32                          ulIsTestCard;                    /* VOS_TRUE为测试卡，VOS_FALSE为非测试卡 */
     VOS_UINT16                          usIsIMSIValid;                   /* VOS_TRUE为有效，VOS_FALSE为无效 */
     VOS_UINT8                           aucIMSI[USIMM_EF_IMSI_COMM_LEN]; /* UsimSim应用为IMSI，CsimUim为IMSI_M*/
-    VOS_UINT8                           ucGID1Len;                       /* 长度为0无效(服务状态位无效，读取失败填0)，其它值有效，最长3个字节 */
+    VOS_UINT8                           ucGID1Len;                       /* 长度为0无效(服务状态位无效，读取失败填0)，其它值有效，最长16个字节 */
     VOS_UINT8                           aucGID1[USIMM_EF_GID1_LEN];      /* UsimSim应用为6F3E，CsimUim为6F6D*/
-    VOS_UINT8                           ucGID2Len;                       /* 长度为0无效(服务状态位无效，读取失败填0)，其它值有效，最长3个字节 */
+    VOS_UINT8                           ucGID2Len;                       /* 长度为0无效(服务状态位无效，读取失败填0)，其它值有效，最长16个字节 */
     VOS_UINT8                           aucGID2[USIMM_EF_GID2_LEN];      /* UsimSim应用为6F3F，CsimUim为6F6E*/
+    VOS_UINT8                           aucRsv[2];
 }USIMM_CARDAPP_STATUS_STRU;
 
 /*****************************************************************************
@@ -3220,7 +3131,8 @@ typedef struct
     VOS_UINT8                           ucHasWGModule;
     VOS_UINT8                           aucICCID[USIMM_ICCID_FILE_LEN];
     VOS_UINT8                           ucIsICCIDValid;
-    VOS_UINT8                           aucRev[3];
+    USIMM_CARD_STATUS_IND_ENUM_UINT8    enStatusType;
+    VOS_UINT8                           aucRev[2];
 }USIMM_CARDSTATUS_ADDINFO_STRU;
 
 typedef struct
@@ -3473,6 +3385,17 @@ typedef struct
 }USIMM_STKENVELOPE_CNF_STRU;
 
 /*****************************************************************************
+ 结构名    : USIMM_STKENVELOPE_RETRY_STRU
+ 结构说明  : USIMM发送给的重试STKENVELOPE的消息结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    USIMM_CMDTYPE_REQ_ENUM_UINT32       enMsgName;
+    USIMM_STKENVELOPE_REQ_STRU          stEnvelopeReqMsgData;
+}USIMM_STKENVELOPE_RETRY_STRU;
+
+/*****************************************************************************
  结构名    : USIMM_SETMUTILFILE_CNF_STRU
  结构说明  : 电话本多文件更新 CNF消息结构
 *****************************************************************************/
@@ -3607,7 +3530,7 @@ typedef struct
 {
     USIMM_CMDHEADER_IND_STRU            stIndHdr;
     VOS_UINT16                          usFileSize;     /*ucContent中数据长度*/
-    VOS_UINT8                           ucContent[4];   /*紧急呼叫号码记录信息*/
+    VOS_UINT8                           ucContent[2];   /*紧急呼叫号码记录信息*/
 }USIMM_XECCNUMBER_IND_STRU;
 
 /*******************************************************************************
@@ -3728,6 +3651,7 @@ typedef struct
 {
     USIMM_CMDHEADER_IND_STRU            stIndHdr;
     VOS_UINT8                           aucIccid[USIMM_ICCID_FILE_LEN];
+    VOS_UINT8                           aucRcv[2];
 }USIMM_ICCIDCONTENT_IND_STRU;
 
 /*****************************************************************************
@@ -3820,6 +3744,51 @@ typedef struct
     VOS_UINT8                           ucCharaByte;
     VOS_UINT8                           ucRsv[3];
 }USIMM_QUERYVOLTAGE_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          bitModemNum      : 3;
+    VOS_UINT32                          bitReserved0     : 5;  /* bit[3-7]    : 保留。 */
+    VOS_UINT32                          bitModem0Slot    : 3;  /* bit[8-10]   : modem 0使用的SCI接口。
+                                                                                   0：使用SCI0；
+                                                                                   1：使用SCI1；
+                                                                                   2：使用SCI2；
+                                                                                 其余值:多卡，暂不支持 */
+    VOS_UINT32                          bitModem1Slot   : 3;  /* bit[11-13]  : modem 1使用的SCI接口。
+                                                                                   0：使用SCI0；
+                                                                                   1：使用SCI1；
+                                                                                   2：使用SCI2；
+                                                                                 其余值:多卡，暂不支持 */
+    VOS_UINT32                          bitModem2Slot   : 3;  /* bit[14-16]  : modem 2使用的SCI接口。
+                                                                                   0：使用SCI0；
+                                                                                   1：使用SCI1；
+                                                                                   2：使用SCI2；
+                                                                                 其余值:多卡，暂不支持*/
+    VOS_UINT32                          bitReserved1     : 15;  /* bit[17-31]  : 保留 */
+}USIMM_SCI_CFG_STRU;
+
+/*****************************************************************************
+ 结构名    : USIMM_PB_STATUS_CNF_STRU
+ 结构说明  : USIMM 回复Pb功能状态 消息头结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    USIMM_CMDTYPE_CNF_ENUM_UINT32       enMsgName;
+    VOS_BOOL                            bPbReady;           /* VOS_TRUE:pb ready  VOS_FALSE:pb not ready */
+}USIMM_PB_STATUS_CNF_STRU;
+
+/*****************************************************************************
+ 结构名    : USIMM_SIMSQSTATUS_IND_STRU
+ 结构说明  : USIMM 回复Simsq状态 消息头结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    USIMM_CMDTYPE_CNF_ENUM_UINT32       enMsgName;
+    USIMM_SIMSQ_STATE_ENUM_UINT32       enSimSqStatus;
+}USIMM_SIMSQSTATUS_IND_STRU;
 
 /*****************************************************************************
 7 api声明

@@ -76,7 +76,8 @@
 #include "bsp_llt.h"
 
 #include "power_off_mbb.h"
-
+#include <bsp_print.h>
+#define THIS_MODU mod_onoff
 
 /******************************************************************************
 *  Function:  drv_shut_down
@@ -120,7 +121,7 @@ void bsp_drv_power_reboot( void )
 *******************************************************************************/
 void mdrv_sysboot_restart(void)
 {
-    printk(KERN_ERR"%s is called from (%pF) ...\n",
+    bsp_info("%s is called from (%pF) ...\n",
         __FUNCTION__, __builtin_return_address(0U));
 
 	bsp_drv_power_reboot();
@@ -140,7 +141,7 @@ EXPORT_SYMBOL_GPL(mdrv_sysboot_restart);
 ********************************************************************************/
 void bsp_drv_power_reboot_direct( void )
 {
-    printk(KERN_ERR"%s is called from (%pF) ...\n",
+    bsp_info("%s is called from (%pF) ...\n",
         __FUNCTION__, __builtin_return_address(0U));
 
     if(!is_in_llt())
@@ -163,7 +164,7 @@ EXPORT_SYMBOL_GPL(bsp_drv_power_reboot_direct);
 /*lint -save -e958 */
 void balong_power_restart(char mode, const char *cmd)
 {
-    printk(KERN_ERR"%s is called from (%pF) ...\n",
+    bsp_info("%s is called from (%pF) ...\n",
         __FUNCTION__, __builtin_return_address(0U));
 
     mbb_record_reboot_mode(cmd);
@@ -185,7 +186,7 @@ EXPORT_SYMBOL_GPL(balong_power_restart);
 ********************************************************************************/
 void balong_power_off( void )
 {
-    printk(KERN_ERR"%s is called from (%pF) ...\n",
+    bsp_info("%s is called from (%pF) ...\n",
         __FUNCTION__, __builtin_return_address(0U));
 
     drv_shut_down( DRV_SHUTDOWN_POWER_KEY, 0 );
@@ -194,11 +195,10 @@ EXPORT_SYMBOL_GPL(balong_power_off);
 
 void mdrv_sysboot_shutdown(void)
 {
-    printk(KERN_ERR"%s is called from (%pF) ...\n",
+    bsp_info("%s is called from (%pF) ...\n",
         __FUNCTION__, __builtin_return_address(0U));
 
     drv_shut_down(DRV_SHUTDOWN_TEMPERATURE_PROTECT, 0);
 }
 EXPORT_SYMBOL_GPL(mdrv_sysboot_shutdown);
-
 

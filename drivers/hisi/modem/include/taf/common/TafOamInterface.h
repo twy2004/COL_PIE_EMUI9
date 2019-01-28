@@ -407,13 +407,10 @@ extern VOS_VOID SSA_UssdDcsHook(
     MN_MSG_MSG_CODING_ENUM_U8           enMsgCoding
 );
 
-extern VOS_UINT32 DIAG_LogPortSwich(VOS_UINT32  ulPhyPort, VOS_BOOL ulEffect);
-
 extern VOS_UINT32 PPM_QueryLogPort(VOS_UINT32  *pulLogPort);
 
 extern OM_HSIC_PORT_STATUS_ENUM_UINT32 PPM_GetHsicPortStatus(VOS_VOID);
 
-extern VOS_UINT32 MMA_VerifyOperatorLockPwd(VOS_UINT8 *pucPwd);
 extern VOS_UINT8 TAF_MMA_GetCurrentPhoneModeByModemId(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_UINT32 MN_MSG_Decode_UsimMsg(
     VOS_UINT8                           *pucData,

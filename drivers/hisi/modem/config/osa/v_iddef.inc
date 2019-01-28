@@ -118,6 +118,7 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 #endif
 #if ( FEATURE_ON == FEATURE_EASYRF )
     {DSP_FID_RFM,           "DSP_RFM",      BBA_RFM_INIT_FidInit,   VOS_START_THIRD,    8192,   0  },
+    {DSP_FID_BBA_CAL,       "DSP_BBA_CAL",  BBA_CAL_FidInit,        VOS_START_THIRD,    8192,   0  },
 #endif
     {UEPS_FID_IPS_CCORE,    "IPS_CCORE",    IPS_MNTN_CCORE_FidInit, VOS_START_THIRD,    8192,   0  },
     {I0_WUEPS_FID_CSIMA,    "CSIMA_FID",    VOS_NULL_PTR,          VOS_START_THIRD,    8192,   0  },
@@ -177,9 +178,16 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {I1_PS_FID_IMSVA,       "I1_IMSVA_FID",    I1_IMSVA_FidInit,           VOS_START_THIRD,    8192,   0  },
 #endif
 
+#if (FEATURE_ON == FEATURE_SCI_SWITCH_OPTIMIZE)
+    {I2_MAPS_USIMM_FID,     "USIMM_FID2",   I2_USIMM_FID_Init,      VOS_START_THIRD,    8192,   0  },
+    {I2_MAPS_SI_FID,        "SI_FID2",      I2_WuepsSIFidInit,      VOS_START_THIRD,    16384,  0  },
+#endif
+
 #if ( 3 == MULTI_MODEM_NUMBER )/* three modems */
+#if (FEATURE_OFF == FEATURE_SCI_SWITCH_OPTIMIZE)
     {I2_MAPS_USIMM_FID,     "USIMM_FID2",   I2_USIMM_FID_Init,      VOS_START_THIRD,    8192,   0  },
     {I2_MAPS_SI_FID,        "SI_FID2",      I2_WuepsSIFidInit,      VOS_START_THIRD,    0,      0  },
+#endif
     {I2_WUEPS_FID_SLEEP,    "I2_SLEEP",     I2_WuepsSleepFidInit,   VOS_START_THIRD,    4096,   0  },
     {I2_WUEPS_FID_AWAKE,    "I2_AWAKE",     I2_WuepsAwakeFidInit,   VOS_START_THIRD,    4096,   0  },
     {I2_UEPS_FID_RR,        "RR_FID2",      I2_GAS_FidPidInit,      VOS_START_THIRD,    16384,  0  },
@@ -200,6 +208,13 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {I2_WUEPS_FID_CSIMA,    "CSIMA_FID2",   VOS_NULL_PTR,           VOS_START_THIRD,   8192,   0  },
     {I2_PS_FID_CM,          "LCM_FID2",     I2_NAS_ESM_FidInit,     VOS_START_THIRD,    16384,  0  },
 #endif
+#endif
+
+#if(( ( FEATURE_MULTI_MODEM == FEATURE_ON ) || defined(HINGDFE_SEPARATE)) && (defined(GUC_RTT_TEST_ENABLED)))
+    {I1_DSP_FID_RTTSTUB,    "RTT_STUB1",    I1_RTT_STUB_FidInit,    VOS_START_THIRD,    4096,   0  },
+    {I1_DSP_FID_RTTMATCH,   "RTT_MATCH1",   I1_RTT_MATCH_FidInit,   VOS_START_THIRD,    4096,   0  },
+    {I1_DSP_FID_RTTPREEMPT, "RTT_PREEMPT1", I1_RTT_PREEMPT_FidInit, VOS_START_THIRD,    4096,   0  },
+    {I1_DSP_FID_RTTONLINE,  "RTT_ONLINE1",  I1_RTT_ONLINE_FidInit,  VOS_START_THIRD,    4096,   0  },
 #endif
 
     {I0_MSP_L4_FID,         "mspL4_0",      I0_MSP_L4FidInit,       VOS_START_THIRD,    16384,  0  },
@@ -243,30 +258,42 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 #if ((FEATURE_ON == FEATURE_CSDR) || (FEATURE_ON == FEATURE_GSM_SDR))
     {DSP_FID_UPHY_HPA,      "UPHY_HPA",     UPHY_HPA_FidInit,       VOS_START_THIRD,    8192,   0  },
 #endif
-    {DSP_FID_RTTSTUB,       "RTT_STUB",     RTT_STUB_FidInit,       VOS_START_THIRD,    4096,   0  },
-    {DSP_FID_RTTMATCH,      "RTT_MATCH",    RTT_MATCH_FidInit,      VOS_START_THIRD,    4096,   0  },
-    {DSP_FID_RTTPREEMPT,    "RTT_PREEMPT",  RTT_PREEMPT_FidInit,    VOS_START_THIRD,    4096,   0  },
-    {DSP_FID_RTTONLINE,     "RTT_ONLINE",   RTT_ONLINE_FidInit,     VOS_START_THIRD,    4096,   0  },
-
+#ifdef GUC_RTT_TEST_ENABLED
+    {I0_DSP_FID_RTTSTUB,    "RTT_STUB",     RTT_STUB_FidInit,       VOS_START_THIRD,    4096,   0  },
+    {I0_DSP_FID_RTTMATCH,   "RTT_MATCH",    RTT_MATCH_FidInit,      VOS_START_THIRD,    4096,   0  },
+    {I0_DSP_FID_RTTPREEMPT, "RTT_PREEMPT",  RTT_PREEMPT_FidInit,    VOS_START_THIRD,    4096,   0  },
+    {I0_DSP_FID_RTTONLINE,  "RTT_ONLINE",   RTT_ONLINE_FidInit,     VOS_START_THIRD,    4096,   0  },
+#endif
 #if ((FEATURE_ON == FEATURE_UE_MODE_CDMA) || (FEATURE_ON == FEATURE_GSM_SDR) || (FEATURE_ON == FEATURE_EASYRF))
     {LINKH_FID_ARM,         "LINKH_FID_ARM",LINKH_FidInit,          VOS_START_THIRD,    16384,  0  },
 #endif
 #if (FEATURE_ON == FEATURE_BASTET)
     {UEPS_FID_BASTET,       "BST_FidInit",  BST_FidInit,            VOS_START_THIRD,    4096,   0  },
 #endif
+#if ( ( FEATURE_ON == FEATURE_UE_MODE_NR ) && ( !defined(FEATURE_NPHY_ESLPS ) ) )
+    {PHY_FID_PROCESS,       "PHY_ACTIVE",   UPHY_ActiveFidInit,     VOS_START_THIRD,    4096,   0  },
+#endif
+#if defined( FEATURE_NPHY_START)
+    {NPHY_FID_STARTUP,      "NPHY_START",   NPHY_STARTUP_FidInit,   VOS_START_THIRD,    4096,   0  },
+#endif
 #if (VOS_WIN32 == VOS_OS_VER)
     {WUEPS_FID_AT,          "NAS_AT",       WuepsATFidInit,         VOS_START_THIRD,    6144,   0  },
     {WUEPS_FID_ITTSTUB,     "ITTSTUB",      WuepsFidITTStubInit,    VOS_START_THIRD,    10240,  0  },
-    {ACPU_FID_ADS_UL,       "ADS_UL",       ADS_UL_FidInit ,        VOS_START_THIRD,    0,      0  },
-    {ACPU_FID_ADS_DL,       "ADS_DL",       ADS_DL_FidInit ,        VOS_START_THIRD,    0,      0  },
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+    {ACPU_FID_ADS_UL,       "ADS_UL",       ADS_FidInit,            VOS_START_THIRD,    0,      0  },
+#else
+    {ACPU_FID_ADS_UL,       "ADS_UL",       ADS_UL_FidInit,         VOS_START_THIRD,    0,      0  },
+    {ACPU_FID_ADS_DL,       "ADS_DL",       ADS_DL_FidInit,         VOS_START_THIRD,    0,      0  },
+#endif
     {ACPU_FID_CSD,          "CSD",          CSD_FidInit,            VOS_START_THIRD,    0,      0  },
-    {ACPU_FID_RNIC,         "RNIC",         RNIC_FidInit,           VOS_START_THIRD,    0,      0  },
     {ACPU_FID_TAFAGENT,     "TAF_AGENT",    TAF_AGENT_FidInit,      VOS_START_THIRD,    6144,   0  },
     {MSP_APP_DS_FID,        "AppDS",        VOS_NULL_PTR,           VOS_START_THIRD,    8192,   0  },
     {ACPU_FID_CBT,          "CBT",          CBTAppFidInit,          VOS_START_THIRD,    8192,   0  },
     {ACPU_FID_USIMM,        "USIM",         USIMM_APP_FID_Init,     VOS_START_THIRD,    8192,   0  },
     {ACPU_FID_PCVOICE,      "PCVOICE",      PCV_AcpuFidInit,        VOS_START_THIRD,    8192,   0  },
     {ACPU_FID_PAM_OM,       "PAM_OM",       PAMOM_APP_FID_Init,     VOS_START_THIRD,    8192,   0  },
+    {I0_UEPS_FID_NRMM,      "NRMM_FID",     I0_NAS_NRMM_FidInit,    VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_NRCM,      "NRCM_FID",     I0_NAS_NRCM_FidInit,    VOS_START_THIRD,    16384,  0  },
 #endif
 
 };
@@ -280,13 +307,19 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {DOPRA_FID_SYS ,            "fSYS",            VOS_NULL_PTR,            VOS_START_FIRST,    0,     0  },
 /* 以上是OSA 保留配置请不要动 */
     {MSP_FID_DIAG_ACPU,         "mspAppDiag",      MSP_AppDiagFidInit,      VOS_START_THIRD,    16384, 0  },
+#if (FEATURE_ON == FEATURE_PTM)
     {MSP_FID_CHR_ACPU,          "mspAppChr",       MSP_AppChrFidInit,       VOS_START_THIRD,    4096,  0  },
+#endif
     {MSP_APP_DS_FID,            "AppDS",           DMS_DsFidInit,           VOS_START_THIRD,    8192,  0  },
     {PS_FID_APP_NDIS_PPP_DIPC,  "AppNdisDipc",     APP_NDIS_FidInit,        VOS_START_THIRD,    16384, 0  },
-    {ACPU_FID_RNIC,             "RNIC",            RNIC_FidInit ,           VOS_START_THIRD,    8192,  0  },
     {ACPU_FID_NFEXT,            "ACPU_NFEXT",      NFExt_FidInit,           VOS_START_THIRD,    8192,  0  },
-    {ACPU_FID_ADS_UL,           "ADS_UL",          ADS_UL_FidInit ,         VOS_START_THIRD,    8192,  0  },
-    {ACPU_FID_ADS_DL,           "ADS_DL",          ADS_DL_FidInit ,         VOS_START_THIRD,    5120,  0  },
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+    {ACPU_FID_ADS_UL,           "ADS_UL",          ADS_FidInit,             VOS_START_THIRD,    8192,  0  },
+#else
+    {ACPU_FID_ADS_UL,           "ADS_UL",          ADS_UL_FidInit,          VOS_START_THIRD,    8192,  0  },
+    {ACPU_FID_ADS_DL,           "ADS_DL",          ADS_DL_FidInit,          VOS_START_THIRD,    5120,  0  },
+#endif
+
     {ACPU_FID_CSD,              "CSD",             CSD_FidInit ,            VOS_START_THIRD,    8192,  0  },
     {ACPU_FID_TAFAGENT,         "TAF_AGENT",       TAF_AGENT_FidInit ,      VOS_START_THIRD,    16384, 0  },
 
@@ -324,9 +357,38 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 /* FID静态信息表 */
 FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 {
-    {DOPRA_FID_SYS ,            "fSYS",            VOS_NULL_PTR,            VOS_START_FIRST,    0,     0  },
+    {DOPRA_FID_SYS ,                 "fSYS",                  VOS_NULL_PTR,             VOS_START_FIRST,    0,      0  },
+    /* 以上是OSA 保留配置请不要动 */
+    {NRCPU_FID_PAM_OM,               "PAM_OM",                PAMOM_NR_FID_Init,        VOS_START_THIRD,    8192,   0  },
+    {UEPS_FID_NRRC,                  "NRRC_FID",              I0_NRRC_FidInit,          VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_L2MA,               "L2MA_FID",              L2MA_FidInit,             VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_SDAP,               "SDAP_FID",              SDAP_FidInit,             VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_NPDCPRLC_UL,        "NPDCP_RLC_UL_FID",      NPDCP_RLC_UlFidInit,      VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_NPDCP_DL_NRT,       "NPDCP_DL_NRT_FID",      NPDCP_DL_NRT_FidInit,     VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_NRLC_DL_NRT,        "NRLC_DL_NRT_FID",       NRLC_DlNrtFidInit,        VOS_START_THIRD,    16384,  0  },
+#if (FEATURE_ON == FEATURE_NPHY_STUB_ESL)
+    {UEPS_FID_NPHY_STUB,             "NPHY_STUB_FID",         I0_NPHY_STUB_FidInit,     VOS_START_THIRD,    16384,  0  },
+#endif
+    {MSP_FID_DIAG_NRM,               "mspNrmDiag",            MSP_DiagNrmFidInit,       VOS_START_THIRD,    8192,   0  },
+    {I0_UEPS_FID_NRMM,               "NRMM_FID",              I0_NAS_NRMM_FidInit,      VOS_START_THIRD,    16384,  0  },
+    {NRPHY_FID_STARTUP,              "NRPHY_START",           NRPHY_STARTUP_FidInit,    VOS_START_THIRD,    8192,   0  },
+    {I0_UEPS_FID_NRCM,               "NRCM_FID",              I0_NAS_NRCM_FidInit,      VOS_START_THIRD,    16384,  0  },
+    {NRCBT_FID_NOSIG,                "NRNOSIG",               NRNOSIG_FidInit,          VOS_START_THIRD,    8192,   0  },
+    {NRCBT_FID_CBT,                  "NRCBT",                 NRCBT_FidInit,            VOS_START_THIRD,    8192,   0  },
+};
+#endif
+
+#if (OSA_CPU_L2HAC == VOS_OSA_CPU)
+/* FID静态信息表 */
+FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
+{
+    {DOPRA_FID_SYS ,                 "fSYS",                  VOS_NULL_PTR,                   VOS_START_FIRST,    0,          0  },
 /* 以上是OSA 保留配置请不要动 */
-    
+    {I0_UEPS_FID_NL2_DECODE,         "NL2_DECODE_FID",        NL2_DECODE_FidInit,             VOS_START_THIRD,    16384,      0  },
+    {I0_UEPS_FID_NMACRLC_UL_RT,      "NMACRLC_UL_FID",        NMACRLC_UL_RT_FidInit,          VOS_START_THIRD,    16384,      0  },
+    {I0_UEPS_FID_NMACRLC_UL_NRT,     "NMAC_UL_NRT_FID",       NMAC_UL_NRT_FidInit,            VOS_START_THIRD,    8192,      0  },
+    {MSP_FID_DIAG_HAC,               "HacDiag",               MSP_DiagHacFidInit,             VOS_START_THIRD,    8192,       0  },
+    {I0_UEPS_FID_NMACMSG_DISPATCH,   "NMAC_MSG",             NMACMSG_DISPATCH_FidInit,       VOS_START_THIRD,    8192,       0  },
 };
 #endif
 

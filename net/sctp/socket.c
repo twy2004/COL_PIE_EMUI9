@@ -4475,14 +4475,9 @@ struct sctp_transport *sctp_transport_get_next(struct net *net,
 			break;
 		}
 
-		if (!sctp_transport_hold(t))
-			continue;
-
 		if (net_eq(sock_net(t->asoc->base.sk), net) &&
 		    t->asoc->peer.primary_path == t)
 			break;
-
-		sctp_transport_put(t);
 	}
 
 	return t;
@@ -4492,18 +4487,13 @@ struct sctp_transport *sctp_transport_get_idx(struct net *net,
 					      struct rhashtable_iter *iter,
 					      int pos)
 {
-	struct sctp_transport *t;
+	void *obj = SEQ_START_TOKEN;
 
-	if (!pos)
-		return SEQ_START_TOKEN;
+	while (pos && (obj = sctp_transport_get_next(net, iter)) &&
+	       !IS_ERR(obj))
+		pos--;
 
-	while ((t = sctp_transport_get_next(net, iter)) && !IS_ERR(t)) {
-		if (!--pos)
-			break;
-		sctp_transport_put(t);
-	}
-
-	return t;
+	return obj;
 }
 
 int sctp_for_each_endpoint(int (*cb)(struct sctp_endpoint *, void *),
@@ -4565,6 +4555,8 @@ int sctp_for_each_transport(int (*cb)(struct sctp_transport *, void *),
 	for (; !IS_ERR_OR_NULL(obj); obj = sctp_transport_get_next(net, &hti)) {
 		struct sctp_transport *transport = obj;
 
+		if (!sctp_transport_hold(transport))
+			continue;
 		err = cb(transport, p);
 		sctp_transport_put(transport);
 		if (err)

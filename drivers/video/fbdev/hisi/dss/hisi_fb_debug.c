@@ -210,7 +210,6 @@ void dss_underflow_debug_func(struct work_struct *work)
 
 void hisifb_debug_register(struct platform_device *pdev)
 {
-	struct lcdkit_panel_data *panel;
 	struct hisi_fb_data_type *hisifd = NULL;
 
 	if (NULL == pdev) {
@@ -225,14 +224,6 @@ void hisifb_debug_register(struct platform_device *pdev)
 
 	// dsm lcd
 	if(!lcd_dclient) {
-        if (get_lcdkit_support() && PRIMARY_PANEL_IDX == hisifd->index) {
-            panel = lcdkit_get_panel_info();
-            if (panel && panel->panel_infos.panel_model) {
-                dsm_lcd.module_name = panel->panel_infos.panel_model;
-            }else if (panel && panel->panel_infos.panel_name) {
-                dsm_lcd.module_name = panel->panel_infos.panel_name;
-            }
-        }
 		lcd_dclient = dsm_register_client(&dsm_lcd);
 	}
 

@@ -20,7 +20,8 @@
   1 Include Headfile
 *****************************************************************************/
 #include "vos.h"
-#include "v_timer.h"
+#include "v_timer.h"    /*lint !e537*/
+
 
 #ifdef _lint
 /* PCLINT特殊编译开关，只在PCLINT时打开 */
@@ -58,8 +59,11 @@ extern "C" {
 *****************************************************************************/
 #define PS_SUBMOD_NULL 0
 
-
+#ifndef L2_LIBFUZZ_TEST
 #define PS_PRINTF                                           (VOS_VOID)vos_printf
+#else
+#define PS_PRINTF
+#endif
 
 /* 内存操作封装 */
 #ifdef _lint
@@ -192,18 +196,6 @@ extern "C" {
 
 #else
 /*Modified by dongying for UT,2010-2-1,end*/
-/*内存拷贝宏定义*/
-
-#define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
-            (VOS_VOID)VOS_MemCpy_s( pucDestBuffer, ulBufferLen, pucSrcBuffer, ulBufferLen )
-
-/*内存内容填充宏定义*/
-#define PS_MEM_SET(pucBuffer, ucData, ulBufferLen) \
-            (VOS_VOID)VOS_MemSet_s( pucBuffer, ulBufferLen, ucData, ulBufferLen )
-
-/*内存移动宏定义*/
-#define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
-            VOS_MemMove_s( pucDestBuffer, ulBufferLen, pucSrcBuffer, ulBufferLen )
 
 #define PS_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
             VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
@@ -228,6 +220,18 @@ extern "C" {
   Ps_SendMsg函数,以便于向PC STUB桩转发消息.后续OSA支持WIN32版本后,这里可统一处理*/
     #if(VOS_OS_VER == VOS_WIN32 )
 
+/*内存拷贝宏定义*/
+#define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+                (VOS_VOID)memcpy(pucDestBuffer, pucSrcBuffer, ulBufferLen)    // unsafe_function_ignore: memcpy
+
+/*内存内容填充宏定义*/
+#define PS_MEM_SET(pucBuffer, ucData, ulBufferLen) \
+                (VOS_VOID)memset(pucBuffer, ucData, ulBufferLen)     // unsafe_function_ignore: memset
+
+/*内存移动宏定义*/
+#define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+                memmove(pucDestBuffer, pucSrcBuffer, ulBufferLen)   // unsafe_function_ignore: memmove
+
         /*消息发送*/
         #ifdef __RECUR_TEST__
 
@@ -248,11 +252,12 @@ extern "C" {
 
         #define PS_SEND_MSG(ulPid, pMsg) \
             Ps_SendMsg((VOS_INT8 *)__FILE__, __LINE__, ulPid, pMsg)
-            
+
         #define PS_CHR_RPT_SEND_MSG(ulPid, pMsg)  Ps_SendMsg((VOS_INT8 *)__FILE__, __LINE__, ulPid, pMsg)
         #endif
     #else
     /*消息发送*/
+    /*lint --e(683)*/
     #define PS_SEND_MSG(ulPid, pMsg) \
             VOS_SendMsg( ulPid, pMsg)
 
@@ -378,7 +383,7 @@ When phTm is VOS_NULL_PTR, ucMode is not allowed to be VOS_RELTIMER_LOOP.
 #ifdef _lint
 #define PS_SND_MSG_ALL_CHECK(ulPid , pMsg)              PS_SEND_MSG(ulPid, pMsg)
 #else
-extern VOS_UINT32 PS_OM_SendMsg(VOS_UINT32 Pid, VOS_VOID *pMsg);
+
 #define PS_SND_MSG_ALL_CHECK(ulPid , pMsg)              PS_OM_SendMsg(ulPid, pMsg)//PS_SEND_MSG(ulPid, pMsg)
 #endif
 #else

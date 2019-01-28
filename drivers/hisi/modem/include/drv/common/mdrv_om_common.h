@@ -123,7 +123,7 @@ typedef enum cpu_core
     CORE_XDSP =4,
 }CPU_CORE;
 
-#define OM_MODID_HEAD(__subsys,__module,__core)   ((__subsys)<< MODID_MODULE)| ((__module) << MODID_CORE)|((__core) << MODID_RESV)
+#define OM_MODID_HEAD(__subsys,__module,__core)   (((__subsys)<< MODID_MODULE)| ((__module) << MODID_CORE)|((__core) << MODID_RESV))
 
 /*DRV*/
 #define DRV_BSP_MODID_HEAD              OM_MODID_HEAD(SYS_DRV,MODULE_BSP,CORE_ARM)

@@ -343,6 +343,349 @@ static const struct regmap_config lp8556_regmap = {
 	.reg_stride = 1,
 };
 
+#include "lcd_kit_common.h"
+
+static void lp8556_enable(void)
+{
+	int ret = 0;
+
+	mdelay(lp8556_bl_info.bl_on_kernel_mdelay);
+	gpio_cmds_tx(lp8556_hw_en_on_cmds, ARRAY_SIZE(lp8556_hw_en_on_cmds));
+	/* chip initialize */
+	ret = lp8556_chip_init(lp8556_g_chip);
+	if (ret < 0) {
+		LP8556_ERR("lp8556_chip_init fail!\n");
+		return ;
+	}
+	lp8556_init_status = true;
+}
+
+static void lp8556_disable(void)
+{
+	gpio_cmds_tx(lp8556_hw_en_disable_cmds, ARRAY_SIZE(lp8556_hw_en_disable_cmds));
+	gpio_cmds_tx(lp8556_hw_en_free_cmds, ARRAY_SIZE(lp8556_hw_en_free_cmds));
+	lp8556_init_status = false;
+}
+
+static int lp8556_set_backlight(uint32_t bl_level)
+{
+	static int last_bl_level = 0;
+	int bl_msb = 0;
+	int bl_lsb = 0;
+	int ret = 0;
+
+	if (!lp8556_g_chip) {
+		LP8556_ERR("lp8556_g_chip is null\n");
+		return -1;
+	}
+	if (down_trylock(&(lp8556_g_chip->test_sem))) {
+		LP8556_INFO("Now in test mode\n");
+		return 0;
+	}
+	/*first set backlight, enable lp8556*/
+	if (false == lp8556_init_status && bl_level > 0) {
+		lp8556_enable();
+	}
+
+	/*set backlight level*/
+	bl_msb = (bl_level >> 8) & 0x0F;
+	bl_lsb = bl_level & 0xFF;
+	ret = regmap_write(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_lsb, bl_lsb);
+	if (ret < 0) {
+		LP8556_DEBUG("write lp8556 backlight level lsb:0x%x failed\n", bl_lsb);
+	}
+	ret = regmap_write(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_msb, bl_msb);
+	if (ret < 0) {
+		LP8556_DEBUG("write lp8556 backlight level msb:0x%x failed\n", bl_msb);
+	}
+
+	/*if set backlight level 0, disable lp8556*/
+	if (true == lp8556_init_status && 0 == bl_level) {
+		lp8556_disable();
+	}
+	up(&(lp8556_g_chip->test_sem));
+
+	/*when power on backlight, schedule backlight check work*/
+	if (last_bl_level == 0 && bl_level > 0) {
+		if (common_info->check_thread.check_bl_support) {
+			/*delay 500ms schedule work*/
+			schedule_delayed_work(&common_info->check_thread.check_work, (HZ / 5));
+		}
+		LP8556_INFO("level = %d, bl_msb = %d, bl_lsb = %d", bl_level, bl_msb, bl_lsb);
+	}
+	last_bl_level = bl_level;
+	return ret;
+}
+
+static int lp8556_backlight_save_restore(int save_enable)
+{
+	static int bl_msb = 0;
+	static int bl_lsb = 0;
+	int ret = 0;
+	int val = 0;
+
+
+	if (save_enable) {
+		ret = regmap_read(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_lsb, &val);
+		if (ret < 0) {
+			LP8556_ERR("write lp8556 backlight level msb:0x%x failed\n", bl_msb);
+			return -1;
+		}
+		bl_lsb = val & 0xFF;
+		ret = regmap_read(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_msb, &val);
+		if (ret < 0) {
+			LP8556_ERR("write lp8556 backlight level msb:0x%x failed\n", bl_msb);
+			return -1;
+		}
+		bl_msb = val & 0x0F;
+	} else {
+		ret = regmap_write(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_lsb, bl_lsb);
+		if (ret < 0) {
+			LP8556_ERR("write lp8556 backlight level lsb:0x%x failed\n", bl_lsb);
+			return -1;
+		}
+		ret = regmap_write(lp8556_g_chip->regmap, lp8556_bl_info.lp8556_level_msb, bl_msb);
+		if (ret < 0) {
+			LP8556_ERR("write lp8556 backlight level msb:0x%x failed\n", bl_msb);
+			return -1;
+		}
+	}
+	return ret;
+}
+
+
+static int lp8556_test_led_open(struct lp8556_chip_data *pchip, int led_num)
+{
+	int ret;
+	int i;
+	int result = TEST_OK;
+	unsigned int val = 0;
+	unsigned int enable_leds = LP8556_ENABLE_ALL_LEDS;
+	int bl_led_num = lp8556_bl_info.bl_led_num;
+
+	for (i = bl_led_num; i < LP8556_LED_NUM; i++) {
+		enable_leds &= ~(1 << i);
+	}
+	/* Enable all LED strings */
+	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, enable_leds);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return TEST_ERROR_I2C;
+	}
+
+	/* Set maximum brightness */
+	lp8556_set_backlight(LP8556_BL_MAX);
+
+
+	/* Open LEDx string. */
+	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, (~(1<<(unsigned int)led_num)) & enable_leds);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return TEST_ERROR_I2C;
+	}
+
+	/* Wait 4 msec. */
+	msleep(4);
+
+	/* Read LED open fault*/
+	ret = regmap_read(pchip->regmap, LP8556_FUALT_FLAG, &val);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return TEST_ERROR_I2C;
+	}
+
+	/* If then a LED open fault condition has been detected. */
+	if (val & (1 << LP8556_FAULT_OPEN_BIT)) {
+		result |= (1<<(LP8556_LED1_OPEN_ERR_BIT + led_num));
+	}
+
+	/* Connect LEDx string. */
+	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, enable_leds);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return result|TEST_ERROR_I2C;
+	}
+
+	/* Repeat the procedure for the other LED strings. */
+	msleep(1000);
+	return result;
+}
+
+static int lp8556_test_led_short(struct lp8556_chip_data *pchip, int led_num)
+{
+	unsigned int val = 0;
+	int ret;
+	int result = TEST_OK;
+
+	/* Enable only LEDx string. */
+	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, (1<<(unsigned int)led_num));
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return TEST_ERROR_I2C;
+	}
+
+	/* Set maximum brightness. */
+	lp8556_set_backlight(LP8556_BL_MAX);
+
+	/* Wait 4 msec. */
+	msleep(4);
+
+	/* Read LED short fault */
+	ret = regmap_read(pchip->regmap, LP8556_FUALT_FLAG, &val);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return TEST_ERROR_I2C;
+	}
+
+	/*A LED short fault condition has been detected. */
+	if (val & (1 << LP8556_FAULT_SHORT_BIT)) {
+		result |= (1<<(LP8556_LED1_SHORT_ERR_BIT + led_num));
+	}
+
+	/* Set chip enable and LED string enable low. */
+	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, LP8556_DISABLE_ALL_LEDS);
+	if (ret < 0) {
+		LP8556_ERR("TEST_ERROR_I2C\n");
+		return result|TEST_ERROR_I2C;
+	}
+
+	/* Repeat the procedure for the other LED Strings */
+	msleep(1000);
+	return result;
+}
+
+static ssize_t lp8556_self_test(void)
+{
+	struct lp8556_chip_data *pchip = NULL;
+	struct i2c_client *client = NULL;
+	ssize_t ret = -1;
+	int result = 0;
+	int lp8556_regs[LP8556_RW_REG_MAX] = {0};
+	int led_num = lp8556_bl_info.bl_led_num;
+	int i;
+
+	pchip = lp8556_g_chip;
+	client = pchip->client;
+	if (!client) {
+		LP8556_ERR("client is null\n");
+	}
+
+	down(&(pchip->test_sem));
+	ret = lp8556_config_read(pchip, lp8556_reg_addr, lp8556_regs, LP8556_RW_REG_MAX);
+	if (ret) {
+		result |= TEST_ERROR_I2C;
+		goto lp8556_test_failed;
+	}
+	ret = lp8556_backlight_save_restore(1);
+	if (ret) {
+		result |= TEST_ERROR_I2C;
+		goto lp8556_test_failed;
+	}
+
+	for (i = 0; i < led_num; i++) {
+		result |= lp8556_test_led_open(pchip, i);
+	}
+
+	for (i = 0; i < led_num; i++) {
+		result |= lp8556_test_led_short(pchip, i);
+	}
+
+	ret = lp8556_chip_init(pchip);
+	if (ret < 0) {
+		result |= TEST_ERROR_CHIP_INIT;
+		goto lp8556_test_failed;
+	}
+
+	ret = lp8556_config_write(pchip, lp8556_reg_addr, lp8556_regs, LP8556_RW_REG_MAX);
+	if (ret) {
+		result |= TEST_ERROR_I2C;
+		goto lp8556_test_failed;
+	}
+	ret = lp8556_backlight_save_restore(0);
+	if (ret) {
+		result |= TEST_ERROR_I2C;
+		goto lp8556_test_failed;
+	}
+
+	up(&(pchip->test_sem));
+	LP8556_INFO("self test out:%d\n", result);
+	return result;
+lp8556_test_failed:
+	up(&(pchip->test_sem));
+	LP8556_INFO("self test out:%d\n", result);
+	return result;
+}
+
+static void lp8556_dsm_notify(int val)
+{
+	if (lcd_dclient && !dsm_client_ocuppy(lcd_dclient)) {
+		dsm_client_record(lcd_dclient, "lp8556 happen short, reg:0x02 value is:0x%x\n", val);
+		dsm_client_notify(lcd_dclient, DSM_LCD_OVP_ERROR_NO);
+	} else {
+		LP8556_ERR("dsm_client_ocuppy fail!\n");
+	}
+}
+
+static int lp8556_check_backlight(void)
+{
+	#define CHECK_COUNT	3
+	#define CHECK_REG	0x02
+	#define CHECK_VAL	0x04
+	#define CHECK_VAL_FACTORY	0xC4
+	int count = 0;
+	int val = 0;
+	int ret = 0;
+	int err_cnt = 0;
+
+	if (!lp8556_g_chip) {
+		LP8556_ERR("lp8556_g_chip is null\n");
+		return -1;
+	}
+	/*judge lp8556 is enable, if not return*/
+	if (lp8556_init_status == false) {
+		LP8556_ERR("lp8556 not enable\n");
+		ret = -1;
+		goto error;
+	}
+
+	while (count < CHECK_COUNT) {
+		ret = regmap_read(lp8556_g_chip->regmap, CHECK_REG, &val);
+		if (ret < 0) {
+			LP8556_INFO("read lp8556 fail!\n");
+			goto error;
+		}
+		if (runmode_is_factory()) {
+			if (val & CHECK_VAL_FACTORY) {
+				err_cnt++;
+				LP8556_ERR("check val:0x%x, backlight maybe short!\n", val);
+			}
+		} else {
+			if (val & CHECK_VAL) {
+				err_cnt++;
+				LP8556_ERR("check val:0x%x, backlight maybe short!\n", val);
+			}
+		}
+		count++;
+		mdelay(3);
+	}
+	if (err_cnt == CHECK_COUNT) {
+		/*backlight short, shutdown backlight*/
+		LP8556_ERR("backlight short, shutdown backlight!\n");
+		gpio_cmds_tx(lp8556_hw_en_disable_cmds, ARRAY_SIZE(lp8556_hw_en_disable_cmds));
+		gpio_cmds_tx(lp8556_hw_en_free_cmds, ARRAY_SIZE(lp8556_hw_en_free_cmds));
+		lp8556_dsm_notify(val);
+		ret = -1;
+		goto error;
+	}
+error:
+	return ret;
+}
+
+static struct lcd_kit_bl_ops bl_ops = {
+	.set_backlight = lp8556_set_backlight,
+	.bl_self_test = lp8556_self_test,
+	.check_backlight = lp8556_check_backlight,
+};
 
 static int lp8556_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
@@ -403,6 +746,23 @@ static int lp8556_probe(struct i2c_client *client,
 		goto err_sysfs;
 	}
 
+	np = of_find_compatible_node(NULL, NULL, DTS_COMP_LP8556);
+	if (!np) {
+		LP8556_ERR("NOT FOUND device node %s!\n", DTS_COMP_LP8556);
+		goto err_sysfs;
+	}
+	ret = of_property_read_u32(np, "lp8556_level_lsb", &lp8556_bl_info.lp8556_level_lsb);
+	if (ret < 0) {
+		LP8556_ERR("get lp8556_level_lsb failed\n");
+		goto err_sysfs;
+	}
+
+	ret = of_property_read_u32(np, "lp8556_level_msb", &lp8556_bl_info.lp8556_level_msb);
+	if (ret < 0) {
+		LP8556_ERR("get lp8556_level_msb failed\n");
+		goto err_sysfs;
+	}
+	lcd_kit_bl_register(&bl_ops);
 	return ret;
 
 err_sysfs:

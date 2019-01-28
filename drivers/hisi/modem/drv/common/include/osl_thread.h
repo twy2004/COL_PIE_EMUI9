@@ -233,8 +233,8 @@ typedef TSK_HANDLE_T          OSL_TASK_ID;
     TSK_INIT_PARAM_S tsk;
     UINT32 id;
     tsk.pfnTaskEntry  = (OSL_TASK_FUNC)entryPt;
-    tsk.uwStackSize   = stackSize;
-    tsk.usTaskPrio    = priority;
+    tsk.uwStackSize   = (UINT32)stackSize;
+    tsk.usTaskPrio    = (TSK_PRIOR_T)priority;
     tsk.pcName        = name;
     tsk.usQNum        = 0;
     tsk.auwArgs[0]    = (UINT32)para;
@@ -250,7 +250,7 @@ typedef TSK_HANDLE_T          OSL_TASK_ID;
 }
 static inline int osl_task_delay(int ticks )
  {
-     return SRE_TaskDelay((unsigned int)ticks);
+     return (int)SRE_TaskDelay((unsigned int)ticks);
  }
 static inline void osl_task_lock(void)
  {
@@ -267,7 +267,7 @@ static inline void osl_task_lock(void)
      int ret = OK;
      if(*tskid != 0xffffffff)
      {
-         ret = SRE_TaskDelete(*tskid);
+         ret = (int)SRE_TaskDelete(*tskid);
          *tskid = 0xffffffff;
      }
      if(ret != OK)
@@ -281,10 +281,10 @@ static inline int osl_task_self(void)
 {
      unsigned int id;
      int ret;
-     ret = SRE_TaskSelf((unsigned int *)&id);
+     ret = (int)SRE_TaskSelf((unsigned int *)&id);
      if(OK == ret)
      {
-         return id;
+         return (int)id;
      }
      (void)SRE_Printf("osl_task_self fail ret=0x%x!\n", ret);
      return ERROR;
@@ -314,6 +314,8 @@ static inline int  osl_task_check(unsigned int taskid)
 		return -1;
 }
 
+//lint -esym(528,*)
+/*lint -save -e528*/
 static __inline__ u64 osl_tick_get(void){
 	return SRE_TickCountGet();
 }
@@ -335,8 +337,8 @@ static inline  s32 osl_task_create_only(
     TSK_INIT_PARAM_S tsk;
     UINT32 id;
     tsk.pfnTaskEntry  = (OSL_TASK_FUNC)entryPt;
-    tsk.uwStackSize   = stackSize;
-    tsk.usTaskPrio    = priority;
+    tsk.uwStackSize   = (UINT32)stackSize;
+    tsk.usTaskPrio    = (TSK_PRIOR_T)priority;
     tsk.pcName        = name;
     tsk.usQNum        = 0;
     tsk.auwArgs[0]    = (UINT32)para;
@@ -381,6 +383,8 @@ static __inline__ u32 osl_task_core_unbind(OSL_TASK_ID uwTaskPID)
 }
 
 #endif
+//lint +esym(528,*)
+/*lint –restore */
 #elif defined(__CMSIS_RTOS) /* rtx(cm3 os) */
 
 /*此处用于存放任务优先级 ---begin*/

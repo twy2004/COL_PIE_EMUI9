@@ -72,7 +72,7 @@
 #include <bsp_llt_gcov.h>
 #include "../loadm/load_image.h"
 #include "reset_balong.h"
-
+#include <securec.h>
 /*lint --e{746, 732, 516, 958, 666} */
 static unsigned int scbakdata13_offset = 0;
 extern int bsp_sync_reset(SYNC_MODULE_E u32Module);
@@ -89,6 +89,21 @@ u32 modem_reset_fail_id_get(void)
 	return (u32)modem_reset_fail_id;
 }
 
+/* 打点invoke调用name */
+static inline void cp_reset_invoke_dump(char *cb_name)
+{
+    u32 slice;
+    if (g_reset_debug.dump_state == (u32)RESET_DUMP_MAGIC) {
+        /* coverity[secure_coding] */
+        (void)strncpy_s(g_reset_debug.dump_info.invoke_addr, DRV_RESET_MODULE_NAME_LEN, cb_name, DRV_RESET_MODULE_NAME_LEN);
+        slice = bsp_get_slice_value();
+        /* coverity[secure_coding] */
+        (void)memcpy_s((void *)(g_reset_debug.dump_info.invoke_addr + (DRV_RESET_MODULE_NAME_LEN + 3)), sizeof(u32),(void *)(&slice), sizeof(u32));
+
+        if (g_reset_debug.dump_info.invoke_addr < (char *)((unsigned long)g_reset_debug.dump_info.base_addr + CP_RESET_DUMP_INVOKE_END))
+            g_reset_debug.dump_info.invoke_addr += 2*(DRV_RESET_MODULE_NAME_LEN - 1);
+    }
+}
 void reset_reboot_system(enum RESET_TYPE type)
 {
 	unsigned long flags = 0;
@@ -143,6 +158,7 @@ extern s32 bsp_rfile_reset_cb(DRV_RESET_CB_MOMENT_E eparam, s32 usrdata);
 extern s32 bsp_icc_channel_reset(DRV_RESET_CB_MOMENT_E stage, int usrdata);
 extern void ipc_modem_reset_cb(DRV_RESET_CB_MOMENT_E eparam, int usrdata);
 extern s32 bsp_mem_ccore_reset_cb(DRV_RESET_CB_MOMENT_E enParam, int userdata);
+extern int bsp_dump_sec_channel_free(DRV_RESET_CB_MOMENT_E eparam, s32 usrdata);
 static inline s32 bsp_loadps_reset_cb(DRV_RESET_CB_MOMENT_E eparam, s32 userdata){return 0;}
 
 s32 icc_channel_reset (DRV_RESET_CB_MOMENT_E stage, int userdata)
@@ -186,6 +202,8 @@ s32 drv_reset_cb (DRV_RESET_CB_MOMENT_E stage, int userdata)
 			}
 
 			(void)bsp_mem_ccore_reset_cb(stage, 0);
+
+            (void)bsp_dump_sec_channel_free(stage, 0);
 
 			break;
 
@@ -354,33 +372,33 @@ s32 wait_for_ccore_reset_done(u32 timeout)
 
 void master_in_idle_timestamp_dump(void)
 {
-    printk(KERN_ERR "[indedicator   ]0x%-8x [fiq_cnt       ]0x%-8x [fail_cnt     ]0x%-8x [flow_begin   ]0x%-8x\n",
+    reset_print_shorterr( "[indedicator   ]0x%-8x [fiq_cnt       ]0x%-8x [fail_cnt     ]0x%-8x [flow_begin   ]0x%-8x\n",
     reset_stamp(STAMP_RESET_BASE_ADDR), reset_stamp(STAMP_RESET_FIQ_COUNT), reset_stamp(STAMP_RESET_IDLE_FAIL_COUNT), reset_stamp(STAMP_RESET_MASTER_ENTER_IDLE));
-    printk(KERN_ERR "[nxdsp_inidle  ]0x%-8x [cipher_chn_dis]0x%-8x [cipher_inidle]0x%-8x [cipher_reset ]0x%-8x\n",
+    reset_print_shorterr( "[nxdsp_inidle  ]0x%-8x [cipher_chn_dis]0x%-8x [cipher_inidle]0x%-8x [cipher_reset ]0x%-8x\n",
     reset_stamp(STAMP_RESET_BBE16_ENTER_IDLE),reset_stamp(STAMP_RESET_CIPHER_DISABLE_CHANNLE), reset_stamp(STAMP_RESET_CIPHER_ENTER_IDLE),reset_stamp(STAMP_RESET_CIPHER_SOFT_RESET));
-    printk(KERN_ERR "[edma_reset_in ]0x%-8x [edma_dev_id   ]0x%-8x [edma_clock   ]0x%-8x [edma_stop_bus]0x%-8x\n",
+    reset_print_shorterr( "[edma_reset_in ]0x%-8x [edma_dev_id   ]0x%-8x [edma_clock   ]0x%-8x [edma_stop_bus]0x%-8x\n",
     reset_stamp(STAMP_RESET_EDMA_IN),reset_stamp(STAMP_RESET_EDMA_DEV_NUM), reset_stamp(STAMP_RESET_EDMA_CHECK_CLK), reset_stamp(STAMP_RESET_EDMA_STOP_BUS));
-    printk(KERN_ERR "[edma_in_idle  ]0x%-8x [edma_reset_out]0x%-8x [upacc_inidle1]0x%-8x [upacc_inidle2]0x%-8x\n",
+    reset_print_shorterr( "[edma_in_idle  ]0x%-8x [edma_reset_out]0x%-8x [upacc_inidle1]0x%-8x [upacc_inidle2]0x%-8x\n",
     reset_stamp(STAMP_RESET_EDMA_ENTER_IDLE),reset_stamp(STAMP_RESET_EDMA_OUT), reset_stamp(STAMP_RESET_UPACC_ENTER_IDLE_1), reset_stamp(STAMP_RESET_UPACC_ENTER_IDLE_2));
-    printk(KERN_ERR "[upacc_inidle3 ]0x%-8x [cicom0_rst    ]0x%-8x [cicom1_rst   ]0x%-8x [ipf_inidle   ]0x%-8x\n",
+    reset_print_shorterr( "[upacc_inidle3 ]0x%-8x [cicom0_rst    ]0x%-8x [cicom1_rst   ]0x%-8x [ipf_inidle   ]0x%-8x\n",
     reset_stamp(STAMP_RESET_UPACC_ENTER_IDLE_3),reset_stamp(STAMP_RESET_CICOM0_SOFT_RESET), reset_stamp(STAMP_RESET_CICOM1_SOFT_RESET), reset_stamp(STAMP_RESET_IPF_SOFT_RESET));
-    printk(KERN_ERR "[ipf_rst       ]0x%-8x [bbp_dma_inidle]0x%-8x [wbbp_mst_stop]0x%-8x [wbbp_slv_stop]0x%-8x\n",
+    reset_print_shorterr( "[ipf_rst       ]0x%-8x [bbp_dma_inidle]0x%-8x [wbbp_mst_stop]0x%-8x [wbbp_slv_stop]0x%-8x\n",
     reset_stamp(STAMP_RESET_IPF_ENTER_IDLE),reset_stamp(STAMP_RESET_BBP_DMA_ENTER_IDLE), reset_stamp(STAMP_RESET_WBBP_MSTER_STOP), reset_stamp(STAMP_RESET_WBBP_SLAVE_STOP));
-    printk(KERN_ERR "[wbbp_inidle   ]0x%-8x [bbp_dbg       ]0x%-8x [in_out_idle  ]0x%-8x [flow_end     ]0x%-8x\n",
+    reset_print_shorterr( "[wbbp_inidle   ]0x%-8x [bbp_dbg       ]0x%-8x [in_out_idle  ]0x%-8x [flow_end     ]0x%-8x\n",
     reset_stamp(STAMP_RESET_WBBP_ENTER_IDLE),reset_stamp(STAMP_RESET_BBP_DEBUG),reset_stamp(STAMP_RESET_MASTER_INOUT_IDLE),reset_stamp(STAMP_RESET_MASTER_IDLE_QUIT));
-    printk(KERN_ERR "[hwspinlock    ]0x%-8x [hdlc_rst      ]0x%-8x [cbbe16_inidle]0x%-8x [nv idle      ]0x%-8x\n",
+    reset_print_shorterr( "[hwspinlock    ]0x%-8x [hdlc_rst      ]0x%-8x [cbbe16_inidle]0x%-8x [nv idle      ]0x%-8x\n",
     reset_stamp(STAMP_RESET_HWSPINLOCK_IDLE),reset_stamp(STAMP_RESET_HDLC_SOFT_RESET),reset_stamp(STAMP_RESET_CBBE16_ENTER_IDLE), reset_stamp(STAMP_RESET_NV_IDLE));
-    printk(KERN_ERR "[bbp_harq_idle ]0x%-8x [rsracc in     ]0x%-8x [rsracc step  ]0x%-8x [rsracc out   ]0x%-8x\n",
+    reset_print_shorterr( "[bbp_harq_idle ]0x%-8x [rsracc in     ]0x%-8x [rsracc step  ]0x%-8x [rsracc out   ]0x%-8x\n",
         reset_stamp(STAMP_RESET_BBP_HARQ_IDLE),reset_stamp(STAMP_RESET_RSRACC_ENTER_IDLE),reset_stamp(STAMP_RESET_RSRACC_STEP),reset_stamp(STAMP_RESET_RSRACC_OUT_IDLE));
-    printk(KERN_ERR "[fiq_in_core0  ]0x%-8x [fiq_in_core1  ]0x%-8x [nxdsp reset  ]0x%-8x [cbbe16 reset ]0x%-8x\n",
+    reset_print_shorterr( "[fiq_in_core0  ]0x%-8x [fiq_in_core1  ]0x%-8x [nxdsp reset  ]0x%-8x [cbbe16 reset ]0x%-8x\n",
         reset_stamp(STAMP_RESET_CORE0_INFIQ),reset_stamp(STAMP_RESET_CORE1_INFIQ),reset_stamp(STAMP_RESET_NXDSP_SYSBUS_RESET),reset_stamp(STAMP_RESET_CBBE16_SYSBUS_RESET));
-    printk(KERN_ERR "[nx waiti state]0x%-8x [socp mdm reset]0x%-8x\n",
+    reset_print_shorterr( "[nx waiti state]0x%-8x [socp mdm reset]0x%-8x\n",
         reset_stamp(STAMP_RESET_NXDSP_WAITI_STATE),reset_stamp(STAMP_RESET_SOCP_MODEM_CHAN_STATE));
 
     if (g_reset_debug.dump_state == (u32)RESET_DUMP_MAGIC)
     {
         /* coverity[secure_coding] */
-        (void)memcpy((void*)g_reset_debug.dump_info.master_addr, (void*)STAMP_RESET_BASE_ADDR, (int)(STAMP_RESET_FIQ_OUT_COUNT - STAMP_RESET_BASE_ADDR + 1));
+        (void)memcpy_s((void*)g_reset_debug.dump_info.master_addr, (u32)(STAMP_RESET_FIQ_OUT_COUNT  + 1 - STAMP_RESET_BASE_ADDR), (void*)STAMP_RESET_BASE_ADDR, (u32)(STAMP_RESET_FIQ_OUT_COUNT - STAMP_RESET_BASE_ADDR + 1));
     }
 }
 
@@ -723,13 +741,18 @@ struct reset_cb_list *do_cb_func_register(struct reset_cb_list * list_head, cons
     {
 		name_len = (u32)min((u32)DRV_RESET_MODULE_NAME_LEN, (u32)strlen(func_name));
 		/* coverity[secure_coding] */
-		memset((void*)cb_func_node, 0, (sizeof(struct reset_cb_list)));
+		memset_s((void*)cb_func_node, (sizeof(*cb_func_node)), 0, (sizeof(struct reset_cb_list)));
 		/* coverity[secure_coding] */
-		memcpy((void*)cb_func_node->cb_info.name, (void*)func_name, (int)name_len);
+		memcpy_s((void*)cb_func_node->cb_info.name, (u32)min((u32)DRV_RESET_MODULE_NAME_LEN, (u32)strlen(func_name)), (void*)func_name, (int)name_len);
 		cb_func_node->cb_info.priolevel = prior;
 		cb_func_node->cb_info.userdata = user_data;
 		cb_func_node->cb_info.cbfun = func;
     }
+	else
+	{
+		reset_print_err("cb fun malloc fial, name:%s, cbfun=%pK, prio=%d\n", func_name,  func, prior);
+		return list_head;
+	}
 
 	if (!list_head)
     {
@@ -988,9 +1011,9 @@ int __init bsp_reset_init(void)
 	}
 
 	/* coverity[secure_coding] */
-	memset(&(g_modem_reset_ctrl), 0, sizeof(g_modem_reset_ctrl));
+	memset_s(&(g_modem_reset_ctrl), sizeof(struct modem_reset_ctrl), 0, sizeof(g_modem_reset_ctrl));
 	/* coverity[secure_coding] */
-	memset(&g_reset_debug, 0, sizeof(g_reset_debug));
+	memset_s(&g_reset_debug, sizeof(struct modem_reset_debug), 0, sizeof(g_reset_debug));
 	g_reset_debug.print_sw = 1;
 
 	/* NV控制是否打开单独复位功能以及与RIL的对接 */
@@ -1122,6 +1145,3 @@ EXPORT_SYMBOL(reset_ril_on); /*lint !e19 */
 EXPORT_SYMBOL(reset_ctrl_debug_show); /*lint !e19 */
 EXPORT_SYMBOL(bsp_reset_is_connect_ril); /*lint !e19 */
 EXPORT_SYMBOL(bsp_reset_is_feature_on); /*lint !e19 */
-
-module_init(bsp_reset_init); /*lint !e19*/
-

@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -57,6 +57,7 @@ extern "C"
 /*公共头文件*/
 #include "mdrv_public.h"
 #include "mdrv_version.h"
+#include "mdrv_print.h"
 
 /*soc*/
 #include "mdrv_int.h"
@@ -67,9 +68,12 @@ extern "C"
 #include "mdrv_icc.h"
 #include "mdrv_memory.h"
 #include "mdrv_rtc.h"
+#include "mdrv_clk.h"
 #include "mdrv_sysctrl.h"
 #include "mdrv_sync.h"
 #include "mdrv_pm.h"
+#include "mdrv_eicc.h"
+#include "mdrv_malloc.h"
 
 /*devcie ip*/
 #include "mdrv_efuse.h"
@@ -101,6 +105,7 @@ extern "C"
 #include "mdrv_crypto.h"
 #include "mdrv_applog.h"
 
+#include "mdrv_diag_system.h"
 #ifdef __cplusplus
 }
 #endif

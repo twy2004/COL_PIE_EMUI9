@@ -1,2 +1,2 @@
-include arch/arm64/boot/dts/auto-generate/overlay/kirin970/kirin970_dtb.mk
-dtbs: kirin970_dtbo
+include arch/arm64/boot/dts/auto-generate/overlay/kirin980/kirin980_dtb.mk
+dtbs: kirin980_dtbo

@@ -48,12 +48,11 @@
 
 
 
+#include <soc_socp_adapter.h>
 #include "diag_common.h"
 #include "msp_diag_comm.h"
-#include "diag_api.h"
 #include "diag_cfg.h"
 #include "diag_debug.h"
-#include "soc_socp_adapter.h"
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_MESSAGE_C
 
@@ -202,7 +201,8 @@ VOS_UINT32 DIAG_MsgProcReg (DIAG_MESSAGE_TYPE_U32 ulMsgType, DIAG_MESSAGE_FUNC p
 *****************************************************************************/
 VOS_UINT32 DIAG_MsgReport (MSP_DIAG_CNF_INFO_STRU *pstDiagInfo, VOS_VOID *pstData, VOS_UINT32 ulLen)
 {
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
+    DIAG_SRV_CNF_HEADER_STRU    stCnfHeader;
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
 
     /*检查DIAG是否初始化且HSO是否连接上*/
     if(!DIAG_IS_CONN_ON)
@@ -212,32 +212,27 @@ VOS_UINT32 DIAG_MsgReport (MSP_DIAG_CNF_INFO_STRU *pstDiagInfo, VOS_VOID *pstDat
 
     if((VOS_NULL_PTR == pstDiagInfo) || (VOS_NULL_PTR == pstData) || (0 == ulLen))
     {
-        diag_printf("%s,%d.\n",__FUNCTION__,__LINE__);
+        diag_error("error,ulLen=0x%x\n", ulLen);
         return VOS_ERR;
     }
 
     mdrv_diag_PTR(EN_DIAG_PTR_MESSAGE_REPORT, 1, pstDiagInfo->ulMsgType, pstDiagInfo->ulSubType);
 
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stCnfHeader);
+    DIAG_SRV_SET_MODEM_ID(&stCnfHeader.frame_header, pstDiagInfo->ulModemid);
+    DIAG_SRV_SET_TRANS_ID(&stCnfHeader.frame_header, pstDiagInfo->ulTransId);
+    DIAG_SRV_SET_COMMAND_ID(&stCnfHeader.frame_header, (pstDiagInfo->ulMsgType & 0xf), (pstDiagInfo->ulMode & 0xf), (pstDiagInfo->ulSubType & 0x1f), (pstDiagInfo->ulMsgId & 0x7ffff));
+    DIAG_SRV_SET_MSG_LEN(&stCnfHeader.frame_header, ulLen);
 
-    stDiagHead.u.stID.pri4b     = (pstDiagInfo->ulMsgType & 0xf);
-    stDiagHead.u.stID.mode4b    = (pstDiagInfo->ulMode & 0xf);
-    stDiagHead.u.stID.sec5b     = (pstDiagInfo->ulSubType & 0x1f);
-    stDiagHead.u.stID.cmdid19b  = (pstDiagInfo->ulMsgId & 0x7ffff);
-    stDiagHead.ulSsid           = pstDiagInfo->ulSSId;
-    stDiagHead.ulModemId        = pstDiagInfo->ulModemid;
-    stDiagHead.ulDirection      = pstDiagInfo->ulDirection;
-    stDiagHead.ulMsgTransId     = pstDiagInfo->ulTransId;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_CNF;
-    stDiagHead.ulHeaderSize     = 0;
+    stDiagHead.ulHeaderSize     = sizeof(stCnfHeader);
+    stDiagHead.pHeaderData      = &stCnfHeader;
     stDiagHead.ulDataSize       = ulLen;
     stDiagHead.pData            = pstData;
 
-    diag_LNR(EN_DIAG_LNR_CCORE_MSG, stDiagHead.u.ulID, VOS_GetSlice());
+    diag_LNR(EN_DIAG_LNR_MESSAGE_RPT, stCnfHeader.frame_header.ulCmdId, VOS_GetSlice());
 
-    (VOS_VOID)diag_ServicePackData(&stDiagHead);
+    return diag_ServicePackCnfData(&stDiagHead);
 
-    return VOS_OK;
 }
 
 

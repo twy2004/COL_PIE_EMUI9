@@ -58,6 +58,8 @@
 #include "TtfOamInterface.h"
 #include "TtfIpComm.h"
 #include "TTFUtil.h"
+#include "nv_id_gucnas.h"
+#include "nv_stru_gucnas.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
@@ -593,6 +595,58 @@ PS_BOOL_ENUM_UINT8  IPS_MNTN_TraceAdvancedCfgChkParam(IPS_MNTN_TRACE_CONFIG_REQ_
 }
 
 
+STATIC VOS_UINT8 IPS_MNTN_GetPrivacyFilterNvCfg(VOS_VOID)
+{
+    VOS_UINT8                          ucLogFilterFlag = VOS_TRUE;
+
+    return ucLogFilterFlag;
+}
+
+
+VOS_VOID IPS_MNTN_TraceSensitiveAdjustSwitch(IPS_MNTN_TRACE_CONFIG_REQ_STRU *pTraceCfg)
+{
+    VOS_UINT8                           ucAdjustFlg = PS_FALSE;
+
+    /*  非敏感状态不做任何更改 */
+    if(VOS_TRUE != IPS_MNTN_GetPrivacyFilterNvCfg())
+    {
+        return;
+    }
+
+    /* 如下校正勾包状态 */
+    if ( pTraceCfg->stBridgeArpTraceCfg.ulChoice > IPS_MNTN_TRACE_MSG_HEADER_CHOSEN)
+    {
+        pTraceCfg->stBridgeArpTraceCfg.ulChoice = IPS_MNTN_TRACE_MSG_HEADER_CHOSEN;
+        ucAdjustFlg = PS_TRUE;
+    }
+
+    if ( pTraceCfg->stPreRoutingTraceCfg.ulChoice > IPS_MNTN_TRACE_MSG_HEADER_CHOSEN)
+    {
+        pTraceCfg->stPreRoutingTraceCfg.ulChoice = IPS_MNTN_TRACE_MSG_HEADER_CHOSEN;
+        ucAdjustFlg = PS_TRUE;
+    }
+
+    if ( pTraceCfg->stPostRoutingTraceCfg.ulChoice > IPS_MNTN_TRACE_MSG_HEADER_CHOSEN)
+    {
+        pTraceCfg->stPostRoutingTraceCfg.ulChoice = IPS_MNTN_TRACE_MSG_HEADER_CHOSEN;
+        ucAdjustFlg = PS_TRUE;
+    }
+
+    if ( pTraceCfg->stLocalTraceCfg.ulChoice > IPS_MNTN_TRACE_MSG_HEADER_CHOSEN)
+    {
+        pTraceCfg->stLocalTraceCfg.ulChoice = IPS_MNTN_TRACE_MSG_HEADER_CHOSEN;
+        ucAdjustFlg = PS_TRUE;
+    }
+
+    if(ucAdjustFlg == PS_TRUE)
+    {
+        TTF_LOG(ACPU_PID_NFEXT, DIAG_MODE_COMM, PS_PRINT_ERROR, "In Sensitive status, Some config has been modify");
+    }
+
+    return;
+}
+
+
 VOS_VOID IPS_MNTN_TraceAdvancedCfgReq(VOS_VOID *pMsg)
 {
     PS_BOOL_ENUM_UINT8                       enResult;
@@ -651,6 +705,11 @@ VOS_VOID IPS_MNTN_TraceAdvancedCfgReq(VOS_VOID *pMsg)
 
     /*保存配置参数*/
     PSACORE_MEM_CPY(&g_stIpsTraceMsgCfg, sizeof(IPS_MNTN_TRACE_CONFIG_REQ_STRU), &(pRcvMsg->stIpsAdvanceCfgReq), sizeof(IPS_MNTN_TRACE_CONFIG_REQ_STRU));
+
+
+    /* 根据脱敏状态调整勾包开关 */
+    IPS_MNTN_TraceSensitiveAdjustSwitch(&g_stIpsTraceMsgCfg);
+
 
     /*向OM回复配置成功*/
     stIpsTraceCfgCnf.stIpsAdvanceCfgCnf.enRslt = PS_SUCC;

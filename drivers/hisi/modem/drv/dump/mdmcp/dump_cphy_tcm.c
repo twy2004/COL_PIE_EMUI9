@@ -57,28 +57,13 @@
 #include "bsp_dspload.h"
 #include "bsp_dsp.h"
 #include "bsp_ddr.h"
+#include "bsp_dump.h"
 #include "dump_cphy_tcm.h"
 #include "dump_file.h"
-#include "dump_print.h"
 #include "dump_config.h"
 
-
-/*****************************************************************************
-* 函 数 名  : om_save_cphy_tcm
-* 功能描述  : 保存xdsp的镜像
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_save_cphy_tcm(char *  dst_path)
+#undef	THIS_MODU
+#define THIS_MODU mod_dump
+void dump_cphy_init(void)
 {
-    return;
 }
-
-

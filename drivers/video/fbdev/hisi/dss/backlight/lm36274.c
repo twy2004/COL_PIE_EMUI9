@@ -48,49 +48,11 @@ unsigned lm36274_msg_level = 7;
 module_param_named(debug_lm36274_msg_level, lm36274_msg_level, int, 0644);
 MODULE_PARM_DESC(debug_lm36274_msg_level, "backlight lm36274 msg level");
 
-static void lm36274_get_target_voltage(int *vpos_target,int *vneg_target)
-{
-	int i = 0;
-	int j = 0;
-
-	for (i = 0;i < sizeof(lm36274_voltage_table) / sizeof(struct lm36274_vsp_vsn_voltage);i++) {
-		if (lm36274_voltage_table[i].voltage == lcdkit_info.panel_infos.lcd_vsp) {
-			LM36274_INFO("vsp voltage:%ld\n",lm36274_voltage_table[i].voltage);
-			*vpos_target = lm36274_voltage_table[i].value;
-			break;
-		}
-	}
-
-	if (i >= sizeof(lm36274_voltage_table) / sizeof(struct lm36274_vsp_vsn_voltage)) {
-		LM36274_INFO("not found vsp voltage, use default voltage:LM36274_VOL_600\n");
-		*vpos_target = LM36274_VOL_600;
-	}
-
-	for (j = 0;j < sizeof(lm36274_voltage_table) / sizeof(struct lm36274_vsp_vsn_voltage);j++) {
-		if (lm36274_voltage_table[j].voltage == lcdkit_info.panel_infos.lcd_vsn) {
-			LM36274_INFO("vsn voltage:%ld\n",lm36274_voltage_table[j].voltage);
-			*vneg_target = lm36274_voltage_table[j].value;
-			break;
-		}
-	}
-
-	if (j >= sizeof(lm36274_voltage_table)/sizeof(struct lm36274_vsp_vsn_voltage)) {
-		LM36274_INFO("not found vsn voltage, use default voltage:LM36274_VOL_600\n");
-		*vneg_target = LM36274_VOL_600;
-	}
-
-	LM36274_INFO("*vpos_target=0x%x,*vneg_target=0x%x\n",*vpos_target,*vneg_target);
-
-	return;
-
-}
 
 static int lm36274_parse_dts(struct device_node *np)
 {
 	int ret = 0;
 	int i = 0;
-	int vpos_target = 0;
-	int vneg_target = 0;
 
 	for (i = 0;i < LM36274_RW_REG_MAX;i++ ) {
 		ret = of_property_read_u32(np, lm36274_dts_string[i], &bl_info.lm36274_reg[i]);
@@ -101,17 +63,6 @@ static int lm36274_parse_dts(struct device_node *np)
 		}
 	}
 
-	if (lcdkit_info.panel_infos.bias_change_lm36274_from_panel_support) {
-		lm36274_get_target_voltage(&vpos_target, &vneg_target);
-		/* bl_info.lm36274_reg[8] :8 is the position of vsp in bl_info.lm36274_reg during kernel*/
-		/* bl_info.lm36274_reg[9] :9 is the position of vsn in bl_info.lm36274_reg during kernel*/
-		if (bl_info.lm36274_reg[8] != vpos_target) {
-			bl_info.lm36274_reg[8] = vpos_target;
-		}
-		if (bl_info.lm36274_reg[9] != vneg_target) {
-			bl_info.lm36274_reg[9] = vneg_target;
-		}
-	}
 
 	return ret;
 }
@@ -1005,6 +956,11 @@ static const struct attribute_group lm36274_group = {
 	.attrs = lm36274_attributes,
 };
 
+#include "lcd_kit_bl.h"
+
+static struct lcd_kit_bl_ops bl_ops = {
+	.set_backlight = lm36274_set_backlight_reg,
+};
 
 static int lm36274_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
@@ -1081,6 +1037,7 @@ static int lm36274_probe(struct i2c_client *client,
 	lm36274_g_chip = pchip;
 
 	LM36274_INFO("name: %s, address: (0x%x) ok!\n", client->name, client->addr);
+	lcd_kit_bl_register(&bl_ops);
 	lm36274_init_status = true;
 
 	return ret;

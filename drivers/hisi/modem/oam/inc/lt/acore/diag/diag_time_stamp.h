@@ -57,19 +57,25 @@
 /*****************************************************************************
   1 Include HeadFile
 *****************************************************************************/
-
+#include <product_config.h>
+#include <mdrv.h>
+#include <msp.h>
+#include <soc_socp_adapter.h>
+#include <nv_stru_drv.h>
+#include <nv_stru_lps.h>
 #include "diag_common.h"
 #include "diag_cfg.h"
 #include "diag_msgmsp.h"
 #include "diag_msgphy.h"
 #include "diag_api.h"
 #include "diag_debug.h"
-#include "msp_errno.h"
-#include "nv_stru_drv.h"
-#include "nv_stru_lps.h"
-#include <mdrv.h>
-#include <mdrv_diag_system.h>
-#include "soc_socp_adapter.h"
+
+/******************************0x10015101 时间戳心跳结构体****************************************/
+typedef struct
+{
+    VOS_UINT32 ulLowTimeStamp;
+	VOS_UINT32 ulHighTimeStamp;    /* 高32bit时间戳*/
+} DIAG_IND_HIGH_TS_STRU;
 
 typedef struct
 {
@@ -77,8 +83,16 @@ typedef struct
     DIAG_IND_HIGH_TS_STRU   stHighTs;
 }DIAG_TIME_STAMP_T;
 
+#ifdef DIAG_SYSTEM_5G
 VOS_VOID diag_PushHighTs(VOS_VOID);
-
+VOS_VOID diag_StartHighTsTimer(VOS_VOID);
+VOS_VOID diag_StopHighTsTimer(VOS_VOID);
+VOS_UINT32 diag_HighTsCfgProc(VOS_UINT8* pstReq);
+#else
+static inline VOS_VOID diag_PushHighTs(VOS_VOID){}
+static inline VOS_VOID diag_StopHighTsTimer(VOS_VOID){}
+static inline VOS_UINT32 diag_HighTsCfgProc(VOS_UINT8* pstReq){return 0;}
+#endif
 #ifdef __cplusplus
     #if __cplusplus
         }

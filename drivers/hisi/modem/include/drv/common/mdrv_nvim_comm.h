@@ -95,6 +95,8 @@ typedef struct tag_NV_LIST_INFO_STRU
 /* 读不同Modem NV项数据 */
 unsigned int mdrv_nv_readex(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
 
+extern unsigned int mdrv_nv_readex_factory(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
+
 /* 写不同Modem NV项数据 */
 unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pdata, unsigned int ulLength);
 
@@ -119,6 +121,9 @@ unsigned int mdrv_nv_readpart(unsigned int itemid, unsigned int ulOffset, void *
 
 /* 写部分NV项数据 */
 unsigned int mdrv_nv_writepart(unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength);
+
+/* NV维测写NV接口，CBT、HIMS AT^NVWR AT^NVWRPART等使用 */
+unsigned int mdrv_nv_om_write(unsigned int modemid, unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength);
 
 /* 将内存中的nv数据刷到flash 文件系统中*/
 unsigned int mdrv_nv_flush(void);

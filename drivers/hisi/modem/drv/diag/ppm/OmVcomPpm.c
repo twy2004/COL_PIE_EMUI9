@@ -64,6 +64,7 @@
 /* ****************************************************************************
   2 全局变量定义
 **************************************************************************** */
+
 /* 用于记录 VCOM 通道发送的统计信息 */
 OM_VCOM_DEBUG_INFO                      g_stVComDebugInfo[3];
 
@@ -91,7 +92,7 @@ u32 PPM_VComCfgSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrNum++;
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrLen += ulDataLen;
         
-        (void)ppm_printf("vcom cnf cmd failed, ind sum leng 0x%x, ind err len 0x%x.\n", \
+        diag_error("vcom cnf cmd failed, ind sum len 0x%x, ind err len 0x%x.\n", \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen, \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrLen);
 
@@ -99,7 +100,7 @@ u32 PPM_VComCfgSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
     }
 
     /* 与手机软件连接时，启动延时上报，且打印到缓存中，可以输出打印 */
-    (void)ppm_printf("vcom cnf cmd success, ind sum leng 0x%x, ind err len 0x%x.\n", \
+    diag_crit("vcom cnf cmd success, ind sum len 0x%x, ind err len 0x%x.\n", \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen, \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrLen);
 
@@ -112,7 +113,7 @@ void PPM_VComEvtCB(u32 ulChan, u32 ulEvent)
     OM_LOGIC_CHANNEL_ENUM_UINT32        enChannel;
     bool                            ulSndMsg;
 
-    (void)ppm_printf("PPM_VComEvtCB Chan:%s Event:%s.\n", 
+    diag_crit("PPM_VComEvtCB Chan:%s Event:%s.\n", 
                      (ulChan  == PPM_VCOM_CHAN_CTRL) ? "cnf"  : "ind",
                      (ulEvent == PPM_VCOM_EVT_CHAN_OPEN)     ? "open" : "close");
 
@@ -126,14 +127,14 @@ void PPM_VComEvtCB(u32 ulChan, u32 ulEvent)
     }
     else
     {
-        (void)ppm_printf("[%s] Error channel NO %d\n",__FUNCTION__,ulChan);
+        diag_error("Error channel NO %d\n",ulChan);
         return;
     }
 
     /*打开操作直接返回*/
     if(ulEvent == PPM_VCOM_EVT_CHAN_OPEN)
     {
-        (void)ppm_printf("PPM_VComEvtCB open, do nothing.\n");
+        diag_crit("PPM_VComEvtCB open, do nothing.\n");
         return;
     }
     else if(ulEvent == PPM_VCOM_EVT_CHAN_CLOSE)
@@ -147,13 +148,13 @@ void PPM_VComEvtCB(u32 ulChan, u32 ulEvent)
         }
         if(ulSndMsg == true)
         {
-            (void)ppm_printf("PPM_VComEvtCB close, disconnect all ports.\n");
+            diag_crit("PPM_VComEvtCB close, disconnect all ports.\n");
             PPM_DisconnectAllPort(enChannel);
         }
     }
     else
     {
-        (void)ppm_printf("[%s] Error Event State %d\n",__FUNCTION__,ulEvent);
+        diag_error("Error Event State %d\n",ulEvent);
     }
 
     return;
@@ -166,7 +167,7 @@ u32 PPM_VComCfgReadData(u32 ulDevIndex, u8 *pData, u32 uslength)
 
     if (ulDevIndex != PPM_VCOM_CHAN_CTRL)
     {
-        (void)ppm_printf("[%s]:PhyPort port is error: %d\n", __FUNCTION__, ulDevIndex);
+        diag_error("PhyPort port is error: %d\n", ulDevIndex);
 
         return ERR_MSP_FAILURE;
     }
@@ -176,19 +177,19 @@ u32 PPM_VComCfgReadData(u32 ulDevIndex, u8 *pData, u32 uslength)
 
     if ((NULL == pData) || (0 == uslength))
     {
-        (void)ppm_printf("PPM_VComCfgReadData:Send data is NULL\n");
+        diag_error("Send data is NULL\n");
 
         return ERR_MSP_FAILURE;
     }
 
     /* 与手机软件连接时，下发命令有限，且打印到缓存中，可以输出打印 */
-    (void)ppm_printf("vcom receive cmd, length : 0x%x, sum length : 0x%x.\n", \
+    diag_crit("vcom receive cmd, length : 0x%x, sum length : 0x%x.\n", \
         uslength, g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvLen);
 
     ret = CPM_ComRcv(CPM_VCOM_CFG_PORT, pData, uslength);
     if(BSP_OK != ret)
     {
-        ppm_printf("CPM_ComRcv error, ret = 0x%x\n", ret);
+        diag_error("CPM_ComRcv error(0x%x)\n", ret);
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrNum++;
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrLen += uslength;
     }
@@ -208,7 +209,7 @@ u32 PPM_VComIndSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
     g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendNum++;
     g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen += ulDataLen;
     
-    ucMode = (COMPRESS_ENABLE_STATE == mdrv_deflate_read_cur_mode()) ?
+    ucMode = (COMPRESS_ENABLE_STATE == mdrv_socp_compress_status()) ?
                 PPM_VCOM_DATA_MODE_COMPRESSED : PPM_VCOM_DATA_MODE_TRANSPARENT;
       
     ulInSlice = mdrv_timer_get_normal_timestamp();
@@ -296,43 +297,43 @@ void PPM_VComPortInit(void)
 
 void PPM_VComInfoShow(void)
 {
-    (void)ppm_printf(" VCom30 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendNum);
-    (void)ppm_printf(" VCom30 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendLen);
+    diag_crit(" VCom30 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendNum);
+    diag_crit(" VCom30 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendLen);
 
-    (void)ppm_printf(" VCom30 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendErrNum);
-    (void)ppm_printf(" VCom30 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendErrLen);
+    diag_crit(" VCom30 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendErrNum);
+    diag_crit(" VCom30 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMSendErrLen);
 
-    (void)ppm_printf(" VCom30 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvNum);
-    (void)ppm_printf(" VCom30 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvLen);
+    diag_crit(" VCom30 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvNum);
+    diag_crit(" VCom30 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvLen);
 
-    (void)ppm_printf(" VCom30 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvErrNum);
-    (void)ppm_printf(" VCom30 receive Error Len is         %d.\n\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvErrLen);
-
-
-    (void)ppm_printf(" VCom28 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendNum);
-    (void)ppm_printf(" VCom28 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendLen);
-
-    (void)ppm_printf(" VCom28 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrNum);
-    (void)ppm_printf(" VCom28 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrLen);
-
-    (void)ppm_printf(" VCom28 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvNum);
-    (void)ppm_printf(" VCom28 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvLen);
-
-    (void)ppm_printf(" VCom28 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrNum);
-    (void)ppm_printf(" VCom28 receive Error Len is         %d.\n\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrLen);
+    diag_crit(" VCom30 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvErrNum);
+    diag_crit(" VCom30 receive Error Len is         %d.\n\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CBT].ulVCOMRcvErrLen);
 
 
-    (void)ppm_printf(" VCom31 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendNum);
-    (void)ppm_printf(" VCom31 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen);
+    diag_crit(" VCom28 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendNum);
+    diag_crit(" VCom28 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendLen);
 
-    (void)ppm_printf(" VCom31 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrNum);
-    (void)ppm_printf(" VCom31 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrLen);
+    diag_crit(" VCom28 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrNum);
+    diag_crit(" VCom28 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrLen);
 
-    (void)ppm_printf(" VCom31 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvNum);
-    (void)ppm_printf(" VCom31 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvLen);
+    diag_crit(" VCom28 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvNum);
+    diag_crit(" VCom28 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvLen);
 
-    (void)ppm_printf(" VCom31 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvErrNum);
-    (void)ppm_printf(" VCom31 receive Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvErrLen);
+    diag_crit(" VCom28 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrNum);
+    diag_crit(" VCom28 receive Error Len is         %d.\n\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMRcvErrLen);
+
+
+    diag_crit(" VCom31 Send num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendNum);
+    diag_crit(" VCom31 Send Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen);
+
+    diag_crit(" VCom31 Send Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrNum);
+    diag_crit(" VCom31 Send Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrLen);
+
+    diag_crit(" VCom31 receive num is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvNum);
+    diag_crit(" VCom31 receive Len is           %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvLen);
+
+    diag_crit(" VCom31 receive Error num is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvErrNum);
+    diag_crit(" VCom31 receive Error Len is         %d.\n", g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMRcvErrLen);
 
     return;
 }

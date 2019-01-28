@@ -53,10 +53,12 @@
 #include <osl_types.h>
 #include <osl_sem.h>
 #include <osl_spinlock.h>
+#include <bsp_print.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#define  ipc_print_error(fmt, ...)    (bsp_err(fmt, ##__VA_ARGS__))
+#define  ipc_print_info(fmt, ...)     (bsp_info(fmt, ##__VA_ARGS__))
 #define BSP_IPC_CPU_RAW_INT(i)		(0x400 + (i * 0x10))
 #define BSP_IPC_CPU_INT_MASK(i)		(0x404 + (i * 0x10))
 #define BSP_IPC_CPU_INT_STAT(i)		(0x408 + (i * 0x10))

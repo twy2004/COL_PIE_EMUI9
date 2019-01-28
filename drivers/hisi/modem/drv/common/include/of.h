@@ -69,7 +69,7 @@
 #include <osl_err.h>
 #include <osl_types.h>
 #include <osl_generic.h>
-#include <bsp_trace.h>
+#include <bsp_print.h>
 
 struct boot_param_header {
 	__be32	magic;
@@ -269,7 +269,7 @@ static inline struct device_node *of_find_matching_node(
         return ret;
     }
     
-    static inline unsigned long of_read_ulong(const __be32 *cell, int size)
+    static inline unsigned long long of_read_ulong(const __be32 *cell, int size)
     {
         return of_read_number(cell, size);
     }
@@ -293,48 +293,48 @@ int of_selftest(void);
 #else /* CONFIG_OF */
 static inline void bsp_dts_init(void)
 {
-	bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_OF, "<%s> is stub\n", __FUNCTION__);
+	bsp_err("<%s> is stub\n", __FUNCTION__);
 }
 
 static inline int dt_device_is_compatible(const struct device_node *device, const char *name)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return 0;
 }
 
 static inline struct device_node *of_get_parent(const struct device_node *node)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 
 static inline int of_selftest(void)
 {
-	bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_OF, "<%s> is stub\n", __FUNCTION__);
+	bsp_err("<%s> is stub\n", __FUNCTION__);
 	return 0;
 }
 
 static inline int of_reg_info_get(struct device_node *np, int index, u64 *start, u64 *size)
 {
-	bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_OF, "<%s> is stub\n", __FUNCTION__);
+	bsp_err("<%s> is stub\n", __FUNCTION__);
 	return 0;
 }
 
 static inline const char* of_node_full_name(struct device_node *np)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return "<no-node>";
 }
 
 static inline void *of_iomap(struct device_node *np, int index)
 {
-	bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_OF, "<%s> is stub\n", __FUNCTION__);
+	bsp_err("<%s> is stub\n", __FUNCTION__);
 	return NULL;
 }
 
 static inline unsigned int irq_of_parse_and_map(struct device_node *dev, int index)
 {
-	bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_OF, "<%s> is stub\n", __FUNCTION__);
+	bsp_err("<%s> is stub\n", __FUNCTION__);
 	return 0;
 }
 
@@ -343,7 +343,7 @@ static inline unsigned int irq_of_parse_and_map(struct device_node *dev, int ind
 
 static inline bool of_have_populated_dt(void)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return false;
 }
 
@@ -353,125 +353,125 @@ static inline bool of_have_populated_dt(void)
 
 static inline int of_get_child_count(const struct device_node *np)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return 0;
 }
 
 static inline int dt_strings_count(struct device_node *np,const char *propname)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline struct device_node *dt_child_by_name_get(const struct device_node *node,const char *name)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 static inline struct device_node *of_find_node_by_name(struct device_node *from, const char *name)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 
 static inline int dt_u32_array_read(const struct device_node *np, const char *propname, u32 *out_values, size_t sz)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	*out_values = 0;
 	return -1;
 }
 
 static inline struct device_node *dt_compatible_node_find(struct device_node *from,const char *type,const char *compat)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 
 static inline int dt_u8_array_read(const struct device_node *np, const char *propname, u8 *out_values, size_t sz)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_device_is_available(const struct device_node *device)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return 0;
 }
 
  static inline int dt_u32_index_read(const struct device_node *np, const char *propname, u32 index, u32 *out_value)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_phandle_with_args_count(struct device_node *np,const char *list_name, const char *cells_name)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_string_read(struct device_node *np,const char *propname, const char **out_string)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	*out_string = NULL;
 	return -1;
 }
 
 static inline const void *dt_property_get(const struct device_node *node,const char *name,int *lenp)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	*lenp = 0;
 	return NULL;
 }
 
 static inline int dt_u16_array_read(const struct device_node *np, const char *propname, u16 *out_values, size_t sz)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_phandle_with_args_parse(struct device_node *np,const char *list_name,const char *cells_name,int index,struct of_phandle_args *out_args)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_string_index_read(struct device_node *np,const char *propname, int index, const char **out_string)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	*out_string = NULL;
 	return -1;
 }
 
 static inline struct property *dt_property_find(const struct device_node *np,const char *name,int *lenp)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 
 static inline struct device_node *dt_prop_handle_parse(const struct device_node *np,const char *phandle_name,int index)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return NULL;
 }
 
 static inline int dt_u64_read(const struct device_node *np,const char *propname, u64 *out_value)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	*out_value = 1;
 	return -1;
 }
 
 static inline int dt_property_string_match(struct device_node *np,const char *propname,const char *string)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 
 static inline int dt_machine_is_compatible(const char *compat)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return 0;
 }
 
@@ -480,7 +480,7 @@ static inline int dt_machine_is_compatible(const char *compat)
 
 static inline int dt_alias_id_get(struct device_node *np, const char *stem)
 {
-	bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_OF, "dts is close\n");
+	bsp_info("dts is close\n");
 	return -1;
 }
 

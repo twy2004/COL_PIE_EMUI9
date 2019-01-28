@@ -61,6 +61,7 @@
 #include "NasStkInterface.h"
 #include "ccore_nv_stru_pam.h"
 #include "ccore_nv_stru_gunas.h"
+#include "ImsaStkInterface.h"
 #endif
 
 #if (OSA_CPU_ACPU == VOS_OSA_CPU)
@@ -83,6 +84,10 @@
 #endif
 #endif
 
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#include "SiAcoreApi.h"
+#endif
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -101,45 +106,49 @@ typedef VOS_UINT32 (*TLV2DS)(VOS_UINT8 *pDes,VOS_UINT8 *pSrc);
 typedef VOS_UINT32 (*DS2TLV)(VOS_UINT8 Tag,VOS_UINT8 *pDes,VOS_UINT8 *pSrc,VOS_UINT8 len);
 
 #if  ((OSA_CPU_ACPU == VOS_OSA_CPU) || (VOS_OS_VER == VOS_WIN32))
-#define STK_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(I0_MAPS_STK_PID), DIAG_MODE_COMM, Level))
+#define STK_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level))
 
-#define STK_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, __FILE__, __LINE__, "NORMAL:%s", string)
-#define STK_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, __FILE__, __LINE__, "NORMAL:%s", string)
-#define STK_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, __FILE__, __LINE__, "WARNING:%s", string)
-#define STK_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, __FILE__, __LINE__, "ERROR:%s", string)
+#define STK_KEY_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define STK_KEY_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define STK_KEY_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+#define STK_KEY_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s", string)
 
-#define STK_INFO_LOG1(string, para1)    (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, __FILE__, __LINE__, "NORMAL:%s,%d", string, para1)
-#define STK_NORMAL_LOG1(string, para1)  (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, __FILE__, __LINE__, "NORMAL:%s,%d", string, para1)
-#define STK_WARNING_LOG1(string, para1) (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, __FILE__, __LINE__, "WARNING:%s,%d", string, para1)
-#define STK_ERROR_LOG1(string, para1)   (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, __FILE__, __LINE__, "ERROR:%s,%d", string, para1)
+#define STK_KEY_INFO_LOG1(string, para1)    (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define STK_KEY_NORMAL_LOG1(string, para1)  (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define STK_KEY_WARNING_LOG1(string, para1) (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s,%d", string, para1)
+#define STK_KEY_ERROR_LOG1(string, para1)   (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
+
+#define STK_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define STK_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define STK_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+#define STK_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s", string)
+
+#define STK_INFO_LOG1(string, para1)    (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define STK_NORMAL_LOG1(string, para1)  (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define STK_WARNING_LOG1(string, para1) (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s,%d", string, para1)
+#define STK_ERROR_LOG1(string, para1)   (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
 
 #elif  (OSA_CPU_CCPU == VOS_OSA_CPU)
 
-#define STK_INFO_LOG_WITH_SLOT_ID(enSlotId, string)             USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, __FILE__, __LINE__, "Info:%s", string)
+#define STK_KEY_WARNING_LOG(string)         USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+#define STK_KEY_ERROR_LOG(string)           USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s", string)
 
-#define STK_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)           USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, __FILE__, __LINE__, "Normal:%s", string)
+#define STK_KEY_INFO_LOG1(string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "Info:%s,%d", string, para1)
+#define STK_KEY_NORMAL_LOG1(string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "Normal:%s,%d", string, para1)
+#define STK_KEY_WARNING_LOG1(string, para1)     USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s,%d", string, para1)
+#define STK_KEY_ERROR_LOG1(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
 
-#define STK_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)          USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, __FILE__, __LINE__, "WARNING:%s", string)
+#define STK_INFO_LOG(string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define STK_NORMAL_LOG(string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__,"%s", (VOS_CHAR*)__FUNCTION__)
+#define STK_WARNING_LOG(string)             USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define STK_ERROR_LOG(string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
 
-#define STK_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)            USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, __FILE__, __LINE__, "ERROR:%s", string)
+#define STK_INFO_LOG1(string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define STK_NORMAL_LOG1(string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define STK_WARNING_LOG1(string, para1)     USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define STK_ERROR_LOG1(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
 
-#define STK_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)     USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, __FILE__, __LINE__, "Info:%s,%d", string, para1)
 
-#define STK_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)   USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, __FILE__, __LINE__, "Normal:%s,%d", string, para1)
-
-#define STK_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)  USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, __FILE__, __LINE__, "WARNING:%s,%d", string, para1)
-
-#define STK_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)    USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, __FILE__, __LINE__, "ERROR:%s,%d", string, para1)
-
-#define STK_INFO_LOG(string)                STK_INFO_LOG_WITH_SLOT_ID(enSlotId, string)
-#define STK_NORMAL_LOG(string)              STK_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)
-#define STK_WARNING_LOG(string)             STK_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)
-#define STK_ERROR_LOG(string)               STK_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)
-
-#define STK_INFO_LOG1(string, para1)        STK_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define STK_NORMAL_LOG1(string, para1)      STK_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define STK_WARNING_LOG1(string, para1)     STK_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define STK_ERROR_LOG1(string, para1)       STK_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
 #endif
 
 #define SI_SAT_OFFSET(A,b)              ((VOS_UINT16)(&(((A*)0)->b)))
@@ -713,6 +722,7 @@ typedef struct
     SI_STK_CALL_STATUS_STRU             astStkCallStatusTable[STK_CALL_MAX_NUM];            /* STK模块呼叫状态表 */
     MN_CALL_ID_T                        ucSetupCallId;                                      /* SETUP CALL发起呼叫的ID，由NAS分配 */
     VOS_UINT8                           ucRecallTime;                                       /* 重新呼叫的次数 */
+    VOS_UINT8                           aucRcv[2];
 }SI_STK_SETUP_CALL_CTRL_STRU;
 
 /*****************************************************************************
@@ -834,7 +844,8 @@ typedef struct
     VOS_UINT32                      OP_AccChange:1;
     VOS_UINT32                      OP_NetSearchChg:1;
     VOS_UINT32                      OP_NetRej:1;
-    VOS_UINT32                      OP_Reserved:25;
+    VOS_UINT32                      OP_IMSRegistration:1;
+    VOS_UINT32                      OP_Reserved:24;
 }SI_STK_EVENT_STATE_STRU;
 
 typedef struct
@@ -928,6 +939,7 @@ typedef struct
     VOS_UINT32                          ulCellId;       /* 小区ID */
     STK_PLMN_ID_STRU                    stCurPlmnId;    /* PLMN */
     VOS_UINT16                          usLac;
+    VOS_UINT8                           aucRcv[2];
 }SI_STK_SYS_INFO_STRU;
 #endif
 /*****************************************************************************
@@ -1012,6 +1024,8 @@ extern VOS_UINT32 SI_STK_SendResetReqMsg(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, 
 
 extern VOS_VOID SI_STKSimpleResponseData(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_COMMAND_DETAILS_STRU *pstCMDInfo, VOS_UINT32 ulDataLen, VOS_UINT8 *pucData);
 
+extern VOS_VOID SI_STK_InitEventDown(VOS_UINT8 *pCmdData, SI_STK_DEVICE_IDENTITIES_STRU *pstDiInfo, VOS_UINT8 ucEventType);
+
 extern SI_VOID SI_STK_EventDownload(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_VOID *pEventData, VOS_UINT32 ulEventLen, SI_STK_EVENT_TYPE ulEventDownTag, VOS_UINT32 ucSDId);
 
 extern VOS_VOID SI_STKSimpleResponse(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_COMMAND_DETAILS_STRU *pstCMDInfo, VOS_UINT8 ucResult);
@@ -1044,6 +1058,10 @@ extern VOS_UINT32 SI_STKGetBitFromBuf(VOS_UINT8 *pucDataBuf, VOS_UINT32 ulBitNo,
 
 extern VOS_UINT32 SI_STK_SendStatusReqMsg(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
+extern VOS_UINT32 SI_STK_SendNvRefreshReqMsg(
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId
+);
+
 /* STKGobal.c */
 extern VOS_VOID STK_UpdateCsSvcStatus(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, NAS_STK_SERVICE_STATUS_ENUM_UINT8 enCsServiceStatus);
 
@@ -1075,6 +1093,8 @@ extern VOS_VOID STK_GetProfileInfo(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UI
 extern VOS_VOID STK_SetCallCleanGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
 extern VOS_VOID STK_UpdateSearchMode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 ucSearchMode);
+
+extern VOS_VOID SI_STK_InitNVConfig(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
 extern VOS_VOID STK_InitGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
@@ -1262,8 +1282,14 @@ extern SI_SAT_SetUpMenu_DATA_STRU* SI_STK_GetSetUpMenuDataAddr(SI_PIH_CARD_SLOT_
 
 extern SI_STK_IMSICHG_CTRL_STRU* SI_STK_GetIMSIChgCtrlAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
-extern SI_STK_IMSICHG_MATCH_STRU* SI_STK_GetIMSIMatchAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
+extern VOS_UINT32 SI_STK_IMSCodeData(
+    VOS_UINT8                                     *pCmdData,
+    VOS_UINT32                                     ulBufOffs,
+    VOS_UINT32                                     ulBufLen,
+    IMSA_STK_IMS_REGISTRATION_EVENT_DOWNLOAD_STRU *pstMsg);
+
+extern VOS_UINT32 SI_STK_GetIMSRegistrationDataLen(VOS_UINT8 *pucDataBuf);
 
 #endif
 
@@ -1300,8 +1326,6 @@ extern VOS_VOID SI_STK_SendXsmsReq(
     TAF_XSMS_MESSAGE_STRU               *pstMessage,
     VOS_UINT16                           usIsUserAckMsg
 );
-
-extern VOS_VOID SI_STK_RcvXsmsEnvelopeHandle(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, USIMM_STKENVELOPE_CNF_STRU *pstMsg);
 
 extern VOS_VOID SI_STK_SendXsmsPPDownLoadCnf(
     SI_PIH_CARD_SLOT_ENUM_UINT32         enSlotId,

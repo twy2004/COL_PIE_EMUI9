@@ -35,9 +35,9 @@
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
-/*lint -e767  修改人: z57034; 检视人: g45205 原因简述: 打点日志文件宏ID定义 */
+/*lint -e767  原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_PPP_ATCMD_C
-/*lint +e767  修改人: z57034; 检视人: g45205 */
+/*lint +e767  */
 
 #include "product_config.h"
 
@@ -61,6 +61,7 @@
 #include "acore_nv_stru_gucnas.h"
 #include "nv_stru_gucnas.h"
 
+#include "AdsDeviceInterface.h"
 
 /******************************************************************************
    2 外部函数变量声明
@@ -422,76 +423,6 @@ VOS_UINT32 PPP_ProcPppDisconnEvent (VOS_UINT16 usPppId)
     return Ppp_SndPPPDisconnIndtoAT(usPppId);
 }
 
-/*****************************************************************************
- Prototype      : Ppp_RcvConfigInfoInd
- Description    : 为AT模块"PPP模块接收网侧指示的配置信息"提供对应的API函数。
-                  当AT向GGSN认证成功后，调用此函数向PPP发指示。
-
- Input          : usPppId---要发指示的PPP链路所在的PPP ID
-                  pPppIndConfigInfo---从GGSN发来的该PPP链路的IP地址等信息
- Output         : ---
- Return Value   : ---VOS_UINT32
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-11-18
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-VOS_UINT32 Ppp_RcvConfigInfoInd
-(
-    PPP_ID usPppId,
-    AT_PPP_IND_CONFIG_INFO_STRU         *pstAtPppIndConfigInfo
-)
-{
-    VOS_UINT8                               ucRabId = 0;
-
-    VOS_UINT32                              ulResult;
-
-
-    if(VOS_OK != PppIsIdValid(usPppId))
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Invalid PPP Id %d",
-                      usPppId);
-        return VOS_ERR;
-    }
-
-
-    /* 通过usPppId，寻找到usRabId */
-    if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) )
-    {
-        PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Can not get PPP Id %d, RabId %d",
-                      usPppId, ucRabId);
-
-        return VOS_ERR;
-    }
-
-    /* 这个时候PDP已经激活，注册上行数据接收接口。另外当前不支持PPP类型拨号。 */
-    ulResult= ADS_DL_RegDlDataCallback(ucRabId, (RCV_DL_DATA_FUNC)PPP_PushPacketEvent, 0);
-
-    if ( VOS_OK != ulResult )
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Register DL CB failed! RabId %d",
-                      ucRabId);
-
-        return VOS_ERR;
-    }
-
-    /* 保存PCO信息 */
-    PPP_SavePcoInfo(usPppId, pstAtPppIndConfigInfo);
-
-    Ppp_RcvConfigInfoIndMntnInfo(usPppId, pstAtPppIndConfigInfo);
-
-    PPP_RcvAtCtrlOperEvent(usPppId, PPP_AT_CTRL_CONFIG_INFO_IND);
-
-    /*返回正确*/
-    return VOS_OK;
-}
-
 
 VOS_UINT32 PPP_RcvAtCtrlOperEvent(VOS_UINT16 usPppId, PPP_AT_CTRL_OPER_TYPE_ENUM_UINT32 ulCtrlOperType)
 {
@@ -715,6 +646,76 @@ VOS_VOID PPP_GetReqConfigInfo
                pstPppReqConfigInfo->stIPCP.usIpcpLen);
 
     return;
+}
+
+/*****************************************************************************
+ Prototype      : Ppp_RcvConfigInfoInd
+ Description    : 为AT模块"PPP模块接收网侧指示的配置信息"提供对应的API函数。
+                  当AT向GGSN认证成功后，调用此函数向PPP发指示。
+
+ Input          : usPppId---要发指示的PPP链路所在的PPP ID
+                  pPppIndConfigInfo---从GGSN发来的该PPP链路的IP地址等信息
+ Output         : ---
+ Return Value   : ---VOS_UINT32
+ Calls          : ---
+ Called By      : ---
+
+ History        : ---
+  1.Date        : 2005-11-18
+    Author      : ---
+    Modification: Created function
+*****************************************************************************/
+VOS_UINT32 Ppp_RcvConfigInfoInd
+(
+    PPP_ID usPppId,
+    AT_PPP_IND_CONFIG_INFO_STRU         *pstAtPppIndConfigInfo
+)
+{
+    VOS_UINT8                               ucRabId = 0;
+
+    VOS_UINT32                              ulResult;
+
+
+    if(VOS_OK != PppIsIdValid(usPppId))
+    {
+        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Invalid PPP Id %d",
+                      usPppId);
+        return VOS_ERR;
+    }
+
+
+    /* 通过usPppId，寻找到usRabId */
+    if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) )
+    {
+        PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
+                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Can not get PPP Id %d, RabId %d",
+                      usPppId, ucRabId);
+
+        return VOS_ERR;
+    }
+
+    /* 这个时候PDP已经激活，注册上行数据接收接口。另外当前不支持PPP类型拨号。 */
+    ulResult= ADS_DL_RegDlDataCallback(ucRabId, (RCV_DL_DATA_FUNC)PPP_PushPacketEvent, 0);
+
+    if ( VOS_OK != ulResult )
+    {
+        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                      "PPP, Ppp_RcvConfigInfoInd, WARNING, Register DL CB failed! RabId %d",
+                      ucRabId);
+
+        return VOS_ERR;
+    }
+
+    /* 保存PCO信息 */
+    PPP_SavePcoInfo(usPppId, pstAtPppIndConfigInfo);
+
+    Ppp_RcvConfigInfoIndMntnInfo(usPppId, pstAtPppIndConfigInfo);
+
+    PPP_RcvAtCtrlOperEvent(usPppId, PPP_AT_CTRL_CONFIG_INFO_IND);
+
+    /*返回正确*/
+    return VOS_OK;
 }
 
 /*****************************************************************************

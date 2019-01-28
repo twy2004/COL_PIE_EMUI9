@@ -69,7 +69,7 @@ typedef unsigned int         u32;
 typedef signed long long     s64;
 typedef unsigned long long   u64;
 #endif
-
+/*lint --e{959}*/
 /*****************************************************************************
  结构名    : nv_protocol_base_type
  结构说明  : nv_protocol_base_type结构 ID= en_NV_Item_Modem_Log_Path 148
@@ -117,8 +117,8 @@ typedef struct ST_PWC_SWITCH_STRU_S {
     u32 ccpu_hotplug_suspend      :1;/*bit24 此方案拔核时，被拔出的cpu做suspend操作，耗时较长*/
     u32 ccpu_hotplug_crg      :1;/*bit25 此方案拔核时，被拔核仅作l1cache和remove smp操作，耗时叫短，但是低功耗睡眠时需要先把被拔出的cpu插入*/
     u32 ccpu_tickless          :1;/*bit26 ccpu tickless*/
-    u32 sleep_monitor_time  :4; /*bit27-30*/
-    u32 reserved    :1; /*bit31*/
+    u32 reserved  :4; /*bit27-30*/
+    u32 ddrdfs    :1; /*bit31*/
 
     /*以下NV用于DEBUG上下电和开关钟*/
     u32 drx_pa_pd        :1; /*bit0 用于控制PA的上下电*/
@@ -141,6 +141,13 @@ typedef struct ST_PWC_SWITCH_STRU_S {
     u32 drx_abb_reserved2:1;
     u32 reserved2        :14; /*bit18-31 未用*/
 }ST_PWC_SWITCH_STRU;
+
+typedef struct ST_CHR_REPORT_STRU_S {
+    u32 pm_monitor_time;/*pm monitor time,Unit:minute,1 means if cp not sleep ,CHR will report the pm state*/
+    u32 reserved1;
+    u32 reserved2;
+    u32 reserved3;
+}ST_CHR_REPORT_STRU;
 
 /*NV ID = 0xd10c*/
 typedef struct ST_PWC_DFS_STRU_S {
@@ -181,7 +188,8 @@ typedef struct
     u32 fetal_err      : 1; /* 15 强制记录开关，暂未使用*/
     u32 log_ctrl       : 2; /* bsp_trsce 输出控制*/
     u32 dumpTextClip   : 1; /* ddr保存时text段裁剪特性*/
-    u32 reserved1      : 13;
+	u32 secDump        : 1;
+    u32 reserved1      : 12;
 } DUMP_CFG_STRU;
 
 typedef struct
@@ -323,6 +331,13 @@ typedef struct
     u32 reserved;
 }DRV_PMU_CFG_STRU;
 
+/*0xd183*/
+typedef struct
+{
+	u32 sim_volt_flag;
+	u32 reserved;
+}DRV_NV_PMU_TYPE;
+
 /*0xd168*/
 typedef struct
 {
@@ -349,11 +364,40 @@ typedef struct
 }DIAG_CHANNLE_PORT_CFG_STRU;
 
 typedef struct {
+u32 deflate_enable:1;      /*0 deflate特性关闭 1 deflate特性打开*/
+u32 reservd:31;
+}DRV_DEFLATE_CFG_STRU;
+
+typedef struct {
     u32 iqi_enable:1;      /*0 iqi特性关闭 1 iqi特性打开*/
     u32 serial_enable:1;   /*serial 开关 1打开 0 关闭*/
     //u32 debug_enable:1;    /*debug功能使能*/
     u32 reservd:30;
 }DRV_IQI_CFG_STRU;
+
+typedef struct
+{
+    u8  cMasterSwitch;  /* Range:[0,1] *//* 开机log总开关1:开0:关 */
+    u8  cBufUsable;     /* Range:[0,1] *//* 开机log内存可用1:开0:关 */
+    u8  cBufEnable;     /* Range:[0,1] *//* 开机log内存使能1使能 0:不使能 */
+    u8  cswACPUBsp;     /* Range:[0,3] *//* ACPU Bsp开机log profile */
+    u8  cswACPUDiag;    /* Range:[0,3] *//* ACPU Diag开机log profile */
+    u8  cswACPUHifi;    /* Range:[0,3] *//* ACPU Hifi开机log profile */
+    u8  cswLRMBsp;      /* Range:[0,3] *//* 4G Modem Bsp开机log profile */
+    u8  cswLRMDiag;     /* Range:[0,3] *//* 4G Modem Diag开机log profile */
+    u8  cswLRMTLPhy;    /* Range:[0,3] *//* 4G Modem LPHY开机log profile */
+    u8  cswLRMGUPhy;    /* Range:[0,3] *//* 4G Modem GUPHY开机log profile */
+    u8  cswLRMCPhy;     /* Range:[0,3] *//* 4G Modem CPHY开机log profile */
+    u8  cswLRMEasyRf;   /* Range:[0,3] *//* 4G Modem easyRf开机log profile */
+    u8  cswNRMBsp;      /* Range:[0,3] *//* 5G Modem Bsp开机log profile */
+    u8  cswNRMDiag;     /* Range:[0,3] *//* 5G Modem CCPU开机log profile */
+    u8  cswNRMHAC;      /* Range:[0,3] *//* 5G Modem L2HAC开机log profile */
+    u8  cswNRMPhy;      /* Range:[0,3] *//* 5G Modem NRPHY开机log profile */
+    u8  cswNRMHL1C;     /* Range:[0,3] *//* 5G Modem HL1C开机log profile */
+    u8  cswNRMPDE;      /* Range:[0,3] *//* 5G Modem PDE开机log profile */
+    u8  cReserved[6];   /* 保留字段 */
+}DRV_NV_POWER_ON_LOG_SWITCH_STRU;
+
 #ifndef LPHY_UT_MODE//lint !e553
 typedef struct convert_table
 {

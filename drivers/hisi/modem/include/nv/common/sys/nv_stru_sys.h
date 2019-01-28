@@ -57,7 +57,7 @@ extern "C" {
 #endif
 
 #include "nv_id_sys.h"
-
+/*lint --e{761}*/
 #ifndef __u8_defined
 #define __u8_defined
 typedef signed char          s8;

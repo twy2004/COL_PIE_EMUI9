@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -70,7 +70,6 @@ struct uart_infor
 
 /*占用空间较小的部分*/
 #define SRAM_TEMP_PROTECT_SIZE 32
-#define SRAM_DLOAD_SIZE 64
 #define SRAM_DSP_MNTN_SIZE 32
 #define SRAM_CDSP_MNTN_SIZE 32
 struct dfs_ddr_cfg
@@ -89,12 +88,12 @@ struct hpm_tem_print
 	unsigned int hpm_svt_opc;
 	signed int	 temperature;
 	unsigned char up_volt;
+	unsigned char reserved[3];
 };
 typedef struct tag_SRAM_SMALL_SECTIONS
 {
 	unsigned int        SRAM_USB_ASHELL;
 	struct uart_infor   UART_INFORMATION[3];                            /*three uarts:0/1/2*/
-	unsigned int        SRAM_ONOFF[8];
 	unsigned int        SRAM_DICC[8];				                    /*GU使用的DICC*/
 	unsigned int        SRAM_DSP_DRV;
 	unsigned int        SRAM_PCIE_INFO[64];			                    /*DSP镜像加载时使用*/
@@ -108,19 +107,18 @@ typedef struct tag_SRAM_SMALL_SECTIONS
 	unsigned int        SRAM_MIN_CPUFREQ_PROFILE;                       /* min profile */
 	unsigned int        SRAM_CPUFREQ_DOWN_FLAG[2];
 	unsigned int        SRAM_CPUFREQ_DOWN_PROFILE[2];
-	unsigned int        SRAM_REBOOT_INFO[8];		                    /* E5 开机信息区 不可以被修改*/
-	unsigned int        SRAM_TEMP_PROTECT[SRAM_TEMP_PROTECT_SIZE];		/*温保使用的该地址不能被修改*/
-	unsigned char       SRAM_DLOAD[SRAM_DLOAD_SIZE];			        /*升级模块使用，不可以被修改*/
+	unsigned int        SRAM_REBOOT_INFO[8];
+	unsigned int        SRAM_TEMP_PROTECT[SRAM_TEMP_PROTECT_SIZE];
 	struct tagOcrShareData  SRAM_SEC_SHARE;			                    /*onchiprom启动时存放信息的标志位，放在SRAM的高地址处,不可修改*/
 
 	unsigned char       SRAM_DSP_MNTN_INFO[SRAM_DSP_MNTN_SIZE];		    /* DSP邮箱异常时的可维可测信息 */
 	struct dfs_ddr_cfg  SRAM_DFS_DDRC_CFG[2];
 	unsigned int 	    SRAM_DUMP_POWER_OFF_FLAG;
 	unsigned int 	    SRAM_PM_CHECK_ADDR;
-    unsigned int        SRAM_CDSP_DRV;
+        unsigned int        SRAM_CDSP_DRV;
 	unsigned char       SRAM_CDSP_MNTN_INFO[SRAM_CDSP_MNTN_SIZE];		    /* CDSP邮箱异常时的可维可测信息 */
- 	unsigned int        SRAM_SEC_ROOTCA[ROOT_CA_LEN/4];
-    struct hpm_tem_print hpm_tem;
+ 	unsigned int        SRAM_SEC_ROOTCA[ROOT_CA_LEN/4]; /*lint !e43*/
+        struct hpm_tem_print hpm_tem;
 }SRAM_SMALL_SECTIONS;
 
 #endif/*__ASSEMBLY__*/
@@ -171,13 +169,20 @@ typedef struct tag_SRAM_SMALL_SECTIONS
 
 #define SRAM_OFFSET_GU_MAC_HEADER       (SRAM_OFFSET_TLDSP_SHARED + SRAM_SIZE_TLDSP_SHARED)
 #ifndef SRAM_SIZE_GU_MAC_HEADER
-#define SRAM_SIZE_GU_MAC_HEADER         (56*1024)
+#define SRAM_SIZE_GU_MAC_HEADER         (0)
+#endif
+
+#define SRAM_OFFSET_LTEV_SHARED        (SRAM_OFFSET_GU_MAC_HEADER + SRAM_SIZE_GU_MAC_HEADER)
+#ifdef FEATURE_LTEV
+#define SRAM_SIZE_LTEV_SHARED          (256)
+#else
+#define SRAM_SIZE_LTEV_SHARED          (0)
 #endif
 
 /*SRAM动态区*/
-#define SRAM_OFFSET_DYNAMIC_SEC         (SRAM_OFFSET_GU_MAC_HEADER + SRAM_SIZE_GU_MAC_HEADER)
+#define SRAM_OFFSET_DYNAMIC_SEC         (SRAM_OFFSET_LTEV_SHARED + SRAM_SIZE_LTEV_SHARED)
 #define SRAM_SIZE_DYNAMIC_SEC           (DRV_SRAM_SIZE - SRAM_OFFSET_DYNAMIC_SEC)
- 
+
 #ifdef __cplusplus
 }
 #endif

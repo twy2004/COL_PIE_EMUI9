@@ -60,10 +60,10 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "mdrv.h"
-#include <mdrv_diag_system.h>
-#include  "vos.h"
-#include  "diag_common.h"
+#include <product_config.h>
+#include <mdrv.h>
+#include <vos.h>
+#include "diag_common.h"
 
 
 #if (VOS_OS_VER == VOS_LINUX)
@@ -373,20 +373,23 @@ typedef struct
 /*****************************************************************************
   9 OTHERS
 *****************************************************************************/
-
-extern VOS_VOID diag_FsClose(VOS_VOID);
-extern VOS_INT32  diag_FsOpen(const VOS_CHAR *pcFileName, VOS_INT lFlag);
-extern VOS_UINT32 diag_FsGetDirInfo(VOS_CHAR *pDirName, VOS_UINT32 *pulTotalNum);
-extern VOS_UINT32 diag_FsGetItemInfo(VOS_CHAR *pDirectory,DIAG_DIR_FILE_INFO_STRU *pstDirFileInfo);
-extern VOS_UINT32 diag_FsQueryProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsExportProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsDeleteProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsOpenProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsImportProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsSpaceProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsScanProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_FsMkdirProc(VOS_UINT8* pstReq);
-
+#ifdef CONFIG_FILEBROSWER
+VOS_VOID diag_FsClose(VOS_VOID);
+VOS_INT32  diag_FsOpen(const VOS_CHAR *pcFileName, VOS_INT lFlag);
+VOS_UINT32 diag_FsGetDirInfo(VOS_CHAR *pDirName, VOS_UINT32 *pulTotalNum);
+VOS_UINT32 diag_FsGetItemInfo(VOS_CHAR *pDirectory,DIAG_DIR_FILE_INFO_STRU *pstDirFileInfo);
+VOS_UINT32 diag_FsQueryProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsExportProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsDeleteProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsOpenProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsImportProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsSpaceProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsScanProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_FsMkdirProc(VOS_UINT8* pstReq);
+VOS_VOID diag_fsInit(void);
+#else
+static inline VOS_VOID  diag_fsInit(void){}
+#endif
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

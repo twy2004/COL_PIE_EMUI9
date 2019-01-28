@@ -91,6 +91,7 @@ while(0)
 #define ICC_SDDR_ADDR_MAX      (SHM_ADDR_ICC + SHM_SIZE_ICC)    /* 用于ICC的共享DDR不能大于此地址 */
 #define ICC_SRAM_ADDR_MAX      (SRAM_ADDR_ICC + SRAM_SIZE_ICC)  /* 用于ICC的SRAM不能大于此地址 */
 #define ICC_SDDR_S_ADDR_MAX    (SHM_S_ADDR_ICC + SHM_S_SIZE_ICC)/* 用于安全ICC的共享DDR不能大于此地址 */
+#define NRICC_SDDR_NRADDR_MAX    (NRSHM_ADDR_ICC + NRSHM_SIZE_ICC) /* 用于NRCPU  ICC的共享DDR不能大于此地址 */
 
 #define ICC_SEM_FULL          (1)
 #define ICC_SEM_EMPTY         (0)

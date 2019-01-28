@@ -49,9 +49,10 @@
 /*****************************************************************************
   1 Include HeadFile
 *****************************************************************************/
+#include <product_config.h>
 #include <mdrv.h>
-#include <mdrv_diag_system.h>
-#include "product_config.h"
+#include <msp.h>
+#include <vos.h>
 #include "diag_common.h"
 #include "diag_cfg.h"
 #include "diag_msgmsp.h"
@@ -67,14 +68,52 @@
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_CONNECT_C
 
-extern HTIMER          g_DebugTimer;
+#define DIAG_NV_IMEI_LEN                             15
+
+VOS_UINT32 diag_GetImei(VOS_CHAR szimei [16])
+{
+    VOS_UINT32  ret;
+    VOS_UINT32  uslen;
+    VOS_UINT32  subscript = 0;
+    VOS_CHAR   checkdata = 0;
+    VOS_CHAR   auctemp[DIAG_NV_IMEI_LEN+1] = {0};
+
+    uslen = DIAG_NV_IMEI_LEN+1;
+
+    ret = mdrv_nv_read(0, auctemp, uslen);
+
+    if(ret != 0)
+    {
+        return ret;
+    }
+    else
+    {
+        for (subscript = 0; subscript < (DIAG_NV_IMEI_LEN - 1); subscript += 2)
+        {
+            checkdata += (VOS_CHAR)(((auctemp[subscript])
+                           +((auctemp[subscript + sizeof(VOS_CHAR)] * 2) / 10))
+                           +((auctemp[subscript + sizeof(VOS_CHAR)] * 2) % 10));
+        }
+        checkdata = (10 - (checkdata%10)) % 10;
+
+        for (subscript = 0; subscript < uslen; subscript++)
+        {
+            *(szimei + subscript) = *(auctemp + subscript) + 0x30; /*字符转换*/
+        }
+
+        szimei[DIAG_NV_IMEI_LEN - 1] = checkdata + 0x30;
+        szimei[DIAG_NV_IMEI_LEN] = 0;
+    }
+
+    return 0;
+}
 
 VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 {
     VOS_UINT32 ulCnfRst;
+    DIAG_SRV_HEADER_STRU stSrvHeader = {};
     DIAG_CMD_HOST_CONNECT_CNF_STRU stCnf    = {0};
     const MODEM_VER_INFO_S* pstVerInfo;
-    MSP_DIAG_CNF_INFO_STRU stDiagInfo       = {0};
     DIAG_MSG_REPORT_HEAD_STRU stDiagHead    = {0};
 
     /*处理结果*/
@@ -100,7 +139,6 @@ VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 	}
 
     /*获取IMEI号*/
-    //(VOS_VOID)diag_GetImei(stCnf.szImei);
 
     /*获取软件版本号*/
     (VOS_VOID)VOS_MemSet_s(&stCnf.stUeSoftVersion, (VOS_UINT32)sizeof(DIAG_CMD_UE_SOFT_VERSION_STRU), 0, (VOS_UINT32)sizeof(DIAG_CMD_UE_SOFT_VERSION_STRU));
@@ -122,34 +160,31 @@ VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 
 
     (VOS_VOID)VOS_MemSet_s(stCnf.szProduct, (VOS_UINT32)sizeof(stCnf.szProduct),0,(VOS_UINT32)sizeof(stCnf.szProduct));
-    (VOS_VOID)VOS_MemCpy_s(stCnf.szProduct, (VOS_UINT32)sizeof(stCnf.szProduct), 
+    (VOS_VOID)VOS_MemCpy_s(stCnf.szProduct, (VOS_UINT32)sizeof(stCnf.szProduct),
         PRODUCT_FULL_VERSION_STR, VOS_StrNLen(PRODUCT_FULL_VERSION_STR, sizeof(stCnf.szProduct)-1));
 
-    DIAG_MSG_COMMON_PROC(stDiagInfo, stCnf, pstDiagHead);
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stSrvHeader);
+    DIAG_SRV_SET_MODEM_ID(&stSrvHeader.frame_header, DIAG_MODEM_0);
+    DIAG_SRV_SET_TRANS_ID(&stSrvHeader.frame_header, pstDiagHead->stService.ulMsgTransId);
+    DIAG_SRV_SET_COMMAND_ID_EX(&stSrvHeader.frame_header, pstDiagHead->ulCmdId);
+    DIAG_SRV_SET_MSG_LEN(&stSrvHeader.frame_header, sizeof(stCnf));
 
-    stDiagInfo.ulMsgType = DIAG_MSG_TYPE_MSP;
+    stDiagHead.pHeaderData      = (VOS_VOID *)&stSrvHeader;
+    stDiagHead.ulHeaderSize     = sizeof(stSrvHeader);
 
-    stDiagHead.u.stID.pri4b     = (stDiagInfo.ulMsgType & 0xf);
-    stDiagHead.u.stID.mode4b    = (stDiagInfo.ulMode & 0xf);
-    stDiagHead.u.stID.sec5b     = (stDiagInfo.ulSubType & 0x1f);
-    stDiagHead.u.stID.cmdid19b  = (stDiagInfo.ulMsgId & 0x7ffff);
-    stDiagHead.ulSsid           = stDiagInfo.ulSSId;
-    stDiagHead.ulModemId        = stDiagInfo.ulModemid;
-    stDiagHead.ulDirection      = stDiagInfo.ulDirection;
-    stDiagHead.ulMsgTransId     = stDiagInfo.ulTransId;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_CNF;
     stDiagHead.ulDataSize       = sizeof(stCnf);
     stDiagHead.pData            = &stCnf;
 
-    ulCnfRst = diag_ServicePackData(&stDiagHead);
+    ulCnfRst = diag_ServicePackCnfData(&stDiagHead);
 
     if(ERR_MSP_SUCCESS != ulCnfRst)
     {
-        diag_printf("diag_GetModemInfo failed.\n");
+        diag_error("diag_GetModemInfo failed.\n");
     }
     else
     {
-        diag_printf("diag_GetModemInfo success.\n");
+        diag_crit("diag_GetModemInfo success.\n");
     }
 
     return;
@@ -157,7 +192,6 @@ VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 
 VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
 {
-    VOS_UINT32 ret;
     VOS_UINT32 ulCnfRst = ERR_MSP_UNAVAILABLE;
     DIAG_MSG_MSP_CONN_STRU *pstConn;
     DIAG_CMD_HOST_CONNECT_CNF_STRU stCnf = {0};
@@ -170,7 +204,6 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     pstDiagHead = (DIAG_FRAME_INFO_STRU *)pstReq;
 
     mdrv_diag_PTR(EN_DIAG_PTR_MSGMSP_CONN_IN, 1, pstDiagHead->ulCmdId, 0);
-
 
     /* 新增获取modem信息的命令用于工具查询单板信息 */
     if(sizeof(DIAG_CMD_GET_MDM_INFO_REQ_STRU) == pstDiagHead->ulMsgLen)
@@ -189,7 +222,7 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
         return ERR_MSP_INALID_LEN_ERROR;
     }
 
-    diag_printf("Receive tool connect cmd!\n");
+    diag_crit("Receive tool connect cmd!\n");
 
     pstConn = (DIAG_MSG_MSP_CONN_STRU *)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, (VOS_UINT32)(sizeof(DIAG_MSG_MSP_CONN_STRU)-VOS_MSG_HEAD_LENGTH));
     if(VOS_NULL == pstConn)
@@ -199,10 +232,10 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     }
 
     /*设置连接状态开关值*/
-    ulCnfRst = diag_CfgSetGlobalBitValue(&g_ulDiagCfgInfo,DIAG_CFG_CONN_BIT,DIAG_CFG_SWT_OPEN);
+    ulCnfRst = diag_CfgSetGlobalBitValue(&g_ulDiagCfgInfo, DIAG_CFG_CONN_BIT,DIAG_CFG_SWT_OPEN);
     if(ulCnfRst)
     {
-        diag_printf("Open DIAG_CFG_CONN_BIT failed.\n");
+        diag_error("Open DIAG_CFG_CONN_BIT failed.\n");
         goto DIAG_ERROR;
     }
 
@@ -228,13 +261,12 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     }
 
     /*获取IMEI号*/
-    //(VOS_VOID)diag_GetImei(pstConn->stConnInfo.szImei);
 
     /*获取软件版本号*/
     (VOS_VOID)VOS_MemSet_s(&pstConn->stConnInfo.stUeSoftVersion, (VOS_UINT32)sizeof(DIAG_CMD_UE_SOFT_VERSION_STRU), 0, (VOS_UINT32)sizeof(DIAG_CMD_UE_SOFT_VERSION_STRU));
 
     /*路测信息获取*/
-    (VOS_VOID)mdrv_nv_read(EN_NV_ID_AGENT_FLAG,&(pstConn->stConnInfo.stAgentFlag), (VOS_UINT32)sizeof(NV_ITEM_AGENT_FLAG_STRU));
+    (VOS_VOID)mdrv_nv_read(EN_NV_ID_AGENT_FLAG, &(pstConn->stConnInfo.stAgentFlag), (VOS_UINT32)sizeof(NV_ITEM_AGENT_FLAG_STRU));
 
     pstConn->stConnInfo.diag_cfg.UintValue = 0;
 
@@ -249,8 +281,8 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
 
     (VOS_VOID)VOS_MemSet_s(pstConn->stConnInfo.szProduct, (VOS_UINT32)sizeof(pstConn->stConnInfo.szProduct),
         0, (VOS_UINT32)sizeof(pstConn->stConnInfo.szProduct));
-    
-    (VOS_VOID)VOS_MemCpy_s(pstConn->stConnInfo.szProduct, (VOS_UINT32)sizeof(pstConn->stConnInfo.szProduct), 
+
+    (VOS_VOID)VOS_MemCpy_s(pstConn->stConnInfo.szProduct, (VOS_UINT32)sizeof(pstConn->stConnInfo.szProduct),
         PRODUCT_FULL_VERSION_STR, VOS_StrNLen(PRODUCT_FULL_VERSION_STR, sizeof(pstConn->stConnInfo.szProduct)-1));
 
     ulCnfRst = diag_SendMsg(MSP_PID_DIAG_APP_AGENT,PS_PID_MM,ID_MSG_DIAG_CMD_REPLAY_TO_PS,(VOS_UINT8*)&stReplay,\
@@ -278,13 +310,7 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
         diag_reset_src_mntn_info();
         mdrv_diag_reset_dst_mntn_info();
 
-        /* 启动定时器上报可维可测信息给工具定位丢包问题 */
-        ret = VOS_StartRelTimer(&g_DebugTimer, MSP_PID_DIAG_APP_AGENT, DIAG_DEBUG_TIMER_LEN, DIAG_DEBUG_TIMER_NAME, \
-                                DIAG_DEBUG_TIMER_PARA, VOS_RELTIMER_NOLOOP, VOS_TIMER_NO_PRECISION);
-        if(ret != ERR_MSP_SUCCESS)
-        {
-            diag_printf("VOS_StartRelTimer fail [%s]\n", __FUNCTION__);
-        }
+        diag_StartMntnTimer();
 
         mdrv_applog_conn();
 
@@ -296,7 +322,7 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
         {
             mdrv_socp_send_data_manager(SOCP_CODER_DST_OM_IND, SOCP_DEST_DSM_ENABLE);
         }
-        diag_printf("Diag send ConnInfo to Modem success.\n");
+        diag_crit("Diag send ConnInfo to Modem success.\n");
 
         return ulCnfRst;
     }
@@ -305,7 +331,7 @@ DIAG_ERROR:
 
     if(pstConn)
     {
-      VOS_FreeMsg(MSP_PID_DIAG_APP_AGENT, pstConn);
+        VOS_FreeMsg(MSP_PID_DIAG_APP_AGENT, pstConn);
     }
     DIAG_MSG_COMMON_PROC(stDiagInfo, stCnf, pstDiagHead);
 
@@ -315,7 +341,7 @@ DIAG_ERROR:
 
     ulCnfRst = DIAG_MsgReport(&stDiagInfo, &stCnf, (VOS_UINT32)sizeof(stCnf));
 
-    diag_printf("diag connect failed.\n");
+    diag_error("diag connect failed.\n");
 
     return ulCnfRst;
 }
@@ -334,7 +360,7 @@ VOS_UINT32 diag_SetChanDisconn(MsgBlock* pMsgBlock)
         diag_CfgResetAllSwt();
 
         /* 删除定时器 */
-        (VOS_VOID)VOS_StopRelTimer(&g_DebugTimer);
+        diag_StopMntnTimer();
 
         mdrv_hds_printlog_disconn();
 
@@ -360,7 +386,7 @@ VOS_UINT32 diag_DisConnProc(VOS_UINT8* pstReq)
     VOS_UINT32 ulLen;
     DIAG_MSG_A_TRANS_C_STRU *pstInfo;
 
-    diag_printf("Receive tool disconnect cmd!\n");
+    diag_crit("Receive tool disconnect cmd!\n");
 
     pstDiagHead = (DIAG_FRAME_INFO_STRU *)pstReq;
 
@@ -377,7 +403,7 @@ VOS_UINT32 diag_DisConnProc(VOS_UINT8* pstReq)
     diag_CfgResetAllSwt();
 
     /* 删除定时器 */
-    (VOS_VOID)VOS_StopRelTimer(&g_DebugTimer);
+    diag_StopMntnTimer();
 
     DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
 
@@ -399,11 +425,12 @@ DIAG_ERROR:
 
     ret = DIAG_MsgReport(&stDiagInfo, &stCnfDisConn, (VOS_UINT32)sizeof(stCnfDisConn));
 
-    diag_printf("diag disconnect failed.\n");
+    diag_error("diag disconnect failed.\n");
 
     return ret;
 
 }
+
 VOS_UINT32 diag_ConnTimerProc(VOS_VOID)
 {
     return ERR_MSP_SUCCESS;

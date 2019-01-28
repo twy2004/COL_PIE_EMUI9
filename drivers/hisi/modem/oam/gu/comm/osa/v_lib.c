@@ -79,6 +79,7 @@
 #include "v_blkMem.h"
 #include "v_IO.h"
 #include "v_timer.h"
+#include "v_private.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
@@ -180,7 +181,7 @@ int errnoSet(int errorValue)
  Input       : ulErrorNo -- Error number
  Return      : VOS_OK on Success and VOS_ERROR on Failure
  *****************************************************************************/
-VOS_UINT32 V_SetErrorNo( VOS_UINT32 ulErrorNo,
+MODULE_EXPORTED VOS_UINT32 V_SetErrorNo( VOS_UINT32 ulErrorNo,
                          VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     g_ulErrorNo = ulErrorNo;
@@ -244,7 +245,7 @@ VOS_BOOL VOS_CharIsLower( VOS_CHAR Char )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_CHAR VOS_CharToUpper( VOS_CHAR Char )
+MODULE_EXPORTED VOS_CHAR VOS_CharToUpper( VOS_CHAR Char )
 {
     if ( VOS_CharIsLower( Char ) )
     {
@@ -262,7 +263,7 @@ VOS_CHAR VOS_CharToUpper( VOS_CHAR Char )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_CHAR VOS_CharToLower( VOS_CHAR Char )
+MODULE_EXPORTED VOS_CHAR VOS_CharToLower( VOS_CHAR Char )
 {
     if ( VOS_CharIsUpper( Char ) )
     {
@@ -280,7 +281,7 @@ VOS_CHAR VOS_CharToLower( VOS_CHAR Char )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_INT8 VOS_StrNiCmp( VOS_CHAR * Str1, VOS_CHAR * Str2, VOS_SIZE_T Length )
+MODULE_EXPORTED VOS_INT8 VOS_StrNiCmp( VOS_CHAR * Str1, VOS_CHAR * Str2, VOS_SIZE_T Length )
 {
     VOS_CHAR Char1, Char2;
     VOS_CHAR *pTempStr1 = Str1;
@@ -422,7 +423,7 @@ VOS_CHAR *V_StrCpy( VOS_CHAR *Dest, VOS_CHAR *Src )
  Return     : A pointer to Dest
  Other      :
  *****************************************************************************/
-VOS_CHAR *VOS_StrCpy_s( VOS_CHAR *Dest, VOS_SIZE_T ulDestSize, VOS_CHAR *Src )
+MODULE_EXPORTED VOS_CHAR *VOS_StrCpy_s( VOS_CHAR *Dest, VOS_SIZE_T ulDestSize, VOS_CHAR *Src )
 {
     if ( ulDestSize > VOS_SECUREC_MEM_MAX_LEN )
     {
@@ -440,7 +441,7 @@ VOS_CHAR *VOS_StrCpy_s( VOS_CHAR *Dest, VOS_SIZE_T ulDestSize, VOS_CHAR *Src )
  Return     : The number of non-null characters in the string
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_StrLen( VOS_CHAR * Str )
+MODULE_EXPORTED VOS_UINT32 VOS_StrLen( VOS_CHAR * Str )
 {
     const char *sc;
 
@@ -495,7 +496,7 @@ VOS_CHAR* VOS_StrRChr( VOS_CHAR * Str, VOS_CHAR Char )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_INT VOS_MemCmp( const VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count )
+MODULE_EXPORTED VOS_INT VOS_MemCmp( const VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count )
 {
     const unsigned char *su1, *su2;
     int res = 0;
@@ -528,7 +529,7 @@ VOS_INT VOS_MemCmp( const VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Coun
               zero-length string, or VOS_NULL_PTR if the string is not found.
  Other      :
  *****************************************************************************/
-VOS_CHAR * VOS_StrStr( VOS_CHAR * Str1, VOS_CHAR * Str2 )
+MODULE_EXPORTED VOS_CHAR * VOS_StrStr( VOS_CHAR * Str1, VOS_CHAR * Str2 )
 {
     VOS_UINT32 Len1, Len2;
     VOS_CHAR * pTempStr1 = Str1;
@@ -612,7 +613,7 @@ VOS_CHAR *V_StrNCpy( VOS_CHAR *Dest, VOS_CHAR *Src, VOS_SIZE_T Count )
  Return     : A pointer to Dest
  Other      :
  *****************************************************************************/
-VOS_CHAR *VOS_StrNCpy_s( VOS_CHAR *Dest, VOS_SIZE_T ulDestSize, VOS_CHAR *Src, VOS_SIZE_T Count )
+MODULE_EXPORTED VOS_CHAR *VOS_StrNCpy_s( VOS_CHAR *Dest, VOS_SIZE_T ulDestSize, VOS_CHAR *Src, VOS_SIZE_T Count )
 {
     if ( ulDestSize > VOS_SECUREC_MEM_MAX_LEN )
     {
@@ -666,7 +667,7 @@ VOS_INT VOS_StrCmp( VOS_CHAR *Str1, VOS_CHAR *Str2 )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_StrNLen( VOS_CHAR * Str, VOS_UINT32 Count )
+MODULE_EXPORTED VOS_UINT32 VOS_StrNLen( VOS_CHAR * Str, VOS_UINT32 Count )
 {
     VOS_CHAR * Temp;
 
@@ -742,7 +743,7 @@ VOS_VOID * V_MemSet( VOS_VOID * ToSet, VOS_CHAR Char, VOS_SIZE_T Count,
  Return     : None
  Other      :
  *****************************************************************************/
-VOS_VOID * V_MemSet_s( VOS_VOID * ToSet, VOS_SIZE_T ulDestSize, VOS_CHAR Char, VOS_SIZE_T Count,
+MODULE_EXPORTED VOS_VOID * V_MemSet_s( VOS_VOID * ToSet, VOS_SIZE_T ulDestSize, VOS_CHAR Char, VOS_SIZE_T Count,
                      VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     if ( Count > ulDestSize )
@@ -819,7 +820,7 @@ VOS_VOID * V_MemCpy( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
  Return     :
  Other      :
  *****************************************************************************/
-VOS_VOID * V_MemCpy_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
+MODULE_EXPORTED VOS_VOID * V_MemCpy_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
                        VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     if ( Count > ulDestSize )
@@ -890,7 +891,7 @@ VOS_VOID * V_MemMove( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
         return(VOS_NULL_PTR);
     }
 
-    return memmove (Dest,Src,Count);/* [false alarm]:前边已有严谨的判断  */
+    return memmove (Dest,Src,Count);/* [false alarm]:前边已有严谨的判断  */ /* unsafe_function_ignore: memmove */
 }
 
 /*****************************************************************************
@@ -901,7 +902,7 @@ VOS_VOID * V_MemMove( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
  Return     :
  Other      :
  *****************************************************************************/
- VOS_VOID * V_MemMove_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
+MODULE_EXPORTED  VOS_VOID * V_MemMove_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
                         VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     if ( Count > ulDestSize )
@@ -1212,7 +1213,7 @@ returnHandle:
  Return     : VOS_OK--success,VOS_ERROR--fail.
  Other      : Note,result maybe 64-bit or 32-bit.
  *****************************************************************************/
-VOS_UINT32 VOS_64Div32( VOS_UINT32 ulDividendHigh,
+MODULE_EXPORTED VOS_UINT32 VOS_64Div32( VOS_UINT32 ulDividendHigh,
                         VOS_UINT32 ulDividendLow,
                         VOS_UINT32 ulDivisor,
                         VOS_UINT32 *pulQuotientHigh,
@@ -1264,7 +1265,7 @@ VOS_UINT32 VOS_64Div32( VOS_UINT32 ulDividendHigh,
               g_pulTap1           -- First Tap
               g_pulTap2           -- Second Tap
  *****************************************************************************/
-VOS_VOID VOS_SetSeed( VOS_UINT32 ulSeed )
+MODULE_EXPORTED VOS_VOID VOS_SetSeed( VOS_UINT32 ulSeed )
 {
     g_ulVosRadomSeed = ulSeed;
 
@@ -1283,7 +1284,7 @@ VOS_VOID VOS_SetSeed( VOS_UINT32 ulSeed )
               g_pulTap1           -- First Tap
               g_pulTap2           -- Second Tap
  *****************************************************************************/
-VOS_UINT32 VOS_Rand( VOS_UINT32 ulRange )
+MODULE_EXPORTED VOS_UINT32 VOS_Rand( VOS_UINT32 ulRange )
 {
     register VOS_UINT32 ulGenTemp;
     register VOS_UINT32 ulGenTempHigh, ulRangeHigh, ulRangeLow;
@@ -1361,7 +1362,7 @@ void add64( VOS_UINT32 *low,
  Return     : VOS_OK--success,VOS_ERROR--fail.
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_64Multi32( VOS_UINT32 ulMultiplicandHigh,
+MODULE_EXPORTED VOS_UINT32 VOS_64Multi32( VOS_UINT32 ulMultiplicandHigh,
                           VOS_UINT32 ulMultiplicandLow,
                           VOS_UINT32 ulMultiplicator,
                           VOS_UINT32 *pulProductHigh,
@@ -1542,7 +1543,7 @@ VOS_CHAR *VOS_StrTok(VOS_CHAR *Str1, const VOS_CHAR *Str2)
               if there is no token.
  Other      :
  *****************************************************************************/
-VOS_CHAR *VOS_StrTok_s(VOS_CHAR *Str1, const VOS_CHAR *Str2, VOS_CHAR** pPosition)
+MODULE_EXPORTED VOS_CHAR *VOS_StrTok_s(VOS_CHAR *Str1, const VOS_CHAR *Str2, VOS_CHAR** pPosition)
 {
     static VOS_CHAR *pscLast = VOS_NULL_PTR;
 

@@ -97,6 +97,8 @@ typedef  VOS_UINT8   MN_MSG_ADDR_NUM_TYPE_T;
 #define MN_MSG_MIN_BCD_NUM_LEN                              (1)                 /* (2 - 1)  参考协议 24011 8.2.5.1 减去一个字节是描述长度的字节 */
 #define MN_MSG_MAX_BCD_NUM_LEN                              (10)                /* (11 - 1) 同上 */
 
+#define MN_MSG_MIN_RP_DATA_LEN                              (5)
+
 typedef VOS_UINT8    MN_MSG_OPER_TYPE_T;
 #define MN_MSG_OPER_SET                                     0
 #define MN_MSG_OPER_GET                                     1
@@ -139,6 +141,7 @@ typedef VOS_UINT8    MN_MSG_OPER_TYPE_T;
 #define TAF_MSG_CBA_LANG_LENGTH                             (2)
 
 #define MN_MSG_OTA_SECURITY_SMS_DSC_DATA                    (0xf6)
+
 
 /*****************************************************************************
   3 类型定义
@@ -711,6 +714,7 @@ typedef VOS_UINT8 MN_MSG_CSMS_MSG_VERSION_ENUM_U8;
 
 
 
+
 enum TAF_CBA_ETWS_PRIM_NTF_AUTH_RSLT_ENUM
 {
     TAF_CBA_ETWS_PRIM_NTF_AUTH_SUCCESS,                                         /* ETWS主通知信息通过鉴权 */
@@ -769,11 +773,13 @@ typedef struct
  ASN.1描述 :
  结构说明  : 短信TPDU结构, 包括TPDU长度(单位: 字节)和TPDU码流
 *******************************************************************************/
+/*lint -e958 -e959 修改人:l60609;原因:64bit*/
 typedef struct
 {
     VOS_UINT32                          ulLen;
     VOS_UINT8                          *pucTpdu;
 }MN_MSG_TPDU_STRU;
+/*lint +e958 +e959 修改人:l60609;原因:64bit*/
 
 typedef struct
 {
@@ -1839,6 +1845,15 @@ typedef struct
     VOS_UINT8                           aucReserved[3];
 }MN_MSG_LINK_CTRL_EVT_INFO_STRU;
 
+
+typedef struct
+{
+    VOS_UINT32                          ulErrorCode;                            /* 设置成功或者失败 */
+    MN_MSG_SEND_DOMAIN_ENUM_U8          enSendDomain;                           /* 短信发送域 */
+    VOS_UINT8                           aucReserved[3];
+}MN_MSG_SEND_DOMAIN_EVT_INFO_STRU;
+
+
 /*****************************************************************************
  枚举名    : MN_MSG_STUB_EVT_INFO_STRU
  结构说明  : 短信桩相关操作结果上报
@@ -2033,6 +2048,8 @@ enum MN_MSG_EVENT_ENUM
     MN_MSG_EVT_DELETE_ALL_CBMIDS,                                               /*Delete ALL Cbs Mids*/
     MN_MSG_EVT_DELIVER_ETWS_PRIM_NOTIFY,                                        /* rcv a new primary notify */
     /*#endif*/
+    MN_MSG_EVT_SET_SEND_DOMAIN_PARAM,                                           /*sms set send domain parameter*/
+    MN_MSG_EVT_GET_SEND_DOMAIN_PARAM,                                           /*sms get send domain parameter*/
     MN_MSG_EVT_MAX
 };
 typedef VOS_UINT32 MN_MSG_EVENT_ENUM_U32;
@@ -2074,6 +2091,7 @@ typedef struct
 #endif
 
 #endif
+    MN_MSG_SEND_DOMAIN_EVT_INFO_STRU    stSendDomainInfo;                        /*event report:MN_MSG_EVT_SET_SEND_DOMAIN_PARAM,MN_MSG_EVT_GET_SEND_DOMAIN_PARAM*/
     }u;
 }MN_MSG_EVENT_INFO_STRU;
 
@@ -2081,6 +2099,14 @@ typedef struct
 {
     MN_MSG_LINK_CTRL_U8 enRelayLinkCtrl;
 }MN_MSG_SET_LINK_CTRL_STRU;
+
+
+
+typedef struct
+{
+    MN_MSG_SEND_DOMAIN_ENUM_U8 enSmsSendDomain;
+    VOS_UINT8                  aucReserved[3];
+}MN_MSG_SET_SMS_SEND_DOMAIN_STRU;
 
 /*****************************************************************************
  枚举名    : MN_MSG_STUB_MSG_STRU
@@ -2118,10 +2144,9 @@ typedef VOS_UINT8  MN_MSG_CLIENT_TYPE_ENUM_UINT8;
 /*Parm of MN_MSG_Send*/
 typedef struct
 {
-    MN_MSG_SEND_DOMAIN_ENUM_U8          enDomain;
     MN_MSG_MEM_STORE_ENUM_U8            enMemStore;
     MN_MSG_CLIENT_TYPE_ENUM_UINT8       enClientType;
-    VOS_UINT8                           aucReserve1[1];
+    VOS_UINT8                           aucReserve1[2];
     TAF_MSG_SIGNALLING_TYPE_ENUM_UINT32 enMsgSignallingType;
     MN_MSG_MSG_INFO_STRU                stMsgInfo;
 }MN_MSG_SEND_PARM_STRU;
@@ -2129,9 +2154,8 @@ typedef struct
 /*Parm of MN_MSG_SendFromMem*/
 typedef struct
 {
-    MN_MSG_SEND_DOMAIN_ENUM_U8          enDomain;
     MN_MSG_MEM_STORE_ENUM_U8            enMemStore;
-    VOS_UINT8                           aucReserve1[2];
+    VOS_UINT8                           aucReserve1[3];
     TAF_MSG_SIGNALLING_TYPE_ENUM_UINT32 enMsgSignallingType;
     VOS_UINT32                          ulIndex;                                /*sms memory index*/
     MN_MSG_BCD_ADDR_STRU                stDestAddr;                             /*destination addr of sms*/
@@ -2279,9 +2303,20 @@ VOS_UINT32   MN_MSG_SetLinkCtrl(
     MN_OPERATION_ID_T                   opId,
     const MN_MSG_SET_LINK_CTRL_STRU     *pstSetParam
 );
+/*Set command controls the send domain of MO SMS. */
+VOS_UINT32   MN_MSG_SetSmsSendDomain(
+    MN_CLIENT_ID_T                          clientId,
+    MN_OPERATION_ID_T                       opId,
+    const MN_MSG_SET_SMS_SEND_DOMAIN_STRU  *pstSetParam
+);
 
 /*Get command controls the continuity of SMS relay protocol link. */
 VOS_UINT32   MN_MSG_GetLinkCtrl(
+    MN_CLIENT_ID_T                      clientId,
+    MN_OPERATION_ID_T                   opId
+);
+/*Get command controls the send domain of MO SMS. */
+VOS_UINT32  MN_MSG_GetSendDomain(
     MN_CLIENT_ID_T                      clientId,
     MN_OPERATION_ID_T                   opId
 );
@@ -2435,7 +2470,8 @@ VOS_UINT32  MN_MSG_Decode(
 VOS_UINT32   MN_MSG_Segment(
     const MN_MSG_SUBMIT_LONG_STRU       *pstLongSubmit,
     VOS_UINT8                           *pucNum,
-    MN_MSG_RAW_TS_DATA_STRU             *pstRawData
+    MN_MSG_RAW_TS_DATA_STRU             *pstRawData,
+    VOS_UINT32                           ulMaxSmsSegment
 );
 
 /*Concatenate long Sm */

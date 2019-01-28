@@ -17,8 +17,8 @@
 
 #include "peri_volt_poll.h"
 
-#include "lcdkit_fb_util.h"
 
+#include "lcd_kit_core.h"
 
 #define MAX_BUF 60
 
@@ -218,6 +218,15 @@ int hisifb_ctrl_on(struct hisi_fb_data_type *hisifd)
 
 	hisifb_vsync_resume(hisifd);
 
+	hisifb_pipe_clk_set_underflow_flag(hisifd, false);
+	ret = hisifb_wait_pipe_clk_updt(hisifd, true);
+	if (ret < 0) {
+		HISI_FB_ERR("hisifb_wait_pipe_clk_updt fail, ret=%d.\n", ret);
+		if (pdata->off) {
+			pdata->off(hisifd->pdev);
+		}
+		return ret;
+	}
 
 	hisi_overlay_on(hisifd, false);
 
@@ -252,6 +261,7 @@ int hisifb_ctrl_off(struct hisi_fb_data_type *hisifd)
 
 	hisi_overlay_off(hisifd);
 
+	hisifb_wait_pipe_clk_updt(hisifd, false);
 
 	if (pdata->off) {
 		ret = pdata->off(hisifd->pdev);
@@ -316,7 +326,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 		return -EINVAL;
 	}
 
-	down(&hisifd->power_esd_sem);
+	down(&hisifd->power_sem);
 
 	if (!hisifd->panel_power_on) {
 		HISI_FB_DEBUG("fb%d, panel power off!\n", hisifd->index);
@@ -332,7 +342,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 	}
 
 err_out:
-	up(&hisifd->power_esd_sem);
+	up(&hisifd->power_sem);
 
 	return ret;
 }
@@ -4646,6 +4656,7 @@ static DEVICE_ATTR(alpm_setting, 0644, NULL, hisi_alpm_setting_store);
 
 void hisifb_sysfs_attrs_add(struct hisi_fb_data_type *hisifd)
 {
+	struct lcd_kit_ops *lcd_ops = NULL;
 
 	if (NULL == hisifd) {
 		HISI_FB_ERR("hisifd is NULL");
@@ -4656,8 +4667,14 @@ void hisifb_sysfs_attrs_add(struct hisi_fb_data_type *hisifd)
 
 	if (hisifd->index == PRIMARY_PANEL_IDX) {
 		if (hisifd->sysfs_attrs_append_fnc) {
+			lcd_ops = lcd_kit_get_ops();
+			if (lcd_ops && lcd_ops->lcd_kit_support) {
+				if (lcd_ops->lcd_kit_support()) {
+					/*lcdkit3.0 create sysfs attrs*/
+					return ;
+				}
+			}
 
-			if(!get_lcdkit_support())
 			{
 				hisifd->sysfs_attrs_append_fnc(hisifd, &dev_attr_frame_update.attr);
 				hisifd->sysfs_attrs_append_fnc(hisifd, &dev_attr_lcd_model.attr);

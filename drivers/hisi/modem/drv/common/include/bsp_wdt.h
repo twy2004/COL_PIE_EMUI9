@@ -51,16 +51,15 @@
 #include <soc_interrupts.h>
 #include <soc_clk.h>
 #include <bsp_memmap.h>
-#include <bsp_trace.h>
 #include <bsp_hardtimer.h>
 #include <bsp_nvim.h>
 #include <bsp_softtimer.h>
+#include <bsp_print.h>
 
 
-
-#define  wdt_err(fmt,...)		(bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MUDU_WDT, "[wdt]:"fmt, ##__VA_ARGS__))
-#define  wdt_pinfo(fmt,...)		(bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MUDU_WDT, "[wdt]:"fmt, ##__VA_ARGS__))
-#define  wdt_debug(fmt,...)		(bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MUDU_WDT, "[wdt]:"fmt,##__VA_ARGS__))
+#define  wdt_err(fmt,...)		(bsp_err(fmt, ##__VA_ARGS__))
+#define  wdt_pinfo(fmt,...)		(bsp_info(fmt, ##__VA_ARGS__))
+#define  wdt_debug(fmt,...)		(bsp_debug(fmt,##__VA_ARGS__))
 
 /* ’˚¿Ì∫Û */
 #define WDT_NUM              			(2)

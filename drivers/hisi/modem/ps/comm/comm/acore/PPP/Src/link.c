@@ -55,9 +55,9 @@
 /*****************************************************************************
    1 协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
-/*lint -e767  修改人: z57034; 检视人: g45205 原因简述: 打点日志文件宏ID定义 */
+/*lint -e767  原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_LINK_C
-/*lint +e767  修改人: z57034; 检视人: g45205 */
+/*lint +e767   */
 
 
 /******************************************************************************
@@ -86,7 +86,7 @@ PPP_HDLC_CONFIG_STRU    g_astHdlcConfig[PPP_MAX_ID_NUM] = {{0, 0, 0, 0}};
 
 PPP_HDLC_CONFIG_STRU    *g_pstHdlcConfig = &g_astHdlcConfig[0];
 
-/*lint -e958 -e830 -e528*/
+/*lint -e958 -e528*/
 
 static const struct {
   VOS_UINT16 proto;
@@ -110,7 +110,7 @@ static const struct {
   /*{ PROTO_LQR, lqr_Input },*/
   /*{ PROTO_CBCP, cbcp_Input }*/
 };
-/*lint +e958 +e830 -e528*/
+/*lint +e958 -e528*/
 
 #define DSIZE (sizeof despatcher / sizeof despatcher[0])
 
@@ -179,8 +179,8 @@ PPP_ZC_STRU *ipv4_Input(/*struct bundle *bundle, */struct link *l, PPP_ZC_STRU *
     if(l->phase == PHASE_NETWORK
         &&l->ipcp.fsm.state == ST_OPENED)
     {
-        /*将上行数据发往协议栈*/
-        PPP_SendPulledData((VOS_UINT16)PPP_LINK_TO_ID(l), bp);
+        /*将上行数据发往协议栈，IP模式下递交给CDS的是IP报文，因此协议类型填IPV4 */
+        PPP_SendPulledData((VOS_UINT16)PPP_LINK_TO_ID(l), bp, ETH_IPV4_PROTO);
     }
     else
     {
@@ -374,7 +374,8 @@ VOS_VOID PPP_HDLC_ProcPppModeUlData
     PPP_ZC_STRU *pstMem
 )
 {
-    PPP_SendPulledData(usPppId, pstMem);
+    /* PPP模式下发送的是PPP报文，因此协议类型填0 */
+    PPP_SendPulledData(usPppId, pstMem, 0);
     return;
 }
 
@@ -389,11 +390,9 @@ VOS_VOID PPP_HDLC_ProcDlData(VOS_UINT16 usPppId, PPP_ZC_STRU *pstMem)
 
 
 
-VOS_UINT32 PPP_SendPulledData(VOS_UINT16 usPppId,  PPP_ZC_STRU *pstImmZc)
+VOS_UINT32 PPP_SendPulledData(VOS_UINT16 usPppId,  PPP_ZC_STRU *pstImmZc, VOS_UINT16 usProto)
 {
     VOS_UINT8                          ucRabId = PPP_INVALID_RABID;
-    VOS_UINT32                         ulResult;
-
 
     /*Add by y45445*/
     /* 通过usPppId，寻找到usRabId */
@@ -409,13 +408,10 @@ VOS_UINT32 PPP_SendPulledData(VOS_UINT16 usPppId,  PPP_ZC_STRU *pstImmZc)
     }
     /*Add by y45445*/
 
-    /* 数据发送给ADS，如果失败则释放内存 */
-    ulResult = ADS_UL_SendPacket(pstImmZc, ucRabId);
-
-    if ( VOS_OK != ulResult )
+    /* 数据发送给ADS，如果失败由ADS释放内存 */
+    if ( VOS_OK != ADS_UL_SendPacket(pstImmZc, ucRabId) )
     {
         g_PppDataQCtrl.stStat.ulUplinkDropCnt++;
-        PPP_MemFree(pstImmZc);
 
         return PS_FAIL;
     }

@@ -206,6 +206,7 @@ typedef irqreturn_t (*irq_handler_t)(void *);
 #define ERROR               (1)
 #endif
 
+//lint -esym(683,*)
 
 /*该宏传参不准传入__specific_flags名字*/
 /*
@@ -216,7 +217,7 @@ typedef irqreturn_t (*irq_handler_t)(void *);
 	do \
     {                           \
 		__specific_flags = (unsigned long)SRE_IntLock();			\
-	} while (0)
+	} while (0)/*lint !e683*/
 /*
 *参数类型
 *unsigned long __specific_flags
@@ -225,8 +226,9 @@ typedef irqreturn_t (*irq_handler_t)(void *);
 	do \
     {                           \
         SRE_IntRestore((unsigned int)__specific_flags);          \
-	} while (0)
+	} while (0)/*lint !e683*/
 
+//lint +esym(683,*)
 
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
         const char *name, void *arg);
@@ -252,7 +254,7 @@ static inline void osl_free_irq(unsigned int irq, irq_handler_t routine,int para
 
 static inline  int enable_irq(unsigned int irq)
 {
-    return SRE_HwiEnable((HWI_HANDLE_T)irq);
+    return (int)SRE_HwiEnable((HWI_HANDLE_T)irq);
 }
 static inline int disable_irq( unsigned int num )
 {
@@ -270,11 +272,11 @@ static inline int osl_int_connect( unsigned int num, irq_handler_t routine, int 
         SRE_Printf("irq 0x%x SRE_HwiSetAttr failed,ret = 0x%x\n", num,ret);
         return ERROR;
     }
-    return SRE_HwiCreate((HWI_HANDLE_T)num,(HWI_PROC_FUNC)routine,parameter);
+    return (int)SRE_HwiCreate((HWI_HANDLE_T)num,(HWI_PROC_FUNC)routine,(HWI_ARG_T)parameter);
 }
 static inline int osl_int_disconnect( unsigned int num, irq_handler_t routine, int parameter )
 {
-    return SRE_HwiDelete((HWI_HANDLE_T)num);
+    return (int)SRE_HwiDelete((HWI_HANDLE_T)num);
 }
 static inline unsigned int osl_int_context(void)
 {
@@ -293,10 +295,10 @@ static inline unsigned int osl_int_context(void)
 static inline unsigned long arch_local_save_flags(void)
 {
 	unsigned long flags;
-	asm volatile(
+	__asm__ __volatile__(
 		"	mrs	%0, cpsr	@ local_save_flags"
 		: "=r" (flags) : : "memory", "cc");
-	return flags;
+	return flags;/*lint !e530*/
 }
 static inline int arch_irqs_disabled_flags(unsigned long flags)
 {
@@ -342,7 +344,7 @@ static inline unsigned int irq_set_affinity(unsigned int irq, unsigned int corem
 #endif
 static inline void arch_local_irq_enable(void)
 {
-	asm volatile(
+	__asm__ __volatile__(
 		"	cpsie i			@ arch_local_irq_enable"
 		:
 		:
@@ -351,7 +353,7 @@ static inline void arch_local_irq_enable(void)
 
 static inline void arch_local_irq_disable(void)
 {
-	asm volatile(
+	__asm__ __volatile__(
 		"	cpsid i			@ arch_local_irq_disable"
 		:
 		:

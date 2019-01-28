@@ -77,7 +77,6 @@
 #include "vos.h"
 #include "v_IO.h"
 #include "v_private.h"
-#include "mdrv.h"
 #include "msp_diag_comm.h"
 
 /* LINUX²»Ö§³Ö */
@@ -178,6 +177,22 @@ typedef struct DRX_TIMER_CONTROL_STRU
 } DRX_TIMER_CONTROL_BLOCK;
 /* Added by g47350 for DRX timer Project, 2012/11/5, end */
 
+typedef struct BIT64_TIMER_CONTROL_STRU
+{
+    VOS_UINT32      ulUsedFlag;                     /* whether be used or not */
+    VOS_PID         ulPid;                          /* who allocate the timer */
+    VOS_UINT32      ulName;                         /* timer's name */
+    VOS_UINT32      ulPara;                         /* timer's paremate */
+    HTIMER         *phTm;                           /* user's pointer which point the real timer room */
+    VOS_UINT32      ulTimeOutValueInMilliSeconds;   /* timer's length(ms) */
+    VOS_UINT64      ullTimeOutValueSlice;           /* timer's length(64k) */
+    VOS_UINT64      ullTimeEndSlice;                /* the end slice time of timer */
+
+    VOS_UINT64      ullAllocTick;                   /* CPU tick of block allocation */
+    VOS_UINT32      ulFileID;                       /* alloc file ID */
+    VOS_UINT32      ulLineNo;                       /* alloc line no. */
+}BIT64_TIMER_CONTROL_BLOCK;
+
 /* the number of task's control block */
 VOS_UINT32                RTC_TimerCtrlBlkNumber;
 
@@ -244,7 +259,11 @@ VOS_UINT32                g_ulDRXTimerTaskId;
 /* Added by g47350 for DRX timer Project, 2012/11/5, end */
 
 
+
+
+
 #define VOS_RTC_TIMER_ID  (TIMER_ACPU_OSA_ID)
+
 
 
 VOS_VOID VOS_ShowUsed32KTimerInfo( VOS_VOID );
@@ -265,6 +284,7 @@ VOS_VOID RTC_TimerTaskFunc( VOS_UINT32 Para0, VOS_UINT32 Para1, VOS_UINT32 Para2
 VOS_VOID RTC_Add_Timer_To_List( RTC_TIMER_CONTROL_BLOCK  *Timer);
 VOS_VOID RTC_Del_Timer_From_List( RTC_TIMER_CONTROL_BLOCK  *Timer);
 VOS_VOID ShowRtcTimerLog( VOS_VOID );
+
 
 typedef struct RTC_TIMER_PMLOG_STRU
 {
@@ -419,7 +439,7 @@ VOS_UINT32 RTC_MUL_DOT_32768(VOS_UINT32 ulValue,VOS_UINT32 ulFileID,
  Return     :
  Other      :
  *****************************************************************************/
-VOS_VOID RTC_DebugSocInfo(VOS_UINT32 ulAction, VOS_UINT32 ulSlice)
+MODULE_EXPORTED VOS_VOID RTC_DebugSocInfo(VOS_UINT32 ulAction, VOS_UINT32 ulSlice)
 {
     g_astRtcSocTimerDebugInfo[g_ulRtcSocTimerDebugInfoSuffix].ulAction = ulAction;
     g_astRtcSocTimerDebugInfo[g_ulRtcSocTimerDebugInfoSuffix].ulSlice  = ulSlice;
@@ -749,12 +769,18 @@ VOS_UINT32 RTC_TimerCtrlBlkInit(VOS_VOID)
     }
 
     /* 1 -> only one queue */
-    if( VOS_OK != VOS_FixedQueueCreate( VOS_FID_QUEUE_LENGTH, &g_ulRTCTaskQueueId, VOS_MSG_Q_FIFO, VOS_FID_MAX_MSG_LENGTH, 1 ) )
+    if ( VOS_OK != VOS_FixedQueueCreate( VOS_FID_QUEUE_LENGTH, &g_ulRTCTaskQueueId, VOS_MSG_Q_FIFO, VOS_FID_MAX_MSG_LENGTH, 1 ) )
     {
+        VOS_ProtectionReboot(VOS_ERRNO_RELTM_CTRLBLK_INITFAIL, 0, 0, 0, 0);
+
         return VOS_ERR;
     }
 
     mdrv_timer_debug_register(VOS_RTC_TIMER_ID, (FUNCPTR_1)VOS_TimerLpmCb, 0);
+
+    /* Added by g47350 for DRX timer Project, 2012/11/5, begin */
+    /* Added by g47350 for DRX timer Project, 2012/11/5, end */
+
 
     return(VOS_OK);
 }
@@ -995,7 +1021,7 @@ VOS_VOID RTC_TimerTaskFunc( VOS_UINT32 Para0, VOS_UINT32 Para1,
             {
                 g_ulTimerlpm = VOS_FALSE;
 
-                (VOS_VOID)vos_printf("rtc_timer: allocpid %d, timername 0x%x.\n",
+                (VOS_VOID)vos_printf("[PAM][OSA] %s: rtc_timer: allocpid =: %d, timername =: 0x%x.\n", __FUNCTION__,
                     RTC_TimerCtrlBlkexpired->Pid, RTC_TimerCtrlBlkexpired->Name);
             }
 
@@ -1022,12 +1048,23 @@ VOS_UINT32 RTC_TimerTaskCreat(VOS_VOID)
 {
     VOS_UINT32 TimerArguments[4] = {0,0,0,0};
 
-    return( VOS_CreateTask( "RTC_TIMER",
+    if ( VOS_OK != VOS_CreateTask( "RTC_TIMER",
                             &RTC_TimerTaskId,
                             RTC_TimerTaskFunc,
                             COMM_RTC_TIMER_TASK_PRIO,
                             RTC_TIMER_TASK_STACK_SIZE,
-                            TimerArguments) );
+                            TimerArguments) )
+    {
+        VOS_ProtectionReboot(VOS_ERRNO_RELTM_TASK_INITFAIL, 0, 0, 0, 0);
+
+        return VOS_ERR;
+    }
+
+    /* Added by g47350 for DRX timer Project, 2012/11/5, begin */
+    /* Added by g47350 for DRX timer Project, 2012/11/5, end */
+
+
+    return VOS_OK;
 }
 
 /*****************************************************************************
@@ -1657,9 +1694,29 @@ VOS_UINT32 RTC_timer_running( VOS_VOID )
  Return     :
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_GetSlice(VOS_VOID)
+MODULE_EXPORTED VOS_UINT32 VOS_GetSlice(VOS_VOID)
 {
     return mdrv_timer_get_normal_timestamp();
+}
+
+
+MODULE_EXPORTED VOS_UINT64 VOS_Get64BitSlice(VOS_VOID)
+{
+    VOS_UINT32  ulHighBitValue = 0;
+    VOS_UINT32  ulLowBitValue = 0;
+    VOS_UINT64  ullSlice;
+    VOS_INT     lResult;
+
+    lResult = mdrv_timer_get_accuracy_timestamp(&ulHighBitValue, &ulLowBitValue);
+
+    if (VOS_OK != lResult)
+    {
+        VOS_ProtectionReboot(VOS_GET_64BIT_SLICE_ERROR, (VOS_INT)ulHighBitValue, (VOS_INT)ulLowBitValue, (VOS_CHAR *)&lResult, sizeof(VOS_INT));
+    }
+
+    ullSlice = ((VOS_UINT64)ulHighBitValue<<32 & 0xffffffff00000000) | ((VOS_UINT64)ulLowBitValue & 0x00000000ffffffff);
+
+    return ullSlice;
 }
 
 /*****************************************************************************
@@ -1669,7 +1726,7 @@ VOS_UINT32 VOS_GetSlice(VOS_VOID)
  Return     :
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_GetSliceUnit(VOS_VOID)
+MODULE_EXPORTED VOS_UINT32 VOS_GetSliceUnit(VOS_VOID)
 {
 
     return 32768;
@@ -1700,7 +1757,7 @@ VOS_BOOL RTC_CalcTimerInfo(VOS_VOID)
  Return     : void
  Other      :
  *****************************************************************************/
-VOS_VOID VOS_ShowUsed32KTimerInfo( VOS_VOID )
+MODULE_EXPORTED VOS_VOID VOS_ShowUsed32KTimerInfo( VOS_VOID )
 {
     VOS_ULONG                    ulLockLevel;
     RTC_TIMER_CONTROL_BLOCK     *pstTimer;
@@ -1735,6 +1792,7 @@ VOS_VOID VOS_ShowUsed32KTimerInfo( VOS_VOID )
 
 /* Added by g47350 for DRX timer Project, 2012/11/5, end */
 
+
 /*****************************************************************************
  Function   : ShowRtcTimerLog
  Description:
@@ -1742,22 +1800,30 @@ VOS_VOID VOS_ShowUsed32KTimerInfo( VOS_VOID )
  Return     : VOID
  Other      :
  *****************************************************************************/
-VOS_VOID ShowRtcTimerLog( VOS_VOID )
+MODULE_EXPORTED VOS_VOID ShowRtcTimerLog( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulStartCount = %d. (call DRV Start timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulStartCount =: %d. (call DRV Start timer num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulStartCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulStopCount =  %d. (call DRV Stop timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulStopCount =:  %d. (call DRV Stop timer num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulStopCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulExpireCount = %d. (receive DRV ISR of DualTimer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulExpireCount =: %d. (receive DRV ISR of DualTimer num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulExpireCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulStartErrCount = %d. (call DRV Stop timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulStartErrCount =: %d. (call DRV Stop timer err num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulStartErrCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulStopErrCount = %d. (call DRV Start timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulStopErrCount =: %d. (call DRV Start timer err num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulStopErrCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulElapsedErrCount = %d. (call DRV get rest timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulElapsedErrCount =: %d. (call DRV get rest timer num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulElapsedErrCount);
-    (VOS_VOID)vos_printf("g_stRtcSocTimerInfo.ulElapsedContentErrCount = %d. (call DRV get rest timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulElapsedContentErrCount =: %d. (call DRV get rest timer err num)\r\n", __FUNCTION__,
                 g_stRtcSocTimerInfo.ulElapsedContentErrCount);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulBit64TimerStartCount =: %d. (call DRV get start timer num)\r\n", __FUNCTION__,
+                g_stRtcSocTimerInfo.ulBit64TimerStartCount);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulBit64TimerStopCount =: %d. (call DRV get stop timer num)\r\n", __FUNCTION__,
+                g_stRtcSocTimerInfo.ulBit64TimerStopCount);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulBit64TimerStartErrCount =: %d. (call DRV get start timer err num)\r\n", __FUNCTION__,
+                g_stRtcSocTimerInfo.ulBit64TimerStartErrCount);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_stRtcSocTimerInfo.ulBit64TimerStopErrCount =: %d. (call DRV get stop timer err num)\r\n", __FUNCTION__,
+                g_stRtcSocTimerInfo.ulBit64TimerStopErrCount);
 }
 
 /*****************************************************************************

@@ -1,5 +1,9 @@
 #include <bsp_softtimer.h>
 #include <bsp_pm.h>
+#include <bsp_pm_om.h>
+
+#undef THIS_MODU
+#define THIS_MODU mod_pm_om
 extern s32 pm_wakeup_ccore(enum debug_wake_type type);
 void pm_press_timer_cb(void* p);
 struct softtimer_list pm_press_timer =
@@ -30,7 +34,7 @@ void pm_press_test_start(unsigned int time)
 		ret = bsp_softtimer_create(&pm_press_timer);
 		if(ret)
 		{
-			printk(KERN_ERR"pm press testtimer create failed\n");
+			pmom_pr_err(KERN_ERR"pm press testtimer create failed\n");
 			return;
 		}
 		else
@@ -39,5 +43,6 @@ void pm_press_test_start(unsigned int time)
 }
 void pm_press_test_stop(void)
 {
-	bsp_softtimer_delete(&pm_press_timer);
+    if(pm_press_timer.init_flags == TIMER_INIT_FLAG)
+	    bsp_softtimer_delete(&pm_press_timer);
 }

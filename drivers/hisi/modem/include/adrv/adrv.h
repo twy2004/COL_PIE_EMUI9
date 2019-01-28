@@ -595,6 +595,39 @@ int atfd_hisi_service_access_register_smc(unsigned long long main_fun_id,
 
 void ipf_get_waking_pkt(void* data, unsigned int len);
 
+/*****************************************************************************
+* function     : get_kernel_build_time
+* description  : get build date and build time of kernel
+* input        : builddate: buffer for get build date
+*                dtlen    : length of builddate buffer
+*                buildtime: buffer for get build time
+*                tmlen    : length of buildtime buffer
+* output       : builddate : kernel build date string
+*                buildtime : kernel build time string
+* ret value  : 0  successfull
+*               <0  failed to get date&time
+*****************************************************************************/
+int get_kernel_build_time(char* builddate, int dtlen, char* buildtime, int tmlen);
+
+
+/********sim hotplug start************/
+/*
+status=1 means plug out;
+status=0 means plug in;
+*/
+#define STATUS_PLUG_IN 0
+#define STATUS_PLUG_OUT 1
+
+#define MODULE_SD  0
+#define MODULE_SIM  1
+
+
+int get_sd2jtag_status(void);
+u8 get_card1_type(void);
+int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int need_sleep);
+
+/********sim hotplug end************/
 
 #endif /* HISI_AP_DRV_H */
+
 

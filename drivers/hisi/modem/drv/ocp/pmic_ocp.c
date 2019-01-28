@@ -98,7 +98,7 @@ static int pmic_modem_ocp_handler(char * name)
     return 0;
 }
 /*lint -save -e429*/
-static int __init pmic_modem_ocp_init(void)
+int __init pmic_modem_ocp_init(void)
 {
     int    ret = 0;
     struct device_node *root = NULL;
@@ -139,6 +139,4 @@ static int __init pmic_modem_ocp_init(void)
 
     return ret;
 }
-/*lint -restore +e429*/
-module_init(pmic_modem_ocp_init);
 

@@ -64,13 +64,13 @@
 
 
 
-
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
-/*lint -e767  修改人: z57034; 检视人: g45205 原因简述: 打点日志文件宏ID定义 */
+/*lint -e767  原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_PPP_INIT_C
-/*lint +e767  修改人: z57034; 检视人: g45205 */
+/*lint +e767  */
+
 
 /******************************************************************************
    PPP任务优先级高于modem_send高，比modem_recv任务低
@@ -81,9 +81,7 @@ extern VOS_VOID PPP_ProcDataNotify(VOS_VOID);
 extern VOS_UINT32  PPP_Snd1stDataNotify(VOS_VOID);
 extern VOS_VOID PPP_ProcAsFrmDataInd(struct MsgCB * pMsg);
 
-/*Add by y45445 for PS FUSION PC ST*/
 
-/*Add by y45445 for PS FUSION PC ST*/
 
 /******************************************************************************
    3 私有定义
@@ -371,8 +369,8 @@ VOS_VOID PPP_EntInit(VOS_VOID)
     ulRslt = GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_PPP_CONFIG, &stPppConfig, (VOS_UINT32)sizeof(NV_TTF_PPP_CONFIG_STRU));
     if (NV_OK != ulRslt)
     {
-        g_stPppEntInfo.enChapEnable                 = TTF_TRUE;
-        g_stPppEntInfo.enPapEnable                  = TTF_TRUE;
+        g_stPppEntInfo.enChapEnable                 = TTF_ACORE_TRUE;
+        g_stPppEntInfo.enPapEnable                  = TTF_ACORE_TRUE;
         g_stPppEntInfo.usLcpEchoMaxLostCnt          = 5;
         g_stPppEntInfo.usQueneMaxCnt                = 1500;
 
@@ -412,7 +410,7 @@ VOS_VOID PPP_BindToCpu(VOS_VOID)
     ret = sched_getaffinity(target_pid, &(g_stPppEntInfo.orig_mask));
     if (ret < 0)
     {
-        PS_PRINTF("warning: unable to get cpu affinity\n");
+        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING, "warning: unable to get cpu affinity\n");
         return;
     }
 
@@ -438,7 +436,7 @@ VOS_VOID PPP_BindToCpu(VOS_VOID)
     ret = sched_setaffinity(target_pid, &(g_stPppEntInfo.curr_mask));
     if (ret < 0)
     {
-        PS_PRINTF("warning: unable to set cpu affinity\n");
+        PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING, "warning: unable to set cpu affinity\n");
         return;
     }
 
@@ -513,8 +511,6 @@ VOS_UINT32    APP_PPP_PidInit(enum VOS_INIT_PHASE_DEFINE InitPhase )
 {
     VOS_INT32               i;
 
-    /*Add by y45445 for PS FUSION PC ST*/
-    /*Add by y45445 for PS FUSION PC ST*/
 
     switch( InitPhase )
     {
@@ -568,8 +564,6 @@ VOS_UINT32    APP_PPP_PidInit(enum VOS_INIT_PHASE_DEFINE InitPhase )
             PPP_EntInit();
 
 
-            /*Add by y45445 for PS FUSION PC ST*/
-            /*Add by y45445 for PS FUSION PC ST*/
             break;
 
     case   VOS_IP_FARMALLOC:
@@ -727,14 +721,14 @@ VOS_UINT32 APP_PPP_FidInit(enum VOS_INIT_PHASE_DEFINE ip)
                                 (Msg_Fun_Type)APP_PPP_MsgProc);
             if (VOS_OK != ulRslt)
             {
-                PS_PRINTF("APP_PPP_FidInit, register PPP PID fail!\n");
+                pr_err("[pppa]:APP_PPP_FidInit, register PPP PID fail!\n");
                 return VOS_ERR;
             }
 
             ulRslt = VOS_RegisterMsgTaskEntry(ACPU_FID_PPP, (VOS_VOIDFUNCPTR)APP_PPP_FidTask);
             if (VOS_OK != ulRslt)
             {
-                PS_PRINTF("APP_PPP_FidInit, VOS_RegisterMsgTaskEntry fail!\n");
+                pr_err("[pppa]:APP_PPP_FidInit, VOS_RegisterMsgTaskEntry fail!\n");
                 return VOS_ERR;
             }
 
@@ -742,7 +736,7 @@ VOS_UINT32 APP_PPP_FidInit(enum VOS_INIT_PHASE_DEFINE ip)
             ulRslt = VOS_RegisterTaskPrio(ACPU_FID_PPP, VOS_PRIORITY_P4);
             if( VOS_OK != ulRslt )
             {
-                PS_PRINTF("APP_PPP_FidInit, register priority fail!\n");
+                pr_err("[pppa]:APP_PPP_FidInit, register priority fail!\n");
                 return VOS_ERR;
             }
 

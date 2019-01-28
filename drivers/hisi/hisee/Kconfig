@@ -107,3 +107,11 @@ config HISEE_NFC_IRQ_SWITCH
 	default n
 	help
 	  whether hisee support nfc irq switch
+
+config HISEE_HIGH_TEMP_PROTECT_SWITCH
+	depends on HISI_HISEE
+	bool "Hisilicon hisee support high temperature protect switch."
+	default n
+	help
+	  whether hisee support high temperature protect switch
+

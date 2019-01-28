@@ -372,7 +372,7 @@ int hisee_poweron_booting_func(void *buf, int para)
 	/*don't power up hisee, if current is dm mode and cos has not been upgraded,
 	 *of there will be many hisee exception log reporting to apr.
 	 *COS_FLASH is the specific cos_flash image, bypass the judgement*/
-	if (HISEE_ERROR == hisee_mntn_can_power_up_hisee()) {
+	if ((COS_FLASH_IMG_ID != cos_id) && (HISEE_ERROR == hisee_mntn_can_power_up_hisee())) {
 		ret = HISEE_ERROR;
 		goto end;
 	}
@@ -807,5 +807,35 @@ ssize_t hisee_check_ready_show(struct device *dev, struct device_attribute *attr
 }/*lint !e715*/
 
 
+/****************************************************************************//**
+ * @brief      : hisee_nfc_irq_switch_func
+ * @param[in]  : buf
+ * @param[in]  : para
+ * @return     : ::int
+ * @note       : on or off hisee nfc irq switch
+********************************************************************************/
+int hisee_nfc_irq_switch_func(void * buf, int para)
+{
+	int ret = HISEE_OK;
+
+	if (NULL == buf) {
+		pr_err("%s buf paramters is null\n", __func__);
+		set_errno_and_return(HISEE_INVALID_PARAMS);
+	}
+
+	mutex_lock(&g_hisee_data.hisee_mutex);
+
+	if (0 == strncmp(buf, " on", HISEE_NFC_IRQ_SWITCH_CMD_MAX_LEN)) {
+		nfc_irq_cfg(NFC_IRQ_CFG_ON);
+	} else if (0 == strncmp(buf, " off", HISEE_NFC_IRQ_SWITCH_CMD_MAX_LEN)) {
+		nfc_irq_cfg(NFC_IRQ_CFG_OFF);
+	} else {
+		pr_err("%s para invalid\n", __func__);
+		ret = HISEE_INVALID_PARAMS;
+	}
+
+	mutex_unlock(&g_hisee_data.hisee_mutex);
+	set_errno_and_return(ret);
+}
 
 

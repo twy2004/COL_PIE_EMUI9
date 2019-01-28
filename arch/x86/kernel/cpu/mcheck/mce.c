@@ -1123,18 +1123,13 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 		lmce = m.mcgstatus & MCG_STATUS_LMCES;
 
 	/*
-	 * Local machine check may already know that we have to panic.
-	 * Broadcast machine check begins rendezvous in mce_start()
 	 * Go through all banks in exclusion of the other CPUs. This way we
 	 * don't report duplicated events on shared banks because the first one
-	 * to see it will clear it.
+	 * to see it will clear it. If this is a Local MCE, then no need to
+	 * perform rendezvous.
 	 */
-	if (lmce) {
-		if (no_way_out)
-			mce_panic("Fatal local machine check", &m, msg);
-	} else {
+	if (!lmce)
 		order = mce_start(&no_way_out);
-	}
 
 	for (i = 0; i < cfg->banks; i++) {
 		__clear_bit(i, toclear);
@@ -1210,17 +1205,12 @@ void do_machine_check(struct pt_regs *regs, long error_code)
 			no_way_out = worst >= MCE_PANIC_SEVERITY;
 	} else {
 		/*
-		 * If there was a fatal machine check we should have
-		 * already called mce_panic earlier in this function.
-		 * Since we re-read the banks, we might have found
-		 * something new. Check again to see if we found a
-		 * fatal error. We call "mce_severity()" again to
-		 * make sure we have the right "msg".
+		 * Local MCE skipped calling mce_reign()
+		 * If we found a fatal error, we need to panic here.
 		 */
-		if (worst >= MCE_PANIC_SEVERITY && mca_cfg.tolerant < 3) {
-			mce_severity(&m, cfg->tolerant, &msg, true);
-			mce_panic("Local fatal machine check!", &m, msg);
-		}
+		 if (worst >= MCE_PANIC_SEVERITY && mca_cfg.tolerant < 3)
+			mce_panic("Machine check from unknown source",
+				NULL, NULL);
 	}
 
 	/*
@@ -2355,13 +2345,7 @@ static ssize_t store_int_with_restart(struct device *s,
 				      struct device_attribute *attr,
 				      const char *buf, size_t size)
 {
-	unsigned long old_check_interval = check_interval;
-	ssize_t ret = device_store_ulong(s, attr, buf, size);
-
-	if (check_interval == old_check_interval)
-		return ret;
-
-	mutex_lock(&mce_sysfs_mutex);
+	ssize_t ret = device_store_int(s, attr, buf, size);
 	mce_restart();
 	return ret;
 }

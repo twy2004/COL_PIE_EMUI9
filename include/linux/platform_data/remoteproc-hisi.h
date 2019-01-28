@@ -380,6 +380,7 @@ int set_power_updn(int bypass);
 void __iomem *get_regaddr_by_pa(unsigned int type);
 extern void hisi_isp_boot_stat_dump(void);
 void dump_media1_regs(void);
+void dump_smmu500_regs(void);
 extern u64 hisi_getcurtime(void);
 extern size_t print_time(u64 ts, char *buf);
 extern unsigned int get_slice_time(void);
@@ -497,6 +498,8 @@ extern int dynamic_memory_unmap(size_t addr, size_t size);
 #ifdef CONFIG_HISI_REMOTEPROC_DMAALLOC_DEBUG
 void *get_vring_dma_addr(u64 *dma_handle, size_t size, unsigned int index);
 #endif
+int get_media1_subsys_power_state(void);
+int get_isptop_power_state(void);
 extern unsigned int get_debug_isp_clk_enable(void);
 extern int set_debug_isp_clk_enable(int state);
 extern int set_debug_isp_clk_freq(unsigned int type, unsigned long value);

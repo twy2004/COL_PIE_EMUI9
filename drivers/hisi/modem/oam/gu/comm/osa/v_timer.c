@@ -94,6 +94,7 @@
 #include "mdrv.h"
 #include "VosTaskPrioDef.h"
 #include "vos.h"
+#include "v_private.h"
 
 
 /* LINUX 不支持 */
@@ -198,6 +199,7 @@ VOS_VOID VOS_TimerDump(VOS_INT lModId, VOS_UINT32 ulFileID, VOS_UINT32 ulLineNo)
 VOS_SPINLOCK                  g_stVosTimerSpinLock;
 
 #define VOS_26M_TIMER_ID     (TIMER_ACPU_OM_TCXO_ID)
+
 
 /* 记录 VOS 26 timer 可维可测信息 */
 VOS_TIMER_SOC_TIMER_INFO_STRU g_st26MSocTimerInfo;
@@ -864,21 +866,8 @@ VOS_UINT32 VOS_CheckTimer( HTIMER  *phTm, VOS_UINT32 *ulTimerID,
     return VOS_ERR;
 }
 
-/*****************************************************************************
- Function   : V_StartRelTimer
- Description: Allocate and start a relative timer.
- Input      : Pid       -- process ID of application
-              ulLength  -- expire time. the metrics is millsecond
-              ulName    -- timer name to be pass to application as a parameter
-              ulParam   -- additional parameter to be pass to application
-              ucMode    -- timer work mode
-                           VOS_RELTIMER_LOOP  -- start periodically
-                           VOS_RELTIMER_NOLOO -- start once time
-              enPrecision -- precision,unit is 0 - 100->0%- 100%
- Output     : phTm      -- timer address which system retuns to application
- Return     : VOS_OK on success and errno on failure
-*****************************************************************************/
-VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
+
+MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
     VOS_UINT32 ulName, VOS_UINT32 ulParam, VOS_UINT8 ucMode, VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision,
     VOS_UINT32 ulFileID, VOS_INT32 usLineNo)
 {
@@ -941,6 +930,16 @@ VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
         ulLength = MILLISECONDS_PER_TICK;
     }
 
+    if ((Pid < VOS_PID_DOPRAEND) || (Pid >= VOS_PID_BUTT))
+    {
+        LogPrint2("# Timer's pid is not belong to local cpu.F %d L %d.\r\n",
+            (VOS_INT)ulFileID, usLineNo);
+
+        VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_WRONG_CPUPID);
+
+        return VOS_ERR;
+    }
+
 
     stTimerEvent.ucAction    = VOS_TIMER_OM_START;
     stTimerEvent.ucMode      = ucMode;
@@ -953,6 +952,7 @@ VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
 
     /* 获取RTC的可维可测信息(Action和Slice) */
     RTC_GetDebugSocInfo(&(stTimerEvent.ulRTCAction), &(stTimerEvent.ulRTCSlice), &(stTimerEvent.ulCoreId));
+
 
 
 #if ((VOS_VXWORKS == VOS_OS_VER) || (VOS_NUCLEUS == VOS_OS_VER) \
@@ -1188,7 +1188,7 @@ VOS_UINT32 V_Stop26MRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VOS_INT32 lLine
  Input      : phTm -- where store the timer to be stopped
  Return     :  VOS_OK on success or errno on failure
  *****************************************************************************/
-VOS_UINT32 V_StopRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
+MODULE_EXPORTED VOS_UINT32 V_StopRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     VOS_ULONG                ulLockLevel;
     VOS_UINT32               ulReturn;
@@ -1257,6 +1257,8 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
 
     /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
+
+
 
     if ( VOS_TRUE != VOS_Is26MTimer(phTm) )
     {
@@ -1327,7 +1329,7 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
  Output       : pulTick
  Return Value : VOS_OK on success or errno on failure
 *****************************************************************************/
-VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pulTick,
+MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pulTick,
                                  VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     VOS_UINT32                  TimerId      = 0;
@@ -1348,6 +1350,7 @@ VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pulTick,
 
     /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
+
 
     if ( VOS_TRUE != VOS_Is26MTimer(phTm) )
     {
@@ -1449,7 +1452,7 @@ VOS_BOOL VOS_Is26MTimer( HTIMER *phTm )
 
 
 
-VOS_UINT32 VOS_GetTick( VOS_VOID )
+MODULE_EXPORTED VOS_UINT32 VOS_GetTick( VOS_VOID )
 {
     return (VOS_UINT32)jiffies;
 }
@@ -1815,21 +1818,26 @@ VOS_UINT32 VOS_CalRelativeSec(  SYS_T *pFirstTm,
 
 
 /*****************************************************************************
- Function   : V_StartCallBackRelTimer
- Description: allocate and start a relative timer using callback function.
- Input      : Pid           -- process ID of application
-              ulLength       -- expire time. unit is millsecond
-              ulName         -- timer name to be pass to app as a parameter
-              ulParam        -- additional parameter to be pass to app
-              ucMode         -- timer work mode
-                                VOS_RELTIMER_LOOP  -- start periodically
-                                VOS_RELTIMER_NOLOO -- start once time
-              TimeOutRoutine -- Callback function when time out
-              enPrecision    -- precision,unit is 0 - 100->0%- 100%
- Output     : phTm           -- timer pointer which system retuns to app
- Return     : VOS_OK on success and errno on failure
- *****************************************************************************/
-VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
+ 函 数 名  : V_StartCallBackRelTimer
+ 功能描述  : 申请一个带有回调的RTC定时器
+ 输入参数  : VOS_PID Pid    申请组件PID
+             VOS_UINT32 ulLength    定时器时长,最大VOS_TIMER_MAX_LENGTH(18小时)，超过最大长度OSA发起主动复位
+             VOS_UINT32 ulName      定时器名称
+             VOS_UINT32 ulParam     定时器参数
+             VOS_UINT8 ucMode       定时器循环模式
+                       VOS_RELTIMER_LOOP  -- start periodically
+                       VOS_RELTIMER_NOLOO -- start once time
+             REL_TIMER_FUNC TimeOutRoutine 回调接口
+             VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision    定时器精度要求，单位0 - 100->0%- 100%
+             VOS_UINT32 ulFileID    调用文件号
+             VOS_INT32 lLineNo      调用行号
+ 输出参数  : HTIMER *phTm timer句柄
+ 返 回 值  : VOS_OK 定时器创建成功或者ERRNO表示创建失败
+ 调用函数  :
+ 被调函数  :
+
+*****************************************************************************/
+MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     VOS_UINT32 ulLength, VOS_UINT32 ulName, VOS_UINT32 ulParam,
     VOS_UINT8 ucMode, REL_TIMER_FUNC TimeOutRoutine, VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision,
     VOS_UINT32 ulFileID, VOS_INT32 usLineNo)
@@ -2031,7 +2039,7 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
               it indicates the conversion error that may be caused by
               conversion flow.
  *****************************************************************************/
-VOS_UINT32 VOS_TmTickToMillSec( VOS_UINT32 ulTicks )
+MODULE_EXPORTED VOS_UINT32 VOS_TmTickToMillSec( VOS_UINT32 ulTicks )
 {
     VOS_UINT32 ulTempMillSec;
 
@@ -2286,9 +2294,9 @@ VOS_UINT32 VOS_Is26MTimerRunning( VOS_VOID )
  Return     : void
  Other      :
  *****************************************************************************/
-VOS_VOID VOS_show_Timer_info( VOS_VOID )
+MODULE_EXPORTED VOS_VOID VOS_show_Timer_info( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("Max be used timer is %x.\r\n",
+    (VOS_VOID)vos_printf("[PAM][VOS] %s: Max be used timer is %x.\r\n", __FUNCTION__,
         vos_TimerCtrlBlkNumber - vos_TimerMinTimerIdUsed);
 }
 
@@ -2318,7 +2326,7 @@ VOS_BOOL VOS_CalcTimerInfo(VOS_VOID)
  Return     : void
  Other      :
  *****************************************************************************/
-VOS_VOID VOS_ShowUsed26MTimerInfo( VOS_VOID )
+MODULE_EXPORTED VOS_VOID VOS_ShowUsed26MTimerInfo( VOS_VOID )
 {
     VOS_ULONG                    ulLockLevel;
     VOS_TIMER_CONTROL_BLOCK     *pstTimer;
@@ -2403,21 +2411,21 @@ VOS_VOID VOS_TimerDump(VOS_INT lModId, VOS_UINT32 ulFileID, VOS_UINT32 ulLineNo)
  Return     : VOID
  Other      :
  *****************************************************************************/
-VOS_VOID Show26MTimerLog( VOS_VOID )
+MODULE_EXPORTED VOS_VOID Show26MTimerLog( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulStartCount = %d. (call DRV Start timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStartCount =: %d. (call DRV Start timer num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulStartCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulStopCount =  %d. (call DRV Stop timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStopCount =:  %d. (call DRV Stop timer num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulStopCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulExpireCount = %d. (receive DRV ISR of DualTimer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulExpireCount =: %d. (receive DRV ISR of DualTimer num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulExpireCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulStartErrCount = %d. (call DRV Stop timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStartErrCount =: %d. (call DRV Stop timer err num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulStartErrCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulStopErrCount = %d. (call DRV Start timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStopErrCount =: %d. (call DRV Start timer err num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulStopErrCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulElapsedErrCount = %d. (call DRV get rest timer num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulElapsedErrCount =: %d. (call DRV get rest timer num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulElapsedErrCount);
-    (VOS_VOID)vos_printf("g_st26MSocTimerInfo.ulElapsedContentErrCount = %d. (call DRV get rest timer err num)\r\n",
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulElapsedContentErrCount =: %d. (call DRV get rest timer err num)\r\n", __FUNCTION__,
                 g_st26MSocTimerInfo.ulElapsedContentErrCount);
 }
 

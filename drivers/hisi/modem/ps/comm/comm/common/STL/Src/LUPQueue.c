@@ -67,7 +67,7 @@
   3 Function
 *****************************************************************************/
 
-VOS_UINT32 LUP_IsQueEmpty(const LUP_QUEUE_STRU *pstQue)
+MODULE_EXPORTED VOS_UINT32 LUP_IsQueEmpty(const LUP_QUEUE_STRU *pstQue)
 {
     OSA_ASSERT_RTN (VOS_NULL_PTR != pstQue, PS_TRUE);
 
@@ -81,7 +81,7 @@ VOS_UINT32 LUP_IsQueEmpty(const LUP_QUEUE_STRU *pstQue)
 
 
 
-VOS_UINT32 LUP_IsQueFull(const LUP_QUEUE_STRU *pstQue)
+MODULE_EXPORTED VOS_UINT32 LUP_IsQueFull(const LUP_QUEUE_STRU *pstQue)
 {
     OSA_ASSERT_RTN (VOS_NULL_PTR != pstQue, PS_TRUE);
 
@@ -94,7 +94,7 @@ VOS_UINT32 LUP_IsQueFull(const LUP_QUEUE_STRU *pstQue)
 }
 
 
-VOS_UINT32 LUP_QueCnt(const LUP_QUEUE_STRU *pstQue)
+MODULE_EXPORTED VOS_UINT32 LUP_QueCnt(const LUP_QUEUE_STRU *pstQue)
 {
     OSA_ASSERT_RTN (VOS_NULL_PTR != pstQue, 0);
 
@@ -102,7 +102,7 @@ VOS_UINT32 LUP_QueCnt(const LUP_QUEUE_STRU *pstQue)
 }
 
 
-VOS_UINT32 LUP_PeekQueHead(const LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
+MODULE_EXPORTED VOS_UINT32 LUP_PeekQueHead(const LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
 {
     VOS_UINT32 ulHead = 0;
 
@@ -121,7 +121,7 @@ VOS_UINT32 LUP_PeekQueHead(const LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
 }
 
 
-VOS_UINT32 LUP_EnQue(LUP_QUEUE_STRU *pstQue, VOS_VOID *pNode)
+MODULE_EXPORTED VOS_UINT32 LUP_EnQue(LUP_QUEUE_STRU *pstQue, VOS_VOID *pNode)
 {
     VOS_UINT32          ulTail;
 
@@ -143,7 +143,7 @@ VOS_UINT32 LUP_EnQue(LUP_QUEUE_STRU *pstQue, VOS_VOID *pNode)
 }
 
 
-VOS_UINT32 LUP_DeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
+MODULE_EXPORTED VOS_UINT32 LUP_DeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
 {
     OSA_ASSERT_RTN (VOS_NULL_PTR != pstQue, PS_PTR_NULL);
     OSA_ASSERT_RTN(VOS_NULL_PTR != ppNode, PS_PTR_NULL);
@@ -160,7 +160,7 @@ VOS_UINT32 LUP_DeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
 }
 
 
-VOS_UINT32 LUP_DeQueTail(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
+MODULE_EXPORTED VOS_UINT32 LUP_DeQueTail(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode)
 {
     OSA_ASSERT_RTN (VOS_NULL_PTR != pstQue, PS_PTR_NULL);
     OSA_ASSERT_RTN(VOS_NULL_PTR != ppNode, PS_PTR_NULL);
@@ -182,15 +182,37 @@ VOS_UINT32 LUP_BatchDeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppBuf,VOS_UINT32 *p
     VOS_UINT32    ulCnt;
     VOS_UINT32    ulLoop;
 
-    OSA_ASSERT_RTN(VOS_NULL_PTR != pstQue, PS_PTR_NULL);
-    OSA_ASSERT_RTN(VOS_NULL_PTR != ppBuf, PS_PTR_NULL);
-    OSA_ASSERT_RTN(VOS_NULL_PTR != pulNum, PS_PTR_NULL);
+    /*入参指针不为空判定*/
+    if(VOS_NULL_PTR == pstQue)
+    {
+        return  PS_PTR_NULL;
+    }
+    if(VOS_NULL_PTR == ppBuf)
+    {
+        return  PS_PTR_NULL;
+    }
+    if(VOS_NULL_PTR == pulNum)
+    {
+        return  PS_PTR_NULL;
+    }
+
+    /*要求批量出队的数据个数不为0*/
+    if (0 == *pulNum)
+    {
+        return PS_PARA_ERR;
+    }
 
     ulCnt = TTF_MOD_SUB(pstQue->ulTail, pstQue->ulHead, pstQue->ulMaxNum);
 
     if (0 == ulCnt)
     {
         return  PS_QUE_EMPTY;
+    }
+
+    /*对于队列的个数和要求的个数，取最小值*/
+    if (ulCnt > *pulNum)
+    {
+        ulCnt = *pulNum;
     }
 
     for(ulLoop=0; ulLoop<ulCnt; ulLoop++)
@@ -206,7 +228,7 @@ VOS_UINT32 LUP_BatchDeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppBuf,VOS_UINT32 *p
 
 /*lint -e715*/
 
-VOS_UINT32 LUP_CreateQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue,
+MODULE_EXPORTED VOS_UINT32 LUP_CreateQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue,
                                 VOS_UINT32 ulMaxNodeNum)
 {
     LUP_QUEUE_STRU  *pstQue     = VOS_NULL_PTR;
@@ -247,7 +269,7 @@ VOS_UINT32 LUP_CreateQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue,
 }
 
 
-VOS_UINT32 LUP_DestroyQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue)
+MODULE_EXPORTED VOS_UINT32 LUP_DestroyQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue)
 {
     LUP_QUEUE_STRU     *pstQue;
 

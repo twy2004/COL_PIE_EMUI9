@@ -49,7 +49,7 @@
 #define _BSP_SYSCTRL_H
 
 #include <product_config.h>
-#include <bsp_trace.h>
+#include <bsp_print.h>
 
 typedef enum tagBSP_SYSCTRL_INDEX
 {
@@ -61,20 +61,31 @@ typedef enum tagBSP_SYSCTRL_INDEX
     crg_modem5g,
     sysctrl_modem5g,
     sysctrl_ccpu5g,
-    sysctrl_reserve1,/*预留系统控制器*/
-    sysctrl_reserve2,
-    
+    sysctrl_ll1c,
+    sysctrl_reserve1,/* 预留系统控制器 */
+    sysctrl_reserve2,/* 预留系统控制器 */
+    sysctrl_reserve3,/* 预留系统控制器 */
+
     sysctrl_max
 }BSP_SYSCTRL_INDEX;
 
-#define  sc_pr_debug(fmt, ...)    \
-    (bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_SYSCTRL, "[sc]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
-#define  sc_pr_warn(fmt, ...)      \
-    (bsp_trace(BSP_LOG_LEVEL_WARNING, BSP_MODU_SYSCTRL, "[sc]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
-#define  sc_pr_info(fmt, ...)      \
-    (bsp_trace(BSP_LOG_LEVEL_INFO, BSP_MODU_SYSCTRL, "[sc]:"fmt, ##__VA_ARGS__))
-#define  sc_pr_err(fmt, ...)      \
-    (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_SYSCTRL, "[sc]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  sc_err(fmt, ...)      \
+    (bsp_err(fmt, ##__VA_ARGS__))
+#define  sc_wrn(fmt, ...)      \
+    (bsp_wrn(fmt, ##__VA_ARGS__))
+#define  sc_info(fmt, ...)      \
+    (bsp_info(fmt, ##__VA_ARGS__))
+#define  sc_debug(fmt, ...)      \
+    (bsp_debug(fmt, ##__VA_ARGS__))
+
+#define  sc_err_func(fmt, ...)      \
+    (bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  sc_wrn_func(fmt, ...)      \
+    (bsp_wrn("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  sc_info_func(fmt, ...)      \
+    (bsp_info("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  sc_debug_func(fmt, ...)    \
+    (bsp_debug("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 
 #ifdef CONFIG_SYSCTRL
 extern void* bsp_sysctrl_addr_get(void* phy_addr);

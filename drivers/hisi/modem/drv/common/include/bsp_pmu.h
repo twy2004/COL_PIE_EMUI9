@@ -55,7 +55,7 @@ extern "C" {
 
 #include "product_config.h"
 #include "osl_types.h"
-
+#include "mdrv_rfile_common.h"
 #if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) ||defined(__OS_RTOSCK_SMP__)
 #include "mdrv_pmu.h"
 #endif
@@ -342,7 +342,7 @@ typedef enum  _pmu_om_log_e
     PMU_OM_LOG_EXC,       /*wifi clk */
     PMU_OM_LOG_END
 }pmu_om_log_e;
-#define PMU_OM_LOG            "/modem_log/log/pmu_om.log"
+#define PMU_OM_LOG            (MODEM_LOG_ROOT"/log/pmu_om.log")
 /*debug*/
 
 /*º¯ÊýÉùÃ÷*/
@@ -366,7 +366,7 @@ int bsp_pmic_reg_show(u32 addr);
 
 typedef void (*PMU_OCP_FUNCPTR)(int);
 int bsp_pmu_ocp_register(int volt_id,PMU_OCP_FUNCPTR func);
-
+extern u32 bsp_get_mutli_sid(void);
 
 #ifdef __cplusplus
 }

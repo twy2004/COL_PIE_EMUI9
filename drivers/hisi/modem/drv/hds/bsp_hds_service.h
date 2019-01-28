@@ -50,9 +50,14 @@
 #define __BSP_HDS_SERVICE_H__
 
 #include <osl_types.h>
-#include "bsp_trace.h"
 #include "bsp_diag_frame.h"
 #include "mdrv_hds_common.h"
+#include <bsp_print.h>
+
+#define hds_printf(fmt,...)	printk(KERN_ERR"[%s]:"fmt, BSP_MOD(THIS_MODU),##__VA_ARGS__)
+#define hds_info(fmt,...)	printk(KERN_INFO"[%s]:"fmt, BSP_MOD(THIS_MODU),##__VA_ARGS__)
+#define hds_debug(fmt,...)	
+
 
 /*´íÎóÂë¶¨Òå*/
 #define HDS_CMD_ERROR          (0x00abcd00 + 0x1)  /*cmdidÎ´×¢²á´íÎóÂë*/

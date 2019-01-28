@@ -62,11 +62,16 @@
 #include <bsp_slice.h>
 #include <bsp_ring_buffer.h>
 #include <bsp_modem_log.h>
+#include <bsp_print.h>
+#include "securec.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_pm_om
 
 #define IPC_ACPU_INT_SRC_CCPU_MODEM_LOG (IPC_ACPU_INT_SRC_CCPU_PM_OM)
 
-#define modem_log_pr_err(fmt, ...)      pr_err("[modem log]: " fmt, ##__VA_ARGS__)
-#define modem_log_pr_err_once(fmt, ...) pr_err_once("[modem log]: " fmt, ##__VA_ARGS__)
+#define modem_log_pr_err(fmt, ...)      bsp_err(fmt, ##__VA_ARGS__)
+#define modem_log_pr_err_once(fmt, ...) bsp_err(fmt, ##__VA_ARGS__)
 #define modem_log_pr_debug(fmt, ...)   // pr_err("[modem log]: " fmt, ##__VA_ARGS__)
 
 /* Ä£¿é·µ»Ø´íÎóÂë */
@@ -145,7 +150,7 @@ void modem_log_ring_buffer_get(struct log_usr_info * usr_info, struct ring_buffe
 	}
 	else
 	{
-		memset((void *)rb, 0, sizeof(*rb));
+		memset_s((void *)rb, sizeof(*rb), 0, sizeof(*rb));
 	}
 }
 
@@ -531,7 +536,7 @@ EXPORT_SYMBOL(modem_log_fwrite_trigger_force); /*lint !e19 */
 /**
  * bsp_modem_log_init - modem log init
  */
-static int __init modem_log_init(void)
+int __init modem_log_init(void)
 {
 	wake_lock_init(&g_modem_log.wake_lock, WAKE_LOCK_SUSPEND, "modem_log_wake");
 
@@ -558,4 +563,3 @@ ipc_err:
 	return MODEM_LOG_NO_IPC_SRC;
 }
 
-module_init(modem_log_init);

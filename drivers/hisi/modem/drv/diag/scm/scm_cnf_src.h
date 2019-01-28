@@ -73,11 +73,10 @@ extern "C"{
 
 u32 scm_init_cnf_src_buff(void);
 u32 scm_create_cnf_src_buff(u8 **pBufVir, u8 **pBufPhy, u32 ulLen);
-u32 scm_get_cnf_src_buff(u32 ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-void scm_cnf_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf);
 u32 scm_send_cnf_src_data(u8 *pucSendDataAddr, u32 ulSendLen);
 u32 scm_cnf_src_chan_init(void);
 u32 scm_cnf_src_chan_cfg(SCM_CODER_SRC_CFG_STRU *pstCfg);
+unsigned long scm_cnf_src_phy_to_virt(u8 * phyAddr);
 
 
 #ifdef __cplusplus

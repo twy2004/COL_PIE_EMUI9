@@ -77,6 +77,7 @@ int bsp_blk_get_cdromiso_blkname(char *blk_path, int len);
 int bsp_blk_get_page_size(void);
 int bsp_blk_get_block_size(void);
 int bsp_blk_get_spare_size(unsigned int *sparesize);
+int bsp_blk_get_chip_size(void);
 
 const char* bsp_blk_get_type(void);
 
@@ -108,6 +109,8 @@ enum {
     MAX_OPS,
 };
 int bsp_blk_read_write_dump(unsigned int ops_type, unsigned int offset, void *data, unsigned int length, unsigned int spare);
+
+int flash_init(void);
 #endif
 
 #ifdef __cplusplus /* __cplusplus */

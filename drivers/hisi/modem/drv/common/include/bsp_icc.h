@@ -75,8 +75,8 @@ s32 BSP_ICC_Debug_Register(u32 u32ChanId, FUNCPTR_1 debug_routine, int param);
 #define ICC_ERR               (-1)
 #define ICC_CHANNEL_IS_FULL_FLAG               (0xFF)
 
+/*lint --e{488}*/
 /* CPU ID 分配 */
-#ifndef __OS_NRCCPU__
 enum CPU_ID
 {
 	ICC_CPU_MIN = IPC_CORE_ACORE,
@@ -85,23 +85,10 @@ enum CPU_ID
 	ICC_CPU_MCU = IPC_CORE_MCORE,
 	ICC_CPU_TLDSP = IPC_CORE_LDSP,
 	ICC_CPU_HIFI = IPC_CORE_HiFi,
+	ICC_CPU_NRCCPU = IPC_CORE_NRCCPU,
 	ICC_CPU_MAX
 };
-#else
-enum CPU_ID
-{
-	ICC_CPU_APP = -1,
-	ICC_CPU_HIFI = -1,
-	ICC_CPU_HL1C = IPC_CORE_HL1C,
-	ICC_CPU_MODEM = IPC_CORE_NRCCORE,
-	ICC_CPU_L2HAC = IPC_CORE_L2HAC,
-	ICC_CPU_LL1C = IPC_CORE_LL1C,
-	ICC_CPU_ACORE = IPC_CORE_ACORE,
-	ICC_CPU_MCORE = IPC_CORE_MCORE,
 
-	ICC_CPU_MAX
-};
-#endif
 /* 错误码定义 */
 enum ICC_ERR_NO
 {
@@ -157,6 +144,9 @@ enum ICC_CHN_ID
 	ICC_CHN_IPC_EXTEND,      /* 私有IPC无任务直接回调处理函数，扩展IPC 中断，acore 与ccore物理通道 */
 	ICC_CHN_DYNAMIC,    /* 共享IPC无任务直接回调处理函数，ICC 动态建立专属通道 */
 	ICC_CHN_IQI,
+	ICC_CHN_NRIFC,
+	ICC_CHN_NRCCPU_APCPU_OSA,
+	ICC_CHN_NRCCPU_LRCCPU_OSA,
 #ifdef ICC_DFC_CHN_ENABLED
 	ICC_CHN_CCORE_TPHY_PS,
 	ICC_CHN_CCORE_TPHY_OM,
@@ -186,13 +176,14 @@ enum ICC_RECV_FUNC_ID{
 	IFC_RECV_FUNC_PM_OM,
 	IFC_RECV_FUNC_SOCP_DEBUG,
 	IFC_RECV_FUNC_REMOTE_CLK,
-    IFC_RECV_FUNC_PMU_OCP,
+        IFC_RECV_FUNC_PMU_OCP,
 	IFC_RECV_FUNC_SYSTEM_HEATING,
 	IFC_RECV_FUNC_SYS_BUS,
 	IFC_RECV_FUNC_LOADPS,
 	IFC_RECV_FUNC_MPERF,
 	IFC_RECV_FUNC_IQI,
 	IFC_RECV_FUNC_FREQ,
+    IFC_RECV_FUNC_PPM_NV,
 	/* 若要在ICC_CHN_IFC物理通道上定义子通道,请在该注释行之前定义 */
 	IFC_RECV_FUNC_TEST1,
 	IFC_RECV_FUNC_ID_MAX,
@@ -269,6 +260,8 @@ enum ICC_RECV_FUNC_ID{
 	MCORE_ACORE_FUNC_DUMP,
 	MCORE_ACORE_FUNC_RESET,
 	MCORE_ACORE_FUNC_PM_OM,
+	MCU_ACORE_DDRFREQ,
+	MCORE_ACORE_FUNC_TSENSOR,
 	/* 若要在ICC_CHN_MCORE_ACORE物理通道上定义子通道,请在该注释行之前定义 */
 	MCORE_ACORE_FUNC_ID_MAX,
 
@@ -285,7 +278,7 @@ enum ICC_RECV_FUNC_ID{
 	VT_VOIP_FUNC_VT_VOIP = 0,
 	VT_VOIP_FUNC_RCS_SERV,
 	VT_VOIP_FUNC_ID_MAX,
-		
+
 	SEC_IFC_RECV_FUNC_MODULE_VERIFY = 0,
 
 	/* 若要在物理通道上定义子通道,请在该注释行之前定义 */
@@ -295,7 +288,7 @@ enum ICC_RECV_FUNC_ID{
 
 	/* 若要在物理通道上定义子通道,请在该注释行之前定义 */
 	SEC_VSIM_RECV_FUNC_ID_MAX,
-	
+
 	SEC_RFILE_RECV_FUNC_SUB0 = 0,
 
 	/* 若要在物理通道上定义子通道,请在该注释行之前定义 */
@@ -306,15 +299,28 @@ enum ICC_RECV_FUNC_ID{
 	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
 	TPHY_PS_FUNC_ID_MAX,
 #endif
-	
+
 	DYNAMIC_ICC_FUNC_TEST = 0,
 	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
 	DYNAMIC_ICC_FUNC_ID_MAX,
-	
+
 	IQI_ICC_FUNC_TEST = 0,
 	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
 	IQI_ICC_FUNC_ID_MAX,
 	IQI_LOGIC_CHAN_AC = 0,
+
+	NRIFC_RECV_FUNC_PERFSTAT = 0,
+	NRIFC_RECV_FUNC_ECDC = 1,
+	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
+	NRIFC_ICC_FUNC_ID_MAX,
+
+	NRCCPU_APCPU_OSA_FUNC_TEST = 0,
+	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
+	NRCCPU_APCPU_OSA_FUNC_ID_MAX,
+
+	NRCCPU_LRCCPU_OSA_FUNC_TEST = 0,
+	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
+	NRCCPU_LRCCPU_OSA_FUNC_ID_MAX,
 };
 
 
@@ -363,7 +369,7 @@ struct icc_channel_fifo
 struct icc_dynamic_para
 {
 	const char * name;
-	u32 size; 
+	u32 size;
 	read_cb_func  read_cb;        /* 接收向量的读回调函数指针 */
 	void          *read_context;  /* 接收向量的读回调函数context */
 };
@@ -377,7 +383,7 @@ struct icc_dynamic_para
 #define SHM_ADDR_ICC                               (char *) ((unsigned long)SHM_BASE_ADDR + SHM_OFFSET_ICC)
 #define SRAM_ADDR_ICC                              (char *) ((unsigned long)SRAM_BASE_ADDR + SRAM_OFFSET_ICC)
 
-typedef s32 (*read_cb_func)(u32 channel_id , u32 len, void* context);
+typedef s32 (*read_cb_func)(u32 channel_id , u32 len, void* context); /*lint !e761 */
 typedef s32 (*write_cb_func)(u32 channel_id , void* context);
 /* 对外接口声明start */
 /*****************************************************************************
@@ -505,7 +511,7 @@ s32 bsp_icc_event_unregister(u32 channel_id);
 			const char * name;     欲建立通道的名字, 名字大小不能超过15个字符。
 			u32 size; 			欲建立通道的大小，通道大小不能超过512.
 			read_cb_func  read_cb;        接收向量的读回调函数指针
-			void          *read_context;    接收向量的读回调函数context 
+			void          *read_context;    接收向量的读回调函数context
 		};
 * 输出参数  : 返回建立的channel 的ID
 * 返 回 值  : 返回建立的channel 的ID
@@ -565,6 +571,7 @@ char * icc_dump_addr_get(void);
 #define ICC_IPC_EXTEND_SIZE      (SZ_512)
 #define ICC_DYNAMIC_SIZE       (SZ_512)
 #define ICC_IQI_SIZE       (SZ_4K)
+#define ICC_NRIFC_SIZE       (SZ_4K)
 #define ICC_RESERVED_STATIC_SIZE       (SZ_512)
 
 
@@ -639,10 +646,18 @@ char * icc_dump_addr_get(void);
 #define ADDR_IQI_SEND       (ADDR_DYNAMIC_RECV + STRU_SIZE + ICC_DYNAMIC_SIZE)
 #define ADDR_IQI_RECV       (ADDR_IQI_SEND + STRU_SIZE + ICC_IQI_SIZE)
 
-#define ICC_SDDR_DYNAMIC_START_ADDR_ON_THIS_CORE       (ADDR_IQI_RECV + STRU_SIZE + ICC_RESERVED_STATIC_SIZE)
+#define ADDR_NRIFC_SEND       (ADDR_DYNAMIC_RECV + STRU_SIZE + ICC_DYNAMIC_SIZE)
+#define ADDR_NRIFC_RECV       (ADDR_IQI_SEND + STRU_SIZE + ICC_IQI_SIZE)
 
+#define ICC_SDDR_DYNAMIC_START_ADDR_ON_THIS_CORE       (ADDR_NRIFC_RECV + STRU_SIZE + ICC_RESERVED_STATIC_SIZE)
 
+#ifdef CONFIG_NRICC
+#define NRSHM_ADDR_ICC            (char *) ((unsigned long)NRSHM_BASE_ADDR + NRSHM_OFFSET_NRICC)
 
+/* nr ddr共享内存通道地址定义, acore和nrccore */
+#define NRICC_DBG_MSG_LEN_IN_NRSDDR  (0x20)
+#define NRICC_DBG_MSG_ADDR_IN_NRSDDR (char *) (((unsigned long)(NRSHM_ADDR_ICC) + 3) & ~3)
+#endif
 
 
 #ifdef __cplusplus /* __cplusplus */

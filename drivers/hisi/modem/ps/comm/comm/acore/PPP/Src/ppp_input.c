@@ -50,14 +50,13 @@
 #include "PPP/Inc/link.h"
 #include "PPP/Inc/ppp_init.h"
 #include "PPP/Inc/ppp_input.h"
-#include "AdsDeviceInterface.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
-/*lint -e767  修改人: z57034; 检视人: g45205 原因简述: 打点日志文件宏ID定义 */
+/*lint -e767  原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_PPP_INPUT_C
-/*lint +e767  修改人: z57034; 检视人: g45205 */
+/*lint +e767  */
 
 /******************************************************************************
    2 外部函数变量声明
@@ -259,7 +258,7 @@ VOS_UINT32  PPP_EnqueueData(PPP_ZC_STRU *pstImmZc, PPP_DATA_TYPE_ENUM_UINT8 enDa
 
 
 
-VOS_UINT32 PPP_PullPacketEvent(VOS_UINT16 usPppId, PPP_ZC_STRU *pstImmZc)
+VOS_UINT32 PPP_PullPacketEvent(VOS_UINT16 usPppId, IMM_ZC_STRU *pstImmZc)
 {
     if(VOS_NULL_PTR == pstImmZc)
     {
@@ -303,28 +302,65 @@ VOS_UINT32 PPP_PullPacketEvent(VOS_UINT16 usPppId, PPP_ZC_STRU *pstImmZc)
 } /* PPP_PullPacketEvent */
 
 
-VOS_UINT32 PPP_PushPacketEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
+VOS_UINT32 PPP_PullRawDataEvent(VOS_UINT16 usPppId, IMM_ZC_STRU *pstImmZc)
 {
-    PPP_ID                              usPppId = PPP_INVLAID_PPP_ID;
+    PPP_ZC_STRU                        *pstMem;
+
+    g_PppDataQCtrl.stStat.ulUplinkCnt++;
 
     if(VOS_NULL_PTR == pstImmZc)
     {
         PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP_PushPacketEvent, WARNING, pstImmZc is NULL!\r\n" );
+                      "PPP_PullRawDataEvent, WARNING, Alloc TTF mem fail!\r\n" );
 
         return PS_FAIL;
     }
 
-    g_PppDataQCtrl.stStat.ulDownlinkCnt++;
-
-    /* 通过RabId，寻找到PPP ID和相应的实体 */
-    /*Add by y45445 for PS FUSION PC ST 20120117 begin*/
-    if ( !PPP_RAB_TO_PPPID(&usPppId, ucRabId) )
+    if((PPP_MAX_ID_NUM < usPppId)
+        || (0 == usPppId))
     {
-        g_PppDataQCtrl.stStat.ulDownlinkDropCnt++;
+        g_PppDataQCtrl.stStat.ulUplinkDropCnt++;
+        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                     "PPP, PPP_PullRawDataEvent, WARNING, usPppId %d Wrong\r\n", usPppId);
         PPP_MemFree(pstImmZc);
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
-                      "PPP, PPP_PushPacketEvent, NORMAL, Can not get PPP Id, RabId <1>", ucRabId);
+
+        return PS_FAIL;
+    }
+
+    if (PS_TRUE == PPP_GetRawDataByPassMode())
+    {
+        pstMem = pstImmZc;
+        /* PPP模式透传模式下递交给ADS的是PPP报文，因此协议类型填0 */
+        if (PS_SUCC != PPP_SendPulledData(usPppId, pstMem, 0))
+        {
+            return PS_FAIL;
+        }
+    }
+    else
+    {
+        /*填充pstData的usApp字段:高8位放usPppId,低8位放PPP报文类型*/
+        PPP_ZC_SET_DATA_APP(pstImmZc, (VOS_UINT16)(usPppId << 8) | (VOS_UINT16)PPP_PULL_RAW_DATA_TYPE);
+
+        if ( PS_SUCC != PPP_EnqueueData(pstImmZc, PPP_PULL_RAW_DATA_TYPE, usPppId) )
+        {
+            PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                          "PPP_PullRawDataEvent, WARNING, Enqueue Data Fail!\r\n" );
+
+            return PS_FAIL;
+        }
+    }
+
+    return PS_SUCC;
+} /* PPP_PullRawEvent */
+
+
+VOS_INT PPP_DlPacketProc(PPP_ID usPppId, IMM_ZC_STRU *pstImmZc)
+{
+    
+    if(VOS_NULL_PTR == pstImmZc)
+    {
+        PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                      "PPP_PushPacketEvent, WARNING, pstImmZc is NULL!\r\n" );
 
         return PS_FAIL;
     }
@@ -345,7 +381,6 @@ VOS_UINT32 PPP_PushPacketEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PKT
         return PS_FAIL;
     }
 
-    /*Add by y45445 for PS FUSION PC ST 20120117 end*/
     /*填充pstData的usApp字段:高8位放usPppId,低8位放PPP报文类型*/
     PPP_ZC_SET_DATA_APP(pstImmZc, (VOS_UINT16)(usPppId << 8) | (VOS_UINT16)PPP_PUSH_PACKET_TYPE);
 
@@ -366,76 +401,9 @@ VOS_UINT32 PPP_PushPacketEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PKT
 }
 
 
-VOS_UINT32 PPP_PullRawDataEvent(VOS_UINT16 usPppId, PPP_ZC_STRU *pstImmZc)
+VOS_INT PPP_DlRawDataProc(PPP_ID usPppId, IMM_ZC_STRU *pstImmZc)
 {
-    VOS_UINT32                          ulResult;
-
-    VOS_UINT8                           ucRabId = 0;
-
-
-    if(VOS_NULL_PTR == pstImmZc)
-    {
-        PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP_PullRawDataEvent, WARNING, Alloc TTF mem fail!\r\n" );
-
-        return PS_FAIL;
-    }
-
-    if((PPP_MAX_ID_NUM < usPppId)
-        || (0 == usPppId))
-    {
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                     "PPP, PPP_PullRawDataEvent, WARNING, usPppId %d Wrong\r\n", usPppId);
-        PPP_MemFree(pstImmZc);
-
-        return PS_FAIL;
-    }
-
-    if (PS_TRUE == PPP_GetRawDataByPassMode())
-    {
-        if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) )
-        {
-            PPP_MemFree(pstImmZc);
-            PPP_MNTN_LOG2(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
-                          "PPP, PPP_PushPacketEvent, WARNING, Can not get PPP Id %d, RabId %d",
-                          usPppId, ucRabId);
-
-            return PS_FAIL;
-        }
-
-        ulResult = ADS_UL_SendPacket(pstImmZc, ucRabId);
-
-        if ( VOS_OK != ulResult )
-        {
-            PPP_MemFree(pstImmZc);
-
-            return PS_FAIL;
-        }
-    }
-    else
-    {
-        /*填充pstData的usApp字段:高8位放usPppId,低8位放PPP报文类型*/
-        PPP_ZC_SET_DATA_APP(pstImmZc, (VOS_UINT16)(usPppId << 8) | (VOS_UINT16)PPP_PULL_RAW_DATA_TYPE);
-
-        if ( PS_SUCC != PPP_EnqueueData(pstImmZc, PPP_PULL_RAW_DATA_TYPE, usPppId) )
-        {
-            PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                          "PPP_PullRawDataEvent, WARNING, Enqueue Data Fail!\r\n" );
-
-            return PS_FAIL;
-        }
-    }
-
-    g_PppDataQCtrl.stStat.ulUplinkCnt++;
-
-    return PS_SUCC;
-} /* PPP_PullRawEvent */
-
-
-VOS_UINT32 PPP_PushRawDataEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
-{
-    PPP_ID                              usPppId = PPP_INVLAID_PPP_ID;
-
+    
     if(VOS_NULL_PTR == pstImmZc)
     {
         PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
@@ -443,17 +411,10 @@ VOS_UINT32 PPP_PushRawDataEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PK
 
         return PS_FAIL;
     }
-    /* 通过RabId，寻找到PPP ID和相应的实体 */
-    if ( !PPP_RAB_TO_PPPID(&usPppId, ucRabId) )
-    {
-        PPP_MemFree(pstImmZc);
-        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
-                      "PPP, PPP_PushRawDataEvent, WARNING, Can not get PPP Id, RabId <1>", ucRabId);
 
-        return PS_FAIL;
-    }
     if(VOS_OK != PppIsIdValid(usPppId))
     {
+        g_PppDataQCtrl.stStat.ulDownlinkDropCnt++;
         PPP_MemFree(pstImmZc);
         PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
                      "PPP_PushRawData, WARNING, Invalid PPP id, packet from GGSN droped\r\n");
@@ -472,15 +433,54 @@ VOS_UINT32 PPP_PushRawDataEvent(VOS_UINT8 ucRabId, PPP_ZC_STRU *pstImmZc, ADS_PK
 
         if ( PS_SUCC != PPP_EnqueueData(pstImmZc, PPP_PUSH_RAW_DATA_TYPE, usPppId) )
         {
+            g_PppDataQCtrl.stStat.ulDownlinkDropCnt++;
             PPP_MNTN_LOG( PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
                           "PPP_PushRawDataEvent, WARNING, Enqueue Data Fail!\r\n" );
             return PS_FAIL;
         }
     }
 
+    return PS_SUCC;
+}
+
+
+VOS_INT PPP_PushPacketEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
+{
+    PPP_ID                              usPppId = PPP_INVLAID_PPP_ID;
+
     g_PppDataQCtrl.stStat.ulDownlinkCnt++;
 
-    return PS_SUCC;
+    if ( !PPP_RAB_TO_PPPID(&usPppId, ucRabId) )
+    {
+        g_PppDataQCtrl.stStat.ulDownlinkDropCnt++;
+        PPP_MemFree(pstImmZc);
+        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL,
+                      "PPP, PPP_PushPacketEvent, NORMAL, Can not get PPP Id, RabId <1>", ucRabId);
+
+        return PS_FAIL;
+    }
+
+    return PPP_DlPacketProc(usPppId, pstImmZc);
+}
+
+
+VOS_INT PPP_PushRawDataEvent(VOS_UINT8 ucRabId, IMM_ZC_STRU *pstImmZc, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam)
+{
+    PPP_ID                              usPppId = PPP_INVLAID_PPP_ID;
+
+    g_PppDataQCtrl.stStat.ulDownlinkCnt++;
+
+    /* 通过RabId，寻找到PPP ID和相应的实体 */
+    if ( !PPP_RAB_TO_PPPID(&usPppId, ucRabId) )
+    {
+        PPP_MemFree(pstImmZc);
+        PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, PS_PRINT_WARNING,
+                      "PPP, PPP_PushRawDataEvent, WARNING, Can not get PPP Id, RabId <1>", ucRabId);
+
+        return PS_FAIL;
+    }
+
+    return PPP_DlRawDataProc(usPppId, pstImmZc);
 }
 
 

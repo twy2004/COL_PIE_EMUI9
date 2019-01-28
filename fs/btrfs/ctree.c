@@ -2760,8 +2760,6 @@ again:
 		 * contention with the cow code
 		 */
 		if (cow) {
-			bool last_level = (level == (BTRFS_MAX_LEVEL - 1));
-
 			/*
 			 * if we don't really need to cow this block
 			 * then we don't want to set the path blocking,
@@ -2786,13 +2784,9 @@ again:
 			}
 
 			btrfs_set_path_blocking(p);
-			if (last_level)
-				err = btrfs_cow_block(trans, root, b, NULL, 0,
-						      &b);
-			else
-				err = btrfs_cow_block(trans, root, b,
-						      p->nodes[level + 1],
-						      p->slots[level + 1], &b);
+			err = btrfs_cow_block(trans, root, b,
+					      p->nodes[level + 1],
+					      p->slots[level + 1], &b);
 			if (err) {
 				ret = err;
 				goto done;

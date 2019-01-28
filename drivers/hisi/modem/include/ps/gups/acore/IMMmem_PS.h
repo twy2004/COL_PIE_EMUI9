@@ -197,7 +197,11 @@ typedef void (*IMM_MEM_EVENT_CALLBACK)(unsigned int ulMaxClusterFreeCnt);
   10 º¯ÊýÉùÃ÷
 *****************************************************************************/
 
+#if (VOS_OS_VER == VOS_WIN32)
+#pragma pack()
+#else
 #pragma pack(0)
+#endif
 
 
 

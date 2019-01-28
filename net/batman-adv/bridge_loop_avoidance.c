@@ -2367,25 +2367,22 @@ batadv_bla_backbone_dump_bucket(struct sk_buff *msg, u32 portid, u32 seq,
 {
 	struct batadv_bla_backbone_gw *backbone_gw;
 	int idx = 0;
-	int ret = 0;
 
 	rcu_read_lock();
 	hlist_for_each_entry_rcu(backbone_gw, head, hash_entry) {
 		if (idx++ < *idx_skip)
 			continue;
-
-		ret = batadv_bla_backbone_dump_entry(msg, portid, seq,
-						     primary_if, backbone_gw);
-		if (ret) {
+		if (batadv_bla_backbone_dump_entry(msg, portid, seq,
+						   primary_if, backbone_gw)) {
 			*idx_skip = idx - 1;
 			goto unlock;
 		}
 	}
 
-	*idx_skip = 0;
+	*idx_skip = idx;
 unlock:
 	rcu_read_unlock();
-	return ret;
+	return 0;
 }
 
 /**

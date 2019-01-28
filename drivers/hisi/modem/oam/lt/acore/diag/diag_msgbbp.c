@@ -54,6 +54,7 @@
 #include <mdrv_diag_system.h>
 #include "diag_msgbbp.h"
 #include "diag_msgphy.h"
+#include "diag_msgmsp.h"
 #include "diag_debug.h"
 #include "msp_diag_comm.h"
 #include "soc_socp_adapter.h"
@@ -74,23 +75,24 @@ DIAG_TRANS_HEADER_STRU g_stBbpTransHead = {{VOS_NULL, VOS_NULL}, 0};
 
 
 DIAG_BBP_DS_ADDR_INFO_STRU g_stBbpDsAddrInfo={DIAG_BBP_DS_ENABLE,BBP_SOCP_SIZE,BBP_SOCP_ADDR};
-DIAG_BBP_BUS_ADDR_INFO_STRU g_stBbpBusAddrInfo={DIAG_BBP_BUS_ENABLE,BBP_SOCP_BUS_SIZE,BBP_SOCP_BUS_ADDR};
-
 DIAG_BBP_DS_ADDR_INFO_STRU g_stBbpXdataDsAddrInfo={DIAG_BBP_XDATA_DS_DISABLE ,0,0};
-
+VOS_UINT32 diag_BbpDrxDdrEnable(void);
 
 static int  bbpds_probe(struct platform_device *pdev)
 {
     s32 ret;
-    //struct device_node *dev;
     struct device *pdevice = &(pdev->dev);
 
     ret=of_reserved_mem_device_init(pdevice);
     if(ret<0)
     {
-         printk("modem_mem_device_init fail!/n" );
+         printk("modem_mem_device_init fail!\n" );
     }
-     printk("modem_mem_device_init success!/n" );
+    else
+    {
+        printk("modem_mem_device_init success!\n");
+    }
+
     return 0;
 
 }
@@ -111,100 +113,102 @@ static struct platform_driver bbpds_driver = {
 /*lint -restore +e785 +e64*/
 
 DIAG_BBP_PROC_FUN_STRU g_DiagBbpFunc[] = {
-    {diag_DrxSampleGetChnSizeProc        ,DIAG_CMD_DRX_SAMPLE_CHNSIZE_REQ       ,0},
+    {diag_DrxSampleGetChnSizeProc        ,DIAG_CMD_BBP_SAMPLE_CHNSIZE_REQ       ,0},
 };
 
-/*****************************************************************************
- Function Name     : diag_DrxSampleGetChnSizeProc
- Description     : 低功耗数采获取通道大小
- Input             :VOS_UINT8* pstReq
-                VOS_UINT32 ulCmdSn
- Output          : None
- Return          : VOS_UINT32
 
- History         :
+/*****************************************************************************
+ Function Name      : diag_DsSendChanInfoToLrm
+ Description        : SOCP通道信息发送给LRM
+ Input              : DIAG_FRAME_INFO_STRU *pData
+ Output             : None
+ Return             : VOS_VOID
 
 *****************************************************************************/
-VOS_UINT32 diag_DrxSampleGetChnSizeProc(DIAG_FRAME_INFO_STRU *pData)
+VOS_VOID diag_DsSendChanInfoToLrm(DIAG_FRAME_INFO_STRU *pData)
 {
-    MSP_DIAG_CNF_INFO_STRU stDiagInfo = {0};
     DIAG_BBP_DS_ADDR_INFO_STRU  *psDrxDsInfo = NULL;
-    VOS_UINT32 ulRet ;
-    DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_CNF_STRU stCnfDrxSample = {0};
-    VOS_UINT32 ulLen;
     DIAG_BBP_MSG_A_TRANS_C_STRU *pstInfo;
-    DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU *psCdmaSample;
+    DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU *psChanEnumInfo;
     VOS_UINT32 ulAddrType = 0;
-
-    mdrv_diag_PTR(EN_DIAG_PTR_BBP_GET_CHAN_SIZE_PROC, 1, pData->ulCmdId, 0);
-
-    if(pData->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU) + sizeof(DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU))
-    {
-        diag_printf("input len is small than need, ulMsgLen:0x%x\n", pData->ulMsgLen);
-        goto DIAG_ERROR;
-    }
+    VOS_UINT32 ulLen;
+    VOS_UINT32 ulRet;
 
     /*lint -save -e826*/
-    psCdmaSample = (DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU*)((VOS_UINT8*)(pData->aucData) + sizeof(MSP_DIAG_DATA_REQ_STRU));
+    psChanEnumInfo = (DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU*)((VOS_UINT8*)(pData->aucData) + sizeof(MSP_DIAG_DATA_REQ_STRU));
 
-    /*AP在发送给CP命令时，需要把数采地址空间信息一起发送过去*/
+    /*AP在发送给LRM命令时，需要把数采地址空间信息一起发送过去*/
     ulLen = (VOS_UINT32)sizeof(DIAG_BBP_MSG_A_TRANS_C_STRU)-VOS_MSG_HEAD_LENGTH + pData->ulMsgLen +(VOS_UINT32)sizeof(DIAG_BBP_DS_ADDR_INFO_STRU);
     pstInfo = (DIAG_BBP_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);
     if(VOS_NULL == pstInfo)
     {
-       // ulRet = ERR_MSP_MALLOC_FAILUE;
-        goto DIAG_ERROR;
+        diag_error("pstInfo VOS_AllocMsg fail\n");
+        return;
     }
-    pstInfo->ulReceiverPid  = MSP_PID_DIAG_AGENT;
-    pstInfo->ulSenderPid    = MSP_PID_DIAG_APP_AGENT;
-    pstInfo->ulMsgId        = DIAG_MSG_BBP_A_TRANS_C_REQ;
 
     ulLen = sizeof(DIAG_FRAME_INFO_STRU)+pData->ulMsgLen;
     (VOS_VOID)VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pData, ulLen);
 
     psDrxDsInfo = (DIAG_BBP_DS_ADDR_INFO_STRU*)((VOS_UINT8*)pstInfo+sizeof(DIAG_BBP_MSG_A_TRANS_C_STRU)+pData->ulMsgLen);
-    ulAddrType  = psCdmaSample->eDiagDrxSampleChnSize;
-    if(DRX_SAMPLE_BBP_CDMA_DATA_CHNSIZE ==ulAddrType)
+    ulAddrType  = psChanEnumInfo->eDiagDrxSampleChnSize;
+    switch(ulAddrType)
     {
-        psDrxDsInfo->ulAddr     = g_stBbpXdataDsAddrInfo.ulAddr;
-        psDrxDsInfo->ulSize     = g_stBbpXdataDsAddrInfo.ulSize;
-        psDrxDsInfo->ulenable   = g_stBbpXdataDsAddrInfo.ulenable;
-        atfd_hisi_service_access_register_smc( ACCESS_REGISTER_FN_MAIN_ID, (VOS_UINT64)g_stBbpXdataDsAddrInfo.ulAddr,
-            (VOS_UINT64)g_stBbpXdataDsAddrInfo.ulSize, ACCESS_REGISTER_FN_SUB_ID_DDR_MODEM_SEC);
+
+        case DRX_SAMPLE_BBP_DMA_DATA_CHNSIZE:
+            psDrxDsInfo->ulAddr     = g_stBbpDsAddrInfo.ulAddr;
+            psDrxDsInfo->ulSize     = g_stBbpDsAddrInfo.ulSize;
+            psDrxDsInfo->ulenable   = g_stBbpDsAddrInfo.ulenable;
+        break;
+
+        case DRX_SAMPLE_BBP_CDMA_DATA_CHNSIZE:
+            psDrxDsInfo->ulAddr     = g_stBbpXdataDsAddrInfo.ulAddr;
+            psDrxDsInfo->ulSize     = g_stBbpXdataDsAddrInfo.ulSize;
+            psDrxDsInfo->ulenable   = g_stBbpXdataDsAddrInfo.ulenable;
+            atfd_hisi_service_access_register_smc( ACCESS_REGISTER_FN_MAIN_ID, (VOS_UINT64)g_stBbpXdataDsAddrInfo.ulAddr,
+                (VOS_UINT64)g_stBbpXdataDsAddrInfo.ulSize, ACCESS_REGISTER_FN_SUB_ID_DDR_MODEM_SEC);
+        break;
+
+        default:
+            break;
     }
 
-    else if(DRX_SAMPLE_BBP_DMA_LOG0_CHNSIZE ==ulAddrType)
-    {
-        psDrxDsInfo->ulAddr     = g_stBbpBusAddrInfo.ulAddr;
-        psDrxDsInfo->ulSize     = g_stBbpBusAddrInfo.ulSize;
-        psDrxDsInfo->ulenable   = g_stBbpBusAddrInfo.ulenable;
-    }
-
-    else
-    {
-        psDrxDsInfo->ulAddr     = g_stBbpDsAddrInfo.ulAddr;
-        psDrxDsInfo->ulSize     = g_stBbpDsAddrInfo.ulSize;
-        psDrxDsInfo->ulenable   = g_stBbpDsAddrInfo.ulenable;
-    }
-
+    pstInfo->ulSenderPid = MSP_PID_DIAG_APP_AGENT;
+    pstInfo->ulReceiverPid  = MSP_PID_DIAG_AGENT;
+    pstInfo->ulMsgId        = DIAG_MSG_BBP_A_TRANS_C_REQ;
     ulRet = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstInfo);
     if(ulRet)
     {
-        goto DIAG_ERROR;
+        diag_error("VOS_SendMsg to LRM fail, ulAddrType=0x%x, ulRet=0x%x\n", ulAddrType, ulRet);
+        return;
     }
 
-    return ulRet;
-DIAG_ERROR:
-
-    DIAG_MSG_COMMON_PROC(stDiagInfo,stCnfDrxSample,pData);
-    stDiagInfo.ulMsgType = DIAG_MSG_TYPE_BBP;
-
-    ulRet = DIAG_MsgReport(&stDiagInfo,&stCnfDrxSample, (VOS_UINT32)sizeof(DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_CNF_STRU));
-     /*lint -restore +e826*/
-
-     return ulRet;
+    return;
 }
 
+
+/*****************************************************************************
+ Function Name      : diag_DrxSampleGetChnSizeProc
+ Description        : 获取SOCP通道信息
+ Input              : VOS_UINT8* pstReq
+ Output             : None
+ Return             : VOS_VOID
+
+*****************************************************************************/
+VOS_UINT32 diag_DrxSampleGetChnSizeProc(DIAG_FRAME_INFO_STRU *pData)
+{
+    mdrv_diag_PTR(EN_DIAG_PTR_BBP_GET_CHAN_SIZE_PROC, 1, pData->ulCmdId, 0);
+
+    if(pData->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU) + sizeof(DIAG_CMD_DRX_SAMPLE_GET_CHNSIZE_REQ_STRU))
+    {
+        diag_error("ulMsgLen is too short:0x%x\n", pData->ulMsgLen);
+        return ERR_MSP_INVALID_PARAMETER;
+    }
+
+    diag_DsSendChanInfoToLrm(pData);
+
+
+    return ERR_MSP_SUCCESS;
+}
 
 /*****************************************************************************
  Function Name   : diag_BbpMsgProc
@@ -228,7 +232,7 @@ VOS_UINT32 diag_BbpMsgProc(DIAG_FRAME_INFO_STRU *pData)
 
     if(DIAG_MSG_TYPE_BBP != pData->stID.pri4b)
     {
-        diag_printf("%s Rcv Error Msg Id 0x%x\n",__FUNCTION__,pData->ulCmdId);
+        diag_error("Rcv Error MsgId 0x%x\n",pData->ulCmdId);
         return ulRet;
     }
 
@@ -242,8 +246,8 @@ VOS_UINT32 diag_BbpMsgProc(DIAG_FRAME_INFO_STRU *pData)
         }
     }
 
-    /* GU的BBP命令采用透传处理机制 */
-    if((DIAG_MODE_GSM == pData->stID.mode4b) || (DIAG_MODE_UMTS == pData->stID.mode4b))
+    /* 2/3/4G 中PAM Trigger命令直接由A核转发 */
+    if((DIAG_CMD_BBP_SAMPLE_PAM_TRIGGER_CFG == pData->ulCmdId) || (DIAG_CMD_BBP_SAMPLE_PAM_TRIGGER_START == pData->ulCmdId))
     {
         return diag_TransReqProcEntry(pData, &g_stBbpTransHead);
     }
@@ -254,7 +258,6 @@ VOS_UINT32 diag_BbpMsgProc(DIAG_FRAME_INFO_STRU *pData)
         goto DIAG_ERROR;
     }
 
-    /*AP侧需要将TL PHY需要的信息发送到C核，在C核获取相关信息*/
     ulLen = (VOS_UINT32)sizeof(DIAG_BBP_MSG_A_TRANS_C_STRU)-VOS_MSG_HEAD_LENGTH + pData->ulMsgLen;
     pstInfo = (DIAG_BBP_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);
     if(VOS_NULL == pstInfo)
@@ -262,12 +265,22 @@ VOS_UINT32 diag_BbpMsgProc(DIAG_FRAME_INFO_STRU *pData)
         ulRet = ERR_MSP_MALLOC_FAILUE;
         goto DIAG_ERROR;
     }
-    pstInfo->ulReceiverPid = MSP_PID_DIAG_AGENT;
     pstInfo->ulSenderPid   = MSP_PID_DIAG_APP_AGENT;
-    pstInfo->ulMsgId       = DIAG_MSG_BBP_A_TRANS_C_REQ;
     ulLen = sizeof(DIAG_FRAME_INFO_STRU)+pData->ulMsgLen;
-    (VOS_VOID)VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pData, ulLen);
 
+    /*5G BBP采数命令通过NRM发送给HL1C*/
+    if(DIAG_MODE_NR == pData->stID.mode4b)
+    {
+        pstInfo->ulReceiverPid = MSP_PID_DIAG_NRM_AGENT;
+        pstInfo->ulMsgId       = DIAG_MSG_BBP_A_TRANS_NRM_REQ;
+    }
+    else/*其他模式(包括EasyRF)采数命令通过LRM发送*/
+    {
+        pstInfo->ulReceiverPid = MSP_PID_DIAG_AGENT;
+        pstInfo->ulMsgId       = DIAG_MSG_BBP_A_TRANS_C_REQ;
+    }
+
+    (VOS_VOID)VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pData, ulLen);
     ulRet = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstInfo);
     if(ulRet)
     {
@@ -307,10 +320,10 @@ int nvme_mdmlog_write(unsigned int index, const unsigned char *data, unsigned in
 	ret = hisi_nve_direct_access(&pinfo);
 	if(0 != ret)
     {
-		diag_printf("nvme_mdmlog_writ: Write nve failed !\n");
+		diag_error("Write nve MDMLOG failed !\n");
 		return VOS_ERROR;
 	}
-    diag_printf("nvme_mdmlog_writ: Write nve success!\n");
+    diag_crit("Write nve MDMLOG success!\n");
     return VOS_OK;
 }
 
@@ -327,10 +340,10 @@ static int nvme_mdmlog_read(unsigned int index, unsigned char *buf, unsigned lon
 	ret = hisi_nve_direct_access(&pinfo);
 	if (0 != ret)
     {
-		diag_printf("nvme_mdmlog_read: Read nve failed !\n");
+		diag_error("Read nve MDMLOG failed !\n");
 		return VOS_ERROR;
 	}
-    diag_printf("nvme_mdmlog_read: Read nve success !\n");
+    diag_crit("Read nve MDMLOG success !\n");
 	(void)VOS_MemCpy_s(buf, NVME_MDMLOG_SIZE, pinfo.nv_data + index, (unsigned int)len);
 
 	return VOS_OK;
@@ -345,7 +358,7 @@ int set_mdmlog_nvme(void)
     ret = nvme_mdmlog_read(0, mdmlog_buf, NVME_MDMLOG_SIZE);
     if(ret)
     {
-        diag_printf("set_mdmlog_nvme: get_mdmlog_from_nvme failed.\n");
+        diag_error("get MDMLOG from_nvme failed.\n");
         return VOS_ERROR;
     }
 
@@ -355,10 +368,9 @@ int set_mdmlog_nvme(void)
         ret = nvme_mdmlog_write(0, mdmlog_buf, NVME_MDMLOG_SIZE);
         if(ret)
         {
-           printk(KERN_ERR"set_mdmlog_nvme[%d]: set_mdmlog_to_nvme failed.\n", __LINE__);
+           diag_error("set_mdmlog_to_nvme failed.\n");
            return VOS_ERROR;
         }
-        printk(KERN_ERR"set_mdmlog_nvme[%d]: set_mdmlog_to_nvme success,mdmlog_buf=%s.\n", __LINE__, mdmlog_buf);
     }
     if('1' != mdmlog_buf[2])
     {
@@ -366,14 +378,11 @@ int set_mdmlog_nvme(void)
         ret = nvme_mdmlog_write(0, mdmlog_buf, NVME_MDMLOG_SIZE);
         if(ret)
         {
-            printk(KERN_ERR"set_mdmlog_nvme[%d]: set_mdmlog_to_nvme failed.\n", __LINE__);
+            diag_error("set_mdmlog_to_nvme failed\n");
             return VOS_ERROR;
         }
-        printk(KERN_ERR"set_mdmlog_nvme[%d]: set_mdmlog_to_nvme success,mdmlog_buf=%s.\n", __LINE__, mdmlog_buf);
     }
 
-    printk(KERN_ERR"[%d] mdmlog_buf[0]=%c, mdmlog_buf[1]=%c, mdmlog_buf[2]=%c.\n",__LINE__,
-        mdmlog_buf[0], mdmlog_buf[1], mdmlog_buf[2]);
     return VOS_OK;
 }
 
@@ -396,50 +405,43 @@ VOS_VOID diag_BbpMsgInit(VOS_VOID)
     ulRet = VOS_SmBCreate("DTB", 1, VOS_SEMA4_FIFO,&g_stBbpTransHead.TransSem);
     if(VOS_OK != ulRet)
     {
-        diag_printf("diag_BbpMsgInit VOS_SmBCreate failed.\n");
+        diag_error("[init]VOS_SmBCreate failed.\n");
     }
 
     /* 初始化请求链表 */
     blist_head_init(&g_stBbpTransHead.TransHead);
-
+    (VOS_VOID)diag_BbpDrxDdrEnable();
     /*注册message消息回调*/
     DIAG_MsgProcReg(DIAG_MSG_TYPE_BBP,diag_BbpMsgProc);
-    printk(KERN_ERR"diag modem:modem_reserver define !");
+    diag_crit("diag modem:modem_reserver define !");
 
     printk(KERN_ERR"diag modem:modem_reserver define!\n");
 
     ulRet= platform_driver_register(&bbpds_driver);
     if(VOS_OK != ulRet)
     {
-        diag_printf("diag_BbpMsgInit bbpds_driver failed.\n");
+        diag_error("diag_BbpMsgInit bbpds_driver failed.\n");
     }
 
     VerInfo = bsp_get_version_info();
     if(NULL == VerInfo)
     {
-        diag_printf("%s[%d]: get_version_info fail.\n", __FUNCTION__, __LINE__);
+        diag_error("get_version_info fail\n");
         return;
     }
-
-    printk(KERN_ERR"VerInfo->udp_flag = 0x%x\n", VerInfo->udp_flag);
 
     if(HW_VER_HIONE_UDP_MAGIC == VerInfo->udp_flag) // 通过udp_mask判断硬件形态为udp
     {
         ulRet = set_mdmlog_nvme();
-        if(ulRet)
+        if(VOS_OK == ulRet)
         {
-            printk(KERN_ERR"diag_BbpMsgInit: set_mdmlog_nvme failed.\n");
-        }
-        else
-        {
-            printk(KERN_ERR"diag_BbpMsgInit: set_mdmlog_nvme success.\n");
+            diag_crit("diag_BbpMsgInit: set_mdmlog_nvme success.\n");
         }
     }
 
     return;
 }
 
-extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
 /*****************************************************************************
 * 函 数 名  : socp_logbuffer_sizeparse
 *
@@ -451,11 +453,11 @@ extern unsigned long simple_strtoul(const char *cp, char **endp, unsigned int ba
 *
 * 返 回 值  : 无
 *****************************************************************************/
-static int __init diag_BbpDrxDdrEnable(char *pucChar)
+VOS_UINT32 diag_BbpDrxDdrEnable(void)
 {
-    u32      flag;
+    u32   flag;
 
-    flag = (u32)simple_strtoul(pucChar, NULL, 0);
+    flag = mdrv_socp_bbpmemenable();
     if(flag)
     {
         g_stBbpDsAddrInfo.ulenable  = DIAG_BBP_DS_ENABLE;
@@ -463,12 +465,8 @@ static int __init diag_BbpDrxDdrEnable(char *pucChar)
         g_stBbpDsAddrInfo.ulSize    = BBP_SOCP_SIZE;
 
 
-        g_stBbpBusAddrInfo.ulenable  = DIAG_BBP_BUS_ENABLE;
-        g_stBbpBusAddrInfo.ulAddr    = BBP_SOCP_BUS_ADDR;
-        g_stBbpBusAddrInfo.ulSize    = BBP_SOCP_BUS_SIZE;
 
-        printk(KERN_ERR"[%s] enable!\n",__FUNCTION__);
-        printk(KERN_ERR"base addr :0x%x,base size: 0x%x\n",DDR_SOCP_ADDR,DDR_SOCP_SIZE);
+        diag_crit("Bbp Ds Addr Enable\n");
     }
     else
     {
@@ -476,16 +474,11 @@ static int __init diag_BbpDrxDdrEnable(char *pucChar)
         g_stBbpDsAddrInfo.ulAddr    = 0;
         g_stBbpDsAddrInfo.ulSize    = 0;
 
-        g_stBbpBusAddrInfo.ulenable  = 0;
-        g_stBbpBusAddrInfo.ulAddr    = 0;
-        g_stBbpBusAddrInfo.ulSize    = 0;
 
-        printk(KERN_ERR"[%s] not enable!\n",__FUNCTION__);
+        diag_crit("Bbp Ds Addr Disable\n");
     }
     return 0;
 }
-
-early_param("modem_socp_enable",diag_BbpDrxDdrEnable);
 
 
 /*****************************************************************************
@@ -505,20 +498,25 @@ static int modem_cdma_bbpds_reserve_area(struct reserved_mem *rmem)
     char *status ;
     int namesize = 0;
 
-    printk(KERN_ERR"diag modem: modem_cdma_bbpds_reserve_area!\n" );
+    //printk(KERN_ERR"diag modem: modem_cdma_bbpds_reserve_area!\n" );
+    diag_crit("diag modem: modem_cdma_bbpds_reserve_area!\n");
 
     status = (char *)of_get_flat_dt_prop(rmem->fdt_node, "status", NULL);
     if (status && (strncmp(status, "ok", strlen("ok")) != 0))
     {
-         printk(KERN_ERR"status is not ok [%s]!\n",status);
+         //printk(KERN_ERR"status is not ok [%s]!\n",status);
+         diag_crit("status is not ok\n");
          return 0;
     }
 
 
     heapname = of_get_flat_dt_prop(rmem->fdt_node, "region-name", &namesize);
     if (!heapname || (namesize <= 0)) {
+        /*
         printk(KERN_ERR"%s %s %d, no 'region-name' property namesize=%d\n",
         __FILE__, __FUNCTION__,__LINE__, namesize);
+        */
+        diag_error("no 'region-name' property namesize=%d\n", namesize);
 
         return 0;
     }
@@ -526,9 +524,11 @@ static int modem_cdma_bbpds_reserve_area(struct reserved_mem *rmem)
     g_stBbpXdataDsAddrInfo.ulenable         = DIAG_BBP_XDATA_DS_ENABLE;
     g_stBbpXdataDsAddrInfo.ulSize           = (VOS_UINT32)rmem->size;
     g_stBbpXdataDsAddrInfo.ulAddr           = rmem->base;
-
+    /*
     printk(KERN_ERR"[%s]:diag modem: kernel reserved buffer is useful, base 0x%llx, size is 0x%llx\n",
                  __FUNCTION__, rmem->base, rmem->size );
+    */
+    diag_crit("diag modem: kernel reserved buffer is useful, base 0x%llx, size is 0x%llx\n",rmem->base, rmem->size);
     return 0;
 }
 

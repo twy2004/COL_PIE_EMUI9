@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -63,7 +63,7 @@ SOCP_ADP_DEBUG_INFO_S g_SocpDebugInfo = {0};
 
 void DRV_SOCP_SHOW_DEBUG_INFO(void)
 {
-    printk(KERN_ERR"u32TimeoutTimes %d, u32TimeoutSlice 0x%x, u32DefaultTimes %d, u32DefaultSlice 0x%x.\n", 
+    printk(KERN_ERR"u32TimeoutTimes %d, u32TimeoutSlice 0x%x, u32DefaultTimes %d, u32DefaultSlice 0x%x.\n",
         g_SocpDebugInfo.u32TimeoutTimes, g_SocpDebugInfo.u32TimeoutSlice,
         g_SocpDebugInfo.u32DefaultTimes, g_SocpDebugInfo.u32DefaultSlice);
 }
@@ -96,7 +96,7 @@ EXPORT_SYMBOL(DRV_SOCP_INIT);
 *****************************************************************************/
 void mdrv_socp_send_data_manager(unsigned int EncDestChanID, unsigned int bEnable)
 {
-    bsp_socp_data_send_manager(EncDestChanID, bEnable);    
+    bsp_socp_data_send_manager(EncDestChanID, bEnable);
 }
 EXPORT_SYMBOL(mdrv_socp_send_data_manager);
 
@@ -511,53 +511,35 @@ EXPORT_SYMBOL(mdrv_socp_disalbe_dfs);
 * 功能描述  :此接口用于使能deflate压缩
 * 输入参数  : u32SrcChanID:源通道ID。
 * 输出参数  : 无
-* 返 回 值  : 
+* 返 回 值  : SOCP_OK:使能deflate压缩成功
+     SOCP_ERROR:使能deflate压缩失败
 *****************************************************************************/
 
 int mdrv_socp_compress_enable(unsigned int u32DestChanID)
 {
-    return 0;
+    return bsp_socp_compress_enable(u32DestChanID);
 }
 
 /*****************************************************************************
-* 函 数 名  : mdrv_socp_compress_unable
+* 函 数 名  : mdrv_socp_compress_disable
 * 功能描述  :此接口用于停止deflate压缩
 * 输入参数  : u32SrcChanID:源通道ID。
 * 输出参数  : 无
-* 返 回 值  : 
+* 返 回 值  : SOCP_OK:停止deflate压缩成功
+     SOCP_ERROR:停止deflate压缩失败
 *****************************************************************************/
 
 int mdrv_socp_compress_disable(unsigned int u32DestChanID)
 {
-    return 0;
-    
+    return bsp_socp_compress_disable(u32DestChanID);
 }
 
-/*****************************************************************************
-* 函 数 名  : mdrv_deflate_set_ind_mode
-* 功能描述  :此接口用于设置deflate上报模式
-* 输入参数  : u32SrcChanID:源通道ID。
-* 输出参数  : 无
-* 返 回 值  : 
-*****************************************************************************/
-
-int mdrv_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode)
-{
-    return 0;
-    
+int mdrv_socp_compress_status(void)		
+{		
+    return bsp_socp_compress_status();		
 }
-/*****************************************************************************
-* 函 数 名  : mdrv_deflate_read_cur_mode
-* 功能描述  :此接口用于获取当前是否开启压缩模式
-* 输入参数  : 无
-* 输出参数  : 无
-* 返 回 值  : 无
-*****************************************************************************/
 
-int mdrv_deflate_read_cur_mode(void)
-{
-    return 0;
-}
+
 /*****************************************************************************
 * 函 数 名  : mdrv_deflate_get_log_ind_mode
 *
@@ -567,14 +549,12 @@ int mdrv_deflate_read_cur_mode(void)
 *
 * 输出参数  : 无
 *
-* 返 回 值  : SOCP_OK:停止deflate压缩成功
-     SOCP_ERROR:停止deflate压缩失败
+* 返 回 值  : 压缩上报模式
 *****************************************************************************/
 int mdrv_deflate_get_log_ind_mode(unsigned int *eMode)
 {
-    return 0;
+    return bsp_deflate_get_log_ind_mode(eMode);
 }
-
 
 /*****************************************************************************
 * 函 数 名  : mdrv_socp_get_log_ind_mode
@@ -593,22 +573,30 @@ int mdrv_socp_get_log_ind_mode(unsigned int *eMode)
 }
 EXPORT_SYMBOL(mdrv_socp_get_log_ind_mode);
 
-/*****************************************************************************
-* 函 数 名  : mdrv_report_ind_mode_ajust
-*
-* 功能描述  : 获取上报模式接口
-*
-* 输入参数  : 模式参数
-*
-* 输出参数  : 无
-*
-* 返 回 值  :
-*****************************************************************************/
-int mdrv_report_ind_mode_ajust(SOCP_IND_MODE_ENUM eMode)
+
+int mdrv_socp_set_cfg_ind_mode(SOCP_IND_MODE_ENUM eMode)
 {
-    return bsp_report_ind_mode_ajust(eMode);
+    return bsp_socp_set_cfg_ind_mode(eMode);
 }
-EXPORT_SYMBOL(mdrv_report_ind_mode_ajust);
+EXPORT_SYMBOL(mdrv_socp_set_cfg_ind_mode);
+int mdrv_socp_get_cfg_ind_mode(unsigned int *eMode)
+{
+    return bsp_socp_get_cfg_ind_mode(eMode);
+    
+}
+int mdrv_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode)
+{
+    return bsp_socp_set_cps_ind_mode(eMode);
+}
+int mdrv_socp_get_cps_ind_mode(unsigned int *eMode)
+{
+    return bsp_socp_get_cps_ind_mode(eMode);
+}
+
+int mdrv_clear_socp_buff(unsigned int u32SrcChanID)
+{
+    return bsp_clear_socp_buff(u32SrcChanID);
+}
 
 
 BSP_VOID BSP_SOCP_RefreshSDLogCfg(unsigned int ulTimerLen)

@@ -63,10 +63,12 @@ extern "C"{
 *****************************************************************************/
 #include "sitypedef.h"
 #include "vos.h"
-#include "TafOamInterface.h"
 #include "UsimPsInterface.h"
-
 #include "nv_stru_pam.h"
+
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
+#include "TafOamInterface.h"
+#endif
 
 #if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #include "ccore_nv_stru_pam.h"
@@ -462,7 +464,7 @@ extern VOS_UINT32 I1_WuepsPBPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
 
 extern VOS_UINT32 I2_WuepsPBPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
 
-extern VOS_VOID SI_PB_MemSet(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem);
+extern VOS_VOID SI_PB_InitContent(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem);
 
 extern VOS_VOID   I0_SI_PB_PidMsgProc(struct MsgCB *pstPBMsg);
 
@@ -869,7 +871,7 @@ extern VOS_UINT32 SI_PB_GetXeccNumber(SI_PB_ECC_DATA_STRU *pstEccData);
 
 extern VOS_UINT32 WuepsPBPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
 
-extern VOS_VOID SI_PB_MemSet(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem);
+extern VOS_VOID SI_PB_InitContent(VOS_UINT8 ucLen, VOS_UINT8 ucValue,VOS_UINT8 *pucMem);
 
 extern VOS_VOID   I0_SI_PB_PidMsgProc(struct MsgCB *pstPBMsg);
 

@@ -56,7 +56,7 @@
 #include "cbtapprl.h"
 #include "omprivate.h"
 #include "CbtPpm.h"
-#include "diag_api.h"
+#include "msp.h"
 
 
 

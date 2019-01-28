@@ -51,15 +51,13 @@
 #include <mdrv_public.h>
 #include <osl_types.h>
 #include <bsp_icc.h>
-#include <bsp_trace.h>
 #include <bsp_slice.h>
-
-#define thermal_print(fmt, ...)      (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_THERMAL_UP, "[%s] [%d] "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__))
-
 
 /*API result*/
 #define THERMAL_UP_OK         (MDRV_OK)
 #define THERMAL_UP_ERROR      (MDRV_ERROR)
+
+#define THERMAL_ICC_LENGTH sizeof(u32)
 
 /*icc channel id*/
 #define SYSTEM_HEADING_CHAN_ID   ((ICC_CHN_IFC << 16) | IFC_RECV_FUNC_SYSTEM_HEATING)

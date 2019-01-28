@@ -65,9 +65,12 @@
 #include <bsp_version.h>
 #include <bsp_ddr.h>
 #include <bsp_efuse.h>
+#include <bsp_print.h>
+#include <bsp_nvim.h>
+#define THIS_MODU mod_loadm
 #include "load_image.h"
 #include "modem_dtb.h"
-
+#include "product_config.h"
 #include "securec.h"
 
 /* Dalls之后手机和MBB融合代码 */
@@ -75,50 +78,84 @@
 #define SECBOOT_BUFLEN  (0x100000)      /*1MB*/
 
 #define MODEM_IMAGE_PATH    "/modem_fw/"
-#define MODEM_IMAGE_PATH_VENDOR    "/vendor/modem/modem_fw/"
+#define NVM_IMAGE_PATH      "/mnvm2:0/modem_nv/"
+#define MBN_IMAGE_PATH      "/mnvm2:0/mbn_nv/"
+#define NVM_IMAGE_PATH_DATA      "/mnt/modem/mnvm2:0/modem_nv/"
+#define MBN_IMAGE_PATH_DATA      "/mnt/modem/mnvm2:0/mbn_nv/"
+#define MODEM_COLD_PATCH_PATH "/patch_hw/modem_fw/"
 #define VRL_SIZE                    (0x1000)  /*VRL 4K*/
 
-char* modem_fw_dir = MODEM_IMAGE_PATH;
+#define MODEM_IMAGE_PATH_VENDOR    "/vendor/modem/modem_fw/"
+#define MODEM_CERT_PATH             "/product/region_comm/china/modemCert/"
+
+
+
 
 /* 带安全OS需要安全加载，预留连续内存，否则在系统长时间运行后，单独复位时可能申请不到连续内存 */
-static  u8 SECBOOT_BUFFER[SECBOOT_BUFLEN];
+static  u8 *SECBOOT_BUFFER = NULL;
 
 struct image_type_name
 {
     enum SVC_SECBOOT_IMG_TYPE etype;
     u32 run_addr;
     u32 ddr_size;
+    const char * dir;
     const char* name;
 };
 
-struct image_type_name modem_images[] =
+struct image_type_name  modem_images_root[] =
 {
-    {MODEM, DDR_MCORE_ADDR,         DDR_MCORE_SIZE,         "balong_modem.bin"},
-    {HIFI,  DDR_HIFI_ADDR,          DDR_HIFI_SIZE,          "hifi.img"},/* 预留 */
-    {DSP,   DDR_TLPHY_IMAGE_ADDR,   DDR_TLPHY_IMAGE_SIZE,   "lphy.bin"},
-    {XDSP,  DDR_CBBE_IMAGE_ADDR,    DDR_CBBE_IMAGE_SIZE,    "xphy_mcore.bin"},
-    {TAS,   0,                      0,                      "tas.bin"},
-    {WAS,   0,                      0,                      "was.bin"},
-    {CAS,   0,                      0,                      "cas.bin"}, /* 预留 */
-    {MODEM_DTB, DDR_MCORE_DTS_ADDR, DDR_MCORE_DTS_SIZE,     "modem_dt.img"},
-    {SOC_MAX,       0,              0,                      ""},
+    {MODEM, DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_IMAGE_PATH,  "balong_modem.bin"},
+    {HIFI,  DDR_HIFI_ADDR,          DDR_HIFI_SIZE,        MODEM_IMAGE_PATH,  "hifi.img"},/* 预留 */
+    {TAS,   0,                      0,                    MODEM_IMAGE_PATH,  "tas.bin"},
+    {WAS,   0,                      0,                    MODEM_IMAGE_PATH,  "was.bin"},
+    {CAS,   0,                      0,                    MODEM_IMAGE_PATH,  "cas.bin"}, /* 预留 */
+    {MODEM_DTB, DDR_MCORE_DTS_ADDR, DDR_MCORE_DTS_SIZE,   MODEM_IMAGE_PATH,  "modem_dt.img"},
+    {NVM,   0,                          0,                NVM_IMAGE_PATH,   "nv_rdwr.bin"},
+    {NVM_S, 0,                          0,                NVM_IMAGE_PATH,   "nv_rdwr.bin"},
+    {MBN_R, 0,                          0,                MBN_IMAGE_PATH,   "comm.bin"},
+    {MBN_A, 0,                          0,                MBN_IMAGE_PATH,   "carrier.bin"},
+    {MODEM_COLD_PATCH, DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_COLD_PATCH_PATH,  "balong_modem.bin.p"},
+    {DSP_COLD_PATCH,   DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_COLD_PATCH_PATH,  "phy.bin.p"},
+    {MODEM_CERT, SHM_SIZE_SEC_CERT,  SHM_SIZE_SEC_CERT    ,MODEM_CERT_PATH,   "modemCert.cert"},
+    {SOC_MAX,       0,              0,                    "",                ""},
 };
+
+struct image_type_name modem_images_vendor[] =
+{
+    {MODEM, DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_IMAGE_PATH_VENDOR,  "balong_modem.bin"},
+    {HIFI,  DDR_HIFI_ADDR,          DDR_HIFI_SIZE,        MODEM_IMAGE_PATH_VENDOR,  "hifi.img"},/* 预留 */
+    {TAS,   0,                      0,                    MODEM_IMAGE_PATH_VENDOR,  "tas.bin"},
+    {WAS,   0,                      0,                    MODEM_IMAGE_PATH_VENDOR,  "was.bin"},
+    {CAS,   0,                      0,                    MODEM_IMAGE_PATH_VENDOR,  "cas.bin"}, /* 预留 */
+    {MODEM_DTB, DDR_MCORE_DTS_ADDR, DDR_MCORE_DTS_SIZE,   MODEM_IMAGE_PATH_VENDOR,  "modem_dt.img"},
+    {NVM,   0,                          0,                NVM_IMAGE_PATH_DATA,   "nv_rdwr.bin"},
+    {NVM_S, 0,                          0,                NVM_IMAGE_PATH_DATA,   "nv_rdwr.bin"},
+    {MBN_R, 0,                          0,                MBN_IMAGE_PATH_DATA,   "comm.bin"},
+    {MBN_A, 0,                          0,                MBN_IMAGE_PATH_DATA,   "carrier.bin"},
+    {MODEM_COLD_PATCH, DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_COLD_PATCH_PATH,  "balong_modem.bin.p"},
+    {DSP_COLD_PATCH,   DDR_MCORE_ADDR,         DDR_MCORE_SIZE,       MODEM_COLD_PATCH_PATH,  "phy.bin.p"},
+    {MODEM_CERT, SHM_SIZE_SEC_CERT, SHM_SIZE_SEC_CERT,MODEM_CERT_PATH,   "modemCert.cert"},
+    {SOC_MAX,       0,              0,                    "",                ""},
+};
+
+struct image_type_name* modem_images = modem_images_root;
+
+unsigned int g_images_size[SOC_MAX] = {0};
 
 /*lint -save -e651 -e708 -e570 -e64 -e785*/
 static DEFINE_MUTEX(load_proc_lock);
 /*lint -restore */
 
-
  int modem_dir_init(void)
 {
-
     if(!bsp_access((s8*) MODEM_IMAGE_PATH_VENDOR,0))
     {
-         modem_fw_dir = MODEM_IMAGE_PATH_VENDOR;
+         modem_images = modem_images_vendor;
      }
-     else  if(!bsp_access((s8*) MODEM_IMAGE_PATH,0))
+     else if(!bsp_access((s8*) MODEM_IMAGE_PATH,0))
      {
-          modem_fw_dir = MODEM_IMAGE_PATH;
+          modem_images = modem_images_root;
      }
      else
      {
@@ -126,7 +163,7 @@ static DEFINE_MUTEX(load_proc_lock);
          return -EACCES;
      }
 
-    sec_print_info("info: path %s   can access\n",modem_fw_dir );
+    sec_print_info("info: path %s   can access\n", modem_images->dir);
     return 0;
 }
 
@@ -136,7 +173,7 @@ static int get_image(struct image_type_name** image, enum SVC_SECBOOT_IMG_TYPE e
     struct image_type_name* img;
 
     img = modem_images;
-    for(i=0; i<(sizeof(modem_images)/sizeof(struct image_type_name)); i++)
+    for(i=0; i<(sizeof(modem_images_vendor)/sizeof(struct image_type_name)); i++)
     {
         if(img->etype == etype)
         {
@@ -144,7 +181,7 @@ static int get_image(struct image_type_name** image, enum SVC_SECBOOT_IMG_TYPE e
         }
         img++;
     }
-    if(i == (sizeof(modem_images)/sizeof(struct image_type_name)))
+    if(i == (sizeof(modem_images_vendor)/sizeof(struct image_type_name)))
     {
         /* cov_verified_start */
         sec_print_err("can not find image of type id %d\n", etype);
@@ -152,7 +189,7 @@ static int get_image(struct image_type_name** image, enum SVC_SECBOOT_IMG_TYPE e
         /* cov_verified_stop */
     }
     /*如果是tas was镜像的话要*/
-    if(!img->run_addr)
+    if(run_addr && ddr_size)
     {
         img->run_addr = run_addr ;
         img->ddr_size = ddr_size ;
@@ -184,9 +221,9 @@ static int get_file_name(char *file_name, const struct image_type_name *image, b
     /* 尝试以sec_开头的安全镜像 */
     *is_sec = true;
     file_name[0] = '\0';
-    strncat(file_name, modem_fw_dir, strlen(modem_fw_dir));
-    strncat(file_name, "sec_", strlen("sec_"));
-    strncat(file_name, image->name, strlen(image->name));
+    strncat_s(file_name, LOADM_FILE_NAME_LEN, image->dir, strnlen(image->dir, LOADM_FILE_NAME_LEN));
+    strncat_s(file_name, LOADM_FILE_NAME_LEN, "sec_", strnlen("sec_", LOADM_FILE_NAME_LEN));
+    strncat_s(file_name, LOADM_FILE_NAME_LEN, image->name, strnlen(image->name, LOADM_FILE_NAME_LEN));
     sec_print_info("loading %s  image\n", file_name);
     if(bsp_access((s8*) file_name, RFILE_RDONLY))
     {
@@ -195,8 +232,8 @@ static int get_file_name(char *file_name, const struct image_type_name *image, b
         /* 尝试以非安全镜像 */
         *is_sec = false;
         file_name[0] = '\0';
-        strncat(file_name, modem_fw_dir, strlen(modem_fw_dir));
-        strncat(file_name, image->name, strlen(image->name));
+        strncat_s(file_name, LOADM_FILE_NAME_LEN, image->dir, strnlen(image->dir, LOADM_FILE_NAME_LEN));
+        strncat_s(file_name, LOADM_FILE_NAME_LEN, image->name, strnlen(image->name, LOADM_FILE_NAME_LEN));
 
         if(bsp_access((s8*) file_name, RFILE_RDONLY))
         {
@@ -461,6 +498,44 @@ static int verify_soc_image(enum SVC_SECBOOT_IMG_TYPE  image,
     return (int)result;
 }
 
+
+struct cold_patch_info_s g_cold_patch_info;
+static u32 get_img_load_position_offset(const struct image_type_name* image,int img_size)
+{
+    if(!image)
+    {
+        sec_print_err("param image is NULL,please check!\n");
+        return 0;
+    }
+    if(img_size > image->ddr_size)
+    {
+        sec_print_err("param img_size is too large,soc_type = %d,img_size = 0x%x,ddr_size = 0x%x!\n",image->etype,img_size,image->ddr_size);
+        return 0;
+    }
+    if(image->etype == MODEM)
+    {
+        /*如果已经加载CCORE补丁镜像，MODEM DDR空间的最后位置存放CCORE补丁镜像，CCORE补丁镜像之上存放原CCORE镜像，所以原镜像的
+        加载位置=ddr_size - CCORE补丁镜像大小 - 原CCORE镜像大小；
+        如果CCORE补丁镜像不存在或加载失败，原CCORE镜像加载到MODEM DDR空间的最后位置*/
+        if(g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_status == PUT_PATCH)
+            return (u32)(image->ddr_size - g_images_size[MODEM_COLD_PATCH] -(u32)img_size);
+        else
+            return (u32)(image->ddr_size -(u32)img_size);
+    }
+    else if(image->etype == DSP)
+    {
+         /*如果已经加载DSP补丁镜像，由于DSP DDR空间有限，所以借助MODEM DDR空间存放DSP补丁镜像和原DSP镜像，然后进行镜像拼接，
+         MODEM DDR空间的最后位置存放DSP补丁镜像，DSP补丁镜像之上存放原DSP镜像，原DSP镜像加载位置 = DDR_MCORE_SIZE -
+         DSP补丁镜像大小 - 原DSP镜像大小；
+         如果DSP补丁镜像不存在或加载失败，原DSP镜像加载到DSP DDR空间偏移为0的地址*/
+        if(g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_status == PUT_PATCH)
+            return (u32)(DDR_MCORE_SIZE - g_images_size[DSP_COLD_PATCH] -(u32)img_size);
+        else
+            return 0;
+    }
+    return 0;
+}
+
 /******************************************************************************
 Function:       load_data_to_secos
 Description:    从指定偏移开始传送指定大小的镜像
@@ -482,7 +557,6 @@ static int load_data_to_secos(const char* file_name, u32 offset, u32 size,
     u32 file_offset = 0;
     u32 skip_offset = 0;
     u32 load_position_offset = 0;
-
     /* 读取指定偏移的指定大小 */
     if(0 != offset)
     {
@@ -520,6 +594,7 @@ static int load_data_to_secos(const char* file_name, u32 offset, u32 size,
         /* cov_verified_stop */
     }
 
+    g_images_size[image->etype] = remain_bytes;
     /*split the size to be read to each SECBOOT_BUFLEN bytes.*/
     while (remain_bytes)
     {
@@ -534,10 +609,27 @@ static int load_data_to_secos(const char* file_name, u32 offset, u32 size,
             return readed_bytes;
         }
 
-        if ((!load_position_offset) && (image->etype == MODEM)) {
+        if(!load_position_offset)
+        {
+            if( (image->etype == DSP_COLD_PATCH) || (image->etype == MODEM_COLD_PATCH) )
+            {
+                /* 将整个gzip格式的压缩镜像放在DDR空间结束位置 */
+                load_position_offset = (u32)(image->ddr_size - (u32)remain_bytes);
+            }
+            else if (image->etype == MODEM)
+            {
+                load_position_offset = get_img_load_position_offset(image,remain_bytes);
+            }
+            else if(image->etype == DSP)
+            {
+                load_position_offset = get_img_load_position_offset(image,remain_bytes);
+            }
+        }
+
+        if ((!load_position_offset) && (image->etype == MODEM))
             /* 将整个gzip格式的压缩镜像放在DDR空间结束位置 */
             load_position_offset = (u32)(image->ddr_size - (u32)remain_bytes);
-        }
+
         if ((!load_position_offset) && (image->etype == MODEM_DTB)) {
             /* 将整个gzip格式的压缩镜像放在DDR空间结束位置 */
             load_position_offset = (u32)(image->ddr_size - (u32)remain_bytes);
@@ -594,7 +686,7 @@ s32 load_image(enum SVC_SECBOOT_IMG_TYPE ecoretype, u32 run_addr, u32 ddr_size)
 {
     s32 ret;
     bool is_sec;
-    char file_name[256] = {0};
+    char file_name[LOADM_FILE_NAME_LEN] = {0};
     int readed_bytes;
     struct image_type_name *image;
 
@@ -671,6 +763,91 @@ error:
     return ret;
 }
 
+void load_modem_cold_patch_image(enum SVC_SECBOOT_IMG_TYPE ecoretype)
+{
+    char file_name[256] = {0};
+    enum modem_patch_type patch_type;
+
+    file_name[0] = '\0';
+    strncat_s(file_name, LOADM_FILE_NAME_LEN, MODEM_COLD_PATCH_PATH, strnlen(MODEM_COLD_PATCH_PATH, LOADM_FILE_NAME_LEN));
+    if(ecoretype == DSP_COLD_PATCH)
+    {
+        strncat_s(file_name, LOADM_FILE_NAME_LEN, "sec_phy.bin.p", strnlen("sec_phy.bin.p", LOADM_FILE_NAME_LEN));
+        patch_type = DSP_PATCH;
+    }
+    else if(ecoretype == MODEM_COLD_PATCH)
+    {
+        strncat_s(file_name, LOADM_FILE_NAME_LEN, "sec_balong_modem.bin.p", strnlen("sec_balong_modem.bin.p", LOADM_FILE_NAME_LEN));
+        patch_type = CCORE_PATCH;
+    }
+    else
+    {
+        sec_print_err("modem patch image type error: %d\n", ecoretype);
+        return;
+    }
+
+    if(!bsp_access((s8*) file_name, RFILE_RDONLY))
+    {
+        g_cold_patch_info.modem_patch_info[patch_type].patch_exist = 1;
+        if(g_cold_patch_info.modem_update_fail_count < 3)
+        {
+            if(load_image(ecoretype, 0, 0))
+            {
+                sec_print_err("load patch img failed, img_type %d\n",ecoretype);
+                g_cold_patch_info.modem_patch_info[patch_type].patch_status = LOAD_PATCH_FAIL;
+            }
+            else
+                g_cold_patch_info.modem_patch_info[patch_type].patch_status = PUT_PATCH;
+        }
+        else
+        {
+            sec_print_err("fail_count = %d,not load patch img, img_type %d\n",g_cold_patch_info.modem_update_fail_count,ecoretype);
+            g_cold_patch_info.modem_patch_info[patch_type].patch_status = NOT_LOAD_PATCH;
+        }
+    }
+    else
+    {
+        g_cold_patch_info.modem_patch_info[patch_type].patch_exist = 0;
+        sec_print_err("patch img not exist, img_type %d\n",ecoretype);
+        g_cold_patch_info.modem_patch_info[patch_type].patch_status = NOT_LOAD_PATCH;
+    }
+
+    return;
+}
+void update_modem_cold_patch_status(enum modem_patch_type epatch_type)
+{
+    int i = 0;
+    g_cold_patch_info.cold_patch_status = 0;
+
+    if(g_cold_patch_info.modem_update_fail_count >= 3)
+        return;
+
+    if(g_cold_patch_info.modem_patch_info[epatch_type].patch_status == PUT_PATCH)
+        g_cold_patch_info.modem_patch_info[epatch_type].patch_status = PUT_PATCH_SUCESS;
+
+    /*如果补丁镜像不存在或补丁镜像未加载，补丁的状态为NOT_LOAD_PATCH；如果补丁镜像与镜像拼接成功，补丁的状态为PUT_PATCH_SUCESS；
+    如果所有补丁镜像的状态为NOT_LOAD_PATCH，表示未加载的补丁镜像，将cold_patch_status设置为0；
+    如果所有补丁镜像的状态为NOT_LOAD_PATCH或PUT_PATCH_SUCESS（至少一个补丁镜像状态为PUT_PATCH_SUCESS），表示补丁镜像与原镜像拼接成功，将cold_patch_status设置为1*/
+    for(i = 0; i < MAX_PATCH; i++)
+    {
+        if( (g_cold_patch_info.modem_patch_info[i].patch_status != PUT_PATCH_SUCESS) && (g_cold_patch_info.modem_patch_info[i].patch_status != NOT_LOAD_PATCH) ){
+            sec_print_err("modify_modem_cold_patch_status,line = %d, patch_type = 0x%x, patch_status = %d\n",__LINE__,i,g_cold_patch_info.modem_patch_info[i].patch_status);
+            return;
+        }
+    }
+    for(i = 0; i < MAX_PATCH; i++)
+    {
+        if(g_cold_patch_info.modem_patch_info[i].patch_status != NOT_LOAD_PATCH)
+        {
+            g_cold_patch_info.cold_patch_status = 1;
+            return;
+        }
+    }
+    return;
+}
+
+
+
 
 static int get_dtb_entry(unsigned int modemid, unsigned int num, struct modem_dt_entry_t *dt_entry_ptr, struct modem_dt_entry_t *dt_entry_ccore)
 {
@@ -708,7 +885,7 @@ static int get_dtb_entry(unsigned int modemid, unsigned int num, struct modem_dt
 
 static s32 load_and_verify_dtb_data(void)
 {
-    s32 ret;
+    s32 ret, condition;
     u32 modem_id = 0;
     struct modem_dt_table_t *header;
     struct modem_dt_table_t dt_table;
@@ -717,7 +894,7 @@ static s32 load_and_verify_dtb_data(void)
 
 
 
-    char file_name[256] = {0};
+    char file_name[LOADM_FILE_NAME_LEN] = {0};
     struct image_type_name *image;
     bool is_sec;
     u32 offset = 0;
@@ -747,7 +924,8 @@ static s32 load_and_verify_dtb_data(void)
 
     /*get the head*/
     readed_bytes = read_file(file_name, offset, (unsigned int)sizeof(struct modem_dt_table_t), (char*)(header));
-    if (readed_bytes < 0 || readed_bytes != (int)sizeof(struct modem_dt_table_t))
+    condition = readed_bytes < 0 || readed_bytes != (int)sizeof(struct modem_dt_table_t);
+    if (condition)
     {
        sec_print_err("fail to read the head of modem dtb image, readed_bytes(0x%x) != size(0x%lx).\n", readed_bytes, sizeof(struct modem_dt_table_t));
        ret = readed_bytes;
@@ -765,15 +943,20 @@ static s32 load_and_verify_dtb_data(void)
     offset += sizeof(struct modem_dt_table_t);
 
     readed_bytes = read_file(file_name, offset, (unsigned int)(sizeof(struct modem_dt_entry_t)*(header->num_entries)), (char*)dt_entry);
-    if (readed_bytes < 0 || readed_bytes != (int)(sizeof(struct modem_dt_entry_t)*(header->num_entries)))
+    condition = readed_bytes < 0 || readed_bytes != (int)(sizeof(struct modem_dt_entry_t)*(header->num_entries));
+    if (condition)
     {
        sec_print_err("fail to read the head of modem dtb entry, readed_bytes(0x%x) != size(0x%lx).\n", readed_bytes, (sizeof(struct modem_dt_entry_t)*(header->num_entries)));
        ret = readed_bytes;
        goto err_out;
     }
-      offset -= sizeof(struct modem_dt_table_t);
+    offset -= sizeof(struct modem_dt_table_t);
     /* 需要mask掉射频扣板ID号或modemid的bit[9:0] */
-    modem_id = bsp_get_version_info()->board_id_udp_masked;
+
+    if (bsp_get_version_info() != NULL)
+        modem_id = bsp_get_version_info()->board_id_udp_masked;
+    else
+        goto err_out;
     sec_print_err("modem_id 0x%x \n", modem_id);
 
     memset_s((void *)&dt_entry_ptr, sizeof(dt_entry_ptr), 0, sizeof(dt_entry_ptr));
@@ -797,7 +980,8 @@ static s32 load_and_verify_dtb_data(void)
         sec_print_info("modem dtb vrl_offset %d, vrl_size %d\n", dt_entry_ptr.vrl_offset,dt_entry_ptr.vrl_size);
 
         readed_bytes = read_file(file_name, offset + dt_entry_ptr.vrl_offset,dt_entry_ptr.vrl_size, (char*)SECBOOT_BUFFER);
-        if (readed_bytes < 0 || (u32)readed_bytes != dt_entry_ptr.vrl_size)
+        condition = readed_bytes < 0 || (u32)readed_bytes != dt_entry_ptr.vrl_size;
+        if (condition)
         {
             sec_print_err("fail to read the dtb vrl\n");
             ret = readed_bytes;
@@ -832,7 +1016,7 @@ static s32 load_and_verify_dtb_data(void)
             goto err_out;
         }
     }
-      sec_print_err("verify modem dtb success\n");
+    sec_print_err("verify modem dtb success\n");
 err_out:
     kfree(dt_entry);
     return ret;
@@ -851,14 +1035,6 @@ int bsp_load_modem_images(void)
 
     mutex_lock(&load_proc_lock);
 
-    ret = modem_dir_init();
-    if(ret)
-    {
-        mutex_unlock(&load_proc_lock);
-        sec_print_err("modem_dir_init failed, ret %#x\n", ret);
-        return ret;
-    }
-
     ret = TEEK_init();
     if(ret)
     {
@@ -875,20 +1051,24 @@ int bsp_load_modem_images(void)
         return ret;
     }
 
-
-
-    ret = load_image(DSP, 0, 0);
+    ret = bsp_nvm_mreset_load();
     if(ret)
     {
         goto error;
     }
 
-    ret = load_image(XDSP, 0, 0);
-    if(ret)
-    {
-        goto error;
-    }
 
+    printk(KERN_INFO "dsp_cold_patch load start at 0x%x\n",bsp_get_slice_value());
+    if(bsp_nvem_cold_patch_read(&g_cold_patch_info))
+        memset_s(&g_cold_patch_info,sizeof(g_cold_patch_info),0,sizeof(g_cold_patch_info));
+    load_modem_cold_patch_image(DSP_COLD_PATCH);
+
+
+
+
+
+    printk(KERN_INFO "dsp_cold_patch splice end at 0x%x\n",bsp_get_slice_value());
+    update_modem_cold_patch_status(DSP_PATCH);
 
 
     ret = load_and_verify_dtb_data();
@@ -896,14 +1076,24 @@ int bsp_load_modem_images(void)
     {
         goto error;
     }
+
+    printk(KERN_INFO "modem_cold_patch load start at 0x%x\n",bsp_get_slice_value());
+    load_modem_cold_patch_image(MODEM_COLD_PATCH);
+
     ret = load_image(MODEM, 0, 0);
     if(ret)
     {
         goto error;
     }
 
+    printk(KERN_INFO "modem_cold_patch splice end at 0x%x\n",bsp_get_slice_value());
+    update_modem_cold_patch_status(CCORE_PATCH);
+
 error:
     TEEK_uninit();
+    if(ret)
+        g_cold_patch_info.modem_update_fail_count = 3;
+    (void)bsp_nvem_cold_patch_write(&g_cold_patch_info);
 
     mutex_unlock(&load_proc_lock);
 
@@ -944,5 +1134,18 @@ error:
 
     return ret;
 }
+
+int __init bsp_load_image_init(void)
+{
+
+    SECBOOT_BUFFER = (u8*)kmalloc(SECBOOT_BUFLEN, GFP_KERNEL);
+    if (!SECBOOT_BUFFER) {
+        sec_print_err("fail to malloc secboot buffer\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 
 

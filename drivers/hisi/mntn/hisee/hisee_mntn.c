@@ -17,6 +17,7 @@
 #include "../mntn_filesys.h"
 #include "../../hisee/hisi_hisee.h"
 #include <dsm/dsm_pub.h>
+#include "../../hisee/hisi_hisee_shutdown_swipe.h"
 #include <mntn_subtype_exception.h>
 
 #define HISEE_MNTN_LPM3_STR		"lpm3"
@@ -549,6 +550,21 @@ struct rdr_exception_info_s hisee_excetption_info[] = {
 		.e_desc             = "HISEE",
 	},
 	{
+		.e_modid            = (u32)MODID_SIMULATE_EXC_PD_SWIPE,
+		.e_modid_end        = (u32)MODID_SIMULATE_EXC_PD_SWIPE,
+		.e_process_priority = RDR_ERR,
+		.e_reboot_priority  = RDR_REBOOT_NO,
+		.e_notify_core_mask = RDR_HISEE,
+		.e_reset_core_mask  = RDR_HISEE,
+		.e_from_core        = RDR_HISEE,
+		.e_reentrant        = (u32)RDR_REENTRANT_DISALLOW,
+		.e_exce_type        = HISEE_S_EXCEPTION,
+		.e_exce_subtype     = SIMULATE_EXC_PD_SWIPE,
+		.e_upload_flag      = (u32)RDR_UPLOAD_YES,
+		.e_from_module      = "ERR IN PD SWIPE",
+		.e_desc             = "HISEE",
+	},
+	{
 		.e_modid            = (u32)MODID_HISEE_EXC_UNKNOWN,
 		.e_modid_end        = (u32)MODID_HISEE_EXC_UNKNOWN,
 		.e_process_priority = RDR_ERR,
@@ -580,7 +596,7 @@ hisee_exc_trans_s hisee_exc_trans[] = {
 	{HISEE_MNTN_IRQ_GROUP_TSENSOR1, MODID_HISEE_EXC_TSENSOR1},
 	/*Please add your new member above!!!!*/
 };
-static cosimage_version_info curr_ver_mntn = {0};
+static hisee_partition_version_info curr_ver_mntn = {0};
 static cosimage_version_info misc_version_mntn = {0};
 static unsigned int hisee_lcs_mode_mntn = 0;
 
@@ -590,6 +606,9 @@ static u32	 g_vote_val_lpm3 = 0;
 static u32	 g_vote_val_atf = 0;
 static int	 g_need_run_flag = HISEE_OK;/*flag that make sure only run this function after last running is over*/
 static int	 g_rpmb_status_flag = HISEE_OK;/*whether rpmb is ok: 0->ok; !0->ko*/
+/*whether support power down swipe: HISEE_ERROR->don't support; HISEE_OK->support*/
+static int	 g_support_pd_swipe_flag = HISEE_ERROR;
+static void hisee_mntn_pdswipe_init(void);
 static struct notifier_block hisee_ipc_block;
 static struct rdr_register_module_result hisee_info;
 static void *hisee_mntn_addr;
@@ -828,6 +847,8 @@ int hisee_mntn_printverinfo_thread(void *arg)
 				}
 				hisee_mntn_print_cos_info();
 	/*this pdswipe init must be put here, to make sure that is after fs ready*/
+				hisee_mdelay(HISEE_MNTN_PRINT_COS_VER_MS);
+				hisee_mntn_pdswipe_init();
 				kthread_stop(hisee_mntn_print_verinfo);
 				break;
 			}
@@ -1061,6 +1082,58 @@ void rdr_hisee_dump_common(u32 modid,
 
 }
 
+/****************************************************************************//**
+ * @brief      : rdr_hisee_dump_pdswipe
+ * @param[in]  : modid
+ * @param[in]  : pathname
+ * @return     : void
+ * @note       :
+********************************************************************************/
+void rdr_hisee_dump_pdswipe(u32 modid,
+	char *pathname)
+{
+	char path[HISEE_MNTN_PATH_MAXLEN] = {0};
+	int ret;
+	hlog_header *hisee_log_head = (hlog_header *)hisee_log_addr;
+	char	*p_name_str = hisee_mntn_get_mod_name_str(modid);
+
+	if (NULL == pathname || NULL == hisee_log_head) {
+		pr_err("%s:pointer is NULL !!\n",  __func__);
+		return;
+	}
+
+	snprintf(path, (unsigned long)HISEE_MNTN_PATH_MAXLEN, "%s/%s", pathname, HISEE_LOG_FLIENAME);
+
+	/* save hisee log to data/hisi_logs/time/hisee_log */
+	/*lint -e124*/
+	ret = mntn_filesys_write_log(path,
+			(void *)(hisee_log_addr + sizeof(hlog_header)),
+			(unsigned int)hisee_log_head->real_size,
+			HISEE_FILE_PERMISSION);
+	/*lint +e124*/
+	if (0 == ret)
+		pr_err("%s:hisee log save fail\n", __func__);
+
+	/*lint -e124*/
+	if (NULL != p_name_str) {
+		ret = mntn_filesys_write_log(path,
+				(void *)p_name_str,
+				(unsigned int)MODULE_NAME_LEN,
+				HISEE_FILE_PERMISSION);
+		pr_err("mod name:      [%s]\n", p_name_str);
+	} else {
+		ret = mntn_filesys_write_log(path,
+				(void *)(&modid),
+				(unsigned int)sizeof(modid),
+				HISEE_FILE_PERMISSION);
+	}
+	/*lint +e124*/
+	pr_err(" ====================================\n");
+	if (0 == ret)
+		pr_err("%s:hisee mod id save fail\n", __func__);
+	/*we should clear data after saving*/
+	hisee_pdswipe_clear_exception_record();
+}
 
 /****************************************************************************//**
  * @brief      : rdr_hisee_dump
@@ -1087,7 +1160,10 @@ void rdr_hisee_dump(u32 modid,
 	pr_err(" coreid:         [0x%llx]\n", coreid);
 	pr_err(" exce tpye:      [0x%x]\n",   etype);
 	pr_err(" path name:      [%s]\n",     pathname);
-	rdr_hisee_dump_common(modid, coreid, pathname, pfn_cb);
+	if ((u32)MODID_SIMULATE_EXC_PD_SWIPE == hisee_exception_modid)
+		rdr_hisee_dump_pdswipe(modid, pathname);
+	else
+		rdr_hisee_dump_common(modid, coreid, pathname, pfn_cb);
 }
 
 /********************************************************************
@@ -1187,7 +1263,11 @@ void hisee_mntn_print_cos_info(void)
 
 	pr_err("%s:%x %llx", __func__, curr_ver_mntn.magic, (u64)curr_ver_mntn.img_timestamp.value);
 	for (i = 0;i < HISEE_SUPPORT_COS_FILE_NUMBER;i++) {
-		pr_err(" %d", curr_ver_mntn.img_version_num[i]);
+		if (HISEE_SUPPORT_COS_FILE_NUMBER / 2 <= i ) {
+			pr_err(" %d", curr_ver_mntn.img_version_num1[i - (HISEE_SUPPORT_COS_FILE_NUMBER / 2)]);
+		} else {
+			pr_err(" %d", curr_ver_mntn.img_version_num[i]);
+		}
 	}
 	pr_err("\n");
 
@@ -1293,6 +1373,79 @@ int hisee_mntn_collect_vote_value_cmd(void)
 	return ret;
 }
 
+/****************************************************************************//**
+ * @brief      : hisee_mntn_pdswipe_whether_support
+ * @param[in]  : NA
+ * @return     : ::int
+ * @note       :
+********************************************************************************/
+int hisee_mntn_pdswipe_whether_support(void)
+{
+	return g_support_pd_swipe_flag;
+}
+
+/****************************************************************************//**
+ * @brief      : hisee_mntn_pdswipe_save_exc_data
+ * @param[in]  : NA
+ * @return     : void
+ * @note       :
+********************************************************************************/
+void hisee_mntn_pdswipe_save_exc_data(void)
+{
+	hisee_exception_modid = (u32)MODID_SIMULATE_EXC_PD_SWIPE;
+	g_hisee_mntn_state = HISEE_STATE_HISEE_EXC;
+	complete(&hisee_mntn_complete);
+}
+
+/****************************************************************************//**
+ * @brief      : hisee_mntn_pdswipe_check_exc_data
+ * @param[in]  : NA
+ * @return     : void
+ * @note       :
+********************************************************************************/
+static void hisee_mntn_pdswipe_check_exc_data(void)
+{
+	int	support_flag = hisee_mntn_pdswipe_whether_support();
+	hlog_header *hisee_log_head = (hlog_header *)hisee_log_addr;
+	hisee_pdswipe_exc_head	*p_exc_header = NULL;
+	u32	cnt = 0;
+	u32	read_size = 0;
+
+	if (NULL == hisee_log_head) {
+		pr_err("%s:pointer is NULL !!\n",  __func__);
+		return;
+	}
+	/*todo: check whether to support pd swipe*/
+	if (HISEE_OK == support_flag) {
+		read_size = ((unsigned int)hisee_log_head->max_size > PDSWIPE_EXC_SIZE) ? PDSWIPE_EXC_SIZE : (unsigned int)hisee_log_head->max_size;
+		cnt = hisee_pdswipe_get_flash_data((void *)(hisee_log_addr + sizeof(hlog_header)), read_size, PDSWIPE_EXC_OFFSET); /*lint !e124*/
+		if (cnt == read_size) {
+			p_exc_header = (hisee_pdswipe_exc_head *)(hisee_log_addr + sizeof(hlog_header)); /*lint !e124*/
+			/*there is valid exception data*/
+			if (HISEE_EXC_VALID_MAGIC == p_exc_header->magic) {
+				/*to run handle process to save the record and data in file*/
+				hisee_mntn_pdswipe_save_exc_data();
+				pr_err("%s: there is exceptions happened during pd swip!!!\n", __func__);
+			}
+		}
+	} else {
+		pr_err("%s: don't support power down swipe!\n", __func__);
+	}
+}
+
+/****************************************************************************//**
+ * @brief      : hisee_mntn_pdswipe_init
+ * @param[in]  : NA
+ * @return     : void
+ * @note       :
+********************************************************************************/
+static void hisee_mntn_pdswipe_init(void)
+{
+	/*todo: get data from dts*/
+	g_support_pd_swipe_flag = HISEE_OK;
+
+	hisee_mntn_pdswipe_check_exc_data();
+}
 
 /********************************************************************
 Description:	hisee mntn initialization

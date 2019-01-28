@@ -56,7 +56,7 @@ extern "C" {
 #endif
 #endif
 
-
+#include <product_config.h>
 #include "bsp_nvim_mem.h"
 #include "mdrv_nvim_comm.h"
 
@@ -76,6 +76,12 @@ extern "C" {
 
 #define NV_REF_LIST_ITEM_SIZE       (sizeof(nv_item_info_s))
 
+#ifdef FEATURE_NV_SEC_ON
+#define NV_MBN_NV_SIZE         ((unsigned long)1024*128)
+#define NV_MBN_NV_ADDR         (SHM_MEM_NV_ADDR + (SHM_MEM_NV_SIZE - NV_MBN_NV_SIZE))
+
+#define NV_MAX_FILE_SIZE       (SHM_MEM_NV_SIZE - (NV_GLOBAL_INFO_SIZE + NV_MBN_NV_SIZE))
+#else
 #ifdef FEATURE_NV_CARRIER_CUST
 #define NV_MBN_NV_SIZE         ((unsigned long)1024*128)
 #define NV_MBN_NV_ADDR         (SHM_MEM_NV_ADDR + (SHM_MEM_NV_SIZE - NV_MBN_NV_SIZE))
@@ -83,6 +89,7 @@ extern "C" {
 #define NV_MAX_FILE_SIZE       (SHM_MEM_NV_SIZE - (NV_GLOBAL_INFO_SIZE + NV_MBN_NV_SIZE))
 #else
 #define NV_MAX_FILE_SIZE            (SHM_MEM_NV_SIZE - NV_GLOBAL_INFO_SIZE)
+#endif
 #endif
 /****************************************************************/
 
@@ -95,10 +102,11 @@ extern "C" {
 #ifndef NV_ERROR
 #define NV_ERROR        0xffffffff
 #endif
-
+/*lint -esym(652,*)*/
 #ifndef FILE
 #define FILE    void
 #endif
+/*lint +esym(652,*)*/
 
 #ifndef NULL
 #define NULL    (void*)0
@@ -214,8 +222,13 @@ enum
 
 /*内存数据类型*/
 #define  NV_MEM_DLOAD                   0x12345678
+#ifdef FEATURE_NV_SEC_ON
+#define  NV_MEM_DEFAULT                 0xabcde123
+#else
 #define  NV_MEM_SYSTEM                  0xabcde123
+#endif
 #define  NV_MEM_BACKUP                  0xdce582e1
+#define  NV_MEM_COLDPATCH               0x1234abcd
 
 #define NV_CTRL_FILE_MAGIC_NUM          0x224e4944   /*文件头标志位*/
 #define NV_BOOT_UPGRADE_SUCC_STATE      0x5687dcfe   /*fastboot 阶段升级是否成功标志*/
@@ -228,16 +241,16 @@ enum
 #define NV_FILE_WRITE                "wb+"
 
 #define B_READ                        (0)
-
+/*lint --e{607}*/
 #define nv_check_file_mode(mode)\
     if(strncmp((char *)mode, (char *)NV_FILE_READ, sizeof(NV_FILE_READ))\
             &&strncmp((char *)mode, (char *)NV_FILE_RW, sizeof(NV_FILE_RW))\
                 &&strncmp((char *)mode, (char *)NV_FILE_WRITE, sizeof(NV_FILE_WRITE)))\
     {\
-        nv_printf("mode = %s is not legal\n", mode);\
+        nv_printf("mode = %s is not legal\n", (char *)mode);\
         return NV_ERROR;\
     }
-
+/*lint -restore*/
 
 #define NV_FILE_MAX_NUM                        20
 #define NV_MAX_UNIT_SIZE                       2048
@@ -256,40 +269,43 @@ enum
 #define NV_CUST_CARD2_PATH                      "/system/cust_card2.xml"
 #define NV_CUST_CARD3_PATH                      "/system/cust_card2.xml"
 #define NV_DEFAULT_PATH                         "/system/manufactrue_ver.bin"
-
 #define NV_ROOT_PATH                            "/mnvm2:0"
 #define NV_DATA_ROOT_PATH                       "/mnt/modem/mnvm2:0"
+
+#define NV_COLD_PATCH_PATH                      "/system/nvcoldpatch.bin"
+#define NV_COLD_RPATCH_PATH                     "/system/nvcoldrestore.bin"
 
 #ifdef FEATURE_NV_CARRIER_CUST
 #define NV_MBN_COMM_PATH                        "/mbn_nv/comm.mbn"
 #endif
 
+#include <mdrv_rfile_common.h>
 #ifdef BSP_CONFIG_PHONE_TYPE
 #define NV_IMG_PATH                             "/modem_nv/nv.bin"
-#define NV_IMG_FLAG_PATH                        "/modem_log/drv/nv/img_flag.bin"
-#define NV_BACK_FLAG_PATH                       "/modem_log/drv/nv/back_flag.bin"
-#define NV_SYS_FLAG_PATH                        "/modem_log/drv/nv/sys_flag.bin"
+#define NV_IMG_FLAG_PATH                        (MODEM_LOG_ROOT"/drv/nv/img_flag.bin")
+#define NV_BACK_FLAG_PATH                       (MODEM_LOG_ROOT"/drv/nv/back_flag.bin")
+#define NV_SYS_FLAG_PATH                        (MODEM_LOG_ROOT"/drv/nv/sys_flag.bin")
 
 
 #define NV_LOG_MAX_SIZE                         0x80000/*512k*/
 #else
 #define NV_IMG_PATH                             "/nv.bin"
-#define NV_IMG_FLAG_PATH                        "/modem_log/drv/nv/img_flag.bin"
-#define NV_BACK_FLAG_PATH                       "/modem_log/drv/nv/back_flag.bin"
-#define NV_SYS_FLAG_PATH                        "/modem_log/drv/nv/sys_flag.bin"
+#define NV_IMG_FLAG_PATH                        (MODEM_LOG_ROOT"/drv/nv/img_flag.bin")
+#define NV_BACK_FLAG_PATH                       (MODEM_LOG_ROOT"/drv/nv/back_flag.bin")
+#define NV_SYS_FLAG_PATH                        (MODEM_LOG_ROOT"/drv/nv/sys_flag.bin")
 
 /* added by yangzhi for muti-carrier, Begin:*/
 #ifdef CONFIG_MULTI_CARRIER
 /*#define NV_BACK_MTCARRIER_FLAG_PATH             "/mtc/mt_carrier_current_info"*/
-#define NV_BACK_MTCARRIER_FLAG_PATH             "/modem_log/mtca_back_flag.bin"
-#define NV_IMG_TEST_PATH                        "/modem_log/nv_test.bin"
+#define NV_BACK_MTCARRIER_FLAG_PATH             (MODEM_LOG_ROOT"/mtca_back_flag.bin")
+#define NV_IMG_TEST_PATH                        (MODEM_LOG_ROOT"/nv_test.bin")
 #endif
 /* added by yangzhi for muti-carrier, End! */
 
 #define NV_LOG_MAX_SIZE                         0x4000/*16k*/
 #endif
 
-#define NV_LOG_PATH                             "/modem_log/drv/nv/NvLog.txt"
+#define NV_LOG_PATH                             (MODEM_LOG_ROOT"/drv/nv/NvLog.txt")
 
 
 /* error code */
@@ -352,6 +368,13 @@ enum
 #define BSP_ERR_NV_CUST_MDMNUM_ERR              (BSP_ERR_NV_BASE + 0x4A)
 #define BSP_ERR_NV_CUST_NOXNV_ERR               (BSP_ERR_NV_BASE + 0x4B)
 #define BSP_ERR_NV_FILE_OVER_MEM_ERR            (BSP_ERR_NV_BASE + 0x4C)
+#define BSP_ERR_NV_NULL_EFUSE_ERR               (BSP_ERR_NV_BASE + 0x4D)
+#define BSP_ERR_NV_NO_COLDPATCH                 (BSP_ERR_NV_BASE + 0x4E)
+#define BSP_ERR_NV_DATA_NULL                    (BSP_ERR_NV_BASE + 0x4F)
+#define BSP_ERR_NV_INVALID_NVE_FIELD            (BSP_ERR_NV_BASE + 0x50)
+#define BSP_ERR_NV_WRITE_NVE_FAIL               (BSP_ERR_NV_BASE + 0x51)
+#define BSP_ERR_NV_READ_NVE_FAIL                (BSP_ERR_NV_BASE + 0x52)
+
 
 #define NV_MID_PRI_LEVEL_NUM   7
 
@@ -360,6 +383,13 @@ enum
 #define NV_CTRL_ITEM_CRC        (1<<2)  /*单nvid做CRC校验标志       bit2*/
 #define NV_CTRL_MODEM_CRC       (1<<3)  /*单nv modem做CRC校验标志   bit3*/
 #define NV_CTRL_COMPRESS        (1<<4)  /*NV定制数据是否进行压缩    bit4*/
+
+enum
+{
+    NV_MODE_FACTORY     = 1,
+    NV_MODE_USER        = 2,
+    NV_MODE_BUTT
+};
 
 /*priority type*/
 enum
@@ -374,7 +404,6 @@ enum
     NV_LOW_PRIORITY = 7,
     NV_BUTT_PRIORITY
 };
-
 
 enum
 {
@@ -402,6 +431,32 @@ typedef struct nv_ctrl_file_info_stru
     u32  product_version[8];            /*product version*/
 }nv_ctrl_info_s;
 
+#ifdef FEATURE_NV_SEC_ON
+typedef struct nv_file_info_stru
+{
+    u8  file_id;             /* NV File ID */
+    u8  file_type;           /* NV File type */
+    u8  file_reserve[2];
+    u8  file_name[20];       /* NV File Name */
+    u32 file_nvnum;         /* NV File nv all num */
+    u32 file_offset;        /* NV File offset*/
+    u32 file_size;          /* NV File size*/
+}nv_file_info_s;
+
+/* NV reference Data Struct */
+typedef struct nv_item_info_stru
+{
+    u32 itemid;             /* NV ID */
+    u32 nv_off[3];       /* NV OFFSET,modem0~2 */
+    u16 nv_len;             /* NV Length */
+    u8  modem_num;          /* NV modem num */
+    u8  priority;           /* NV priority */
+    u8  resume;             /* NV resume */
+    u8  reserve[2];         /* reserve  */
+    u8  file_id;            /* NV file id */
+}nv_item_info_s;
+#else
+
 /* NV File List Struct */
 typedef struct nv_file_info_stru
 {
@@ -422,6 +477,7 @@ typedef struct nv_item_info_stru
     u8   resum;      /* resum feature */
     u16  itemid_high16bit;   /* NV ID high 16Bit*/
 }nv_item_info_s;
+#endif
 
 typedef struct nv_global_file_handle_stru
 {
@@ -429,7 +485,6 @@ typedef struct nv_global_file_handle_stru
     u32 offset;                 /*compare with the ctrl file start addr*/
     u32 size;
 }nv_global_file_handle_s;
-
 
 typedef struct nv_fastboot_debug_stru
 {
@@ -452,7 +507,7 @@ typedef struct nv_flush_info_stru
 typedef struct nv_flush_list_stru
 {
     u32 count;
-    nv_flush_item_s list[0];
+    nv_flush_item_s list[0];/*lint !e43*/
 }nv_flush_list;
 
 typedef union debug_ctrl_union
@@ -476,6 +531,39 @@ struct nv_crc_flush_info_stru
 /*nv global ddr info, size < 1k*/
 /* 此结构体的为A核C核公用的结构体
 请不要轻易添加或者删除结构体成员*/
+#ifdef FEATURE_NV_SEC_ON
+#define FLUSH_NVM_BACK    0x5A
+
+enum _file_type
+{
+    NV_FILE_HEAH = 0x0,             // 不属于文件属性，只表示文件头
+    NV_FILE_ATTRIBUTE_RESUM,
+    NV_FILE_ATTRIBUTE_RDONLY,
+    NV_FILE_ATTRIBUTE_RDWR,
+    NV_FILE_ATTRIBUTE_MAX,
+};
+
+typedef struct nv_global_ddr_info_stru
+{
+    u32 ddr_read;                       /*whether ddr can to write #need delete */
+    u32 nvdload_boot_state;            /* nv upgrade state */
+    u32 acore_init_state;               /*acore init state,after kernel init OK ,then start next step */
+    u32 ccore_init_state;               /*ccore init state,only after acore kernel init ok or init all ok*/
+    u32 mcore_init_state;
+    u32 mem_file_type;
+    u32 priority;                       /*reg the priority sum*/
+    u32 flush_time;
+    u32 flush_threshold;
+    u32 flush_backnvm;
+    u32 file_num;                       /*file list file num*/
+    u32 file_len;                       /*file toatl len,include ctrl file*/
+    u32 file_sign;                      /*file sign status*/
+    debug_ctrl_union_t      debug_ctrl; /*debug控制*/
+    nv_global_file_handle_s file_info[NV_FILE_MAX_NUM];  /*reg every file size&offset*/
+    nv_fastboot_debug_s     fb_debug;
+}nv_global_info_s;
+#else
+
 typedef struct nv_global_ddr_info_stru
 {
     u32 ddr_read;                       /*whether ddr can to write*/
@@ -494,7 +582,25 @@ typedef struct nv_global_ddr_info_stru
     nv_fastboot_debug_s     fb_debug;
     nv_flush_list           flush_info;
 }nv_global_info_s;
+#endif
 #pragma pack(pop)
+
+#ifdef FEATURE_NV_SEC_ON
+/*icc msg type*/
+enum _icc_msg_e_
+{
+    NV_ICC_REQ_FLUSH = 0x40,
+    NV_ICC_REQ_LOAD_BACKUP,                         /*请求加载备份区的NV镜像*/
+    NV_ICC_REQ_LOAD_CARRIER_CUST,                   /*请求加载mbn.bin镜像 */
+    NV_ICC_REQ_LOAD_CARRIER_RESUM,                  /*请求加载mbn_comm.bin镜像 */
+    NV_ICC_REQ_UPDATE_DEFAULT,
+    NV_ICC_REQ_UPDATE_BACKUP,
+    NV_ICC_REQ_FACTORY_RESET,
+    NV_ICC_REQ_FLUSH_RDWR_ASYNC,
+    NV_ICC_CNF                          = 127,      /*ACK*/
+    NV_ICC_BUTT                         = 0xFF,     /*MAX MSG*/
+};
+#endif
 
 /*icc msg type*/
 enum
@@ -517,6 +623,7 @@ enum
 
 u32 nv_readEx(u32 modem_id, u32 itemid, u32 offset, u8 * pdata, u32 datalen);
 u32 nv_writeEx(u32 modem_id, u32 itemid, u32 offset, u8 * pdata, u32 datalen);
+u32 nv_readEx_factory(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen);
 
 #ifndef NV_NOT_INIT
 u32 bsp_nvm_dcread(u32 modem_id, u32 itemid, u8 * pdata, u32 datalen);
@@ -550,8 +657,15 @@ u32 bsp_nvm_auth_dcwrite(u32 modem_id, u32 itemid, u8 * pdata, u32 datalen);
 #define bsp_nvm_authread(itemid,pdata,datalen)         bsp_nvm_auth_dcread(NV_USIMM_CARD_1,itemid,pdata,datalen)
 #define bsp_nvm_authwrite(itemid,pdata,datalen)        bsp_nvm_auth_dcwrite(NV_USIMM_CARD_1,itemid,pdata,datalen)
 
+u32 bsp_nvm_om_write(u32 modem_id, u32 itemid, u32 offset, u8 *pdata, u32 datalen);
 
 u32 bsp_nvm_backup(u32 crc_flag);
+
+u32 bsp_nvm_write_resum(u32 modem_id, u32 itemid, u8 *pdata, u32 offset, u32 datalen);
+u32 bsp_nvm_flush_resum(void);
+
+u32 bsp_nvm_write_debug(u32 modem_id, u32 itemid, u32 offset, u8 *pdata, u32 datalen);
+u32 bsp_nvm_flush_debug(void);
 
 /* added by yangzhi for muti-carrier, Begin:*/
 
@@ -563,6 +677,12 @@ u32 bsp_nvm_revert_mtcarrier_user(void);
 u32 bsp_nvm_mtcarrier_cust_xml_decode(void);
 #endif
 /* added by yangzhi for muti-carrier, End! */
+
+#ifdef FEATURE_NV_SEC_ON
+u32 bsp_nvm_mreset_load(void);
+#else
+static inline u32 bsp_nvm_mreset_load(void) {return 0;}
+#endif
 
 /*将所有数据刷到文件系统中*/
 u32 bsp_nvm_flush(void);
@@ -577,6 +697,8 @@ u32 bsp_nvm_revert_default(void);
 
 u32 bsp_nvm_update_default(void);
 
+u32 bsp_nvm_update_backup(void);
+
 u32 bsp_nvm_xml_decode(void);
 
 u32 nvm_read_rand(u32 nvid);
@@ -590,7 +712,6 @@ void bsp_nvm_get_auth_list(u32**list_addr, u32 * list_num);
 
 /* ccore */
 void * bsp_nvm_get_addr(u32 modemid, u32 itemid);
-u32 bsp_nvm_get_addrlist(u32 modemid, u32 itemid, u32 item_num, u32 * addr, u32 addr_len);
 u32 bsp_nvm_carrier_opt(u32 modemid, u32 cmd_type);
 
 /*ccore/mcore init*/
@@ -603,7 +724,7 @@ s32 bsp_nvm_remain_init(void);
 s32 nvchar_init(void);
 
 /*fastboot init*/
-u32 nv_init(void);
+int nv_init(void);
 
 
 #ifdef __cplusplus
@@ -613,8 +734,3 @@ u32 nv_init(void);
 #endif
 
 #endif  /*__BSP_NVIM_H__*/
-
-
-
-
-

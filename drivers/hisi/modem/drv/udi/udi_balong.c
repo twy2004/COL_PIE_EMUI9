@@ -57,13 +57,15 @@
 */
 #include <linux/string.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/semaphore.h>
 #include <securec.h>
 
 #include "udi_balong.h"
+#include "bsp_print.h"
 
 
-
+#define THIS_MODU mod_udi
 #define UDI_MAX_MAIN_DEV_NUM UDI_DEV_MAX
 #define UDI_MAX_DEV_TYPE_NUM 32
 #define UDI_MAX_OPEN_NODE_NUM 64
@@ -186,7 +188,7 @@ static int udiReturnOpenNode(unsigned int u32Idx)
     /*lint 661*/
 	if( u32Idx >=UDI_MAX_OPEN_NODE_NUM )
 	{
-		printk("BSP_UDI_SetCapability para error: u32Idx=%u\n", u32Idx);
+		bsp_err("BSP_UDI_SetCapability para error: u32Idx=%u\n", u32Idx);
 		return (-1);
 	}
 	down(&g_udiMtxOpen);
@@ -219,8 +221,8 @@ int BSP_UDI_SetPrivate(UDI_DEVICE_ID_E devId, void* pPrivate)
 	UDI_PARSE_DEV_ID(devId, u32MainId, u32DevType);
 	if((u32MainId >= UDI_MAX_MAIN_DEV_NUM)||(u32DevType >= UDI_MAX_DEV_TYPE_NUM))
 	{
-      printk("BSP_UDI_SetCapability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
-	  return (-1);
+            bsp_err("BSP_UDI_SetCapability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
+            return (-1);
 	}
 	g_deviceTable[u32MainId][u32DevType].pPrivate = pPrivate;
 
@@ -246,8 +248,8 @@ int BSP_UDI_SetCapability(UDI_DEVICE_ID_E devId, unsigned int u32Capability)
 	UDI_PARSE_DEV_ID(devId, u32MainId, u32DevType);
 	if((u32MainId >= UDI_MAX_MAIN_DEV_NUM)||(u32DevType >= UDI_MAX_DEV_TYPE_NUM))
 	{
-      printk("BSP_UDI_SetCapability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
-	  return (-1);
+            bsp_err("BSP_UDI_SetCapability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
+            return (-1);
 	}
 	g_deviceTable[u32MainId][u32DevType].u32Capability = u32Capability;
 	//printk("BSP_UDI_SetCapability **********************  u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
@@ -274,8 +276,8 @@ int BSP_UDI_SetInterfaceTable(UDI_DEVICE_ID_E devId, UDI_DRV_INTEFACE_TABLE *pDr
 	UDI_PARSE_DEV_ID(devId, u32MainId, u32DevType);
 	if((u32MainId >= UDI_MAX_MAIN_DEV_NUM)||(u32DevType >= UDI_MAX_DEV_TYPE_NUM))
 	{
-      printk("BSP_UDI_SetInterfaceTable para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
-	  return (-1);
+            bsp_err("BSP_UDI_SetInterfaceTable para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
+            return (-1);
 	}
 	g_deviceTable[u32MainId][u32DevType].pDrvInterface = pDrvInterface;
 	//printk("BSP_UDI_SetInterfaceTable  **********************  u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
@@ -292,7 +294,7 @@ int BSP_UDI_SetInterfaceTable(UDI_DEVICE_ID_E devId, UDI_DRV_INTEFACE_TABLE *pDr
 * 输出参数  : 无
 * 返 回 值  : 成功/失败
 *****************************************************************************/
-static int __init bsp_udi_init(void)
+int __init bsp_udi_init(void)
 {
 	UDI_ADP_INIT_CB_T initCB;
 	unsigned int u32Cnt;
@@ -312,7 +314,7 @@ static int __init bsp_udi_init(void)
 		{
 			if (initCB() != 0)
 			{
-				printk(KERN_ERR "BSP_MODU_UDI usr initCB fail, line:%d\n", __LINE__);
+				bsp_err("BSP_MODU_UDI usr initCB fail, line:%d\n", __LINE__);
 				return (-1);
 			}
 		}
@@ -338,8 +340,8 @@ int udi_get_capability(UDI_DEVICE_ID_E devId)
 	/* lint e661 e662*/
 	if((u32MainId >= UDI_MAX_MAIN_DEV_NUM)||(u32DevType >= UDI_MAX_DEV_TYPE_NUM))
 	{
-      printk("udi_get_capability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
-	  return (-1);
+            bsp_err("udi_get_capability para error: u32MainId=%u u32DevType=%u\n", u32MainId, u32DevType);
+            return (-1);
 	}
 	return (int)g_deviceTable[u32MainId][u32DevType].u32Capability;
 }
@@ -551,9 +553,6 @@ int mdrv_udi_ioctl(UDI_HANDLE handle, unsigned int u32Cmd, void* pParam)
 }
 
 EXPORT_SYMBOL(mdrv_udi_ioctl);
-
-arch_initcall(bsp_udi_init);
-
 
 
 

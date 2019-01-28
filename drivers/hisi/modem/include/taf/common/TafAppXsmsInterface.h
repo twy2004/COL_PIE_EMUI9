@@ -508,12 +508,6 @@ extern VOS_UINT32 TAF_XSMS_DeleteSmsReq(
     VOS_UINT8                           ucIndex);
 #endif
 
-#if (FEATURE_OFF == FEATURE_PHONE_SC)
-extern VOS_VOID TAF_LSMS_GetLteSmsEnableFlag(
-    VOS_UINT8                          *pucLteSmsEnable
-);
-#endif
-
 
 #if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))
 #pragma pack()

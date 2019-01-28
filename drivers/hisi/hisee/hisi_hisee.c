@@ -44,6 +44,7 @@
 #include "hisi_hisee_autotest.h"
 #include <dsm/dsm_pub.h>
 
+#include "hisi_hisee_shutdown_swipe.h"
 
 
 #define HISEE_EFUSE_GROUP_BIT_SIZE    32
@@ -190,8 +191,13 @@ static hisee_driver_function g_hisee_atf_function_list[] = {
 	{"hisee_channel_test", hisee_channel_test_func},
 	{"hisee_parallel_factory_action", hisee_parallel_manufacture_func},
 
+	{"inse_shutdown_swipe_t_pmu_en", inse_shutdown_swipe_t_nfc_en_func}, /* 真关机刷卡，使能PMU响应NFC指示信号 */
+	{"inse_shutdown_swipe_t_pmu_dis", inse_shutdown_swipe_t_nfc_dis_func}, /* 真关机刷卡，禁止PMU响应NFC指示信号 */
 
+	{"CASD", hisi_receive_casd_func},
+	{"VERIFYCASD", hisi_verify_casd_func},
 	{"hisee_factory_check", hisee_factory_check_func},
+	{"nfc_irq_switch", hisee_nfc_irq_switch_func},
 	{NULL, NULL},
 };
 
@@ -524,6 +530,10 @@ static int load_cosimg_appdata_ddr(void)
 	set_message_header(p_message_header, CMD_PRESAVE_COS_APPDATA);
 	image_size = HISEE_ATF_MESSAGE_HEADER_LEN;
 
+	/*For multi-cos, if is not fpga, set rpmb cos number to max.*/
+	if (!g_hisee_is_fpga) {
+		rpmb_cos = HISEE_MAX_RPMB_COS_NUMBER;
+	}
 	for (i = 0; i < rpmb_cos; i++) {
 		p_message_header->ack = i;
 		ret = send_smc_process(p_message_header, buff_phy, image_size,
@@ -558,9 +568,87 @@ static int hisee_wait_partition_ready(void)
 	  return HISEE_ERROR;
 	}
 
+	mutex_lock(&g_hisee_data.hisee_mutex);
+	/*clear buffer to zero according hisee_img_header size*/
+	memset((void *)(unsigned long)&(g_hisee_data.hisee_img_head), 0, sizeof(hisee_img_header));
+	ret = hisee_parse_img_header((char *)&(g_hisee_data.hisee_img_head));
+	mutex_unlock(&g_hisee_data.hisee_mutex);
+	if (HISEE_OK != ret) {
+		return ret;
+	}
+	retry = 10;
+	do {
+		ret = hisee_encos_header_init();
+		if (HISEE_OK == ret) {
+			break;
+		}
+		msleep(timeout);
+		retry--;
+	} while (retry > 0);
+	if (0 == retry) {
+		pr_err("%s():hisee_encos_header_init failed, ret=%d\n", __func__, ret);
+		return ret;
+	}
 	  return HISEE_OK;
 }
 
+int load_encos_image_ddr(void)
+{
+	char *buff_virt;
+	unsigned int i;
+	unsigned int emmc_cos;
+	phys_addr_t buff_phy = 0;
+	atf_message_header *p_message_header;
+	int ret = HISEE_OK;
+	unsigned int image_size;
+
+	buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE,
+											&buff_phy, GFP_KERNEL);
+	if (buff_virt == NULL) {
+		pr_err("%s(): dma_alloc_coherent failed\n", __func__);
+		set_errno_and_return(HISEE_NO_RESOURCES);
+	}
+
+	emmc_cos = HISEE_ENCOS_SUB_FILE_MAX;
+	pr_err("hisee: %s() emmc_cos_cnt=%d\n", __func__, emmc_cos);
+	for (i = 0; i < emmc_cos; i++) {
+		if (g_hisee_encos_header.file[i].name[0] != 0) {
+			memset(buff_virt, 0, (unsigned long)HISEE_SHARE_BUFF_SIZE);
+			p_message_header = (atf_message_header *)buff_virt;/*lint !e826*/
+			set_message_header(p_message_header, CMD_LOAD_ENCOS_DATA);
+			p_message_header->ack = i + COS_IMG_ID_3;
+			ret = hisee_encos_read((buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN), g_hisee_encos_header.file[i].size,
+						i + COS_IMG_ID_3);
+			if (ret < HISEE_OK) {
+				pr_err("%s(): hisee_encos_read fail\n", __func__);
+				goto out;
+			}
+			image_size = (g_hisee_encos_header.file[i].size + HISEE_ATF_MESSAGE_HEADER_LEN);
+			ret = send_smc_process(p_message_header, buff_phy, image_size,
+					HISEE_ATF_COS_TIMEOUT, CMD_LOAD_ENCOS_DATA);
+			if (ret < HISEE_OK) {
+				pr_err("%s(): hisee_encos_read fail\n", __func__);
+				goto out;
+			}
+		}
+	}
+out:
+	dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
+	check_and_print_result();
+	set_errno_and_return(ret);
+}/*lint !e715*/
+
+static int hisee_preload_encos_img(void)
+{
+	int ret = HISEE_OK;
+
+	ret = load_encos_image_ddr();
+	if (ret != HISEE_OK) {
+		pr_err("hisee encos read failed!\n");
+	}
+
+	return ret;
+}
 
 /*lint -e438 -esym(438,*) */
 int hisee_lpmcu_send(rproc_msg_t msg_0, rproc_msg_t msg_1)
@@ -606,6 +694,34 @@ int hisee_lpmcu_send(rproc_msg_t msg_0, rproc_msg_t msg_1)
 }
 /*lint +e438 +esym(438,*) */
 
+/****************************************************************************//**
+ * @brief      : nfc_irq_cfg
+ * @param[in]  : flag, on or off
+ * @return     : void
+ * @note       :
+********************************************************************************/
+void nfc_irq_cfg(hisee_nfc_irq_cfg_state flag)
+{
+	unsigned int value;
+	static unsigned int *hisee_nfc_irq_addr = 0;
+
+	if (0 == hisee_nfc_irq_addr) {
+		hisee_nfc_irq_addr = (unsigned int *)HISEE_NFC_IRQ_ADDR;
+		if (0 == hisee_nfc_irq_addr) {
+			pr_err("%s() hisee_nfc_irq_addr remap err!\n", __func__);
+			return;
+		}
+		pr_err("%s() hisee_nfc_irq_addr get\n", __func__);
+	}
+	value = *(volatile unsigned int *)(hisee_nfc_irq_addr); /*lint !e747*/
+	if (NFC_IRQ_CFG_OFF == flag) {
+		value |= BIT(HISEE_NFC_IRQ_DISABLE_BIT);
+	} else {
+		value &= (~BIT(HISEE_NFC_IRQ_DISABLE_BIT));
+	}
+	*(volatile unsigned int *)(hisee_nfc_irq_addr) = value; /*lint !e747*/
+
+}
 
 static int set_lpmcu_nfc_irq(void)
 {
@@ -624,6 +740,7 @@ static int set_lpmcu_nfc_irq(void)
 		return HISEE_OK;
 	}
 
+	nfc_irq_cfg(NFC_IRQ_CFG_OFF);
 
 	return hisee_lpmcu_send(SET_NFC_IRQ, (unsigned int)irq_gpio);
 }
@@ -674,6 +791,11 @@ int cos_image_upgrade_by_self(void)
 	buf_para[0] = HISEE_CHAR_SPACE;/*space character*/
 	buf_para[2] = '0' + COS_PROCESS_UPGRADE;
 	for (cos_id = 0; cos_id < HISEE_SUPPORT_COS_FILE_NUMBER; cos_id++) {
+		/* If there is no image for current cos id in hisee_img, bypass upgrading. */
+		if (HISEE_COS_EXIST != g_hisee_data.hisee_img_head.is_cos_exist[cos_id]) {
+			pr_err("%s: there is no cos%d image in hisee_img!\n", __func__, cos_id);
+			continue;
+		}
 		new_cos_exist = HISEE_FALSE;
 		ret = check_new_cosimage(cos_id, &new_cos_exist);
 		if (HISEE_OK == ret) {
@@ -820,6 +942,10 @@ static int rpmb_ready_body(void *arg)
 	if (ret != HISEE_OK) {
 		pr_err("hisee rpmb cos read failed!\n");
 	}
+	ret = hisee_preload_encos_img();
+	if (HISEE_OK != ret) {
+		pr_err("hisee preload encos failed!\n");
+	}
 
 	/* cos patch upgrade only supported in this function */
 	hisee_cos_patch_load();
@@ -921,6 +1047,11 @@ static void show_hisee_module_status(char *buff)
 	memset(counter_value, 0, 12);
 	index_name = "smc_cmd_running=";
 	snprintf(counter_value, sizeof(counter_value), "%d\n", g_hisee_data.smc_cmd_running);
+	strncpy(buff + strlen(buff), index_name, strlen(index_name));
+	strncpy(buff + strlen(buff), counter_value, strlen(counter_value));
+	memset(counter_value, 0, 12);
+	index_name = "curr_cos_id=";
+	snprintf(counter_value, sizeof(counter_value), "%d\n", g_runtime_cosid);
 	strncpy(buff + strlen(buff), index_name, strlen(index_name));
 	strncpy(buff + strlen(buff), counter_value, strlen(counter_value));
 	return;
@@ -1271,6 +1402,8 @@ static DEVICE_ATTR(hisee_check_ready, (S_IRUSR | S_IRGRP), hisee_check_ready_sho
 static DEVICE_ATTR(hisee_has_new_cos, (S_IRUSR | S_IRGRP), hisee_has_new_cos_show, NULL);
 static DEVICE_ATTR(hisee_check_upgrade, (S_IRUSR | S_IRGRP), hisee_check_upgrade_show, NULL);
 static DEVICE_ATTR(hisee_power_debug, (S_IRUSR | S_IRGRP), hisee_power_debug_show, NULL);
+static DEVICE_ATTR(hisee_pdswipe_record, (S_IRUSR | S_IRGRP), hisee_pdswipe_record_show, NULL);
+static DEVICE_ATTR(hisee_pdswipe_exception, (S_IRUSR | S_IRGRP), hisee_pdswipe_exc_show, NULL);
 static DEVICE_ATTR(hisee_at_result, (S_IRUSR | S_IRGRP), hisee_at_result_show, NULL);
 
 /*lint +e778 +esym(778,*) */
@@ -1290,6 +1423,8 @@ static int hisee_remove(struct platform_device *pdev)
 		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_has_new_cos);
 		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_check_upgrade);
 		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_power_debug);
+		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_pdswipe_record);
+		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_pdswipe_exception);
 		device_remove_file(g_hisee_data.cma_device, &dev_attr_hisee_at_result);
 		of_reserved_mem_device_release(g_hisee_data.cma_device);
 	}
@@ -1307,6 +1442,22 @@ static void read_shutdown_swipe_dts(struct device *pdevice)
 }
 
 
+/****************************************************************************//**
+ * @brief      : read_casd_dts
+ * @param[in]  : pdevice
+ * @return     : void
+ * @note       :
+********************************************************************************/
+void read_casd_dts(struct device *pdevice)
+{
+    if (of_find_property(pdevice->of_node, "hisi_support_casd", NULL)) {
+        set_support_casd(true);
+        pr_info("support casd cert\n");
+    } else {
+        set_support_casd(false);
+        pr_info("not support casd cert\n");
+    }
+}
 
 static void hisee_read_dts(struct device *pdevice)
 {
@@ -1357,6 +1508,7 @@ static void hisee_read_dts(struct device *pdevice)
 
 	read_shutdown_swipe_dts(pdevice);
 
+	read_casd_dts(pdevice);
 }
 
 /****************************************************************************//**
@@ -1408,6 +1560,16 @@ static int hisee_probe_second_stage(struct platform_device *pdev)
 		pr_err("hisee err unable to create hisee_power_debug attributes\n");
 		goto err_device_remove_file5;
 	}
+	if (device_create_file(pdevice, &dev_attr_hisee_pdswipe_record)) {
+		ret = HISEE_PDSWIPE_RECORD_NODE_CREATE_ERROR;
+		pr_err("hisee err unable to create hisee_pdswipe_record attributes\n");
+		goto err_device_remove_file6;
+	}
+	if (device_create_file(pdevice, &dev_attr_hisee_pdswipe_exception)) {
+		ret = HISEE_PDSWIPE_EXC_NODE_CREATE_ERROR;
+		pr_err("hisee err unable to create hisee_pdswipe_exception attributes\n");
+		goto err_device_remove_file7;
+	}
 	if (device_create_file(pdevice, &dev_attr_hisee_at_result)) {
 		ret = HISEE_AT_RESULT_NODE_CREATE_ERROR;
 		pr_err("hisee err unable to create dev_attr_hisee_at_result attributes\n");
@@ -1445,6 +1607,10 @@ static int hisee_probe_second_stage(struct platform_device *pdev)
 err_device_remove_file_end:
 	device_remove_file(pdevice, &dev_attr_hisee_at_result);
 err_device_remove_file8:
+	device_remove_file(pdevice, &dev_attr_hisee_pdswipe_exception);
+err_device_remove_file7:
+	device_remove_file(pdevice, &dev_attr_hisee_pdswipe_record);
+err_device_remove_file6:
 	device_remove_file(pdevice, &dev_attr_hisee_power_debug);
 err_device_remove_file5:
 	device_remove_file(pdevice, &dev_attr_hisee_check_upgrade);

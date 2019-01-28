@@ -58,7 +58,7 @@
 #include "nv_stru_pam.h"
 #include "mdrv.h"
 
-#if (FEATURE_HISOCKET == FEATURE_ON)
+#if ( defined(FEATURE_HISOCKET)&&(FEATURE_HISOCKET == FEATURE_ON) && (VOS_WIN32 != VOS_OS_VER) )
 #include "hisocket.h"
 #endif
 
@@ -73,7 +73,7 @@ extern "C" {
 /*****************************************************************************
   2 ∫Í∂®“Â
 *****************************************************************************/
-#if (FEATURE_HISOCKET == FEATURE_ON)
+#if ( defined(FEATURE_HISOCKET)&&(FEATURE_HISOCKET == FEATURE_ON) && (VOS_WIN32 != VOS_OS_VER) )
 
 #define CBTPPM_SOCK_MSG_LEN             (1000)
 
@@ -188,7 +188,7 @@ typedef struct
     VOS_UINT32                          ulVCOMRcvErrLen;
 }CBT_ACPU_VCOM_DEBUG_INFO;
 
-#if (FEATURE_HISOCKET == FEATURE_ON)
+#if ( defined(FEATURE_HISOCKET)&&(FEATURE_HISOCKET == FEATURE_ON) && (VOS_WIN32 != VOS_OS_VER) )
 
 #if (VOS_LINUX == VOS_OS_VER)
 

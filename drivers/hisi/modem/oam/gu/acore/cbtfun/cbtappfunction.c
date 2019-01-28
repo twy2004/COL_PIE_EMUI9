@@ -53,7 +53,7 @@
 #include "NVIM_Interface.h"
 #include "omprivate.h"
 #include "cbtapprl.h"
-#include "diag_api.h"
+#include "msp.h"
 #include "CbtPpm.h"
 
 

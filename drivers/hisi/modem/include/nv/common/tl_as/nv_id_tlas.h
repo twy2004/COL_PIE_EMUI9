@@ -10,8 +10,8 @@
 
 ******************************************************************************/
 
-#ifndef __LNVCOMMON_H__
-#define __LNVCOMMON_H__
+#ifndef __NV_ID_TLAS__
+#define __NV_ID_TLAS__
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -37,10 +37,35 @@ subdir-ccflags-y += -I$(srctree)/drivers/hisi/modem/include/taf/common/
 subdir-ccflags-y += -I$(srctree)/drivers/hisi/modem/include/taf/acore/
 subdir-ccflags-y += -I$(srctree)/drivers/hisi/modem/config/product/$(OBB_PRODUCT_NAME)/config
 
+ifeq ($(strip $(MODEM_FULL_DUMP)),true)
+subdir-ccflags-y += -DMODEM_FULL_DUMP_INUSER
+endif
+
+ifeq ($(strip $(MODEM_DDR_MINI_DUMP)),true)
+subdir-ccflags-y += -DMODEM_DDR_MINI_DUMP_INUSER
+endif
+
+ifeq ($(strip $(MODEM_LOGCAT_INUSER)),true)
+subdir-ccflags-y += -DMODEM_LOGCAT_INUSER
+endif
+
+ifeq ($(strip $(MODEM_LOG_FILTER_NVCONTROL)),true)
+subdir-ccflags-y += -DMODEM_LOG_FILTER_INUSER
+endif
+
+ifeq ($(strip $(MODEM_CHR_INUSER)),true)
+subdir-ccflags-y += -DMODEM_CHR_INUSER
+endif
+
+ifeq ($(strip $(MODEM_PM_OM_INUSER)),true)
+subdir-ccflags-y += -DMODEM_PM_OM_INUSER
+endif
+
 ifeq ($(strip $(OBB_LLT_MDRV)),y)
 subdir-ccflags-y += -DDRV_BUILD_LLT
 endif
 
+export CFG_NR_MODEM_BUILD
 
 ifeq ($(LLT_BUILD_GCOV), y)
 subdir-ccflags-y += -DDRV_BUILD_GCOV
@@ -65,8 +90,15 @@ ifeq ($(simlock_cust),true)
 KBUILD_CFLAGS += -DFEATURE_SIMLOCK_CUST=FEATURE_ON
 endif
 
+KBUILD_CFLAGS += -DMODULE_EXPORTED=
+
 ifneq ($(OBB_SEPARATE),true)
+
+ifeq ($(CFG_NAS_NEW_ARCH), YES)
+obj-$(CONFIG_HISI_BALONG_MODEM) +=oam/ ps/ tafnew/ 
+else
 obj-$(CONFIG_HISI_BALONG_MODEM) +=oam/ ps/ taf/ 
+endif
 
 #ifeq ($(CFG_FEATURE_IMS),FEATURE_ON)
 obj-$(CONFIG_HISI_BALONG_MODEM) +=ims/
@@ -75,7 +107,7 @@ obj-$(CONFIG_HISI_BALONG_MODEM) +=ims/
 endif
 
 #add modem user
-ifeq ($(TARGET_BUILD_VARIANT),user)
+ifeq ($(choose_variant_modem),user)
 KBUILD_CFLAGS += -DCHOOSE_MODEM_USER
 endif
 
@@ -83,4 +115,56 @@ ifeq ($(cdma),false)
 KBUILD_CFLAGS += -DFEATURE_UE_MODE_CDMA=FEATURE_OFF
 KBUILD_CFLAGS += -DFEATURE_CSDR=FEATURE_OFF
 KBUILD_CFLAGS += -DFEATURE_BALONG_CL=FEATURE_OFF
+endif
+
+
+ifeq ($(strip $(CONFIG_HISI_BALONG_MODEM)),m)
+
+BALONG_MODEM_MODULE := balong_modem
+$(BALONG_MODEM_MODULE)-y :=
+
+obj-y	+= modem_symbol.o
+
+# overwrite obj-m
+obj-m	:= $(BALONG_MODEM_MODULE).o
+
+subdir-ccflags-y += -DCONFIG_HISI_BALONG_MODEM -Wno-unused-function -Wno-undef
+
+# drv
+-include $(srctree)/drivers/hisi/modem/drv/Makefile
+$(BALONG_MODEM_MODULE)-y += $(addprefix drv/, $(drv-y))
+obj-y	+= $(addprefix drv/, $(drv-builtin))
+
+ifneq ($(OBB_SEPARATE),true)
+# gumsp
+-include $(srctree)/drivers/hisi/modem/oam/gu/Kbuild
+$(BALONG_MODEM_MODULE)-y += $(addprefix oam/gu/, $(gumsp-objs))
+
+# tlmsp
+-include $(srctree)/drivers/hisi/modem/oam/lt/acore/Makefile
+$(BALONG_MODEM_MODULE)-y += $(addprefix oam/lt/acore/, $(tlmsp-y))
+
+# gups
+-include $(srctree)/drivers/hisi/modem/ps/gu/Kbuild
+$(BALONG_MODEM_MODULE)-y += $(addprefix ps/gu/, $(gups-objs))
+
+# tlps
+-include $(srctree)/drivers/hisi/modem/ps/tl/Kbuild
+$(BALONG_MODEM_MODULE)-y += $(addprefix ps/tl/, $(tlps-objs))
+
+# taf
+ifeq ($(CFG_NAS_NEW_ARCH), YES)
+-include $(srctree)/drivers/hisi/modem/tafnew/Kbuild
+$(BALONG_MODEM_MODULE)-y += $(addprefix tafnew/, $(taf-objs))
+else
+-include $(srctree)/drivers/hisi/modem/taf/Kbuild
+$(BALONG_MODEM_MODULE)-y += $(addprefix taf/, $(taf-objs))
+endif
+
+# ims
+#ifeq ($(CFG_FEATURE_IMS),FEATURE_ON)
+-include $(srctree)/drivers/hisi/modem/ims/Makefile
+$(BALONG_MODEM_MODULE)-y += $(addprefix ims/, $(ims-objs))
+#endif
+endif
 endif

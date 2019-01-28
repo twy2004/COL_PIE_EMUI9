@@ -55,6 +55,8 @@
 #include "osl_malloc.h"
 #include <securec.h>
 /*lint -save -e826 */
+#undef THIS_MODU
+#define THIS_MODU mod_hds
 bsp_hds_cmd_stru g_hds_cmd_list_head;
 hds_cnf_func     g_hds_cnf_fn = NULL;
 
@@ -72,14 +74,14 @@ void bsp_hds_cmd_register(u32 cmdid, bsp_hds_func fn)
 
         if(cmdid == pstDiag->ulCmdId)
         {
-            printk(KERN_ERR"cmdid:0x%x have registered!\n",cmdid);
+            hds_printf("cmdid=0x%x have registered!\n",cmdid);
             return;
         }
     }
     hds_list = osl_malloc((unsigned int)sizeof(bsp_hds_cmd_stru));
     if (NULL == hds_list)
     {
-        printk(KERN_ERR"malloc hds_list memory failed!\n");
+        hds_printf("malloc hds_list memory failed!\n");
         return;
     }
     hds_list->ulCmdId = cmdid;
@@ -87,7 +89,7 @@ void bsp_hds_cmd_register(u32 cmdid, bsp_hds_func fn)
 
     /*将注册的cmdid和回调函数添加到链表中*/
     list_add(&hds_list->list, &g_hds_cmd_list_head.list);
-    //printk(KERN_ERR"registered cmdid:0x%x\n",hds_list->ulCmdId);
+    //hds_printf("registered cmdid:0x%x\n",hds_list->ulCmdId);
 }
 /*lint -restore*/
 
@@ -100,7 +102,7 @@ int bsp_hds_msg_proc(diag_frame_head_stru *pData)
 
     if(DIAG_FRAME_MSG_TYPE_BSP != pData->stID.pri4b)
     {
-        printk(KERN_ERR"Rcv Error Msg Id 0x%x\n",pData->u32CmdId);
+        hds_printf("Rcv Error Msg_Id=0x%x\n",pData->u32CmdId);
         return BSP_ERROR;
     }
 
@@ -118,7 +120,7 @@ int bsp_hds_msg_proc(diag_frame_head_stru *pData)
     }
 
     /*未注册此cmdid，返回对应的错误码*/
-    printk(KERN_ERR"cmdid is not register:%d\n",pData->u32CmdId);
+    hds_printf("cmdid=%d is not register\n",pData->u32CmdId);
 
     return HDS_CMD_ERROR;
 }
@@ -160,7 +162,7 @@ void bsp_hds_confirm(hds_cnf_stru *cnf, void *data, u32 len)
     }
     else
     {
-        printk(KERN_ERR"cnf fn isn't register, confirm failed!\n");
+        hds_printf("cnf fn isn't register, confirm failed!\n");
     }
 
     return;
@@ -188,7 +190,7 @@ void bsp_ShowDebugInfo(void)
     {
         pstDiag = list_entry(me, bsp_hds_cmd_stru, list);
 
-        printk(KERN_ERR"cmdid:0x%x\n",pstDiag->ulCmdId);
+        hds_printf("cmdid=0x%x\n",pstDiag->ulCmdId);
     }
 }
 

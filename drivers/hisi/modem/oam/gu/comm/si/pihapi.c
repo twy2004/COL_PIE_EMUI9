@@ -54,6 +54,7 @@
 #include "sitypedef.h"
 #include "product_config.h"
 #include "AtOamInterface.h"
+#include "nv_id_sys.h"
 
 
 
@@ -68,7 +69,8 @@ VOS_UINT32 SI_PIH_GetReceiverPid(
     MN_CLIENT_ID_T                      ClientId,
     VOS_UINT32                          *pulReceiverPid)
 {
-    MODEM_ID_ENUM_UINT16    enModemID;
+    MODEM_ID_ENUM_UINT16                enModemID;
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId;
 
     /* 调用接口获取Modem ID */
     if(VOS_OK != AT_GetModemIdFromClient(ClientId,&enModemID))
@@ -76,23 +78,27 @@ VOS_UINT32 SI_PIH_GetReceiverPid(
         return VOS_ERR;
     }
 
-    if(MODEM_ID_1 == enModemID)
+    enSlotId = SI_GetSlotIdByModemId(enModemID);
+
+    if (SI_PIH_CARD_SLOT_BUTT <= enSlotId)
     {
-        *pulReceiverPid = I1_MAPS_PIH_PID;
+        return VOS_ERR;
     }
-    else if (MODEM_ID_2 == enModemID)
-    {
-        *pulReceiverPid = I2_MAPS_PIH_PID;
-    }
-    else
+
+    if(SI_PIH_CARD_SLOT_0 == enSlotId)
     {
         *pulReceiverPid = I0_MAPS_PIH_PID;
     }
-
-
+    else if (SI_PIH_CARD_SLOT_1 == enSlotId)
+    {
+        *pulReceiverPid = I1_MAPS_PIH_PID;
+    }
+    else
+    {
+        *pulReceiverPid = I2_MAPS_PIH_PID;
+    }
     return VOS_OK;
 }
-
 
 
 VOS_UINT32 SI_PIH_FdnEnable (
@@ -686,7 +692,6 @@ VOS_UINT32 SI_PIH_HvSstQuery(
 }
 
 
-
 VOS_UINT32 SI_PIH_SciCfgSet (
     MN_CLIENT_ID_T                      ClientId,
     MN_OPERATION_ID_T                   OpId,
@@ -787,10 +792,10 @@ VOS_VOID SI_PIH_AcpuInit(VOS_VOID)
                                                     SI_PIH_TEETimeOutCB,
                                                     VOS_NULL_PTR))
     {
-        vos_printf("SI_PIH_AcpuInit: Reg TEE Timeout CB FUN Fail\r\n");
+        vos_printf("[PAM][OSA] %s: Reg TEE Timeout CB FUN Fail\r\n", __FUNCTION__);
     }
 
-    vos_printf("SI_PIH_AcpuInit: Reg TEE Timeout CB FUN\r\n");
+    vos_printf("[PAM][OSA] %s: Reg TEE Timeout CB FUN\r\n", __FUNCTION__);
 
     return;
 }
@@ -800,7 +805,6 @@ VOS_UINT32 SI_PIH_GetSecIccVsimVer(VOS_VOID)
 {
     return SI_PIH_SEC_ICC_VSIM_VER;
 }
-
 
 
 VOS_VOID SI_PIH_TEETimeOutCB (

@@ -467,7 +467,7 @@ VOS_UINT32 VOS_Sm_AsyP( VOS_SEM Sm_ID )
  *****************************************************************************/
 VOS_VOID VOS_show_sem_info( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("Max be used sem is %x.\r\n",vos_SemMaxSemId);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: Max be used sem is %x.\r\n", __FUNCTION__, vos_SemMaxSemId);
 }
 
 

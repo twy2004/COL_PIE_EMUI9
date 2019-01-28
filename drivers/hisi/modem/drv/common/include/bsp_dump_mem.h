@@ -107,12 +107,6 @@ extern "C" {
    | field N(N<=64)|
     ---------------
 */
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
-#ifdef printk
-#undef printk
-#endif
-#define printk  SRE_Printf
-#endif
 
 
 
@@ -135,7 +129,7 @@ enum
 typedef enum
 {
     DUMP_AREA_AP,
-    DUMP_AREA_CP,
+    DUMP_AREA_LR,
     DUMP_AREA_TEEOS,
     DUMP_AREA_HIFI,
     DUMP_AREA_LPM3,
@@ -144,13 +138,15 @@ typedef enum
     DUMP_AREA_IVP,
     DUMP_AREA_EMMC,
     DUMP_AREA_MDMAP,
+    DUMP_AREA_NR,
     DUMP_AREA_BUTT
 }DUMP_AREA_ID;
 #else
 typedef enum
 {
-    DUMP_AREA_CP,
     DUMP_AREA_MDMAP,
+    DUMP_AREA_LR, 
+    DUMP_AREA_NR, 
     DUMP_AREA_BUTT
 }DUMP_AREA_ID;
 #endif
@@ -158,21 +154,33 @@ typedef enum
 #endif
 
 
+typedef enum
+{
+    DUMP_NR_AREA_BEGIN,
+    DUMP_NR_AREA_CCPU = DUMP_NR_AREA_BEGIN,
+    DUMP_NR_AREA_L2HAC = DUMP_NR_AREA_BEGIN+1,
+    DUMP_NR_AREA_HL1C = DUMP_NR_AREA_BEGIN+2,
+    DUMP_NR_AREA_PHY = DUMP_NR_AREA_BEGIN+3,
+    DUMP_NR_AREA_RF = DUMP_NR_AREA_BEGIN+4,
+    DUMP_NR_AREA_END,
+    AREA_LEVEL2_AREA_BUTT
+}DUMP_LEVLE2_AREA_ID;
 /* field magic num */
 #define DUMP_FIELD_MAGIC_NUM    (0x6C7D9F8E)
 
 #ifndef __ASSEMBLY__
 
 /*头部接口要与rdr_area.h中定义格式相同*/
-#define DUMP_GLOBALE_TOP_HEAD_MAGIC          (0x44656164)
+#define DUMP_GLOBALE_TOP_HEAD_MAGIC          (0x4e524d53)
 struct dump_global_top_head_s {
     u32 magic;
     u32 version;
     u32 area_number;
-    u32 reserve;
+    u32 codepatch;
     u8 build_time[32];
     u8 product_name[32];
     u8 product_version[32];
+    u8 version_uuid[40];
 };
 
 struct dump_global_area_s {
@@ -191,7 +199,7 @@ struct dump_global_base_info_s {
     u32 reboot_flag;
     u8  e_module[16];
     u8  e_desc[48];
-
+    u32 timestamp;
     u8 datetime[24];
 };
 
@@ -247,14 +255,54 @@ struct dump_field_self_info_s
     void*       phy_addr;
     void*       virt_addr;
 };
+#define DUMP_LEVEL1_AREA_MAGICNUM        (0x4e656464)
+#define DUMP_LEVEL2_AREA_MAGIC_NUMBER    (0x4c524d53)
+#define DUMP_NR_LEVEL2_AREA_NUMBER       (5)
+struct dump_level2_area_top_head_s
+{
+    u32 magic;
+    u32 version;
+    u32 area_num;
+    u8  area_name[8];
+    u32 reverse;
+};
+struct  dump_level2_base_info_s
+{
+    u32 modid;
+    u32 arg1;
+    u32 arg2;
+    u32 e_core;
+    u32 e_type;
+    u8 e_module[16];
+    u8 e_desc[48];
+    u8 data_time[24];
+};
+struct dump_level2_area_s {
+    u32 offset; /* offset from area, unit is bytes(1 bytes) */
+    u32 length; /* unit is bytes */
+};
+#define DUMP_NR_AVAIABLE_LENGTH  (MNTN_AREA_NR_SIZE \
+                /*- sizeof(struct dump_level2_area_top_head_s)\
+                - sizeof(struct dump_level2_area_s)*DUMP_NR_LEVEL2_AREA_NUMBER\
+                - sizeof(struct dump_level2_base_info_s)*/)
+struct dump_nr_level2_global_struct_s {
+    struct dump_level2_area_top_head_s top_head;
+    struct dump_level2_base_info_s base_info;
+    struct dump_level2_area_s area_info[DUMP_NR_LEVEL2_AREA_NUMBER];
+#if DUMP_NR_AVAIABLE_LENGTH
+    u8 padding2[DUMP_NR_AVAIABLE_LENGTH];
+#else
+    u8 padding2[4];
+#endif
+};
 
 
-#define DUMP_FIXED_FIELD(p, id, name, offset, size) \
+#define DUMP_FIXED_FIELD(p, id, name, offset, size,version_id) \
 { \
     ((dump_field_map_t*)(p))->field_id    = (id); \
     ((dump_field_map_t*)(p))->length      = (size); \
     ((dump_field_map_t*)(p))->offset_addr      = (u32)(offset); \
-    ((dump_field_map_t*)(p))->version     = 0; \
+    ((dump_field_map_t*)(p))->version     = version_id; \
     ((dump_field_map_t*)(p))->status      = DUMP_FIELD_USED; \
     (void)memcpy_s((char *)(((dump_field_map_t*)(p))->field_name), sizeof(((dump_field_map_t*)(p))->field_name),\
                    (char *)(name),strlen((char *)(name)) < sizeof(((dump_field_map_t*)(p))->field_name)? strlen((char *)(name)): sizeof(((dump_field_map_t*)(p))->field_name)); \

@@ -62,7 +62,8 @@
 #include "bsp_llt.h"
 #include <securec.h>
 
-
+#include <bsp_print.h>
+#define THIS_MODU mod_onoff
 struct balong_power_plat_data {
     u32 modem_state;
 };
@@ -88,20 +89,20 @@ spinlock_t modem_power_spinlock;
 int mdrv_set_modem_state(unsigned int state)
 {
     if (!balong_driver_plat_data){
-        printk("Balong_power %s:%d not init.\n", __FUNCTION__, __LINE__);
+        bsp_err("Balong_power %s:%d not init.\n", __FUNCTION__, __LINE__);
         return -EINVAL;
     }
     if (state >= MODEM_INVALID){
-        printk("Balong_power %s:%d invalid state 0x%x.\n", __FUNCTION__, __LINE__, state);
+        bsp_err("Balong_power %s:%d invalid state 0x%x.\n", __FUNCTION__, __LINE__, state);
         return -EINVAL;
     }
 
     balong_driver_plat_data->modem_state = state;
 
     if (balong_driver_plat_data->modem_state == MODEM_READY) {
-        printk(KERN_ERR"Balong_power %s:%d set state %d ,time slice %d\n", __FUNCTION__, __LINE__, state, bsp_get_elapse_ms());
+        bsp_err("Balong_power  set state %d ,time slice %d\n",  state, bsp_get_elapse_ms());
     } else {
-        printk(KERN_ERR"Balong_power %s:%d set state %d\n", __FUNCTION__, __LINE__, state);
+        bsp_err("Balong_power  set state %d\n", state);
     }
 
     return 0;
@@ -112,11 +113,11 @@ static ssize_t balong_power_get(struct device *dev, struct device_attribute *att
     ssize_t len;
 
     if (!balong_driver_plat_data) {
-        printk(KERN_ERR"Balong_power %s:%d not init.\n", __FUNCTION__, __LINE__);
+        bsp_err("Balong_power %s:%d not init.\n", __FUNCTION__, __LINE__);
         return 0;
     }
     if (balong_driver_plat_data->modem_state >= MODEM_INVALID){
-        printk(KERN_ERR"Balong_power : %s:%d Invalid state 0x%x now is set.\n", __FUNCTION__, __LINE__, balong_driver_plat_data->modem_state);
+        bsp_err("Balong_power : %s:%d Invalid state 0x%x now is set.\n", __FUNCTION__, __LINE__, balong_driver_plat_data->modem_state);
         return 0;
     }
 
@@ -134,28 +135,29 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
     unsigned long lock_flag;
     if(count > 3)
     {
-        pr_err("buf len err: %d\n", (int)count);
+        bsp_err("buf len err: %d\n", (int)count);
         return -EINVAL;
     }
     if(count ==2 && !isdigit(buf[0]))
     {
-        pr_err("count = 2,buf err: %c\n", buf[0]);
+        bsp_err("count = 2,buf err: %c\n", buf[0]);
         return -EINVAL;
     }
        if(count ==3 && (!isdigit(buf[0]) || !isdigit(buf[1])))
        {
-        pr_err("count = 3,buf err: %c%c\n", buf[0],buf[1]);
+        bsp_err("count = 3,buf err: %c%c\n", buf[0],buf[1]);
         return -EINVAL;
     }
 
-    dev_info(dev, "Power set to %s\n", buf);
+    //dev_info(dev, "Power set to %s\n", buf);
+	bsp_info("Power set to %s\n", buf);
     state = simple_strtol(buf, &endp, 10); /*10 means read as dec*/
-    pr_err("count = %lu\n", (unsigned long)count);
+    bsp_err("count = %lu\n", (unsigned long)count);
 
     /* 整机复位对rild为桩,应该整机复位 */
     if (!bsp_reset_is_connect_ril())
     {
-        pr_err("<modem_reset_set>: modem reset not to be connected to ril\n");
+        bsp_err("<modem_reset_set>: modem reset not to be connected to ril\n");
         if(!is_in_llt())
         {
            system_error(DRV_ERRNO_RESET_REBOOT_REQ, 0, 0, NULL, 0);
@@ -171,14 +173,14 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
     spin_lock_irqsave(&modem_power_spinlock, lock_flag);/*lint !e550*/
     if((modem_power_off_flag)&&(!modem_power_on_flag)&&(state != BALONG_MODEM_ON))
     {
-        pr_err("modem has been power off,please power on,don't reset!\n");
+        bsp_err("modem has been power off,please power on,don't reset!\n");
         spin_unlock_irqrestore(&modem_power_spinlock, lock_flag);
         return (ssize_t)count;
     }
 
     if (state == BALONG_MODEM_RESET) /* 切卡 */
     {
-        pr_err("modem reset %d\n", BALONG_MODEM_RESET);
+        bsp_err("modem reset %d\n", BALONG_MODEM_RESET);
         if(!is_in_llt())
         {
             system_error(DRV_ERRNO_RESET_SIM_SWITCH, 0, 0, NULL, 0);
@@ -191,12 +193,12 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
         /*To make modem poweroff called only once when there are two rilds.*/
         if(modem_power_off_flag)
         {
-            pr_err("Balong_power: modem power off has been called! \n");
+            bsp_err("Balong_power: modem power off has been called! \n");
             spin_unlock_irqrestore(&modem_power_spinlock, lock_flag);
             return (ssize_t)count;
         }
         bsp_modem_power_off();
-        pr_err("modem power off %d\n", BALONG_MODEM_OFF);
+        bsp_err("modem power off %d\n", BALONG_MODEM_OFF);
         modem_power_off_flag = 1;
         spin_unlock_irqrestore(&modem_power_spinlock, lock_flag);
         return (ssize_t)count;
@@ -207,16 +209,16 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
         {
             bsp_modem_power_on();
             modem_power_on_flag = 1;
-            pr_err("modem power on %d\n", BALONG_MODEM_ON);
+            bsp_err("modem power on %d\n", BALONG_MODEM_ON);
         }
         else
         {
-            pr_err("modem now is power on!\n");
+            bsp_err("modem now is power on!\n");
         }
     }
     else if(state == BALONG_MODEM_RILD_SYS_ERR)
     {
-        pr_err("modem reset using system_error by rild %d\n", BALONG_MODEM_RILD_SYS_ERR);
+        bsp_err("modem reset using system_error by rild %d\n", BALONG_MODEM_RILD_SYS_ERR);
         if(!is_in_llt())
         {
              system_error(NAS_REBOOT_MOD_ID_RILD, 0, 0, NULL, 0);
@@ -224,7 +226,7 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
     }
     else if(state == BALONG_MODEM_3RD_SYS_ERR)
     {
-        pr_err("modem reset using system_error by 3rd modem %d\n", DRV_ERRNO_RESET_3RD_MODEM);
+        bsp_err("modem reset using system_error by 3rd modem %d\n", DRV_ERRNO_RESET_3RD_MODEM);
         if(!is_in_llt())
         {
             system_error(DRV_ERRNO_RESET_3RD_MODEM, 0, 0, NULL, 0);
@@ -232,7 +234,7 @@ ssize_t modem_reset_set(struct device *dev, struct device_attribute *attr, const
     }
     else
     {
-        pr_err("Balong_power : invalid code to balong power !!!!\n");
+        bsp_err("Balong_power : invalid code to balong power !!!!\n");
         spin_unlock_irqrestore(&modem_power_spinlock, lock_flag);
         return (ssize_t)count;
     }
@@ -261,7 +263,7 @@ static int __init bsp_power_probe(struct platform_device *pdev)
     ret |= device_create_file(&(pdev->dev), &dev_attr_modem_state);
     if (ret)
     {
-        printk("fail to creat modem boot sysfs\n");
+        bsp_err("fail to creat modem boot sysfs\n");
         return ret;
     }
 
@@ -288,16 +290,14 @@ static struct platform_driver balong_power_drv = {
     },/*lint !e785*/
 };/*lint !e785*/
 
-static int bsp_modem_boot_init(void);
-
-static int __init bsp_modem_boot_init(void)
+int __init bsp_modem_boot_init(void)
 {
     int ret;
 
     ret = platform_device_register(&balong_power_device);
     if(ret)
     {
-        printk("register his_modem boot device failed.\n");
+        bsp_err("register his_modem boot device failed.\n");
         return ret;
     }
     spin_lock_init(&modem_power_spinlock);
@@ -305,12 +305,11 @@ static int __init bsp_modem_boot_init(void)
     ret = platform_driver_register(&balong_power_drv);  /*lint !e64*/
     if(ret)
     {
-        printk("register his_modem boot driver failed.\n");
+        bsp_err("register his_modem boot driver failed.\n");
         platform_device_unregister(&balong_power_device);
     }
 
     return ret;
 }
 
-module_init(bsp_modem_boot_init);
 

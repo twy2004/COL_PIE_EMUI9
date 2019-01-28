@@ -99,6 +99,7 @@ static __inline__ void * osl_mem_align (unsigned int align_size,unsigned int nBy
 
 #elif  defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
 #include "sre_mem.h"
+#include <mdrv_malloc.h>
 
 #ifndef ROUND_UP
 #define ROUND_UP(uwAddr, uwBoundary)  (((uwAddr) + (uwBoundary) - 1) & ~((uwBoundary) - 1))
@@ -117,8 +118,8 @@ static inline void* osl_malloc(unsigned int nBytes)
 {
     #ifdef __OS_RTOSCK_SMP__
     u32 cookis;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
-    return SRE_MemAllocDebug(0,0,nBytes,cookis);
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
+    return SRE_MemAllocDebug(0,0,nBytes,cookis);/*lint !e530*/
     #else
     return SRE_MemCacheAlloc(nBytes,(OS_MEM_ALIGN_E)MEM_ADDR_ALIGN_004);
     #endif
@@ -139,14 +140,14 @@ static inline void osl_free(void *objp)
 }
 static inline int osl_cachedma_free( void *ptr )
 {
-    return SRE_MemUncacheFree(ptr);
+    return (int)SRE_MemUncacheFree(ptr);
 }
 static inline void * osl_cachedma_malloc ( unsigned int nBytes )
 {
     #ifdef __OS_RTOSCK_SMP__
     u32 cookis;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
-    return SRE_MemAllocAlignDebug(0,1,nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE,cookis);
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
+    return SRE_MemAllocAlignDebug(0,1,nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE,cookis);/*lint !e530*/
     #else
     return SRE_MemUncacheAlloc(nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE);
     #endif
@@ -164,10 +165,10 @@ static inline void * osl_cachedma_malloc_debug( unsigned int nBytes, u32 cookis)
 static inline void *osl_cachedma_malloc_align (unsigned int align_size,unsigned int nBytes )
 {
     int count = 2;
-    int align = align_size >> 2;
+    unsigned int align = align_size >> 2;
     #ifdef __OS_RTOSCK_SMP__
     u32 cookis;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     #endif
     while((align >> 1) > 0)
     {
@@ -179,7 +180,7 @@ static inline void *osl_cachedma_malloc_align (unsigned int align_size,unsigned 
         return NULL;
     }
     #ifdef __OS_RTOSCK_SMP__
-    return SRE_MemAllocAlignDebug(0, 1, nBytes, (OS_MEM_ALIGN_E)count,cookis);
+    return SRE_MemAllocAlignDebug(0, 1, nBytes, (OS_MEM_ALIGN_E)count,cookis);/*lint !e530*/
     #else
     return SRE_MemUncacheAlloc(nBytes,(OS_MEM_ALIGN_E)count);
     #endif
@@ -187,10 +188,10 @@ static inline void *osl_cachedma_malloc_align (unsigned int align_size,unsigned 
 static inline void * osl_mem_align (unsigned int align_size,unsigned int nBytes )
 {
     int count = 2;
-    int align = align_size >> 2;
+    unsigned int align = align_size >> 2;
     #ifdef __OS_RTOSCK_SMP__
     u32 cookis;
-    asm volatile("mov %0,pc":"=r"(cookis)::"memory");
+    __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     #endif
     while((align >> 1) > 0)
     {
@@ -202,11 +203,14 @@ static inline void * osl_mem_align (unsigned int align_size,unsigned int nBytes 
         return NULL;
     }
     #ifdef __OS_RTOSCK_SMP__
-    return SRE_MemAllocAlignDebug(0, 0, nBytes, (OS_MEM_ALIGN_E)count,cookis);
+    return SRE_MemAllocAlignDebug(0, 0, nBytes, (OS_MEM_ALIGN_E)count,cookis);/*lint !e530*/
     #else
     return SRE_MemCacheAlloc(nBytes,(OS_MEM_ALIGN_E)count);
     #endif
 }
+
+void *osl_reserved_mem_malloc(u32 size, enum MALLOC_RESERVED_REQ_ID request_id);
+void* osl_malloc_virt_to_phy(void* cpu_addr);
 
 #elif defined(__CMSIS_RTOS)
 #include "osl_common.h"

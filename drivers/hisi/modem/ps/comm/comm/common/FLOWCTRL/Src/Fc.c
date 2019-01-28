@@ -124,10 +124,6 @@ FC_POLICY_STRU                          g_astFcPolicy[FC_PRIVATE_POLICY_ID_BUTT]
 /* 流控点管理实体 */
 FC_POINT_MGR_STRU                       g_stFcPointMgr;
 
-
-/* 流控配置实体 */
-FC_CFG_STRU                             g_stFcCfg;
-
 /* 流控内部策略表 */
 FC_PRIVATE_POLICY_ID_ENUM_UINT8         g_aenPrivatePolicyTbl[FC_MODEM_ID_NUM][FC_POLICY_ID_BUTT] =
 {
@@ -153,6 +149,8 @@ FC_PRIVATE_POLICY_ID_ENUM_UINT8         g_aenPrivatePolicyTbl[FC_MODEM_ID_NUM][F
     }
 };
 
+VOS_UINT32                              g_ulFcEnableMask = 0;
+
 VOS_UINT32                              g_ulFcDebugLevel = (VOS_UINT32)PS_PRINT_WARNING;
 
 /******************************************************************************
@@ -162,7 +160,7 @@ VOS_UINT32                              g_ulFcDebugLevel = (VOS_UINT32)PS_PRINT_
 /*lint -save -e958 */
 
 
-STATIC VOS_VOID FC_MNTN_TraceEvent(VOS_VOID *pMsg)
+VOS_VOID FC_MNTN_TraceEvent(VOS_VOID *pMsg)
 {
    DIAG_TraceReport(pMsg);
 
@@ -293,28 +291,11 @@ VOS_UINT32  FC_MNTN_TraceCpuLoad(FC_MNTN_EVENT_TYPE_ENUM_UINT16 enMsgName, VOS_U
 }
 
 
-VOS_UINT32  FC_MNTN_TraceDrvAssemPara(FC_DRV_ASSEM_PARA_STRU *pstDrvAssenPara)
+VOS_VOID  FC_SetFcEnableMask( VOS_UINT32 ulEnableMask )
 {
-    FC_MNTN_DRV_ASSEM_PARA_STRU     stFcMntnDrvAssemPara;
+    g_ulFcEnableMask    = ulEnableMask;
 
-    if (VOS_NULL_PTR == pstDrvAssenPara)
-    {
-        return VOS_ERR;
-    }
-
-    PSACORE_MEM_SET(&stFcMntnDrvAssemPara, sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU), 0, sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU));
-
-    stFcMntnDrvAssemPara.ulSenderCpuId   = VOS_LOCAL_CPUID;
-    stFcMntnDrvAssemPara.ulSenderPid     = UEPS_PID_FLOWCTRL;
-    stFcMntnDrvAssemPara.ulReceiverCpuId = VOS_LOCAL_CPUID;
-    stFcMntnDrvAssemPara.ulReceiverPid   = UEPS_PID_FLOWCTRL;
-    stFcMntnDrvAssemPara.ulLength        = (sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU) - VOS_MSG_HEAD_LENGTH);
-    stFcMntnDrvAssemPara.enMsgName       = ID_FC_MNTN_DRV_ASSEM_PARA;
-    PSACORE_MEM_CPY(&stFcMntnDrvAssemPara.stDrvAssemPara, sizeof(FC_DRV_ASSEM_PARA_STRU), pstDrvAssenPara, sizeof(FC_DRV_ASSEM_PARA_STRU));
-
-    FC_MNTN_TraceEvent(&stFcMntnDrvAssemPara);
-
-    return VOS_OK;
+    return;
 }
 
 
@@ -333,7 +314,7 @@ STATIC VOS_UINT32 FC_IsPolicyEnable(VOS_UINT32 ulPointPolicyMask, MODEM_ID_ENUM_
         ulPolicyMask = (ulPointPolicyMask >> FC_POLICY_ID_BUTT);
     }
 
-    return (ulPolicyMask & g_stFcCfg.ulFcEnbaleMask);
+    return (ulPolicyMask & g_ulFcEnableMask);
 }
 /* add by wangrong */
 
@@ -384,11 +365,11 @@ VOS_UINT32  FC_RegPoint
     }
 
     /* 使能检查 */
-    if ( FC_POLICY_MASK(pstFcRegPoint->enPolicyId) != (FC_POLICY_MASK(pstFcRegPoint->enPolicyId) & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK(pstFcRegPoint->enPolicyId) != (FC_POLICY_MASK(pstFcRegPoint->enPolicyId) & g_ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_RegPoint, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -523,11 +504,11 @@ VOS_UINT32  FC_ChangePoint
      /* add by wangrong */
 
     /* 使能检查 */
-    if ( FC_POLICY_MASK(enPolicyId) != (FC_POLICY_MASK(enPolicyId) & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK(enPolicyId) != (FC_POLICY_MASK(enPolicyId) & g_ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_ChangePoint, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1420,7 +1401,7 @@ STATIC VOS_UINT32  FC_POLICY_Init( VOS_VOID )
 }
 
 
-STATIC VOS_UINT32  FC_CFG_CheckCpuParam( FC_CFG_CPU_STRU *pstFcCfgCpu )
+VOS_UINT32  FC_CFG_CheckCpuParam( FC_CFG_CPU_STRU *pstFcCfgCpu )
 {
     if ( pstFcCfgCpu->ulCpuOverLoadVal < pstFcCfgCpu->ulCpuUnderLoadVal)
     {
@@ -1440,245 +1421,6 @@ STATIC VOS_UINT32  FC_CFG_CheckCpuParam( FC_CFG_CPU_STRU *pstFcCfgCpu )
 
     return VOS_OK;
 }
-
-
-STATIC VOS_UINT32  FC_CFG_CheckMemParam( FC_CFG_MEM_STRU *pstFcCfgMem )
-{
-    VOS_UINT32                          ulThresholdLoop;
-
-    if ( FC_MEM_THRESHOLD_LEV_BUTT < pstFcCfgMem->ulThresholdCnt )
-    {
-        FC_LOG1(PS_PRINT_WARNING,
-                "FC, FC_CFG_CheckMemParam, WARNING, ulThresholdCnt %d\n",
-                (VOS_INT32)pstFcCfgMem->ulThresholdCnt);
-
-        return VOS_ERR;
-    }
-
-    for ( ulThresholdLoop = 0 ; ulThresholdLoop < pstFcCfgMem->ulThresholdCnt ; ulThresholdLoop++ )
-    {
-        /* 内存流控设置的是空闲值 */
-        if ( pstFcCfgMem->astThreshold[ulThresholdLoop].ulSetThreshold
-             > pstFcCfgMem->astThreshold[ulThresholdLoop].ulStopThreshold )
-        {
-            FC_LOG3(PS_PRINT_WARNING,
-                    "FC, FC_CFG_CheckMemParam, WARNING, ulThresholdLoop %d ulSetThreshold %D less than ulStopThreshold %d\n",
-                    (VOS_INT32)ulThresholdLoop,
-                    (VOS_INT32)pstFcCfgMem->astThreshold[ulThresholdLoop].ulSetThreshold,
-                    (VOS_INT32)pstFcCfgMem->astThreshold[ulThresholdLoop].ulStopThreshold);
-            return VOS_ERR;
-        }
-    }
-
-    return VOS_OK;
-}
-
-
-
-STATIC VOS_UINT32  FC_CFG_CheckUlRateParam( FC_CFG_UM_UL_RATE_STRU *pstFcCfgUmUlRate )
-{
-    if ( FC_UL_RATE_MAX_LEV <  pstFcCfgUmUlRate->ucRateCnt)
-    {
-        FC_LOG1(PS_PRINT_WARNING,
-            "FC, FC_CFG_CheckUlRateParam, WARNING, ucRateCnt %d\n",
-            pstFcCfgUmUlRate->ucRateCnt);
-
-        return VOS_ERR;
-    }
-
-    return VOS_OK;
-}
-
-
-
-STATIC VOS_UINT32  FC_CFG_CheckParam( FC_CFG_STRU *pstFcCfg )
-{
-    /* 设计约束，A核需要判断是否因为速传引起CPU占用率高，第一次CPU占用率
-       超标时才启动计算速传速率，所以至少需要2次 */
-    if (2 > pstFcCfg->stFcCfgCpuA.ulSmoothTimerLen)
-    {
-        FC_LOG1(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, CPUA flow ctrl ulSmoothTimerLen is %d!\n",
-                                  (VOS_INT32)pstFcCfg->stFcCfgCpuA.ulSmoothTimerLen);
-        return VOS_ERR;
-    }
-
-    if ( VOS_OK != FC_CFG_CheckCpuParam(&(pstFcCfg->stFcCfgCpuA)) )
-    {
-        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check CPUA flow ctrl param failed!\n");
-        return VOS_ERR;
-    }
-
-    if ( VOS_OK != FC_CFG_CheckCpuParam(&(pstFcCfg->stFcCfgCpuC)) )
-    {
-        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check CPUC flow ctrl param failed!\n");
-        return VOS_ERR;
-    }
-
-    if ( VOS_OK != FC_CFG_CheckMemParam(&(pstFcCfg->stFcCfgMem)) )
-    {
-        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check mem flow ctrl param failed!\n");
-        return VOS_ERR;
-    }
-
-    if ( VOS_OK != FC_CFG_CheckUlRateParam(&(pstFcCfg->stFcCfgUmUlRateForCpu)) )
-    {
-        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check CPU UL rate param failed!\n");
-        return VOS_ERR;
-    }
-
-    if ( VOS_OK != FC_CFG_CheckUlRateParam(&(pstFcCfg->stFcCfgUmUlRateForTmp)) )
-    {
-        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check temperature UL rate param failed!\n");
-        return VOS_ERR;
-    }
-
-    return VOS_OK;
-}
-
-
-STATIC VOS_UINT32  FC_CFG_SetDefaultValue( FC_CFG_STRU *pstFcCfg )
-{
-    FC_LOG(PS_PRINT_WARNING, "FC_CFG_SetDefaultValue, Set Default NV Value.\n");
-
-    PSACORE_MEM_SET(pstFcCfg, sizeof(FC_CFG_STRU), 0x0, sizeof(FC_CFG_STRU));
-
-    pstFcCfg->ulFcEnbaleMask = 0x7F;
-
-    pstFcCfg->stFcCfgCpuA.ulCpuOverLoadVal      = 95;
-    pstFcCfg->stFcCfgCpuA.ulCpuUnderLoadVal     = 70;
-    pstFcCfg->stFcCfgCpuA.ulSmoothTimerLen      = 8;
-    pstFcCfg->stFcCfgCpuA.ulStopAttemptTimerLen = 100;
-    pstFcCfg->stFcCfgCpuA.ulUmUlRateThreshold   = 1048576;
-    pstFcCfg->stFcCfgCpuA.ulUmDlRateThreshold   = 10485760;
-    pstFcCfg->stFcCfgCpuA.ulRmRateThreshold     = 10485760;
-
-    pstFcCfg->stFcCfgMem.ulThresholdCnt           = 4;
-    pstFcCfg->stFcCfgMem.astThreshold[0].ulSetThreshold  = 300;
-    pstFcCfg->stFcCfgMem.astThreshold[0].ulStopThreshold = 350;
-    pstFcCfg->stFcCfgMem.astThreshold[1].ulSetThreshold  = 250;
-    pstFcCfg->stFcCfgMem.astThreshold[1].ulStopThreshold = 300;
-    pstFcCfg->stFcCfgMem.astThreshold[2].ulSetThreshold  = 150;
-    pstFcCfg->stFcCfgMem.astThreshold[2].ulStopThreshold = 200;
-    pstFcCfg->stFcCfgMem.astThreshold[3].ulSetThreshold  = 0;
-    pstFcCfg->stFcCfgMem.astThreshold[3].ulStopThreshold = 20;
-
-    pstFcCfg->stFcCfgCst.stThreshold.ulSetThreshold      = 3072;
-    pstFcCfg->stFcCfgCst.stThreshold.ulStopThreshold     = 1024;
-
-    pstFcCfg->stFcCfgGprs.stThresholdMemSize.ulSetThreshold  = 30000;
-    pstFcCfg->stFcCfgGprs.stThresholdMemSize.ulStopThreshold = 30000;
-    pstFcCfg->stFcCfgGprs.stThresholdMemCnt.ulSetThreshold   = 600;
-    pstFcCfg->stFcCfgGprs.stThresholdMemCnt.ulStopThreshold  = 600;
-
-    pstFcCfg->stFcCfgCpuC.ulCpuOverLoadVal      = 95;
-    pstFcCfg->stFcCfgCpuC.ulCpuUnderLoadVal     = 70;
-    pstFcCfg->stFcCfgCpuC.ulSmoothTimerLen      = 8;
-    pstFcCfg->stFcCfgCpuC.ulStopAttemptTimerLen = 100;
-    pstFcCfg->stFcCfgCpuC.ulUmUlRateThreshold   = 1048576;
-    pstFcCfg->stFcCfgCpuC.ulUmDlRateThreshold   = 10485760;
-    pstFcCfg->stFcCfgCpuC.ulRmRateThreshold     = 10485760;
-
-    pstFcCfg->stFcCfgUmUlRateForCpu.ucRateCnt   = 4;
-    pstFcCfg->stFcCfgUmUlRateForCpu.ausRate[0]  = 5760;
-    pstFcCfg->stFcCfgUmUlRateForCpu.ausRate[1]  = 2000;
-    pstFcCfg->stFcCfgUmUlRateForCpu.ausRate[2]  = 1000;
-    pstFcCfg->stFcCfgUmUlRateForCpu.ausRate[3]  = 384;
-
-    pstFcCfg->stFcCfgUmUlRateForTmp.ucRateCnt   = 3;
-    pstFcCfg->stFcCfgUmUlRateForTmp.ausRate[0]  = 2000;
-    pstFcCfg->stFcCfgUmUlRateForTmp.ausRate[1]  = 1000;
-    pstFcCfg->stFcCfgUmUlRateForTmp.ausRate[2]  = 384;
-
-    pstFcCfg->stFcCfgCdma.stThresholdMemCnt.ulSetThreshold  = 500;
-    pstFcCfg->stFcCfgCdma.stThresholdMemCnt.ulStopThreshold = 220;
-    pstFcCfg->stFcCfgCdma.stThresholdMemSize.ulSetThreshold = 491000; /* 250*404+250*1560 */
-    pstFcCfg->stFcCfgCdma.stThresholdMemSize.ulStopThreshold= 216040; /* 110*404+110*1560 */
-
-    return VOS_OK;
-}
-
-
-STATIC VOS_UINT32  FC_CFG_SetNvValue( FC_CFG_NV_STRU  *pstFcCfgNv )
-{
-    FC_CFG_STRU         *pstFcCfg = &g_stFcCfg;
-    VOS_UINT32          ulFcMemThresLev;
-
-    ulFcMemThresLev     = sizeof(FC_CFG_MEM_THRESHOLD_STRU) * FC_MEM_THRESHOLD_LEV_BUTT;
-
-    PSACORE_MEM_SET(pstFcCfg, sizeof(FC_CFG_STRU), 0x0, sizeof(FC_CFG_STRU));
-
-    pstFcCfg->ulFcEnbaleMask = pstFcCfgNv->ulFcEnbaleMask;
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgCpuA), sizeof(FC_CFG_CPU_STRU), &(pstFcCfgNv->stFcCfgCpuA), sizeof(FC_CFG_CPU_STRU));
-
-    pstFcCfg->stFcCfgMem.ulThresholdCnt           = pstFcCfgNv->ulFcCfgMemThresholdCnt;
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgMem.astThreshold[0]),
-                    ulFcMemThresLev,
-                    &(pstFcCfgNv->stFcCfgMem[0]),
-                    ulFcMemThresLev);
-
-    pstFcCfg->stFcCfgCst.stThreshold.ulSetThreshold      = pstFcCfgNv->stFcCfgCst.ulSetThreshold;
-    pstFcCfg->stFcCfgCst.stThreshold.ulStopThreshold     = pstFcCfgNv->stFcCfgCst.ulStopThreshold;
-
-    pstFcCfg->stFcCfgGprs.stThresholdMemSize.ulSetThreshold  = pstFcCfgNv->stFcCfgGprsMemSize.ulSetThreshold;
-    pstFcCfg->stFcCfgGprs.stThresholdMemSize.ulStopThreshold = pstFcCfgNv->stFcCfgGprsMemSize.ulStopThreshold;
-    pstFcCfg->stFcCfgGprs.stThresholdMemCnt.ulSetThreshold   = pstFcCfgNv->stFcCfgGprsMemCnt.ulSetThreshold;
-    pstFcCfg->stFcCfgGprs.stThresholdMemCnt.ulStopThreshold  = pstFcCfgNv->stFcCfgGprsMemCnt.ulStopThreshold;
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgCpuC), sizeof(FC_CFG_CPU_STRU), &(pstFcCfgNv->stFcCfgCpuC), sizeof(FC_CFG_CPU_STRU));
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgUmUlRateForCpu), sizeof(FC_CFG_UM_UL_RATE_STRU), &(pstFcCfgNv->stFcCfgUmUlRateForCpu), sizeof(FC_CFG_UM_UL_RATE_STRU));
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgUmUlRateForTmp), sizeof(FC_CFG_UM_UL_RATE_STRU), &(pstFcCfgNv->stFcCfgUmUlRateForTmp), sizeof(FC_CFG_UM_UL_RATE_STRU));
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgCdma.stThresholdMemCnt), sizeof(FC_CFG_MEM_THRESHOLD_STRU), &(pstFcCfgNv->stFcCfgCdmaMemCnt), sizeof(FC_CFG_MEM_THRESHOLD_STRU));
-
-    PSACORE_MEM_CPY(&(pstFcCfg->stFcCfgCdma.stThresholdMemSize), sizeof(FC_CFG_MEM_THRESHOLD_STRU), &(pstFcCfgNv->stFcCfgCdmaMemSize), sizeof(FC_CFG_MEM_THRESHOLD_STRU));
-
-    return VOS_OK;
-}
-
-
-STATIC VOS_UINT32  FC_CFG_Init( VOS_VOID )
-{
-    VOS_UINT32                          ulResult;
-    FC_CFG_NV_STRU                      stFcCfgNv;
-
-    /* 初始化 */
-    PSACORE_MEM_SET(&stFcCfgNv, sizeof(stFcCfgNv), 0x0, sizeof(stFcCfgNv));
-    PSACORE_MEM_SET(&g_stFcCfg, sizeof(FC_CFG_STRU), 0, sizeof(FC_CFG_STRU));
-
-    ulResult = GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_Flow_Ctrl_Config,\
-                       &stFcCfgNv, sizeof(FC_CFG_NV_STRU));
-
-    if ( NV_OK != ulResult )
-    {
-        FC_LOG1(PS_PRINT_WARNING, "FC_CFG_Init, WARNING, Fail to read NV, result %d\n",
-                (VOS_INT32)ulResult);
-
-        (VOS_VOID)FC_CFG_SetDefaultValue(&g_stFcCfg);
-
-        return VOS_OK;
-    }
-
-    /* 将NV配置值转换成内部结构保存 */
-    FC_CFG_SetNvValue(&stFcCfgNv);
-
-    ulResult = FC_CFG_CheckParam(&g_stFcCfg);
-
-    if ( VOS_OK != ulResult )
-    {
-        FC_LOG(PS_PRINT_ERROR, "FC_CommInit, ERROR, Check NV parameter fail!\n");
-
-        /* 当前的NV值有错，设置默认值返回成功 */
-        (VOS_VOID)FC_CFG_SetDefaultValue(&g_stFcCfg);
-
-        return VOS_OK;
-    }
-
-    return VOS_OK;
-}
-
 
 
 VOS_UINT32 FC_SndCpuMsg
@@ -1837,22 +1579,11 @@ STATIC VOS_UINT32 FC_SndChangePointMsg
 
 VOS_UINT32  FC_CommInit( VOS_VOID )
 {
-    VOS_UINT32                          ulResult;
-
     /* 流控策略初始化 */
     FC_POLICY_Init();
 
     /* 流控点初始化 */
     FC_POINT_Init();
-
-    /* 流控配置项初始化 */
-    ulResult = FC_CFG_Init();
-
-    if (VOS_OK != ulResult)
-    {
-        FC_LOG(PS_PRINT_ERROR,"FC_CommInit, init Fail\n");
-        return VOS_ERR;
-    }
 
     return VOS_OK;
 }

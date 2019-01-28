@@ -196,9 +196,6 @@ VOS_VOID * V_MemAlloc( VOS_UINT32 ulInfo, VOS_UINT8  ucPtNo, VOS_UINT32 ulSize,
 #define VOS_AssistantMemAlloc( ulInfo, ucPtNo, ulSize )\
     V_MemAlloc( (ulInfo), (ucPtNo), (ulSize), VOS_FALSE, VOS_FILE_ID, __LINE__)
 
-VOS_VOID *VOS_MemReAlloc ( VOS_UINT32 ulPid, VOS_UINT8 ucPtNo,
-                           VOS_VOID *pOldMemPtr, VOS_UINT32 ulNewSize );
-
 VOS_UINT32 V_MemFree( VOS_UINT32 ulInfo, VOS_VOID **ppAddr,
                           VOS_UINT32 ulFileID, VOS_INT32 usLineNo );
 

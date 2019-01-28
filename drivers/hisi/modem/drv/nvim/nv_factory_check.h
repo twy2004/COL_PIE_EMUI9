@@ -88,7 +88,7 @@ typedef struct
 u32  nv_check_mode_crc(factory_crc_check_info_t check_info);
 u32  nv_check_factory_nv_status(u32 mode);
 u32  nv_make_single_band_nv_crc(singal_band_nvid_t* check_item_temp, u32 modem_num, u32 valild_nvid_count, u32 *last_crc_value, u32 *gen_crc_value);
-
+u32  nv_read_item_from_factory(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen);
 
 #ifdef __cplusplus
 #if __cplusplus

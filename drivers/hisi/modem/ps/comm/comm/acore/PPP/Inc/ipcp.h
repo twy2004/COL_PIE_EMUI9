@@ -95,16 +95,12 @@ struct ipcp {
     VOS_UINT32 SecNbns_neg : 2;
 
     VOS_UINT32 IpAddrs_neg : 2;
-    VOS_UINT32 CompressProto_neg : 2;
 
     struct ppp_in_addr   PriDnsAddr;
     struct ppp_in_addr   SecDnsAddr;
 
     struct ppp_in_addr   PriNbnsAddr;
     struct ppp_in_addr   SecNbnsAddr;
-
-    VOS_UINT16 ComressProtoLen;
-    VOS_CHAR CompressProto[10];
 
     unsigned heis1172 : 1;        /* True if he is speaking rfc1172 */
 
@@ -134,7 +130,6 @@ extern void ipcp_Init(struct ipcp *,struct link *, const struct fsm_parent *);
 extern void ipcp_Destroy(struct ipcp *);
 extern void ipcp_Setup(struct ipcp *, VOS_UINT32);
 extern void ipcp_SetLink(struct ipcp *, struct link *);
-extern VOS_UINT32 DecodeAtIndication(struct ipcp* pIpcp,VOS_CHAR* pEchoBuffer,VOS_UINT16 BufferLen);
 extern VOS_INT32  ipcp_Show(struct ipcp *);
 extern PPP_ZC_STRU *ipcp_Input(struct link *, PPP_ZC_STRU *);
 extern void ipcp_AddInOctets(struct ipcp *, VOS_INT32);

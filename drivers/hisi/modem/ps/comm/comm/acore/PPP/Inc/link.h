@@ -57,6 +57,9 @@
 #define PPP_HDLC_BY_SOFTWARE                            (0)         /* 使用软件实现PPP封装 解封装 */
 #define PPP_HDLC_BY_HARDWARE                            (1)         /* 使用硬件实现PPP封装 解封装 */
 
+/* 以太网IPV4协议类型为0x0800, 网络序即为0x0008 */
+#define ETH_IPV4_PROTO                                 (0x0008)
+
 extern struct  fsm_parent           parent;
 
 #define PPP_CONFIG(PppId)           ((g_pstHdlcConfig + PppId) - 1)

@@ -71,10 +71,11 @@
 #include "bsp_nvim.h"
 /* log2.0 2014-03-19 Begin:*/
 #include "acore_nv_stru_drv.h"
-#include "bsp_trace.h"
+#include "bsp_print.h"
 #include "bsp_slice.h"
 #include "bsp_softtimer.h"
 #include "socp_ind_delay.h"
+#include "deflate.h"
 /* log2.0 2014-03-19 End*/
 
 #include <securec.h>
@@ -102,6 +103,7 @@ u32 g_ulThrowout = 0;
 u32 g_SocpEnableState[SOCP_MAX_ENCDST_CHN] = {0};  /* socp目的端数据上报控制状态 */
 u32 socp_version = 0;
 u32 g_ulSocpDebugTraceCfg = 0;
+u32 g_strSocpDeflateStatus=0;
 
 #define SOCP_MAX_ENC_DST_COUNT      100
 struct socp_enc_dst_stat_s
@@ -124,7 +126,7 @@ s32 socp_check_init(void)
 {
     if (!g_strSocpStat.bInitFlag)
     {
-        socp_printf("the module has not been initialized!\n");
+        socp_error("The module has not been initialized!\n");
         return BSP_ERR_SOCP_NOT_INIT;
     }
     else
@@ -138,7 +140,7 @@ s32 socp_check_buf_addr(unsigned long start, unsigned long end)
 {
     if (start >= end)
     {
-        socp_printf("the buff is valid!\n");\
+        socp_error("The buff is invalid!\n");\
         return BSP_ERR_SOCP_INVALID_PARA;\
     }
     else
@@ -148,11 +150,11 @@ s32 socp_check_buf_addr(unsigned long start, unsigned long end)
 }
 
 /* 检测通道类型 */
-s32 socp_check_chan_type(u32 para, u32 type) 
+s32 socp_check_chan_type(u32 para, u32 type)
 {
     if (type != para)
     {
-        socp_printf("the Chan's Type is Valid!\n");
+        socp_error("The channel type is invalid!\n");
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -166,7 +168,7 @@ s32 socp_check_chan_id(u32 para, u32 id)
 {
     if (para >= id)
     {
-        socp_printf("the Chan Id is Valid!\n");
+        socp_error("The channel id is invalid!\n");
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -180,7 +182,7 @@ s32 socp_check_encsrc_chan_id(u32 id)
 {
     if ((id >= SOCP_CCORE_ENCSRC_CHN_BASE) && (id < (SOCP_CCORE_ENCSRC_CHN_BASE + SOCP_CCORE_ENCSRC_CHN_NUM)))
     {
-        socp_printf("the Chan Id is Valid!\n");
+        socp_error("The src channel id is invalid!\n");
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -194,7 +196,7 @@ s32 socp_check_8bytes_align(unsigned long para)
 {
     if (0 != (para%8))
     {
-        socp_printf("the parameter is not 8 bytes aligned!\n");
+        socp_error("The parameter is not 8 bytes aligned!\n");
         return BSP_ERR_SOCP_NOT_8BYTESALIGN;
     }
     else
@@ -208,9 +210,9 @@ s32 socp_check_chan_priority(u32 para)
 {
     if (para >= SOCP_CHAN_PRIORITY_BUTT)
     {
-        socp_printf("encoder src channele priority is %d, which is valid!\n", para);
+        socp_error("The src channele priority[%d] is valid!\n", para);
         return BSP_ERR_SOCP_INVALID_PARA;
-    }    
+    }
     else
     {
         return BSP_OK;
@@ -222,7 +224,7 @@ s32 socp_check_data_type(u32 para)
 {
     if (para >= SOCP_DATA_TYPE_BUTT)
     {
-        socp_printf("channel data type is %d, which is valid!\n", para);
+        socp_error("channel data type[%d] is invalid!\n", para);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
     else
@@ -235,7 +237,7 @@ s32 socp_check_encsrc_alloc(u32 id)
 {
     if(SOCP_CHN_ALLOCATED != g_strSocpStat.sEncSrcChan[id].u32AllocStat)
     {
-       socp_printf("encoder src[%d] not allocated!\n", id);
+       socp_error("encoder src[%d] is not allocated!\n", id);
        return BSP_ERR_SOCP_INVALID_CHAN;\
     }
     else
@@ -248,7 +250,7 @@ s32 socp_check_encdst_set(u32 id)
 {
     if(SOCP_CHN_SET != g_strSocpStat.sEncDstChan[id].u32SetStat)
     {
-        socp_printf("encoder dst[%d] set failed!\n", id);
+        socp_error("encdst channel[%d] set failed!\n", id);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -261,7 +263,7 @@ s32 socp_check_decsrc_set(u32 id)
 {
     if(SOCP_CHN_SET!= g_strSocpStat.sDecSrcChan[id].u32SetStat)
     {
-        socp_printf("decoder[%d] src set failed!\n", id);
+        socp_error("decsrc channel[%d] set failed!\n", id);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -274,7 +276,7 @@ s32 socp_check_decdst_alloc(u32 id)
 {
     if(SOCP_CHN_ALLOCATED!= g_strSocpStat.sDecDstChan[id].u32AllocStat)
     {
-        socp_printf("decoder dst[%d] alloc failed!\n", id);
+        socp_error("decdst channel[%d] is alloc failed!\n", id);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
     else
@@ -287,9 +289,9 @@ s32 socp_check_data_type_en(u32 param)
 {
     if (param >= SOCP_DATA_TYPE_EN_BUTT)
     {
-        socp_printf("the data type en is valid, para is %d!\n", param); 
-        return BSP_ERR_SOCP_INVALID_PARA; 
-    } 
+        socp_error("the data type en is valid, para is %d!\n", param);
+        return BSP_ERR_SOCP_INVALID_PARA;
+    }
     else
     {
         return BSP_OK;
@@ -300,9 +302,9 @@ s32 socp_check_enc_debug_en(u32 param)
 {
     if (param >= SOCP_ENC_DEBUG_EN_BUTT)
     {
-        socp_printf("the enc src debug en is valid, para is %d!\n", param); 
-        return BSP_ERR_SOCP_INVALID_PARA; 
-    } 
+        socp_error("the enc src debug en is invalid, para is %d!\n", param);
+        return BSP_ERR_SOCP_INVALID_PARA;
+    }
     else
     {
         return BSP_OK;
@@ -314,7 +316,7 @@ void socp_global_reset(void)
     SOCP_REG_SETBITS(SOCP_REG_GBLRST, 1, 1, 0x1);
 }
 
-void socp_encsrc_init(void)
+void socp_encsrc_headerr_irq_enable(void)
 {
     //enable encode head error of all channels.
     SOCP_REG_WRITE(SOCP_REG_APP_MASK1, 0);
@@ -551,12 +553,12 @@ u32 bsp_socp_clean_encsrc_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID)
 
     if((ret=(u32)socp_check_chan_type(ulChanType, SOCP_CODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
-    
+
     if((ret=(u32)socp_check_encsrc_chan_id(ulChanID)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     /* 复位通道 */
@@ -566,7 +568,6 @@ u32 bsp_socp_clean_encsrc_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID)
     for(i=0; i< SOCP_RESET_TIME; i++)
     {
         ulResetFlag = SOCP_REG_GETBITS(SOCP_REG_ENCRST, ulChanID, 1);
-
         if(0 == ulResetFlag)
         {
             break;
@@ -575,7 +576,7 @@ u32 bsp_socp_clean_encsrc_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID)
 
     if(SOCP_RESET_TIME == i)
     {
-        socp_printf("SocpCleanEncChan failed!\n");
+        socp_error("Socp src channel[%d] clean failed!\n", ulChanID);
     }
 
     return BSP_OK;
@@ -598,7 +599,7 @@ u32 bsp_socp_clean_encsrc_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID)
 * 返 回 值  : 无
 ****************************************************************************************/
 void socp_reset_chan_reg_wr_addr(u32 ChanId, u32 Type, SOCP_ENCSRC_CHAN_S *Enc_pChan, SOCP_DECSRC_CHAN_S *Dec_pChan)
-{    
+{
     if(Type == SOCP_CODER_SRC_CHAN)   // 编码通道
     {
         SOCP_REG_WRITE(SOCP_REG_ENCSRC_BUFADDR_L(ChanId),(u32)Enc_pChan->sEncSrcBuf.Start);
@@ -616,7 +617,6 @@ void socp_reset_chan_reg_wr_addr(u32 ChanId, u32 Type, SOCP_ENCSRC_CHAN_S *Enc_p
             SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQADDR_H(ChanId),(u32)(((u64)Enc_pChan->sRdBuf.Start)>>32));
             SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQRPTR(ChanId), 0);
             SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQWPTR(ChanId), 0);
-            socp_printf("\r\nsocp_reset_enc_chan: ID is %d, addr is 0x%p.\r\n", ChanId, (char*)Enc_pChan->sRdBuf.Start);
             /*lint -save -e647*/
             SOCP_REG_SETBITS(SOCP_REG_ENCSRC_RDQCFG(ChanId), 0, 16, Enc_pChan->sRdBuf.u32Length);
             SOCP_REG_SETBITS(SOCP_REG_ENCSRC_RDQCFG(ChanId), 16, 16, 0);
@@ -626,7 +626,7 @@ void socp_reset_chan_reg_wr_addr(u32 ChanId, u32 Type, SOCP_ENCSRC_CHAN_S *Enc_p
             g_strSocpStat.sEncSrcChan[ChanId].sRdBuf.u32Write = 0;
         }
     }
-    
+
     else if(Type == SOCP_DECODER_SRC_CHAN)   // 解码通道
     {
     	/* 使用配置参数进行配置 */
@@ -673,9 +673,9 @@ s32 socp_reset_enc_chan(u32 u32ChanID)
             break;
         }
 
-        if((SOCP_RESET_TIME -1) == i)
+        if(SOCP_RESET_TIME == i)
         {
-            socp_printf("socp_reset_enc_chan 0x%x failed!\n", u32ChanID);
+            socp_error("socp channel[%d] reset failed!\n", u32ChanID);
         }
     }
 
@@ -690,7 +690,7 @@ s32 socp_reset_enc_chan(u32 u32ChanID)
     SOCP_REG_SETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32ChanID), 16, 8, pChan->eDataType);
     SOCP_REG_SETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32ChanID), 11, 1, pChan->eDataTypeEn);
     SOCP_REG_SETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32ChanID), 31, 1, pChan->eDebugEn);
-	
+
     /*如果通道是启动状态，使能通道*/
     if(pChan->u32ChanEn)
     {
@@ -737,7 +737,7 @@ s32 socp_reset_dec_chan(u32 u32ChanID)
         }
         if((SOCP_RESET_TIME -1) == i)
         {
-            socp_printf("socp_reset_dec_chan 0x%x failed!\n", u32ChanID);
+            socp_error("socp_reset_dec_chan 0x%x failed!\n", u32ChanID);
         }
     }
 
@@ -745,7 +745,6 @@ s32 socp_reset_dec_chan(u32 u32ChanID)
 	/*lint -save -e647*/
     SOCP_REG_SETBITS(SOCP_REG_DECSRC_BUFCFG0(u32ChanID), 0, 16, pChan->sDecSrcBuf.u32Length);
     SOCP_REG_SETBITS(SOCP_REG_DECSRC_BUFCFG0(u32ChanID), 31, 1, pChan->eDataTypeEn);
-    //SOCP_REG_SETBITS(SOCP_REG_DECSRC_RDQCFG(u32ChanID), 29, 1, 0);
 	/*lint -restore +e647*/
     return BSP_OK;
 }
@@ -773,11 +772,11 @@ s32 socp_soft_free_encdst_chan(u32 u32EncDstChanId)
 
     if((ret=socp_check_chan_type(u32ChanType, SOCP_CODER_DEST_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     pChan = &g_strSocpStat.sEncDstChan[u32ChanID];
@@ -787,12 +786,12 @@ s32 socp_soft_free_encdst_chan(u32 u32EncDstChanId)
 	SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFADDR_H(u32ChanID), (u32)(((u64)pChan->sEncDstBuf.Start)>>32));
     SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFRPTR(u32ChanID), 0);
     SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFWPTR(u32ChanID), 0);
-		
-    g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf.u32Write = 0;
-    g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf.u32Read = 0;
 
-	
-    g_strSocpStat.sEncDstChan[u32ChanID].u32SetStat = SOCP_CHN_UNSET;
+    g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf.u32Write = 0; /* [false alarm]:u32ChanID已经在函数入口处经过判断 */
+    g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf.u32Read = 0;/* [false alarm]:u32ChanID已经在函数入口处经过判断 */
+
+
+    g_strSocpStat.sEncDstChan[u32ChanID].u32SetStat = SOCP_CHN_UNSET;/* [false alarm]:u32ChanID已经在函数入口处经过判断 */
 
 
     return BSP_OK;
@@ -821,11 +820,11 @@ s32 socp_soft_free_decsrc_chan(u32 u32DecSrcChanId)
 
     if((ret=socp_check_chan_type(u32ChanType, SOCP_DECODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     pDecSrcChan = &g_strSocpStat.sDecSrcChan[u32ChanID];
@@ -835,11 +834,11 @@ s32 socp_soft_free_decsrc_chan(u32 u32DecSrcChanId)
     SOCP_REG_WRITE(SOCP_REG_DECSRC_BUFADDR_L(u32ChanID), (u32)pDecSrcChan->sDecSrcBuf.Start);
     SOCP_REG_WRITE(SOCP_REG_DECSRC_BUFADDR_H(u32ChanID), (u32)(((u64)pDecSrcChan->sDecSrcBuf.Start)>>32));
     SOCP_REG_WRITE(SOCP_REG_DECSRC_BUFRPTR(u32ChanID), 0);
-		
-    g_strSocpStat.sDecSrcChan[u32ChanID].sDecSrcBuf.u32Write = 0;
-    g_strSocpStat.sDecSrcChan[u32ChanID].sDecSrcBuf.u32Read = 0;
-	
-    g_strSocpStat.sDecSrcChan[u32ChanID].u32SetStat = SOCP_CHN_UNSET;
+
+    g_strSocpStat.sDecSrcChan[u32ChanID].sDecSrcBuf.u32Write = 0;/* [false alarm]:u32ChanID已经在函数入口处经过判断 */
+    g_strSocpStat.sDecSrcChan[u32ChanID].sDecSrcBuf.u32Read = 0;/* [false alarm]:u32ChanID已经在函数入口处经过判断 */
+
+    g_strSocpStat.sDecSrcChan[u32ChanID].u32SetStat = SOCP_CHN_UNSET;/* [false alarm]:u32ChanID已经在函数入口处经过判断 */
 
     return BSP_OK;
 }
@@ -922,7 +921,6 @@ int socp_encsrc_task(void * data)
     u32 IntHeadState = 0;
     u32 u32ChanId;
     unsigned long lock_flag;
-    u32 head_err = 0;
     /* coverity[no_escape] */
     do{
         /* 超时或者被中断，非正常返回 */
@@ -947,15 +945,13 @@ int socp_encsrc_task(void * data)
                 {
                     if (IntHeadState & ((u32)1 << i))
                     {
-                        if (g_strSocpStat.sEncSrcChan[i].event_cb)
+                    	socp_crit("EncSrcHeaderError ChanId = %d",i);						
+                        if(g_strSocpStat.sEncSrcChan[i].event_cb)
                         {
                             g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpEncSrcTskHeadCbOriCnt[i]++;
                             u32ChanId = SOCP_CHAN_DEF(SOCP_CODER_SRC_CHAN, i);
-                            socp_printf("\r\nsocp_encsrc_task: packet header Error Channel is %d\r\n", u32ChanId);
                             (void)g_strSocpStat.sEncSrcChan[i].event_cb(u32ChanId, SOCP_EVENT_PKT_HEADER_ERROR, 0);
                             g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpEncSrcTskHeadCbCnt[i]++;
-                            socp_printf("head err: %d\n", head_err);
-                            head_err++;
                         }
                     }
                 }
@@ -1324,7 +1320,6 @@ int socp_decdst_task(void * data)
                             g_stSocpDebugInfo.sSocpDebugDecDst.u32SocpDecDstTskOvfCbOriCnt[i]++;
 
                             u32ChanId = SOCP_CHAN_DEF(SOCP_DECODER_DEST_CHAN, i);
-                            socp_printf("\r\nsocp_decdst_task: Call Event Cb, Channel is %d",u32ChanId);
                             (void)g_strSocpStat.sDecDstChan[i].event_cb(u32ChanId, SOCP_EVENT_OUTBUFFER_OVERFLOW, 0);
 
                             g_stSocpDebugInfo.sSocpDebugDecDst.u32SocpDecDstTskOvfCbCnt[i]++;
@@ -1361,14 +1356,14 @@ s32 socp_create_task( s8 * puchName,
     tsk = kthread_run(pfnFunc, pParam, puchName);
     if (IS_ERR(tsk))
     {
-        socp_printf("socp_create_task: create kthread failed!\n");
+        socp_error("create kthread failed!\n");
         return BSP_ERROR;
     }
 
     param.sched_priority = u32Priority;
     if (BSP_OK != sched_setscheduler(tsk, SCHED_FIFO, &param))
     {
-        socp_printf("\nsocp_create_task: Creat Task %s ID %p sched_setscheduler Error", puchName, pu32TaskID);
+        socp_error("Creat Task %s sched_setscheduler Error\n", puchName);
         return BSP_ERROR;
     }
 
@@ -1398,7 +1393,7 @@ s32 socp_init_task(void)
         if ( BSP_OK != socp_create_task( "EncSrc", (unsigned long *)&g_strSocpStat.u32EncSrcTskID, (socp_task_entry)socp_encsrc_task,
                             SOCP_ENCSRC_TASK_PRO, 0x1000, aulArguments) )
         {
-            socp_printf("socp_init_task: create socp_encsrc_task failed.\n");
+            socp_error("create socp_encsrc_task failed.\n");
             return BSP_ERR_SOCP_TSK_CREATE;
         }
     }
@@ -1410,7 +1405,7 @@ s32 socp_init_task(void)
         if ( BSP_OK != socp_create_task( "EncDst", (unsigned long *)&g_strSocpStat.u32EncDstTskID, (socp_task_entry)socp_encdst_task,
                             SOCP_ENCDST_TASK_PRO, 0x1000, aulArguments) )
         {
-            socp_printf("socp_init_task: create socp_encdst_task failed.\n");
+            socp_error("create socp_encdst_task failed.\n");
             return BSP_ERR_SOCP_TSK_CREATE;
         }
     }
@@ -1422,7 +1417,7 @@ s32 socp_init_task(void)
         if ( BSP_OK != socp_create_task( "DecSrc", (unsigned long *)&g_strSocpStat.u32DecSrcTskID, (socp_task_entry)socp_decsrc_task,
                             SOCP_DECSRC_TASK_PRO, 0x1000, aulArguments) )
         {
-            socp_printf("socp_init_task: create u32DecSrcTskID failed.\n");
+            socp_error("create socp_DecSrc_task failed.\n");
             return BSP_ERR_SOCP_TSK_CREATE;
         }
     }
@@ -1434,7 +1429,7 @@ s32 socp_init_task(void)
         if ( BSP_OK != socp_create_task( "DecDst", (unsigned long *)&g_strSocpStat.u32DecDstTskID, (socp_task_entry)socp_decdst_task,
                             SOCP_DECDST_TASK_PRO, 0x1000, aulArguments) )
         {
-            socp_printf("socp_init_task: create u32DecDstTskID failed.\n");
+            socp_error("create socp_DecDst_task failed.\n");
             return BSP_ERR_SOCP_TSK_CREATE;
         }
     }
@@ -1464,7 +1459,6 @@ void  socp_handler_encsrc(void)
     /* 处理包头错误 */
     if (IntFlag & SOCP_APP_ENC_FLAGINT_MASK)
     {
-        socp_printf("IntFlag = 0x%x\n", IntFlag);
         SOCP_REG_READ(SOCP_REG_APP_INTSTAT1, IntState);
         SOCP_REG_WRITE(SOCP_REG_ENC_RAWINT1, IntState);
 
@@ -1481,7 +1475,6 @@ void  socp_handler_encsrc(void)
                     SOCP_REG_SETBITS(SOCP_REG_APP_MASK1, i, 1,1);
                 }
                 g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpEncSrcIsrHeadIntCnt[i]++;
-                socp_printf("EncSrcHeaderError ChanId = %d",i);
             }
         }
     }
@@ -1838,13 +1831,15 @@ s32 socp_init(void)
         return BSP_OK;
     }
 
+	socp_crit("[init]start\n");
+	
     spin_lock_init(&lock);
 
     /*Add dts begin*/
     dev = of_find_compatible_node(NULL,NULL,"hisilicon,socp_balong_app");
     if(NULL == dev)
     {
-        socp_printf("socp_init: Socp dev find failed\n");
+        socp_error("[init] Socp dev find failed\n");
         return BSP_ERROR;
     }
     /*Add dts end*/
@@ -1852,7 +1847,7 @@ s32 socp_init(void)
     g_strSocpStat.baseAddr = (unsigned long)of_iomap(dev,0);
     if(0 == g_strSocpStat.baseAddr)
     {
-        socp_printf("socp_init:base addr is error!\n");
+        socp_error("[init] base addr is NULL!\n");
         return BSP_ERROR; /* [false alarm]:屏蔽Fortify错误 */
     }
 
@@ -1878,16 +1873,16 @@ s32 socp_init(void)
     ret = socp_init_task();
     if (BSP_OK != ret)
     {
-        socp_printf("socp_init: create task failed(0x%x).\n", ret);
+        socp_error("[init] create task failed(0x%x)\n", ret);
         return (s32)ret;
     }
-	
+
     /* 挂中断 */
     irq = irq_of_parse_and_map(dev,0);
     ret = request_irq(irq, (irq_handler_t)socp_app_int_handler, 0, "SOCP_APP_IRQ",  BSP_NULL);
     if (BSP_OK != ret)
     {
-        socp_printf("socp_init: connect app core int failed.\n");
+        socp_error("[init] connect app core int failed(0x%x)\n", ret);
         return BSP_ERROR;
     }
 
@@ -1895,9 +1890,9 @@ s32 socp_init(void)
     /* 设置初始化状态 */
     g_strSocpStat.bInitFlag = BSP_TRUE;
 
-    socp_encsrc_init();
+    socp_encsrc_headerr_irq_enable();
 
-    socp_printf("[socp_init]: succeed, base addr=0x%p, irq num:%d !\n",(void*)(g_strSocpStat.baseAddr),irq);
+    socp_crit("[init]ok\n");
 
     return BSP_OK;
 }
@@ -1917,16 +1912,15 @@ void bsp_socp_encdst_dsm_init(u32 EncDestChanID, u32 bEnable)
 {
     u32 RealChanID;
     u32 u32ChanType;
-    
+
     RealChanID   = SOCP_REAL_CHAN_ID(EncDestChanID);
     u32ChanType = SOCP_REAL_CHAN_TYPE(EncDestChanID);
 
     if(socp_check_chan_type(u32ChanType, SOCP_CODER_DEST_CHAN) != BSP_OK)
     {
-        socp_printf("%s[%d] socp channel type error.\n", __FUNCTION__, __LINE__);
-        return; 
+        return;
     }
-    
+
     if(SOCP_DEST_DSM_DISABLE == bEnable)
     {
         SOCP_REG_SETBITS(SOCP_REG_ENC_RAWINT0, RealChanID, 1, 1);
@@ -1951,7 +1945,7 @@ void bsp_socp_encdst_dsm_init(u32 EncDestChanID, u32 bEnable)
     }
     else
     {
-        socp_printf("%s[%d] socp encdst state error.\n", __FUNCTION__, __LINE__);
+		;
     }
 }
 
@@ -1961,8 +1955,8 @@ void bsp_socp_encdst_dsm_init(u32 EncDestChanID, u32 bEnable)
 * 功能描述  : socp编码目的端数据上报使能，在readdone中调用
               根据diag连接状态判断是否上报
 
-* 注    意  : 该函数调用时，需要调用者保证同步         
-              
+* 注    意  : 该函数调用时，需要调用者保证同步
+
 * 输入参数  : EncDestChanID: 编码目的端通道号
 *             bEnable: 中断使能
 *
@@ -1979,11 +1973,7 @@ void bsp_socp_data_send_continue(u32 RealChanID)
         SOCP_REG_SETBITS(SOCP_REG_ENC_RAWINT2, RealChanID, 1, 1);
         SOCP_REG_SETBITS(SOCP_REG_ENC_MASK2, RealChanID, 1, 0);
         SOCP_REG_SETBITS(SOCP_REG_ENC_RAWINT2, RealChanID+16, 1, 1);
-        SOCP_REG_SETBITS(SOCP_REG_ENC_MASK2, RealChanID+16, 1, 0);        
-    }
-    else
-    {
-        socp_printf("%s[%d] socp  channel dsm closed, g_SocpEnableState = %d\n", __FUNCTION__, __LINE__, g_SocpEnableState[RealChanID]);
+        SOCP_REG_SETBITS(SOCP_REG_ENC_MASK2, RealChanID+16, 1, 0);
     }
 }
 /*****************************************************************************
@@ -2002,16 +1992,15 @@ void bsp_socp_data_send_manager(u32 EncDestChanID, u32 bEnable)
     unsigned long lock_flag;
     u32 RealChanID;
     u32 u32ChanType;
-    
+
     RealChanID   = SOCP_REAL_CHAN_ID(EncDestChanID);
     u32ChanType = SOCP_REAL_CHAN_TYPE(EncDestChanID);
 
     if(socp_check_chan_type(u32ChanType, SOCP_CODER_DEST_CHAN) != BSP_OK)
     {
-        socp_printf("%s[%d] socp channel type error.\n", __FUNCTION__, __LINE__);
-        return; 
+        return;
     }
-    
+
     if((SOCP_DEST_DSM_DISABLE == bEnable) && (g_SocpEnableState[RealChanID] == SOCP_DEST_DSM_ENABLE))
     {
         spin_lock_irqsave(&lock, lock_flag);
@@ -2037,12 +2026,12 @@ void bsp_socp_data_send_manager(u32 EncDestChanID, u32 bEnable)
         SOCP_REG_SETBITS(SOCP_REG_ENC_MASK2, RealChanID+16, 1, 0);
 
          g_SocpEnableState[RealChanID] = SOCP_DEST_DSM_ENABLE;
-         
+
         spin_unlock_irqrestore(&lock, lock_flag);
     }
     else
     {
-        socp_printf("%s[%d] EncDestChan 0x%x has enabled.\n", __FUNCTION__, __LINE__, RealChanID);
+        ;
     }
 }
 
@@ -2073,7 +2062,7 @@ void socp_set_reg_wr_addr(u32 ChanId, void *pAttr, unsigned long start, unsigned
 
     RealChanId = SOCP_REAL_CHAN_ID(ChanId);
     ChanType  = SOCP_REAL_CHAN_TYPE(ChanId);
-    
+
     if(ChanType == SOCP_CODER_SRC_CHAN)   // 编码源通道
     {
         SOCP_REG_WRITE(SOCP_REG_ENCSRC_BUFADDR_L(RealChanId), (u32)start);
@@ -2087,7 +2076,7 @@ void socp_set_reg_wr_addr(u32 ChanId, void *pAttr, unsigned long start, unsigned
     		SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQADDR_L(RealChanId), (u32)rdstart);
     		SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQADDR_H(RealChanId), (u32)((u64)rdstart>>32));
             SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQRPTR(RealChanId),0);
-            SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQWPTR(RealChanId), 0);      
+            SOCP_REG_WRITE(SOCP_REG_ENCSRC_RDQWPTR(RealChanId), 0);
         }
 
         pEncSrcChan = &g_strSocpStat.sEncSrcChan[RealChanId];
@@ -2114,28 +2103,28 @@ void socp_set_reg_wr_addr(u32 ChanId, void *pAttr, unsigned long start, unsigned
     	    pEncSrcChan->sRdBuf.u32Length   = rdend - rdstart + 1;//lint !e834
             pEncSrcChan->u32RdThreshold     = ((SOCP_CODER_SRC_CHAN_S *)pAttr)->sCoderSetSrcBuf.u32RDThreshold;
         }
-        
+
     }
-    
+
     else if(ChanType == SOCP_CODER_DEST_CHAN)   // 编码目的通道
     {
         SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFADDR_L(RealChanId), (u32)start);
         SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFADDR_H(RealChanId), (u32)((u64)start>>32));
         SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFRPTR(RealChanId),0);
-        SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFWPTR(RealChanId), 0); 
+        SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFWPTR(RealChanId), 0);
 
         pEncDstChan = &g_strSocpStat.sEncDstChan[RealChanId];
         pEncDstChan->sEncDstBuf.Start    = start;
         pEncDstChan->sEncDstBuf.End      = end;
         pEncDstChan->sEncDstBuf.u32Read     = 0;
         pEncDstChan->sEncDstBuf.u32Write    = 0;
-        pEncDstChan->sEncDstBuf.u32Length   = end - start + 1;//lint !e834      
+        pEncDstChan->sEncDstBuf.u32Length   = end - start + 1;//lint !e834
         pEncDstChan->bufThreshold  =   ((SOCP_CODER_DEST_CHAN_S *)pAttr)->sCoderSetDstBuf.u32Threshold;
         pEncDstChan->u32Thrh       =   ((SOCP_CODER_DEST_CHAN_S *)pAttr)->u32EncDstThrh;
         /* 表明该通道已经配置 */
         pEncDstChan->u32SetStat = SOCP_CHN_SET;
     }
-    
+
     else if(ChanType == SOCP_DECODER_SRC_CHAN)   // 解码源通道
     {
         SOCP_REG_WRITE(SOCP_REG_DECSRC_BUFADDR_L(RealChanId),(u32)start);
@@ -2153,7 +2142,7 @@ void socp_set_reg_wr_addr(u32 ChanId, void *pAttr, unsigned long start, unsigned
         pDecSrcChan->sDecSrcBuf.u32Write    = 0;
         pDecSrcChan->u32SetStat = SOCP_CHN_SET;
     }
-    
+
     else if(ChanType == SOCP_DECODER_DEST_CHAN)   // 解码目的通道
     {
         SOCP_REG_WRITE(SOCP_REG_DECDEST_BUFADDR_L(RealChanId), (u32)start);
@@ -2198,7 +2187,6 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
     u32 u32DstChanID;
     u32 u32DstChanType;
     u32 ResetFlag;
-    // SOCP_ENCSRC_CHAN_S *pChan;
     s32 ret;
 
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpAllocEncSrcCnt++;
@@ -2212,10 +2200,10 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
     /* 判断参数有效性 */
     if(NULL == pSrcAttr)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
-    
+
     if((ret=socp_check_chan_priority(pSrcAttr->ePriority)) != BSP_OK)
     {
         return ret;
@@ -2223,43 +2211,43 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
     if((ret=socp_check_data_type(pSrcAttr->eDataType)) != BSP_OK)
     {
         return ret;
-    }    
+    }
 
     if((ret=socp_check_data_type_en(pSrcAttr->eDataTypeEn)) != BSP_OK)
     {
         return ret;
-    } 
+    }
     if((ret=socp_check_enc_debug_en(pSrcAttr->eDebugEn)) != BSP_OK)
     {
         return ret;
-    }    
+    }
     srcChanId       = SOCP_REAL_CHAN_ID(enSrcChanID);
     u32SrcChanType  = SOCP_REAL_CHAN_TYPE(enSrcChanID);
 
     if((ret=socp_check_chan_type(u32SrcChanType, SOCP_CODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     if((ret=socp_check_encsrc_chan_id(srcChanId)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     u32DstChanID   = SOCP_REAL_CHAN_ID(pSrcAttr->u32DestChanID);
     u32DstChanType = SOCP_REAL_CHAN_TYPE(pSrcAttr->u32DestChanID);
     if((ret=socp_check_chan_type(u32DstChanType, SOCP_CODER_DEST_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32DstChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     if ((SOCP_ENCSRC_CHNMODE_CTSPACKET != pSrcAttr->eMode)
         && (SOCP_ENCSRC_CHNMODE_LIST != pSrcAttr->eMode))
     {
-        socp_printf("bsp_socp_coder_set_src_chan: chnnel mode is invalid %d!\n", pSrcAttr->eMode);
+        socp_error("chnnel mode(%d) is invalid\n", pSrcAttr->eMode);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
@@ -2267,21 +2255,21 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
     /* 判断起始地址是否8字节对齐 */
     start   = (unsigned long)pSrcAttr->sCoderSetSrcBuf.pucInputStart;
     end     = (unsigned long)pSrcAttr->sCoderSetSrcBuf.pucInputEnd;
-	
+
     if(0 == start)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("start addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_8bytes_align(start)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if(0 == end)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("end addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
-    } 
+    }
     if((ret=socp_check_buf_addr(start, end)) != BSP_OK)
     {
         return ret;
@@ -2290,14 +2278,14 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
 
     if((ret=socp_check_8bytes_align(buflength)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     if(socp_version < SOCP_201_VERSION)
     {
         if(buflength > SOCP_ENC_SRC_BUFLGTH_MAX)
         {
-            socp_printf("bsp_socp_coder_set_src_chan: buffer length is too large!\n");
+            socp_error("buffer length is too large\n");
             return BSP_ERR_SOCP_INVALID_PARA;
         }
     }
@@ -2311,16 +2299,16 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
 
         if(0 == base_addr_rdstart)
         {
-            socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+            socp_error("RD start addr is NULL\n");
             return BSP_ERR_SOCP_NULL;
         }
         if((ret=socp_check_8bytes_align(base_addr_rdstart)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if(0 == base_addr_rdend)
         {
-            socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+            socp_error("RD end addr is NULL\n");
             return BSP_ERR_SOCP_NULL;
         }
         if((ret=socp_check_buf_addr(base_addr_rdstart, base_addr_rdend)) != BSP_OK)
@@ -2331,11 +2319,11 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
 
         if((ret=socp_check_8bytes_align(Rdbuflength)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if(Rdbuflength > SOCP_ENC_SRC_RDLGTH_MAX)
         {
-            socp_printf("bsp_socp_coder_set_src_chan: RD buffer length is too large!\n");
+            socp_error("RD buffer length is too large\n");
             return BSP_ERR_SOCP_INVALID_PARA;
         }
     }
@@ -2350,11 +2338,6 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
         if(0 == ResetFlag)
         {
             break;
-        }
-
-        if ((SOCP_RESET_TIME - 1) == i)
-        {
-            socp_printf("bsp_socp_coder_set_src_chan: reset channel 0x%x failed!\n", srcChanId);
         }
     }
 
@@ -2387,9 +2370,9 @@ s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_
     }
     /*lint -restore +e647*/
     /*lint -restore +e845*/
-    
+
     socp_set_reg_wr_addr(enSrcChanID, (void*)pSrcAttr, start, end);
-    
+
     /* 标记通道状态 */
     g_strSocpStat.sEncSrcChan[srcChanId].u32AllocStat = SOCP_CHN_ALLOCATED;
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpAllocEncSrcSucCnt++;
@@ -2434,39 +2417,39 @@ s32 bsp_socp_decoder_set_dest_chan(SOCP_DECODER_DST_ENUM_U32 enDestChanID,
     /* 判断参数有效性 */
     if(NULL == pAttr)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_data_type(pAttr->eDataType)) != BSP_OK)
     {
         return ret;
-    } 
+    }
     u32ChanID    = SOCP_REAL_CHAN_ID(enDestChanID);
     u32ChanType  = SOCP_REAL_CHAN_TYPE(enDestChanID);
     if((ret=socp_check_chan_type(u32ChanType, SOCP_DECODER_DEST_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     u32SrcChanID = SOCP_REAL_CHAN_ID(pAttr->u32SrcChanID);
     u32ChanType = SOCP_REAL_CHAN_TYPE(pAttr->u32SrcChanID);
     if((ret=socp_check_chan_type(u32ChanType, SOCP_DECODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32SrcChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     /* 判断通道ID对应关系 */
     if(u32SrcChanID != u32ChanID%4)
     {
-        socp_printf("bsp_socp_decoder_set_dest_chan: dest ID(%d) is not matching src ID(%d)!\n", u32ChanID, u32SrcChanID);
+        socp_error("dest ID(%d) is not matching src ID(%d)!\n", u32ChanID, u32SrcChanID);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
@@ -2477,16 +2460,16 @@ s32 bsp_socp_decoder_set_dest_chan(SOCP_DECODER_DST_ENUM_U32 enDestChanID,
 
     if(0 == start)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("start addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_8bytes_align(start)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if(0 == end)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("end addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_buf_addr(start, end)) != BSP_OK)
@@ -2497,29 +2480,29 @@ s32 bsp_socp_decoder_set_dest_chan(SOCP_DECODER_DST_ENUM_U32 enDestChanID,
 
     if(0 == bufThreshold)
     {
-        socp_printf("%s[%d] the bufThreshold is 0.\n", __FUNCTION__, __LINE__);
+        socp_error("the bufThreshold is 0\n");
         return BSP_ERR_SOCP_NULL;
     }
     if (bufThreshold > SOCP_DEC_DST_TH_MAX)
     {
-        socp_printf("bsp_socp_decoder_set_dest_chan: buffer threshold is too large!\n");
+        socp_error("buffer threshold is too large!\n");
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
     if((ret=socp_check_8bytes_align(buflength)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if (buflength > SOCP_DEC_DST_BUFLGTH_MAX)
     {
-        socp_printf("bsp_socp_decoder_set_dest_chan: buffer length is too large!\n");
+        socp_error("buffer length is too large!\n");
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 	/*lint -save -e647*/
     SOCP_REG_SETBITS(SOCP_REG_DECDEST_BUFCFG(u32ChanID), 24, 8, pAttr->eDataType);
     SOCP_REG_SETBITS(SOCP_REG_DECDEST_BUFCFG(u32ChanID), 0, 16, buflength);
     SOCP_REG_SETBITS(SOCP_REG_DECDEST_BUFCFG(u32ChanID), 16, 8, bufThreshold);
-	
+
     socp_set_reg_wr_addr(enDestChanID, (void*)pAttr, start, end);
 
     /* 先清中断，再打开中断*/
@@ -2528,7 +2511,7 @@ s32 bsp_socp_decoder_set_dest_chan(SOCP_DECODER_DST_ENUM_U32 enDestChanID,
     SOCP_REG_SETBITS(SOCP_REG_DEC_RAWINT2, u32ChanID, 1, 1);
     SOCP_REG_SETBITS(SOCP_REG_DEC_CORE0MASK2, u32ChanID, 1, 0);
 	/*lint -restore +e647*/
-	
+
     /* 标记通道分配状态 */
     g_strSocpStat.sDecDstChan[u32ChanID].u32AllocStat = SOCP_CHN_ALLOCATED;
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpAllocDecDstSucCnt++;
@@ -2543,7 +2526,7 @@ static s32 socp_encdst_param_check(SOCP_CODER_DEST_CHAN_S *pDestAttr)
     u32 bufThreshold;
 	u32 buflength;
 	s32 ret;
-	
+
     /* 判断是否已经初始化 */
     if((ret=socp_check_init()) != BSP_OK)
     {
@@ -2553,26 +2536,26 @@ static s32 socp_encdst_param_check(SOCP_CODER_DEST_CHAN_S *pDestAttr)
     /* 判断参数有效性 */
     if(NULL == pDestAttr)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
 
     start = (unsigned long)pDestAttr->sCoderSetDstBuf.pucOutputStart;
     end   = (unsigned long)pDestAttr->sCoderSetDstBuf.pucOutputEnd;
     bufThreshold = pDestAttr->sCoderSetDstBuf.u32Threshold;
-	
+
     if(0 == start)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("start addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_8bytes_align(start)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if(0 == end)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("end addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_buf_addr(start, end)) != BSP_OK)
@@ -2583,12 +2566,12 @@ static s32 socp_encdst_param_check(SOCP_CODER_DEST_CHAN_S *pDestAttr)
 
     if(0 == bufThreshold)
     {
-        socp_printf("%s[%d] the bufThreshold is 0.\n", __FUNCTION__, __LINE__);
+        socp_error("the bufThreshold is 0\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_8bytes_align(buflength)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
 	return BSP_OK;
@@ -2614,7 +2597,7 @@ s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S 
     u32 u32ChanID;
     u32 u32ChanType;
     u32 u32Thrh;
-    u32 u32TimeoutMode; 
+    u32 u32TimeoutMode;
     s32 ret;
 
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpSetEncDstCnt++;
@@ -2624,16 +2607,16 @@ s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S 
 	{
 		return ret;
 	}
-    
+
     u32ChanID   = SOCP_REAL_CHAN_ID(u32DestChanID);
     u32ChanType = SOCP_REAL_CHAN_TYPE(u32DestChanID);
     if((ret=socp_check_chan_type(u32ChanType, SOCP_CODER_DEST_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     start = (unsigned long)pDestAttr->sCoderSetDstBuf.pucOutputStart;
@@ -2648,7 +2631,7 @@ s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S 
 	/*lint -save -e647*/
     if (SOCP_CHN_SET == g_strSocpStat.sEncDstChan[u32ChanID].u32SetStat)
     {
-        socp_printf("CoderSetDestChanAttr: channel 0x%x can't be set twice!\n", u32ChanID);
+        socp_error("channel 0x%x can't be set twice!\n", u32ChanID);
         return BSP_ERR_SOCP_SET_FAIL;
     }
     SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFCFG(u32ChanID),buflength);
@@ -2658,9 +2641,9 @@ s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S 
 
     if(socp_version < SOCP_206_VERSION)
     {
-       u32TimeoutMode = SOCP_TIMEOUT_TRF; 
+       u32TimeoutMode = SOCP_TIMEOUT_TRF;
     }
-	
+
     if(SOCP_TIMEOUT_TRF_LONG == u32TimeoutMode)
     {
     	SOCP_REG_SETBITS(SOCP_REG_GBLRST, 4, 1, 1);
@@ -2679,12 +2662,12 @@ s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S 
 	}
 
 
-    socp_set_reg_wr_addr(u32DestChanID, (void*)pDestAttr, start, end);        
-    
+    socp_set_reg_wr_addr(u32DestChanID, (void*)pDestAttr, start, end);
+
     bsp_socp_encdst_dsm_init(u32DestChanID, SOCP_DEST_DSM_DISABLE);
-    
+
 	/*lint -restore +e647*/
-	
+
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpSetEncDstSucCnt++;
 
     return BSP_OK;
@@ -2725,18 +2708,18 @@ s32 bsp_socp_decoder_set_src_chan_attr(u32 u32SrcChanID, SOCP_DECODER_SRC_CHAN_S
     /* 判断参数有效性 */
     if(NULL == pInputAttr)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     u32ChanID   = SOCP_REAL_CHAN_ID(u32SrcChanID);
     u32ChanType = SOCP_REAL_CHAN_TYPE(u32SrcChanID);
     if((ret=socp_check_chan_type(u32ChanType, SOCP_DECODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_data_type_en(pInputAttr->eDataTypeEn)) != BSP_OK)
     {
@@ -2748,16 +2731,16 @@ s32 bsp_socp_decoder_set_src_chan_attr(u32 u32SrcChanID, SOCP_DECODER_SRC_CHAN_S
 
     if(0 == start)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("start addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_8bytes_align(start)) != BSP_OK)
     {
-        return ret; 
-    }    
+        return ret;
+    }
     if(0 == end)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("end addr is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     if((ret=socp_check_buf_addr(start, end)) != BSP_OK)
@@ -2768,17 +2751,17 @@ s32 bsp_socp_decoder_set_src_chan_attr(u32 u32SrcChanID, SOCP_DECODER_SRC_CHAN_S
 
     if((ret=socp_check_8bytes_align(buflength)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if (buflength > SOCP_DEC_SRC_BUFLGTH_MAX)
     {
-        socp_printf("DecoderSetSrcChanAttr: buffer length is too large!\n");
+        socp_error("buffer length is too large!\n");
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
     if (SOCP_CHN_SET == g_strSocpStat.sDecSrcChan[u32ChanID].u32SetStat)
     {
-        socp_printf("DecoderSetSrcChanAttr: channel 0x%x has been configed!\n", u32ChanID);
+        socp_error("channel 0x%x has been configed!\n", u32ChanID);
         return BSP_ERR_SOCP_DECSRC_SET;
     }
 
@@ -2793,20 +2776,14 @@ s32 bsp_socp_decoder_set_src_chan_attr(u32 u32SrcChanID, SOCP_DECODER_SRC_CHAN_S
         {
             break;
         }
-
-        if ((SOCP_RESET_TIME - 1) == i)
-        {
-            socp_printf("DecoderSetSrcChanAttr: reset channel 0x%x failed!\n", u32ChanID);
-        }
     }
 	/*lint -save -e647*/
     SOCP_REG_SETBITS(SOCP_REG_DECSRC_BUFCFG0(u32ChanID), 0, 16, buflength);
     SOCP_REG_SETBITS(SOCP_REG_DECSRC_BUFCFG0(u32ChanID), 31, 1, pInputAttr->eDataTypeEn);
-    //SOCP_REG_SETBITS(SOCP_REG_DECSRC_RDQCFG(u32ChanID), 29, 1, 0);
 	/*lint -restore +e647*/
-	
+
     socp_set_reg_wr_addr(u32SrcChanID, (void*)pInputAttr, start, end);
-    
+
     g_stSocpDebugInfo.sSocpDebugGBl.u32SocpSetDeSrcSucCnt++;
 
     return BSP_OK;
@@ -2840,27 +2817,27 @@ s32 bsp_socp_decoder_get_err_cnt(u32 u32DstChanID, SOCP_DECODER_ERROR_CNT_STRU *
     u32ChanType = SOCP_REAL_CHAN_TYPE(u32DstChanID);
     if((ret=socp_check_chan_type(u32ChanType, SOCP_DECODER_SRC_CHAN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_decsrc_set(u32ChanID)) != BSP_OK)
     {
-        return ret; 
-    }    
+        return ret;
+    }
 
     /* 判断参数有效性 */
     if(NULL == pErrCnt)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
 
     /* 判断通道是否打开，并设置为debug模式*/
     if (g_strSocpStat.sDecSrcChan[u32ChanID].u32ChanEn)
-    {	
+    {
     	/*lint -save -e647*/
         pErrCnt->u32PktlengthCnt = SOCP_REG_GETBITS(SOCP_REG_DEC_BUFSTAT0(u32ChanID), 16, 16);
         pErrCnt->u32CrcCnt = SOCP_REG_GETBITS(SOCP_REG_DEC_BUFSTAT0(u32ChanID), 0, 16);
@@ -2870,7 +2847,7 @@ s32 bsp_socp_decoder_get_err_cnt(u32 u32DstChanID, SOCP_DECODER_ERROR_CNT_STRU *
     }
     else
     {
-        socp_printf("DecoderGetErrCnt: debug mode is closed!\n");
+        socp_crit("debug mode is closed!\n");
         return BSP_ERR_SOCP_SET_FAIL;
     }
 
@@ -2914,8 +2891,6 @@ s32 bsp_socp_set_timeout(SOCP_TIMEOUT_EN_ENUM_UIN32 eTmOutEn, u32 u32Timeout)
 
         case SOCP_TIMEOUT_TRF:
         {
-            printk(KERN_ERR"bsp_socp_set_timeout 0x%x.\n", u32newtime);
-            
             if(SOCP_REG_GETBITS(SOCP_REG_GBLRST, 4, 1))
             {
                 SOCP_REG_SETBITS(SOCP_REG_GBLRST, 4, 1, 0);
@@ -2934,44 +2909,44 @@ s32 bsp_socp_set_timeout(SOCP_TIMEOUT_EN_ENUM_UIN32 eTmOutEn, u32 u32Timeout)
             {
                 SOCP_REG_SETBITS(SOCP_REG_GBLRST, 4, 1, 1);
             }
-                        
+
             if(socp_version >= SOCP_206_VERSION)
             {
                 if(SOCP_TIMEOUT_TRF_LONG == eTmOutEn)
                 {
                     if(u32newtime > 0xffffff)
                     {
-                        socp_printf("SetTimeout: the value is too large!\n");
-                        return BSP_ERR_SOCP_INVALID_PARA;                        
+                        socp_error("the value is too large!\n");
+                        return BSP_ERR_SOCP_INVALID_PARA;
                     }
                     SOCP_REG_READ(SOCP_REG_INTTIMEOUT, temp);
                     u32newtime = (u32newtime<<8) | (temp&0xff);
-                    SOCP_REG_WRITE(SOCP_REG_INTTIMEOUT, u32newtime);                
+                    SOCP_REG_WRITE(SOCP_REG_INTTIMEOUT, u32newtime);
                 }
                 else
                 {
                     if(u32newtime > 0xff)
                     {
-                        socp_printf("SetTimeout: the value is too large!\n");
-                        return BSP_ERR_SOCP_INVALID_PARA;                        
-                    }                    
+                        socp_error("the value is too large!\n");
+                        return BSP_ERR_SOCP_INVALID_PARA;
+                    }
                     SOCP_REG_READ(SOCP_REG_INTTIMEOUT, temp);
                     u32newtime = (temp&0xffffff00) | u32newtime;
-                    SOCP_REG_WRITE(SOCP_REG_INTTIMEOUT, u32newtime);                                
+                    SOCP_REG_WRITE(SOCP_REG_INTTIMEOUT, u32newtime);
                 }
-            }            
+            }
             else
             {
-			    socp_printf("This version does not support the function.\n");                
+			    socp_error("This version does not support the function.\n");
             }
 
-            break;            
+            break;
         }
-        
+
 
         default:
         {
-            socp_printf("SetTimeout: invalid timeout choice type!\n");
+            socp_error("invalid timeout choice type!\n");
             return BSP_ERR_SOCP_SET_FAIL;
         }
     }
@@ -3005,7 +2980,7 @@ s32 bsp_socp_set_dec_pkt_lgth(SOCP_DEC_PKTLGTH_STRU *pPktlgth)
     /* 判断参数有效性 */
     if(NULL == pPktlgth)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     u32PktMaxLgth = pPktlgth->u32PktMax;
@@ -3013,18 +2988,18 @@ s32 bsp_socp_set_dec_pkt_lgth(SOCP_DEC_PKTLGTH_STRU *pPktlgth)
 
     if(0 == u32PktMaxLgth)
     {
-        socp_printf("%s[%d] the u32PktMaxLgth is 0.\n", __FUNCTION__, __LINE__);
+        socp_error("the u32PktMaxLgth is 0.\n");
         return BSP_ERR_SOCP_NULL;
     }
     if (u32PktMaxLgth*1024 > SOCP_DEC_MAXPKT_MAX)
     {
-        socp_printf("SetDecPktLgth: u32PktMaxLgth 0x%x is too large!\n", u32PktMaxLgth);
+        socp_error("u32PktMaxLgth 0x%x is too large!\n", u32PktMaxLgth);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
     if (u32PktMinLgth > SOCP_DEC_MINPKT_MAX)
     {
-        socp_printf("SetDecPktLgth: u32PktMinLgth 0x%x is too large!\n", u32PktMinLgth);
+        socp_error("u32PktMinLgth 0x%x is too large!\n", u32PktMinLgth);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
@@ -3069,17 +3044,17 @@ s32 bsp_socp_set_debug(u32 u32DecChanID, u32 u32DebugEn)
     }
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_decsrc_set(u32ChanID)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
 
     /* 判断该通道打开模式，没有打开的话，可以设置 */
     if(g_strSocpStat.sDecSrcChan[u32ChanID].u32ChanEn)
     {
-        socp_printf("SetDebug: decoder channel is open, can't set debug bit\n");
+        socp_error("decoder channel is open, can't set debug bit\n");
         return BSP_ERR_SOCP_SET_FAIL;
     }
     else
@@ -3125,17 +3100,17 @@ s32 bsp_socp_free_channel(u32 u32ChanID)
 
         if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         pChan = &g_strSocpStat.sEncSrcChan[u32RealChanID];
         if (SOCP_CHN_ENABLE == pChan->u32ChanEn)
         {
-            socp_printf("FreeChannel: chan 0x%x is running!\n", u32ChanID);
+            socp_error("chan 0x%x is running!\n", u32ChanID);
             return BSP_ERR_SOCP_CHAN_RUNNING;
         }
 
@@ -3149,25 +3124,25 @@ s32 bsp_socp_free_channel(u32 u32ChanID)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decdst_alloc(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
-        }        
+            return ret;
+        }
 
         /* 设置数据类型无效 */
 		/*lint -save -e647*/
         SOCP_REG_SETBITS(SOCP_REG_DECDEST_BUFCFG(u32RealChanID), 24, 8, 0xff);
 		/*lint -restore +e647*/
-		
+
         g_strSocpStat.sDecDstChan[u32RealChanID].u32AllocStat = SOCP_CHN_UNALLOCATED;
 
         g_stSocpDebugInfo.sSocpDebugDecDst.u32SocpFreeDecDstCnt[u32RealChanID]++;
     }
     else
     {
-        socp_printf("FreeChannel: invalid chan type 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3206,11 +3181,11 @@ s32 bsp_socp_chan_soft_reset(u32 u32ChanID)
     {
         if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         (void)socp_reset_enc_chan(u32ChanID);
         g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpSoftResetEncSrcCnt[u32RealChanID]++;
@@ -3219,12 +3194,12 @@ s32 bsp_socp_chan_soft_reset(u32 u32ChanID)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decsrc_set(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
-        }       
+            return ret;
+        }
 
         (void)socp_reset_dec_chan(u32RealChanID);
 
@@ -3232,7 +3207,7 @@ s32 bsp_socp_chan_soft_reset(u32 u32ChanID)
     }
     else
     {
-        socp_printf("ChnSoftReset: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3276,24 +3251,24 @@ s32 bsp_socp_start(u32 u32SrcChanID)
         {
             if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
             if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
         }
         else
         {
-            socp_printf("Start: enc src 0x%x is valid!\n", u32SrcChanID);
+            socp_error("enc src 0x%x is invalid!\n", u32SrcChanID);
             return BSP_ERR_SOCP_INVALID_CHAN;
         }
 	/*lint -save -e647*/
         u32DstId = SOCP_REG_GETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32RealChanID), 4, 4);
-		
+
         if (SOCP_CHN_SET != g_strSocpStat.sEncDstChan[u32DstId].u32SetStat)
         {
-            socp_printf("AppStart: enc dst chan is valid!\n");
+            socp_error("enc dst chan is invalid!\n");
             return BSP_ERR_SOCP_DEST_CHAN;
         }
 
@@ -3304,7 +3279,7 @@ s32 bsp_socp_start(u32 u32SrcChanID)
         {
             SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32DstId),0,1,1);   // 启动编码目的通道
         }
-        
+
         if (SOCP_ENCSRC_CHNMODE_LIST == g_strSocpStat.sEncSrcChan[u32RealChanID].eChnMode)
         {
             SOCP_REG_SETBITS(SOCP_REG_ENC_RAWINT3, u32RealChanID, 1, 1);
@@ -3324,12 +3299,12 @@ s32 bsp_socp_start(u32 u32SrcChanID)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decsrc_set(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
-        } 
+            return ret;
+        }
 
         /* 打开rd完成中断*/
         if (SOCP_DECSRC_CHNMODE_LIST == g_strSocpStat.sDecSrcChan[u32RealChanID].eChnMode)
@@ -3357,7 +3332,7 @@ s32 bsp_socp_start(u32 u32SrcChanID)
     }
     else
     {
-        socp_printf("Start: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 	/*lint -restore +e647*/
@@ -3404,16 +3379,16 @@ s32 bsp_socp_stop(u32 u32SrcChanID)
         {
             if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
             if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
         }
         else
         {
-            socp_printf("Stop: enc src 0x%x is valid!\n", u32SrcChanID);
+            socp_error("enc src 0x%x is invalid!\n", u32SrcChanID);
             return BSP_ERR_SOCP_INVALID_CHAN;
         }
 	/*lint -save -e647*/
@@ -3424,7 +3399,7 @@ s32 bsp_socp_stop(u32 u32SrcChanID)
         }
 
         /* 设置通道关闭状态*/
-        SOCP_REG_SETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32RealChanID), 0, 1, 0);        
+        SOCP_REG_SETBITS(SOCP_REG_ENCSRC_BUFCFG1(u32RealChanID), 0, 1, 0);
         if (u32RealChanID < SOCP_MAX_ENCSRC_CHN)
         {
             g_strSocpStat.sEncSrcChan[u32RealChanID].u32ChanEn = SOCP_CHN_DISABLE;
@@ -3435,12 +3410,12 @@ s32 bsp_socp_stop(u32 u32SrcChanID)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decsrc_set(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
-        } 
+            return ret;
+        }
 
         /* 关闭中断*/
         if (SOCP_DECSRC_CHNMODE_LIST == g_strSocpStat.sDecSrcChan[u32RealChanID].eChnMode)
@@ -3463,7 +3438,7 @@ s32 bsp_socp_stop(u32 u32SrcChanID)
     }
     else
     {
-        socp_printf("Stop: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 	/*lint -restore +e647*/
@@ -3506,11 +3481,11 @@ s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
             {
                 if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
                 {
-                    return ret; 
+                    return ret;
                 }
                 if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
                 {
-                    return ret; 
+                    return ret;
                 }
                 g_strSocpStat.sEncSrcChan[u32RealChanID].event_cb = EventCB;
 
@@ -3522,11 +3497,11 @@ s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
         {
             if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
             if((ret=socp_check_encdst_set(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
 
             g_strSocpStat.sEncDstChan[u32RealChanID].event_cb = EventCB;
@@ -3538,12 +3513,12 @@ s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
         {
             if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
             if((ret=socp_check_decsrc_set(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
-            } 
+                return ret;
+            }
 
             g_strSocpStat.sDecSrcChan[u32RealChanID].event_cb = EventCB;
 
@@ -3554,12 +3529,12 @@ s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
         {
             if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
             {
-                return ret; 
+                return ret;
             }
             if((ret=socp_check_decdst_alloc(u32RealChanID)) != BSP_OK)
             {
-                return ret; 
-            } 
+                return ret;
+            }
 
             g_strSocpStat.sDecDstChan[u32RealChanID].event_cb = EventCB;
 
@@ -3568,7 +3543,7 @@ s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
         }
         default:
         {
-            socp_printf("RegisterEventCB: invalid chan type: 0x%x!\n", u32ChanType);
+            socp_error("invalid chan type: 0x%x!\n", u32ChanType);
             return BSP_ERR_SOCP_INVALID_CHAN;
         }
     }
@@ -3602,7 +3577,7 @@ s32 bsp_socp_get_write_buff(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
     /* 判断参数有效性 */
     if(NULL == pBuff)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
     /* 获得实际通道id */
@@ -3617,11 +3592,11 @@ s32 bsp_socp_get_write_buff(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
         /* 检验通道id */
         if((ret=socp_check_encsrc_chan_id(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         /* 根据读写指针获取buffer */
@@ -3639,12 +3614,12 @@ s32 bsp_socp_get_write_buff(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
         /* 检验通道id */
         if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decsrc_set(u32ChanID)) != BSP_OK)
         {
-            return ret; 
-        } 
+            return ret;
+        }
         SOCP_REG_READ(SOCP_REG_DECSRC_BUFRPTR(u32ChanID), uPAddr);
         g_strSocpStat.sDecSrcChan[u32ChanID].sDecSrcBuf.u32Read = uPAddr;
         SOCP_REG_READ(SOCP_REG_DECSRC_BUFWPTR(u32ChanID), uPAddr);
@@ -3654,7 +3629,7 @@ s32 bsp_socp_get_write_buff(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
     }
     else
     {
-        socp_printf("GetWriteBuff: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3691,7 +3666,7 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
     /* 判断参数有效性 */
     if(0 == u32WrtSize)
     {
-        socp_printf("%s[%d] the u32WrtSize is 0.\n", __FUNCTION__, __LINE__);
+        socp_error("the u32WrtSize is 0\n");
         return BSP_ERR_SOCP_NULL;
     }
 
@@ -3709,12 +3684,12 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
         /* 检验通道id */
         if((ret=socp_check_encsrc_chan_id(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32ChanID)) != BSP_OK)
         {
-            return ret; 
-        }        
+            return ret;
+        }
 
         pChan = &g_strSocpStat.sEncSrcChan[u32ChanID];
         u32WrtPad = u32WrtSize % 8;
@@ -3732,10 +3707,7 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
 
         if (RwBuff.u32Size + RwBuff.u32RbSize < u32WrtSize)
         {
-            socp_printf("WriteDone: enc src, too large write size!\n");
-            socp_printf("WriteDone: enc src, write ptr is 0x%x, read ptr is 0x%x\n", pChan->sEncSrcBuf.u32Write, pChan->sEncSrcBuf.u32Read);
-            socp_printf("WriteDone: enc src, u32Size is 0x%x, u32RbSize is 0x%x\n", RwBuff.u32Size, RwBuff.u32RbSize);
-            socp_printf("WriteDone: enc src, u32WrtSize is 0x%x, u32SrcChanID is 0x%x\n", u32WrtSize, u32SrcChanID);
+            socp_error("RwBuff is not enough, u32WrtSize=0x%x\n", u32WrtSize);
             g_stSocpDebugInfo.sSocpDebugEncSrc.u32socp_write_doneEncSrcFailCnt[u32ChanID]++;
             return BSP_ERR_SOCP_INVALID_PARA;
         }
@@ -3757,11 +3729,11 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
         /* 检验通道id */
         if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECSRC_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decsrc_set(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         pChan = &g_strSocpStat.sDecSrcChan[u32ChanID];
         SOCP_REG_READ(SOCP_REG_DECSRC_BUFWPTR(u32ChanID), uPAddr);
@@ -3772,10 +3744,7 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
 
         if (RwBuff.u32Size + RwBuff.u32RbSize < u32WrtSize)
         {
-            socp_printf("WriteDone: dec src, too large write size!\n");
-            socp_printf("WriteDone: dec src, write ptr is 0x%x, read ptr is 0x%x\n", pChan->sDecSrcBuf.u32Write, pChan->sDecSrcBuf.u32Read);
-            socp_printf("WriteDone: dec src, u32Size is 0x%x, u32RbSize is 0x%x\n", RwBuff.u32Size, RwBuff.u32RbSize);
-            socp_printf("WriteDone: dec src, u32WrtSize is 0x%x, u32SrcChanID is 0x%x\n", u32WrtSize, u32SrcChanID);
+            socp_error("RwBuff is not enough, u32WrtSize=0x%x\n", u32WrtSize);
             g_stSocpDebugInfo.sSocpDebugDecSrc.u32socp_write_doneDecSrcFailCnt[u32ChanID]++;
 
             return BSP_ERR_SOCP_INVALID_PARA;
@@ -3791,7 +3760,7 @@ s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
     }
     else
     {
-        socp_printf("WriteDone: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3831,11 +3800,11 @@ s32 bsp_socp_register_rd_cb(u32 u32SrcChanID, socp_rd_cb RdCB)
     {
         if((ret=socp_check_encsrc_chan_id(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         if (SOCP_ENCSRC_CHNMODE_LIST == g_strSocpStat.sEncSrcChan[u32RealChanID].eChnMode)
@@ -3845,7 +3814,7 @@ s32 bsp_socp_register_rd_cb(u32 u32SrcChanID, socp_rd_cb RdCB)
         }
         else
         {
-            socp_printf("RegisterRdCB: invalid chan mode!\n");
+            socp_error("invalid chan mode!\n");
             return BSP_ERR_SOCP_CHAN_MODE;
         }
 
@@ -3853,7 +3822,7 @@ s32 bsp_socp_register_rd_cb(u32 u32SrcChanID, socp_rd_cb RdCB)
     }
     else
     {
-        socp_printf("RegisterRdCB: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3888,7 +3857,7 @@ s32 bsp_socp_get_rd_buffer(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
     /* 判断参数有效性 */
     if(NULL == pBuff)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
 
@@ -3904,11 +3873,11 @@ s32 bsp_socp_get_rd_buffer(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
         /* 检验通道id */
         if((ret=socp_check_encsrc_chan_id(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         /* 根据读写指针获取buffer */
@@ -3921,7 +3890,7 @@ s32 bsp_socp_get_rd_buffer(u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff)
     }
     else
     {
-        socp_printf("GetRDBuffer: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type(0x%x)\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -3958,7 +3927,7 @@ s32 bsp_socp_read_rd_done(u32 u32SrcChanID, u32 u32RDSize)
     /* 判断参数有效性 */
     if(0 == u32RDSize)
     {
-        socp_printf("%s[%d] the u32RDSize is 0.\n", __FUNCTION__, __LINE__);
+        socp_error("the u32RDSize is 0\n");
         return BSP_ERR_SOCP_NULL;
     }
 
@@ -3976,11 +3945,11 @@ s32 bsp_socp_read_rd_done(u32 u32SrcChanID, u32 u32RDSize)
         /* 检验通道id */
         if((ret=socp_check_encsrc_chan_id(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encsrc_alloc(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         pChan = &g_strSocpStat.sEncSrcChan[u32ChanID];
@@ -3995,10 +3964,7 @@ s32 bsp_socp_read_rd_done(u32 u32SrcChanID, u32 u32RDSize)
 
         if (RwBuff.u32Size + RwBuff.u32RbSize < u32RDSize)
         {
-            socp_printf("ReadRDDone: enc src, too large rd size!\n");
-            socp_printf("ReadRDDone: enc src, write ptr is 0x%x, read ptr is 0x%x\n", pChan->sRdBuf.u32Write, pChan->sRdBuf.u32Read);
-            socp_printf("ReadRDDone: enc src, u32Size is 0x%x, u32RbSize is 0x%x\n", RwBuff.u32Size, RwBuff.u32RbSize);
-            socp_printf("ReadRDDone: enc src, u32RDSize is 0x%x, u32SrcChanID is 0x%x\n", u32RDSize, u32SrcChanID);
+            socp_error("RwBuff is not enough, u32RDSize=0x%x\n",u32RDSize);
             g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpReadRdDoneEncSrcFailCnt[u32ChanID]++;
 
             return BSP_ERR_SOCP_INVALID_PARA;
@@ -4013,7 +3979,7 @@ s32 bsp_socp_read_rd_done(u32 u32SrcChanID, u32 u32RDSize)
     }
     else
     {
-        socp_printf("ReadRDDone: invalid chan type: 0x%x!", u32ChanType);
+        socp_error("invalid chan type(0x%x)", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -4054,12 +4020,12 @@ s32 bsp_socp_register_read_cb(u32 u32DestChanID, socp_read_cb ReadCB)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decdst_alloc(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
-        } 
+            return ret;
+        }
 
         g_strSocpStat.sDecDstChan[u32RealChanID].read_cb = ReadCB;
 
@@ -4069,11 +4035,11 @@ s32 bsp_socp_register_read_cb(u32 u32DestChanID, socp_read_cb ReadCB)
     {
         if((ret=socp_check_chan_id(u32RealChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encdst_set(u32RealChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         /* 设置对应通道的回调函数*/
@@ -4083,7 +4049,7 @@ s32 bsp_socp_register_read_cb(u32 u32DestChanID, socp_read_cb ReadCB)
     }
     else
     {
-        socp_printf("RegisterReadCB: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -4117,7 +4083,7 @@ s32 bsp_socp_get_read_buff(u32 u32DestChanID, SOCP_BUFFER_RW_STRU *pBuffer)
     /* 判断参数有效性 */
     if(NULL == pBuffer)
     {
-        socp_printf("%s[%d] the parameter is NULL.\n", __FUNCTION__, __LINE__);
+        socp_error("the parameter is NULL\n");
         return BSP_ERR_SOCP_NULL;
     }
 
@@ -4134,12 +4100,12 @@ s32 bsp_socp_get_read_buff(u32 u32DestChanID, SOCP_BUFFER_RW_STRU *pBuffer)
         /* 检验通道id */
         if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_decdst_alloc(u32ChanID)) != BSP_OK)
         {
-            return ret; 
-        } 
+            return ret;
+        }
         /* 根据读写指针获取buffer */
         SOCP_REG_READ(SOCP_REG_DECDEST_BUFRPTR(u32ChanID), uPAddr);
         g_strSocpStat.sDecDstChan[u32ChanID].sDecDstBuf.u32Read = uPAddr;
@@ -4149,25 +4115,25 @@ s32 bsp_socp_get_read_buff(u32 u32DestChanID, SOCP_BUFFER_RW_STRU *pBuffer)
         g_stSocpDebugInfo.sSocpDebugDecDst.u32SocpGetReadBufDecDstSucCnt[u32ChanID]++;
     }
     else if (SOCP_CODER_DEST_CHAN == u32ChanType)
-    {   
-       
+    {
+
         g_stSocpDebugInfo.sSocpDebugEncDst.u32SocpGetReadBufEncDstEtrCnt[u32ChanID]++;
         /*deflate使能获取deflate buffer*/
         if((SOCP_COMPRESS == g_strSocpStat.sEncDstChan[u32ChanID].struCompress.bcompress )
             &&(g_strSocpStat.sEncDstChan[u32ChanID].struCompress.ops.getbuffer))
         {
             return g_strSocpStat.sEncDstChan[u32ChanID].struCompress.ops.getbuffer(pBuffer);
-             
+
         }
-      
+
         /* 检验通道id */
         if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
         if((ret=socp_check_encdst_set(u32ChanID)) != BSP_OK)
         {
-            return ret; 
+            return ret;
         }
 
         /* 根据读写指针获取buffer */
@@ -4177,12 +4143,12 @@ s32 bsp_socp_get_read_buff(u32 u32DestChanID, SOCP_BUFFER_RW_STRU *pBuffer)
         g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf.u32Write= uPAddr;
         socp_get_data_buffer(&g_strSocpStat.sEncDstChan[u32ChanID].sEncDstBuf, pBuffer);
         g_stSocpDebugInfo.sSocpDebugEncDst.u32SocpGetReadBufEncDstSucCnt[u32ChanID]++;
-       
-      
+
+
     }
     else
     {
-        socp_printf("GetReadBuff: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -4204,11 +4170,11 @@ s32 socp_decode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
     /* 检验通道id */
     if((ret=socp_check_chan_id(u32ChanID, SOCP_MAX_DECDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret=socp_check_decdst_alloc(u32ChanID)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     //added by yangzhi 2011.7.25
     TfMaskReg = SOCP_REG_DEC_CORE0MASK0;
@@ -4221,10 +4187,8 @@ s32 socp_decode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
 
     if(RwBuff.u32Size + RwBuff.u32RbSize < u32ReadSize)
     {
-        socp_printf("ReadDataDone: dec dst, too large read size!\n");
-        socp_printf("ReadDataDone: dec dst, write ptr is 0x%x, read ptr is 0x%x\n", pChan->sDecDstBuf.u32Write, pChan->sDecDstBuf.u32Read);
-        socp_printf("ReadDataDone: dec dst, u32Size is 0x%x, u32RbSize is 0x%x\n", RwBuff.u32Size, RwBuff.u32RbSize);
-        socp_printf("ReadDataDone: dec dst, u32ReadSize is 0x%x, u32DestChanID is 0x%x\n", u32ReadSize, u32ChanID);
+        socp_error("RwBuff is not enough, u32ReadSize=0x%x!\n",u32ReadSize);
+		
         spin_lock_irqsave(&lock, lock_flag);
         SOCP_REG_SETBITS(SOCP_REG_DEC_RAWINT0, u32ChanID, 1, 1);
         SOCP_REG_SETBITS(TfMaskReg, u32ChanID, 1, 0);
@@ -4263,18 +4227,18 @@ s32 socp_decode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
 u32 bsp_socp_mode(u32 u32ChanID)
 {
     u32 u32modestate;
-    
+
     /*lint -save -e647*/
     if(socp_version < SOCP_206_VERSION)
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);    
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);
     }
-    else 
+    else
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);   
-    } 
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);
+    }
     /*lint -restore +e647*/
-    
+
     return u32modestate;
 }
 
@@ -4284,11 +4248,11 @@ u32 bsp_socp_mode_ex(u32 u32ChanID)
     /*lint -save -e647*/
     if(socp_version < SOCP_206_VERSION)
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,2);    
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,2);
     }
-    else 
+    else
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,2);   
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,2);
     }
     /*lint -restore +e647*/
     return u32modestate;
@@ -4304,17 +4268,17 @@ s32 socp_encode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
     unsigned long lock_flag;
     u32 curmodestate;
     SOCP_ENCDST_CHAN_S *pChan;
-   
+
     g_stSocpDebugInfo.sSocpDebugEncDst.u32socp_read_doneEncDstEtrCnt[u32ChanID]++;
 
     /* 检验通道id */
     if((ret = socp_check_chan_id(u32ChanID, SOCP_MAX_ENCDST_CHN)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if((ret = socp_check_encdst_set(u32ChanID)) != BSP_OK)
     {
-        return ret; 
+        return ret;
     }
     if(u32ChanID == 1)
     {
@@ -4325,7 +4289,7 @@ s32 socp_encode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
         &&(g_strSocpStat.sEncDstChan[u32ChanID].struCompress.ops.readdone))
     {
         return g_strSocpStat.sEncDstChan[u32ChanID].struCompress.ops.readdone(u32ReadSize);
-       
+
     }
 
     if (0 == u32ReadSize)
@@ -4343,17 +4307,17 @@ s32 socp_encode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
     if(0 != curmodestate)   /* ctrl & state 不是阻塞模式*/
     {
         spin_unlock_irqrestore(&lock, lock_flag);
-        socp_printf(" no block mode: ctrl & state 0x%x!\n",curmodestate);
+        socp_error("no block mode, curmodestate=0x%x\n",curmodestate);
         return BSP_OK;
     }
-    
+
     pChan = &g_strSocpStat.sEncDstChan[u32ChanID];
     SOCP_REG_READ(SOCP_REG_ENCDEST_BUFWPTR(u32ChanID), uPAddr);
     pChan->sEncDstBuf.u32Write= uPAddr;
     SOCP_REG_READ(SOCP_REG_ENCDEST_BUFRPTR(u32ChanID), uPAddr);
     pChan->sEncDstBuf.u32Read = uPAddr;
     socp_get_data_buffer(&pChan->sEncDstBuf, &RwBuff);
-    
+
     if(RwBuff.u32Size + RwBuff.u32RbSize < u32ReadSize)
     {
         SOCP_REG_SETBITS(SOCP_REG_ENC_RAWINT0, u32ChanID, 1, 1);
@@ -4365,11 +4329,7 @@ s32 socp_encode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
         spin_unlock_irqrestore(&lock, lock_flag);
         g_stSocpDebugInfo.sSocpDebugEncDst.u32socp_read_doneEncDstFailCnt[u32ChanID]++;
 
-        socp_printf("ReadDataDone: enc dst, too large read size!\n");
-        socp_printf("ReadDataDone: enc dst, write ptr is 0x%x, read ptr is 0x%x\n", pChan->sEncDstBuf.u32Write, pChan->sEncDstBuf.u32Read);
-        socp_printf("ReadDataDone: enc dst, u32Size is 0x%x, u32RbSize is 0x%x\n", RwBuff.u32Size, RwBuff.u32RbSize);
-        socp_printf("ReadDataDone: enc dst, u32ReadSize is 0x%x, u32DestChanID is 0x%x\n", u32ReadSize, u32ChanID);
-
+        socp_error("RwBuff is not enough, u32ReadSize=0x%x!\n",u32ReadSize);
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
@@ -4384,18 +4344,18 @@ s32 socp_encode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
     /*lint -restore +e732*/
     SOCP_DEBUG_TRACE(SOCP_DEBUG_READ_DONE, pChan->sEncDstBuf.u32Write, uPAddr, uPAddr2, uPAddr3);
 
-    bsp_socp_data_send_continue(u32ChanID);        
+    bsp_socp_data_send_continue(u32ChanID);
 
     spin_unlock_irqrestore(&lock, lock_flag);
     g_stSocpDebugInfo.sSocpDebugEncDst.u32socp_read_doneEncDstSucCnt[u32ChanID]++;
-   
+
     if(u32ChanID == 1)
     {
         g_stEncDstStat[g_ulEncDstStatCount].ulReadDoneEndSlice = bsp_get_slice_value();
         g_ulEncDstStatCount = (g_ulEncDstStatCount+1)%SOCP_MAX_ENC_DST_COUNT;
     }
 
-    return BSP_OK;       
+    return BSP_OK;
 }
 
 /*****************************************************************************
@@ -4438,7 +4398,7 @@ s32 bsp_socp_read_data_done(u32 u32DestChanID, u32 u32ReadSize)
     }
     else
     {
-        socp_printf("ReadDataDone: invalid chan type: 0x%x!\n", u32ChanType);
+        socp_error("invalid chan type: 0x%x!\n", u32ChanType);
         return BSP_ERR_SOCP_INVALID_CHAN;
     }
 
@@ -4487,7 +4447,7 @@ s32 bsp_socp_set_bbp_ds_mode(SOCP_BBP_DS_MODE_ENUM_UIN32 eDsMode)
 {
     if(eDsMode >= SOCP_BBP_DS_MODE_BUTT)
     {
-        socp_printf("SetBbpDsMode: invalid DS mode!\n");
+        socp_error("invalid DS mode!\n");
         return BSP_ERR_SOCP_INVALID_PARA;
     }
 
@@ -4514,9 +4474,190 @@ void bsp_socp_set_enc_dst_threshold(bool mode,u32 u32DestChanID)
     }
     SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFTHRESHOLD(u32DestChanID),threshold);
 
-    socp_printf("[socp] set encdst threshold success! 0x%x\n", threshold);
+    socp_crit("set encdst threshold success! 0x%x\n", threshold);
 
     return;
+}
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_compress_enable
+*
+* 功能描述  : deflate 压缩使能
+*
+* 输入参数  : 压缩目的通道ID
+*
+* 输出参数  : 无
+*
+* 返 回 值  :压缩成功与否标志
+*****************************************************************************/
+s32 bsp_socp_compress_enable(u32 u32DestChanID)
+{
+    SOCP_ENCDST_CHAN_S *pChan ;
+    u32 u32RealChanID;
+    u32 SocpIdleState;
+    u32 u32ChanType;
+    u32 cnt=500;
+    SOCP_CODER_DEST_CHAN_S attr;
+    s32 ret;
+    
+    /* 判断是否已经初始化 */
+    if((ret=socp_check_init()) != BSP_OK)
+    {
+        return ret;
+    }
+    u32RealChanID = SOCP_REAL_CHAN_ID(u32DestChanID);
+    u32ChanType = SOCP_REAL_CHAN_TYPE(u32DestChanID);
+    pChan = &g_strSocpStat.sEncDstChan[u32RealChanID];
+
+    if(SOCP_COMPRESS == pChan->struCompress.bcompress)
+    {
+        socp_error("socp is already compress enabled\n");
+        return BSP_ERROR;
+    }
+    if((NULL == pChan->struCompress.ops.enable)
+        || NULL == pChan->struCompress.ops.set
+        || NULL == pChan->struCompress.ops.register_Readcb
+        || NULL == pChan->struCompress.ops.readdone
+        || NULL == pChan->struCompress.ops.getbuffer)
+    {
+        socp_error("socp_compress_enable invalid!\n");
+        return BSP_ERROR;
+    }
+    /*停SOCP*/
+    SOCP_REG_SETBITS(SOCP_REG_GBLRST, 16, 1, 1);
+    /*lint -save -e732*/
+    SOCP_REG_READ(SOCP_REG_ENCSTAT,SocpIdleState);
+
+    while(SocpIdleState&&cnt)
+    {
+       SOCP_REG_READ(SOCP_REG_ENCSTAT,SocpIdleState);
+       msleep(1);
+       cnt--;
+    }
+    /*lint -restore +e732*/
+
+    /*读写指针重置，当前数据丢弃*/
+	SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFRPTR(u32RealChanID),0);
+	SOCP_REG_WRITE(SOCP_REG_ENCDEST_BUFWPTR(u32RealChanID), 0);
+    pChan->sEncDstBuf.u32Read =0;
+
+   // DEFLATE_REG_SETBITS(SOCP_REG_DEFLATE_GLOBALCTRL, 1, 1, 1);
+    attr.u32EncDstThrh              =pChan->u32Thrh;
+    attr.sCoderSetDstBuf.pucOutputStart=(u8*)(unsigned long)(pChan->sEncDstBuf.Start);
+    attr.sCoderSetDstBuf.pucOutputEnd  =(u8*)(unsigned long)(pChan->sEncDstBuf.End);
+    attr.sCoderSetDstBuf.u32Threshold  =pChan->bufThreshold;
+
+    pChan->struCompress.ops.set(u32DestChanID,&attr);
+    pChan->struCompress.ops.register_Readcb(pChan->read_cb);
+    pChan->struCompress.ops.register_Eventcb(pChan->event_cb);
+    /*压缩使能*/
+    pChan->struCompress.ops.enable(u32DestChanID);
+
+    /*清非压缩通道原始中断，屏蔽中断状态*/
+    bsp_socp_data_send_manager(u32DestChanID,0);
+    /*使能SOCP*/
+    /*lint -save -e845*/
+    SOCP_REG_SETBITS(SOCP_REG_GBLRST, 16, 1, 0);
+    /*lint -restore +e845*/
+    pChan->struCompress.bcompress=SOCP_COMPRESS;
+    g_strSocpDeflateStatus = SOCP_COMPRESS;
+    return BSP_OK;
+}
+/*****************************************************************************
+* 函 数 名  : bsp_socp_compress_disable
+*
+* 功能描述  : deflate 压缩停止
+*
+* 输入参数  : 压缩目的通道ID
+*
+* 输出参数  : 无
+*
+* 返 回 值  :压缩停止成功与否标志
+*****************************************************************************/
+s32 bsp_socp_compress_disable(u32 u32DestChanID)
+{
+
+    SOCP_ENCDST_CHAN_S *pChan ;
+    u32 u32RealChanID;
+    u32 SocpIdleState;
+    u32 u32ChanType;
+    u32 cnt=500;
+    s32 ret;
+
+    /* 判断是否已经初始化 */
+    if((ret=socp_check_init()) != BSP_OK)
+    {
+        return ret;
+    }
+    /*检查参数是否有效*/
+    u32RealChanID = SOCP_REAL_CHAN_ID(u32DestChanID);
+    u32ChanType = SOCP_REAL_CHAN_TYPE(u32DestChanID);
+    pChan = &g_strSocpStat.sEncDstChan[u32RealChanID];
+    if(SOCP_NO_COMPRESS == pChan->struCompress.bcompress)
+    {
+        socp_error("socp is already compress_disabled\n");
+        return BSP_ERROR;
+    }
+     if(NULL == pChan->struCompress.ops.disable|| NULL == pChan->struCompress.ops.clear)
+    {
+        socp_error("socp_compress_disable invalid!\n");
+        return BSP_ERROR;
+    }
+
+    /*lint -save -e732*/
+     /*停SOCP*/
+    SOCP_REG_SETBITS(SOCP_REG_GBLRST, 16, 1, 1);
+    SOCP_REG_READ(SOCP_REG_ENCSTAT,SocpIdleState);
+
+    while(SocpIdleState&&cnt)
+    {
+
+        SOCP_REG_READ(SOCP_REG_ENCSTAT,SocpIdleState);
+        msleep(1);
+        cnt--;
+    }
+
+    pChan->struCompress.ops.disable(u32DestChanID);
+    pChan->struCompress.ops.clear(u32DestChanID);
+     
+    bsp_socp_data_send_manager(u32DestChanID,1);
+
+
+    /*使能SOCP*/
+    SOCP_REG_SETBITS(SOCP_REG_GBLRST, 16, 1, 0);
+    /*lint -restore +e845*/
+    pChan->struCompress.bcompress=SOCP_NO_COMPRESS;
+    g_strSocpDeflateStatus = SOCP_NO_COMPRESS;
+    return BSP_OK;
+}
+/*****************************************************************************
+* 函 数 名  : bsp_socp_register_compress
+*
+* 功能描述  : 压缩函数注册
+*
+* 输入参数  : 注册函数结构体
+*
+* 输出参数  : 无
+*
+* 返 回 值  :注册成功与否标志
+*****************************************************************************/
+s32 bsp_socp_register_compress(socp_compress_ops_stru *ops)
+{
+    int i;
+    g_strSocpStat.compress_isr                                          = ops->isr;
+
+    for(i=0; i<SOCP_MAX_ENCDST_CHN; i++)
+    {
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.register_Eventcb = ops->register_Eventcb;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.register_Readcb  = ops->register_Readcb;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.enable           = ops->enable;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.disable          = ops->disable;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.set              = ops->set;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.getbuffer        = ops->getbuffer;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.readdone         = ops->readdone;
+        g_strSocpStat.sEncDstChan[i].struCompress.ops.clear            = ops->clear;
+    }
+    return BSP_OK;
 }
 
 /*****************************************************************************
@@ -4557,12 +4698,10 @@ void bsp_socp_mode_change_chip_bugfix(u32 chanid)
         ret = bsp_socp_read_data_done(chanid, len < 64*1024 ? len:64*1024);
         if (ret != BSP_OK)
         {
-            socp_printf("bsp_socp_mode_change_chip_bugfix: bsp_socp_read_data_done=%d\n", ret);
+            socp_error("socp_update read ptr fail(0x%x)\n", ret);
         }
-        socp_printf("bsp_socp_mode_change_chip_bugfix success,ret=%d,bufdepth=0x%x,len=%d, WrVal=0x%x,RdVal=0x%x\n",
-            ret, bufdepth, len, WrVal, RdVal);
     }
-    
+
 }
 
 /*****************************************************************************
@@ -4589,13 +4728,13 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
 
     if(socp_version < SOCP_206_VERSION)
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);    
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);
     }
     else
     {
-        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);   
+        u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);
     }
-    
+
     if ((0==cycle||1==cycle) && u32modestate)
     {
         u32 i;
@@ -4603,9 +4742,9 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
         spin_lock_irqsave(&lock, lock_flag);
         if(socp_version < SOCP_206_VERSION)
         {
-            SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,1,0);           
+            SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,1,0);
         }
-        else 
+        else
         {
             SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1,0);
         }
@@ -4615,12 +4754,12 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
         {
             if(socp_version < SOCP_206_VERSION)
             {
-                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);    
+                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);
             }
-            else 
+            else
             {
-                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);   
-            }            
+                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);
+            }
             if(0 == u32modestate)
             {
                 break;
@@ -4630,12 +4769,12 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
         if(waittime == i)
         {
             g_stSocpDebugInfo.sSocpDebugEncDst.u32SocpEncDstModeChangeFailCnt[u32ChanID]++;
-            socp_printf("set encdst cycle off timeout!\n");
+            socp_error("set encdst cycle off timeout!\n");
             /* 关闭自动时钟门控，否则上报模式配置不生效 */
             SOCP_REG_SETBITS(SOCP_REG_CLKCTRL,0,1,1);
             return BSP_ERROR;
         }
-        
+
         /*Drop data of socp dst buffer*/
         bsp_socp_mode_change_chip_bugfix(chanid);
 
@@ -4647,11 +4786,11 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
         u32 i;
 
         bsp_socp_data_send_manager(chanid, SOCP_DEST_DSM_DISABLE);
-        
+
         spin_lock_irqsave(&lock, lock_flag);
         if(socp_version < SOCP_206_VERSION)
         {
-            SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,1,1);           
+            SOCP_REG_SETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),0,1,1);
         }
         else
         {
@@ -4666,9 +4805,9 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
             {
                 u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),1,1);
             }
-            else 
+            else
             {
-                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);   
+                u32modestate = SOCP_REG_GETBITS(SOCP_REG_ENCDEST_SBCFG(u32ChanID),2,1);
             }
             if(1 == u32modestate)
             {
@@ -4679,7 +4818,7 @@ s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle)
         if(waittime == i)
         {
             g_stSocpDebugInfo.sSocpDebugEncDst.u32SocpEncDstModeChangeFailCnt[u32ChanID]++;
-            socp_printf("set encdst cycle on timeout!\n");
+            socp_error("set encdst cycle on timeout!\n");
             SOCP_REG_SETBITS(SOCP_REG_CLKCTRL,0,1,1);
             return BSP_ERROR;
         }
@@ -4709,12 +4848,12 @@ void show_socp_enc_dst_stat(void)
 
     for(i=0;i<SOCP_MAX_ENC_DST_COUNT;i++)
     {
-        printk("\r **********stat %d count************ \r\n",i);
-        printk("Int   Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulIntStartSlice,g_stEncDstStat[count].ulIntEndSlice,g_stEncDstStat[count].ulIntEndSlice-g_stEncDstStat[count].ulIntStartSlice);
-        printk("Task  Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulTaskStartSlice,g_stEncDstStat[count].ulTaskEndSlice,g_stEncDstStat[count].ulTaskEndSlice-g_stEncDstStat[count].ulTaskStartSlice);
-        printk("Read  Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulReadDoneStartSlice,g_stEncDstStat[count].ulReadDoneEndSlice,g_stEncDstStat[count].ulReadDoneEndSlice-g_stEncDstStat[count].ulReadDoneStartSlice);
-        printk("Int  ==> Task 0x%x\n",g_stEncDstStat[count].ulTaskStartSlice-g_stEncDstStat[count].ulIntStartSlice);
-        printk("Task  ==> Read 0x%x\n",g_stEncDstStat[count].ulReadDoneStartSlice-g_stEncDstStat[count].ulTaskEndSlice);
+        socp_crit("\r stat %d count:\r\n",i);
+        socp_crit("Int   Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulIntStartSlice,g_stEncDstStat[count].ulIntEndSlice,g_stEncDstStat[count].ulIntEndSlice-g_stEncDstStat[count].ulIntStartSlice);
+        socp_crit("Task  Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulTaskStartSlice,g_stEncDstStat[count].ulTaskEndSlice,g_stEncDstStat[count].ulTaskEndSlice-g_stEncDstStat[count].ulTaskStartSlice);
+        socp_crit("Read  Start  : 0x%x,  End  : 0x%x ,Slice :0x%x\n",g_stEncDstStat[count].ulReadDoneStartSlice,g_stEncDstStat[count].ulReadDoneEndSlice,g_stEncDstStat[count].ulReadDoneEndSlice-g_stEncDstStat[count].ulReadDoneStartSlice);
+        socp_crit("Int  ==> Task 0x%x\n",g_stEncDstStat[count].ulTaskStartSlice-g_stEncDstStat[count].ulIntStartSlice);
+        socp_crit("Task ==> Read 0x%x\n",g_stEncDstStat[count].ulReadDoneStartSlice-g_stEncDstStat[count].ulTaskEndSlice);
         count = (count+1)%SOCP_MAX_ENC_DST_COUNT;
     }
 }
@@ -4757,7 +4896,7 @@ void* socp_malloc(u32 u32Size)
     pItem = (u8*)__get_free_pages(GFP_KERNEL,index);
     if(!pItem)
     {
-        socp_printf("%s: malloc failed\n", __FUNCTION__);
+        socp_error("malloc failed\n");
         return BSP_NULL;
     }
 
@@ -4865,9 +5004,6 @@ u32 socp_is_encdst_chan_empty(void)
     return chanSet;
 }
 
-module_init(socp_init);
-
-
 
 
 
@@ -4919,6 +5055,12 @@ void bsp_socp_set_clk_autodiv_disable(void)
 u32 bsp_get_socp_ind_dst_int_slice(void)
 {
     return g_stEncDstStat[g_ulEncDstStatCount].ulIntStartSlice;
+}
+
+
+s32 bsp_clear_socp_buff(u32 u32SrcChanID)
+{
+    return BSP_OK;
 }
 
 EXPORT_SYMBOL(socp_reset_dec_chan);

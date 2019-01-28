@@ -54,7 +54,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 #include <product_config.h>
-
+#include "mdrv_rfile.h"
 
 #define     RFILE_RDONLY            (0x00000000)
 #define     RFILE_WRONLY            (0x00000001)
@@ -76,8 +76,8 @@ typedef struct {
     u64             d_off;
     u16             d_reclen;
     u8              d_type;
-    s8              d_name[0];
-}RFILE_DIRENT_STRU;
+    s8              d_name[0];//lint !e43
+}RFILE_DIRENT_STRU;//lint !e959
 
 /* struct timespec */
 typedef struct {

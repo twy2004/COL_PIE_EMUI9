@@ -47,7 +47,6 @@
  */
 
 #include <product_config.h>
-#include <bsp_trace.h>
 #include <mdrv_sysboot.h>
 #include <bsp_reset.h>
 

@@ -60,7 +60,6 @@ extern "C"
 #define DUMP_CP_UTRACE_SIZE  0x2400
 
 
-
 /*etm4x*/
 #define MDM_TRCPRGCTLR			0x004
 

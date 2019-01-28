@@ -81,17 +81,30 @@ extern "C" {
 *****************************************************************************/
 #ifdef DIAG_SYSTEM_5G
 #define DRX_SAMPLE_BBP_DATA_CHNNUM          15
-#define DDR_SAMPLE_BASE_ADDR_MAX            8
+#define DDR_SAMPLE_BASE_ADDR_MAX            10
 #else
 #define DRX_SAMPLE_BBP_DATA_CHNNUM          10
 #define DDR_SAMPLE_BASE_ADDR_MAX            5
 #endif
 
-/* DIAG给GU-PHY发消息的MsgID */
-#define MSG_ID_DIAG2GUPHY_CHAN_ADDR_INFO         0x3200fe2d
 
-/* DIAG给EASY RF发消息的MsgID */
-#define MSG_ID_DIAG2EASYRF_CHAN_ADDR_INFO        0xaf00f804
+
+/* MSP与TL-PHY的BBP消息 */
+#define MSG_ID_DIAG2TLPHY_CHAN_ADDR_INFO            (0x30002404)
+#define ID_MSG_DIAG_TL_PHY_BBP_GEN_REQ              (0x30002403)
+#define ID_MSG_DIAG_TL_PHY_BBP_GEN_CNF              (ID_MSG_DIAG_TL_PHY_BBP_GEN_REQ)
+/* MSP与GU-PHY的BBP消息 */
+#define MSG_ID_DIAG2GUPHY_CHAN_ADDR_INFO            (0x3200fe2d)
+#define ID_MSG_DIAG_GU_PHY_BBP_GEN_REQ              (0x3200fe1f)
+#define ID_MSG_DIAG_GU_PHY_BBP_GEN_CNF              (0x3200ff07) /*根据GUC PHY的需求，REQ与CNF不同，方便定位问题*/
+/* MSP与HL1C的BBP消息 */
+#define MSG_ID_DIAG2HL1C_CHAN_ADDR_INFO             (0x3f00b002)
+#define ID_MSG_DIAG_HL1C_BBP_GEN_REQ                (0x3f00b001)
+#define ID_MSG_DIAG_HL1C_BBP_GEN_CNF                (ID_MSG_DIAG_HL1C_BBP_GEN_REQ)
+/* MSP与EasyRF的BBP消息 */
+#define MSG_ID_DIAG2EASYRF_CHAN_ADDR_INFO           (0xaf00f804)
+#define ID_MSG_DIAG_EASYRF_BBP_GEN_REQ              (0xaf38f800)
+#define ID_MSG_DIAG_EASYRF_BBP_GEN_CNF              (ID_MSG_DIAG_EASYRF_BBP_GEN_REQ)
 
 #define GUPHY_MSG_HEADER    unsigned int ulSenderCpuId;  \
                             unsigned int ulSenderPid;    \
@@ -99,7 +112,11 @@ extern "C" {
                             unsigned int ulReceiverPid;  \
                             unsigned int ulLength;
 
-#define SOCP_BBP_BUS_CHAN                   16   /* SOCP的bus采数通道，PHY调用修改指针接口时作为入参传入 */
+#define SOCP_BBP_BUS_CHAN                            16   /* SOCP的bus采数通道，PHY调用修改指针接口时作为入参传入 */
+
+/* EasyRF BBA_DBG提供给SOCP的读指针镜像地址 */
+#define RFIC0_RPTR_IMG_ADDR                         (0xe19841b4)
+#define RFIC1_RPTR_IMG_ADDR                         (0xe1984204)
 
 /*****************************************************************************
   3 Enum
@@ -126,13 +143,14 @@ IND : DIAG_CMD_DRX_REG_WR_IND_STRU
     DRX_SAMPLE_BBP_DMA_DATA_CHNSIZE ,       /* DATA       chn 24      chn 24        chn 17 */
     DRX_SAMPLE_BBP_CDMA_DATA_CHNSIZE,
 #ifdef DIAG_SYSTEM_5G
-    DRX_SAMPLE_BBP_5G_BUS_CHNSIZE,     //5G BUS CHAN
     DRX_SAMPLE_BBP_RFIC_0_BUS_CHNSIZE, //RFIC 0 BUS CHAN
     DRX_SAMPLE_BBP_RFIC_1_BUS_CHNSIZE, //RFIC 1 BUS CHAN
-    DRX_SAMPLE_BBP_5G_DATA_CHNSIZE,    //5G DATA CHAN
     DRX_SAMPLE_BBA_DATA_CHNSIZE,       //ACCESS DATA CHAN
+    DRX_SAMPLE_BBP_5G_BUS_CHNSIZE,     //5G BUS CHAN
+    DRX_SAMPLE_BBP_5G_DATA_CHNSIZE,    //5G DATA CHAN
+
 #endif
-}DIAG_CMD_DRX_SAMPLE_CHNSIZE_E; 
+}DIAG_CMD_DRX_SAMPLE_CHNSIZE_E;
 
 /*****************************************************************************
 描述 : 获取SOCP\BBP DMA基地址等
@@ -148,11 +166,13 @@ typedef enum
 	DRX_SAMPLE_BBP_SRC_BASE_ADDR ,
 	DRX_SAMPLE_POW_ONOFF_CLK_BASE_ADDR ,
 	DRX_SAMPLE_SOCP_BASE_ADDR,
-#ifdef DIAG_SYSTEM_5G  /*5G上PHY需要获取其他的地址信息*/	
+#ifdef DIAG_SYSTEM_5G  /*5G上PHY需要获取其他的地址信息*/
 	DRX_SAMPLE_BBA_DBG_CTRL_BASE_ADDR = 0x05,
 	DRX_SAMPLE_BBP_RFIC0_BASE_ADDR,
 	DRX_SAMPLE_BBP_RFIC1_BASE_ADDR,
-#endif	
+	DRX_SAMPLE_5G_BBP_DMA_BASE_ADDR,
+	DRX_SAMPLE_5G_BBP_DBG_BASE_ADDR
+#endif
 }DIAG_CMD_DRX_SAMPLE_ADDR_TYPE_E;
 
 /*****************************************************************************
@@ -196,9 +216,9 @@ typedef struct
     unsigned int                ulChanNum;
     DIAG_CMD_DRX_SAMPLE_BASE_ADDR_STRU AddrInfo[DDR_SAMPLE_BASE_ADDR_MAX];
 #ifndef MS_VC6_PLATFORM
-	DIAG_PHY_BBPDS_CHN_INFO_STRU ChanInfo[0]; 
+	DIAG_PHY_BBPDS_CHN_INFO_STRU ChanInfo[0];   /*lint !e43 */
 #else
-    DIAG_PHY_BBPDS_CHN_INFO_STRU ChanInfo[1];
+    DIAG_PHY_BBPDS_CHN_INFO_STRU ChanInfo[1];   /*lint !e43 */
 #endif
 }DIAG_PHY_DSINFO_STRU;
 /* 通知GUPHY、UPHY接口*/
@@ -207,19 +227,52 @@ typedef struct
      GUPHY_MSG_HEADER            /*VOS头 */
      unsigned int                 ulMsgId;
      unsigned int                ulMsgLen;
-     DIAG_PHY_DSINFO_STRU      stDsInfo;   
+     DIAG_PHY_DSINFO_STRU      stDsInfo;
 }DIAG_GUPHY_DSINFO_STRU;
 
 /* 通知TLPHY接口*/
 typedef struct
 {
      unsigned int              ulMsgId;
-     DIAG_PHY_DSINFO_STRU      stDsInfo;         
+     DIAG_PHY_DSINFO_STRU      stDsInfo;
 }DIAG_TLPHY_DSINFO_STRU;
 
-#pragma pack()
+/*PHY的采数命令回复结构体*/
+typedef struct
+{
+    unsigned int ulChanType;
+    unsigned int ulOpsId;
+    unsigned int ulResult;
+}DIAG_BBP_PHY_CNF_INFO_STRU;
 
-extern void mdrv_socp_update_bbp_ptr(unsigned int u32SrcChanId);
+/*HL1C的采数命令回复结构体*/
+typedef struct
+{
+    unsigned int ulChanType;
+    unsigned int ulOpsId;
+    unsigned int ulResult;
+}DIAG_BBP_HL1C_CNF_INFO_STRU;
+
+/*根据GU-PHY的需求，在公共头文件中添加该结构体，用于GU-PHY对MSP发送的start/stop命令进行回复*/
+typedef struct
+{
+    GUPHY_MSG_HEADER
+    unsigned int               ulMsgId;
+    unsigned int               ulLen;
+    DIAG_BBP_PHY_CNF_INFO_STRU stBbpCnfInfo;
+}DIAG_MSP_BBP_MSG_STRU;
+
+enum DIAG_BBP_CMD_CNF_INFO_ENUM
+{
+    DIAG_PHY_BBP_CNF_SUCCESS,
+    DIAG_PHY_BBP_CNF_FAIL,
+    DIAG_PHY_BBP_CNF_TIMEOUT,
+    DIAG_PHY_BBP_CNF_DATA_BUF_USED,
+};
+//typedef unsigned int DIAG_BBP_CMD_CNF_INFO_ENUM;
+
+
+#pragma pack()
 
 #ifdef __cplusplus
     #if __cplusplus

@@ -56,12 +56,6 @@
 #define    THIS_FILE_ID        MSP_FILE_ID_MSP_SERVICE_C
 
 
-struct MSP_SERVICE_TABLE
-{
-    VOS_UINT32          ulSidType;
-    MSP_SERVICE_FUNC    fnService;
-};
-
 struct MSP_SERVICE_TABLE g_astMspService[MSP_SID_BUTT] = {
     {MSP_SID_DEFAULT,           VOS_NULL},
     {MSP_SID_AT_SERVICE,        VOS_NULL},

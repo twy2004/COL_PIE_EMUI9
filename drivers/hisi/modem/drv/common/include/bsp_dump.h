@@ -53,8 +53,9 @@
 extern "C" {
 #endif
 
-
+#include "osl_spinlock.h"
 #include "osl_common.h"
+#include "osl_list.h"
 #if defined(__KERNEL__) || defined(__VXWORKS__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
 #include "mdrv_om.h"
 #else
@@ -70,7 +71,7 @@ extern "C" {
 
 #if defined(__KERNEL__)
 #include <linux/stddef.h>
-#include <linux/kernel.h>
+#include <linux/semaphore.h>
 #endif
 
 #include "bsp_om_enum.h"
@@ -79,6 +80,8 @@ extern "C" {
 /*****************************************************************************
   1 宏定义
 *****************************************************************************/
+#define RDR_MODEM_NR_MOD_ID_START          0xb0000000
+#define RDR_MODEM_NR_MOD_ID_END            0xbfffffff
 
 
 /* dump侵入内核修改 begin */
@@ -112,14 +115,8 @@ extern "C" {
 /*****************************************************************************
   2 枚举定义
 *****************************************************************************/
-typedef DUMP_SAVE_MOD_ENUM          dump_save_modid_t;
+#define NVID_DUMP   (NV_ID_DRV_DUMP)
 
-typedef enum{
-    DUMP_SYSVIEW_TASKSWITCH       = 0,
-    DUMP_SYSVIEW_INTSWITCH,
-    DUMP_SYSVIEW_INTLOCK,
-    DUMP_SYSVIEW_BUTT
-}dump_sysview_t;
 
 typedef enum
 {
@@ -143,33 +140,12 @@ typedef enum
     DUMP_CCPU_ARCH_BUTT
 }dump_ccpu_arch_t;
 
-#define NVID_DUMP   (NV_ID_DRV_DUMP)
 
 
 /* 枚举值与dump_file_cfg_s必须保持匹配 */
-typedef enum
-{
-    MODEM_DUMP      = 0,
-    MODME_SRAM,
-    MODEM_SHARE,
-    MODEM_DDR,
-    LPHY_TCM,
-    LPM3_TCM,
-    AP_ETB,
-    MODME_ETB,
-    DUMP_FILE_BUTT
-}dump_file_index_e;
 
-typedef enum
-{
-    DUMP_MODE_NORMAL,
-    DUMP_MODE_LLT,
-}dump_mode_e;
 
 /* dump文件结点，ioctl命令字 */
-#define DUMP_CMD_SET_COUNT      0x1f000000  /* 配置最大保存份数 */
-#define DUMP_CMD_SET_FILE       0x1f000001  /* 配置保存文件列表 */
-#define DUMP_CMD_FLUSH          0x1f000002  /* 保存配置，写入NV */
 
 typedef enum
 {
@@ -404,7 +380,7 @@ typedef struct
 
 
 
-typedef struct 
+typedef struct
 {
     u32 pid;
     u32 core;
@@ -494,6 +470,47 @@ typedef bool (*exc_hook)(void * param);
 
 #define DUMP_MODID_OFFSET        (offsetof(struct dump_baseinfo_head,modId))
 #define DUMP_TASK_NAME_OFFSET    (offsetof(struct dump_baseinfo_head,taskName))
+typedef enum
+{
+    DUMP_LR_SYS = 0,
+    DUMP_NR_SYS = 1,
+}DUMP_SYS;
+
+
+typedef enum
+{
+    DUMP_SEC_MDM_DDR    = 0,
+    DUMP_SEC_SEC_SHARED = 1,
+    DUMP_SEC_LPHY_DUMP  = 2,
+    DUMP_SEC_FILE_BUTT,
+}DUMP_SEC_FILE_ENUM;
+
+#define SUB_SYS_LR 0x01
+#define SUB_SYS_NR 0x10
+typedef void (*log_save_fun)(char* path);
+typedef struct
+{
+    struct list_head           list;
+    log_save_fun               save_fun;
+    u8                         name[16];
+    u32                        modem_type;
+}dump_log_notifier;
+typedef struct
+{
+    spinlock_t                 lock;
+    u32                        init_flag;
+    struct list_head           log_list;
+}dump_log_ctrl_s;
+
+struct dump_ddr_trans_head_info
+{
+    unsigned int magic;                 /*magic num  0x5678fedc */
+    unsigned int packet_num;            /*BD包个数*/
+    unsigned int total_length;          /*总包长*/
+    unsigned int lp_length;             /*最后一个包的长度*/
+    char file_name[28];                 /*需要保存的文件名*/
+    unsigned int resv;
+};
 
 #ifndef __OS_NRCCPU__
 
@@ -507,11 +524,9 @@ s32  bsp_dump_init(void);
 int bsp_dump_init_phase2(void);
 dump_handle bsp_dump_register_hook(char * name, dump_hook func);
 s32  bsp_dump_unregister_hook(dump_handle handle);
-u8*  bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version);
+u8*  bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id);
 u8*  bsp_dump_get_field_addr(u32 field_id);
 u8 * bsp_dump_get_field_phy_addr(u32 field_id);
-void bsp_dump_set_hso_conn_flag(u32 flag);
-s32  bsp_dump_register_sysview_hook(dump_sysview_t mod_id, dump_hook func);
 void bsp_dump_trace_stop(void);
 int bsp_dump_save_all_task_name(void);
 void bsp_om_save_reboot_log(const char * func_name, const void* caller);
@@ -526,6 +541,7 @@ void bsp_ccore_wdt_register_hook(void);
 void bsp_dump_get_reset_modid(u32 reason, u32 reboot_modid, u32 * modId);
 s32 bsp_dump_mark_voice(u32 flag);
 void bsp_dump_get_reboot_contex(u32* core ,u32* reason);
+int bsp_dump_sec_file_trans(DUMP_SEC_FILE_ENUM dumpfile,void* addr,unsigned int length);
 
 dump_product_type_t dump_get_product_type(void);
 
@@ -533,7 +549,16 @@ dump_product_type_t dump_get_product_type(void);
 void bsp_dump_save_regs(void* reg_addr,u32 reg_size);
 BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo);
 #endif
+#if defined(__KERNEL__)
+s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name);
+void bsp_dump_log_notifer_callback(u32 modem_type,char* path);
+s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
 
+#ifndef  __CMSIS_RTOS
+void bsp_dump_get_avaiable_size(u32* size);
+#endif
+
+#endif
 #else
 
 static void inline system_error (u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length)
@@ -555,7 +580,7 @@ static s32 inline bsp_dump_unregister_hook(dump_handle handle)
     return 0;
 }
 
-static inline u8 * bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version)
+static inline u8 * bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id)
 {
     return BSP_NULL;
 }
@@ -570,10 +595,6 @@ static inline u8 * bsp_dump_get_field_phy_addr(u32 field_id)
     return 0;
 }
 
-static s32 inline bsp_dump_register_sysview_hook(dump_sysview_t mod_id, dump_hook func)
-{
-    return 0;
-}
 
 
 static void inline bsp_dump_trace_stop(void)
@@ -616,6 +637,35 @@ static inline BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo)
 {
     return true;
 }
+static inline s32 bsp_dump_mark_voice(u32 flag)
+{
+    return 0;
+}
+#endif
+
+#if defined(__KERNEL__)
+static inline s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name)
+{
+    return 0;
+}
+static inline void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
+{
+    return;
+}
+static inline s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
+{
+    return 0;
+}
+#endif
+
+#ifndef __CMSIS_RTOS
+static inline void bsp_dump_get_avaiable_size(u32* size)
+{
+    if(size != NULL)
+    {
+        size = 0;
+    }
+}
 #endif
 
 
@@ -640,7 +690,7 @@ static s32 inline bsp_dump_unregister_hook(dump_handle handle)
     return 0;
 }
 
-static inline u8 * bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version)
+static inline u8 * bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id)
 {
     return BSP_NULL;
 }
@@ -655,10 +705,6 @@ static inline u8 * bsp_dump_get_field_phy_addr(u32 field_id)
     return 0;
 }
 
-static s32 inline bsp_dump_register_sysview_hook(dump_sysview_t mod_id, dump_hook func)
-{
-    return 0;
-}
 
 
 static void inline bsp_dump_trace_stop(void)
@@ -697,20 +743,41 @@ static inline BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo)
     return true;
 }
 #endif
+static inline s32 bsp_dump_mark_voice(u32 flag)
+{
+    return 0;
+}
+#if defined(__KERNEL__)
+static inline s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name)
+{
+    return 0;
+}
+static inline void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
+{
+    return;
+}
+static inline s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
+{
+    return 0;
+}
 
 #endif
 
+#ifndef __CMSIS_RTOS
+static inline void bsp_dump_get_avaiable_size(u32* size)
+{
+    if(size != NULL)
+    {
+        size = 0;
+    }
+}
+#endif
+
+#endif
 
 /*****************************************************************************
   4 错误码声明
 *****************************************************************************/
-#define BSP_ERR_DUMP_BASE               (int)(0x80000000 | (BSP_DEF_ERR(BSP_MODU_DUMP, 0)))
-#define BSP_ERR_DUMP_INIT_FAILED        (BSP_ERR_DUMP_BASE + 0x1)
-#define BSP_ERR_DUMP_INVALID_MODULE     (BSP_ERR_DUMP_BASE + 0x1)
-#define BSP_ERR_DUMP_INVALID_FILE       (BSP_ERR_DUMP_BASE + 0x2)
-#define BSP_ERR_DUMP_INVALID_PARAM      (BSP_ERR_DUMP_BASE + 0x3)
-#define BSP_ERR_DUMP_NO_BUF             (BSP_ERR_DUMP_BASE + 0x4)
-#define BSP_ERR_DUMP_SOCP_ERR           (BSP_ERR_DUMP_BASE + 0x5)
 
 
 #ifdef __cplusplus

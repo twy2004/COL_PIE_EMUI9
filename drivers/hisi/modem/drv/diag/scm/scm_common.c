@@ -52,8 +52,9 @@
 
 /*****************************************************************************
   1 头文件包含
-**************************************************************************** */
+*****************************************************************************/
 #include <linux/of_platform.h>
+#include <mdrv.h>
 #include "scm_debug.h"
 #include "scm_ind_src.h"
 #include "scm_ind_dst.h"
@@ -61,7 +62,8 @@
 #include "scm_cnf_dst.h"
 #include "scm_common.h"
 #include <securec.h>
-
+#include <bsp_shared_ddr.h>
+#include "diag_system_debug.h"
 
 u64 g_dma_mask = (u64)(-1);
 /*****************************************************************************
@@ -119,16 +121,87 @@ unsigned long scm_UncacheMemPhyToVirt(u8 *pucCurPhyAddr, u8 *pucPhyStart, u8 *pu
 {
     if((pucCurPhyAddr < pucPhyStart) || (pucCurPhyAddr >= (pucPhyStart+ulBufLen)))
     {
-        (void)scm_printf("\r\n VOS_UncacheMemPhyToVirt: The PHY Addr 0x%p, pucPhyStart: 0x%p, pucVirtStart: 0x%p, ulBufLen: 0x%x.\r\n",
-                    pucCurPhyAddr,
-                    pucPhyStart,
-                    pucVirtStart,
-                    ulBufLen);
+        diag_error("Phy to Virt error\n");
 
         return (unsigned long)NULL;
     }
 
     return (unsigned long)((pucCurPhyAddr - pucPhyStart) + pucVirtStart);
 }
+
+/*****************************************************************************
+ 函 数 名  : diag_shared_mem_write
+ 功能描述  : diag子系统对共享内存写接口
+ 输入参数  : eType:  操作共享内存的类型，如开机A核log标志
+             len:    写操作len不允许为0
+             pData:  写入共享内存的数据
+
+ 输出参数  : 无
+ 返 回 值  : 错误码
+
+**************************************************************************** */
+u32 diag_shared_mem_write(u32 eType, u32 len, char *pData)
+{
+    u8 *ptr;
+
+    switch(eType)
+    {
+        case POWER_ON_LOG_A:
+            if((pData == NULL) || (len == 0))
+            {
+                diag_error("para error, len=0x%x\n", len);
+                return ERR_MSP_FAILURE;
+            }
+            ptr = (u8 *)(((unsigned long)SHM_BASE_ADDR)+SHM_OFFSET_DIAG_POWER_ON_LOG);
+            memcpy_s(&(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cPowerOnlogA),
+                sizeof(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cPowerOnlogA), pData, len);
+            return ERR_MSP_SUCCESS;
+
+        case DS_DATA_BUFFER_STATE:
+            if((pData == NULL) || (len == 0))
+            {
+                diag_error("para error, len=0x%x\n", len);
+                return ERR_MSP_FAILURE;
+            }
+            ptr = (u8 *)(((unsigned long)SHM_BASE_ADDR)+SHM_OFFSET_DIAG_POWER_ON_LOG);
+            memcpy_s(&(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cDsSocpBuffer),
+                sizeof(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cDsSocpBuffer), pData, len);
+            return ERR_MSP_SUCCESS;
+
+        default:
+            return ERR_MSP_INVALID_ID;
+    }
+}
+
+/*****************************************************************************
+ 函 数 名  : diag_shared_mem_read
+ 功能描述  : diag子系统对共享内存读接口
+ 输入参数  : eType:  操作共享内存的类型，如开机A核log标志
+
+ 输出参数  : 无
+ 返 回 值  : 共享内存中的数据
+
+**************************************************************************** */
+u32 diag_shared_mem_read(u32 eType)
+{
+    u8 *ptr;
+    u32 val;
+
+    switch(eType)
+    {
+        case POWER_ON_LOG_A:
+                ptr = (u8 *)(SHM_BASE_ADDR+SHM_OFFSET_DIAG_POWER_ON_LOG);
+                val = ((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cPowerOnlogA;
+                return val;
+
+        case DS_DATA_BUFFER_STATE:
+                ptr = (u8 *)(((unsigned long)SHM_BASE_ADDR)+SHM_OFFSET_DIAG_POWER_ON_LOG);
+                val = (u32)(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cDsSocpBuffer);//lint !e571
+                return val;                
+        default:
+            return ERR_MSP_INVALID_ID;
+    }
+}
+
 
 

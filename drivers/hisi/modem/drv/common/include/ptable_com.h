@@ -219,7 +219,7 @@ extern struct ST_PART_TBL * ptable_get_ram_data(void);
 #ifdef	CONFIG_EMMC_BOOT
 /* M3boot和ptable分区起始位置及大小位置不能调整!!!!!!!*/
 #define PTABLE_M3_BOOT_START             (0)
-#define PTABLE_M3_BOOT_LEN               (0x20000)
+#define PTABLE_M3_BOOT_LEN              (PRODUCT_CFG_FLASH_M3BOOT_LEN)
 #define PTABLE_M3_BOOT_END               (PTABLE_M3_BOOT_START + PTABLE_M3_BOOT_LEN)
 
 #define PTABLE_GPT_START            	(0)
@@ -271,8 +271,13 @@ extern struct ST_PART_TBL * ptable_get_ram_data(void);
 #define PTABLE_NVCUST_LEN                (PRODUCT_CFG_FLASH_NV_CUST_LEN)
 #define PTABLE_NVCUST_END                (PTABLE_NVCUST_START + PTABLE_NVCUST_LEN)
 
+/* Uce */
+#define PTABLE_UCE_START              	 PTABLE_NVCUST_END
+#define PTABLE_UCE_LEN                  (PRODUCT_CFG_FLASH_UCE_LEN)
+#define PTABLE_UCE_END                  (PTABLE_UCE_START + PTABLE_UCE_LEN)
+
 /* SecStorage */
-#define PTABLE_SEC_STORAGE_START        PTABLE_NVCUST_END
+#define PTABLE_SEC_STORAGE_START        PTABLE_UCE_END
 #define PTABLE_SEC_STORAGE_LEN          (PRODUCT_CFG_FLASH_SEC_STORAGE_LEN)
 #define PTABLE_SEC_STORAGE_END          (PTABLE_SEC_STORAGE_START + PTABLE_SEC_STORAGE_LEN)
 
@@ -416,6 +421,7 @@ extern struct ST_PART_TBL * ptable_get_ram_data(void);
 #define PTABLE_NVIMG_NM     "nvimg"
 #define PTABLE_NVDLOAD_NM   "nvdload"
 #define PTABLE_NVCUST_NM    "nvcust"
+#define PTABLE_UCE_NM       "uce"
 #define PTABLE_HACLOAD_NM   "hacload"
 #define PTABLE_SEC_STORAGE_NM   "sec_storage"
 #define PTABLE_NVDEFAULT_NM "nvdefault"
@@ -444,6 +450,7 @@ extern struct ST_PART_TBL * ptable_get_ram_data(void);
 #define PTABLE_MODEM_FW_NM   "modem_fw"
 #define PTABLE_TRUSTED_FW_NM "trusted_fw"
 #define PTABLE_UBIUSE_NM     "ubi_use"
+#define PTABLE_DEBUG_CERT     "debug_cert"
 #ifdef __cplusplus
 }
 #endif

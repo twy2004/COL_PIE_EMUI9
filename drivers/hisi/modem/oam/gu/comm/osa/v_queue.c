@@ -794,7 +794,7 @@ VOS_VOID* VOS_OutMsg( VOS_UINT32 ulQueueID )
  Return     : Pointer of message on success and VOS_NULL_PTR on failure
  Other      : After getting the message, the status would be changed to ACTIVE
  *****************************************************************************/
-VOS_VOID* VOS_GetMsg( VOS_UINT32 ulTaskID )
+MODULE_EXPORTED VOS_VOID* VOS_GetMsg( VOS_UINT32 ulTaskID )
 {
     VOS_UINT32          ulQueueID;
 
@@ -809,7 +809,7 @@ VOS_VOID* VOS_GetMsg( VOS_UINT32 ulTaskID )
  Input      : ulFid --- Fid Num
  Return     : The queue size of Fid.
  *****************************************************************************/
-VOS_UINT32  VOS_GetQueueSizeFromFid(VOS_UINT32 ulFid)
+MODULE_EXPORTED VOS_UINT32  VOS_GetQueueSizeFromFid(VOS_UINT32 ulFid)
 {
     VOS_UINT32  ulQid;
 
@@ -825,9 +825,9 @@ VOS_UINT32  VOS_GetQueueSizeFromFid(VOS_UINT32 ulFid)
  Return     : void
  Other      :
  *****************************************************************************/
-VOS_VOID VOS_show_queue_info(VOS_VOID)
+MODULE_EXPORTED VOS_VOID VOS_show_queue_info(VOS_VOID)
 {
-    (VOS_VOID)vos_printf("Max be used queue is %d.\r\n",Max_use_queue_number);
+    (VOS_VOID)vos_printf("[PAM][OSA] %s: Max be used queue is %d.\r\n", __FUNCTION__, Max_use_queue_number);
 }
 
 /*****************************************************************************
@@ -880,7 +880,7 @@ VOS_VOID VOS_QueuePrintFull( VOS_UINT32 ulQueue, VOS_CHAR *pcBuf, VOS_UINT32 ulL
  Return     : VOS_OK on success or errno on failure.
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_CheckTaskQueue(VOS_UINT32 ulPid,VOS_UINT32 ulEntries)
+MODULE_EXPORTED VOS_UINT32 VOS_CheckTaskQueue(VOS_UINT32 ulPid,VOS_UINT32 ulEntries)
 {
 
     int                 ulFid;

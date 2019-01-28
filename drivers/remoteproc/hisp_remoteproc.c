@@ -150,6 +150,7 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 #define REVISION_ID_OFFSET                  (0x20008)
 
 /* PCtrl Regs Offset */
+#define PCTRL_PERI_STAT2_ADDR       (0x09C)
 #define PCTRL_PERI_STAT10_ADDR      (0x0BC)
 
 /* MEDIA1 Regs Offset */
@@ -2311,6 +2312,14 @@ void dump_media1_regs(void)
 {
 #ifdef CONFIG_HUAWEI_CAMERA_USE_HISP200
     void __iomem *media1_base = NULL;
+    void __iomem *pctrl_addr = NULL;
+    int ret = 0;
+
+    pr_info("[%s] +\n", __func__);
+    if ((ret = get_media1_subsys_power_state()) == 0) {
+        pr_err("[%s] Failed : get_media1_subsys_power_state. %d\n", __func__, ret);
+        return ;
+    }
 
     media1_base = get_regaddr_by_pa(MEDIA1);
 
@@ -2325,6 +2334,62 @@ void dump_media1_regs(void)
         __raw_readl(media1_base + MEDIA1_PERCLKEN1_ADDR),
         __raw_readl(media1_base + MEDIA1_PERSTAT1_ADDR),
         __raw_readl(media1_base + MEDIA1_CLKDIV9_ADDR));
+
+    pctrl_addr = get_regaddr_by_pa(PCTRL);
+    if (!pctrl_addr) {
+        RPROC_ERR("Failed : pctrl ioremap\n");
+        return;
+    }
+
+    pr_alert("PCTRL:PERI_STAT2.0x%x\n",
+        __raw_readl(pctrl_addr + PCTRL_PERI_STAT2_ADDR));
+#endif
+}
+
+void dump_smmu500_regs(void)
+{
+#ifdef CONFIG_HUAWEI_CAMERA_USE_HISP200
+    void __iomem *smmu500_addr = NULL;
+    int ret = 0;
+
+    pr_info("[%s] +\n", __func__);
+    if ((ret = get_media1_subsys_power_state()) == 0) {
+        pr_err("[%s] Failed : get_media1_subsys_power_state. %d\n", __func__, ret);
+        return ;
+    }
+
+    smmu500_addr = get_regaddr_by_pa(ISPCORE);
+    if (!smmu500_addr) {
+        pr_alert("Failed : smmu500 ioremap\n");
+        return;
+    }
+
+    smmu500_addr += 0x001F0000;
+
+    pr_alert("SMMU500:SMMU_SIDR0.0x%x\n", __raw_readl(smmu500_addr + 0x0020));
+    pr_alert("SMMU500:SMMU_SIDR1.0x%x\n", __raw_readl(smmu500_addr + 0x0024));
+    pr_alert("SMMU500:SMMU_SIDR2.0x%x\n", __raw_readl(smmu500_addr + 0x0028));
+    pr_alert("SMMU500:SMMU_SIDR7.0x%x\n", __raw_readl(smmu500_addr + 0x003C));
+    pr_alert("SMMU500:SMMU_SGFSYNR0.0x%x\n", __raw_readl(smmu500_addr + 0x0050));
+    pr_alert("SMMU500:SMMU_SGFSYNR1.0x%x\n", __raw_readl(smmu500_addr + 0x0054));
+    pr_alert("SMMU500:SMMU_STLBGSTATUS.0x%x\n", __raw_readl(smmu500_addr + 0x0074));
+    pr_alert("SMMU500:SMMU_DBGRDATATBU.0x%x\n", __raw_readl(smmu500_addr + 0x0084));
+    pr_alert("SMMU500:SMMU_DBGRDATATCU.0x%x\n", __raw_readl(smmu500_addr + 0x008C));
+    pr_alert("SMMU500:PMCGCR0.0x%x\n", __raw_readl(smmu500_addr + 0x3800));
+    pr_alert("SMMU500:PMCFGR.0x%x\n", __raw_readl(smmu500_addr + 0x3E00));
+    pr_alert("SMMU500:PMAUTHSTATUS.0x%x\n", __raw_readl(smmu500_addr + 0x3FB8));
+    pr_alert("SMMU500:SMMU_CB0_FAR_LOW.0x%x\n", __raw_readl(smmu500_addr + 0x8060));
+    pr_alert("SMMU500:SMMU_CB0_FAR_HIGH.0x%x\n", __raw_readl(smmu500_addr + 0x8064));
+    pr_alert("SMMU500:SMMU_CB0_IPAFAR_LOW.0x%x\n", __raw_readl(smmu500_addr + 0x8070));
+    pr_alert("SMMU500:SMMU_CB0_IPAFAR_HIGH.0x%x\n", __raw_readl(smmu500_addr + 0x8074));
+    pr_alert("SMMU500:SMMU_CB0_PMAUTHSTATUS.0x%x\n", __raw_readl(smmu500_addr + 0x8FB8));
+    pr_alert("SMMU500:SMMU_CB1_FAR_LOW.0x%x\n", __raw_readl(smmu500_addr + 0x9060));
+    pr_alert("SMMU500:SMMU_CB1_FAR_HIGH.0x%x\n", __raw_readl(smmu500_addr + 0x9064));
+    pr_alert("SMMU500:SMMU_CB1_IPAFAR_LOW.0x%x\n", __raw_readl(smmu500_addr + 0x9070));
+    pr_alert("SMMU500:SMMU_CB1_IPAFAR_HIGH.0x%x\n", __raw_readl(smmu500_addr + 0x9074));
+    pr_alert("SMMU500:SMMU_CB1_TLBSTATUS.0x%x\n", __raw_readl(smmu500_addr + 0x97F4));
+    pr_alert("SMMU500:SMMU_CB1_ATSR.0x%x\n", __raw_readl(smmu500_addr + 0x98F0));
+    pr_alert("SMMU500:SMMU_CB1_PMAUTHSTATUS.0x%x\n", __raw_readl(smmu500_addr + 0x9FB8));
 #endif
 }
 

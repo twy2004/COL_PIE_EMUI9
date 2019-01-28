@@ -82,7 +82,7 @@ typedef struct
 
 typedef struct
 {
-    u32 u32UsbDbg;   /* usb模块调试信息级别 */
+    u32 smp_sch; 
 }DRV_USB_DBG_STRU;
 
 /* C核单独复位按需开关特性配置NV项 = 0xd134 */
@@ -163,6 +163,12 @@ typedef struct
     u32 enable;        /*mbb ap侧dmss解析使能标志, 0, 去使能;  1, 使能*/
     u32 reset_enable;  /*mbb ap侧dmss复位使能标志, 0, 不使能;  1, 使能*/
 }DRV_DMSS_CFG_STRU;
+
+typedef struct {
+    u32 ulRatePeriod;   /* 流控周期单位ms , 取值必须1~0xFFFFFFFF */
+    u32 ulRateEn[2];    /* 流量控制使能，每个bit对应1个通道，ulFlowEn[0]对应channel 0~31 bit0 :channel 0，ulFlowEn[1]对应channel 32~63 bit32:chan32，0不使能，1使能 */
+    u32 ulRateThr[64];  /* 流量控制阈值，对应64个通道，取值0~0xFFFFFFFF，0：通道始终进行限流，通道优先级始终保持最低 */
+}DRV_DIAG_RATE_STRU;
 
 #ifdef __cplusplus
 #if __cplusplus

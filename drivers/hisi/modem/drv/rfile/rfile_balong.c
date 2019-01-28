@@ -58,7 +58,8 @@
 
 #include "rfile_balong.h"
 #include <securec.h>
-
+#include <bsp_print.h>
+#define THIS_MODU mod_rfile
 /*lint --e{830, 529, 533, 64, 732, 737,607, 501}*/
 
 
@@ -151,7 +152,7 @@ do{ \
         snprintf_s(rfile_pm,257,256,"op %d,path %s.\n",op,path);\
         bsp_pm_log(PM_OM_ARFILE, strlen(rfile_pm),rfile_pm);\
         g_stRfileMain.lpmstate = 0; \
-        printk("[C SR] rfile op %d, path %s.\n", op, path); \
+        bsp_info("[C SR] rfile op %d, path %s.\n", op, path); \
     } \
 }while(0);
 
@@ -163,7 +164,7 @@ do{ \
         snprintf_s(rfile_pm,257,256,"op %d,path %s.\n",op,rfile_getdirpath((s32)fd));\
         bsp_pm_log(PM_OM_ARFILE, strlen(rfile_pm),rfile_pm);\
         g_stRfileMain.lpmstate = 0; \
-        printk("[C SR] rfile op %d, path %s.\n", op, rfile_getdirpath((s32)fd)); \
+        bsp_info("[C SR] rfile op %d, path %s.\n", op, rfile_getdirpath((s32)fd)); \
     } \
 }while(0);
 
@@ -175,7 +176,7 @@ do{ \
         snprintf_s(rfile_pm,257,256,"op %d,path %s.\n",op,rfile_getfilepath((s32)fd));\
         bsp_pm_log(PM_OM_ARFILE, strlen(rfile_pm),rfile_pm);\
         g_stRfileMain.lpmstate = 0; \
-        printk("[C SR] rfile op %d, path %s.\n", op, rfile_getfilepath((s32)fd)); \
+        bsp_info("[C SR] rfile op %d, path %s.\n", op, rfile_getfilepath((s32)fd)); \
     } \
 }while(0);
 
@@ -203,8 +204,7 @@ s32 __AccessCreate(char *pathtmp, s32 mode, u32 count)
 
     if(count > RFILE_STACK_MAX)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[rfile]: <%s> sys_mkdir %s stack %d over %d.\n", __FUNCTION__, pathtmp, count, RFILE_STACK_MAX);
+        bsp_err("<%s> sys_mkdir %s stack %d over %d.\n", __FUNCTION__, pathtmp, count, RFILE_STACK_MAX);
         return -1;
     }
 
@@ -214,9 +214,8 @@ s32 __AccessCreate(char *pathtmp, s32 mode, u32 count)
         p = strrchr(pathtmp, '/');
         if(NULL == p)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> strrchr %s no '/'.\n", __FUNCTION__, pathtmp);
-
+            bsp_err("<%s> strrchr %s no '/'.\n", __FUNCTION__, pathtmp);
+                
             return -1;
         }
 
@@ -225,6 +224,7 @@ s32 __AccessCreate(char *pathtmp, s32 mode, u32 count)
         {
             /* 查看上一级目录是否存在，如果不存在则创建此目录 */
             *p = '\0';
+		// cppcheck-suppress *
             ret = __AccessCreate(pathtmp, mode, count + 1);
             if(0 != ret)
             {
@@ -242,8 +242,8 @@ s32 __AccessCreate(char *pathtmp, s32 mode, u32 count)
 
         if(0 != ret)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> sys_mkdir %s failed ret %d.\n", __FUNCTION__, pathtmp, ret);
+            bsp_err( "<%s> sys_mkdir %s failed ret %d.\n", __FUNCTION__, pathtmp, ret);
+               
 
             return -1;
         }
@@ -287,8 +287,8 @@ void rfile_FpListAdd(s32 fp, s8 *name)
     fp_elemt = (struct fp_list *)Rfile_Malloc(sizeof(struct fp_list));
     if(fp_elemt == NULL)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[rfile]: <%s> malloc fp_elemt failed.\n", __FUNCTION__);
+        bsp_err("<%s> malloc fp_elemt failed.\n", __FUNCTION__);
+            
 
         return;
     }
@@ -339,8 +339,8 @@ void rfile_DpListAdd(s32 dp, s8 *name)
     dp_elemt=(struct dir_list *)Rfile_Malloc(sizeof(struct dir_list));
     if(dp_elemt == NULL)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[rfile]: <%s> malloc dp_elemt failed.\n", __FUNCTION__);
+        bsp_err("<%s> malloc dp_elemt failed.\n", __FUNCTION__);
+            
 
         return;
     }
@@ -398,8 +398,8 @@ s32 bsp_open(const s8 *path, s32 flags, s32 mode)
         ret = AccessCreate(pathtmp, mode);
         if(ret)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> AccessCreate failed.\n", __FUNCTION__);
+            bsp_err("<%s> AccessCreate failed.\n", __FUNCTION__);
+                
         }
     }
 #endif
@@ -414,8 +414,8 @@ s32 bsp_open(const s8 *path, s32 flags, s32 mode)
     time_stamp[2] = get_timer_slice_delta(time_stamp[0], time_stamp[1]);
     if(time_stamp[2] > (bsp_get_slice_freq()*DELAY_TIME))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: bsp_open file name %s out of time start time 0x%x end time 0x%x detal time 0x%x\n", path, time_stamp[0],time_stamp[1],time_stamp[2]);
+        bsp_err("bsp_open file name %s out of time start 0x%x end 0x%x detal 0x%x\n", path, time_stamp[0],time_stamp[1],time_stamp[2]);
+                
     }
     return ret;
 }
@@ -439,8 +439,8 @@ s32 bsp_close(u32 fp)
     time_stamp[2] = get_timer_slice_delta(time_stamp[0], time_stamp[1]);
     if(time_stamp[2] > (bsp_get_slice_freq()*DELAY_TIME))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: bsp_close %d out of time start time 0x%x end time 0x%x detal time 0x%x\n", fp, time_stamp[0],time_stamp[1],time_stamp[2]);
+        bsp_err("bsp_close %d out of time start 0x%x end 0x%x detal 0x%x\n", fp, time_stamp[0],time_stamp[1],time_stamp[2]);
+                
     }
 
     return ret;
@@ -470,14 +470,12 @@ s32 bsp_write(u32 fd, const s8 *ptr, u32 size)
     {
         if(file_p)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_write file name %s out of time start time 0x%x end time 0x%x detal time 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+            bsp_err("bsp_write file name %s out of time start 0x%x end 0x%x detal 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+                    
         }
         else
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_write file fd %d out of time start time 0x%x end time 0x%x detal time 0x%x\n", fd,time_stamp[0],time_stamp[1],time_stamp[2]);
-
+            bsp_err("bsp_write file fd %d out of time start 0x%x end 0x%x detal 0x%x\n", fd,time_stamp[0],time_stamp[1],time_stamp[2]);
         }
     }
     if(file_p)
@@ -512,13 +510,13 @@ s32 bsp_write_sync(u32 fd, const s8 *ptr, u32 size)
     {
         if(file_p)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_write_sync file name %s out of time start time 0x%x end time 0x%x detal time 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+            bsp_err("bsp_write_sync file name %s out of time start 0x%x end 0x%x detal 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+                   
         }
         else
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_write_sync file fd %d out of time start time 0x%x end time 0x%x detal time 0x%x\n", fd,time_stamp[0],time_stamp[1],time_stamp[2]);
+            bsp_err("bsp_write_sync file fd %d out of time start 0x%x end 0x%x detal 0x%x\n", fd,time_stamp[0],time_stamp[1],time_stamp[2]);
+                    
         }
     }
     if(file_p)
@@ -551,13 +549,13 @@ s32 bsp_read(u32 fd, s8 *ptr, u32 size)
     {
         if(file_p)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_read file name %s out of time start time 0x%x end time 0x%x detal time 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+            bsp_err("bsp_read file name %s out of time start 0x%x end 0x%x detal 0x%x\n", file_p->f_path.dentry->d_iname,time_stamp[0],time_stamp[1],time_stamp[2]);
+                    
         }
         else
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                    "[rfile]: bsp_read file fd %d out of time start time 0x%x end time 0x%x detal time 0x%x\n", fd ,time_stamp[0],time_stamp[1],time_stamp[2]);
+            bsp_err("bsp_read file fd %d out of time start 0x%x end 0x%x detal 0x%x\n", fd ,time_stamp[0],time_stamp[1],time_stamp[2]);
+                    
         }
     }
     if(file_p)
@@ -641,8 +639,8 @@ s32 bsp_mkdir(s8 *dirName, s32 mode)
     ret = AccessCreate((char *)pathtmp, mode);
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[rfile]: <%s> AccessCreate failed.\n", __FUNCTION__);
+        bsp_err("<%s> AccessCreate failed.\n", __FUNCTION__);
+            
     }
 #else
     unsigned long old_fs;
@@ -834,11 +832,11 @@ void rfile_IccSend(void *pdata, u32 len, u32 ulId)
         }
 		else if(BSP_ERR_ICC_CCORE_RESETTING == ret)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "![rfile]: <%s> icc  cannot use.\n", __FUNCTION__);
+            bsp_err("<%s> icc  cannot use.\n", __FUNCTION__);
         }
         else if(len != (u32)ret)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "![rfile]: <%s> icc_send failed.\n", __FUNCTION__);
+            bsp_err("<%s> icc_send failed.\n", __FUNCTION__);
             return;
         }
         else
@@ -901,8 +899,8 @@ s32 rfile_AcoreOpenReq(struct bsp_rfile_open_req *pstRfileReq, u32 ulId)
         ret = AccessCreate(pathtmp, pstRfileReq->mode);
         if(ret)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> AccessCreate failed.\n", __FUNCTION__);
+            bsp_err("<%s> AccessCreate failed.\n", __FUNCTION__);
+                
         }
     }
 #endif
@@ -999,8 +997,8 @@ s32 rfile_AcoreReadReq(struct bsp_rfile_read_req *pstRfileReq, u32 ulId)
     rfile_MntnDotRecord(__LINE__);
     if((u32)pstRfileReq->ulSize > RFILE_LEN_MAX)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "![rfile]: <%s> pstRfileCnf->Size %d > RFILE_LEN_MAX.\n", __FUNCTION__, pstRfileReq->ulSize);
+        bsp_err("<%s> pstRfileCnf->Size %d > RFILE_LEN_MAX.\n", __FUNCTION__, pstRfileReq->ulSize);
+            
         return BSP_ERROR;
     }
     ulLen = sizeof(struct bsp_rfile_read_cnf) + pstRfileReq->ulSize;
@@ -1008,7 +1006,7 @@ s32 rfile_AcoreReadReq(struct bsp_rfile_read_req *pstRfileReq, u32 ulId)
     pstRfileCnf = Rfile_Malloc(ulLen);
     if(!pstRfileCnf)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> Rfile_Malloc failed.\n", __FUNCTION__);
+        bsp_err("<%s> Rfile_Malloc failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
     memset_s((void*)pstRfileCnf,ulLen,0,ulLen);
@@ -1163,8 +1161,8 @@ s32 rfile_AcoreMkdirReq(struct bsp_rfile_mkdir_req *pstRfileReq, u32 ulId)
     stRfileCnf.ret = AccessCreate((char *)pathtmp, pstRfileReq->mode);
     if(stRfileCnf.ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-            "[rfile]: <%s> AccessCreate failed.\n", __FUNCTION__);
+        bsp_err("<%s> AccessCreate failed.\n", __FUNCTION__);
+            
     }
 #else
     stRfileCnf.ret = bsp_mkdir(pcPath, pstRfileReq->mode); /*lint !e734*/
@@ -1291,7 +1289,7 @@ s32 rfile_AcoreReaddirReq(struct bsp_rfile_readdir_req *pstRfileReq, u32 ulId)
     pstRfileCnf = Rfile_Malloc(ulLen);
     if(!pstRfileCnf)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> Rfile_Malloc failed.\n", __FUNCTION__);
+        bsp_err("<%s> Rfile_Malloc failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
     memset_s((void*)pstRfileCnf,ulLen,0,ulLen);
@@ -1510,7 +1508,7 @@ s32 bsp_RfileCallback(u32 channel_id, u32 len, void *context)
 
     if((RFILE_CCORE_ICC_RD_CHAN != channel_id) && (RFILE_MCORE_ICC_RD_CHAN != channel_id))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "![rfile]: <%s> channel_id %d error.\n", __FUNCTION__, channel_id);
+        bsp_err("<%s> channel_id %d error.\n", __FUNCTION__, channel_id);
 
         return BSP_ERROR;
     }
@@ -1518,8 +1516,8 @@ s32 bsp_RfileCallback(u32 channel_id, u32 len, void *context)
     /* 如果rfile未初始化则利用icc的缓存机制保存数据 */
     if(EN_RFILE_INIT_FINISH != g_stRfileMain.eInitFlag)
     {
-        bsp_trace(BSP_LOG_LEVEL_WARNING, BSP_MODU_RFILE, "![rfile]: <%s> initflag %d.\n",
-            __FUNCTION__, g_stRfileMain.eInitFlag);
+        bsp_wrn("<%s> initflag %d.\n",__FUNCTION__, g_stRfileMain.eInitFlag);
+            
 
         return BSP_OK;
     }
@@ -1548,8 +1546,8 @@ void rfile_ResetProc(void)
         ret = bsp_close(tmpfp->fp);
         if(ret != BSP_OK)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> bsp_close failed.\n", __FUNCTION__);
+            bsp_err( "[reset]: <%s> bsp_close fp  failed.\n", __FUNCTION__);
+               
         }
 
         list_del(&tmpfp->stlist);
@@ -1562,8 +1560,8 @@ void rfile_ResetProc(void)
         ret = bsp_closedir(tmpdir->dp);
         if(ret != BSP_OK)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE,
-                "[rfile]: <%s> bsp_close failed.\n", __FUNCTION__);
+            bsp_err("[reset]: <%s> bsp_close dir failed.\n", __FUNCTION__);
+                
         }
 
         list_del(&tmpdir->stlist);
@@ -1581,7 +1579,7 @@ s32 rfile_TaskProc(void* obj)
     u32 channel_id;
     RFILE_REQ_FUN   pReqFun;
 
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_RFILE, "[rfile]: <%s> entry.\n", __FUNCTION__);
+    bsp_debug("<%s> entry.\n", __FUNCTION__);
 
     while(1)
     {
@@ -1612,7 +1610,7 @@ s32 rfile_TaskProc(void* obj)
         wake_lock(&g_stRfileMain.wake_lock);
         if(g_stRfileMain.pmState == EN_RFILE_SLEEP_STATE)
         {
-            printk(KERN_ERR"%s cur state in sleeping,wait for resume end!\n",__func__);
+            bsp_err("%s cur state in sleeping,wait for resume end!\n",__func__);
             continue;
         }
 
@@ -1620,7 +1618,7 @@ s32 rfile_TaskProc(void* obj)
         ret = bsp_icc_read(channel_id, g_stRfileMain.data, RFILE_LEN_MAX);
         if(((u32)ret > RFILE_LEN_MAX) || (ret <= 0))
         {
-            bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_RFILE, "![rfile]: <%s> icc_read %d.\n", __FUNCTION__, ret);
+            bsp_debug("<%s> icc_read %d.\n", __FUNCTION__, ret);
             wake_unlock(&g_stRfileMain.wake_lock);
             g_stRfileMain.opState = EN_RFILE_IDLE;
             continue;   /* A-C通道没读到数据 */
@@ -1632,7 +1630,7 @@ s32 rfile_TaskProc(void* obj)
 
         if(enOptype >= EN_RFILE_OP_BUTT)
         {
-            bsp_trace(BSP_LOG_LEVEL_CRIT, BSP_MODU_RFILE, "![rfile]: <%s> enOptype %d.\n", __FUNCTION__, enOptype);
+            bsp_fatal("<%s> enOptype %d  is bigger than EN_RFILE_OP_BUTT.\n", __FUNCTION__, enOptype);
         }
         else
         {
@@ -1641,7 +1639,7 @@ s32 rfile_TaskProc(void* obj)
             ret = pReqFun(g_stRfileMain.data, channel_id);
             if(BSP_OK != ret)
             {
-                bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "![rfile]: <%s> pFun failed %d.\n", __FUNCTION__, enOptype);
+                bsp_err("<%s> pFun failed %d.\n", __FUNCTION__, enOptype);
             }
         }
         wake_unlock(&g_stRfileMain.wake_lock);
@@ -1656,6 +1654,12 @@ s32 rfile_TaskProc(void* obj)
 
 s32 bsp_rfile_reset_cb(DRV_RESET_CB_MOMENT_E eparam, s32 userdata)    /*lint !e830*/
 {
+    if(bsp_fs_ok())
+    {
+         bsp_err("[reset]<%s> pFun failed  rfile states: EN_RFILE_INIT_INVALID \n", __FUNCTION__);
+         return -1;
+    }
+
     if(MDRV_RESET_CB_BEFORE == eparam)
     {
         /* 设置为suspend状态，待close打开的文件、目录后恢复为FINISH状态 */
@@ -1686,6 +1690,8 @@ s32 bsp_rfile_init(void)
     struct sched_param sch_para;
     sch_para.sched_priority = 15;
 
+    bsp_err("[init]start.\n");
+
     osl_sem_init(0, &(g_stRfileMain.semTask));
     osl_sem_init(0, &(g_stRfileMain.semCloseFps));
 
@@ -1694,13 +1700,13 @@ s32 bsp_rfile_init(void)
     g_stRfileMain.taskid = kthread_run(rfile_TaskProc, BSP_NULL, "rfile");
     if (IS_ERR(g_stRfileMain.taskid))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> kthread_run failed.\n", __FUNCTION__);
+        bsp_err("[init]: <%s> kthread_run failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
 
     if (BSP_OK != sched_setscheduler(g_stRfileMain.taskid, SCHED_FIFO, &sch_para))
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> sched_setscheduler failed.\n", __FUNCTION__);
+        bsp_err("[init]: <%s> sched_setscheduler failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
 
@@ -1716,19 +1722,19 @@ s32 bsp_rfile_init(void)
     ret = bsp_icc_event_register(RFILE_CCORE_ICC_RD_CHAN, bsp_RfileCallback, NULL, NULL, NULL);
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> bsp_icc_event_register failed.\n", __FUNCTION__);
+        bsp_err("[init]: <%s> bsp_icc_event_register failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
 
     ret = bsp_icc_event_register(RFILE_MCORE_ICC_RD_CHAN, bsp_RfileCallback, NULL, NULL, NULL);
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> bsp_icc_event_register MCORE failed.\n", __FUNCTION__);
+        bsp_err("[init]: <%s> bsp_icc_event_register MCORE failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
     adp_rfile_init();
 
-    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> success.\n", __FUNCTION__);
+    bsp_err("[init]ok.\n");
 
     return BSP_OK;
 }
@@ -1738,7 +1744,7 @@ s32 bsp_rfile_release(void)    /*lint !e830*/
 {
     s32 ret;
 
-    bsp_trace(BSP_LOG_LEVEL_DEBUG, BSP_MODU_RFILE, "[rfile]: <%s> entry.\n", __FUNCTION__);
+    bsp_debug("<%s> entry.\n", __FUNCTION__);
 
     g_stRfileMain.eInitFlag = EN_RFILE_INIT_INVALID;
 
@@ -1749,7 +1755,7 @@ s32 bsp_rfile_release(void)    /*lint !e830*/
     ret = bsp_icc_event_unregister(RFILE_CCORE_ICC_RD_CHAN);
     if(ret)
     {
-        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_RFILE, "[rfile]: <%s> bsp_icc_event_unregister failed.\n", __FUNCTION__);
+        bsp_err("<%s> bsp_icc_event_unregister failed.\n", __FUNCTION__);
         return BSP_ERROR;
     }
 
@@ -1787,36 +1793,32 @@ static int  modem_rfile_probe(struct platform_device *dev)
 
 static void  modem_rfile_shutdown(struct platform_device *dev)
 {
-    printk(KERN_ERR"%s shutdown start %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n",__func__);
+    bsp_info("%s shutdown start \n",__func__);
 
     g_stRfileMain.eInitFlag = EN_RFILE_INIT_INVALID;
 }
 static s32 modem_rfile_suspend(struct device *dev)
 {
     static s32 count = 0;
-    dev_info(dev,"%s:+\n",__func__);
     if(g_stRfileMain.opState != EN_RFILE_IDLE)
     {
-        printk(KERN_ERR" %s modem rfile is in doing!\n",__func__);
+        bsp_err("[SR] %s modem rfile is in doing!\n",__func__);
         return -1;
     }
     g_stRfileMain.pmState = EN_RFILE_SLEEP_STATE;
-    printk(KERN_ERR"modem rfile enter suspend! %d times \n",++count);
-    dev_info(dev,"%s:-\n",__func__);
+    bsp_info("[SR]modem rfile enter suspend! %d times \n",++count);
     return 0;
 }
 static s32 modem_rfile_resume(struct device *dev)
 {
     static s32 count = 0;
-    dev_info(dev,"%s:+\n",__func__);
     g_stRfileMain.pmState = EN_RFILE_WAKEUP_STATE;
     if(g_stRfileMain.opState == EN_RFILE_DOING)
     {
-        printk(KERN_ERR"%s need to enter task proc!\n",__func__);
+        bsp_err("[SR]%s need to enter task proc!\n",__func__);
         osl_sem_up(&g_stRfileMain.semTask);
     }
-    printk(KERN_ERR"modem rfile enter resume! %d times \n",++count);
-    dev_info(dev,"%s:-\n",__func__);
+    bsp_info("[SR]modem rfile enter resume! %d times \n",++count);
     return 0;
 }
 static const struct dev_pm_ops modem_rfile_pm_ops ={
@@ -1852,14 +1854,14 @@ int modem_rfile_init(void)
     ret = platform_device_register(&modem_rfile_device);
     if(ret)
     {
-        printk(KERN_ERR"platform_device_register modem_rfile_device fail !\n");
+        bsp_err("[init]platform_device_register modem_rfile_device fail !\n");
         return -1;
     }
 
     ret = platform_driver_register(&modem_rfile_drv);
     if(ret)
     {
-        printk(KERN_ERR"platform_device_register modem_rfile_drv fail !\n");
+        bsp_err("[init]platform_device_register modem_rfile_drv fail !\n");
         platform_device_unregister(&modem_rfile_device);
         return -1;
     }

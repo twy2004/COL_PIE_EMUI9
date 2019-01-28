@@ -41,6 +41,22 @@
 #include "hisi_hisee_upgrade.h"
 #include "hisi_hisee_chip_test.h"
 #include <dsm/dsm_pub.h>
+#include <hitest_slt.h>
+
+/*1:one rpmbkey, 0:error, 2:two rpmbkey*/
+extern u32 get_rpmb_support_key_num(void);
+
+/*get key from HISEE
+*KEY_NOT_READY(0):KEY_READY(1):KEY_REQ_FAILED(2) for hisee key
+*/
+extern int get_rpmb_key_status(void);
+
+#define SET_COS_FLASH_BUF_PARA() \
+do {\
+	cos_flash_buf_para[0] = HISEE_CHAR_SPACE;\
+	cos_flash_buf_para[2] = '0' + COS_PROCESS_UPGRADE;\
+	cos_flash_buf_para[1] = '0' + COS_FLASH_IMG_ID;\
+} while (0)
 
 
 #define SET_COS_DEFAULT_BUF_PARA() \
@@ -282,6 +298,67 @@ static int hisee_verify_isd_key(hisee_cos_imgid_type cos_id)
 }
 
 
+/****************************************************************************//**
+ * @brief      : bypass_write_casd_key
+ * @param[in]  : NA
+ * @return     : ::int
+ * @note       : send NULL to bypass
+********************************************************************************/
+static int bypass_write_casd_key(void)
+{
+    char *buff_virt;
+    phys_addr_t buff_phy = 0;
+    atf_message_header *p_message_header;
+    int ret = HISEE_OK;
+
+    /* alloc coherent buff with vir&phy addr */
+    buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, SIZE_4K,
+                                            &buff_phy, GFP_KERNEL);
+    if (NULL == buff_virt) {
+        pr_err("%s(): dma_alloc_coherent failed\n", __func__);
+        set_errno_and_return(HISEE_NO_RESOURCES);
+    }
+    memset(buff_virt, 0, SIZE_4K);
+
+    /* init and config the message */
+    p_message_header = (atf_message_header *)buff_virt; /*lint !e826*/
+    set_message_header(p_message_header, CMD_HISEE_WRITE_CASD_KEY);
+
+    /* smc call (synchronously) */
+    ret = send_smc_process(p_message_header, buff_phy, HISEE_ATF_MESSAGE_HEADER_LEN,
+            HISEE_ATF_GENERAL_TIMEOUT, CMD_HISEE_WRITE_CASD_KEY);
+    if (HISEE_OK != ret) {
+        pr_err("%s() fail\n", __func__);
+    }
+
+    dma_free_coherent(g_hisee_data.cma_device, (unsigned long)SIZE_4K, buff_virt, buff_phy);
+    check_and_print_result();
+    set_errno_and_return(ret);
+}
+
+/****************************************************************************//**
+ * @brief      : hisee_write_casd_key
+ * @param[in]  : NA
+ * @return     : ::int
+ * @note       :
+********************************************************************************/
+static int hisee_write_casd_key(void)
+{
+    int ret;
+    if (false == get_support_casd()) {
+        return HISEE_OK;
+    }
+
+    if (true == get_bypass_casd()) {
+        /* in default, do not write casd key */
+        ret = bypass_write_casd_key();
+    } else {
+        ret = upgrade_one_file_func(HISEE_CASD_IMG_FULLNAME, CMD_HISEE_WRITE_CASD_KEY);
+    }
+    check_and_print_result();
+    set_errno_and_return(ret);
+}
+
 static int g_hisee_flag_protect_lcs = 0;
 int hisee_debug(void)
 {
@@ -388,6 +465,9 @@ static int hisee_poweron_booting_misc_process(void *buf)
     ret = wait_hisee_ready(HISEE_STATE_MISC_READY, 30000);
     CHECK_OK(ret);
 
+    /* write casd key should be combined with misc image upgrade and be in right order */
+    ret = hisee_write_casd_key();
+    CHECK_OK(ret);
 
     /* cos patch upgrade only supported in this function */
     ret = hisee_cos_patch_read(img_type + (HISEE_MAX_MISC_IMAGE_NUMBER * cos_id));
@@ -455,11 +535,217 @@ static int run_hisee_nvmformat(void)
     set_errno_and_return(ret);
 }
 
+/*************************************************************
+函数原型：int cos_flash_image_upgrade_func(void *buf, unsigned int factory_test_flg)
+函数功能：执行cos_flash镜像的升级上电、镜像升级功能，把cos_flash镜像升级到encos分区、然后对hisee下电
+参数：
+输入：buf:保存当前操作对应的cos_id和process_id的字符串指针，可以为NULL(用默认值)。
+	  factory_test_flg:指示本cos flash镜像升级是在产线生产环境还是adb shell环境，为HISEE_FACTORY_TEST_VERSION
+	  表示产线生产环境。
+输出：无。
+返回值：HISEE_OK:cos_flash镜像升级成功；不是HISEE_OK:cos_flash镜像升级失败
+前置条件：/mnt/hisee_fs/目录下存在cos_flash.img
+后置条件： 无
+*************************************************************/
+static int cos_flash_image_upgrade_func(void *buf, unsigned int factory_test_flg)
+{
+	char cos_flash_buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+	int ret, ret1;
+
+	ret = hisee_poweroff_func(buf, 0);
+	if (HISEE_OK != ret) {
+		pr_err("hisee:%s() poweroff failed. retcode=%d\n", __func__, ret);
+		ret = HISEE_MULTICOS_POWEROFF_ERROR;
+		goto err_process;
+	}
+	SET_COS_FLASH_BUF_PARA();
+
+	ret = hisee_poweron_upgrade_func(cos_flash_buf_para, 0);
+	if (HISEE_OK != ret) {
+		pr_err("hisee:%s() power failed, ret = %d\n", __func__, ret);
+		ret = HISEE_MULTICOS_POWERON_UPGRADE_ERROR;
+		goto err_process;
+	}
+
+	hisee_mdelay(200);
+	ret1 = cos_upgrade_image_read(COS_FLASH_IMG_ID, COS_FLASH_IMG_TYPE);
+	if (HISEE_OK != ret1) {
+		pr_err("hisee:%s upgrade failed, ret = %d\n", __func__, ret1);
+		ret = HISEE_MULTICOS_IMG_UPGRADE_ERROR;
+	}
+	ret1 = hisee_poweroff_func(cos_flash_buf_para, 0);
+	if (HISEE_OK != ret1) {
+		pr_err("hisee:%s() poweroff failed. retcode=%d\n", __func__, ret1);
+		if (HISEE_OK == ret) {
+			ret = HISEE_MULTICOS_POWEROFF_ERROR;
+		}
+		goto err_process;
+	}
+
+err_process:
+    check_and_print_result();
+    return ret;
+}
+
+/*************************************************************
+函数原型：int cos_flash_image_boot_func(void)
+函数功能：执行cos_flash镜像启动加载功能，Hisee coe运行cos flash镜像
+参数：
+输入：无
+输出：无。
+返回值：HISEE_OK:cos_flash镜像启动成功；不是HISEE_OK:cos_flash镜像启动失败
+前置条件：cos_flash_image_upgrade_func()已经执行成功，表示cos_flash镜像已经
+			升级并且保存到安全DDR中，且中间不能执行其他的升级上电命令。
+后置条件： 无
+*************************************************************/
+static int cos_flash_image_boot_func(void)
+{
+	int ret;
+	char cos_flash_buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+
+	SET_COS_FLASH_BUF_PARA();
+	ret = hisee_poweron_booting_func((void *)cos_flash_buf_para, HISEE_POWER_ON_BOOTING);
+	CHECK_OK(ret);
+	/* wait hisee ready for receiving images */
+    ret = wait_hisee_ready(HISEE_STATE_COS_READY, 30000);
+    CHECK_OK(ret);
+
+err_process:
+    check_and_print_result();
+    return ret;
+}
+
+/*************************************************************
+函数原型：int sm_write_rpmb_key_process(void *buf)
+函数功能：hisee SM模式下写hisee 相关rpmbkey的功能
+参数：
+输入：无。
+输出：无。
+返回值：HISEE_OK:SM模式下写hisee 相关rpmbkey成功；SM模式下写hisee 相关rpmbkey失败
+前置条件：cos_flash对应的cos镜像必须已经启动上电成功，hisee启动加载的是cos_flash镜像
+后置条件： 无
+*************************************************************/
+static int sm_write_rpmb_key_process(void)
+{
+    int ret = HISEE_OK;
+    int write_rpmbkey_try = 5;
+	char cos_flash_buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+
+	if ((SINGLE_RPMBKEY_NUM < get_rpmb_support_key_num()) &&
+		(KEY_NOT_READY == get_rpmb_key_status())) {
+		SET_COS_FLASH_BUF_PARA();
+	    while (write_rpmbkey_try--) {
+	        ret = hisee_write_rpmb_key(NULL, 0);
+	        if (HISEE_OK == ret) {
+	            break;
+	        }
+	        ret = hisee_poweroff_func((void *)cos_flash_buf_para, 0);
+	        CHECK_OK(ret);
+	        ret = hisee_poweron_booting_func((void *)cos_flash_buf_para, 0);
+	        CHECK_OK(ret);
+	        hisee_mdelay(DELAY_FOR_HISEE_POWERON_BOOTING); /*lint !e744 !e747 !e748*/
+	    }
+	}
+err_process:
+    check_and_print_result();
+    return ret;
+}
+
+/*************************************************************
+函数原型：int load_cos_flash_do_factory_test(void *buf)
+函数功能：执行只能在cos flash镜像支持的相关的产线生产操作。
+		  升级cos flash镜像，加载cos flash镜像让其启动运行后，根据设备状态调用
+		  写hisee rpmb region的rpmbkey、调用run_hisee_nvmformat()完成NVM format的操作。
+参数：
+输入：buf:保存当前操作对应的cos_id和process_id的字符串指针，可以为NULL(用默认值)。
+	  para:指示加载cos flash镜像做DM下还是SM模式下的产线操作
+输出：无。
+返回值：HISEE_OK:执行只能在cos flash镜像支持的相关的产线生产操作成功；
+		不是HISEE_OK:执行只能在cos flash镜像支持的相关的产线生产操作失败
+前置条件：
+后置条件： 无
+*************************************************************/
+int load_cos_flash_do_factory_test(void *buf, int para)
+{
+	int ret1, ret;
+	unsigned int cos_flash_exist_flg = HISEE_FALSE;
+	void *p_curr_cos_buf;
+	/*3 characters: space,cos_id=3,process_id=COS_PROCESS_CHIP_TEST*/
+	char cos_flash_buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+	/*3 characters: space,cos_id=0,process_id=COS_PROCESS_CHIP_TEST*/
+	char cos_default_buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+
+	ret = check_cos_flash_file_exist(&cos_flash_exist_flg);
+	if (HISEE_OK != ret || HISEE_FALSE == cos_flash_exist_flg) {
+		pr_err("hisee:%s() cos flash file not exist.\n", __func__);
+		if (KEY_READY == get_rpmb_key_status()) {
+			ret = HISEE_OK;
+		} else {
+			ret = HISEE_MULTICOS_COS_FLASH_FILE_ERROR;
+		}
+		goto err_process;
+	}
+	if ((NULL == buf) || (HISEE_CHAR_NEWLINE == *(char *)buf)
+			|| ('\0' == *(char *)buf)) {
+		SET_COS_DEFAULT_BUF_PARA();
+		p_curr_cos_buf = (void *)cos_default_buf_para;
+	} else {
+		p_curr_cos_buf = buf;
+	}
+	SET_COS_FLASH_BUF_PARA();
+	ret = cos_flash_image_upgrade_func(p_curr_cos_buf, para);
+	CHECK_OK(ret);
+	ret = cos_flash_image_boot_func();
+	CHECK_OK(ret);
+	hisee_mdelay(DELAY_FOR_HISEE_POWERON_BOOTING); /*lint !e744 !e747 !e748*/
+
+	ret = sm_write_rpmb_key_process();
+	if (HISEE_OK != ret) {
+		pr_err("hisee:%s() sm_write_rpmb_key_process failed, ret=%d\n", __func__, ret);
+		goto poweroff_process;
+	}
+
+	ret = run_hisee_nvmformat();
+	if (HISEE_OK != ret) {
+		pr_err("hisee:%s() run_hisee_nvmformat failed, ret=%d\n", __func__, ret);
+		goto poweroff_process;
+	}
+	ret = hisee_poweroff_func((void *)cos_flash_buf_para, 0);
+	CHECK_OK(ret);
+	/* wait hisee power down, if timeout or fail, return errno */
+	ret = wait_hisee_ready(HISEE_STATE_POWER_DOWN, DELAY_FOR_HISEE_POWEROFF);
+	CHECK_OK(ret);
+
+	if (HISEE_FACTORY_TEST_VERSION == para) {
+		/*删除/mnt/hisee_fs/cos_flash.img，是否需要，请注意*/
+		filesys_rm_cos_flash_file();
+		/* poweron upgrading hisee */
+		ret = hisee_poweron_upgrade_func(p_curr_cos_buf, 0);
+	    CHECK_OK(ret);
+		hisee_mdelay(DELAY_FOR_HISEE_POWERON_UPGRADE); /*lint !e744 !e747 !e748*/
+	} else if (HISEE_SERVICE_WORK_VERSION == para) {
+		/* poweron booting hisee */
+	    ret = hisee_poweron_booting_func(p_curr_cos_buf, HISEE_POWER_ON_BOOTING);
+		CHECK_OK(ret);
+	}
+	goto err_process;
+poweroff_process:
+	ret1 =  hisee_poweroff_func((void *)cos_flash_buf_para, 0);
+	if (HISEE_OK != ret1) {
+		pr_err("hisee:%s() hisee_poweroff_func failed1, ret=%d\n", __func__, ret1);
+	}
+err_process:
+    check_and_print_result();
+    return ret;
+}
+
 
 
 static int hisee_manufacture_image_upgrade_process(void *buf, unsigned int hisee_lcs_mode)
 {
     int ret;
+	unsigned int cos_id = COS_IMG_ID_0;
+	unsigned int process_id = 0;
 
     ret = hisee_poweroff_func(buf, HISEE_PWROFF_LOCK);
     CHECK_OK(ret);
@@ -477,9 +763,14 @@ static int hisee_manufacture_image_upgrade_process(void *buf, unsigned int hisee
         ret = hisee_write_rpmb_key_process(buf);
         CHECK_OK(ret);
     }
-	ret = run_hisee_nvmformat();
+	ret = hisee_get_cosid_processid(buf, &cos_id, &process_id);
 	if (HISEE_OK != ret) {
-		pr_err("hisee:%s() run_hisee_nvmformat failed, ret=%d\n", __func__, ret);
+		pr_err("hisee:%s() hisee_get_cosid failed ret=%d\n", __func__, ret);
+		goto err_process;
+	}
+	if (COS_IMG_ID_0 == cos_id) {/*only cos0 support load cos_flash image*/
+		ret = load_cos_flash_do_factory_test(buf, HISEE_FACTORY_TEST_VERSION);
+		CHECK_OK(ret);
 	}
 
     ret = cos_image_upgrade_func(buf, HISEE_FACTORY_TEST_VERSION);
@@ -508,8 +799,8 @@ static int hisee_total_manufacture_func(void *buf, int para)
 	char factory_slt_test_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
 	unsigned int cos_image_num;
 
-	p_buff_para = NULL;
-	cos_image_num = HISEE_MIN_COS_IMAGE_NUMBER;
+	p_buff_para = (void *)factory_slt_test_para;
+	cos_image_num = HISEE_SUPPORT_COS_FILE_NUMBER;
 
 	factory_slt_test_para[0] = HISEE_CHAR_SPACE;/*space character*/
 	factory_slt_test_para[2] = '0' + COS_PROCESS_UPGRADE;
@@ -518,6 +809,11 @@ static int hisee_total_manufacture_func(void *buf, int para)
 
 
 	for (cos_id = 0; cos_id < cos_image_num; cos_id++) {
+		/* If there is no image for current cos id in hisee_img, bypass upgrading. */
+		if (HISEE_COS_EXIST != g_hisee_data.hisee_img_head.is_cos_exist[cos_id]) {
+			pr_err("%s: there is no cos%d image in hisee_img!\n", __func__, cos_id);
+			continue;
+		}
 
 		factory_slt_test_para[1] = '0' + cos_id;
 	    ret = hisee_manufacture_image_upgrade_process(p_buff_para, hisee_lcs_mode);
@@ -592,6 +888,139 @@ int hisee_parallel_manufacture_func(void *buf, int para)
 /* hisee slt test function end */
 
 /****************************************************************************//**
+ * @brief      : hisee_temp_limit_cfg
+ * @param[in]  : flag, on or off
+ * @return     : void
+ * @note       :
+********************************************************************************/
+static void hisee_temp_limit_cfg(hisee_tmp_cfg_state flag)
+{
+	unsigned int value;
+	static void __iomem *hisee_temp_addr = 0;
+
+	if (!hisee_temp_addr) {
+		hisee_temp_addr = ioremap(HISEE_HIGH_TEMP_PROTECT_ADDR, sizeof(unsigned int));
+		if (!hisee_temp_addr) {
+			pr_err("hisee init temp addr failed!\n");
+			return;
+		}
+	}
+	value = readl(hisee_temp_addr);
+	if (HISEE_TEMP_CFG_OFF == flag) {
+		value |= BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT);
+	} else {
+		value &= (~BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT));
+	}
+	writel(value, hisee_temp_addr);
+}
+
+/****************************************************************************//**
+ * @brief      : hisee_factory_check
+ *                  send smc to atf to check factory check values.
+ * @param[in]  : NA
+ * @return     : ::int
+ * @note       :
+********************************************************************************/
+static int hisee_factory_check(void)
+{
+    char *buff_virt = NULL;
+    phys_addr_t buff_phy = 0;
+    atf_message_header *p_message_header;
+    int ret = HISEE_OK;
+    int image_size;
+    unsigned int result_offset;
+    u64 result_addr;
+
+    buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, SIZE_1K * 4,
+                                            &buff_phy, GFP_KERNEL);
+    if (buff_virt == NULL) {
+        pr_err("%s(): dma_alloc_coherent failed\n", __func__);
+        set_errno_and_return(HISEE_NO_RESOURCES);
+    }
+    memset(buff_virt, 0, SIZE_1K * 4);
+    p_message_header = (atf_message_header *)buff_virt;
+    set_message_header(p_message_header, CMD_HISEE_FACTORY_CHECK);
+
+    image_size = HISEE_ATF_MESSAGE_HEADER_LEN;
+    result_offset = HISEE_ATF_MESSAGE_HEADER_LEN;
+    p_message_header->test_result_phy = (unsigned int)buff_phy + result_offset;
+    p_message_header->test_result_size = SIZE_1K * 4 - result_offset;
+    ret = send_smc_process(p_message_header, buff_phy, (unsigned int)image_size,
+                            HISEE_ATF_GENERAL_TIMEOUT, CMD_HISEE_FACTORY_CHECK);
+    if (HISEE_OK != ret) {
+        result_addr = (u64)(buff_virt + result_offset);
+        pr_err("%s(): hisee reported fail code=%x %x\n", __func__, *((unsigned int *)(void *)(result_addr)),
+			*((unsigned int *)(void *)(result_addr + sizeof(unsigned int))));
+    }
+
+    dma_free_coherent(g_hisee_data.cma_device, (unsigned long)(SIZE_1K * 4), buff_virt, buff_phy);
+    check_and_print_result();
+    set_errno_and_return(ret);
+}/*lint !e715*/
+
+/****************************************************************************//**
+ * @brief      : hisee_factory_check_body
+ * @param[in]  : buf: include the information of cos id, processor id.
+ * @param[in]  : para: to indicate it is in which mode, like factory or usr.
+ * @return     : ::int
+ * @note       :
+********************************************************************************/
+static int hisee_factory_check_body(void *arg)
+{
+	int ret = HISEE_OK;
+	int ret1;
+	void *p_buff_para;
+	unsigned int cos_id;
+	char factory_slt_test_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
+	unsigned int cos_image_num;
+
+	p_buff_para = (void *)factory_slt_test_para;
+	cos_image_num = HISEE_SUPPORT_COS_FILE_NUMBER;
+	factory_slt_test_para[0] = HISEE_CHAR_SPACE;
+	factory_slt_test_para[2] = '0' + COS_PROCESS_UPGRADE;
+
+	/*To avoid enter into the otp flash process in case the status is PREPARED.*/
+	hisee_chiptest_set_otp1_status(NO_NEED);
+	hisee_temp_limit_cfg(HISEE_TEMP_CFG_OFF);
+
+	for (cos_id = 0; cos_id < cos_image_num; cos_id++) {
+		/* If there is no image for current cos id in hisee_img, bypass upgrading. */
+		if (HISEE_COS_EXIST != g_hisee_data.hisee_img_head.is_cos_exist[cos_id]) {
+			pr_err("%s: there is no cos%d image in hisee_img!\n", __func__, cos_id);
+			continue;
+		}
+		factory_slt_test_para[1] = '0' + cos_id;
+		ret = hisee_poweroff_func(p_buff_para, HISEE_PWROFF_LOCK);
+		CHECK_OK(ret);
+		/* wait hisee power down, if timeout or fail, return errno */
+		ret = wait_hisee_ready(HISEE_STATE_POWER_DOWN, DELAY_FOR_HISEE_POWEROFF);
+		CHECK_OK(ret);
+
+		ret = hisee_poweron_booting_func(p_buff_para, 0);
+		CHECK_OK(ret);
+
+		ret = wait_hisee_ready(HISEE_STATE_COS_READY, HISEE_ATF_GENERAL_TIMEOUT);
+		CHECK_OK(ret);
+
+		ret = hisee_factory_check();
+		CHECK_OK(ret);
+		pr_err("hisee:%s() cos_id=%d, success!\n", __func__, cos_id);
+	}
+err_process:
+	if (HISEE_OK != ret) {
+		g_hisee_data.factory_test_state = HISEE_FACTORY_TEST_FAIL;
+	} else {
+		g_hisee_data.factory_test_state = HISEE_FACTORY_TEST_SUCCESS;
+	}
+	ret1 = hisee_poweroff_func(p_buff_para, HISEE_PWROFF_LOCK);
+	if (HISEE_OK == ret){
+		ret = ret1;
+	}
+	hisee_temp_limit_cfg(HISEE_TEMP_CFG_ON);;
+	set_errno_and_return(ret);
+}
+
+/****************************************************************************//**
  * @brief      : hisee_factory_check_func
  * @param[in]  : buf: include the information of cos id, processor id.
  * @param[in]  : para: to indicate it is in which mode, like factory or usr.
@@ -600,10 +1029,20 @@ int hisee_parallel_manufacture_func(void *buf, int para)
 ********************************************************************************/
 int hisee_factory_check_func(void *buf, int para)
 {
-	int ret = HISEE_OK;
+    int ret = HISEE_OK;
+    struct task_struct *factory_check_test_task = NULL;
 
-	g_hisee_data.factory_test_state = HISEE_FACTORY_TEST_SUCCESS;
-	set_errno_and_return(ret);
+    if (HISEE_FACTORY_TEST_RUNNING != g_hisee_data.factory_test_state) {
+        g_hisee_data.factory_test_state = HISEE_FACTORY_TEST_RUNNING;
+        factory_check_test_task = kthread_run(hisee_factory_check_body, NULL, "factory_check_test_body");
+        if (!factory_check_test_task) {
+            ret = HISEE_THREAD_CREATE_ERROR;
+            g_hisee_data.factory_test_state = HISEE_FACTORY_TEST_FAIL;
+            pr_err("hisee err create factory_check_test_task failed\n");
+        } else
+            pr_err("%s() success!\n", __func__);
+    }
+    set_errno_and_return(ret);
 }
 
 
@@ -628,6 +1067,22 @@ ssize_t hisee_at_result_show(struct device *dev, struct device_attribute *attr, 
     ret = atomic_read(&g_hisee_errno);
 
     switch (g_at_cmd_type) {
+        case HISEE_AT_CASD:
+            if (HISEE_OK == ret) {
+                snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:CASD,%d", g_hisee_data.casd_data.curr_pack);
+            } else if (HISI_CASD_HASH_ERROR == ret) {
+                snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:CASD,%d,TRANSMIT,-1", g_hisee_data.casd_data.curr_pack);
+            } else {
+                snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:CASD,%d,TRANSMIT,0", g_hisee_data.casd_data.curr_pack);
+            }
+            break;
+        case HISEE_AT_VERIFYCASD:
+            if (HISEE_OK == ret) {
+                snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:VERIFYCASD,%d", g_hisee_data.casd_data.curr_pack);
+            } else {
+                snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:VERIFYCASD,%d,VERIFY,-2", g_hisee_data.casd_data.curr_pack);
+            }
+            break;
         default:
             snprintf(buf, (size_t)HISEE_BUF_SHOW_LEN, "^HISEE:Para Error");
             break;

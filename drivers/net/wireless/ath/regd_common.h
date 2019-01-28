@@ -44,7 +44,6 @@ enum EnumRd {
 	ETSI4_ETSIC = 0x38,
 	ETSI5_WORLD = 0x39,
 	ETSI6_WORLD = 0x34,
-	ETSI8_WORLD = 0x3D,
 	ETSI_RESERVED = 0x33,
 
 	MKK1_MKKA = 0x40,
@@ -60,7 +59,6 @@ enum EnumRd {
 	MKK1_MKKA1 = 0x4A,
 	MKK1_MKKA2 = 0x4B,
 	MKK1_MKKC = 0x4C,
-	APL2_FCCA = 0x4D,
 
 	APL3_FCCA = 0x50,
 	APL1_WORLD = 0x52,
@@ -181,7 +179,6 @@ static struct reg_dmn_pair_mapping regDomainPairs[] = {
 	{ETSI4_WORLD, CTL_ETSI, CTL_ETSI},
 	{ETSI5_WORLD, CTL_ETSI, CTL_ETSI},
 	{ETSI6_WORLD, CTL_ETSI, CTL_ETSI},
-	{ETSI8_WORLD, CTL_ETSI, CTL_ETSI},
 
 	/* XXX: For ETSI3_ETSIA, Was NO_CTL meant for the 2 GHz band ? */
 	{ETSI3_ETSIA, CTL_ETSI, CTL_ETSI},
@@ -191,7 +188,6 @@ static struct reg_dmn_pair_mapping regDomainPairs[] = {
 	{FCC1_FCCA, CTL_FCC, CTL_FCC},
 	{APL1_WORLD, CTL_FCC, CTL_ETSI},
 	{APL2_WORLD, CTL_FCC, CTL_ETSI},
-	{APL2_FCCA, CTL_FCC, CTL_FCC},
 	{APL3_WORLD, CTL_FCC, CTL_ETSI},
 	{APL4_WORLD, CTL_FCC, CTL_ETSI},
 	{APL5_WORLD, CTL_FCC, CTL_ETSI},
@@ -309,7 +305,6 @@ static struct country_code_to_enum_rd allCountries[] = {
 	{CTRY_BELGIUM, ETSI1_WORLD, "BE"},
 	{CTRY_BELGIUM2, ETSI4_WORLD, "BL"},
 	{CTRY_BELIZE, APL1_ETSIC, "BZ"},
-	{CTRY_BERMUDA, FCC3_FCCA, "BM"},
 	{CTRY_BOLIVIA, APL1_ETSIC, "BO"},
 	{CTRY_BOSNIA_HERZ, ETSI1_WORLD, "BA"},
 	{CTRY_BRAZIL, FCC3_WORLD, "BR"},
@@ -460,7 +455,6 @@ static struct country_code_to_enum_rd allCountries[] = {
 	{CTRY_SWITZERLAND, ETSI1_WORLD, "CH"},
 	{CTRY_SYRIA, NULL1_WORLD, "SY"},
 	{CTRY_TAIWAN, APL3_FCCA, "TW"},
-	{CTRY_TANZANIA, APL1_WORLD, "TZ"},
 	{CTRY_THAILAND, FCC3_WORLD, "TH"},
 	{CTRY_TRINIDAD_Y_TOBAGO, FCC3_WORLD, "TT"},
 	{CTRY_TUNISIA, ETSI3_WORLD, "TN"},

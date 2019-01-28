@@ -88,6 +88,7 @@
 #define COMMAND_0X7D 0x7D
 #define COMMAND_0X7E 0x7E
 #define CHARGER_SWITCH_LENGTH 2
+#define IN_RECOVERY true
 struct nvt_ts_data *nvt_ts;
 static DEFINE_MUTEX(ts_power_gpio_sem);
 extern struct ts_kit_platform_data g_ts_kit_platform_data;
@@ -171,7 +172,7 @@ static void nova_report_dmd_state(int dmd_bit);
 static int nvt_report_priority[BIT_MAX] = {0,3,8,7,12,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 static int nvt_report_priority_limite[BIT_MAX] = {50,20,20,20,20,50,50,50,20,20,20,20,50,50,50,50};
 static int novatek_fw_update_sd(void);
-
+static void novatek_status_resume(void);
 /*******************************************************
 Description:
 	Novatek touchscreen i2c read function.
@@ -2990,8 +2991,11 @@ static int novatek_irq_bottom_half(struct ts_cmd_node *in_cmd,
 	if (nvt_ts->btype == TS_BUS_SPI) {
 		/* ESD protect by WDT */
 		if (nvt_wdt_fw_recovery(point_data)) {
+			nvt_ts->in_suspend = IN_RECOVERY;
 			TS_LOG_ERR("Recover for fw reset, %02X\n", point_data[1]);
 			nvt_kit_fw_update_boot_spi(nvt_ts->fw_name);
+			novatek_status_resume();
+			nvt_ts->in_suspend = false;
 			goto XFER_ERROR;
 		}
 	}
@@ -3465,11 +3469,6 @@ static int novatek_charger_switch(struct ts_charger_info *info)
 static int novatek_after_resume(void *feature_info)
 {
 	int retval = NO_ERR;
-	struct ts_feature_info *info = feature_info;
-	struct ts_roi_info roi_info;
-	struct ts_holster_info holster_info;
-	struct ts_glove_info glove_info;
-	struct ts_charger_info charger_info;
 
 	TS_LOG_INFO("after_resume +\n");
 
@@ -3484,6 +3483,20 @@ static int novatek_after_resume(void *feature_info)
 	nvt_kit_check_fw_reset_state(RESET_STATE_NORMAL_RUN);
 
 	//----------------------------------------------------------------------------------
+	novatek_status_resume();
+	nvt_ts->in_suspend = false;
+	TS_LOG_INFO("after_resume -\n");
+	return retval;
+}
+static void novatek_status_resume(void)
+{
+	int retval = NO_ERR;
+	struct ts_feature_info *info = &nvt_ts->chip_data->ts_platform_data->feature_info;
+	struct ts_roi_info roi_info;
+	struct ts_holster_info holster_info;
+	struct ts_glove_info glove_info;
+	struct ts_charger_info charger_info;
+
 	/*Glove Switch recovery*/
 	if(info->glove_info.glove_supported) {
 		glove_info.op_action = TS_ACTION_WRITE;
@@ -3524,9 +3537,6 @@ static int novatek_after_resume(void *feature_info)
 				   info->charger_info.charger_switch, retval);
 		}
 	}
-	nvt_ts->in_suspend = false;
-	TS_LOG_INFO("after_resume -\n");
-	return retval;
 }
 /*lint -restore*/
 int32_t novatek_kit_read_projectid(void)

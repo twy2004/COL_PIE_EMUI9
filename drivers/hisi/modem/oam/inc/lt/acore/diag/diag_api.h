@@ -60,8 +60,13 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "vos.h"
-#include  "msp_diag.h"
+#include "vos.h"
+#include "msp.h"
+#include "diag_cfg.h"
+#include "diag_service.h"
+#include "diag_api_comm.h"
+
+#pragma pack(push)
 #pragma pack(4)
 
 /*****************************************************************************
@@ -97,6 +102,8 @@ extern "C" {
 #define DIAG_CMD_LOG_CATETORY_LAYER_ID              (1<<12)
 #define DIAG_CMD_LOG_CATETORY_MSG_ID                (1<<10)
 #define DIAG_CMD_LOG_CATETORY_USERPLANE_ID          (1<<9)
+
+#define LTE_DIAG_PRINTF_PARAM_MAX_NUM       (6)
 
 /*****************************************************************************
   3 Massage Declare
@@ -140,6 +147,7 @@ typedef struct
     VOS_SPINLOCK    ulTransLock;
 } DIAG_LOG_PKT_NUM_ACC_STRU;
 
+
 /*****************************************************************************
   6 UNION
 *****************************************************************************/
@@ -148,7 +156,7 @@ typedef struct
 /*****************************************************************************
   7 Extern Global Variable
 *****************************************************************************/
-extern VOS_UINT32 g_ulTransId;
+extern VOS_TRANSID_LEN g_ulTransId;
 extern DIAG_LOG_PKT_NUM_ACC_STRU g_DiagLogPktNum;
 
 /*****************************************************************************
@@ -161,16 +169,20 @@ extern VOS_UINT32 diag_FailedCmdCnf(DIAG_FRAME_INFO_STRU *pData, VOS_UINT32 ulEr
   9 Fuction Extern
 *****************************************************************************/
 VOS_UINT32 diag_LogPortSwich(VOS_UINT32 ulPhyPort, VOS_BOOL ulEffect);
+/*****************************************************************************
+ 函 数 名      : DIAG_LayerMsgReport
+ 功能描述  : 层间消息上报接口，用于对OSA消息进行勾包
+ 输入参数  : pMsg(标准的VOS消息体，源模块、目的模块信息从消息体中获取)
+*****************************************************************************/
+VOS_VOID DIAG_LayerMsgReport(VOS_VOID *pMsg);
+
+VOS_UINT32 DIAG_ErrorLog(VOS_CHAR * cFileName,VOS_UINT32 ulFileId, VOS_UINT32 ulLine, VOS_UINT32 ulErrNo, VOS_VOID * pBuf, VOS_UINT32 ulLen);
 
 /*****************************************************************************
   10 OTHERS
 *****************************************************************************/
 
-#if (VOS_OS_VER == VOS_WIN32)
-#pragma pack()
-#else
-#pragma pack(0)
-#endif
+#pragma pack(pop)
 
 #ifdef __cplusplus
     #if __cplusplus

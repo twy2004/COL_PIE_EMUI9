@@ -69,11 +69,6 @@ extern "C" {
 /* 定义IPV6 MTU最大长度值 */
 #define ADS_MTU_LEN_MAX                 (1500)
 
-/* !!!!!!!!!!!暂时定义，最终的值由北京确定 */
-#define ADS_NDIS_MSG_HDR                (0x00)
-#define NDIS_ADS_MSG_HDR                (0x00)
-
-
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
@@ -85,26 +80,6 @@ enum ADS_PKT_TYPE_ENUM
     ADS_PKT_TYPE_BUTT
 };
 typedef VOS_UINT8 ADS_PKT_TYPE_ENUM_UINT8;
-
-
-enum ADS_NDIS_IP_PACKET_TYPE_ENUM
-{
-    ADS_NDIS_IP_PACKET_TYPE_DHCPV4      = 0x00,
-    ADS_NDIS_IP_PACKET_TYPE_DHCPV6      = 0x01,
-    ADS_NDIS_IP_PACKET_TYPE_ICMPV6      = 0x02,
-    ADS_NDIS_IP_PACKET_TYPE_LINK_FE80   = 0x03,
-    ADS_NDIS_IP_PACKET_TYPE_LINK_FF     = 0x04,
-    ADS_NDIS_IP_PACKET_TYPE_BUTT
-};
-typedef VOS_UINT8 ADS_NDIS_IP_PACKET_TYPE_ENUM_UINT8;
-
-
-enum ADS_NDIS_MSG_ID_ENUM
-{
-    ID_ADS_NDIS_DATA_IND               = ADS_NDIS_MSG_HDR + 0x00,               /* ADS->CDS IP PACKET IND */
-    ID_ADS_NDIS_MSG_ID_ENUM_BUTT
-};
-typedef VOS_UINT32  ADS_NDIS_MSG_ID_ENUM_UINT32;
 
 
 /*****************************************************************************
@@ -125,17 +100,6 @@ typedef VOS_UINT32  ADS_NDIS_MSG_ID_ENUM_UINT32;
 /*****************************************************************************
   7 STRUCT定义
 *****************************************************************************/
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
-    ADS_NDIS_MSG_ID_ENUM_UINT32         enMsgId;                                /*_H2ASN_Skip*/
-    MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* RAB标识，取值范围:[5,15] */
-    ADS_NDIS_IP_PACKET_TYPE_ENUM_UINT8  enIpPacketType;
-    VOS_UINT8                           aucReserved[4];
-    IMM_ZC_STRU                        *pstSkBuff;                              /* 数据包结构指针 */
-} ADS_NDIS_DATA_IND_STRU;
 
 
 typedef struct
@@ -163,21 +127,21 @@ typedef struct
 *****************************************************************************/
 /*****************************************************************************
  函 数 名  : ADS_UL_SendPacket
- 功能描述  : ADS上行为上层模块提供的数据发送函数，本接口不释放内存。
-            上层模块根据返回值判断是否需要释放内存
+ 功能描述  : ADS上行为上层模块提供的数据发送函数
+             如果返回失败，内存释放由该接口执行，上层模块不需要有释放内存操作
  输入参数  : pstImmZc  --- IMM数据
              ucExRabId --- RABID [5, 15]
              (*****ucExRabId为扩展的RabId，高2bit表示ModemId，低6bit表示RabId*****)
  输出参数  : 无
- 返 回 值  : VOS_UINT32
+ 返 回 值  : VOS_INT
 *****************************************************************************/
 
-VOS_UINT32 ADS_UL_SendPacket(
+VOS_INT ADS_UL_SendPacket(
     IMM_ZC_STRU                        *pstImmZc,
     VOS_UINT8                           ucExRabId
 );
 
-typedef VOS_UINT32 (*RCV_DL_DATA_FUNC)(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pData, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
+typedef VOS_INT (*RCV_DL_DATA_FUNC)(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pData, ADS_PKT_TYPE_ENUM_UINT8 enPktType, VOS_UINT32 ulExParam);
 
 /*****************************************************************************
  函 数 名  : ADS_DL_RegDlDataCallback
@@ -227,6 +191,7 @@ VOS_UINT32 ADS_DL_DeregFilterDataCallback(VOS_UINT32 ulRabId);
              下行数据过滤匹配, 该接口必须和ADS_DL_RegFilterDataCallback配合
              使用, 只有使用ADS_DL_RegFilterDataCallback注册过下行过滤回调后,
              下行数据才需要根据使用该接口记录的信息进行过滤
+             如果返回失败，内存释放由该接口执行
  输入参数  : pstImmZc  --- IMM数据
              enIpType  --- IP类型
              ucExRabId --- RABID [5, 15]
@@ -234,7 +199,7 @@ VOS_UINT32 ADS_DL_DeregFilterDataCallback(VOS_UINT32 ulRabId);
  输出参数  : 无
  返 回 值  : VOS_OK/VOS_ERR
 *****************************************************************************/
-VOS_UINT32 ADS_UL_SendPacketEx(
+VOS_INT ADS_UL_SendPacketEx(
     IMM_ZC_STRU                        *pstImmZc,
     ADS_PKT_TYPE_ENUM_UINT8             enIpType,
     VOS_UINT8                           ucExRabId
@@ -242,7 +207,6 @@ VOS_UINT32 ADS_UL_SendPacketEx(
 
 #if (FEATURE_ON == FEATURE_RNIC_NAPI_GRO)
 typedef VOS_VOID (*RCV_RD_LAST_DATA_FUNC)(VOS_UINT32 ulExParam);
-typedef VOS_VOID (*ADJUST_NAPI_WEIGHT_FUNC)(VOS_UINT32 ulExParam);
 
 /*********************************************************************************
  函 数 名  : ADS_DL_RegRdLastDataCallback
@@ -250,7 +214,6 @@ typedef VOS_VOID (*ADJUST_NAPI_WEIGHT_FUNC)(VOS_UINT32 ulExParam);
  输入参数  : ucExRabId --- 扩展承载号
              (*****ucExRabId为扩展的RabId，高2bit表示ModemId，低6bit表示RabId*****)
              pLastDataFunc      --- 数据接收回调函数指针
-             pAdjNapiWeightFunc --- 动态调整NAPI Weight回调函数指针
              ulExParam          --- 扩展参数
  输出参数  : 无
  返 回 值  : VOS_OK/VOS_ERR
@@ -258,7 +221,6 @@ typedef VOS_VOID (*ADJUST_NAPI_WEIGHT_FUNC)(VOS_UINT32 ulExParam);
 VOS_UINT32 ADS_DL_RegNapiCallback(
     VOS_UINT8                           ucExRabId,
     RCV_RD_LAST_DATA_FUNC               pLastDataFunc,
-    ADJUST_NAPI_WEIGHT_FUNC             pAdjNapiWeightFunc,
     VOS_UINT32                          ulExParam
 );
 #endif

@@ -99,6 +99,7 @@ typedef IPF_CONFIG_PARAM_S IPF_CONFIG_DLPARAM_S;
 typedef int (*BSP_IPF_WakeupDlCb)(void);
 typedef int (*BSP_IPF_AdqEmptyDlCb)(IPF_ADQ_EMPTY_E eAdqEmpty);
 
+#ifdef CONFIG_IPF
 /*****************************************************************************
 * º¯ Êý Ãû  : mdrv_ipf_config_ulbd
 *
@@ -258,7 +259,57 @@ void mdrv_ipf_reinit_dlreg(void);
 *
 *****************************************************************************/
 int mdrv_ipf_get_used_dlad(IPF_AD_TYPE_E eAdType, unsigned int * pu32AdNum, IPF_AD_DESC_S * pstAdDesc);
+#else
+static inline int mdrv_ipf_config_ulbd(unsigned int u32Num, IPF_CONFIG_ULPARAM_S* pstUlPara)
+{
+    return 0;
+}
 
+static inline unsigned int mdrv_ipf_get_ulbd_num(void)
+{
+    return 0;
+}
+
+static inline unsigned int mdrv_ipf_get_uldesc_num(void)
+{
+    return 0;
+}
+
+static inline unsigned int mdrv_ipf_get_ulrd_num (void)
+{
+    return 0;
+}
+
+static inline void mdrv_ipf_get_dlrd (unsigned int  * pu32Num, IPF_RD_DESC_S *pstRd)
+{
+    return;
+}
+
+static inline unsigned int mdrv_ipf_get_dlrd_num (void)
+{
+    return 0;
+}
+
+static inline int mdrv_ipf_config_dlad(IPF_AD_TYPE_E eAdType, unsigned int u32AdNum, IPF_AD_DESC_S * pstAdDesc)
+{
+    return 0;
+}
+
+static inline int mdrv_ipf_get_dlad_num (unsigned int* pu32AD0Num, unsigned int* pu32AD1Num)
+{
+    return 0;
+}
+
+static inline void mdrv_ipf_reinit_dlreg(void)
+{
+    return;
+}
+
+static inline int mdrv_ipf_get_used_dlad(IPF_AD_TYPE_E eAdType, unsigned int * pu32AdNum, IPF_AD_DESC_S * pstAdDesc)
+{
+    return 0;
+}
+#endif
 #ifdef __cplusplus
 }
 #endif

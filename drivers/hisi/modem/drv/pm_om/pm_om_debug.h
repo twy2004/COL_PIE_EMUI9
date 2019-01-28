@@ -84,10 +84,7 @@ void pm_om_wakeup_stat(void);
 u32 pm_om_log_time_rec(u32 time_log_start);
 static inline void pm_om_log_time_print(u32 log_sw)
 {
-	if (log_sw > 0)
-	{
-		pmom_pr_err("elapse time is %d(slice)\n", log_sw);
-	}
+
 }
 
 

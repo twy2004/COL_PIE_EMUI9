@@ -6,6 +6,11 @@
   File Name       : AppEsmInterface.h
   Description     : AppEsmInterface.h header file
   History         :
+      1.sunbing       2008-12-16   Draft Enact
+      2.yangqianhui   2008-12-22   Modify
+      3.sunbing       2009-01-06   Modify  BA8D00870
+      4.yangqianhui   2009-02-05   Modify  BA8D00933
+      5.yangqianhui   2009-03-06   Modify  BA8D01127
 
 ******************************************************************************/
 
@@ -23,6 +28,7 @@ extern "C" {
   1 Include Headfile
 *****************************************************************************/
 #include "AppNasComm.h"
+#include "AppRrcInterface.h"
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
@@ -49,8 +55,8 @@ extern "C" {
 #define APP_ESM_MAX_EPSB_NUM                                (11)                /*最大承载数*/
 #define APP_ESM_MAX_ACCESS_NUM_LEN                          32
 /* 产品线at手册规定AT^AUTHDATA用户名和密码长度最大为127 */
-#define APP_ESM_MAX_USER_NAME_LEN                           127
-#define APP_ESM_MAX_PASSWORD_LEN                            127
+#define APP_ESM_MAX_USER_NAME_LEN                           100
+#define APP_ESM_MAX_PASSWORD_LEN                            100
 /* PCO消息最大长度为253，若用户名和密码为127时将超过PCO消息最大长度，GU在AUTH编码时允许用户名和密码最大长度为99,根据GU此处最大值设为99 */
 #define APP_ESM_MAX_USER_NAME_ENCODE_LEN                    99
 #define APP_ESM_MAX_PASSWORD_ENCODE_LEN                     99
@@ -189,6 +195,8 @@ enum APP_ESM_MSG_TYPE_ENUM
     ID_APP_ESM_DT_INQ_PDP_INFO_IND      = 0x4C+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_PDP_INFO_IND_STRU*/
     /* niuxiufan DT end */
 
+    ID_ESM_DSM_NOTIFICATION_IND         = 0x4D + APP_ESM_MSG_ID_HEADER,/* _H2ASN_MsgChoice ESM_DSM_NOTIFICATION_IND_STRU */
+    ID_ESM_DSM_REG_CID_IND              = 0x4E + ESM_APP_MSG_ID_HEADER,/* _H2ASN_MsgChoice ESM_DSM_REG_CID_IND_STRU */
     /*承载建立、修改和释放消息原语结构*/
     ID_APP_ESM_PDP_SETUP_REQ         = 0x61+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_SETUP_REQ_STRU*/
     ID_APP_ESM_PDP_SETUP_CNF         = 0x62+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_SETUP_CNF_STRU*/
@@ -510,6 +518,7 @@ enum APP_ESM_PDP_RELEASE_CAUSE_ENUM
 
 
     APP_ESM_PDP_RELEASE_CAUSE_DATA_OFF                = 4,
+    APP_ESM_PDP_RELEASE_CAUSE_CELLULAR2W_HO           = 5,
 
     APP_ESM_PDP_RELEASE_CAUSE_BUTT
 };
@@ -535,7 +544,17 @@ enum APP_ESM_APN_TYPE_ENUM
 };
 typedef VOS_UINT8 APP_ESM_APN_TYPE_ENUM_UINT8;
 
+/*****************************************************************************
+ 枚举名    : ESM_DSM_NOTIFICATION_IND_ENUM_UINT32
+ 枚举说明  : SRVCC处理类型
+*****************************************************************************/
+enum ESM_DSM_NOTIFICATION_IND_ENUM
+{
+    ESM_DSM_NOTIFICATION_IND_SRVCC_HO_CANCELLED         = 0,
 
+    ESM_DSM_NOTIFICATION_IND_BUTT
+};
+typedef VOS_UINT32 ESM_DSM_NOTIFICATION_IND_ENUM_UINT32;
 
 /*****************************************************************************
   5 STRUCT
@@ -545,6 +564,32 @@ typedef VOS_UINT8 APP_ESM_APN_TYPE_ENUM_UINT8;
 *                           参数设置消息结构                                 *
 *                                                                            *
 ******************************************************************************/
+
+/*****************************************************************************
+ 枚举名    : ESM_DSM_NOTIFICATION_IND_STRU
+ 枚举说明  : SRVCC通知信息
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                              ulMsgId;
+    ESM_DSM_NOTIFICATION_IND_ENUM_UINT32    enNotificationIndicator;
+}ESM_DSM_NOTIFICATION_IND_STRU;
+
+
+/*****************************************************************************
+ 结构名称   : ESM_DSM_REG_CID_IND_STRU
+ 结构说明   : ESM -> DSM
+              将注册时使用的SDF中的CID通知给DSM
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    VOS_UINT32                          ulMsgId;
+    VOS_UINT32                          ulRegCid;
+}ESM_DSM_REG_CID_IND_STRU;
+
+
 /*****************************************************************************
  结构名    : APP_ESM_APN_CLASS_INFO_STRU
  结构说明  : 注册APN信息结构
@@ -1006,7 +1051,7 @@ typedef struct
     APP_ESM_IMS_CN_SIG_FLAG_ENUM_UINT32 enImsCnSignalFlag;
 }APP_ESM_SDF_PARA_STRU;
 
-
+/*lint -save -e959*/
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -1018,6 +1063,7 @@ typedef struct
     APP_ESM_PARA_SET_ENUM_UINT32        enSetType;
     APP_ESM_GW_AUTH_INFO_STRU           stGwAuthInfo;
 }APP_ESM_SET_GW_AUTH_REQ_STRU;
+/*lint -restore*/
 
 typedef  APP_ESM_PARA_SET_CNF_STRU APP_ESM_SET_GW_AUTH_CNF_STRU;
 
@@ -1341,6 +1387,7 @@ typedef APP_ESM_INQ_PARA_REQ_STRU APP_ESM_INQ_GW_AUTH_REQ_STRU;
  结构名    : APP_ESM_INQ_GW_AUTH_CNF_STRU
  结构说明  : 查询回复:网关鉴权信息
 *****************************************************************************/
+/*lint -save -e959*/
 typedef struct
 {
     VOS_MSG_HEADER                                           /*_H2ASN_Skip*/
@@ -1351,6 +1398,7 @@ typedef struct
     VOS_UINT32                          ulRslt;
     APP_ESM_GW_AUTH_INFO_STRU           stGwAuthInfo;
 } APP_ESM_INQ_GW_AUTH_CNF_STRU;
+/*lint -restore*/
 
 /*****************************************************************************
 *                                                                            *
@@ -1591,6 +1639,7 @@ typedef struct
     VOS_UINT32                          ulCid;              /*上下文序列号，范围:0~31*/
     APP_ESM_PPP_INFO_STRU               stPppInfo;          /* PPP拨号参数信息*/
     APP_ESM_BEARER_PRIO_ENUM_UINT32     enBearerPrio;       /* NAS signalling low priority标识 */
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PDP_SETUP_REQ_STRU;
 
 
@@ -1624,6 +1673,7 @@ typedef struct
 
     VOS_UINT32                          ulRslt;       /*删除操作结果;取值范围:参见附录3.1*/
     VOS_UINT32                          ulLinkCid;
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
     APP_ESM_BEARER_STATE_ENUM_UINT32    enBearerState;      /*当前承载状态:0~1*/
     APP_ESM_BEARER_TYPE_ENUM_UINT32     enBearerType;       /*承载类型*/
     APP_ESM_IP_ADDR_STRU                stPDNAddrInfo;
@@ -1658,7 +1708,7 @@ typedef struct
     VOS_UINT32                          ulOpId;             /*本次操作标识符*/
     VOS_UINT32                          ulCid;              /*上下文序列号，范围:0~31*/
     APP_ESM_BEARER_PRIO_ENUM_UINT32     enBearerPrio;       /* NAS signalling priority标识 */
-
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PDP_MODIFY_REQ_STRU;
 
 typedef struct
@@ -1668,6 +1718,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
     VOS_UINT32                          ulCid;
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
     APP_ESM_BEARER_MODIFY_ENUM_UINT32   enBearerModifyType;
 
     VOS_UINT32                          bitOpBearerState    :1;
@@ -1703,6 +1754,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
     VOS_UINT32                          ulCid;
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 
     APP_ESM_PDP_RELEASE_CAUSE_ENUM_UINT8          enCause;       /* 释放原因 */
     VOS_UINT8                                     ucDetachInd;   /* 是否需要执行DETACH，VOS_TRUE是，VOS_FALS否 */
@@ -1721,6 +1773,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
     VOS_UINT32                          ulCid;
+    VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 
     VOS_UINT32                          bitOpLinkCid        :1;
     VOS_UINT32                          bitOpPdnAddr        :1;
@@ -1752,6 +1805,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                                  ulOpId;
     VOS_UINT32                                  ulCid;
+    VOS_UINT32                                  ulPsCallId;         /*呼叫实体ID，范围:0~31，上报前，先调用TAF_APS_GetUnusedPsCallId()接口获取*/
     VOS_UINT32                                  bitOpLinkCid      : 1;
     VOS_UINT32                                  bitOpModifyTpye   : 1;
     VOS_UINT32                                  bitOpSpare        : 30;
@@ -1773,6 +1827,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                              ulOpId;
     VOS_UINT32                              ulCid;
+    VOS_UINT32                              ulPsCallId;        /*呼叫实体ID，范围:0~31*/
     APP_ESM_BEARER_ACT_RESULT_ENUM_UINT32   ulSetupRslt;       /*响应结果:0:接收分配或修改请求,1:拒绝请求*/
 
 
@@ -1819,6 +1874,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
     VOS_UINT32                          ulCid;
+    VOS_UINT32                          ulPsCallId;     /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PROCEDURE_ABORT_NOTIFY_STRU;
 /*niuxiufan modify end */
 
@@ -1834,6 +1890,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                                  ulOpId;
     VOS_UINT32                                  ulCid;
+    VOS_UINT32                                  ulPsCallId;        /*呼叫实体ID，范围:0~31*/
 
     VOS_UINT32                                  bitOpPdnType           :1;
     VOS_UINT32                                  bitOpApn               :1;
@@ -1866,6 +1923,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                                  ulOpId;
     VOS_UINT32                                  ulCid;
+    VOS_UINT32                                  ulPsCallId;        /*呼叫实体ID，范围:0~31*/
 
     VOS_UINT32                                  bitOpBearerState    :1;
     VOS_UINT32                                  bitOpBearerType     :1;
@@ -2058,6 +2116,11 @@ extern VOS_UINT32 APP_GetDataSwitchInfoByModemId
     APP_ESM_DATA_SWITCH_INFO_STRU      *pstDataSwitchInfo
 );
 
+extern VOS_UINT32 APP_AllocPsCallIdByModemId
+(
+    MODEM_ID_ENUM_UINT16                enModemId,
+    VOS_UINT8                          *pucPsCallId
+);
 /*****************************************************************************
   9 OTHERS
 *****************************************************************************/

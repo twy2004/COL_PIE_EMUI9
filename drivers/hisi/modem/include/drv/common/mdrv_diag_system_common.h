@@ -61,23 +61,12 @@ extern "C" {
 #include <product_config.h>
 #include <mdrv_socp_common.h>
 
-typedef struct
+/* diag对共享内存操作命令码 */
+typedef enum
 {
-    unsigned int                  ulHisiMagic;   /*"HISI"*/
-    unsigned int                  ulDataLen;      /*数据长度*/
-    unsigned char                   pucData[0];
-}SCM_CODER_SRC_PACKET_HEADER_STRU;
-
-#define SCM_HISI_HEADER_LENGTH              (sizeof(SCM_CODER_SRC_PACKET_HEADER_STRU))
-
-typedef struct
-{
-    void        *pHeader;           /* 之前获取的编码源buffer的首地址(虚拟地址) */
-    void        *pSrc;              /* 将要拷贝的数据缓冲区地址 */
-    unsigned int      uloffset;           /* 将要拷贝到的偏移地址 */
-    unsigned int      ulLen;              /* 将要拷贝的数据长度 */
-}SCM_CODER_SRC_MEMCPY_STRU;
-
+    POWER_ON_LOG_A = 0,
+    DS_DATA_BUFFER_STATE,
+}DIAG_SHM_TYPE_ENUM;
 
 typedef enum
 {
@@ -181,7 +170,13 @@ typedef enum
     EN_DIAG_PTR_AUTH_NV_CFG         = 0x61,
     EN_DIAG_PTR_NV_AUTH_PROC        = 0x62,
     EN_DIAG_PTR_NV_AUTH_FAIL_CNF    = 0x63,
-
+    EN_DIAG_PTR_CFG_TRANS           = 0x64,
+    EN_DIAG_PTR_CFG_TRANS_CNF       = 0x65,
+    EN_DIAG_PTR_CFG_HIGHTS          = 0x66,
+    EN_DIAG_PTR_CFG_HIGHTS_CNF      = 0x67,
+    EN_DIAG_PTR_CFG_USERPLANE       = 0x68,
+    EN_DIAG_PTR_CFG_USERPLANE_CNF   = 0x69,
+    EN_DIAG_PTR_CFG_END,
 
     /* 失败流程的点 */
     EN_DIAG_PTR_ERR_BEGIN = 0x100,
@@ -230,7 +225,6 @@ typedef enum
 #define DIAG_CODER_SRC_CCORE_IND_PADDR      (DIAG_CODER_SRC_CCORE_CNF_PADDR+DIAG_CODER_SRC_CCORE_CNF_LENGTH)
 #define DIAG_CODER_SRC_CCORE_IND_LENGTH     (1536*1024)
 
-
 #define DIAG_CORER_SRC_DSP_PADDR            (DIAG_CODER_SRC_CCORE_IND_PADDR+DIAG_CODER_SRC_CCORE_IND_LENGTH)
 #define DIAG_CORER_SRC_DSP_LENGTH           (1024*1024)
 
@@ -268,22 +262,20 @@ typedef enum
 #define BBP_SOCP_BUS_SIZE               (16*1024*1024 - BBP_SOCP_PTR_SIZE)
 #define BBP_SOCP_ADDR                   (BBP_SOCP_BUS_ADDR + BBP_SOCP_BUS_SIZE)
 #define BBP_SOCP_SIZE                   (DDR_SOCP_SIZE - BBP_SOCP_BUS_SIZE - BBP_SOCP_PTR_SIZE)
+#define BBP_BUS_MEM_SIZE                (0)
 #else
 #define BBP_SOCP_ADDR                   (DDR_SOCP_ADDR)
 #define BBP_SOCP_SIZE                   (DDR_SOCP_SIZE)
+#define BBP_BUS_MEM_SIZE                (64*1024)
 #endif
 
-#define BBP_BUS_MEM_SIZE                   (64*1024)
 #define BBP_LOG1_MEM_SIZE                   (8*1024)
 
 #ifdef DIAG_SYSTEM_5G
-#define BBP_5G_BUS_MEM_SIZE                (64*1024)
+#define BBP_5G_BUS_MEM_SIZE             (64*1024)
 #define BBP_RFIC0_BUS_MEM_SIZE             (64*1024)
 #define BBP_RFIC1_BUS_MEM_SIZE             (64*1024)
 
-/*暂时为了解决编译问题，待XDSP的相关宏定义在主线关掉后删除该ADDR和SIZE*/
-#define SOCP_CODER_SRC_XDSP_ADDR           (BBP_SOCP_ADDR)
-#define SOCP_CODER_SRC_XDSP_LENGTH         (512*1024)
 #endif
 
 #endif
@@ -294,14 +286,13 @@ typedef enum
 * BBP DS   :  随机
 * TOTAL SIZE: BBPDS + 120K
 ****************************************************************/
-
-
 #define BBP_DS_MEM_ADDR                         	(BBP_SOCP_ADDR)
 #define BBP_DS_MEM_SIZE                             (BBP_SOCP_SIZE)
 
-
 /*error no begin**********************************************************************/
 #define  ERR_MSP_SUCCESS                (0)
+#define  ERR_MSP_FAILURE                (0xFFFFFFFFU)
+
 #define  ERR_MSP_WAIT_ASYNC             (1)
 #define  ERR_MSP_INVALID_ID             (2)
 #define  ERR_MSP_NO_INITILIZATION       (3)
@@ -319,6 +310,7 @@ typedef enum
 #define  ERR_MSP_SHUTDOWN               (18) /* 未能关机*/
 #define  ERR_MSP_NOT_CONNECT            (19) /* 未正确连接UE*/
 #define  ERR_MSP_BUSY                   (20) /* 系统忙或者使用冲突*/
+#define  ERR_MSP_PARA_NULL              (21) /* 传入指针为NULL */
 
 
 #define  ERR_MSP_UNAVAILABLE            (50)
@@ -474,14 +466,6 @@ typedef enum
 #define  ERR_MSP_NVIM_NOT_SUPPORT_WRITE    2007
 #define  ERR_MSP_NVIM_NEED_BACK_ERR             2008
 
-#define LNVM_OPEN_FILE_ERROR      (2010)
-#define	LNVM_READ_FILE_ERROR      (2011)
-#define	LNVM_FTELL_FILE_ERROR     (2012)
-#define	LNVM_WRITE_FILE_ERROR     (2013)
-#define	LNVM_SEEK_FILE_ERROR      (2014)
-#define	LNVM_REMOVE_FILE_ERROR    (2015)
-#define	LNVM_CLOSE_FILE_ERROR     (2016)
-
 #define MSP_SD_OPEN_FILE_ERROR      (2200)
 #define	MSP_SD_WRITE_FILE_ERROR     (2201)
 #define	MSP_SD_SEEK_FILE_ERROR      (2202)
@@ -500,12 +484,11 @@ typedef enum
 
 /*scm ERR NO. START*/
 #define ERR_MSP_SCM_BEGIN               (0x5000)
-#define ERR_MSP_SCM_START_SOCP_FAIL     (ERR_MSP_CDM_BEGIN + 1)
+#define ERR_MSP_SCM_START_SOCP_FAIL     (ERR_MSP_SCM_BEGIN + 1)
 
 /*scm ERR NO. END*/
 
 /* DIAG给工具软件回复的错误码 0x4000-0x4fff */
-
 #define  ERR_MSP_DIAG_ERROR_BEGIN               (0x4000)
 #define  ERR_MSP_DIAG_ACORE_ERROR               (ERR_MSP_DIAG_ERROR_BEGIN + 1)  /* A核处理失败 */
 #define  ERR_MSP_DIAG_CCORE_ERROR               (ERR_MSP_DIAG_ERROR_BEGIN + 2)  /* C核处理失败 */
@@ -535,29 +518,20 @@ typedef enum
 #define  ERR_MSP_CHNNEL_NUM_ERROR               (ERR_MSP_DIAG_ERROR_BEGIN + 26)
 #define  ERR_MSP_INALID_LEN_ERROR               (ERR_MSP_DIAG_ERROR_BEGIN + 27) /* 工具下发的数据长度非法 */
 #define  ERR_MSP_MEMCPY_S_ERROR                 (ERR_MSP_DIAG_ERROR_BEGIN + 28) /* memcpy出错 */
-
-
-
-#define  ERR_MSP_FAILURE                (0XFFFFFFFFU)
-#define  ERR_MSP_SYSTEM                 (0XFFFFFFFFU)
+#define  ERR_MSP_MSG_ID_ERROR                   (ERR_MSP_DIAG_ERROR_BEGIN + 29) /* msgid出错 */
+#define  ERR_MSP_GET_VIRT_ADDR_FAIL             (ERR_MSP_DIAG_ERROR_BEGIN + 30)
+#define  ERR_MSP_WRITE_DONE_FAIL                (ERR_MSP_DIAG_ERROR_BEGIN + 31)
+#define  ERR_MSP_STOP_SOCP_FAIL                 (ERR_MSP_DIAG_ERROR_BEGIN + 33)
+#define  ERR_MSP_GET_WRITE_BUFF_FAIL            (ERR_MSP_DIAG_ERROR_BEGIN + 34)
 /*error no end**********************************************************************/
 
-
-void mdrv_scm_spinlock_intlock_ind_src_buff(void);
-void mdrv_scm_spinunlock_intunlock_ind_src_buff(void);
-unsigned int mdrv_scm_get_ind_src_buff(unsigned int ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-void mdrv_scm_ind_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-void mdrv_scm_spinlock_intlock_cnf_src_buff(void);
-void mdrv_scm_spinunlock_intunlock_cnf_src_buff(void);
-unsigned int mdrv_scm_get_cnf_src_buff(unsigned int ulDataLen, SCM_CODER_SRC_PACKET_HEADER_STRU** pstCoderHeader, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-void mdrv_scm_cnf_src_buff_mempy(SCM_CODER_SRC_MEMCPY_STRU *pInfo, SOCP_BUFFER_RW_STRU *pstSocpBuf);
-unsigned int mdrv_scm_send_cnf_src_data(unsigned char *pucSendDataAddr, unsigned int ulSendLen);
 void mdrv_diag_PTR(DIAG_PTR_ID_ENUM enType, unsigned int paraMark, unsigned int para0, unsigned int para1);
 unsigned int mdrv_GetThrputInfo(DIAG_THRPUT_ID_ENUM type);
 unsigned int mdrv_scm_send_ind_src_data(unsigned char *pucSendDataAddr, unsigned int ulSendLen);
-
-
-
+unsigned int mdrv_diag_shared_mem_write(unsigned int eType, unsigned int len, char *pData);
+unsigned int mdrv_diag_shared_mem_read(unsigned int eType);
+unsigned long mdrv_scm_ind_src_phy_to_virt(unsigned char * phyAddr);
+unsigned long mdrv_scm_cnf_src_phy_to_virt(unsigned char * phyAddr);
 
 #ifdef __cplusplus
     #if __cplusplus

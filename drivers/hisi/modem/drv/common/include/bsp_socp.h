@@ -78,6 +78,13 @@ extern "C"
 #define BSP_ERR_SOCP_DEST_CHAN       (BSP_ERR_SOCP_BASE + 0xe)
 #define BSP_ERR_SOCP_DECSRC_SET      (BSP_ERR_SOCP_BASE + 0xf)
 
+#define SOCP_MAX_MEM_SIZE            (50 *1024 *1024)
+#define SOCP_MIN_MEM_SIZE            (1 *1024 *1024)
+#define SOCP_MAX_TIMEOUT             1200     /*MS*/
+#define SOCP_MIN_TIMEOUT             10       /*MS*/
+#define SOCP_RESERVED_TRUE           1
+#define SOCP_RESERVED_FALSE          0
+
 typedef u32 (*socp_compress_isr)     (void);
 typedef u32 (*socp_compress_event_cb)(socp_event_cb EventCB);
 typedef u32 (*socp_compress_read_cb) (socp_read_cb ReadCB);
@@ -133,8 +140,19 @@ struct socp_enc_dst_log_cfg
     unsigned int    flushFlag;
 	unsigned int    memLogCfg;
 	unsigned int    currentMode;
-    
+    unsigned int    cpsMode;
+
 };
+
+typedef struct _socp_mem_reserve_stru
+{
+    void*           pVirBuffer;      /* SOCP编码目的通道数据虚拟BUFFER、在32位系统上是4字节，在64位系统上是8字节 */
+    unsigned long   ulPhyBufferAddr; /* SOCP编码目的通道数据物理BUFFER地址 */
+    unsigned int    ulBufferSize;    /* SOCP编码目的通道数据BUFFER大小 */
+    unsigned int    ulTimeout;       /* SOCP编码目的通道数据传输超时时间 */
+    unsigned int    ulBufUsable;     /* 预留的kernel buffer是否可用的标志 */
+}socp_mem_reserve_stru;
+
 #ifdef ENABLE_BUILD_SOCP
 /*****************************************************************************
 * 函 数 名  : socp_init
@@ -342,6 +360,7 @@ s32 bsp_socp_get_write_buff( u32 u32SrcChanID, SOCP_BUFFER_RW_STRU *pBuff);
 *****************************************************************************/
 s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize);
 
+
 /*****************************************************************************
  函 数 名      : bsp_socp_register_rd_cb
  功能描述  :该接口用于注册从RD缓冲区中读取数据的回调函数。
@@ -438,7 +457,6 @@ s32 bsp_socp_set_bbp_ds_mode(SOCP_BBP_DS_MODE_ENUM_UIN32 eDsMode);
 *****************************************************************************/
 SOCP_STATE_ENUM_UINT32 bsp_socp_get_state(void);
 
-s32 socp_init(void);
 
 /*****************************************************************************
 * 函 数 名  : bsp_socp_vote
@@ -586,26 +604,58 @@ void bsp_socp_encsrc_chan_open(u32 u32SrcChanId);
 void bsp_socp_encsrc_chan_close(u32 u32SrcChanId);
 
 /*****************************************************************************
+* 函 数 名  : bsp_socp_dump_save
+*
+* 功能描述  : 异常前存储socp寄存器
+*****************************************************************************/
+void bsp_socp_dump_save(void);
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_check_state
+*
+* 功能描述  : 判断SOCP通道关闭以后的状态，提供给TCM下电流程中使用
+*
+* 输入参数  : 源通道号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : SOCP状态
+*****************************************************************************/
+s32 bsp_socp_check_state(u32 u32SrcChanId);
+
+/*****************************************************************************
  函 数 名  : bsp_socp_update_bbp_ptr
  功能描述  : 该此接口用于读写指针绝对地址改为相对地址
  输入参数  : ulSrcChanId:源通道ID
-             
+
  输出参数  : 无。
  返 回 值  : 无
 *****************************************************************************/
 void bsp_socp_update_bbp_ptr(u32 u32SrcChanId);
 
 
-u32 bsp_get_socp_ind_dst_int_slice(void);  
+u32 bsp_get_socp_ind_dst_int_slice(void);
+
+s32 bsp_clear_socp_buff(u32 u32SrcChanID);
 
 #else
 
 static inline void bsp_socp_encsrc_chan_open(u32 u32SrcChanId)
 {
     return;
-}	
-	
+}
+
 static inline void bsp_socp_encsrc_chan_close(u32 u32SrcChanId)
+{
+    return;
+}
+
+static inline s32 bsp_socp_check_state(u32 u32SrcChanId)
+{
+	return 0;
+}
+
+static inline void bsp_socp_dump_save(void)
 {
     return;
 }
@@ -629,36 +679,46 @@ static inline s32 bsp_socp_start(u32 u32SrcChanID)
 {
     return 0;
 }
+static inline u32 bsp_get_socp_ind_dst_int_slice(void)
+{
+    return 0;
+}
+static inline s32 bsp_socp_set_ind_mode(SOCP_IND_MODE_ENUM eMode)
+{
+	return 0;
+}
+static inline s32 bsp_socp_get_read_buff(u32 u32DestChanID,SOCP_BUFFER_RW_STRU *pBuffer)
+{
+	return 0;
+}
+static inline u32 bsp_socp_get_sd_logcfg(SOCP_ENC_DST_BUF_LOG_CFG_STRU* cfg)
+{
+	return 0;
+}
+static inline s32 bsp_socp_read_data_done(u32 u32DestChanID,u32 u32ReadSize)
+{
+	return 0;
+}
+static inline s32 bsp_socp_register_read_cb( u32 u32DestChanID, socp_read_cb ReadCB)
+{
+	return 0;
+}
+static inline s32 bsp_socp_register_event_cb(u32 u32ChanID, socp_event_cb EventCB)
+{
+	return 0;
+}
+static inline void bsp_socp_encdst_dsm_init(u32 EncDestChanID, u32 bEnable)
+{
+
+}
+
+static inline s32 bsp_clear_socp_buff(u32 u32SrcChanID)
+{
+    return 0;
+}
 
 #endif
 
-
-
-#ifdef CONFIG_DEFLATE
-/*****************************************************************************
-* 函 数 名  : bsp_socp_compress_enable
-*
-* 功能描述  : 压缩使能接口
-*
-* 输入参数  : 目的通道号
-*
-* 输出参数  : 无
-*
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
-*****************************************************************************/
-s32 bsp_socp_compress_enable(u32 u32DestChanID);
-/*****************************************************************************
-* 函 数 名  : bsp_socp_compress_disable
-*
-* 功能描述  : 压缩使能接口
-*
-* 输入参数  : 目的通道号
-*
-* 输出参数  : 无
-*
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
-*****************************************************************************/
-s32 bsp_socp_compress_disable(u32 u32DestChanID);
 /*****************************************************************************
 * 函 数 名  : bsp_socp_register_compress
 *
@@ -672,32 +732,6 @@ s32 bsp_socp_compress_disable(u32 u32DestChanID);
 *****************************************************************************/
 
 s32 bsp_socp_register_compress(socp_compress_ops_stru *ops);
-/*****************************************************************************
-* 函 数 名  : bsp_deflate_set_ind_mode
-*
-* 功能描述  : 压缩上报模式接口
-*
-* 输入参数  : 上报模式
-*
-* 输出参数  : 无
-*
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
-*****************************************************************************/
-
-s32 bsp_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode);
-
-/*****************************************************************************
-* 函 数 名  : bsp_deflate_read_cur_mode
-*
-* 功能描述  : 获取当前是否是压缩
-*
-* 输入参数  : 上报模式
-*
-* 输出参数  : 无
-*
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
-*****************************************************************************/
-u32 bsp_deflate_read_cur_mode(void);
 
 /*****************************************************************************
 * 函 数 名  : bsp_deflate_get_log_ind_mode
@@ -711,32 +745,127 @@ u32 bsp_deflate_read_cur_mode(void);
 * 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
 *****************************************************************************/
 s32  bsp_deflate_get_log_ind_mode(u32 *LofgIndMode);
+/*****************************************************************************
+* 函 数 名  : bsp_deflate_cfg_ind_mode
+*
+* 功能描述  : 压缩上报模式接口
+*
+* 输入参数  : 上报模式
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+
+s32 bsp_deflate_set_ind_mode(SOCP_IND_MODE_ENUM eMode);
+/*****************************************************************************
+* 函 数 名  : bsp_socp_compress_disable
+*
+* 功能描述  : 压缩使能接口
+*
+* 输入参数  : 目的通道号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+s32 bsp_socp_compress_disable(u32 u32DestChanID);
+/*****************************************************************************
+* 函 数 名  : bsp_socp_compress_enable
+*
+* 功能描述  : 压缩使能接口
+*
+* 输入参数  : 目的通道号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+*****************************************************************************/
+s32 bsp_socp_compress_enable(u32 u32DestChanID);
 
 /*****************************************************************************
-* 函 数 名  : bsp_deflate_encdst_set_cycle
+* 函 数 名  : bsp_socp_get_logbuffer_size
 *
-* 功能描述  : 压缩状态下设置循环模式
+* 功能描述  : 获取buffer大小接口
 *
-* 输入参数  : 上报模式
+* 输入参数  : 无
 *
 * 输出参数  : 无
 *
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+* 返 回 值  : 无
 *****************************************************************************/
-void bsp_deflate_encdst_set_cycle(u32 chanid, u32 cycle);
+
+u32 bsp_socp_get_logbuffer_size(void);
+
 /*****************************************************************************
-* 函 数 名  : bsp_deflate_set_dst_threshold
+* 函 数 名  : bsp_socp_get_logbuffer_time
 *
-* 功能描述  : 设置deflate目的阈值
+* 功能描述  : 获取time大小接口
 *
-* 输入参数  : 上报模式
+* 输入参数  : 无
 *
 * 输出参数  : 无
 *
-* 返 回 值  : BSP_S32 BSP_OK:成功 BSP_ERROR:失败
+* 返 回 值  : 无
 *****************************************************************************/
-void bsp_deflate_set_dst_threshold(bool mode);
-#endif
+u32 bsp_socp_get_logbuffer_time(void);
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_get_logbuffer_addr
+*
+* 功能描述  : 获取基地址大小接口
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*****************************************************************************/
+u32 bsp_socp_get_logbuffer_addr(void);
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_get_logbuffer_logcfg
+*
+* 功能描述  : 获取预留内存使能开关
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*****************************************************************************/
+u32 bsp_socp_get_logbuffer_logcfg(void);
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_bbpmemenable
+*
+* 功能描述  : 获取采数内存预留开关
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 无
+*****************************************************************************/
+u32 bsp_socp_bbpmemenable(void);
+/*****************************************************************************
+* 函 数 名  : bsp_socp_get_mem_reserve_stru
+*
+* 功能描述  : 获取预留内存信息结构
+*
+* 输入参数  : socp_mem_reserve_stru *pSocpMemStru
+*
+* 输出参数  : socp_mem_reserve_stru *pSocpMemStru
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void bsp_socp_get_mem_reserve_stru(socp_mem_reserve_stru *pSocpMemStru);
+s32 bsp_socp_set_cfg_ind_mode(SOCP_IND_MODE_ENUM eMode);
+s32 bsp_socp_get_cfg_ind_mode(u32 *CfgIndMode);
+s32 bsp_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode);
+s32 bsp_socp_get_cps_ind_mode(u32 *CpsIndMode);
+s32 bsp_socp_compress_status(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -57,7 +57,6 @@ extern "C"
 #include <bsp_memmap.h>
 #include <mdrv_sysboot.h>
 #include <bsp_ipc.h>
-#include <bsp_trace.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_slice.h>
 #include <bsp_sysctrl.h>
@@ -167,6 +166,8 @@ typedef enum tagBSP_MASTER_IDLE
     NV_IDLE,
     GCOV_IDLE,
     SIM_IDLE,
+    SEC_DUMP,
+    MDM_CERT,
     MASTER_IDLE_SUM
 }BSP_MASTER_IDLE_E;
 
@@ -204,7 +205,7 @@ static inline u32 bsp_reset_ccore_is_reboot(void)
 #ifdef __KERNEL__
 	return (u32)(CCORE_IS_REBOOT == (readl((const volatile void *)get_scbakdata13()))? 1: 0);
 #else
-	return (u32)(CCORE_IS_REBOOT == (readl((void*)get_scbakdata13()))? 1: 0);
+	return (u32)((u32)CCORE_IS_REBOOT == (readl((void*)get_scbakdata13()))? 1UL: 0UL);
 #endif
 }
 

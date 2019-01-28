@@ -91,12 +91,11 @@ typedef  struct ID_PID_to_FID
     unsigned long ulFID;    /* PIDÁ¥ÊôµÄFID */
 }PID_to_FID_Type;
 
-
 /************************* MACRO & TYPE DEFINITION ***************************/
 #define BEGIN_FID_DEFINITION() \
     enum VOS_Function_ID \
     { \
-        VOS_FID_RESERVED = VOS_FID_DOPRAEND - 1,
+        VOS_FID_RESERVED = VOS_FID_DOPRAEND - 1,/*lint !e778*/
 
 #define END_FID_DEFINITION() \
         VOS_FID_BUTT \

@@ -421,7 +421,6 @@ struct device_domain_info {
 	struct list_head global; /* link to global list */
 	u8 bus;			/* PCI bus number */
 	u8 devfn;		/* PCI devfn number */
-	u16 pfsid;		/* SRIOV physical function source ID */
 	u8 pasid_supported:3;
 	u8 pasid_enabled:1;
 	u8 pri_supported:1;
@@ -1613,7 +1612,8 @@ static void iommu_flush_iotlb_psi(struct intel_iommu *iommu,
 	 * flush. However, device IOTLB doesn't need to be flushed in this case.
 	 */
 	if (!cap_caching_mode(iommu->cap) || !map)
-		iommu_flush_dev_iotlb(domain, addr, mask);
+		iommu_flush_dev_iotlb(get_iommu_domain(iommu, did),
+				      addr, mask);
 }
 
 static void iommu_disable_protect_mem_regions(struct intel_iommu *iommu)

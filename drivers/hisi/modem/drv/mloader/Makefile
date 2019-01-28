@@ -16,4 +16,6 @@ else
 obj-y		    += mloader_load_image_unsec.o
 endif
 
+obj-y           += modem_cold_patch_stub.o
+
 subdir-ccflags-y := -Werror

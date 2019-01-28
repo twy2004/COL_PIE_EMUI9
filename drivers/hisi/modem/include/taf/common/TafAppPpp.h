@@ -46,8 +46,8 @@
 *
 */
 
-#ifndef __TAF_APP_PPP_H__
-#define __TAF_APP_PPP_H__
+#ifndef _TAF_APP_PPP_H_
+#define _TAF_APP_PPP_H_
 
 
 #include "TafTypeDef.h"
@@ -89,16 +89,17 @@ extern "C"{
 #endif
 
 
-#if ((TAF_OS_VER == TAF_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+
+#if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else
 #pragma pack(0)
 #endif
 
 #ifdef __cplusplus
-    #if __cplusplus
-            }
-    #endif
+#if __cplusplus
+}
+#endif
 #endif
 
-#endif /* end of TafAppPpp.h */
+#endif /* _TAF_APP_PPP_H_ */

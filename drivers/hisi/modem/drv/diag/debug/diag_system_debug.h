@@ -65,11 +65,14 @@ extern "C" {
 #include <osl_types.h>
 #include <bsp_slice.h>
 #include <bsp_diag_frame.h>
+#include <bsp_print.h>
 #include <bsp_socp.h>
 
 #pragma pack(push)
 #pragma pack(4)
 
+#undef  THIS_MODU
+#define THIS_MODU mod_diag
 
 #define DIAG_DEBUG_START        (0xaaaa5555)
 #define DIAG_DEBUG_END          (0x5555aaaa)
@@ -86,13 +89,8 @@ extern "C" {
 /* 复杂的数据结构，存储信息前先存储信息长度，高8位是0xa5，低24位是数据长度 */
 #define DIAG_DEBUG_SIZE_FLAG    (0xa5000000)
 
-
-#define diag_system_printf(fmt, ...) \
-    bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_DIAG_SYSTEM,"<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
-
-
-
-
+#define diag_crit(fmt,...)       printk(KERN_ERR"[%s]:"fmt, BSP_MOD(THIS_MODU), ##__VA_ARGS__)
+#define diag_error(fmt,...)      printk(KERN_ERR"[%s]:<%s %d>"fmt, BSP_MOD(THIS_MODU), __FUNCTION__, __LINE__,##__VA_ARGS__)
 
 /* PTR ***********************************************************************/
 /*
@@ -244,6 +242,7 @@ void DIAG_Throughput(void);
 void diag_debug_get_dst_mntn_info(DIAG_MNTN_DST_INFO_STRU * dst_mntn);
 void diag_reset_dst_mntn_info(void);
 void diag_save_soft_decode_info(void);
+u32 diag_debug_log_level(u32 level);
 
 #pragma pack(pop)
 

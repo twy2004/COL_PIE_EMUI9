@@ -57,6 +57,8 @@
 #include <mdrv_diag_system.h>
 #include <osl_types.h>
 #include <bsp_dump.h>
+#include <bsp_print.h>
+#include <nv_stru_drv.h>
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -89,13 +91,10 @@ extern u32                          g_ulOmAcpuDbgFlag ;
 #define OM_ACPU_DATA            BIT_N(11)
 #define OM_ACPU_READ_DONE       BIT_N(12)
 
-#define ppm_printf  diag_system_printf
-
-
 #define OM_ACPU_DEBUG_CHANNEL_TRACE(enChanID, pucData, ulDataLen, ulSwitch, ulDataSwitch) \
         if(false != (g_ulOmAcpuDbgFlag&ulSwitch)) \
         { \
-            (void)ppm_printf("%s, channal ID: = %d, Data Len: = %d\n", __FUNCTION__, enChanID, ulDataLen); \
+            diag_crit("%s, channal ID: = %d, Data Len: = %d\n", __FUNCTION__, enChanID, ulDataLen); \
             if(false != (g_ulOmAcpuDbgFlag&ulDataSwitch) )\
             {\
                 if (NULL != pucData)\
@@ -103,7 +102,7 @@ extern u32                          g_ulOmAcpuDbgFlag ;
                     u32 ulOmDbgIndex;\
                     for (ulOmDbgIndex = 0 ; ulOmDbgIndex < ulDataLen; ulOmDbgIndex++) \
                     { \
-                        bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_DIAG_SYSTEM, "%02x ", *((u8*)pucData + ulOmDbgIndex));\
+                        diag_crit("%02x ", *((u8*)pucData + ulOmDbgIndex));\
                     } \
                 }\
             }\
@@ -171,6 +170,19 @@ typedef struct
 }PPM_PORT_CFG_INFO_STRU;
 
 /*****************************************************************************
+ 结构名    : PPM_PORT_SWITCH_NV_INFO
+ 结构说明  : 切端口时写NV从ACORE写改为CCORE写，发送ICC的消息结构体
+*****************************************************************************/
+typedef struct
+{
+    u32 msgid;
+    u32 sn;
+    u32 ret; //发送的时候写0 回复的时候C核的处理结果
+    u32 len;
+    DIAG_CHANNLE_PORT_CFG_STRU data;
+}PPM_PORT_SWITCH_NV_INFO;
+
+/*****************************************************************************
  枚举名    : AT_PHY_PORT_ENUM
  枚举说明  : 物理端口号枚举值 从omnvinterface.h拷贝来的
 *****************************************************************************/
@@ -202,6 +214,12 @@ enum
 };//物理端口枚举
 typedef u32  CPM_PHY_PORT_ENUM_UINT32;
 
+enum
+{
+    PPM_MSGID_PORT_SWITCH_NV_A2C = 1,   /* PPM把切端口NV从A核给C核写NV标志 */
+    PPM_MSGID_PORT_SWITCH_NV_C2A = 2,   /* PPM把切端口NV结果从C核返回A核 */
+    PPM_MSGID_BUTT
+};//PPM_消息ID记录
 
 /*****************************************************************************
   4 函数声明

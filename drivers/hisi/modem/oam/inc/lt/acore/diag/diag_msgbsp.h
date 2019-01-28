@@ -67,7 +67,6 @@ extern "C" {
 #include "msp_diag_comm.h"
 #include "diag_common.h"
 #include "msp_errno.h"
-#include "DiagMtaInterface.h"
 
 /*****************************************************************************
   2 macro
@@ -93,6 +92,27 @@ do {    \
         goto DIAG_ERROR;    \
     }   \
 }while(0)
+#define DIAG_MSG_BSP_CFG_ACOE_TO_NRM(ulLen, pstDiagHead, pstInfo, ret) \
+    do {    \
+        ulLen = sizeof(DIAG_BSP_MSG_A_TRANS_C_STRU)- VOS_MSG_HEAD_LENGTH + pstDiagHead->ulMsgLen;  \
+        pstInfo = (DIAG_BSP_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);  \
+        if(VOS_NULL == pstInfo) \
+        {   \
+            ret = ERR_MSP_MALLOC_FAILUE;    \
+            goto DIAG_ERROR;    \
+        }   \
+        pstInfo->ulReceiverPid = MSP_PID_DIAG_NRM_AGENT;    \
+        pstInfo->ulSenderPid   = MSP_PID_DIAG_APP_AGENT;    \
+        pstInfo->ulMsgId       = DIAG_MSG_BSP_A_TRANS_C_REQ;    \
+        ulLen = sizeof(DIAG_FRAME_INFO_STRU)+pstDiagHead->ulMsgLen; \
+        VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pstDiagHead, ulLen);   \
+        ret = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstInfo); \
+        if(ret) \
+        {   \
+            goto DIAG_ERROR;    \
+        }   \
+    }while(0)
+
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
@@ -128,122 +148,11 @@ typedef struct
     VOS_UINT32      ulReserve;
 }DIAG_BSP_PROC_FUN_STRU;
 
-
-/* 核间透传通信结构体 */
-typedef struct
-{
-     VOS_MSG_HEADER                     /*VOS头 */
-     VOS_UINT32                         ulMsgId;
-     DIAG_FRAME_INFO_STRU               stInfo;
-}DIAG_BSP_MSG_A_TRANS_C_STRU;
-
 typedef struct
 {
     VOS_UINT32  ulChannelNum;
     VOS_UINT32  ulChannelId;
 }DIAG_BSP_CTRL;
-/*****************************************************************************
-描述 : 读NV
-ID   : DIAG_CMD_NV_RD
-REQ : DIAG_CMD_NV_QRY_REQ_STRU
-CNF : DIAG_CMD_NV_QRY_CNF_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulModemid;      /* 0-modem0;1-modem1;2-modem2 */
-    VOS_UINT32 ulCount;
-    VOS_UINT32 ulNVId[0];      /* 待获取的NV项Id */
-} DIAG_CMD_NV_QRY_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;         /* 原AUID*/
-    VOS_UINT32 ulSn;           /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;           /* 表明执行结果是否成功, 0表示成功，其他的为错误码*/
-    VOS_UINT32 ulModemid;      /* 0-modem0;1-modem1;2-modem2 */
-    VOS_UINT32 ulCount;
-    VOS_UINT32 ulNVId;         /* 获取的NV项Id*/
-    VOS_UINT32 ulDataSize;     /* 获取的NV项数据的大小*/
-    VOS_UINT8  aucData[0];     /* 获取的NV项数据*/
-} DIAG_CMD_NV_QRY_CNF_STRU;
-
-/*****************************************************************************
-描述 : 写NV
-ID   : DIAG_CMD_NV_WR
-REQ : DIAG_CMD_NV_WR_REQ_STRU
-CNF : DIAG_CMD_NV_WR_CNF_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulModemid;      /* 0-modem0;1-modem1;2-modem2 */
-    VOS_UINT32 ulCount;
-    VOS_UINT32 ulNVId;         /* 需要写入的NV ID*/
-    VOS_UINT32 ulDataSize;     /* 需要写入的NV项数据的大小*/
-    VOS_UINT8  aucData[0];     /* 数据缓冲区*/
-} DIAG_CMD_NV_WR_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;         /* 原AUID*/
-    VOS_UINT32 ulSn;           /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulModemid;      /* 0-modem0;1-modem1;2-modem2 */
-    VOS_UINT32 ulRc;           /* 表明执行结果是否成功,0表示成功，其他的为错误码*/
-} DIAG_CMD_NV_WR_CNF_STRU;
-
-/*****************************************************************************
-描述 : getNVidlist
-ID   : DIAG_CMD_NV_LIST
-REQ : DIAG_CMD_NV_LIST_REQ_STRU
-CNF : DIAG_CMD_NV_LIST_CNF_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulRsv;
-} DIAG_CMD_NV_LIST_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;
-    VOS_UINT32 ulSn;
-    VOS_UINT32 ulRc;
-    VOS_UINT32 ulCount;
-    NV_LIST_INFO_STRU astNvList[0];
-} DIAG_CMD_NV_LIST_CNF_STRU;
-
-/*****************************************************************************
-描述 : getNVResumlist
-ID   : DIAG_CMD_NV_RESUM_LIST
-REQ : DIAG_CMD_NV_RESUM_LIST_CNF_STRU
-CNF : DIAG_CMD_NV_RESUM_LIST_CNF_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulAuid;
-    VOS_UINT32 ulSn;
-    VOS_UINT32 ulRc;
-    VOS_UINT32 ulCount;
-    VOS_UINT16 nvResumItem[0];
-} DIAG_CMD_NV_RESUM_LIST_CNF_STRU;
-
-/*****************************************************************************
-描述 : NV鉴权
-ID   : DIAG_CMD_NV_AUTH
-REQ : DIAG_CMD_NV_AUTH_REQ_STRU
-CNF : DIAG_CMD_NV_AUTH_CNF_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulLen;
-    VOS_UINT8  aucAuth[256];
-} DIAG_CMD_NV_AUTH_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;
-    VOS_UINT32 ulSn;
-    VOS_UINT32 ulRc;
-} DIAG_CMD_NV_AUTH_CNF_STRU;
-
 
 /* C核给A核发送NV鉴权结果 */
 typedef struct
@@ -281,19 +190,11 @@ typedef struct
 /*****************************************************************************
   8 Fuction Extern
 *****************************************************************************/
-VOS_UINT32  diag_BspMsgProc(DIAG_FRAME_INFO_STRU *pData);
-
-VOS_VOID diag_nvInit(VOS_VOID);
+VOS_UINT32 diag_BspMsgProc(DIAG_FRAME_INFO_STRU *pData);
 VOS_VOID diag_BspMsgInit(VOS_VOID);
-VOS_UINT32  diag_NvRdProc(VOS_UINT8* pstReq);
-VOS_UINT32  diag_NvWrProc(VOS_UINT8* pstReq);
-VOS_UINT32  diag_GetNvListProc(VOS_UINT8* pstReq);
-VOS_UINT32  diag_NvAuthProc(VOS_UINT8* pstReq);
-VOS_VOID    diag_InitAuthVariable(VOS_VOID);
-VOS_VOID    diag_AuthNvCfg(MsgBlock* pMsgBlock);
-VOS_VOID    diag_BspRecvCmdList(MsgBlock* pMsgBlock);
-VOS_UINT32  diag_fsInit(void);
+VOS_VOID diag_BspRecvCmdList(MsgBlock* pMsgBlock);
 VOS_UINT32 diag_BspConnMgr(VOS_UINT8 *pData);
+VOS_BOOL diag_BspIsNrmCmd(VOS_UINT32 ulCmdId);
 
 
 /*****************************************************************************

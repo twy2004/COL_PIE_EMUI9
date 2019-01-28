@@ -79,7 +79,6 @@
 #include "vos_Id.h"
 #include "v_sem.h"
 #include "v_private.h"
-#include "mdrv.h"
 
 #include <linux/kthread.h>
 
@@ -397,7 +396,7 @@ VOS_UINT32 VOS_CreateTaskOnly(
 
     if (VOS_NULL != sched_setscheduler(tsk, SCHED_FIFO, &param))
     {
-        (VOS_VOID)vos_printf("VOS_CreateTaskOnly: Creat Task %s ID %d sched_setscheduler Error\r\n", puchName, iTid);
+        (VOS_VOID)vos_printf("[PAM][OSA] %s: Creat Task %s ID %d sched_setscheduler Error\r\n", __FUNCTION__, puchName, iTid);
 
         VOS_TaskPrintCtrlBlkInfo();
 
@@ -436,7 +435,7 @@ VOS_UINT32 VOS_CreateTask( VOS_CHAR * puchName,
 
     if (VOS_OK != ulResult)
     {
-        (VOS_VOID)vos_printf("VOS_CreateTask: createonly error\r\n");
+        (VOS_VOID)vos_printf("[PAM][OSA] %s: createonly error\r\n", __FUNCTION__);
         return VOS_ERR;
     }
 
@@ -446,13 +445,13 @@ VOS_UINT32 VOS_CreateTask( VOS_CHAR * puchName,
 
     if (VOS_NULL_PTR == tsk)
     {
-        (VOS_VOID)vos_printf("VOS_CreateTask: tsk NULL\r\n");
+        (VOS_VOID)vos_printf("[PAM][OSA] %s: tsk NULL\r\n", __FUNCTION__);
         return VOS_ERR;
     }
 
     if (tsk->pid != ulLinuxThreadId)
     {
-        (VOS_VOID)vos_printf("VOS_CreateTask: tsk pid not equal\r\n");
+        (VOS_VOID)vos_printf("[PAM][OSA] %s: tsk pid not equal\r\n", __FUNCTION__);
         return VOS_ERR;
     }
 
@@ -606,7 +605,7 @@ VOS_UINT32 VOS_TaskUnlock( VOS_VOID )
  *****************************************************************************/
 VOS_UINT32 VOS_DeleteTask( VOS_UINT32 ulTaskID )
 {
-    (VOS_VOID)vos_printf("\r\nVOS_DeleteTask: Delete Task %x", ulTaskID);
+    (VOS_VOID)vos_printf("\r\n[PAM][OSA] %s: Delete Task =: %x", __FUNCTION__, ulTaskID);
 
     return(VOS_OK);
 }

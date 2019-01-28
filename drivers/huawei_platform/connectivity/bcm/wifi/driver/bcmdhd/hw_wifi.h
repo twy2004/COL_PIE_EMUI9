@@ -72,7 +72,10 @@ extern volatile bool g_wifi_firstwake;
 #define DHO_MESSAGETYPE     53
 #define DHO_SERVERID        54
 #define DHO_END             255
-
+#ifdef CONFIG_HW_WIFI_DMA_ADDR_CTRL
+#define ATLANTA_CODE_ADDR_BEGIN	  0x80000
+#define ATLANTA_CODE_ADDR_END	  0x1100000
+#endif
 
 struct dhcp_message {
     uint8_t op;             /* message type */

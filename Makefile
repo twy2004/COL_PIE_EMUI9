@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 9
-SUBLEVEL = 127
+SUBLEVEL = 97
 EXTRAVERSION =
 NAME = Roaring Lionus
 
@@ -388,7 +388,7 @@ USERINCLUDE    := \
 		-I$(objtree)/include/generated/uapi \
                 -include $(srctree)/include/linux/kconfig.h
 
-export TARGET_BOARD_PLATFORM = kirin970
+export TARGET_BOARD_PLATFORM = kirin980
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
 LINUXINCLUDE    := \
@@ -463,8 +463,8 @@ ifneq ($(BALONG_FAMA_FLAGS),)
 KBUILD_CFLAGS += $(BALONG_FAMA_FLAGS)
 endif
 
-OBB_PRODUCT_NAME = kirin970
-CFG_PLATFORM = kirin970
+OBB_PRODUCT_NAME = kirin980
+CFG_PLATFORM = kirin980
 TARGET_ARM_TYPE = arm64
 export OBB_PRODUCT_NAME CFG_PLATFORM TARGET_ARM_TYPE 
 # add hisilicon balong configs end
@@ -476,8 +476,7 @@ export MAKE AWK GENKSYMS INSTALLKERNEL PERL PYTHON UTS_MACHINE
 export HOSTCXX HOSTCXXFLAGS LDFLAGS_MODULE CHECK CHECKFLAGS
 
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS LINUXINCLUDE OBJCOPYFLAGS LDFLAGS
-export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE
-export CFLAGS_KASAN CFLAGS_KASAN_NOSANITIZE CFLAGS_UBSAN
+export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE CFLAGS_KASAN CFLAGS_UBSAN
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
 export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
@@ -709,7 +708,6 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
-KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 
 ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
 KBUILD_CFLAGS	+= $(call cc-option,-ffunction-sections,)

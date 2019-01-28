@@ -53,8 +53,7 @@ extern "C"
 {
 #endif
 
-
-#ifndef __OS_NRCCPU__
+/*lint --e{488,830}*/
 /* 处理器类型*/
 typedef enum tagIPC_INT_CORE_E
 {
@@ -67,26 +66,18 @@ typedef enum tagIPC_INT_CORE_E
     IPC_CORE_HiFi,
     IPC_CORE_BBE,           /* xdsp core id */
     IPC_CORE_NXDSP,
-    IPC_CORE0_A15,
-    IPC_CORE1_A15,
+    IPC_CORE_NRCCPU,
     /* !!!!新增元素请添加到最后  */
-    IPC_CORE_BUTTOM
-}IPC_INT_CORE_E;
-#else
-typedef enum tagIPC_INT_CORE_E
-{
-    IPC_CORE_LDSP = -1,
-    IPC_CORE_HiFi = -1,
-    IPC_CORE_CCORE = -1,
-    IPC_CORE_HL1C = 0x0,
-    IPC_CORE_NRCCORE,
+
+     /* !!!!NRCPU CORE-ID 枚举值定义  */
+    //ACORE MCORE NRCPU 的枚举值和AP 侧IPC 枚举值一致，新增HL1C、L2HAC、LL1C
+    IPC_CORE_HL1C = 3,
     IPC_CORE_L2HAC,
     IPC_CORE_LL1C,
-    IPC_CORE_ACORE,
-    IPC_CORE_MCORE,
-    IPC_CORE_BUTTOM
+
+    /* !!!!新增元素请添加到最后  */
+    IPC_CORE_BUTTOM = 8,
 }IPC_INT_CORE_E;
-#endif
 
 /*********************************************************
 *  添加新IPC资源，枚举命名格式:
@@ -143,6 +134,9 @@ typedef enum tagIPC_INT_LEV_E
     IPC_CCPU_INT_SRC_LTE0_RESUME  ,   /*LTE0 (  主卡) 给CCPU 的RESUME 中断*/
     IPC_CCPU_INT_SRC_LTE1_RESUME  ,   /*LTE1 (  副卡) 给CCPU 的RESUME  中断*/
     IPC_CCPU_INT_SRC_TDS_RESUME  ,           /* TDS 给CCPU 的RESUME  中断*/
+    IPC_CCPU_INT_SRC_HISPEED_MBX  ,           /* 快速邮箱DSP->ARM 中断*/
+    IPC_CCPU_INT_SRC_LTEV_PS_MBX,               /* LTEV_DSP->ARM, ps */
+    IPC_CCPU_INT_SRC_LTEV_OM_MBX,               /* LTEV_DSP->ARM, om */
 
     IPC_INNER_INT_TEST        = 90,
 
@@ -213,6 +207,7 @@ typedef enum tagIPC_INT_LEV_E
     IPC_INT_MSP_DSP_LTE0_WAKE_UP  ,       /*CCPU 给DSP 的LTE0  唤醒中断*/
     IPC_INT_MSP_DSP_LTE1_WAKE_UP  ,   /*CCPU 给DSP 的LTE1  唤醒中断*/
     IPC_INT_MSP_DSP_TDS_WAKE_UP  ,    /*CCPU 给DSP 的TDS  唤醒中断*/
+    IPC_INT_MSP_DSP_HISPEED_MBX ,   /* 快速邮箱下行ARM->DSP */
     IPC_BBE16_INT_SRC_END  ,
 
 
@@ -225,7 +220,14 @@ typedef enum tagIPC_INT_LEV_E
     IPC_XDSP_INT_SRC_CCPU_HRPD_WAKE_UP  ,     /*CCPU 给DSP 的HRPD  唤醒中断*/
     IPC_XDSP_INT_SRC_END ,
 
+    /* 定义NRCCPU IPC跨核消息中断源bit位置 */
+    IPC_NRCCPU_INT_SRC_HL1C_PD               = 29, /* HL1C发给nrccpu 下电中断*/
+    IPC_NRCCPU_INT_SRC_L2HAC_PD              = 30, /* L2HAC发给nrccpu 下电中断*/
+    IPC_NRCCPU_INT_SRC_ACPU_ICC              = 31, /* acpu发给nrccpu中断*/
+    IPC_NRCCPU_INT_SRC_END ,
 
+    IPC_LTEV_INT_SRC_CCPU_PS_MBX = 0,           /* ARM->LTEV_DSP, ps */
+    IPC_LTEV_INT_SRC_CCPU_OM_MBX,               /* ARM->LTEV_DSP, om */
     /* 仅解决编译问题 */
     IPC_INT_BUTTOM             = 96,
 }IPC_INT_LEV_E;

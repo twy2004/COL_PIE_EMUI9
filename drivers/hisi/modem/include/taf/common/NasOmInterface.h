@@ -66,7 +66,6 @@
 
 
 #define LEN_LAI                                             5
-#define LEN_RAI                                             6
 
 #define NAS_OM_EVENT_NO_PARA                                0
 #define NAS_OM_EVENT_SERVICE_REJ_LEN                        2
@@ -94,12 +93,6 @@
 #define OM_NAS_OTA_REQ    0xC101
 #define NAS_OM_OTA_CNF    0xC102
 #define NAS_OM_OTA_IND    0xC103
-
-#define VOS_MSG_HEADER  VOS_UINT32 ulSenderCpuId;  \
-                        VOS_UINT32 ulSenderPid;    \
-                        VOS_UINT32 ulReceiverCpuId;\
-                        VOS_UINT32 ulReceiverPid;  \
-                        VOS_UINT32 ulLength;
 
 /* sizeof(VOS_MSG_HEADER) + sizeof(usTransPrimId) + sizeof(usRsv1)
  + sizeof(ucFuncType)     + sizeof(ucReserve)    + sizeof(usLength)*/
@@ -206,7 +199,9 @@ typedef enum
     NAS_OM_EVENT_TIMER_OPERATION_START      = 75,
     NAS_OM_EVENT_TIMER_OPERATION_STOP       = 76,
     NAS_OM_EVENT_TIMER_OPERATION_EXPIRED    = 77,
+
     NAS_OM_EVENT_PA_STAR_ABNORMAL           = 78,
+
     NAS_OM_EVENT_SMS_MT_FAIL                = 79,
 
     NAS_OM_EVENT_1X_SYS_ACQUIRE_SUCCESS     = 80,
@@ -549,7 +544,7 @@ typedef enum
     NAS_OTA_MSG_CC_START_DTMF_ACK                 = 0x041E,
     NAS_OTA_MSG_CC_START_DTMF_REJ                 = 0x041F,
     NAS_OTA_MSG_CC_STOP_DTMF_ACK                  = 0x0420,
-    NAS_OTA_MSG_CC_STATUS_ENQUIRY                 = 0x0421,
+    NAS_OTA_MSG_CC_STATUS_ENQUIRY_DOWN            = 0x0421,
     NAS_OTA_MSG_CC_STATUS_DOWN                    = 0x0422,
     NAS_OTA_MSG_CC_STATUS_UP                      = 0x0423,
     NAS_OTA_MSG_CC_START_DTMF                     = 0x0424,
@@ -560,6 +555,7 @@ typedef enum
     NAS_OTA_MSG_CC_CCBS_ESTABLISHMENT             = 0x0429,
     NAS_OTA_MSG_CC_CCBS_EST_CNF                   = 0x042A,
     NAS_OTA_MSG_CC_CCBS_RECALL                    = 0x042B,
+    NAS_OTA_MSG_CC_STATUS_ENQUIRY_UP              = 0x042C,
 
     /* SS Event */
     NAS_OTA_MSG_SS_REGISTER_DOWN                  = 0x0500,
@@ -594,6 +590,54 @@ typedef enum
     NAS_OTA_MSG_HSM_SMP_MESSAGE_TYPE_KEEP_ALIVE_REQ_DOWN       = 0x0614,
     NAS_OTA_MSG_HSM_SMP_MESSAGE_TYPE_KEEP_ALIVE_RESP_UP        = 0x0615,
     NAS_OTA_MSG_HSM_SMP_MESSAGE_TYPE_KEEP_ALIVE_RESP_DOWN      = 0x0616,
+
+    NAS_OTA_MSG_NRSM_PDU_SESSION_EST_REQ                       = 0x0700,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_EST_ACP                       = 0x0701,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_EST_REJ                       = 0x0702,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_AUTH_CMD                      = 0x0703,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_AUTH_CMPL                     = 0x0704,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_AUTH_RSLT                     = 0x0705,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_MOD_REQ                       = 0x0706,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_MOD_REJ                       = 0x0707,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_MOD_CMD                       = 0x0708,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_MOD_CMPL                      = 0x0709,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_MOD_CMD_REJ                   = 0x070A,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_REL_REQ                       = 0x070B,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_REL_REJ                       = 0x070C,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_REL_CMD                       = 0x070D,
+    NAS_OTA_MSG_NRSM_PDU_SESSION_REL_CMPL                      = 0x070E,
+    NAS_OTA_MSG_NRSM_5GSM_STATUS_UP                            = 0x070F,
+    NAS_OTA_MSG_NRSM_5GSM_STATUS_DOWN                          = 0x0710,
+
+    NAS_OTA_MSG_NRMM_REGISTRATION_REQUEST                      = 0x0800,
+    NAS_OTA_MSG_NRMM_REGISTRATION_ACCEPT                       = 0x0801,
+    NAS_OTA_MSG_NRMM_REGISTRATION_COMPLETE                     = 0x0802,
+    NAS_OTA_MSG_NRMM_REGISTRATION_REJECT                       = 0x0803,
+    NAS_OTA_MSG_NRMM_MO_DEREGISTRATION_REQUEST                 = 0x0804,
+    NAS_OTA_MSG_NRMM_MO_DEREGISTRATION_ACCEPT                  = 0x0805,
+    NAS_OTA_MSG_NRMM_MT_DEREGISTRATION_REQUEST                 = 0x0806,
+    NAS_OTA_MSG_NRMM_MT_DEREGISTRATION_ACCEPT                  = 0x0807,
+
+    NAS_OTA_MSG_NRMM_SERVICE_REQUEST                           = 0x0808,
+    NAS_OTA_MSG_NRMM_SERVICE_REJECT                            = 0x0809,
+    NAS_OTA_MSG_NRMM_SERVICE_ACCEPT                            = 0x080A,
+
+    NAS_OTA_MSG_NRMM_CONFIGURATION_UPDATE_COMMAND              = 0x080B,
+    NAS_OTA_MSG_NRMM_CONFIGURATION_UPDATE_COMPLETE             = 0x080C,
+    NAS_OTA_MSG_NRMM_AUTHENTICATION_REQUEST                    = 0x080D,
+    NAS_OTA_MSG_NRMM_AUTHENTICATION_RESPONSE                   = 0x080E,
+    NAS_OTA_MSG_NRMM_AUTHENTICATION_REJECT                     = 0x080F,
+    NAS_OTA_MSG_NRMM_AUTHENTICATION_FAILURE                    = 0x0810,
+    NAS_OTA_MSG_NRMM_IDENTITY_REQUEST                          = 0x0811,
+    NAS_OTA_MSG_NRMM_IDENTITY_RESPONSE                         = 0x0812,
+    NAS_OTA_MSG_NRMM_SECURITY_MODE_COMMAND                     = 0x0813,
+    NAS_OTA_MSG_NRMM_SECURITY_MODE_COMPLETE                    = 0x0814,
+    NAS_OTA_MSG_NRMM_SECURITY_MODE_REJECT                      = 0x0815,
+
+    NAS_OTA_MSG_NRMM_NRMM_STATUS                               = 0x0816,
+    NAS_OTA_MSG_NRMM_NOTIFICATION                              = 0x0817,
+    NAS_OTA_MSG_NRMM_UL_NAS_TRANSPORT                          = 0x0818,
+    NAS_OTA_MSG_NRMM_DL_NAS_TRANSPORT                          = 0x0819,
 
     NAS_OTA_MSG_ID_BUTT
 }NAS_OTA_MSG_ID_ENUM;

@@ -92,6 +92,14 @@ typedef struct
     VOS_UINT32  AuthVer;             /*AuthorityVer*/
 }NV_MSP_AUTH_VER_STRU;
 
+#define    CHR_FAULTID_GUTL_MIN     (0x0)
+#define    CHR_FAULTID_GUTL_MAX     (0xA0)
+#define    CHR_FAULTID_CDMA_MIN     (0xA1)
+#define    CHR_FAULTID_CDMA_MAX     (0xFF)
+
+#define    CHR_FAULTID_NUM_MAX      (27)
+
+
 
 typedef struct _FAULTID_MAP
 {
@@ -105,7 +113,7 @@ typedef struct _FAULTID_MAP
 typedef struct _CHR_CONFIG_CTRL
 {
     VOS_UINT32   ulFaultIdNum;
-    FAULTID_MAP  aucFaulIdMap[24];
+    FAULTID_MAP  aucFaulIdMap[CHR_FAULTID_NUM_MAX];
     
 }NV_ID_CHR_CONFIG_CTRL_INFO_STRU;
 
@@ -113,7 +121,7 @@ typedef struct _CHR_CONFIG_CTRL
 typedef struct _CHR_C_CONFIG_CTRL
 {
     VOS_UINT32   ulFaultIdNum;
-    FAULTID_MAP  aucFaulIdMap[24];
+    FAULTID_MAP  aucFaulIdMap[CHR_FAULTID_NUM_MAX];
     
 }NV_ID_CHR_C_CONFIG_CTRL_INFO_STRU;
 

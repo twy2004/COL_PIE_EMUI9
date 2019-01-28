@@ -59,10 +59,13 @@ extern "C"{
 #endif
 #endif
 
-#include "TafTypeDef.h"
 #include "sitypedef.h"
 #include "vos.h"
 #include "UsimPsInterface_comm.h"
+
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
+#include "TafTypeDef.h"
+#endif
 
 #if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #include "Taf_MmiStrParse.h"
@@ -2337,7 +2340,7 @@ typedef struct
 /*****************************************************************************
   14 外部函数和结构声明
 *****************************************************************************/
-typedef TAF_VOID (*pfSTKCmdATPrint)(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, TAF_UINT16* pusDataLen, SI_STK_DATA_INFO_STRU * pEvent);
+typedef VOS_VOID (*pfSTKCmdATPrint)(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT16* pusDataLen, SI_STK_DATA_INFO_STRU * pEvent);
 
 
 typedef struct
@@ -2567,6 +2570,7 @@ SI_STK_ENVELOPE_TYPE_UINT32 enDataType,VOS_UINT32 ulDataLen,VOS_UINT8 *pucCmdDat
 
 extern VOS_VOID SI_STK_EnvelopeRspDataFree(MODEM_ID_ENUM_UINT16 enModemId, SI_STK_ENVELOPE_RSP_STRU *pstData);
 
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
 extern VOS_UINT32 SI_STK_MenuSelection(MN_CLIENT_ID_T ClientId,MN_OPERATION_ID_T OpId,SI_STK_ENVELOPE_STRU *pstENStru);
 
 extern VOS_UINT32 SI_STK_GetMainMenu(MN_CLIENT_ID_T ClientId, MN_OPERATION_ID_T OpId);
@@ -2580,6 +2584,7 @@ extern VOS_UINT32 SI_STK_TerminalResponse(MN_CLIENT_ID_T ClientId,MN_OPERATION_I
 extern VOS_UINT32 SI_STK_DataSendSimple(MN_CLIENT_ID_T ClientId,MN_OPERATION_ID_T OpId, SI_SEND_DATA_TYPE SendType,VOS_UINT32 ulDataLen,VOS_UINT8 *paucData);
 
 extern VOS_UINT32 SI_STKDualIMSIChangeReq(MN_CLIENT_ID_T ClientId, MN_OPERATION_ID_T OpId);
+#endif
 
 extern VOS_VOID SI_STKGetCurImsiSign(MODEM_ID_ENUM_UINT16 enModemId, VOS_UINT16 *pusDualIMSIEnable, VOS_UINT32 *pulCurImsiSign);
 
@@ -2595,6 +2600,19 @@ extern VOS_VOID SI_STKCallBack_BroadCast(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, 
 
 extern VOS_UINT32 WuepsSTKPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
 
+#if (FEATURE_ON == FEATURE_SCI_SWITCH_OPTIMIZE)
+
+#if (1 < MULTI_MODEM_NUMBER)
+extern VOS_VOID I1_SI_STK_PidMsgProc(PS_SI_MSG_STRU *pMsg);
+
+extern VOS_UINT32 I1_WuepsSTKPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
+
+extern VOS_VOID I2_SI_STK_PidMsgProc(PS_SI_MSG_STRU *pMsg);
+extern VOS_UINT32 I2_WuepsSTKPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
+#endif  /* (FEATURE_ON == FEATURE_MULTI_MODEM) */
+
+#else
+
 #if (1 < MULTI_MODEM_NUMBER)
 extern VOS_VOID I1_SI_STK_PidMsgProc(PS_SI_MSG_STRU *pMsg);
 
@@ -2603,12 +2621,15 @@ extern VOS_UINT32 I1_WuepsSTKPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
 
 extern VOS_VOID I2_SI_STK_PidMsgProc(PS_SI_MSG_STRU *pMsg);
 extern VOS_UINT32 I2_WuepsSTKPidInit(enum VOS_INIT_PHASE_DEFINE InitPhrase);
-#endif
-#endif
+#endif  /* (3 == MULTI_MODEM_NUMBER) */
+#endif  /* (1 < MULTI_MODEM_NUMBER) */
+#endif  /* (FEATURE_ON == FEATURE_SCI_SWITCH_OPTIMIZE) */
 
 
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
 
 extern VOS_UINT32 SI_STK_SetUpCallConfirm(MN_CLIENT_ID_T ClientId, SI_STK_SETUPCALLCONFIRM_ENUM_UINT32 enAction);
+#endif
 
 
 extern VOS_VOID SI_STK_CCResultInd(
@@ -2619,7 +2640,7 @@ extern VOS_VOID SI_STK_CCResultInd(
 
 extern VOS_VOID SI_STK_SMSCtrlResultInd(MODEM_ID_ENUM_UINT16 enModemId, SI_STK_ENVELOPE_RSP_STRU *pstRspData);
 
-#if ((TAF_OS_VER == TAF_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+#if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))
 #pragma pack()
 #else
 #pragma pack(0)

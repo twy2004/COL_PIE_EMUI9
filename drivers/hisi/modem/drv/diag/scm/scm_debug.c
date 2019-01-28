@@ -59,9 +59,9 @@
 #include "scm_cnf_dst.h"
 #include "soc_socp_adapter.h"
 #include "diag_port_manager.h"
-#include "soft_decode.h"
 #include "OmCommonPpm.h"
 #include "scm_debug.h"
+#include "diag_system_debug.h"
 
 SCM_INFODATA_STRU           g_stSCMInfoData = {};    /* 用于保存log信息 */
 
@@ -75,13 +75,13 @@ extern SCM_CODER_DEST_CFG_STRU g_astSCMCnfCoderDstCfg;
 
 void SCM_ChannelInfoShow(void)
 {
-    scm_printf("ind\n");
+    diag_crit("ind\n");
 
-    scm_printf("\r\n The Channle 0x%x info is :", g_astSCMIndCoderSrcCfg.enChannelID);
+    diag_crit("\r\n The Channle 0x%x info is :", g_astSCMIndCoderSrcCfg.enChannelID);
 
-    scm_printf("cnf\n");
+    diag_crit("cnf\n");
 
-    scm_printf("\r\n The Channle 0x%x info is :", g_astSCMCnfCoderSrcCfg.enChannelID);
+    diag_crit("\r\n The Channle 0x%x info is :", g_astSCMCnfCoderSrcCfg.enChannelID);
 
     return;
 }
@@ -93,63 +93,63 @@ void SCM_CoderSrcCHShow(u32 ulCfgNum)
 {
     if(SCM_CODER_SRC_LOM_IND == ulCfgNum)
     {
-        scm_printf("\r\n CH id         is 0x%x", g_astSCMIndCoderSrcCfg.enChannelID);
-        scm_printf("\r\n CH init state is   %d", g_astSCMIndCoderSrcCfg.enInitState);
-        scm_printf("\r\n CH type       is   %d", g_astSCMIndCoderSrcCfg.enCHMode);
-        scm_printf("\r\n CH Dst        is 0x%x", g_astSCMIndCoderSrcCfg.enDstCHID);
-        scm_printf("\r\n CH data type  is   %d", g_astSCMIndCoderSrcCfg.enDataType);
-        scm_printf("\r\n CH Level      is   %d", g_astSCMIndCoderSrcCfg.enCHLevel);
-        scm_printf("\r\n CH BD VirtAddris 0x%p", g_astSCMIndCoderSrcCfg.pucSrcBuf);
-        scm_printf("\r\n CH BD PHYAddr is 0x%p", g_astSCMIndCoderSrcCfg.pucSrcPHY);
-        scm_printf("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulSrcBufLen);
-        scm_printf("\r\n CH RD VirtAddris 0x%p", g_astSCMIndCoderSrcCfg.pucRDBuf);
-        scm_printf("\r\n CH RD PHYAddr is 0x%p", g_astSCMIndCoderSrcCfg.pucRDPHY);
-        scm_printf("\r\n CH RD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulRDBufLen);
+        diag_crit("\r\n CH id         is 0x%x", g_astSCMIndCoderSrcCfg.enChannelID);
+        diag_crit("\r\n CH init state is   %d", g_astSCMIndCoderSrcCfg.enInitState);
+        diag_crit("\r\n CH type       is   %d", g_astSCMIndCoderSrcCfg.enCHMode);
+        diag_crit("\r\n CH Dst        is 0x%x", g_astSCMIndCoderSrcCfg.enDstCHID);
+        diag_crit("\r\n CH data type  is   %d", g_astSCMIndCoderSrcCfg.enDataType);
+        diag_crit("\r\n CH Level      is   %d", g_astSCMIndCoderSrcCfg.enCHLevel);
+        diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMIndCoderSrcCfg.pucSrcBuf);
+        diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMIndCoderSrcCfg.pucSrcPHY);
+        diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulSrcBufLen);
+        diag_crit("\r\n CH RD VirtAddris 0x%pK", g_astSCMIndCoderSrcCfg.pucRDBuf);
+        diag_crit("\r\n CH RD PHYAddr is 0x%pK", g_astSCMIndCoderSrcCfg.pucRDPHY);
+        diag_crit("\r\n CH RD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulRDBufLen);
 
-        scm_printf("\r\n CH SEND data   LENGTH          0x%x", g_astScmIndSrcDebugInfo.ulSendDataLen);
-        scm_printf("\r\n CH SEND packet NUM             0x%x", g_astScmIndSrcDebugInfo.ulSendPacketNum);
-        scm_printf("\r\n CH SEND addr   ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendAddrErr);
-        scm_printf("\r\n CH SEND head   ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendHeaderErr);
-        scm_printf("\r\n CH SEND write  ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendWriteDoneErr);
-        scm_printf("\r\n CH SEND first buff not enough  0x%x", g_astScmIndSrcDebugInfo.ulSendFirstNotEnough);
+        diag_crit("\r\n CH SEND data   LENGTH          0x%x", g_astScmIndSrcDebugInfo.ulSendDataLen);
+        diag_crit("\r\n CH SEND packet NUM             0x%x", g_astScmIndSrcDebugInfo.ulSendPacketNum);
+        diag_crit("\r\n CH SEND addr   ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendAddrErr);
+        diag_crit("\r\n CH SEND head   ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendHeaderErr);
+        diag_crit("\r\n CH SEND write  ERR             0x%x", g_astScmIndSrcDebugInfo.ulSendWriteDoneErr);
+        diag_crit("\r\n CH SEND first buff not enough  0x%x", g_astScmIndSrcDebugInfo.ulSendFirstNotEnough);
 
-        scm_printf("\r\n CH SEND get buffer ERR         0x%x", g_astScmIndSrcDebugInfo.ulGetCoderBuffErr);
-        scm_printf("\r\n CH SEND get coherent buff ERR  0x%x", g_astScmIndSrcDebugInfo.ulGetCoherentBuffErr);
+        diag_crit("\r\n CH SEND get buffer ERR         0x%x", g_astScmIndSrcDebugInfo.ulGetCoderBuffErr);
+        diag_crit("\r\n CH SEND get coherent buff ERR  0x%x", g_astScmIndSrcDebugInfo.ulGetCoherentBuffErr);
 
-        scm_printf("\r\n CH SEND fill max buff  len     0x%x", g_astScmIndSrcDebugInfo.ulFillFirstBuffMax);
-        scm_printf("\r\n CH SEND fill num               0x%x", g_astScmIndSrcDebugInfo.ulFillFirstBuffNum);
-        scm_printf("\r\n CH SEND after fill not enough  0x%x", g_astScmIndSrcDebugInfo.ulAfterFillNotEnough);
-        scm_printf("\r\n CH SEND fill not enough        0x%x", g_astScmIndSrcDebugInfo.ulFillNotEnough);
+        diag_crit("\r\n CH SEND fill max buff  len     0x%x", g_astScmIndSrcDebugInfo.ulFillFirstBuffMax);
+        diag_crit("\r\n CH SEND fill num               0x%x", g_astScmIndSrcDebugInfo.ulFillFirstBuffNum);
+        diag_crit("\r\n CH SEND after fill not enough  0x%x", g_astScmIndSrcDebugInfo.ulAfterFillNotEnough);
+        diag_crit("\r\n CH SEND fill not enough        0x%x", g_astScmIndSrcDebugInfo.ulFillNotEnough);
     }
     if(SCM_CODER_SRC_LOM_CNF == ulCfgNum)
     {
-        scm_printf("\r\n CH id         is 0x%x", g_astSCMCnfCoderSrcCfg.enChannelID);
-        scm_printf("\r\n CH init state is   %d", g_astSCMCnfCoderSrcCfg.enInitState);
-        scm_printf("\r\n CH type       is   %d", g_astSCMCnfCoderSrcCfg.enCHMode);
-        scm_printf("\r\n CH Dst        is 0x%x", g_astSCMCnfCoderSrcCfg.enDstCHID);
-        scm_printf("\r\n CH data type  is   %d", g_astSCMCnfCoderSrcCfg.enDataType);
-        scm_printf("\r\n CH Level      is   %d", g_astSCMCnfCoderSrcCfg.enCHLevel);
-        scm_printf("\r\n CH BD VirtAddris 0x%p", g_astSCMCnfCoderSrcCfg.pucSrcBuf);
-        scm_printf("\r\n CH BD PHYAddr is 0x%p", g_astSCMCnfCoderSrcCfg.pucSrcPHY);
-        scm_printf("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
-        scm_printf("\r\n CH RD VirtAddris 0x%p", g_astSCMCnfCoderSrcCfg.pucRDBuf);
-        scm_printf("\r\n CH RD PHYAddr is 0x%p", g_astSCMCnfCoderSrcCfg.pucRDPHY);
-        scm_printf("\r\n CH RD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulRDBufLen);
+        diag_crit("\r\n CH id         is 0x%x", g_astSCMCnfCoderSrcCfg.enChannelID);
+        diag_crit("\r\n CH init state is   %d", g_astSCMCnfCoderSrcCfg.enInitState);
+        diag_crit("\r\n CH type       is   %d", g_astSCMCnfCoderSrcCfg.enCHMode);
+        diag_crit("\r\n CH Dst        is 0x%x", g_astSCMCnfCoderSrcCfg.enDstCHID);
+        diag_crit("\r\n CH data type  is   %d", g_astSCMCnfCoderSrcCfg.enDataType);
+        diag_crit("\r\n CH Level      is   %d", g_astSCMCnfCoderSrcCfg.enCHLevel);
+        diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMCnfCoderSrcCfg.pucSrcBuf);
+        diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMCnfCoderSrcCfg.pucSrcPHY);
+        diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
+        diag_crit("\r\n CH RD VirtAddris 0x%pK", g_astSCMCnfCoderSrcCfg.pucRDBuf);
+        diag_crit("\r\n CH RD PHYAddr is 0x%pK", g_astSCMCnfCoderSrcCfg.pucRDPHY);
+        diag_crit("\r\n CH RD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulRDBufLen);
 
-        scm_printf("\r\n CH SEND data   LENGTH          0x%x", g_astScmCnfSrcDebugInfo.ulSendDataLen);
-        scm_printf("\r\n CH SEND packet NUM             0x%x", g_astScmCnfSrcDebugInfo.ulSendPacketNum);
-        scm_printf("\r\n CH SEND addr   ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendAddrErr);
-        scm_printf("\r\n CH SEND head   ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendHeaderErr);
-        scm_printf("\r\n CH SEND write  ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendWriteDoneErr);
-        scm_printf("\r\n CH SEND first buff not enough  0x%x", g_astScmCnfSrcDebugInfo.ulSendFirstNotEnough);
+        diag_crit("\r\n CH SEND data   LENGTH          0x%x", g_astScmCnfSrcDebugInfo.ulSendDataLen);
+        diag_crit("\r\n CH SEND packet NUM             0x%x", g_astScmCnfSrcDebugInfo.ulSendPacketNum);
+        diag_crit("\r\n CH SEND addr   ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendAddrErr);
+        diag_crit("\r\n CH SEND head   ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendHeaderErr);
+        diag_crit("\r\n CH SEND write  ERR             0x%x", g_astScmCnfSrcDebugInfo.ulSendWriteDoneErr);
+        diag_crit("\r\n CH SEND first buff not enough  0x%x", g_astScmCnfSrcDebugInfo.ulSendFirstNotEnough);
 
-        scm_printf("\r\n CH SEND get buffer ERR         0x%x", g_astScmCnfSrcDebugInfo.ulGetCoderBuffErr);
-        scm_printf("\r\n CH SEND get coherent buff ERR  0x%x", g_astScmCnfSrcDebugInfo.ulGetCoherentBuffErr);
+        diag_crit("\r\n CH SEND get buffer ERR         0x%x", g_astScmCnfSrcDebugInfo.ulGetCoderBuffErr);
+        diag_crit("\r\n CH SEND get coherent buff ERR  0x%x", g_astScmCnfSrcDebugInfo.ulGetCoherentBuffErr);
 
-        scm_printf("\r\n CH SEND fill max buff  len     0x%x", g_astScmCnfSrcDebugInfo.ulFillFirstBuffMax);
-        scm_printf("\r\n CH SEND fill num               0x%x", g_astScmCnfSrcDebugInfo.ulFillFirstBuffNum);
-        scm_printf("\r\n CH SEND after fill not enough  0x%x", g_astScmCnfSrcDebugInfo.ulAfterFillNotEnough);
-        scm_printf("\r\n CH SEND fill not enough        0x%x", g_astScmCnfSrcDebugInfo.ulFillNotEnough);
+        diag_crit("\r\n CH SEND fill max buff  len     0x%x", g_astScmCnfSrcDebugInfo.ulFillFirstBuffMax);
+        diag_crit("\r\n CH SEND fill num               0x%x", g_astScmCnfSrcDebugInfo.ulFillFirstBuffNum);
+        diag_crit("\r\n CH SEND after fill not enough  0x%x", g_astScmCnfSrcDebugInfo.ulAfterFillNotEnough);
+        diag_crit("\r\n CH SEND fill not enough        0x%x", g_astScmCnfSrcDebugInfo.ulFillNotEnough);
     }
 
     return;
@@ -159,21 +159,21 @@ EXPORT_SYMBOL(SCM_CoderSrcCHShow);
 
 void SCM_CoderDstCHShow(u32 ulCfgNum)
 {
-    scm_printf("\r\n CH id         is 0x%x", g_astSCMIndCoderDstCfg.enChannelID);
-    scm_printf("\r\n CH init state is   %d", g_astSCMIndCoderDstCfg.enInitState);
-    scm_printf("\r\n CH BD VirtAddris 0x%p", g_astSCMIndCoderDstCfg.pucBuf);
-    scm_printf("\r\n CH BD PHYAddr is 0x%p", g_astSCMIndCoderDstCfg.pucBufPHY);
-    scm_printf("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderDstCfg.ulBufLen);
-    scm_printf("\r\n CH threshold  is 0x%x", g_astSCMIndCoderDstCfg.ulThreshold);
-    scm_printf("\r\n CH CB func    is 0x%p", g_astSCMIndCoderDstCfg.pfunc);
+    diag_crit("\r\n CH id         is 0x%x", g_astSCMIndCoderDstCfg.enChannelID);
+    diag_crit("\r\n CH init state is   %d", g_astSCMIndCoderDstCfg.enInitState);
+    diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMIndCoderDstCfg.pucBuf);
+    diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMIndCoderDstCfg.pucBufPHY);
+    diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderDstCfg.ulBufLen);
+    diag_crit("\r\n CH threshold  is 0x%x", g_astSCMIndCoderDstCfg.ulThreshold);
+    diag_crit("\r\n CH CB func    is 0x%pK", g_astSCMIndCoderDstCfg.pfunc);
 
-    scm_printf("\r\n CH id         is 0x%x", g_astSCMCnfCoderDstCfg.enChannelID);
-    scm_printf("\r\n CH init state is   %d", g_astSCMCnfCoderDstCfg.enInitState);
-    scm_printf("\r\n CH BD VirtAddris 0x%p", g_astSCMCnfCoderDstCfg.pucBuf);
-    scm_printf("\r\n CH BD PHYAddr is 0x%p", g_astSCMCnfCoderDstCfg.pucBufPHY);
-    scm_printf("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderDstCfg.ulBufLen);
-    scm_printf("\r\n CH threshold  is 0x%x", g_astSCMCnfCoderDstCfg.ulThreshold);
-    scm_printf("\r\n CH CB func    is 0x%p", g_astSCMCnfCoderDstCfg.pfunc);
+    diag_crit("\r\n CH id         is 0x%x", g_astSCMCnfCoderDstCfg.enChannelID);
+    diag_crit("\r\n CH init state is   %d", g_astSCMCnfCoderDstCfg.enInitState);
+    diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMCnfCoderDstCfg.pucBuf);
+    diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMCnfCoderDstCfg.pucBufPHY);
+    diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderDstCfg.ulBufLen);
+    diag_crit("\r\n CH threshold  is 0x%x", g_astSCMCnfCoderDstCfg.ulThreshold);
+    diag_crit("\r\n CH CB func    is 0x%pK", g_astSCMCnfCoderDstCfg.pfunc);
 
     return;
 }

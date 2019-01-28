@@ -85,15 +85,16 @@ extern unsigned long long g_log_dma_test_mask;
 
 #define LOG_PHYS_TO_VIRT(phy)       (void *)(phys_to_virt((unsigned long)phy))
 
+/*
 #define LOG_FLUSH_CACHE(ptr, size)                      \
     do{                                                 \
         struct device dev;                              \
-        memset(&dev,0,sizeof(struct device));           \
+        memset_s(&dev,sizeof(struct device),0,sizeof(struct device));           \
         dev.dma_mask = (unsigned long long *)(&g_log_dma_test_mask);    \
         dma_map_single(&dev, ptr, size, DMA_TO_DEVICE);  \
     }while(0)
-
-typedef int (*print_report_hook)(u32 module_id, u32 level, char* print_buff);
+*/
+typedef int (*print_report_hook)(u32 module_id, u32 level, u32 sel, char* print_buff);
 
 typedef struct
 {
@@ -165,7 +166,7 @@ extern u32 g_printlog_enable;
 extern u32 g_translog_conn;
 extern u32 g_printlog_level;
 
-int bsp_trace_to_hids(u32 module_id, u32 level, char* print_buff);
+int bsp_trace_to_hids(u32 module_id, u32 level,u32 sel, char* print_buff);
 int bsp_hds_translog_conn(void);
 int bsp_hds_translog_disconn(void);
 s32 bsp_printreport(char *logdata,u32 level,u32 module_id);

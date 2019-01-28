@@ -7,6 +7,10 @@
 #include <bsp_sysctrl.h>
 
 #include <hi_bbp.h>
+#include <bsp_print.h>
+
+#undef THIS_MODU
+#define THIS_MODU mod_bbp
 
 void* g_bbp_acore_om_info_addr = NULL;
 dump_handle g_bbp_acore_dump_handle;
@@ -22,25 +26,25 @@ void balong_bbp_get_om_info(int print_enable)
     u32 cmd_num = sizeof(bbpom_cmd)/sizeof(bbpom_cmd[0]);
     u32 reg_num = sizeof(bbpom_apscreg)/sizeof(bbpom_apscreg[0]);
 
-    printk(KERN_ERR"balong_bbp_dump_hook in...\n");
+    bsp_err("balong_bbp_dump_hook in...\n");
 
     pctrl_addr = ioremap(BBP_PCTRL_OM_BASE_ADDR, BBP_PCTRL_OM_BASE_SIZE);
     if (!pctrl_addr) {
-        printk(KERN_ERR"fail to ioremap\n");
+        bsp_err("fail to ioremap\n");
         return;
     }
 
     sctrl_addr = bsp_sysctrl_addr_byindex(sysctrl_ao);
 
     for (i = 0; i < cmd_num; i++) {
-        writel(bbpom_cmd[i], sctrl_addr+BBP_PCTRL_OM_CTRL_OFFSET);
+        writel(bbpom_cmd[i], pctrl_addr+BBP_PCTRL_OM_PCTRL_OFFSET);
         value = (u32)readl(pctrl_addr+BBP_PCTRL_OM_DATA_OFFSET);
         if (g_bbp_acore_om_info_addr) {
             writel(value, g_bbp_acore_om_info_addr + (i + 1)*4);
         }
 
         if ((!g_bbp_acore_om_info_addr) || (print_enable)) {
-            printk(KERN_ERR"BBP om info, cmd: %08X, data:%08X\n", i, value);
+            bsp_err("BBP om info, cmd: %08X, data:%08X\n", bbpom_cmd[i], value);
         }
     }
 
@@ -50,13 +54,13 @@ void balong_bbp_get_om_info(int print_enable)
             writel(value, g_bbp_acore_om_info_addr + (cmd_num + i + 1)*4);
         }
         if ((!g_bbp_acore_om_info_addr) || (print_enable)) {
-            printk(KERN_ERR"BBP om info, reg: %08X, data:%08X\n", bbpom_apscreg[i], value);
+            bsp_err("BBP om info, reg: %08X, data:%08X\n", bbpom_apscreg[i], value);
         }
     }
 
     iounmap(pctrl_addr);
 
-    printk(KERN_ERR"balong_bbp_dump_hook out...\n");
+    bsp_err("balong_bbp_dump_hook out...\n");
 }
 
 void balong_bbp_dump_hook(void)
@@ -64,11 +68,11 @@ void balong_bbp_dump_hook(void)
     balong_bbp_get_om_info(0);
 }
 
-static int __init balong_bbp_acore_init(void)
+int __init balong_bbp_acore_init(void)
 {
     u32 cmd_num = sizeof(bbpom_cmd)/sizeof(bbpom_cmd[0]);
     u32 reg_num = sizeof(bbpom_apscreg)/sizeof(bbpom_apscreg[0]);
-    
+
     g_bbp_acore_dump_handle = bsp_dump_register_hook("BBP_ACore", balong_bbp_dump_hook);
     g_bbp_acore_om_info_addr = bsp_pm_dump_get(PM_OM_BBP, ((cmd_num) + reg_num + 2) * 4);
     if (g_bbp_acore_om_info_addr) {
@@ -77,7 +81,5 @@ static int __init balong_bbp_acore_init(void)
 
     return 0;
 }
-
-module_init(balong_bbp_acore_init);/*lint -e528*/
 
 

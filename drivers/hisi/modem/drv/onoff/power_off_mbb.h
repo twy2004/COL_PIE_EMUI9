@@ -45,6 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include <bsp_print.h>
 #ifndef __POWER_OFF_MBB_H__
 #define __POWER_OFF_MBB_H__
 
@@ -58,8 +59,8 @@
 #define POWER_OFF_MONITOR_TIMEROUT      (5000) /*ms*/
 
 #ifndef MBB_COMMON
-#define bsp_log_print printk
-#define bsp_log_print_and_save printk
+#define bsp_log_print bsp_err
+#define bsp_log_print_and_save bsp_err
 #endif
 
 /****:********************************************************

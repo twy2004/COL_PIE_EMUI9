@@ -49,10 +49,11 @@
 
 #ifndef __MSP_NVIM_H__
 #define __MSP_NVIM_H__
-
+/*lint -esym(537,*) */
 #include "vos.h"
 #include "NVIM_Interface.h"
 
+/*lint +esym(537,*) */
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {

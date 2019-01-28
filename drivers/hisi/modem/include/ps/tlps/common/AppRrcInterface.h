@@ -17,6 +17,8 @@ extern "C" {
 #include  "PsTypeDef.h"
 #include  "LPSCommon.h"
 
+
+
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
 #else
@@ -83,6 +85,13 @@ extern "C" {
 #define LRRC_UTRAN_CELL_MAX_NUM 16
 #define LRRC_GERAN_CELL_MAX_NUM 16
 
+#define LRRC_ECELL_QRY_CELL_REPORT_NUM 9
+#define LRRC_ECELL_QRY_NBRCELL_NUM 8
+#define LRRC_ECELL_QRY_SELL_REPORT_NUM 4
+#define RRC_ECELL_QRY_INVALID_UINT8        0XFF
+#define RRC_ECELL_QRY_INVALID_UINT16       0XFFFF
+#define RRC_ECELL_QRY_INVALID_UINT32       0XFFFFFFFF
+
 /* UE支持的UTRAN频点的最大测量数目 */
 #define LRRC_TRRC_PHY_MAX_SUPPORT_CARRIER_NUM               9
 
@@ -148,6 +157,10 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_LRRC_GET_UE_CAP_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1a),   /* _H2ASN_MsgChoice APP_LRRC_GET_UE_CAP_INFO_REQ_STRU */
 
     ID_APP_RRC_SCELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1b),   /* _H2ASN_MsgChoice APP_RRC_SCELL_INFO_REQ_STRU */
+
+    ID_APP_RRC_QUERY_ECELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1c),  /* _H2ASN_MsgChoice APP_RRC_QUERY_ECELL_INFO_REQ_STRU */
+    ID_APP_RRC_QUERY_SCELL_INFO_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1d),   /* _H2ASN_MsgChoice APP_RRC_QUERY_SCELL_INFO_REQ_STRU */
+
     ID_APP_LRRC_SET_TLPS_PRINT2LAYER_REQ    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x18),
 
     /* APP发给RRC的原语 */
@@ -219,6 +232,12 @@ enum APP_RRC_MSG_ID_ENUM
 
     ID_RRC_CLOUD_CA_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4f),
 
+    ID_RRC_APP_QUERY_ECELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x51), /* _H2ASN_MsgChoice RRC_APP_QUERY_ECELL_INFO_CNF_STRU */
+    ID_RRC_APP_QUERY_SCELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x52), /* _H2ASN_MsgChoice RRC_APP_QUERY_SCELL_INFO_CNF_STRU */
+
+    ID_RRC_PLMN_FEATURE_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x53),
+
+    ID_APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x23),
     ID_APP_RRC_MSG_ID_BUTT
 };
 typedef VOS_UINT32    APP_RRC_MSG_ID_ENUM_UINT32;
@@ -605,6 +624,7 @@ typedef struct
  结构名    :APP_RRC_LOCK_WORK_INFO_REQ_STRU
  结构说明  :路测下发的锁定请求的结构体
 *****************************************************************************/
+/*lint -save -e959*/
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -615,6 +635,7 @@ typedef struct
     VOS_UINT8                           aucReserved[3];                         /* 保留, 此处是2, 是因为下一个是单字节 */
     APP_RRC_LOCK_INFO_STRU              stLockInfo;
 }APP_RRC_LOCK_WORK_INFO_REQ_STRU;
+/*lint -restore*/
 
 /*****************************************************************************
  结构名    :RRC_APP_LOCK_WORK_INFO_CNF_STRU
@@ -2043,13 +2064,167 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_DEBUG_STUB_CMD_CNF_STRU;
 
+/*****************************************************************************
+ 结构名    :APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU
+ 结构说明  :打桩坏小区列表
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
+    VOS_UINT32                      ulMsgId;                /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32                      ulOpId;
+    VOS_UINT32                      ulAddBadCellFlag;         /* 1加坏小区，0为删除坏小区 */
+    VOS_UINT16                      usBand;
+    VOS_UINT16                      usFreq;
+    VOS_UINT16                      usPhyCellId;
+    VOS_UINT16                      usCause;
+    VOS_UINT32                      enExitFLow;
+    VOS_UINT32                      ulRsv;
+    VOS_UINT8                       ucRsv0;
+    VOS_UINT8                       ucRsv1;
+    VOS_UINT8                       ucRsv2;
+    VOS_UINT8                       ucRsv3;
+    VOS_INT16                       sRsrp;
+    VOS_INT16                       sRsrq;    /* 坏小区添加时的能量 */
+    VOS_UINT16                      usRsv2;
+    VOS_UINT16                      usRsv3;
+}APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU;
+
+
+/*****************************************************************************
+ 结构名    :LTE_CA_STATE_INFO_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :服务小区及同频异频邻区信息
+****************************************************************************/
+typedef struct
+{
+    VOS_UINT32    ulMcc;         //无效值0xFFFFFFFF
+    VOS_UINT32    ulMnc;         //MCC-MNC，无效值0xFFFFFFFF
+    VOS_UINT16    usArfcn;       //频点
+    VOS_UINT16    usBand;        //频段
+    VOS_UINT32    ulPCI;         //PCI
+    VOS_UINT32    ulCGI;         //CGI，无效值0xFFFFFFFF
+    VOS_UINT16    usTAC;         //TAC，无效值0xFFFF
+    VOS_UINT16    usBW;          //BW，无效值0xFFFF
+    VOS_INT16     sRsrp;
+    VOS_INT16     sRssi;
+    VOS_INT16     sRsrq;
+    VOS_UINT8     ucReserved[6];
+} PS_LTE_CELL_INFO_STRU;
+
+/*****************************************************************************
+ 结构名    :LTE_CA_STATE_INFO_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :增强小区信息，包含服务小区，邻区等信息，最多支持8个邻区
+****************************************************************************/
+typedef struct
+{
+    VOS_UINT32    ulFlag;           //为了前台解析兼容，当前默认为1
+    VOS_UINT16    usLength;         //长度，此字节之后数据长度（不包含此字节）
+    VOS_UINT8     ucUeState;        /*状态*,无效值为0xFF*/
+    VOS_UINT8     ucReserved[5];    //预留
+    VOS_UINT32    ulActiveCount;    //服务小区个数
+    VOS_UINT32    ulNbrCount;       //邻区个数
+    PS_LTE_CELL_INFO_STRU     astCellInfo[LRRC_ECELL_QRY_CELL_REPORT_NUM];
+} PS_LTE_ECELL_INFO_STRU;
+
+/*****************************************************************************
+ 结构名    :CA_STATE_INFO
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :Scell相关信息
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT32    ulCellId;    //小区ID
+    VOS_UINT32    ulArfcn;     //优先返回频点、（频率）
+} CA_STATE_INFO;
+
+/*****************************************************************************
+ 结构名    :LTE_CA_STATE_INFO_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :CA相关信息
+****************************************************************************/
+typedef struct
+{
+    VOS_UINT32        ulFlag;        //默认为1
+    VOS_UINT16        usLength;      //长度
+    VOS_UINT8         ucReserved[2];
+    VOS_UINT32        ulCount;       //CA信息的个数
+    CA_STATE_INFO     stCAInfo[LRRC_ECELL_QRY_CELL_REPORT_NUM];      //CA数据信息
+} LTE_CA_STATE_INFO_STRU;
+
+/*****************************************************************************
+ 结构名    :RRC_APP_SCELL_INFO_CNF_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :查询增强小区信息，包含服务小区，邻区等信息
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                         /*_H2ASN_Skip*/
+    VOS_UINT32         ulMsgID;            /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32         ulOpId;
+    VOS_UINT8          aucReserved[4];     /* 保留 */
+}APP_RRC_QUERY_ECELL_INFO_REQ_STRU;
+
+/*****************************************************************************
+ 结构名    :RRC_APP_SCELL_INFO_CNF_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :对原语APP_RRC_SCELL_INFO_REQ_STRU进行回复
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                         /*_H2ASN_Skip*/
+    VOS_UINT32         ulMsgID;            /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32         ulOpId;
+    VOS_UINT8          aucReserved[4];     /* 保留 */
+}APP_RRC_QUERY_SCELL_INFO_REQ_STRU;
+
+/*****************************************************************************
+ 结构名    :RRC_APP_SCELL_INFO_CNF_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :对原语APP_RRC_ECELL_INFO_REQ_STRU进行回复
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                               /*_H2ASN_Skip*/
+    VOS_UINT32                 ulMsgId;          /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32                 ulOpId;
+    PS_LTE_ECELL_INFO_STRU     stECellInfo;   /*增强型小区，服务小区及邻区*/
+}RRC_APP_QUERY_ECELL_INFO_CNF_STRU;
+
+/*****************************************************************************
+ 结构名    :RRC_APP_SCELL_INFO_CNF_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :对原语APP_RRC_SCELL_INFO_REQ_STRU进行回复
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER                               /*_H2ASN_Skip*/
+    VOS_UINT32                 ulMsgId;          /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32                 ulOpId;
+    LTE_CA_STATE_INFO_STRU     stSCellInfo;      /*CA小区信息*/
+}RRC_APP_QUERY_SCELL_INFO_CNF_STRU;
+
 
 extern PS_BOOL_ENUM_UINT8  LRRC_COMM_LoadDspAlready( MODEM_ID_ENUM_UINT16 enModemId);
 
 extern VOS_UINT32 LHPA_InitDsp( VOS_VOID );
 extern VOS_VOID LHPA_DbgSendSetWorkMode_toMaterMode(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_VOID LHPA_DbgSendSetWorkMode_toSlaveMode(MODEM_ID_ENUM_UINT16 enModemId);
-extern VOS_UINT32  RRC_RRC_LoadDsp( MODEM_ID_ENUM_UINT16 enModemId );
+
 extern VOS_VOID * LAPP_MemAlloc( MODEM_ID_ENUM_UINT16 enModemId,VOS_UINT32 ulSize );
 extern VOS_UINT32  LApp_MemFree(MODEM_ID_ENUM_UINT16 usModemId,VOS_VOID *pAddr );
 extern VOS_UINT32  LAppSndMsgToLPs(MODEM_ID_ENUM_UINT16 enModemId,APP_LPS_MSG_STRU  *pstAppToPsMsg );

@@ -62,9 +62,13 @@ extern "C"{
 *****************************************************************************/
 #include "vos.h"
 #include "product_config.h"
-#include "TafTypeDef.h"
 #include "UsimPsInterface.h"
 #include "sitypedef.h"
+
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
+#include "MnClient.h"
+#endif
+
 #if (OSA_CPU_CCPU == VOS_OSA_CPU)
 #include "ccore_nv_stru_pam.h"
 #include "ScInterface.h"
@@ -208,12 +212,14 @@ enum SI_PIH_EVENT_ENUM
     SI_PIH_EVENT_SILENT_PIN_SET_CNF         = 45,
     SI_PIH_EVENT_SILENT_PININFO_SET_CNF     = 46,
 #endif
+    SI_PIH_EVENT_IMSI_POLLING_SET_CNF  = 47, /* PIH周期性IMSI轮询使用，为了格式统一 */
+
     /*从500开始作为PIH内部可维可测消息的勾包*/
     SI_PIH_USIMREG_PID_HOOK         = 500,
     SI_PIH_REFRESHREG_PID_HOOK      = 501,
     SI_PIH_ISIMREG_PID_HOOK         = 502,
     SI_PIH_HVTEE_DATA_HOOK          = 503,
-#if ((FEATURE_VSIM == FEATURE_ON) && (FEATURE_ON == FEATURE_VSIM_ICC_SEC_CHANNEL))
+#if (FEATURE_VSIM == FEATURE_ON)
     SI_PIH_VSIM_APN_DATA_HOOK       = 504,
     SI_PIH_VSIM_FILE_DATA_HOOK      = 505,
 #endif
@@ -475,8 +481,8 @@ typedef struct
 
 typedef struct
 {
-    VOS_UINT8                           ucLastDataFlag;
     VOS_UINT16                          usLen;                                    /* 输出APDU数据长度 */
+    VOS_UINT8                           ucLastDataFlag;
     VOS_UINT8                           ucSW1;                                    /* 返回状态字1      */
     VOS_UINT8                           ucSW2;                                    /* 返回状态字2      */
     VOS_UINT8                           aucRsv[3];
@@ -948,6 +954,7 @@ extern VOS_VOID SI_PIH_TEETimeOutCB (
 /*****************************************************************************
   6 函数声明
 *****************************************************************************/
+#if (OSA_CPU_NRCPU != VOS_OSA_CPU)
 #if  ((OSA_CPU_ACPU == VOS_OSA_CPU) || (defined(DMT))) || (defined(__PC_UT__))
 extern VOS_UINT32 SI_PIH_GetReceiverPid(
     MN_CLIENT_ID_T                      ClientId,
@@ -1118,10 +1125,10 @@ extern VOS_UINT32 PIH_DeregCardRefreshIndMsg(
     MODEM_ID_ENUM_UINT16                enModemId,
     VOS_UINT32                          ulRegPID
 );
-
 #endif /*#if ((OSA_CPU_CCPU == VOS_OSA_CPU) || (defined(DMT)))*/
+#endif /*#if (OSA_CPU_NRCPU != VOS_OSA_CPU)*/
 
-#if ((TAF_OS_VER == TAF_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+#if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))
 #pragma pack()
 #else
 #pragma pack(0)

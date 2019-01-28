@@ -209,6 +209,10 @@ static void tui_mem_free(void)
 	return;
 }
 
+/* alloc order: 4M-font, framebuffer, 18M-unusualfont */
+/* 1.4M alloc when boot so from ION_TUI_HEAP_ID */
+/* 2.18M and frambuffer alloc when tui init so from ION_MISC_HEAP_ID */
+static bool i_flag = false;
 static int alloc_ion_mem(tui_ion_mem *tui_mem)
 {
 	size_t ion_font_len = 0;
@@ -216,7 +220,12 @@ static int alloc_ion_mem(tui_ion_mem *tui_mem)
 
 	if (!tui_client || !tui_mem)
 		return 0;
-	ion_id = (unsigned int)ION_TUI_HEAP_ID;
+	if(!i_flag){
+		ion_id = ION_TUI_HEAP_ID; /* 4M */
+		i_flag = true;
+	} else {
+		ion_id = ION_MISC_HEAP_ID; /* 18M and framebuffer */
+	}
 	tui_mem->tui_ion_handle = ion_alloc(tui_client, tui_mem->len, /*lint !e647 */
 			SZ_2M, ION_HEAP(ion_id), ION_FLAG_CACHED);
 

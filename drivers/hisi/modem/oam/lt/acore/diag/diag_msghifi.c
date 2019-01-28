@@ -49,6 +49,7 @@
 
 
 #include "diag_msghifi.h"
+#include "diag_msgmsp.h"
 #include "diag_debug.h"
 #include "diag_common.h"
 
@@ -81,7 +82,7 @@ VOS_UINT32 diag_HifiMsgProc(DIAG_FRAME_INFO_STRU* pstReq)
     ulLen = sizeof(DIAG_FRAME_INFO_STRU) + pstReq->ulMsgLen;
     if(!VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pstReq, ulLen))
     {
-        diag_error("memcpy_s error\n");
+        diag_error("memcpy_s error,ulLen=0x%x\n",ulLen);
         VOS_FreeMsg(MSP_PID_DIAG_APP_AGENT, pstInfo);
         return ERR_MSP_MEMCPY_S_ERROR;
     }

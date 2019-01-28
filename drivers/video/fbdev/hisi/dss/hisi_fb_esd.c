@@ -12,9 +12,9 @@
 */
 
 #include "hisi_fb.h"
-#include "lcdkit_panel.h"
-extern struct lcdkit_esd_error_info g_esd_error_info;
 
+#include "lcd_kit_common.h"
+extern struct lcd_kit_esd_error_info g_esd_error_info;
 
 #define HISI_ESD_RECOVER_MAX_COUNT   (10)
 #define HISI_ESD_CHECK_MAX_COUNT     (3)

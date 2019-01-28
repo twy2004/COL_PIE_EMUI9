@@ -56,19 +56,12 @@
 #include "msp_errno.h"
 #include "diag_debug.h"
 #include "diag_api.h"
+#include "diag_time_stamp.h"
 #include "diag_connect.h"
+#include "diag_msgmsp.h"
 
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_MSGMSP_C
-
-typedef VOS_UINT32 (*DIAG_MSGMSP_PROC_FUNC)(VOS_UINT8* pstReq);
-
-typedef struct
-{
-    VOS_UINT32              ulCmdId;
-    DIAG_MSGMSP_PROC_FUNC   pfnProc;
-}DIAG_MSGMSP_PROC_STRU;
-
 
 const DIAG_MSGMSP_PROC_STRU g_astMsgMsp[] =
 {
@@ -107,7 +100,7 @@ void diag_MspMsgInit(void)
     ulRet = DIAG_MsgProcReg(DIAG_MSG_TYPE_MSP, diag_MspMsgProc);
     if(VOS_OK != ulRet)
     {
-        diag_printf("diag_MspMsgInit DIAG_MsgProcReg failed.\n");
+        diag_error("DIAG_MsgProcReg failed\n");
     }
 }
 
@@ -222,7 +215,7 @@ VOS_UINT32 diag_GuGtrProcEntry(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_printf("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         return ERR_MSP_INVALID_PARAMETER;
     }
 
@@ -250,7 +243,7 @@ VOS_UINT32 diag_GtrProcEntry(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_printf("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         return ERR_MSP_INVALID_PARAMETER;
     }
 

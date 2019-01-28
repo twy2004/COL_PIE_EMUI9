@@ -32,7 +32,6 @@
 #include "lcdkit_ext.h"
 #define DTS_COMP_SHARP_NT36870 "hisilicon,mipi_sharp_NT36870"
 static int g_lcd_fpga_flag;
-#define CONFIG_TP_ERR_DEBUG
 //#define AS_EXT_LCD_ON_ASIC
 
 /*lint -save -e569, -e574, -e527, -e572*/
@@ -2123,6 +2122,10 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 			pinfo->dsi_bit_clk_upt_support = 0;
 			pinfo->mipi.dsi_bit_clk_upt = pinfo->mipi.dsi_bit_clk;
 
+			// for new feature
+			pinfo->hisync_mode = 0;
+			pinfo->vsync_delay_time = 0;
+			pinfo->video_idle_mode = 1;
 		}
 	}
 

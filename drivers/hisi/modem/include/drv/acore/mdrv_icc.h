@@ -74,7 +74,7 @@ typedef enum tagMDRV_ICC_TYPE
     MDRV_ICC_GUOM5,                     /* for GU OM use, ACORE<-->CCORE */
     MDRV_ICC_GUOM6,                     /* for GU OM use, ACORE<-->CCORE */
     MDRV_ICC_GUOM7,                     /* for GU OM use, ACORE<-->CCORE */
-
+    MDRV_ICC_NRCCPU_APCPU_OSA,  /* for OSA use, NRCcore<--> APcpu */
     MDRV_ICC_MAX
 } MDRV_ICC_TYPE_E;
 
@@ -89,6 +89,7 @@ typedef enum tagUDI_ICC_DEV_TYPE
         UDI_ICC_GUOM5 = MDRV_ICC_GUOM5,
         UDI_ICC_GUOM6 = MDRV_ICC_GUOM6,
         UDI_ICC_GUOM7 = MDRV_ICC_GUOM7,
+        UDI_ICC_NRCCPU_APCPU_OSA = MDRV_ICC_NRCCPU_APCPU_OSA,
 
         UDI_ICC_MAX
 }UDI_ICC_DEV_TYPE_E;

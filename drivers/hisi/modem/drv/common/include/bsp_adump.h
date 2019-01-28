@@ -140,7 +140,7 @@ void adump_set_exc_vec(u32 vec);
 /********************************************/
 #ifdef CONFIG_HISI_DUMP
 dump_handle bsp_adump_register_hook(char * name, dump_hook func);
-u8 * bsp_adump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version);
+u8 * bsp_adump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id);
 u8 * bsp_adump_get_field_addr(u32 field_id);
 s32 bsp_adump_unregister_hook(dump_handle handle);
 void bsp_adump_save_exc_scene(u32 mod_id, u32 arg1, u32 arg2);
@@ -148,7 +148,7 @@ u8 * bsp_adump_get_field_phy_addr(u32 field_id);
 void ap_system_error(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length);
 #else
 static inline dump_handle bsp_adump_register_hook(char * name, dump_hook func){return -1;}
-static inline u8 * bsp_adump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version){return NULL;}
+static inline u8 * bsp_adump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id){return NULL;}
 static inline u8 * bsp_adump_get_field_addr(u32 field_id){return NULL;}
 static inline s32 bsp_adump_unregister_hook(dump_handle handle){return -1;}
 static inline void bsp_adump_save_exc_scene(u32 mod_id, u32 arg1, u32 arg2){return;}

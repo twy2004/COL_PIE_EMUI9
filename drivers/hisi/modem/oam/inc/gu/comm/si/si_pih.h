@@ -72,6 +72,10 @@ extern "C" {
 #include "msp_diag_comm.h"
 #include "omerrorlog.h"
 
+#if (OSA_CPU_ACPU == VOS_OSA_CPU)
+#include "SiAcoreApi.h"
+#endif
+
 #pragma pack(4)
 
 /*****************************************************************************
@@ -86,9 +90,6 @@ extern "C" {
 
 #define SI_PIH_ATFILE_NAME_MAX          (40)
 
-/*USIM-->GDSP*/
-#define SI_PIH_DSP_POWER_LIMIT          (0x4715)
-
 #define SI_PIH_FILE_START_INDEX         (1)
 
 #define SI_PIH_BCPID_REG_MAX            (20)
@@ -98,6 +99,11 @@ extern "C" {
 #define SI_PIH_VSIM_MAX_CALL_BACK_KEY_LEN         (4 * 1024)
 
 #define SI_PIH_SEC_ICC_VSIM_VER         (10000)
+
+#ifdef CBT_ENABLED
+#define PIH_USIMM_SCICHG_DEBUG_TIMER_LENTH  (10000)
+#define PIH_USIMM_SCICHG_DEBUG_TIMER_NAME   (0xFF)
+#endif
 
 #define SI_PIH_POLL_TIMER_START(pTimer,ulPid,ulLength, Name)      VOS_StartRelTimer(pTimer,\
                                                                                 ulPid,\
@@ -126,45 +132,51 @@ extern "C" {
 #define SI_PIH_POLL_REL_32K_TIMER_STOP(pTimer)                  VOS_StopRelTimer(pTimer)
 
 #if  ((OSA_CPU_ACPU == VOS_OSA_CPU) || (VOS_OS_VER == VOS_WIN32))
-#define PIH_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(VOS_GetModemIDFromPid(I0_MAPS_PIH_PID), DIAG_MODE_COMM, Level))
+#define PIH_GEN_LOG_MODULE(Level)       (DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level))
 
-#define PIH_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, __FILE__, __LINE__, "NORMAL:%s", string)
-#define PIH_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, __FILE__, __LINE__, "NORMAL:%s", string)
-#define PIH_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, __FILE__, __LINE__, "WARNING:%s", string)
-#define PIH_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, __FILE__, __LINE__, "ERROR:%s", string)
+#define PIH_KEY_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define PIH_KEY_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define PIH_KEY_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+#define PIH_KEY_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s", string)
 
-#define PIH_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, __FILE__, __LINE__, "NORMAL:%s,%d", string, para1)
-#define PIH_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, __FILE__, __LINE__, "NORMAL:%s,%d", string, para1)
-#define PIH_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, __FILE__, __LINE__, "WARNING%s,%d", string, para1)
-#define PIH_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, __FILE__, __LINE__, "ERROR:%s,%d", string, para1)
+#define PIH_KEY_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define PIH_KEY_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define PIH_KEY_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "WARNING%s,%d", string, para1)
+#define PIH_KEY_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
+
+#define PIH_INFO_LOG(string)            (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define PIH_NORMAL_LOG(string)          (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s", string)
+#define PIH_WARNING_LOG(string)         (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+#define PIH_ERROR_LOG(string)           (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s", string)
+
+#define PIH_INFO1_LOG(string, para1)    (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_INFO),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define PIH_NORMAL1_LOG(string, para1)  (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_NORMAL),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "NORMAL:%s,%d", string, para1)
+#define PIH_WARNING1_LOG(string, para1) (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "WARNING%s,%d", string, para1)
+#define PIH_ERROR1_LOG(string, para1)   (VOS_VOID)DIAG_LogReport(PIH_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
 
 #elif  (OSA_CPU_CCPU == VOS_OSA_CPU)
 
-#define PIH_INFO_LOG_WITH_SLOT_ID(enSlotId, string)                 USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Info:%s", string)
+#define PIH_KEY_INFO_LOG(string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Info:%s", string)
+#define PIH_KEY_NORMAL_LOG(string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Normal:%s", string)
+#define PIH_KEY_WARNING_LOG(string)             USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Warning:%s", string)
+#define PIH_KEY_ERROR_LOG(string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Error:%s", string)
 
-#define PIH_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Normal:%s", string)
+#define PIH_KEY_INFO1_LOG(string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Info:%s,%d", string, para1)
+#define PIH_KEY_NORMAL1_LOG(string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Normal:%s,%d", string, para1)
+#define PIH_KEY_WARNING1_LOG(string, para1)     USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Warning:%s,%d", string, para1)
+#define PIH_KEY_ERROR1_LOG(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "Error:%s,%d", string, para1)
 
-#define PIH_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Warning:%s", string)
+#define PIH_INFO_LOG(string)                    USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PIH_NORMAL_LOG(string)                  USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PIH_WARNING_LOG(string)                 USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+#define PIH_ERROR_LOG(string)                   USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
 
-#define PIH_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Error:%s", string)
+#define PIH_INFO1_LOG(string, para1)            USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PIH_NORMAL1_LOG(string, para1)          USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PIH_WARNING1_LOG(string, para1)         USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
+#define PIH_ERROR1_LOG(string, para1)           USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, VOS_NULL_PTR, __LINE__, "%s: %d", (VOS_CHAR*)__FUNCTION__, para1)
 
-#define PIH_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)         USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Info:%s,%d", string, para1)
 
-#define PIH_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Normal:%s,%d", string, para1)
-
-#define PIH_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)      USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Warning:%s,%d", string, para1)
-
-#define PIH_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)        USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_PIH_PID, __FILE__, __LINE__, "Error:%s,%d", string, para1)
-
-#define PIH_INFO_LOG(string)                PIH_INFO_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PIH_NORMAL_LOG(string)              PIH_NORMAL_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PIH_WARNING_LOG(string)             PIH_WARNING_LOG_WITH_SLOT_ID(enSlotId, string)
-#define PIH_ERROR_LOG(string)               PIH_ERROR_LOG_WITH_SLOT_ID(enSlotId, string)
-
-#define PIH_INFO1_LOG(string, para1)        PIH_INFO_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PIH_NORMAL1_LOG(string, para1)      PIH_NORMAL_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PIH_WARNING1_LOG(string, para1)     PIH_WARNING_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
-#define PIH_ERROR1_LOG(string, para1)       PIH_ERROR_LOG1_WITH_SLOT_ID(enSlotId, string, para1)
 #endif
 
 #define PIH_BIT_N(num)                  (0x01 << (num))
@@ -283,37 +295,12 @@ enum SI_PIH_LOCK_ENUM
 };
 typedef VOS_UINT32  SI_PIH_LOCK_ENUM_UINT32;
 
-enum SI_PIH_PROTECT_STATE_ENUM
-{
-    SI_PIH_PROTECT_OFF              = 0,
-    SI_PIH_PROTECT_ON               = 1,
-    SI_PIH_PROTECT_RUNING           = 2,
-    SI_PIH_PROTECT_SATATE_BUTT
-};
-typedef VOS_UINT32      SI_PIH_PROTECT_STATE_ENUM_UINT32;
-
-enum SI_PIH_PROTECT_FUN_ENUM
-{
-    SI_PIH_PROTECT_DISABLE          = 0,
-    SI_PIH_PROTECT_ENABLE           = 1,
-    SI_PIH_PROTECT_FUN_BUTT
-};
-typedef VOS_UINT32      SI_PIH_PROTECT_FUN_ENUM_UINT32;
-
 enum SI_PIH_CARDSTATE_REPORT_ENUM
 {
     SI_PIH_NEED_REPORT              = 0,
     SI_PIH_NO_NEED_REPORT           = 1,
     SI_PIH_REPORT_BUTT
 };
-
-enum SI_PIH_DSP_LIMIT_ENUM
-{
-    SI_PIH_DSP_POWER_LIMIT_OFF      = 0,
-    SI_PIH_DSP_POWER_LIMIT_ON       = 1,
-    SI_PIH_DSP_POWER_LIMIT_BUTT
-};
-typedef VOS_UINT16      SI_PIH_DSP_LIMIT_ENUM_UINT16;
 
 enum SI_PIH_PCSC_CMD_ENUM
 {
@@ -500,12 +487,6 @@ typedef struct
 
 typedef struct
 {
-    SI_PIH_PROTECT_FUN_ENUM_UINT32      enProtectFun;
-    SI_PIH_PROTECT_STATE_ENUM_UINT32    enProtectState;
-}SI_PIH_PROTECT_CTRL_STRU;
-
-typedef struct
-{
     SI_PIH_LOCK_ENUM_UINT32             enPIHLock;
     VOS_UINT16                          usClient;
     VOS_UINT8                           ucOpID;
@@ -525,13 +506,6 @@ typedef struct
 
 typedef struct
 {
-    VOS_MSG_HEADER
-    VOS_UINT16                          usMsgName;
-    SI_PIH_DSP_LIMIT_ENUM_UINT16        enLimit;
-}SI_PIH_DSP_LIMIT_STRU;
-
-typedef struct
-{
     VOS_UINT8                           ucIMSILen;
     VOS_UINT8                           aucIMSI[9];
     VOS_UINT8                           aucRsv[2];
@@ -542,6 +516,7 @@ typedef struct
     USIMM_FILEPATH_INFO_STRU            stFilePath;
     VOS_UINT16                          usRspLen;
     VOS_UINT8                           aucRspCotent[USIMM_T0_APDU_MAX_LEN];
+    VOS_UINT8                           aucRcv[2];
 }SI_PIH_CSIM_CTRL_STRU;
 
 typedef struct
@@ -743,101 +718,6 @@ typedef struct
     PFSIPIHPIDMSGPROC                   pProcFunc;        /* 处理函数 */
 }SI_PIH_PIDMSGPROC_FUNC;
 
-#if ((FEATURE_VSIM == FEATURE_ON) && (FEATURE_ON == FEATURE_VSIM_ICC_SEC_CHANNEL))
-
-
-enum SI_TEE_REQ_MSG_TYPE_ENUM
-{
-    SI_TEE_MSG_TYPE_APNSET_REQ               = 0xA5A50001UL,    /*APN设置数据消息*/
-    SI_TEE_MSG_TYPE_VSIMDATA_REQ             = 0xA5A50002UL,     /*VSIM数据消息*/
-    SI_TEE_MSG_TYPE_REQ_BUTT
-};
-typedef  VOS_UINT32  SI_TEE_REQ_ENUM_UINT32;
-
-
-enum SI_TEE_CNF_MSG_TYPE_ENUM
-{
-    SI_TEE_MSG_TYPE_APNSET_CNF               = 0x5A5A0001,    /*APN设置数据*/
-    SI_TEE_MSG_TYPE_VSIMDATA_CNF             = 0x5A5A0002,    /*VSIM数据*/
-    SI_TEE_MSG_TYPE_CNF_BUTT
-};
-typedef  VOS_UINT32  SI_TEE_CNF_ENUM_UINT32;
-
-
-enum SI_TEE_IND_MSG_TYPE_ENUM
-{
-    SI_TEE_MSG_TYPE_AUTH_RESULT_IND          = 0xAAAA0001,    /*APN设置数据*/
-    SI_TEE_MSG_TYPE_IND_BUTT
-};
-typedef  VOS_UINT32  SI_TEE_MSG_IND_ENUM_UINT32;
-
-
-enum SI_TEE_VSIM_CARD_TYPE_ENUM
-{
-    SI_TEE_VSIM_CARD_TYPE_SIM           = 0,
-    SI_TEE_VSIM_CARD_TYPE_USIM          = 1,
-    SI_TEE_VSIM_CARD_TYPE_BUTT
-};
-typedef  VOS_UINT8  SI_TEE_VSIM_CARD_TYPE_ENUM_UINT8;
-
-
-enum SI_TEE_VSIM_AUTH_TYPE_ENUM
-{
-    SI_TEE_VSIM_AUTH_TYPE_MILENAGE              = 0,
-    SI_TEE_VSIM_AUTH_TYPE_COMP128V1             = 1,
-    SI_TEE_VSIM_AUTH_TYPE_BUTT
-};
-typedef  VOS_UINT8  SI_TEE_VSIM_AUTH_TYPE_ENUM_UINT8;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER
-    SI_PIH_EVENT                                            enMsgType;          /*消息ID*/
-    VOS_INT32                                               lDataLen;           /*数据长度*/
-    VOS_UINT32                                              ulChannelId;        /* CHANNEL ID */
-} SI_PIH_ICC_SEC_CH_CALL_BACK_STRU;
-
-
-typedef struct
-{
-    SI_TEE_REQ_ENUM_UINT32              enReqMsgId;         /*消息ID*/
-    VOS_UINT32                          ulModemId;
-    VOS_UINT32                          ulDataLen;          /*数据长度*/
-    VOS_UINT8                           aucReqData[4];      /*数据内容，根据实际长度增加*/
-} SI_TEE_REQDATA_STRU;
-
-
-typedef struct
-{
-    SI_TEE_CNF_ENUM_UINT32              enCnfMsgId;     /*消息ID*/
-    VOS_UINT32                          ulModemId;
-    VOS_UINT32                          ulCnfResult;    /*消息处理结果*/
-    VOS_UINT32                          ulDataLen;      /*数据长度*/
-    VOS_UINT8                           aucCnfData[4];  /*数据内容，根据实际长度增加*/
-} SI_TEE_CNFDATA_STRU;
-
-
-typedef struct
-{
-    SI_TEE_CNF_ENUM_UINT32              enCnfMsgId;     /*消息ID*/
-    VOS_UINT32                          ulModemId;
-    VOS_UINT32                          ulDataLen;      /*数据长度*/
-    VOS_UINT8                           aucCnfData[4];  /*数据内容，根据实际长度增加*/
-} SI_TEE_MSGDATA_IND_STRU;
-
-
-typedef struct
-{
-    VOS_UINT8                           aucAESKey[SI_PIH_VSIM_AES_KEY_LEN];      /* AES密钥 */
-    SI_TEE_VSIM_CARD_TYPE_ENUM_UINT8    enCardType;
-    SI_TEE_VSIM_AUTH_TYPE_ENUM_UINT8    enAuthType;
-    VOS_UINT32                          ulFileNum;          /*文件个数*/
-    VOS_UINT8                           aucFileData[4];     /*文件数据，根据实际下发文件个数而增加*/
-}SI_VSIM_FILELIST_STRU;
-
-#endif
-
 
 typedef struct
 {
@@ -871,71 +751,37 @@ extern VOS_VOID SI_PIH_InitTEEShareAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 extern VOS_UINT32 SI_PIH_Stop32KCheckStatusTimer(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, HTIMER *pstTimer);
 
 extern VOS_UINT32 SI_PIH_Start32KCheckStatusTimer(
-    SI_PIH_CARD_SLOT_ENUM_UINT32         enSlotId,
-    HTIMER                              *pstTimer,
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
+    HTIMER                             *pstTimer,
     VOS_UINT32                          ulTimerLen,
     VOS_UINT32                          ulTimerName);
 
+extern SI_PIH_POLL_TIME_STRU* SI_PIH_GetPollTimerAddr(
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
+    SI_PIH_TIMER_NAME_ENUM_UINT32       enTimerName);
+
+extern VOS_VOID SI_PIH_PollTimerPro(
+    SI_PIH_CARD_SLOT_ENUM_UINT32         enSlotId,
+    SI_PIH_POLL_TIME_STRU               *pstPIHTimer);
+
+extern SI_PIH_CARD_STATUS_STRU* SI_PIH_GetCardInfoAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
+
 extern VOS_UINT32 SI_PIH_CheckGCFTestCard(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
-extern VOS_UINT32 USIMM_CCB_IsCardExist(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
-
-extern VOS_UINT32 USIMM_CCB_GetUsimSimulateIsimStatus(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
+extern VOS_UINT32 SI_PIH_SendDeactiveReqMsg(
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
+    VOS_UINT32                          ulSendPara);
 
 #if (FEATURE_ON == FEATURE_PTM)
 extern VOS_VOID SI_PIH_ErrLogVarInit(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 #endif
 
-#if ((FEATURE_VSIM == FEATURE_ON) && (FEATURE_ON == FEATURE_VSIM_ICC_SEC_CHANNEL))
-VOS_VOID SI_PIH_RegVsimIccSecChannel(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
-
-VOS_VOID SI_PIH_IccSecChReadCallBackHandle(
-    SI_PIH_CARD_SLOT_ENUM_UINT32          enSlotId,
-    SI_PIH_ICC_SEC_CH_CALL_BACK_STRU     *pstSecChCallBack
-);
-
-VOS_UINT32 SI_PIH_IccChannelReadCallBack(VOS_UINT ulChannelID,VOS_INT lLen);
-
-VOS_VOID SI_PIH_SndPihIccSecChCallbak(
-    VOS_UINT                            ulChannelID,
-    VOS_INT                             lLen
-);
-
-VOS_VOID SI_PIH_SendTeeCnfMsg(
+extern VOS_VOID SI_PIH_MNTNDataHook(
     SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    SI_TEE_CNF_ENUM_UINT32              enMsgName,
-    VOS_UINT32                          ulResult,
-    VOS_UINT32                          ulModemId
-);
+    VOS_UINT32                          ulHookMsgName,
+    VOS_UINT32                          ulHookDataLen,
+    VOS_UINT8                          *pucHookData);
 
-VOS_VOID SI_PIH_SendUsimVsimWriteReqMsg(
-    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    VOS_UINT32                          ulModemId,
-    VOS_UINT32                          ulFileDataLen,
-    SI_VSIM_FILELIST_STRU              *pstVsimFile
-);
-
-VOS_UINT32 SI_PIH_GetUsimPidByModemID(
-    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    VOS_UINT32                          ulModemId
-);
-
-USIMM_PHYCARD_TYPE_ENUM_UINT32 SI_PIH_GetVsimCardType(
-    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    SI_TEE_VSIM_CARD_TYPE_ENUM_UINT8    enCardType
-);
-
-VOS_UINT8 SI_PIH_GetVsimAuthType(
-    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    SI_TEE_VSIM_AUTH_TYPE_ENUM_UINT8    enAuthType
-);
-
-VOS_VOID SI_PIH_IccChannelReadCallBackHandle(
-    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId,
-    VOS_UINT                            ulChannelID,
-    VOS_INT                             lLen
-);
-#endif
 #endif
 
 #if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))

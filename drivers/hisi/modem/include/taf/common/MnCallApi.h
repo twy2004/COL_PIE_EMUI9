@@ -148,7 +148,7 @@ extern "C" {
 
 #define MN_CALL_DISPLAY_NAME_STRING_SZ                      (129)
 
-#define TAF_CALL_ERROR_INFO_TEXT_STRING_SZ                 (129)
+#define TAF_CALL_ERROR_INFO_TEXT_STRING_SZ                 (257)
 
 #define TAF_CALL_EMC_CATEGORY_MAX_VALID_BIT_CNT             (7)
 
@@ -159,6 +159,8 @@ extern "C" {
         (pSendMsg)->ulReceiverPid   = RecvPid;
 
 #define TAF_CALL_CNAP_NAME_STR_MAX_LENGTH                   (161)               /* CNAP主叫名称字段最大长度 */
+
+#define TAF_APDS_CALL_PULL_DIALOG_ID                        (255)
 
 /*****************************************************************************
   3类型定义
@@ -194,6 +196,33 @@ enum NAS_CC_CALL_STATE_ENUM                                                     
     NAS_CC_CALL_STATE_BUTT
 };
 typedef VOS_UINT8   NAS_CC_CALL_STATE_ENUM_U8;
+
+
+enum NAS_NW_CC_STATE_ENUM                                                     /* Call state value (octet 2)               */
+{                                                                               /* Bits 6 5 4 3 2 1                         */
+    NAS_NW_CC_CALL_STATE_N0                                    =  0,            /*      0 0 0 0 0 0 NO - null               */
+    NAS_NW_CC_CALL_STATE_N0_1                                  =  2,            /*      0 0 0 0 1 0 N0.1- MM con pending    */
+    NAS_NW_CC_CALL_STATE_N0_2                                  = 34,            /*      1 0 0 0 1 0 N0.2- CC con pending */
+    NAS_NW_CC_CALL_STATE_N0_3                                  = 35,            /*      1 0 0 0 1 1 N0.3- network answer pending  */
+    NAS_NW_CC_CALL_STATE_N0_4                                  = 36,            /*      1 0 0 1 0 0 N0.4- CC-Est present    */
+    NAS_NW_CC_CALL_STATE_N0_5                                  = 37,            /*      1 0 0 1 0 1 N0.5- CC-Est confirmed  */
+    NAS_NW_CC_CALL_STATE_N0_6                                  = 38,            /*      1 0 0 1 1 0 N0.6- Recall present    */
+    NAS_NW_CC_CALL_STATE_N1                                    =  1,            /*      0 0 0 0 0 1 N1 - call initiated     */
+    NAS_NW_CC_CALL_STATE_N3                                    =  3,            /*      0 0 0 0 1 1 N3 - MO call proc       */
+    NAS_NW_CC_CALL_STATE_N4                                    =  4,            /*      0 0 0 1 0 0 N4 - call delivered     */
+    NAS_NW_CC_CALL_STATE_N6                                    =  6,            /*      0 0 0 1 1 0 N6 - call present       */
+    NAS_NW_CC_CALL_STATE_N7                                    =  7,            /*      0 0 0 1 1 1 N7 - call received      */
+    NAS_NW_CC_CALL_STATE_N8                                    =  8,            /*      0 0 1 0 0 0 N8 - connect request    */
+    NAS_NW_CC_CALL_STATE_N9                                    =  9,            /*      0 0 1 0 0 1 N9 - MT call Cnf        */
+    NAS_NW_CC_CALL_STATE_N10                                   = 10,            /*      0 0 1 0 1 0 N10- active             */
+    NAS_NW_CC_CALL_STATE_N12                                   = 12,            /*      0 0 1 1 0 0 N12- disconnect IND     */
+    NAS_NW_CC_CALL_STATE_N19                                   = 19,            /*      0 1 0 0 1 1 N19- release REQ        */
+    NAS_NW_CC_CALL_STATE_N26                                   = 26,            /*      0 1 1 0 1 0 N26- MO modify          */
+    NAS_NW_CC_CALL_STATE_N27                                   = 27,            /*      0 1 1 0 1 1 N27- MT modify          */
+    NAS_NW_CC_CALL_STATE_N28                                   = 28,            /*      0 1 1 0 1 1 N28- connect IND        */
+    NAS_NW_CC_CALL_STATE_BUTT
+};
+typedef VOS_UINT8   NAS_NW_CC_STATE_ENUM_U8;
 
 enum MN_CALL_ALS_LINE_NO_ENUM
 {
@@ -727,7 +756,9 @@ enum MN_CALL_SS_NOTIFY_CODE_ENUM
     MN_CALL_SS_NTFY_DEFLECTED_CALL,                                             /* this is a deflected call (MT call setup)  */
     MN_CALL_SS_NTFY_EXPLICIT_CALL_TRANSFER,                                     /* Explicit Call Transfer (ECT) Supplementary Service*/
     MN_CALL_SS_NTFY_CCBS_RECALL,                                                /*this is a CCBS recall*/
-    MN_CALL_SS_NTFY_CCBS_BE_RECALLED,                                            /*call has been CCBS recalled*/
+    MN_CALL_SS_NTFY_CCBS_BE_RECALLED,                                           /*call has been CCBS recalled*/
+    MN_CALL_SS_NTFY_INCALL_FORWARDED,                                           /* additional incoming call forwarded */
+    MN_CALL_SS_NTFY_HOLD_RELEASED,                                              /* In held state or held, call release */
     MN_CALL_SS_NTFY_BUTT
 };
 typedef  VOS_UINT8  MN_CALL_SS_NOTIFY_CODE_ENUM_U8;
@@ -1024,7 +1055,6 @@ typedef  VOS_UINT32  MN_CALL_EVENT_ENUM_U32;
 #define TAF_CS_CAUSE_XCALL_BEGIN            (0x9000)
 
 
-
 enum TAF_CS_CAUSE_ENUM
 {
     TAF_CS_CAUSE_SUCCESS                                                        = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 0),
@@ -1080,6 +1110,9 @@ enum TAF_CS_CAUSE_ENUM
     TAF_CS_CAUSE_CC_NW_RECOVERY_ON_TIMER_EXPIRY                                 = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 102), /* 102. Recovery on timer expiry Timer number      */
     TAF_CS_CAUSE_CC_NW_PROTOCOL_ERROR_UNSPECIFIED                               = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 111), /* 111. Protocol error, unspecified                */
     TAF_CS_CAUSE_CC_NW_INTERWORKING_UNSPECIFIED                                 = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 127), /* 127. Interworking, unspecified                  */
+    TAF_CS_CAUSE_CC_NW_RELEASE_ORDER                                            = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 128), /* 128. MO interrrupted by network release order   */
+    TAF_CS_CAUSE_CC_NW_AUTH_FAIL                                                = (TAF_CS_CAUSE_CC_NW_SECTION_BEGIN + 129), /* 128. MO interrrupted by network release order   */
+
 
     /* CM SERVICE REJECT */
     TAF_CS_CAUSE_CM_SRV_REJ_IMSI_UNKNOWN_IN_HLR                                 = (TAF_CS_CAUSE_CM_SRV_REJ_BEGIN + 2),
@@ -1377,6 +1410,7 @@ enum TAF_CS_CAUSE_ENUM
     TAF_CS_CAUSE_IMS_DECLINE                                        = (TAF_CS_CAUSE_IMS_BEGIN + 603),
     TAF_CS_CAUSE_IMS_DOES_NOT_EXIST_ANYWHERE                        = (TAF_CS_CAUSE_IMS_BEGIN + 604),
     TAF_CS_CAUSE_IMS_GLOBAL_NOT_ACCEPTABLE                          = (TAF_CS_CAUSE_IMS_BEGIN + 606),
+    TAF_CS_CAUSE_CL_AND_IMS_SUPPORT_BUT_UNAVAILBALE                 = (TAF_CS_CAUSE_IMS_BEGIN + 607),          /* CL下，IMS开关打开但是IMS不可用 */
     /* 新增原因值, 该原因值用于不用去CS域重播时的IMS SIP原因值转换 */
     TAF_CS_CAUSE_IMS_OTHERS                                         = (TAF_CS_CAUSE_IMS_BEGIN + 699),
 
@@ -1392,22 +1426,22 @@ enum TAF_CS_CAUSE_ENUM
     TAF_CS_CAUSE_IMSA_SRVCC_SUCC                                    = (TAF_CS_CAUSE_IMSA_BEGIN + 9),            /* SRVCC成功 */
     TAF_CS_CAUSE_IMSA_SRVCC_ABNORMAL                                = (TAF_CS_CAUSE_IMSA_BEGIN + 10),           /* SRVCC异常，例如关机等 */
     TAF_CS_CAUSE_IMSA_SRVCC_ABNORMAL_DEREG                          = (TAF_CS_CAUSE_IMSA_BEGIN + 11),           /* SRVCC过程中出现DEREG */
-    TAF_CS_CAUSE_IMSA_CMCC_TCALL_TIMEOUT                            = (TAF_CS_CAUSE_IMSA_BEGIN + 12),           /* 中国移动需求, Tcall超时后CS域重播*/
+    TAF_CS_CAUSE_IMSA_TCALL_TIMEOUT                                 = (TAF_CS_CAUSE_IMSA_BEGIN + 12),           /* 中国移动需求, Tcall超时后CS域重播*/
     TAF_CS_CAUSE_IMSA_CMCC_TQOS_TIMEOUT                             = (TAF_CS_CAUSE_IMSA_BEGIN + 13),           /* 中国移动需求, Tqos超时后CS域重播*/
     TAF_CS_CAUSE_IMSA_STRM_RTP_BREAK                                = (TAF_CS_CAUSE_IMSA_BEGIN + 14),           /* 通话中没有语音包 */
     /* 新增原因值, 该原因值用于不用去CS域重播时的IMS内部原因值转换 */
-    TAF_CS_CAUSE_IMSA_IMS_ERROR                                     = (TAF_CS_CAUSE_IMSA_BEGIN + 15),
+    TAF_CS_CAUSE_IMSA_IMS_ERROR                                     = (TAF_CS_CAUSE_IMSA_BEGIN + 15),           /* IMS内部错误 */
     TAF_CS_CAUSE_IMSA_NO_RF                                         = (TAF_CS_CAUSE_IMSA_BEGIN + 16),           /* DSDS没有申请到资源 */
-    TAF_CS_CAUSE_IMSA_EMC_DOMAIN_TMP_SEL_FAIL                       = (TAF_CS_CAUSE_IMSA_BEGIN + 17),
-    TAF_CS_CAUSE_IMSA_SERVICE_LTE_SIGNAL_BAD                        = (TAF_CS_CAUSE_IMSA_BEGIN + 18),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_CALL_BUSY                  = (TAF_CS_CAUSE_IMSA_BEGIN + 19),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_SDP_ERROR                  = (TAF_CS_CAUSE_IMSA_BEGIN + 20),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_NOT_SUP_ABILITY            = (TAF_CS_CAUSE_IMSA_BEGIN + 21),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_NETWORK_ERROR              = (TAF_CS_CAUSE_IMSA_BEGIN + 22),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_CALL_FORWARD               = (TAF_CS_CAUSE_IMSA_BEGIN + 23),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_RESOURCE_UNAVAILABLE       = (TAF_CS_CAUSE_IMSA_BEGIN + 24),
-    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_OVERFLOW_MAX_CALL_COUNT    = (TAF_CS_CAUSE_IMSA_BEGIN + 25),
-    TAF_CS_CAUSE_IMSA_CS_AND_IMS_CALL_CONFILICT                     = (TAF_CS_CAUSE_IMSA_BEGIN + 26),
+    TAF_CS_CAUSE_IMSA_EMC_DOMAIN_TMP_SEL_FAIL                       = (TAF_CS_CAUSE_IMSA_BEGIN + 17),           /* 紧急呼叫触发的域选失败 */
+    TAF_CS_CAUSE_IMSA_SERVICE_LTE_SIGNAL_BAD                        = (TAF_CS_CAUSE_IMSA_BEGIN + 18),           /* LTE信号质量差 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_CALL_BUSY                  = (TAF_CS_CAUSE_IMSA_BEGIN + 19),           /* 呼叫忙，一般是主被叫冲突 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_SDP_ERROR                  = (TAF_CS_CAUSE_IMSA_BEGIN + 20),           /* SDP协商失败 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_NOT_SUP_ABILITY            = (TAF_CS_CAUSE_IMSA_BEGIN + 21),           /* 当前不支持该能力 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_NETWORK_ERROR              = (TAF_CS_CAUSE_IMSA_BEGIN + 22),           /* 网络异常 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_CALL_FORWARD               = (TAF_CS_CAUSE_IMSA_BEGIN + 23),           /* 呼叫前转 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_RESOURCE_UNAVAILABLE       = (TAF_CS_CAUSE_IMSA_BEGIN + 24),           /* 资源不可用 */
+    TAF_CS_CAUSE_IMSA_OMIT_CALL_ERR_CODE_OVERFLOW_MAX_CALL_COUNT    = (TAF_CS_CAUSE_IMSA_BEGIN + 25),           /* 呼叫数目大于最大值 */
+    TAF_CS_CAUSE_IMSA_CS_AND_IMS_CALL_CONFILICT                     = (TAF_CS_CAUSE_IMSA_BEGIN + 26),            /* CS和IMS呼叫冲突 */
     TAF_CS_CAUSE_IMSA_STRM_RTP_BREAK_WIFI_SIGNAL_BAD                = (TAF_CS_CAUSE_IMSA_BEGIN + 27),           /* WIFI信号差引发的RTP break导致VOWIFI电话掉话 */
     TAF_CS_CAUSE_IMSA_STRM_RTP_BREAK_WIFI_CONGEST                   = (TAF_CS_CAUSE_IMSA_BEGIN + 28),           /* WIFI信号差拥塞引发的RTP break导致VOWIFI电话掉话 */
     TAF_CS_CAUSE_IMSA_IMS_IGNORE_ERROR                              = (TAF_CS_CAUSE_IMSA_BEGIN + 29),           /* 仅用作IMSA上报给TAF的可忽略错误原因值 */
@@ -1491,6 +1525,7 @@ enum TAF_CS_CAUSE_ENUM
     TAF_CS_CAUSE_XCALL_CLIENT_END_DIALING,
     TAF_CS_CAUSE_XCALL_CLIENT_END_ALERTING,
     TAF_CS_CAUSE_XCALL_CLIENT_END_ACTIVE,
+    TAF_CS_CAUSE_XCALL_POWER_DOWN_IMS_REGED,
 
     TAF_CS_CAUSE_BUTT                                               = (0xFFFFFFFF)
 };
@@ -1530,7 +1565,6 @@ enum TAF_CALL_PRESENTATION_IND_ENUM                                             
 };
 
 typedef VOS_UINT8   TAF_CALL_PRESENTATION_IND_ENUM_UINT8;
-
 
 /* 移枚举定义到tafAppCall.h文件中 */
 
@@ -1692,6 +1726,27 @@ enum TAF_CALL_ECBM_DOMAIN_ENUM
 typedef VOS_UINT8 TAF_CALL_ECBM_DOMAIN_ENUM_UINT8;
 
 
+enum TAF_CALL_RTT_IND_ENUM
+{
+    TAF_CALL_RTT_IND_NOT_RTT_CALL       = 0,
+    TAF_CALL_RTT_IND_RTT_CALL           = 1,
+    TAF_CALL_RTT_IND_RMT_TTY_CALL       = 2,
+    TAF_CALL_RTT_IND_RMT_NOT_SUPT       = 3,
+    TAF_CALL_RTT_IND_BUTT
+};
+typedef VOS_UINT8 TAF_CALL_RTT_IND_ENUM_UINT8;
+
+
+enum CALL_IMSA_CS_CALL_DIR_ENUM
+{
+    CALL_IMSA_CS_CALL_DIR_NON           = 0,        /* 从CS域存在呼叫到CS域不存在呼叫时，呼叫方向使用该标志 */
+    CALL_IMSA_CS_CALL_DIR_MO            = 1,        /* 从CS域不存在呼叫到CS域存在呼叫时，且第一通呼叫属于主叫时，使用该标志  */
+    CALL_IMSA_CS_CALL_DIR_MT            = 2,        /* 从CS域不存在呼叫到CS域存在呼叫时，且第一通呼叫属于被叫时，使用该标志  */
+    CALL_IMSA_CS_CALL_DIR_BUTT
+};
+typedef VOS_UINT8  CALL_IMSA_CS_CALL_DIR_ENUM_UINT8;
+
+
 typedef struct
 {
     VOS_UINT8                           ucExistFlag;                            /* 网络是否携带CNAP信息标志 */
@@ -1775,9 +1830,9 @@ typedef struct
 
 typedef struct
 {
-    VOS_UINT8                           ucTextLen;
+    VOS_UINT16                          ucTextLen;
     VOS_CHAR                            acErrInfoText[TAF_CALL_ERROR_INFO_TEXT_STRING_SZ];
-    VOS_UINT8                           aucReserved[2];
+    VOS_UINT8                           ucReserved;
 }TAF_CALL_ERROR_INFO_TEXT_STRU;
 
 
@@ -1861,7 +1916,7 @@ typedef struct
     MN_CALL_TYPE_ENUM_U8                enCallType;                             /* Call Type */
     MN_CALL_CLIR_CFG_ENUM_U8            enClirCfg;                              /* CLIR Configuration */
     MN_CALL_MODE_ENUM_U8                enCallMode;                             /* Call Mode */
-    VOS_UINT8                           ucCsCallRetryFlg;                       /* CS CALL是否可再尝试标记:当CS域可用，且CS域未尝试过呼叫时，表示CS域可以再尝试 VOS_TRUE；其他情况都表示CS域不可以再尝试 VOS_FALSE */
+    VOS_UINT8                           ucCsCallRetryFlg;                       /* false: 紧急呼cs域尝试过或者cs域不可用 true: CS域没尝试过，且cs域可用*/
     MN_CALL_CALLED_NUM_STRU             stDialNumber;                           /* Call Number */
     MN_CALL_CUG_CFG_STRU                stCugCfg;                               /* CUG Configuration */
     MN_CALL_CS_DATA_CFG_STRU            stDataCfg;                              /* Data Configuration */
@@ -1882,7 +1937,10 @@ typedef struct
 
     TAF_CALL_SERVICE_TYPE_ENUM_UINT8    enServiceType;                          /* 业务类型 */
 
-    VOS_UINT8                           aucReserv[1];
+    VOS_UINT8                           ucRttFlg;                               /*是否发起RTT呼叫，0:非RTT呼叫 */
+    VOS_UINT8                           ucCallPullFlg;                          /*1:拉取另一路呼叫，0:非拉取另一路呼叫 */
+    VOS_UINT8                           ucCallPullDialogId;                     /* 0-254:拉取另一路呼叫,ucCallPullFlg=1; 255:非拉取另一路呼叫,ucCallPullFlg=0  */
+    VOS_UINT8                           aucReserved[2];
 } MN_CALL_ORIG_PARAM_STRU;
 
 
@@ -1917,6 +1975,8 @@ typedef struct
     TAF_CALL_REJ_CAUSE_ENUM_UINT8       enCallRejCause;                         /* 命令类型为MN_CALL_SUPS_CMD_REL_INCOMING_OR_WAITING时，此IE项有效 */
     MN_CALL_BCD_NUM_STRU                stRedirectNum;                          /* Redirect Number */
     MN_CALL_CALLED_NUM_STRU             stRemoveNum;                            /* 增强型会议中需要移除的与会者号码 */
+    VOS_UINT8                           ucRttFlg;                               /* 0: 非RTT通话, 1: RTT通话 */
+    VOS_UINT8                           aucReserved[3];                         /* 保留位 */
 } MN_CALL_SUPS_PARAM_STRU;
 
 
@@ -2057,7 +2117,10 @@ typedef struct
 
     TAF_CALL_PEER_VIDEO_SUPPORT_ENUM_UINT8  enPeerVideoSupport;
     TAF_CALL_IMS_DOMAIN_ENUM_UINT8      enImsDomain;
-    VOS_UINT8                           aucReserved[2];
+    VOS_UINT8                           ucReserved;
+    TAF_CALL_RTT_IND_ENUM_UINT8         enRtt;                                  /* 0:非RTT通话；1:RTT通话; 2:远端为TTY通话; 3: 远端不支持RTT  */
+    VOS_INT32                           lRttChannelId;                          /* 通话使用的channel ID，-1为无效值 */
+    VOS_UINT32                          ulCps;                                  /* RTT通话协商的cps值  */
 }MN_CALL_INFO_PARAM_STRU;
 
 
@@ -2559,6 +2622,7 @@ typedef struct
 } TAF_CALL_BURST_DTMF_REQ_MSG_STRU;
 
 
+
 typedef struct
 {
     VOS_MSG_HEADER                                                                 /*_H2ASN_Skip*/
@@ -2702,7 +2766,6 @@ typedef struct
     VOS_UINT8                           ucCallWaitingInd;
     VOS_UINT8                           aucRsved[3];
 }TAF_CALL_EVT_CALL_WAITING_IND_STRU;
-
 
 
 
@@ -2974,31 +3037,10 @@ VOS_UINT32  MN_CALL_QryCdur(
 VOS_VOID MN_CALL_RcvTafEccNumReq(
     MN_CALL_APP_CUSTOM_ECC_NUM_REQ_STRU*    pstCustomEccNumReq
 );
-VOS_VOID MN_CALL_ReportEccNumList(VOS_VOID);
 
 
 VOS_VOID MN_CALL_RcvAtClprGetReq(MN_CALL_APP_REQ_MSG_STRU            *pstCallMsg);
 
-
-/*****************************************************************************
- Prototype      : GMM_GetCurNetwork
- Description    : 获取GMM的当前工作网络
-                  HSS 4100 V200R001 新增
-                  非GMM模块使用
- Input          :
- Output         :
- Return Value   : GMM工作网络
-                  GMM_RABM_CURNET_3G    //3G网络
-                  GMM_RABM_CURNET_2G    //2G网络
- Calls          :
- Called By      :
-
- History        :
-  1.Date        : 2005-12-08
-    Author      : Roger Leo
-    Modification: Created function
-*****************************************************************************/
-VOS_UINT8 GMM_GetCurNetwork(VOS_VOID);
 
 #if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
 extern VOS_UINT32  TAF_XCALL_SendBurstDtmf(

@@ -60,6 +60,10 @@ extern "C" {
 #endif
 #endif
 
+#ifdef WIN32
+#pragma warning(disable:4200) /* zero-sized array in struct/union */
+#endif
+
 #pragma pack(4)
 
 
@@ -109,7 +113,7 @@ typedef struct
     VOS_UINT8                           ucRabId;                                /* RAB标识，取值范围:[5,15] */
     VOS_UINT8                           aucRsv[3];                              /*保留位*/
     VOS_UINT32                          ulLen;                                  /*数据包长度*/
-    VOS_UINT8                           aucData[0];                             /*数据包内容*/
+    VOS_UINT8                           aucData[0];                             /*数据包内容*/  //lint !e43
 }ADS_DHCP_DATA_IND_STRU;
 
 

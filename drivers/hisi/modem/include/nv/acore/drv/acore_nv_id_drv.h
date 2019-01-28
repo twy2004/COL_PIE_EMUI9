@@ -104,6 +104,7 @@ typedef enum
 #endif
     NV_ID_DRV_NOC_AP                       = 0xd16c,    //DRV_NOC_AP_CFG_STRU
     NV_ID_DMSS_KENERL			   		   = 0xd180,    //DRV_DMSS_CFG_STRU
+    NV_ID_DRV_DIAG_RATE                    = 0xd187,    //DRV_DIAG_RATE_STRU
 
     NV_ID_DRV_ID_ACORE_MAX                 = 0xd1ff
 }NV_ID_DRV_ACORE_ENUM;

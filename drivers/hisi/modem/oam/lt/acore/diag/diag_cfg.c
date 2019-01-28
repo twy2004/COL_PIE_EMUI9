@@ -50,19 +50,22 @@
 /*****************************************************************************
   1 Include HeadFile
 *****************************************************************************/
+#include <product_config.h>
+#include <mdrv.h>
+#include <mdrv_diag_system.h>
+#include <nv_stru_drv.h>
+#include <nv_stru_lps.h>
+#include <soc_socp_adapter.h>
+#include <msp.h>
 #include "diag_common.h"
 #include "diag_cfg.h"
 #include "diag_msgmsp.h"
 #include "diag_msgphy.h"
 #include "diag_api.h"
 #include "diag_debug.h"
-#include "msp_errno.h"
-#include "nv_stru_drv.h"
-#include "nv_stru_lps.h"
-#include <mdrv.h>
-#include <mdrv_diag_system.h>
-#include "soc_socp_adapter.h"
-
+#include "diag_msg_def.h"
+#include "diag_cmdid_def.h"
+#include "diag_message.h"
 
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_CFG_C
@@ -76,9 +79,11 @@ VOS_UINT32 g_ulDiagCfgInfo = 0;
 
 VOS_UINT8 g_ALayerSrcModuleCfg[VOS_CPU_ID_1_PID_BUTT - VOS_PID_CPU_ID_1_DOPRAEND] = {0};
 VOS_UINT8 g_CLayerSrcModuleCfg[VOS_CPU_ID_0_PID_BUTT - VOS_PID_CPU_ID_0_DOPRAEND] = {0};
+VOS_UINT8 g_NrmLayerSrcModuleCfg[VOS_CPU_ID_2_PID_BUTT - VOS_PID_CPU_ID_2_DOPRAEND] = {0};
 
 VOS_UINT8 g_ALayerDstModuleCfg[VOS_CPU_ID_1_PID_BUTT - VOS_PID_CPU_ID_1_DOPRAEND] = {0};
 VOS_UINT8 g_CLayerDstModuleCfg[VOS_CPU_ID_0_PID_BUTT - VOS_PID_CPU_ID_0_DOPRAEND] = {0};
+VOS_UINT8 g_NrmLayerDstModuleCfg[VOS_CPU_ID_2_PID_BUTT - VOS_PID_CPU_ID_2_DOPRAEND] = {0};
 
 VOS_UINT8 g_EventModuleCfg[DIAG_CFG_PID_NUM] = {0};
 
@@ -86,7 +91,7 @@ VOS_UINT8 g_PrintModuleCfg[DIAG_CFG_PID_NUM] = {0};
 VOS_UINT32 g_PrintTotalCfg = DIAG_CFG_PRINT_TOTAL_MODULE_SWT_NOT_USE;
 DIAG_CFG_LOG_CAT_CFG_STRU g_stMsgCfg = {0};
 
-VOS_UINT32 g_ulDiagDfsCtrl = 0;
+VOS_UINT32 g_ulTransCfg = DIAG_CFG_SWT_CLOSE;
 
 HTIMER          g_DebugTimer;
 
@@ -103,8 +108,10 @@ VOS_VOID diag_CfgResetAllSwt(VOS_VOID)
     /*清空层间开关状态*/
     (VOS_VOID)VOS_MemSet_s(g_ALayerSrcModuleCfg, (VOS_UINT32)sizeof(g_ALayerSrcModuleCfg), 0, (VOS_UINT32)sizeof(g_ALayerSrcModuleCfg));
     (VOS_VOID)VOS_MemSet_s(g_CLayerSrcModuleCfg, (VOS_UINT32)sizeof(g_CLayerSrcModuleCfg), 0, (VOS_UINT32)sizeof(g_CLayerSrcModuleCfg));
+    (VOS_VOID)VOS_MemSet_s(g_NrmLayerSrcModuleCfg, (VOS_UINT32)sizeof(g_NrmLayerSrcModuleCfg), 0, (VOS_UINT32)sizeof(g_NrmLayerSrcModuleCfg));
     (VOS_VOID)VOS_MemSet_s(g_ALayerDstModuleCfg, (VOS_UINT32)sizeof(g_ALayerDstModuleCfg), 0, (VOS_UINT32)sizeof(g_ALayerDstModuleCfg));
     (VOS_VOID)VOS_MemSet_s(g_CLayerDstModuleCfg, (VOS_UINT32)sizeof(g_CLayerDstModuleCfg), 0, (VOS_UINT32)sizeof(g_CLayerDstModuleCfg));
+    (VOS_VOID)VOS_MemSet_s(g_NrmLayerDstModuleCfg, (VOS_UINT32)sizeof(g_NrmLayerDstModuleCfg), 0, (VOS_UINT32)sizeof(g_NrmLayerDstModuleCfg));
 
     /* 为兼容原TL任务的EVENT开关机制，默认把所有EVENT子开关都设置为打开 */
     (VOS_VOID)VOS_MemSet_s(g_EventModuleCfg, (VOS_UINT32)sizeof(g_EventModuleCfg), 0x1, (VOS_UINT32)sizeof(g_EventModuleCfg));
@@ -195,7 +202,7 @@ VOS_UINT32 diag_AirCfgProc (VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(DIAG_CMD_LOG_CAT_AIR_REQ_STRU ) + sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_error("rec data len error, head->msglen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, head->msglen:0x%x\n", pstDiagHead->ulMsgLen);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -208,7 +215,7 @@ VOS_UINT32 diag_AirCfgProc (VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ret)
     {
         DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
-        return ret;
+        DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret);
     }
 
 DIAG_ERROR:
@@ -270,6 +277,19 @@ VOS_UINT32 diag_CfgSetLayerSwt(DIAG_CMD_LOG_CAT_LAYER_REQ_STRU* pstLayerReq, VOS
                 g_CLayerDstModuleCfg[ulOffset] = (VOS_UINT8)enSwitch;
             }
         }
+        else if(DIAG_CFG_LAYER_MODULE_IS_NRM((pstLayerReq + j)->ulModuleId ))
+        {
+            ulOffset = DIAG_CFG_LAYER_MODULE_NRM_OFFSET((pstLayerReq + j)->ulModuleId);
+
+            if( DIAG_CMD_LAYER_MOD_SRC == (pstLayerReq + j)->ulIsDestModule)
+            {
+                g_NrmLayerSrcModuleCfg[ulOffset] = (VOS_UINT8)enSwitch;
+            }
+            else
+            {
+                g_NrmLayerDstModuleCfg[ulOffset] = (VOS_UINT8)enSwitch;
+            }
+        }
     }
 
     return ERR_MSP_SUCCESS;
@@ -293,7 +313,7 @@ VOS_UINT32 diag_LayerCfgProc (VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_error("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -305,7 +325,7 @@ VOS_UINT32 diag_LayerCfgProc (VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ret)
     {
         DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
-        return ret;
+        DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret);
     }
 
 DIAG_ERROR:
@@ -342,7 +362,7 @@ VOS_UINT32 diag_EventCfgProc(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU) + sizeof(DIAG_CMD_LOG_CAT_EVENT_REQ_STRU))
     {
-        diag_error("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -351,7 +371,7 @@ VOS_UINT32 diag_EventCfgProc(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU) + sizeof(DIAG_CMD_LOG_CAT_EVENT_REQ_STRU) + sizeof(VOS_UINT32) * pstEvtSwtReq->ulCount)
     {
-        diag_error("rec data len error, u32DataLen:0x%x, switch count:0x%x\n", pstDiagHead->ulMsgLen, pstEvtSwtReq->ulCount);
+        diag_error("DataLen error,u32DataLen:0x%x,switch count:0x%x\n", pstDiagHead->ulMsgLen, pstEvtSwtReq->ulCount);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -377,7 +397,7 @@ VOS_UINT32 diag_EventCfgProc(VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ret)
     {
         DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
-        return ret;
+        DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret);
     }
 
 DIAG_ERROR:
@@ -477,7 +497,7 @@ VOS_UINT32 diag_MsgCfgProc(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_printf("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -489,7 +509,7 @@ VOS_UINT32 diag_MsgCfgProc(VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ret)
     {
         DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
-        return ret;
+        DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret);
     }
 
 DIAG_ERROR:
@@ -578,7 +598,7 @@ VOS_UINT32 diag_PrintCfgProc(VOS_UINT8* pstReq)
 
     if(pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))
     {
-        diag_error("rec data len error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
+        diag_error("DataLen error, u32DataLen:0x%x\n", pstDiagHead->ulMsgLen);
         ret = ERR_MSP_INVALID_PARAMETER;
         goto DIAG_ERROR;
     }
@@ -590,7 +610,7 @@ VOS_UINT32 diag_PrintCfgProc(VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ret)
     {
         DIAG_MSG_ACORE_CFG_PROC(ulLen, pstDiagHead, pstInfo, ret);
-        return ret;
+        DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret);
     }
 
 DIAG_ERROR:
@@ -661,6 +681,52 @@ VOS_UINT32 diag_GetTimeStampInitValue(VOS_UINT8* pstReq)
     ret = DIAG_MsgReport(&stDiagInfo, &timestampCnf, (VOS_UINT32)sizeof(timestampCnf));
     mdrv_diag_PTR(EN_DIAG_PTR_GET_TIME_STAMP_CNF, 1, pstDiagHead->ulCmdId, ret);
     return (VOS_UINT32)ret;
+}
+
+VOS_VOID diag_OpenAllSwitch(VOS_VOID)
+{
+    VOS_UINT32 ulIndex = 0;
+
+    /* set init&connect */
+    g_ulDiagCfgInfo = g_ulDiagCfgInfo | DIAG_CFG_INIT | DIAG_CFG_CONN;
+
+    /* open print */
+    g_PrintTotalCfg = ((VOS_UINT32)1<<(7 - PS_LOG_LEVEL_ERROR))|((VOS_UINT32)1<<(7 - PS_LOG_LEVEL_WARNING))
+                    |((VOS_UINT32)1<<(7 - PS_LOG_LEVEL_NORMAL))|((VOS_UINT32)1<<(7 - PS_LOG_LEVEL_INFO));
+
+    /* open event */
+    g_ulDiagCfgInfo = g_ulDiagCfgInfo | DIAG_CFG_EVT;
+    VOS_MemSet_s(g_EventModuleCfg, sizeof(g_EventModuleCfg), 1, sizeof(g_EventModuleCfg));
+
+    /* open air */
+    g_ulDiagCfgInfo = g_ulDiagCfgInfo | DIAG_CFG_GU_AIR | DIAG_CFG_LT_AIR;
+
+    /* open layer */
+    for(ulIndex = 0; ulIndex < sizeof(g_ALayerSrcModuleCfg)/sizeof(g_ALayerSrcModuleCfg[0]); ulIndex++)
+    {
+        g_ALayerSrcModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
+    for(ulIndex = 0; ulIndex < sizeof(g_CLayerSrcModuleCfg)/sizeof(g_CLayerSrcModuleCfg[0]); ulIndex++)
+    {
+        g_CLayerSrcModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
+    for(ulIndex = 0; ulIndex < sizeof(g_NrmLayerSrcModuleCfg)/sizeof(g_NrmLayerSrcModuleCfg[0]); ulIndex++)
+    {
+        g_NrmLayerSrcModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
+
+    for(ulIndex = 0; ulIndex < sizeof(g_ALayerDstModuleCfg)/sizeof(g_ALayerDstModuleCfg[0]); ulIndex++)
+    {
+        g_ALayerDstModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
+    for(ulIndex = 0; ulIndex < sizeof(g_CLayerDstModuleCfg)/sizeof(g_CLayerDstModuleCfg[0]); ulIndex++)
+    {
+        g_CLayerDstModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
+    for(ulIndex = 0; ulIndex < sizeof(g_NrmLayerDstModuleCfg)/sizeof(g_NrmLayerDstModuleCfg[0]); ulIndex++)
+    {
+        g_NrmLayerDstModuleCfg[ulIndex] = DIAG_CFG_SWT_OPEN;
+    }
 }
 
 

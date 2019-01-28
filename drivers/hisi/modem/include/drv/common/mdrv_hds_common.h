@@ -38,6 +38,7 @@ extern "C"
 #define DIAG_IND_MSGID_SCI1_EVENT                      (0x1007)
 #define DIAG_IND_MSGID_SCI2_EVENT                      (0x1008)
 #define DIAG_IND_MSGID_SCI3_EVENT                      (0x1009)
+#define DIAG_IND_MSGID_CPM_LTEV_WAKEUP_SLICE           (0x1010)
 
 /* Board info ind */
 #define DIAG_CMD_BOARD_TRACE_IND_ACORE          (0x90000001)

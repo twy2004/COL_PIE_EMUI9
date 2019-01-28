@@ -1034,10 +1034,12 @@ int crypto4xx_register_alg(struct crypto4xx_device *sec_dev,
 			break;
 		}
 
-		if (rc)
+		if (rc) {
+			list_del(&alg->entry);
 			kfree(alg);
-		else
+		} else {
 			list_add_tail(&alg->entry, &sec_dev->alg_list);
+		}
 	}
 
 	return 0;

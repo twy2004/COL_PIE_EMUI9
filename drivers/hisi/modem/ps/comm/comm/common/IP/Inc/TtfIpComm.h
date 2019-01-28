@@ -60,8 +60,8 @@ extern "C" {
   1 其他头文件包含
 *****************************************************************************/
 #include "vos.h"
+#include "TtfLinkInterface.h"
 #include "TTFComm.h"
-#include "TtfDrvInterface.h"
 
 #pragma pack(4)
 
@@ -174,7 +174,7 @@ typedef VOS_UINT8 IP_DATA_TYPE_ENUM_UINT8;
 /*****************************************************************************
   7 STRUCT定义
 *****************************************************************************/
-typedef struct 
+typedef struct
 {
     VOS_UINT8   ihl:4,
                 ver:4;
@@ -253,8 +253,14 @@ typedef struct
 /*****************************************************************************
   10 函数声明
 *****************************************************************************/
-IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType(VOS_UINT32 ulPid, TTF_MEM_ST *pMemPt);
-VOS_UINT16 TTF_GetIpDataTraceLen
+extern IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
+(
+    VOS_UINT32                          ulPid,
+    VOS_UINT8                          *pData,
+    VOS_UINT16                          usLen,
+    TTF_PS_DATA_PRIORITY_ENUM_UINT8     enDataPriority
+);
+extern VOS_UINT16 TTF_GetIpDataTraceLen
 (
     VOS_UINT32                          ulPid,
     VOS_UINT8                          *pData,

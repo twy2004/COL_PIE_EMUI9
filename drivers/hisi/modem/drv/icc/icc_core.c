@@ -48,6 +48,8 @@
 #include "icc_core.h"
 #include "securec.h"
 
+#undef THIS_MODU
+#define THIS_MODU mod_icc
 static u32 dynamic_channel_id = ICC_STATIC_CHN_ID_MAX;
 static u32 count = 0;
 struct icc_control g_icc_ctrl = {0};
@@ -806,14 +808,14 @@ static int icc_channels_node_init(struct device_node *node)
 			}
 		}
 
-		icc_print_notice("========== channel cfg start============\n");
+		icc_print_notice("<channel cfg start>\n");
 		icc_print_notice("ch_name %s\n", init_info.name);
 		icc_print_notice("id 0x%x size 0x%x mode 0x%x\n", init_info.real_channel_id, init_info.fifo_size, init_info.mode);
 		icc_print_notice("tx_ipc %d rx_ipc %d\n", init_info.ipc_send_irq_id, init_info.ipc_recv_irq_id);
 		icc_print_notice("func_size 0x%x\n", init_info.func_size);
 		icc_print_notice("fifo_send addr 0x%p fifo_recv addr 0x%p\n", init_info.send_addr, init_info.recv_addr);
 		icc_print_notice("skip %d\n", skip);
-		icc_print_notice("========== channel cfg end============\n");
+		icc_print_notice("<channel cfg end>\n");
 
 		if (1 == skip)  /* 只需要地址信息，此通道不初始化 */
 		{
@@ -941,13 +943,6 @@ s32 bsp_icc_init(void)
 	icc_print_error("ok\n");
 
 	g_icc_ctrl.state = ICC_INITIALIZED;
-
-	ret = bsp_icc_event_register((ICC_CHN_DYNAMIC<<16), (read_cb_func)icc_dynamic_data_receive, NULL, NULL, NULL);
-	if (ICC_OK != ret)
-	{
-	    icc_print_error("reg icc_test_cm_cb err ret=0x%08x\n", ret);
-	    return ICC_REGISTER_DYNAMIC_CB_FAIL;
-	}
 
 	return ICC_OK;
 
@@ -1219,7 +1214,7 @@ s32 bsp_icc_send(u32 cpuid, u32 channel_id, u8* data, u32 data_len)
 {
 	if(((cpuid >= ICC_CPU_MAX) || (cpuid == ICC_THIS_CPU)) || (GET_CHN_ID(channel_id) >= ICC_CHN_ID_MAX) || (!g_icc_ctrl.channels[GET_CHN_ID(channel_id)])
 	   || (GET_FUNC_ID(channel_id) >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->func_size) ||
-	   (data_len + sizeof(struct icc_channel_packet) >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->fifo_send->size) )
+	   (data_len >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->fifo_send->size - sizeof(struct icc_channel_packet)) )
 	{
 		icc_print_error("para err,cpuid=0x%x, chan_id=0x%x, data=%p, data_len=0x%x\n", cpuid, channel_id, data, data_len);
 		return ICC_INVALID_PARA;
@@ -1289,5 +1284,4 @@ EXPORT_SYMBOL(bsp_icc_event_register);  /*lint !e19 */
 EXPORT_SYMBOL(bsp_icc_event_unregister);/*lint !e19 */
 EXPORT_SYMBOL(bsp_icc_dynamic_event_register);/*lint !e19 */
 EXPORT_SYMBOL(icc_channel_empty);/*lint !e19 */
-arch_initcall(bsp_icc_init);            /*lint !e19 !e132 !e578*/
 

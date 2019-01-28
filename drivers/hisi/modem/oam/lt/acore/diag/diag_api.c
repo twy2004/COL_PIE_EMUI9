@@ -50,17 +50,18 @@
 /*****************************************************************************
   1 Include HeadFile
 *****************************************************************************/
-#include  "vos.h"
-#include  "diag_common.h"
-#include  "diag_api.h"
-#include  "diag_cfg.h"
-#include  "msp_diag.h"
-#include  "msp_errno.h"
-#include  "diag_debug.h"
-#include  <mdrv.h>
-#include  <mdrv_diag_system.h>
-#include  "soc_socp_adapter.h"
-#include  "nv_stru_lps.h"
+#include <vos.h>
+#include <mdrv.h>
+#include <msp.h>
+#include <nv_stru_lps.h>
+#include <nv_id_tlas.h>
+#include <soc_socp_adapter.h>
+#include "diag_common.h"
+#include "diag_api.h"
+#include "diag_cfg.h"
+#include "diag_debug.h"
+#include "diag_message.h"
+#include "diag_service.h"
 
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_API_C
@@ -70,22 +71,17 @@
 
 extern VOS_UINT8 g_EventModuleCfg[DIAG_CFG_PID_NUM];
 
-VOS_UINT32 diag_CheckMsgPara(DIAG_AIR_MSG_LOG_STRU* pstRptMessage);
 VOS_UINT32 diag_GetLayerMsgCfg(VOS_UINT32 ulCatId, VOS_UINT32 ulMsgId);
 VOS_UINT32 diag_GetLayerSrcCfg(VOS_UINT32 ulModuleId);
 VOS_UINT32 diag_GetLayerDstCfg(VOS_UINT32 ulModuleId);
 VOS_UINT32 diag_GetLayerCfg(VOS_UINT32 ulSrcModuleId, VOS_UINT32 ulDstModuleId, VOS_UINT32 ulMsgId);
 VOS_UINT32 diag_GetPrintCfg(VOS_UINT32 ulModuleId, VOS_UINT32 ulLevel);
 
-VOS_UINT32 g_ulTransId = 0;
+VOS_TRANSID_LEN g_ulTransId = 0;
 
 DIAG_LOG_PKT_NUM_ACC_STRU g_DiagLogPktNum ={0};
 DIAG_LayerMsgMatchFunc  g_pLayerMatchFunc  = VOS_NULL;
 DIAG_LayerMsgMatchNotifyFunc  g_pLayerMatchNotifyFunc  = VOS_NULL;
-
-DIAG_TraceFilterFunc g_pFilterFunc = VOS_NULL;
-DIAG_TraceMatchFunc  g_pMatchFunc  = VOS_NULL;
-
 
 /*****************************************************************************
   3 Function
@@ -111,7 +107,7 @@ VOS_UINT32 DIAG_LogPortSwich(VOS_UINT32 ulPhyPort, VOS_BOOL ulEffect)
     /* diag连接状态下，不允许从USB切换到VCOM */
     if((1 == DiagStatus) && (DIAG_CPM_OM_PORT_TYPE_USB == enLogPort) && (DIAG_CPM_OM_PORT_TYPE_VCOM == ulPhyPort))
     {
-        vos_printf("%s[%d]: diag connected, USB does not allowed to change to vcom.\n",__FUNCTION__, __LINE__);
+        diag_crit("diag connected, USB does not allowed to change to vcom\n");
         return ERR_MSP_AT_CHANNEL_BUSY;
     }
     else
@@ -179,6 +175,15 @@ VOS_UINT32 diag_GetLayerSrcCfg(VOS_UINT32 ulModuleId)
             return ERR_MSP_SUCCESS;
         }
     }
+    else if(DIAG_CFG_LAYER_MODULE_IS_NRM(ulModuleId))
+    {
+        ulOffset = DIAG_CFG_LAYER_MODULE_NRM_OFFSET(ulModuleId);
+
+        if(DIAG_CFG_SWT_OPEN == g_NrmLayerSrcModuleCfg[ulOffset])
+        {
+            return ERR_MSP_SUCCESS;
+        }
+    }
 
     return ERR_MSP_CFG_LOG_NOT_ALLOW;
 }
@@ -201,6 +206,15 @@ VOS_UINT32 diag_GetLayerDstCfg(VOS_UINT32 ulModuleId)
         ulOffset = DIAG_CFG_LAYER_MODULE_CCORE_OFFSET(ulModuleId);
 
         if(DIAG_CFG_SWT_OPEN == g_CLayerDstModuleCfg[ulOffset])
+        {
+            return  ERR_MSP_SUCCESS;
+        }
+    }
+    else if(DIAG_CFG_LAYER_MODULE_IS_NRM(ulModuleId))
+    {
+        ulOffset = DIAG_CFG_LAYER_MODULE_NRM_OFFSET(ulModuleId);
+
+        if(DIAG_CFG_SWT_OPEN == g_NrmLayerDstModuleCfg[ulOffset])
         {
             return  ERR_MSP_SUCCESS;
         }
@@ -305,154 +319,6 @@ VOS_UINT32 diag_GetPrintCfg(VOS_UINT32 ulModuleId, VOS_UINT32 ulLevel)
 
 #define LTE_DIAG_PRINTF_LEN             (256+sizeof(VOS_UINT32)+sizeof(VOS_UINT32))
 
-
-
-
-/******************************************************************************
-函数名称: DIAG_LogIdReport
-功能描述: 打印点类型的打印接口函数
-参数说明:
-            ulModuleId[in]  : ( 31-24:modemid,23-16:modeid,15-12:level )
-            ulPid[in]       : PID
-            ulLogId[in]     : 由文件号和行号根据DIAG_LOG_ID生成
-            amount[in]      : 可变参数个数（不包括ulModuleId/ulLevel/ulLogId/amout）
-            ...             : 可变参数
-调用约束:
-            1. 绝对禁止对此函数进行二次封装，只能转定义
-            2. 支持可变的参数个数，但必须在调用时由参数amount指定参数个数
-            3. 可变参数只支持int类型
-            4. 目前版本中支持的最大参数个数是6个，超过的参数默认丢弃
-******************************************************************************/
-VOS_INT32 DIAG_LogIdReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid,
-                        VOS_UINT32 ulLogId, VOS_UINT32 amount, ...)
-{
-    VOS_UINT32 ret = ERR_MSP_SUCCESS;
-    VOS_UINT32 ulDataLength =0;
-    VOS_CHAR ucDiagPrintData[LTE_DIAG_PRINTF_LEN]={0};
-    VOS_INT32 val, i, lTmpLen, lSpareLen, lOccupyLen;
-    va_list vl;
-    VOS_UINT32 paranum;
-
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
-
-    /* 只记录调用次数*/
-    DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT, ulLogId, 0, 0);
-
-    if(!DIAG_IS_POLOG_ON)
-    {
-        /*检查DIAG是否初始化且HSO是否连接上*/
-        if(!DIAG_IS_CONN_ON)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_ERR, ERR_MSP_NO_INITILIZATION, ulLogId, 1);
-            return ERR_MSP_NO_INITILIZATION;
-        }
-
-        ret = diag_GetPrintCfg(ulPid, DIAG_GET_PRINTF_LEVEL(ulModuleId));
-        if(ERR_MSP_SUCCESS != ret)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_ERR, ERR_MSP_UNAVAILABLE, ulLogId, 2);
-            return ERR_MSP_UNAVAILABLE;
-        }
-    }
-    *((VOS_UINT32*)ucDiagPrintData) = ulPid;
-    *(VOS_UINT32*)(ucDiagPrintData + sizeof(VOS_UINT32)) = DIAG_GET_PRINTF_LEVEL(ulModuleId);
-
-    lOccupyLen = 8;
-
-    lSpareLen  = (VOS_INT32)LTE_DIAG_PRINTF_LEN - lOccupyLen;
-
-    lTmpLen    = VOS_nsprintf_s(ucDiagPrintData + lOccupyLen, (VOS_UINT32)lSpareLen, (VOS_UINT32)lSpareLen-1, "%d, ", ulLogId);
-
-    if(!(0 <= lTmpLen))
-    {
-        vos_printf("LTE_LOG_ASSERT %d.\n", __LINE__);
-        return -1;
-    }
-    lOccupyLen += lTmpLen;
-    if(!(LTE_DIAG_PRINTF_LEN >= (VOS_UINT32)lOccupyLen))
-    {
-        vos_printf("LTE_LOG_ASSERT %d.\n", __LINE__);
-        return -1;
-    }
-    lSpareLen  = (VOS_INT32)LTE_DIAG_PRINTF_LEN - lOccupyLen;
-
-    lTmpLen    = VOS_nsprintf_s(ucDiagPrintData + lOccupyLen, (VOS_UINT32)lSpareLen, (VOS_UINT32)lSpareLen-1, "%u, ", VOS_GetTick());
-
-    if(!(0 <= lTmpLen))
-    {
-        vos_printf("LTE_LOG_ASSERT %d.\n", __LINE__);
-        return -1;
-    }
-    lOccupyLen += lTmpLen;
-    if(!(LTE_DIAG_PRINTF_LEN >= (VOS_UINT32)lOccupyLen))
-    {
-        vos_printf("LTE_LOG_ASSERT %d.\n", __LINE__);
-        return -1;
-    }
-    lSpareLen  = (VOS_INT32)LTE_DIAG_PRINTF_LEN - lOccupyLen;
-
-    (VOS_VOID)VOS_MemSet_s(&vl, (VOS_UINT32)sizeof(vl), 0, (VOS_UINT32)sizeof(va_list));
-
-    va_start(vl, amount);
-    paranum = (amount > LTE_DIAG_PRINTF_PARAM_MAX_NUM) ? LTE_DIAG_PRINTF_PARAM_MAX_NUM : amount;
-
-    for(i = 0; i < (VOS_INT32)paranum; i++)
-    {
-        val = va_arg(vl, int);
-        /* coverity[overrun-local] */
-        lTmpLen = VOS_nsprintf_s(ucDiagPrintData + lOccupyLen, (VOS_UINT32)lSpareLen, (VOS_UINT32)lSpareLen-1, "%d, ", val);
-        if(0 > lTmpLen)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_ERR, ERR_MSP_TOO_SMALL_BUFFER, (VOS_UINT32)lSpareLen, 3);
-            va_end(vl);
-            return -1;
-        }
-
-        lOccupyLen += lTmpLen;
-        /* coverity[cond_at_most] */
-        if(LTE_DIAG_PRINTF_LEN < (VOS_UINT32)lOccupyLen)
-        {
-            DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_ERR, ERR_MSP_TOO_SMALL_BUFFER, (VOS_UINT32)lOccupyLen, 4);
-            va_end(vl);
-            return -1;
-        }
-        lSpareLen  = (VOS_INT32)LTE_DIAG_PRINTF_LEN - lOccupyLen;
-    }
-    va_end(vl);
-
-    ulDataLength = (VOS_UINT32)lOccupyLen;
-
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(ulModuleId);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_DOT;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(ulModuleId);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = 0;
-    stDiagHead.pHeaderData      = VOS_NULL;
-
-    stDiagHead.ulDataSize       = ulDataLength;
-    stDiagHead.pData            = ucDiagPrintData;
-
-    ret = diag_ServicePackData(&stDiagHead);
-
-    if(ret)
-    {
-        DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_ERR, ret, 0, 5);
-    }
-    else
-    {
-        DIAG_DEBUG_SDM_FUN(EN_SDM_DIAG_DOT_OK, 0, 0, 0);
-    }
-
-    return (VOS_INT32)ret;
-}
-
-
 /*****************************************************************************
  函 数 名  : diag_GetFileNameFromPath
  功能描述  : 得到文件路径名的偏移值
@@ -504,8 +370,10 @@ VOS_CHAR * diag_GetFileNameFromPath(VOS_CHAR* pcFileName)
 *****************************************************************************/
 VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFileName, VOS_UINT32 ulLineNum, VOS_CHAR* pszFmt, ...)
 {
-    VOS_UINT32 ret = ERR_MSP_SUCCESS;
     DIAG_CMD_LOG_PRINT_RAW_TXT_IND_STRU stRptInfo;
+    DIAG_SRV_LOG_HEADER_STRU    stLogHeader;
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
+    VOS_UINT32 ret = ERR_MSP_SUCCESS;
     VOS_CHAR   *cOffsetName;
     VOS_UINT32 ulDataLength =0;
     VOS_UINT32 ulModule = 0;
@@ -514,8 +382,6 @@ VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFi
     VOS_INT32  ulParamLen =0;
     VOS_INT32  usRet =0;
     VOS_ULONG  ulLockLevel;
-
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
 
     /*获取数组下标*/
     ulModule = ulPid;
@@ -553,7 +419,7 @@ VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFi
     ulParamLen = VOS_nsprintf_s(stRptInfo.szText, DIAG_PRINTF_MAX_LEN, DIAG_PRINTF_MAX_LEN-1,"%s[%d]", cOffsetName, ulLineNum);
     if(ulParamLen < 0)
     {
-        diag_printf("LTE_LOG_ASSERT %s %d.\n",  __FUNCTION__, __LINE__);
+        diag_error("LTE_LOG_ASSERT\n");
         return ERR_MSP_FAILURE;
     }
     else if(ulParamLen > DIAG_PRINTF_MAX_LEN)
@@ -572,7 +438,7 @@ VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFi
                  (VOS_UINT32)((DIAG_PRINTF_MAX_LEN - ulParamLen) -1), (const VOS_CHAR *)pszFmt, arg);
     if(usRet < 0)
     {
-        diag_printf("LTE_LOG_ASSERT %s %d.\n",  __FUNCTION__, __LINE__);
+        diag_error("LTE_LOG_ASSERT\n");
         va_end(arg);
         return ERR_MSP_FAILURE;
     }
@@ -601,20 +467,15 @@ VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFi
     /* 字符串的长度加上信息的长度 */
     ulDataLength += (sizeof(DIAG_CMD_LOG_PRINT_RAW_TXT_IND_STRU) - (DIAG_PRINTF_MAX_LEN+1));
 
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stLogHeader);
+    DIAG_SRV_SET_MODEM_ID(&stLogHeader.frame_header, DIAG_GET_MODEM_ID(ulModuleId));
+    DIAG_SRV_SET_TRANS_ID(&stLogHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stLogHeader.frame_header, DIAG_MSG_TYPE_PS, DIAG_GET_MODE_ID(ulModuleId), DIAG_MSG_PS_PRINT, 0);
+    DIAG_SRV_SET_MSG_LEN(&stLogHeader.frame_header, ulDataLength);
 
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(ulModuleId);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_PRINT;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(ulModuleId);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = 0;
-    stDiagHead.pHeaderData      = VOS_NULL;
+    stDiagHead.ulHeaderSize     = sizeof(stLogHeader);
+    stDiagHead.pHeaderData      = &stLogHeader;
 
     stDiagHead.ulDataSize       = ulDataLength;
     stDiagHead.pData            = &stRptInfo;
@@ -645,9 +506,10 @@ VOS_UINT32 DIAG_LogReport(VOS_UINT32 ulModuleId, VOS_UINT32 ulPid, VOS_CHAR *cFi
 *****************************************************************************/
 VOS_UINT32 DIAG_TransReport_Ex(DIAG_TRANS_IND_STRU *pstData)
 {
+    DIAG_SRV_TRANS_HEADER_STRU  stTransHeader;
+    DIAG_CMD_TRANS_IND_STRU    *pstTransInfo;
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
     VOS_UINT32 ret = ERR_MSP_SUCCESS;
-    DIAG_CMD_TRANS_IND_STRU stTransInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
     VOS_ULONG  ulLockLevel;
 
     /*检查DIAG是否初始化且HSO是否连接上*/
@@ -656,6 +518,7 @@ VOS_UINT32 DIAG_TransReport_Ex(DIAG_TRANS_IND_STRU *pstData)
         DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_TRANS_ERR, ERR_MSP_NO_INITILIZATION, 0, 1);
         return ERR_MSP_NO_INITILIZATION;
     }
+
 
     /*检查参数合法性*/
     if((VOS_NULL_PTR == pstData) || (NULL == pstData->pData) || (0 == pstData->ulLength))
@@ -666,28 +529,26 @@ VOS_UINT32 DIAG_TransReport_Ex(DIAG_TRANS_IND_STRU *pstData)
 
     diag_LNR(EN_DIAG_LNR_TRANS_IND, pstData->ulMsgId, VOS_GetSlice());
 
-    stTransInfo.ulModule = pstData->ulPid;
-    stTransInfo.ulMsgId  = pstData->ulMsgId;
+    pstTransInfo = &stTransHeader.trans_header;
+    pstTransInfo->ulModule = pstData->ulPid;
+    pstTransInfo->ulMsgId  = pstData->ulMsgId;
 
     VOS_SpinLockIntLock(&g_DiagLogPktNum.ulTransLock, ulLockLevel);
-    stTransInfo.ulNo     = (g_DiagLogPktNum.ulTransNum)++;
+    pstTransInfo->ulNo     = (g_DiagLogPktNum.ulTransNum)++;
     VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulTransLock, ulLockLevel);
 
     (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
 
-    stDiagHead.u.stID.pri4b     = DIAG_GET_GROUP_ID(pstData->ulModule);
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(pstData->ulModule);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_STRUCT;
-    stDiagHead.u.stID.cmdid19b  = (pstData->ulMsgId)&0x7ffff;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(pstData->ulModule);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stTransHeader);
+    DIAG_SRV_SET_MODEM_ID(&stTransHeader.frame_header, DIAG_GET_MODEM_ID(pstData->ulModule));
+    DIAG_SRV_SET_TRANS_ID(&stTransHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stTransHeader.frame_header, DIAG_GET_GROUP_ID(pstData->ulModule),
+                            DIAG_GET_MODE_ID(pstData->ulModule), DIAG_MSG_PS_STRUCT, ((pstData->ulMsgId)&0x7ffff));
+    DIAG_SRV_SET_MSG_LEN(&stTransHeader.frame_header, sizeof(stTransHeader.trans_header) + pstData->ulLength);
 
-    stDiagHead.ulHeaderSize     = sizeof(stTransInfo);
-    stDiagHead.pHeaderData      = &stTransInfo;
-
+    stDiagHead.ulHeaderSize     = sizeof(stTransHeader);
+    stDiagHead.pHeaderData      = &stTransHeader;
     stDiagHead.ulDataSize       = pstData->ulLength;
     stDiagHead.pData            = pstData->pData;
 
@@ -734,9 +595,10 @@ VOS_UINT32 DIAG_TransReport(DIAG_TRANS_IND_STRU *pstData)
 
 VOS_UINT32 DIAG_EventReport(DIAG_EVENT_IND_STRU *pstEvent)
 {
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
+    DIAG_CMD_LOG_EVENT_IND_STRU *pstEventIndInfo;
+    DIAG_SRV_EVENT_HEADER_STRU  stEventHeader;
     VOS_UINT32 ret = ERR_MSP_SUCCESS;
-    DIAG_CMD_LOG_EVENT_IND_STRU stEventIndInfo;
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
     VOS_ULONG  ulLockLevel;
 
     if(VOS_NULL_PTR == pstEvent)
@@ -762,29 +624,26 @@ VOS_UINT32 DIAG_EventReport(DIAG_EVENT_IND_STRU *pstEvent)
         }
     }
 
+    pstEventIndInfo = &stEventHeader.event_header;
+
     /*组装DIAG命令参数*/
     VOS_SpinLockIntLock(&g_DiagLogPktNum.ulEventLock, ulLockLevel);
-    stEventIndInfo.ulNo     = (g_DiagLogPktNum.ulEventNum)++;
+    pstEventIndInfo->ulNo     = (g_DiagLogPktNum.ulEventNum)++;
     VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulEventLock, ulLockLevel);
 
-    stEventIndInfo.ulId     = pstEvent->ulEventId;
-    stEventIndInfo.ulModule = pstEvent->ulPid;
+    pstEventIndInfo->ulId     = pstEvent->ulEventId;
+    pstEventIndInfo->ulModule = pstEvent->ulPid;
 
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stEventHeader);
+    DIAG_SRV_SET_MODEM_ID(&stEventHeader.frame_header, DIAG_GET_MODEM_ID(pstEvent->ulModule));
+    DIAG_SRV_SET_TRANS_ID(&stEventHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stEventHeader.frame_header, DIAG_MSG_TYPE_PS,
+                            DIAG_GET_MODE_ID(pstEvent->ulModule), DIAG_MSG_PS_EVENT, 0);
+    DIAG_SRV_SET_MSG_LEN(&stEventHeader.frame_header, sizeof(stEventHeader.event_header) + pstEvent->ulLength);
 
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(pstEvent->ulModule);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_EVENT;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(pstEvent->ulModule);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(stEventIndInfo);
-    stDiagHead.pHeaderData      = &stEventIndInfo;
-
+    stDiagHead.ulHeaderSize     = sizeof(stEventHeader);
+    stDiagHead.pHeaderData      = &stEventHeader;
     stDiagHead.ulDataSize       = pstEvent->ulLength;
     stDiagHead.pData            = pstEvent->pData;
 
@@ -804,9 +663,10 @@ VOS_UINT32 DIAG_EventReport(DIAG_EVENT_IND_STRU *pstEvent)
 
 VOS_UINT32 DIAG_AirMsgReport(DIAG_AIR_IND_STRU *pstAir)
 {
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
+    DIAG_SRV_AIR_HEADER_STRU    stAirHeader;
+    DIAG_CMD_LOG_AIR_IND_STRU   *pstRptInfo = VOS_NULL;
     VOS_UINT32 ret = ERR_MSP_SUCCESS;
-    DIAG_CMD_LOG_AIR_IND_STRU stRptInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
     VOS_ULONG  ulLockLevel;
 
     /*检查是否允许LT 空口上报*/
@@ -823,28 +683,26 @@ VOS_UINT32 DIAG_AirMsgReport(DIAG_AIR_IND_STRU *pstAir)
         return ERR_MSP_INVALID_PARAMETER;
     }
 
-    stRptInfo.ulModule  = pstAir->ulPid;
-    stRptInfo.ulId      = pstAir->ulMsgId;
-    stRptInfo.ulSide    = pstAir->ulDirection;
+    pstRptInfo = &stAirHeader.air_header;
+
+    pstRptInfo->ulModule  = pstAir->ulPid;
+    pstRptInfo->ulId      = pstAir->ulMsgId;
+    pstRptInfo->ulSide    = pstAir->ulDirection;
 
     VOS_SpinLockIntLock(&g_DiagLogPktNum.ulAirLock, ulLockLevel);
-    stRptInfo.ulNo      = (g_DiagLogPktNum.ulAirNum)++;
+    pstRptInfo->ulNo      = (g_DiagLogPktNum.ulAirNum)++;
     VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulAirLock, ulLockLevel);
 
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stAirHeader);
+    DIAG_SRV_SET_MODEM_ID(&stAirHeader.frame_header, DIAG_GET_MODEM_ID(pstAir->ulModule));
+    DIAG_SRV_SET_TRANS_ID(&stAirHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stAirHeader.frame_header, DIAG_MSG_TYPE_PS,
+                            DIAG_GET_MODE_ID(pstAir->ulModule), DIAG_MSG_PS_AIR, 0);
+    DIAG_SRV_SET_MSG_LEN(&stAirHeader.frame_header, sizeof(stAirHeader.air_header) + pstAir->ulLength);
 
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(pstAir->ulModule);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_AIR;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(pstAir->ulModule);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(stRptInfo);
-    stDiagHead.pHeaderData      = &stRptInfo;
+    stDiagHead.ulHeaderSize     = sizeof(stAirHeader);
+    stDiagHead.pHeaderData      = &stAirHeader;
 
     stDiagHead.ulDataSize       = pstAir->ulLength;
     stDiagHead.pData            = pstAir->pData;
@@ -864,98 +722,15 @@ VOS_UINT32 DIAG_AirMsgReport(DIAG_AIR_IND_STRU *pstAir)
 }
 
 
-/*****************************************************************************
- Function Name   : DIAG_ReportVoLTELog
- Description     : VoLTE消息上报接口
- Input           : DIAG_VoLTE_LOG_STRU* pRptMessage
- Output          : None
- Return          : VOS_UINT32
-
- History         :
-    1.fuxin      2013-12-30  create
-    2.c64416         2014-11-18  适配新的诊断架构
-*****************************************************************************/
-VOS_UINT32 DIAG_ReportVoLTELog(DIAG_VOLTE_LOG_STRU* pRptMessage)
-{
-    VOS_UINT32 ret         = ERR_MSP_SUCCESS;
-    VOS_UINT32 ulModuleId;
-    DIAG_CMD_LOG_VOLTE_IND_STRU stRptInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
-    VOS_ULONG  ulLockLevel;
-
-    /*检查DIAG是否初始化且HSO是否连接上*/
-    if((!DIAG_IS_CONN_ON) && (!DIAG_IS_POLOG_ON))
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_VOLTE_ERR, ERR_MSP_NO_INITILIZATION, 0, 1);
-        return ERR_MSP_NO_INITILIZATION;
-    }
-
-    /*检查参数合法性*/
-    if((VOS_NULL == pRptMessage) || (VOS_NULL == pRptMessage->pData) || (0 == pRptMessage->ulDataSize))
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_VOLTE_ERR, ERR_MSP_INVALID_PARAMETER, 0, 2);
-        return ERR_MSP_INVALID_PARAMETER;
-    }
-
-    ulModuleId  = DIAG_GET_MODULE_ID(pRptMessage->ulId);
-    ret = diag_GetLayerCfg(ulModuleId, ulModuleId, pRptMessage->ulMessageID);
-
-    if(ERR_MSP_SUCCESS != ret)
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_VOLTE_ERR, ERR_MSP_CFG_LOG_NOT_ALLOW, 0, 3);
-        return ERR_MSP_CFG_LOG_NOT_ALLOW;
-    }
-
-    stRptInfo.ulModule  = DIAG_GET_MODULE_ID(pRptMessage->ulId);
-    stRptInfo.ulId      = pRptMessage->ulMessageID;
-    stRptInfo.ulSide    = pRptMessage->ulSideId;
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulVoLTELock, ulLockLevel);
-    stRptInfo.ulNo      = (g_DiagLogPktNum.ulVoLTENum)++;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulVoLTELock, ulLockLevel);
-
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
-
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(pRptMessage->ulId);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_VOLTE;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(pRptMessage->ulId);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(stRptInfo);
-    stDiagHead.pHeaderData      = &stRptInfo;
-
-    stDiagHead.ulDataSize       = pRptMessage->ulDataSize;
-    stDiagHead.pData            = pRptMessage->pData;
-
-    ret = diag_ServicePackData(&stDiagHead);
-
-    if(ret)
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_VOLTE_ERR, ret, 0, 3);
-    }
-    else
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_VOLTE_OK, 0, 0, 5);
-    }
-
-    return ret;
-}
-
-
-
 VOS_VOID DIAG_TraceReport(VOS_VOID *pMsg)
 {
-    VOS_UINT32 ret, ulSrcModule, ulDstModule, ulMsgId;
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
+    DIAG_SRV_TRACE_HEADER_STRU  stTraceHeader;
+    DIAG_CMD_LOG_LAYER_IND_STRU *pstTrace;
     DIAG_OSA_MSG_STRU *pDiagMsg = (DIAG_OSA_MSG_STRU *)pMsg;
-    DIAG_CMD_LOG_LAYER_IND_STRU stTrace;
-
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
-    VOS_ULONG    ulLockLevel;
+    VOS_UINT32  ret, ulSrcModule, ulDstModule, ulMsgId;
+    VOS_ULONG   ulLockLevel;
+    VOS_UINT32  ulMsgLen;
 
     if(VOS_NULL == pDiagMsg)
     {
@@ -985,32 +760,28 @@ VOS_VOID DIAG_TraceReport(VOS_VOID *pMsg)
         }
     }
 
-    stTrace.ulModule    = ulSrcModule;
-    stTrace.ulDestMod   = ulDstModule;
-    stTrace.ulId        = ulMsgId;
+    pstTrace = &stTraceHeader.trace_header;
+    pstTrace->ulModule    = ulSrcModule;
+    pstTrace->ulDestMod   = ulDstModule;
+    pstTrace->ulId        = ulMsgId;
 
     VOS_SpinLockIntLock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
-    stTrace.ulNo        = (g_DiagLogPktNum.ulTraceNum++);
+    pstTrace->ulNo        = (g_DiagLogPktNum.ulTraceNum++);
     VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
 
     (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
 
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_MODE_COMM;       /* 层间消息不能识别模式 */
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_LAYER;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stTraceHeader);
+    DIAG_SRV_SET_MODEM_ID(&stTraceHeader.frame_header, DIAG_MODEM_0);
+    DIAG_SRV_SET_TRANS_ID(&stTraceHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stTraceHeader.frame_header, DIAG_MSG_TYPE_PS,
+                            DIAG_MODE_COMM, DIAG_MSG_PS_LAYER, 0);
+    ulMsgLen = sizeof(DIAG_OSA_MSG_STRU) - sizeof(pDiagMsg->ulMsgId) + pDiagMsg->ulLength;
+    DIAG_SRV_SET_MSG_LEN(&stTraceHeader.frame_header, sizeof(stTraceHeader.trace_header) + ulMsgLen);
 
-    ret = (DIAG_CFG_MODULE_IS_INVALID(ulSrcModule))?ulDstModule:ulSrcModule;
-
-    stDiagHead.ulModemId        = VOS_GetModemIDFromPid(ret);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(stTrace);
-    stDiagHead.pHeaderData      = &stTrace;
-
+    stDiagHead.ulHeaderSize     = sizeof(stTraceHeader);
+    stDiagHead.pHeaderData      = &stTraceHeader;
     stDiagHead.ulDataSize       = sizeof(DIAG_OSA_MSG_STRU) - sizeof(pDiagMsg->ulMsgId) + pDiagMsg->ulLength;
     stDiagHead.pData            = pDiagMsg;
 
@@ -1032,13 +803,15 @@ VOS_VOID DIAG_TraceReport(VOS_VOID *pMsg)
 
 VOS_VOID DIAG_LayerMsgReport(VOS_VOID *pMsg)
 {
-    VOS_UINT32 ret, ulSrcModule, ulDstModule, ulMsgId;
-    DIAG_OSA_MSG_STRU *pDiagMsg = (DIAG_OSA_MSG_STRU *)pMsg;
+    DIAG_SRV_LAYER_HEADER_STRU  stLayerHeader;
+    DIAG_CMD_LOG_LAYER_IND_STRU *pstTrace;
+    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;    
     DIAG_OSA_MSG_STRU *pNewMsg  = NULL;
-    DIAG_CMD_LOG_LAYER_IND_STRU stTrace;
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
-    VOS_ULONG    ulLockLevel;
-
+    VOS_UINT32  ret, ulSrcModule, ulDstModule, ulMsgId;
+    VOS_ULONG   ulLockLevel;
+    VOS_UINT32  ulMsgLen;
+    DIAG_OSA_MSG_STRU *pDiagMsg = (DIAG_OSA_MSG_STRU *)pMsg;
+    
     if(VOS_NULL == pDiagMsg)
     {
         DIAG_DEBUG_SDM_FUN(EN_DIAG_API_MSG_LAYER_ERR, ERR_MSP_INVALID_PARAMETER, 0, 1);
@@ -1081,34 +854,30 @@ VOS_VOID DIAG_LayerMsgReport(VOS_VOID *pMsg)
         }
     }
 
-    stTrace.ulModule    = ulSrcModule;
-    stTrace.ulDestMod   = ulDstModule;
+    pstTrace = &stLayerHeader.layer_header;
+    pstTrace->ulModule    = ulSrcModule;
+    pstTrace->ulDestMod   = ulDstModule;
     /*有些组件match函数中会将msg结构体替换掉，msgid是层间消息结构体在工具显示的依据，因此msgid需要填写替换完成后的新的msgid,否则有可能结构体显示不正确*/
-    stTrace.ulId        = pNewMsg->ulMsgId;
+    pstTrace->ulId        = pNewMsg->ulMsgId;
 
     VOS_SpinLockIntLock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
-    stTrace.ulNo        = (g_DiagLogPktNum.ulTraceNum++);
+    pstTrace->ulNo        = (g_DiagLogPktNum.ulTraceNum++);
     VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
 
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
+    /* 填充数据头 */
+    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stLayerHeader);
+    DIAG_SRV_SET_MODEM_ID(&stLayerHeader.frame_header, DIAG_MODEM_0);
+    DIAG_SRV_SET_TRANS_ID(&stLayerHeader.frame_header, g_ulTransId++);
+    DIAG_SRV_SET_COMMAND_ID(&stLayerHeader.frame_header, DIAG_MSG_TYPE_PS,
+                            DIAG_MODE_COMM, DIAG_MSG_PS_LAYER, 0);
 
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_MODE_COMM;       /* 层间消息不能识别模式 */
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_LAYER;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
+    ulMsgLen = sizeof(DIAG_OSA_MSG_STRU) - sizeof(pNewMsg->ulMsgId) + pNewMsg->ulLength;
+    DIAG_SRV_SET_MSG_LEN(&stLayerHeader.frame_header, sizeof(stLayerHeader.layer_header) + ulMsgLen);
 
-    ret = (DIAG_CFG_MODULE_IS_INVALID(ulSrcModule))?ulDstModule:ulSrcModule;
+    stDiagHead.ulHeaderSize     = sizeof(stLayerHeader);
+    stDiagHead.pHeaderData      = &stLayerHeader;
 
-    stDiagHead.ulModemId        = VOS_GetModemIDFromPid(ret);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(stTrace);
-    stDiagHead.pHeaderData      = &stTrace;
-
-    stDiagHead.ulDataSize       = sizeof(DIAG_OSA_MSG_STRU) - sizeof(pNewMsg->ulMsgId) + pNewMsg->ulLength;
+    stDiagHead.ulDataSize       = ulMsgLen;
     stDiagHead.pData            = pNewMsg;
 
     ret = diag_ServicePackData(&stDiagHead);
@@ -1167,70 +936,6 @@ VOS_UINT32 DIAG_LayerMsgMatchNotifyFuncReg(DIAG_LayerMsgMatchNotifyFunc pFun)
     }
 }
 
-
-
-
-VOS_UINT32 DIAG_UserPlaneReport(DIAG_USER_IND_STRU *pstUser)
-{
-    VOS_UINT32 ret = ERR_MSP_SUCCESS;
-    DIAG_CMD_LOG_USERPLANE_IND_STRU stRptInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead;
-    VOS_ULONG    ulLockLevel;
-
-    /*检查DIAG是否初始化且HSO是否连接上*/
-    if((!DIAG_IS_CONN_ON) && (!DIAG_IS_POLOG_ON))
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_USER_ERR, ERR_MSP_NO_INITILIZATION, 0, 1);
-        return ERR_MSP_NO_INITILIZATION;
-    }
-
-    /*检查参数合法性*/
-    if((NULL == pstUser)||((0 == pstUser->ulLength) && (NULL == pstUser->pData)))
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_USER_ERR, ERR_MSP_INVALID_PARAMETER, 0, 2);
-        return ERR_MSP_INVALID_PARAMETER;
-    }
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulUserLock, ulLockLevel);
-    stRptInfo.ulNo          = (g_DiagLogPktNum.ulUserNum)++;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulUserLock, ulLockLevel);
-
-    stRptInfo.ulId          = pstUser->ulMsgId;
-    stRptInfo.ulModule      = pstUser->ulPid;
-
-    (VOS_VOID)VOS_MemSet_s(&stDiagHead, (VOS_UINT32)sizeof(stDiagHead), 0, sizeof(stDiagHead));
-
-    stDiagHead.u.stID.pri4b     = DIAG_MSG_TYPE_PS;
-    stDiagHead.u.stID.mode4b    = DIAG_GET_MODE_ID(pstUser->ulModule);
-    stDiagHead.u.stID.sec5b     = DIAG_MSG_PS_USER;
-    stDiagHead.u.stID.cmdid19b  = 0;
-    stDiagHead.ulSsid           = DIAG_SSID_CPU;
-    stDiagHead.ulModemId        = DIAG_GET_MODEM_ID(pstUser->ulModule);
-    stDiagHead.ulDirection      = DIAG_MT_IND;
-    stDiagHead.ulMsgTransId     = g_ulTransId++;
-    stDiagHead.ulChanId         = SCM_CODER_SRC_LOM_IND;
-
-    stDiagHead.ulHeaderSize     = sizeof(DIAG_CMD_LOG_USERPLANE_IND_STRU);
-    stDiagHead.pHeaderData      = &stRptInfo;
-
-    stDiagHead.ulDataSize       = pstUser->ulLength;
-    stDiagHead.pData            = pstUser->pData;
-
-    ret = diag_ServicePackData(&stDiagHead);
-
-    if(ret)
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_USER_ERR, ret, 0, 3);
-    }
-    else
-    {
-        DIAG_DEBUG_SDM_FUN(EN_DIAG_CBT_API_USER_OK, 0, 0, 4);
-    }
-
-    return ret;
-}
-
-
 /* 为MBB提供的errorlog功能，应推动MBB与phone拉通 */
 VOS_UINT32 DIAG_ErrorLog(VOS_CHAR * cFileName,VOS_UINT32 ulFileId, VOS_UINT32 ulLine,
                 VOS_UINT32 ulErrNo, VOS_VOID * pBuf, VOS_UINT32 ulLen)
@@ -1263,7 +968,7 @@ VOS_UINT32 diag_SendMsg(VOS_UINT32 ulSenderId, VOS_UINT32 ulRecverId, VOS_UINT32
         ret = VOS_SendMsg(ulSenderId, pDataMsg);
         if (ret != VOS_OK)
         {
-            diag_printf("diag_SendMsg ulSenderId=%d,ulRecverId=%d,ulMsgId=0x%x,pDta=%p,dtaSize=%d!\n",ulSenderId,ulRecverId,ulMsgId,pDta,dtaSize);
+            diag_error("ulRecverId=0x%x,ulMsgId=0x%x,dtaSize=0x%x,ret=0x%x\n",ulRecverId,ulMsgId,dtaSize,ret);
         }
         else
         {
@@ -1363,15 +1068,23 @@ VOS_UINT32 diag_FailedCmdCnf(DIAG_FRAME_INFO_STRU *pData, VOS_UINT32 ulErrcode)
 VOS_BOOL diag_IsPowerOnLogOpen(VOS_VOID)
 {
     VOS_UINT32          ulRet;
-    NV_POWER_ON_LOG_SWITCH_STRU stPowerOnLog = {0};
+    VOS_INT32           stPowerOnLogA;
+    NV_POWER_ON_LOG_SWITCH_STRU stNVPowerOnLog = {};
 
-    /* 读取OM的物理输出通道 */
-    ulRet =  mdrv_nv_read(EN_NV_ID_POWER_ON_LOG_SWITCH, &stPowerOnLog, sizeof(stPowerOnLog));
-    if((ERR_MSP_SUCCESS == ulRet) && (stPowerOnLog.cPowerOnlogA) && (stPowerOnLog.cPowerOnlogC))
+    stPowerOnLogA = mdrv_diag_shared_mem_read(POWER_ON_LOG_A);
+
+    if(stPowerOnLogA)
     {
-        return VOS_TRUE;
+        ulRet =  mdrv_nv_read(EN_NV_ID_POWER_ON_LOG_SWITCH, &stNVPowerOnLog, sizeof(stNVPowerOnLog));
+        if((ERR_MSP_SUCCESS == ulRet) && (stNVPowerOnLog.cPowerOnlogC))
+        {
+            return VOS_TRUE;
+        }
+        return VOS_FALSE;
     }
+
     return VOS_FALSE;
+
 }
 
 

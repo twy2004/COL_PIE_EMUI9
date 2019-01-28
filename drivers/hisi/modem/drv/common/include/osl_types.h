@@ -64,7 +64,12 @@ typedef enum {
 
 #endif /* __cplusplus */
 
+
+/*lint -save -e761*/
+
+#ifndef BSP_U32
 typedef unsigned int        BSP_U32;
+#endif
 
 #ifdef __KERNEL__
 #include <linux/types.h>
@@ -76,7 +81,7 @@ typedef unsigned int        BSP_U32;
 #define __inline__ inline
 #endif
 
-#elif defined(_WRS_KERNEL) || defined(__OS_VXWORKS__) ||  defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) || defined(__FASTBOOT__) || defined(__NR_LL1C_)
+#elif defined(_WRS_KERNEL) || defined(__OS_VXWORKS__) ||  defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TSP__) || defined(__FASTBOOT__) || defined(__NR_LL1C_)
 
 #ifndef __ASSEMBLY__
 #ifdef __OS_VXWORKS__
@@ -101,7 +106,7 @@ typedef unsigned long long u64;
 typedef unsigned short __be16;
 typedef unsigned int __be32;
 
-#if defined(__OS_RTOSCK__)  ||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__)  ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TSP__)
 #ifndef uint32_t
 typedef unsigned int uint32_t;
 #endif
@@ -111,7 +116,7 @@ typedef unsigned long long uint64_t;
 #endif
 
 #ifndef size_t
-typedef unsigned int size_t;
+typedef unsigned int size_t;/*lint !e410 !e452*/
 #endif
 #endif
 
@@ -204,6 +209,8 @@ typedef unsigned long long u64;
 #endif
 
 #endif /* __KERNEL__ */
+
+/*lint -restore +e761*/
 
 #ifdef __cplusplus /* __cplusplus */
 }

@@ -50,12 +50,15 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
+#include <linux/module.h>
 #include <hi_base.h>
 #include <osl_types.h>
 
 #include <bsp_version.h>
 #include <bsp_hardtimer.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_hardtimer
 struct timerslice_control{
 	void* timerslice_base_addr;
 	void* timerslice_base_addr_phy;  /*时间戳实地址*/
@@ -238,9 +241,13 @@ int slice_init(void){
 	}
 	/*p532 fpga 与p532 asic读取同一套dts，所以通过版本号区分slice来源;
 	*porting timer slice also come from timer*/
-	if((BSP_BOARD_TYPE_SOC == version->board_type)||(BSP_BOARD_TYPE_SFT == version->board_type))/* [false alarm]:null value have check before */
+	if((BSP_BOARD_TYPE_SOC == version->board_type)||(BSP_BOARD_TYPE_SFT == version->board_type)||(version->cses_type == TYPE_ESL))/* [false alarm]:null value have check before */
 	{
 		node = of_find_compatible_node(NULL, NULL, "hisilicon,timer_stamp");
+	}
+	else if(version->cses_type == TYPE_ESL_EMU)/*ESL+EMU*/
+	{
+	    node = of_find_compatible_node(NULL, NULL, "hisilicon,timer_stamp_hybrid");
 	}
 	else
 	{
@@ -338,6 +345,3 @@ EXPORT_SYMBOL(bsp_get_stamp_addr_phy);
 EXPORT_SYMBOL(bsp_slice_getcurtime);
 EXPORT_SYMBOL(bsp_slice_getcurtime_hrt);
 EXPORT_SYMBOL(slice_set_judgetime);
-
-core_initcall(bsp_slice_init);
-

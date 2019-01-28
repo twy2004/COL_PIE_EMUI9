@@ -1190,7 +1190,7 @@ static int dp_device_init(struct platform_device *pdev)
 	if (g_fpga_flag == 1) {
 		dptx->max_rate = DPTX_PHYIF_CTRL_RATE_RBR;
 	} else {
-		dptx->max_rate = DPTX_PHYIF_CTRL_RATE_HBR2;
+		dptx->max_rate = DPTX_PHYIF_CTRL_RATE_HBR3;
 	}
 	dptx->max_lanes = 4;
 	dptx->dptx_vr = false;

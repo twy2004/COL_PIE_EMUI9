@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -52,12 +52,19 @@
 //#include "mdrv_sysboot.h"
 
 #define LOCAL_1 static
-
 typedef enum {
-    POWER_ON_START_REASON_CHARGE        = 0x504f4348,
-    POWER_ON_START_REASON_POWER_KEY     = 0x504F504B,
-    POWER_ON_START_REASON_WARM_RESET    = 0x504F5752,
-    POWER_ON_START_REASON_BUTT          = 0xFFFFFFFF
+    POWER_ON_REASON_START            = 0x45462310,    /*start magic number*/
+    POWER_ON_REASON_CHARGE        = POWER_ON_REASON_START,     /*code boot: include USB/DC*/
+    POWER_ON_REASON_POWER_KEY     = 0x45462311,  /*code boot: power key*/
+    POWER_ON_REASON_NORMAL_REBOOT    = 0x45462312,        /*warm boot: normal reboot*/
+    POWER_ON_REASON_ACORE_WDT           = 0x45462313,            /*warm boot: A core watch dog*/
+    POWER_ON_REASON_CCORE_WDT           = 0x45462314,            /*warm boot: C core watch dog*/
+    POWER_ON_REASON_MCORE_WDT           = 0x45462315,           /*warm boot: M core watch dog*/
+    POWER_ON_REASON_ACORE_EXCEPTION  = 0x45462316,       /*warm boot: A core Other anomalies */
+    POWER_ON_REASON_CCORE_EXCEPTION  = 0x45462317,       /*warm boot: C core Other anomalies */
+    POWER_ON_REASON_MCORE_EXCEPTION  = 0x45462318,      /*warm boot: M core Other anomalies */
+    POWER_ON_REASON_UNKNOW_EXCEPTION = 0x45462319,    /*unkwon reason, such as Hardware reset */
+    POWER_ON_REASON_BUTT                         = 0x4546231a
 }power_on_start_reason;
 
 typedef enum {
@@ -93,13 +100,6 @@ typedef struct
     unsigned int a_power_state;
 }power_info_s;
 
-typedef enum {
-    DRV_START_REASON_CHARGE = 0,
-    DRV_START_REASON_POWER_KEY ,
-    DRV_START_REASON_WARM_RESET ,
-    DRV_START_REASON_BUTT
-}DRV_START_REASON;
-
 typedef enum power_on_property {
         POWER_ON_PROP_STATUS = 0,
         POWER_ON_PROP_REASON,
@@ -133,9 +133,6 @@ typedef enum _tagePowType
     E_POWER_BUILT
 }ePowCrtlType;
 
-
-void balong_power_restart(char mode, const char *cmd);
-void balong_power_off(void);
 
 #if defined(__KERNEL__)
 typedef enum

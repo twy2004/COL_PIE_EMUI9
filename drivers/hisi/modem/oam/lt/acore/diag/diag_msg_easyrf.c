@@ -50,6 +50,7 @@
 #include <mdrv.h>
 #include <mdrv_diag_system.h>
 #include "diag_msg_easyrf.h"
+#include "diag_msgmsp.h"
 #include "diag_common.h"
 #include "diag_api.h"
 #include "diag_cfg.h"
@@ -101,8 +102,8 @@ VOS_UINT32 diag_EasyRfMsgProc(DIAG_FRAME_INFO_STRU *pData)
         ulRet = VOS_SendMsg(MSP_PID_DIAG_APP_AGENT, pstVosMsg);
         if (ulRet != VOS_OK)
         {
-            ulRet = ERR_MSP_DIAG_SEND_MSG_FAIL;
-            diag_printf("%s[%d] diag_debug_write VOS_SendMsg failed!\n", __FUNCTION__, __LINE__);
+            diag_error("VOS_SendMsg failed(0x%x)\n", ulRet);
+            ulRet = ERR_MSP_DIAG_SEND_MSG_FAIL;            
         }
     }
 

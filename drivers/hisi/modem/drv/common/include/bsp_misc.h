@@ -61,6 +61,7 @@ extern "C" {
 #include "osl_sem.h"
 #include "osl_malloc.h"
 #include "osl_thread.h"
+#include "mdrv_rfile_common.h"
 #include "bsp_icc.h"
 #include "bsp_nvim.h"
 #include "bsp_rfile.h"
@@ -102,7 +103,7 @@ extern "C" {
 #define SC_LEN_ICC_MAX                          (0x1000)
 #define SC_LEN_MAX                              (0x1000 - sizeof(sc_icc_stru))
 #define SC_ICC_CHAN_ID                          (ICC_CHN_NV << 16 | NV_RECV_FUNC_SC)
-#define SC_PACKET_TRANS_FILE                    "/modem_log/sc_packet.bin"
+#define SC_PACKET_TRANS_FILE                    (MODEM_LOG_ROOT"/sc_packet.bin")
 
 
 

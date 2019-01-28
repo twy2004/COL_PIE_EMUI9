@@ -82,6 +82,7 @@ SCM_CODER_DEST_CFG_STRU g_astSCMIndCoderDstCfg=
 };
 
 extern OM_ACPU_DEBUG_INFO g_stAcpuDebugInfo;
+extern u32 g_DiagLogLevel;
 
 
 u32 scm_malloc_ind_dst_buff(void)
@@ -120,7 +121,7 @@ u32 scm_ind_dst_buff_init(void)
     memset_s(&stLogCfg, sizeof(stLogCfg), 0, sizeof(stLogCfg));
     if(BSP_OK != bsp_socp_get_sd_logcfg(&stLogCfg))
     {
-        scm_printf("!!!! No code dest channel config from SOCP.\n");
+        diag_error("No dest channel config from SOCP.\n");
 
         return scm_malloc_ind_dst_buff();
     }
@@ -129,8 +130,7 @@ u32 scm_ind_dst_buff_init(void)
     if ((SOCP_DST_CHAN_NOT_CFG == stLogCfg.logOnFlag)
         || ((unsigned long)NULL == stLogCfg.ulPhyBufferAddr))
     {
-        scm_printf("!!!! No code dest channel config from SOCP, flag %d, addr 0x%p.\n",
-            stLogCfg.logOnFlag, (char*)stLogCfg.ulPhyBufferAddr);
+        diag_error("No dest channel config from SOCP, flag=%d\n",stLogCfg.logOnFlag);
 
         return scm_malloc_ind_dst_buff();
     }
@@ -158,27 +158,22 @@ u32 scm_rls_ind_dst_buff(u32 ulReadSize)
     {
         if (BSP_OK != bsp_socp_get_read_buff(ulChanlID, &stBuffer))
         {
-            SCM_CODER_DST_ERR("SCM_RlsDestBuf: Get Read Buffer is Error", ulChanlID, 0);/* 记录Log */
+            diag_error("Get Read Buffer is Error\n");
             return ERR_MSP_FAILURE;
         }
 
         ulDataLen = stBuffer.u32Size + stBuffer.u32RbSize;
 
         diag_system_debug_ind_dst_lost(EN_DIAG_DST_LOST_CPMCB, ulDataLen);
-
-        SCM_CODER_DST_LOG("SCM_RlsDestBuf: Relese All Data", ulChanlID, ulDataLen);
     }
     else
     {
-        /* 记录调用时间 */
-        SCM_CODER_DST_LOG("SCM_RlsDestBuf: Relese Read Data", ulChanlID, ulReadSize);
-
         ulDataLen = ulReadSize;
     }
 
     if (BSP_OK != bsp_socp_read_data_done(ulChanlID, ulDataLen))
     {
-        SCM_CODER_DST_ERR("SCM_RlsDestBuf: Read Data Done is Error", ulChanlID, ulDataLen);/* 记录Log */
+        diag_error("Read Data Done is Error,DataLen=0x%x\n",ulDataLen);
 
         return ERR_MSP_FAILURE;
     }
@@ -284,7 +279,7 @@ void scm_send_ind_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
     }
     else
     {
-        scm_printf("PPM_SocpSendDataToUDI: CPM_ComSend return Error %d", (s32)ulResult);
+        diag_error("CPM_ComSend return Error 0x%x\n", (s32)ulResult);
     }
 
     if(bUsbSendFlag != true)
@@ -296,7 +291,7 @@ void scm_send_ind_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
             pstDebugInfo->ulSocpReadDoneErrNum++;
             pstDebugInfo->ulSocpReadDoneErrLen += ulSendDataLen;
 
-            scm_printf("PPM_SocpSendDataToUDI: SCM_RlsDestBuf return Error %d", (s32)ulRet);
+            diag_error("SCM_RlsDestBuf return Error 0x%x\n", (s32)ulRet);
         }
     }
 
@@ -310,41 +305,23 @@ void scm_send_ind_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
 }
 void scm_reg_ind_coder_dst_send_fuc(void)
 {
-    scm_printf("SCM_RegCoderDestIndChan.\n");
+    diag_crit("SCM_RegCoderDestIndChan.\n");
 
     g_astSCMIndCoderDstCfg.pfunc = (SCM_CODERDESTFUCN)scm_send_ind_data_to_udi;
 }
 
 void  scm_set_power_on_log(void)
 {
-    u32  ulRet;
-    NV_POWER_ON_LOG_SWITCH_STRU     stPowerOnLog;
+    SHM_POWER_ON_LOG_FLAG_STRU      stPowerOnLog;
     SOCP_ENC_DST_BUF_LOG_CFG_STRU   stLogCfg;
 
     memset_s(&stLogCfg, sizeof(stLogCfg), 0, sizeof(stLogCfg));
     if(BSP_OK == bsp_socp_get_sd_logcfg(&stLogCfg))
-    {
-        ulRet = bsp_nvm_read(EN_NV_ID_POWER_ON_LOG_SWITCH, (u8*)&stPowerOnLog, sizeof(stPowerOnLog));
-        
-        if(BSP_OK != ulRet)
-        {
-            (void)scm_printf("Read nv 0x%x fail.\n", EN_NV_ID_POWER_ON_LOG_SWITCH);
-        }
-        else
-        {
-
-            stPowerOnLog.cPowerOnlogA = (stLogCfg.BufferSize < 50*1024*1024) ? 0 : 1;
-            /* coverity[uninit_use_in_call] */
-            if(BSP_OK != bsp_nvm_write(EN_NV_ID_POWER_ON_LOG_SWITCH, (u8*)&stPowerOnLog, sizeof(stPowerOnLog)))
-            {
-                (void)scm_printf("Write nv 0x%x fail.\n", EN_NV_ID_POWER_ON_LOG_SWITCH);
-            }
-            else
-            {
-                (void)scm_printf("Write power on log nv 0x%x success.\n", EN_NV_ID_POWER_ON_LOG_SWITCH);
-            }
-        }
+    {           
+        stPowerOnLog.cPowerOnlogA = (stLogCfg.BufferSize < 50*1024*1024) ? 0 : 1;        
+        diag_shared_mem_write(POWER_ON_LOG_A, sizeof(stPowerOnLog.cPowerOnlogA), &(stPowerOnLog.cPowerOnlogA));
     }
+    return;
 
 }
 
@@ -364,13 +341,13 @@ void scm_ind_dst_read_cb(void)
 
     if (SOCP_CODER_DEST_CHAN != ulChType)
     {
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Channel Type is Error", ulDstChID, ulChType);/* 记录Log */
+        diag_error("Channel Type(0x%x) is Error\n", ulChType);
         return;
     }
 
     if (BSP_OK != bsp_socp_get_read_buff(ulDstChID, &stBuffer))
     {
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Get Read Buffer is Error", ulDstChID, 0);/* 记录Log */
+        diag_error("Get Read Buffer is Error\n");/* 记录Log */
         return;
     }
 
@@ -379,7 +356,7 @@ void scm_ind_dst_read_cb(void)
      /* 开机log功能，IND通道上报函数为空，使log缓存在本地 */
     if(NULL == g_astSCMIndCoderDstCfg.pfunc)
     {
-        scm_printf("ind dst channel is null, delay log is open \n");
+        diag_crit("ind dst channel is null, delay log is open\n");
         return;
     }
 
@@ -387,7 +364,7 @@ void scm_ind_dst_read_cb(void)
     {
         bsp_socp_read_data_done(ulDstChID, stBuffer.u32Size + stBuffer.u32RbSize);  /* 清空数据 */
         diag_system_debug_ind_dst_lost(EN_DIAG_DST_LOST_BRANCH, stBuffer.u32Size + stBuffer.u32RbSize);
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB: Get RD error ", ulDstChID,0);/* 记录Log */
+        diag_error("Get RD error\n");
         return;
     }
 
@@ -405,7 +382,7 @@ void scm_ind_dst_read_cb(void)
     {
         bsp_socp_read_data_done(ulDstChID, stBuffer.u32Size + stBuffer.u32RbSize);  /* 清空数据 */
         diag_system_debug_ind_dst_lost(EN_DIAG_DST_LOST_BRANCH, stBuffer.u32Size + stBuffer.u32RbSize);
-        SCM_CODER_DST_ERR("SCM_CoderDestReadCB:  stBuffer.pBuffer == NULL", ulDstChID, 0);/* 记录Log */
+        diag_error("stBuffer.pBuffe==NULL\n");
         return;
     }
     ulTimerIn = bsp_get_slice_value();
@@ -413,7 +390,10 @@ void scm_ind_dst_read_cb(void)
     g_astSCMIndCoderDstCfg.pfunc((u8*)ulVirtAddr, (u8*)stBuffer.pBuffer,(u32)stBuffer.u32Size);
     ulTimerOut = bsp_get_slice_value();
     /* 记录回调函数的执行时间 */
-    SCM_CODER_DST_LOG("SCM_CoderDestReadCB: Call channel Func Proc time", ulDstChID, (ulTimerOut - ulTimerIn));
+    if(g_DiagLogLevel)
+    {
+        diag_crit("g_astSCMCnfCoderDstCfg.pfunc Proc time 0x%x\n", (ulTimerOut - ulTimerIn));        
+    }
 
     return;
 }

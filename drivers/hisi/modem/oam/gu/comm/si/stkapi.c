@@ -51,6 +51,7 @@
 #include "siappstk.h"
 #include "si_stk.h"
 #include "product_config.h"
+#include "si_pih.h"
 
 
 
@@ -71,6 +72,42 @@ SI_STK_TAGLIST_STRU gastEnvelopeDecodeList[2]
                                          };
 
 
+VOS_UINT32 SI_STK_GetReceiverPid(
+    MN_CLIENT_ID_T                      ClientId,
+    VOS_UINT32                          *pulReceiverPid)
+{
+    MODEM_ID_ENUM_UINT16                enModemID;
+    SI_PIH_CARD_SLOT_ENUM_UINT32        enSlotId;
+
+    /* 调用接口获取Modem ID */
+    if(VOS_OK != AT_GetModemIdFromClient(ClientId,&enModemID))
+    {
+        return VOS_ERR;
+    }
+
+    enSlotId = SI_GetSlotIdByModemId(enModemID);
+
+    if (SI_PIH_CARD_SLOT_BUTT <= enSlotId)
+    {
+        return VOS_ERR;
+    }
+
+    if(SI_PIH_CARD_SLOT_0 == enSlotId)
+    {
+        *pulReceiverPid = I0_MAPS_STK_PID;
+    }
+    else if (SI_PIH_CARD_SLOT_1 == enSlotId)
+    {
+        *pulReceiverPid = I1_MAPS_STK_PID;
+    }
+    else
+    {
+        *pulReceiverPid = I2_MAPS_STK_PID;
+    }
+    return VOS_OK;
+}
+
+
 VOS_UINT32 SI_STK_SendReqMsg(
     MN_CLIENT_ID_T                      ClientId,
     MN_OPERATION_ID_T                   OpId,
@@ -79,33 +116,17 @@ VOS_UINT32 SI_STK_SendReqMsg(
     VOS_UINT32                          DataLen,
     VOS_UINT8                           *pData)
 {
-    SI_STK_REQ_STRU         *pstSTKReq;
-    VOS_UINT32              ulSendPid;
-    VOS_UINT32              ulReceiverPid;
+    SI_STK_REQ_STRU                    *pstSTKReq;
+    VOS_UINT32                          ulSendPid;
+    VOS_UINT32                          ulReceiverPid;
 
-    MODEM_ID_ENUM_UINT16    enModemID;
+    if (VOS_OK != SI_STK_GetReceiverPid(ClientId, &ulReceiverPid))
+    {
+        STK_ERROR_LOG("SI_STK_SendReqMsg:Get ulReceiverPid Error.");
+        return TAF_FAILURE;
+    }
 
     ulSendPid = WUEPS_PID_AT;
-
-    /* 调用接口获取Modem ID */
-    if(VOS_OK != AT_GetModemIdFromClient(ClientId,&enModemID))
-    {
-      STK_ERROR_LOG("SI_STK_SendReqMsg: AT_GetModemIdFromClient Return Error");
-      return VOS_ERR;
-    }
-
-    if(MODEM_ID_1 == enModemID)
-    {
-        ulReceiverPid = I1_MAPS_STK_PID;
-    }
-    else if(MODEM_ID_2 == enModemID)
-    {
-        ulReceiverPid = I2_MAPS_STK_PID;
-    }
-    else
-    {
-        ulReceiverPid = I0_MAPS_STK_PID;
-    }
 
     pstSTKReq = (SI_STK_REQ_STRU *)VOS_AllocMsg(ulSendPid, sizeof(SI_STK_REQ_STRU)- VOS_MSG_HEAD_LENGTH + DataLen);
 
@@ -134,7 +155,6 @@ VOS_UINT32 SI_STK_SendReqMsg(
 
     return VOS_OK;
 }
-
 
 
 VOS_UINT32 SI_STK_GetMainMenu(

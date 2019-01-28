@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -61,7 +61,7 @@ extern "C" {
 *****************************************************************************/
 #include "product_config.h"
 #include "mdrv_ipc_enum.h"
-
+/*lint --e(488,773,830) */
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
@@ -185,6 +185,7 @@ enum MAILBOX_GAP_FOR_SI_PARSE {MAILBOX_GAP_FOR_SI_BUTT};
  实 体 名  : MAILBOX_CPUID_E
  功能描述  : 定义邮箱涉及CPU编号
 *****************************************************************************/
+/* Modified by c64416 for hifi mailbox, 2013/09/24, begin */
 enum MAILBOX_CPUID_ENUM
 {
     MAILBOX_CPUID_RESERVED  =   -1,
@@ -195,6 +196,7 @@ enum MAILBOX_CPUID_ENUM
     MAILBOX_CPUID_HIFI      =   IPC_CORE_HiFi,
     MAILBOX_CPUID_BUTT
 };
+/* Modified by c64416 for hifi mailbox, 2013/09/24, end */
 
 /*****************************************************************************
  实体名称  : MAILBOX_MAILCODE_ENUM
@@ -387,11 +389,13 @@ enum MAILBOX_MAILCODE_ENUM
 /* 邮件序列号的初始值 */
 #define MAILBOX_SEQNUM_START            (0)
 
+/* Modified by c64416 for hifi mailbox, 2013/09/24, begin */
 /* 邮箱占用memory基地址 */
 #define MAILBOX_MEM_BASEADDR            (DDR_HIFI_MBX_ADDR)
 
 /* 邮箱占用memory预留总长度, 包括邮箱控制头和邮箱队列缓存 */
 #define MAILBOX_MEM_LENGTH              (DDR_HIFI_MBX_SIZE)
+/* Modified by c64416 for hifi mailbox, 2013/09/24, end */
 
 /*****************************************************************************
  实 体 名  : struct mb_head
@@ -421,6 +425,7 @@ typedef struct mb_head
     MAILBOX_QUEUE_SIZE_##src##2##dst##_##channel
 enum MAILBOX_QUEUE_SIZE_ENUM
 {
+/* Modified by c64416 for hifi mailbox, 2013/09/24, begin */
     /* 以下各枚举项按规则生成, 形如: MAILBOX_QUEUE_SIZE_MCU2ACPU_DEFAULT */
     MAILBOX_QUEUE_SIZE(MCU,  ACPU, MSG) = 0x00000000,
     MAILBOX_QUEUE_SIZE(ACPU, MCU,  MSG) = 0x00000000,
@@ -445,6 +450,7 @@ enum MAILBOX_QUEUE_SIZE_ENUM
 
     MAILBOX_QUEUE_SIZE(BBE16, HIFI, MSG) = 0x00001800,
     MAILBOX_QUEUE_SIZE(HIFI, BBE16, MSG) = 0x00001800
+/* Modified by c64416 for hifi mailbox, 2013/09/24, end */
 };
 
 /* 各邮箱控制头地址分配 */

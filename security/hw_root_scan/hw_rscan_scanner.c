@@ -143,7 +143,7 @@ static void upload_to_stp(int ree_status, int tee_status, char *rootproc, unsign
 		need_upload = need_to_upload(mask, itembits[i].item_ree_mask, item_status, item_tee_status, flag);
 		if (need_upload != 0) {
 			item_credible = get_credible_of_item(item_status, item_tee_status);
-			if ( i == ROOT_PROCS) {
+			if ( i == ROOT_PROCS || i == SE_HOOK) {
 				/*
 				if (rootproc != NULL && strstr(rootproc, "adbd") != NULL)
 					item_credible = STP_CREDIBLE;

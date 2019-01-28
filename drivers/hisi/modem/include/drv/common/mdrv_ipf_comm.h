@@ -76,21 +76,21 @@ extern "C"
 #define IPF_UL_ADQ_LEN_EXP          (CONFIG_IPF_ADQ_LEN-1)
 #define IPF_DL_ADQ_LEN_EXP          (CONFIG_IPF_ADQ_LEN)
 #ifdef CONFIG_NEW_PLATFORM
-#define IPF_ULBD_DESC_SIZE         16*(1 << IPF_UL_ADQ_LEN_EXP)   /* 上行BD个数 */
-#define IPF_ULRD_DESC_SIZE         16*(1 << IPF_UL_ADQ_LEN_EXP)   /* 上行BD个数 */
+#define IPF_ULBD_DESC_SIZE         (16*(1 << IPF_UL_ADQ_LEN_EXP))   /* 上行BD个数 */
+#define IPF_ULRD_DESC_SIZE         (16*(1 << IPF_UL_ADQ_LEN_EXP))   /* 上行BD个数 */
 #else
-#define IPF_ULBD_DESC_SIZE         64   /* 上行BD个数 */
-#define IPF_ULRD_DESC_SIZE         64   /* 上行BD个数 */
+#define IPF_ULBD_DESC_SIZE         (64)   /* 上行BD个数 */
+#define IPF_ULRD_DESC_SIZE         (64)   /* 上行BD个数 */
 #endif
-#define IPF_DLBD_DESC_SIZE         16*(1 << IPF_DL_ADQ_LEN_EXP)   /* 下行BD个数 */
-#define IPF_DLRD_DESC_SIZE         16*(1 << IPF_DL_ADQ_LEN_EXP)   /* 下行BD个数 */
-#define IPF_ULAD0_DESC_SIZE      32*(1 << IPF_UL_ADQ_LEN_EXP)   /* 上行ADQ0中AD个数 */
-#define IPF_ULAD1_DESC_SIZE      32*(1 << IPF_UL_ADQ_LEN_EXP)   /* 上行ADQ1中AD个数 */
-#define IPF_DLAD0_DESC_SIZE        32*(1 << IPF_DL_ADQ_LEN_EXP)   /* 下行ADQ0中AD个数 */
-#define IPF_DLAD1_DESC_SIZE        32*(1 << IPF_DL_ADQ_LEN_EXP)   /* 下行ADQ1中AD个数 */
+#define IPF_DLBD_DESC_SIZE         (16*(1 << IPF_DL_ADQ_LEN_EXP))   /* 下行BD个数 */
+#define IPF_DLRD_DESC_SIZE         (16*(1 << IPF_DL_ADQ_LEN_EXP))   /* 下行BD个数 */
+#define IPF_ULAD0_DESC_SIZE      (32*(1 << IPF_UL_ADQ_LEN_EXP))   /* 上行ADQ0中AD个数 */
+#define IPF_ULAD1_DESC_SIZE      (32*(1 << IPF_UL_ADQ_LEN_EXP))   /* 上行ADQ1中AD个数 */
+#define IPF_DLAD0_DESC_SIZE        (32*(1 << IPF_DL_ADQ_LEN_EXP))   /* 下行ADQ0中AD个数 */
+#define IPF_DLAD1_DESC_SIZE        (32*(1 << IPF_DL_ADQ_LEN_EXP))   /* 下行ADQ1中AD个数 */
 
 #define IPF_DLCD_DESC_SIZE         /*lint -save -e506 */ ((IPF_DLBD_DESC_SIZE>1024)?IPF_DLBD_DESC_SIZE:1024)/*lint -restore */
-#define IPF_FILTER_CHAIN_MAX_NUM   8    /* IPF过滤器链最大个数 */
+#define IPF_FILTER_CHAIN_MAX_NUM   (8)    /* IPF过滤器链最大个数 */
 
 /*ADQ使能枚举值*/
 typedef enum tagIPF_ADQEN_E
@@ -261,7 +261,7 @@ typedef struct tagIPF_CD_DESC_S
 
 #endif
 
-
+#ifdef CONFIG_IPF
 /*****************************************************************************
 * 函 数 名  : mdrv_ipf_register_ops
 *
@@ -277,6 +277,12 @@ typedef struct tagIPF_CD_DESC_S
 *
 *****************************************************************************/
 int mdrv_ipf_register_ops(struct mdrv_ipf_ops *ops);
+#else
+static inline int mdrv_ipf_register_ops(struct mdrv_ipf_ops *ops)
+{
+    return 0;
+}
+#endif
 
 #ifdef __cplusplus
 }

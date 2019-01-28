@@ -716,7 +716,7 @@ long arch_ptrace(struct task_struct *child, long request,
 			fregs = get_fpu_regs(child);
 
 #ifdef CONFIG_32BIT
-			if (test_tsk_thread_flag(child, TIF_32BIT_FPREGS)) {
+			if (test_thread_flag(TIF_32BIT_FPREGS)) {
 				/*
 				 * The odd registers are actually the high
 				 * order bits of the values stored in the even
@@ -727,7 +727,7 @@ long arch_ptrace(struct task_struct *child, long request,
 				break;
 			}
 #endif
-			tmp = get_fpr64(&fregs[addr - FPR_BASE], 0);
+			tmp = get_fpr32(&fregs[addr - FPR_BASE], 0);
 			break;
 		case PC:
 			tmp = regs->cp0_epc;
@@ -805,7 +805,7 @@ long arch_ptrace(struct task_struct *child, long request,
 
 			init_fp_ctx(child);
 #ifdef CONFIG_32BIT
-			if (test_tsk_thread_flag(child, TIF_32BIT_FPREGS)) {
+			if (test_thread_flag(TIF_32BIT_FPREGS)) {
 				/*
 				 * The odd registers are actually the high
 				 * order bits of the values stored in the even

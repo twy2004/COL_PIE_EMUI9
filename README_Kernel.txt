@@ -11,7 +11,7 @@ Ex)   export PATH=$PATH:$(android platform directory you download)/prebuilts/gcc
 Ex)   export CROSS_COMPILE=aarch64-linux-android-
 
 $ mkdir ../out
-$ make ARCH=arm64 O=../out merge_kirin970_defconfig
+$ make ARCH=arm64 O=../out merge_kirin980_defconfig
 $ make ARCH=arm64 O=../out -j8
 
 2. Output files

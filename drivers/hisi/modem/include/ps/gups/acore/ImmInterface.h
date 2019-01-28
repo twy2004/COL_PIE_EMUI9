@@ -219,6 +219,13 @@ extern IMM_MEM_STRU *IMM_ZcMapToImmMem_Debug(unsigned short usFileID,
 #define IMM_ZcGetUsedLen(pstImmZc)          ((pstImmZc)->len)
 
 
+#define IMM_ZcGetProtocol(pstImmZc)         ((pstImmZc)->protocol)
+
+
+
+#define IMM_ZcSetProtocol(pstImmZc,usProto) ((pstImmZc)->protocol = (usProto))
+
+
 
 extern unsigned short IMM_ZcGetUserApp(IMM_ZC_STRU *pstImmZc);
 

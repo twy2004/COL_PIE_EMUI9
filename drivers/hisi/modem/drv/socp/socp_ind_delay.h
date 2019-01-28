@@ -58,12 +58,7 @@ extern "C"
 #endif
 
 #define INDDELAY_NULL                        (void*)0
-#define SOCP_MAX_MEM_SIZE                          (50 *1024 *1024)
-#define SOCP_MIN_MEM_SIZE                          (1 *1024 *1024)
-#define SOCP_MAX_TIMEOUT                           1200     /*MS*/
-#define SOCP_MIN_TIMEOUT                           10       /*MS*/
-#define SOCP_RESERVED_TRUE                          1
-#define SOCP_RESERVED_FALSE                         0
+
 typedef struct _socp_dst_early_cfg
 {
     void*           pVirBuffer;      /* fastboot预留的buffer虚拟BUFFER、在32位系统上是4字节，在64位系统上是8字节 */
@@ -74,17 +69,8 @@ typedef struct _socp_dst_early_cfg
 	unsigned int    ulLogCfg;        /* SOCP编码目的通道数据buffer是否内核预留内存方式*/
 }socp_early_cfg_stru;
 
-typedef struct _socp_mem_reserve_stru
-{
-    void*           pVirBuffer;      /* SOCP编码目的通道数据虚拟BUFFER、在32位系统上是4字节，在64位系统上是8字节 */
-    unsigned long   ulPhyBufferAddr; /* SOCP编码目的通道数据物理BUFFER地址 */
-    unsigned int    ulBufferSize;    /* SOCP编码目的通道数据BUFFER大小 */
-    unsigned int    ulTimeout;       /* SOCP编码目的通道数据传输超时时间 */
-    unsigned int    ulBufUsable;     /* 预留的kernel buffer是否可用的标志 */
-}socp_mem_reserve_stru;
-
-
-
+s32  socp_get_logbuffer_logcfg(void);
+void *socp_logbuffer_memremap(unsigned long phys_addr, size_t size);
 s32  bsp_socp_ind_delay_init(void);
 s32  bsp_socp_dst_init(void);
 u32 bsp_socp_read_cur_mode(u32 u32DestChanID);

@@ -80,7 +80,7 @@ struct hisi_isp_nsec {
 static struct hisi_isp_nsec nsec_rproc_dev;
 
 #define MEDIASUBSYS_PWSTAT (5)
-static int get_media1_subsys_power_state(void)
+int get_media1_subsys_power_state(void)
 {
     void __iomem* cfg_base = NULL;
     unsigned int media_pw_stat = 0;
@@ -98,7 +98,7 @@ static int get_media1_subsys_power_state(void)
         return 0;
 }
 #define PERPWRSTAT_ISP (0)
-static int get_isptop_power_state(void)
+int get_isptop_power_state(void)
 {
     void __iomem* cfg_base = NULL;
     unsigned int isppwrstat = 0;
@@ -553,8 +553,9 @@ int hisp_powerdn(void)
     if ((ret = isptop_power_down(dev->useisptop)) != 0)
         pr_err("[%s] Failed: isptop_power_down.%d useisptop.%d\n", __func__, ret, dev->useisptop);
 
-    if ((ret = regulator_disable(dev->ispcore_supply)) != 0)
+    if ((ret = regulator_disable(dev->ispcore_supply)) != 0) {
         pr_err("[%s] Failed: ispsrt regulator_disable.%d\n", __func__, ret);
+    }
 
     for (index = 0; index < (int)dev->clock_num; index ++)
         hisp_clock_disable(dev, index);

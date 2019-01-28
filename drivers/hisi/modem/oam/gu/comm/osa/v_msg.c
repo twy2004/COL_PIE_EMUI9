@@ -81,7 +81,7 @@
 #include "vos_Id.h"
 #include "v_timer.h"
 #include "v_iddef.h"
-#include "mdrv.h"
+#include "v_private.h"
 
  /* LINUX ²»Ö§³Ö */
 
@@ -246,7 +246,7 @@ VOS_UINT32 VOS_MsgDumpCheck(VOS_VOID)
  Return     : ok or error
  Other      :
  *****************************************************************************/
-VOS_UINT32 VOS_RegisterAwakeFun(MODEM_ID_ENUM_UINT16 enModem, Msg_Fun_Type pfnHook)
+MODULE_EXPORTED VOS_UINT32 VOS_RegisterAwakeFun(MODEM_ID_ENUM_UINT16 enModem, Msg_Fun_Type pfnHook)
 {
     return VOS_ERR;
 }
@@ -393,8 +393,7 @@ VOS_UINT32 VOS_SendMsgByDrvMB(VOS_PID                 Pid,
 
         LogPrint1("\n# VOS_SendMsgByDrvMB Error Timer Sender MB Msg, Rec PID %d\n", (VOS_INT)pstMsgCtrlBlk->ulReceiverPid);
 
-        VOS_ProtectionReboot(VOS_ERRNO_MSG_MB_PIDTERROR, (VOS_INT)pstMsgPara->ulFileID, pstMsgPara->lLineNo,
-                             (VOS_CHAR*)pstMsgPara, sizeof(VOS_DRVMB_MSG_PARA_STRU));
+        VOS_ProtectionReboot(VOS_ERRNO_MSG_MB_PIDTERROR, (VOS_INT)pstMsgCtrlBlk->ulReceiverPid, 0, 0, 0);
 
         return(VOS_ERRNO_MSG_MB_PIDTERROR);
     }
@@ -534,7 +533,7 @@ VOS_UINT32 VOS_SendMCUUrgentMsg( VOS_PID Pid, VOS_VOID **ppMsg,
  Other      : The pointer of message that returned for application is not the
               actual pointer of message which system used
  *****************************************************************************/
-MsgBlock * V_AllocMsg(VOS_PID Pid, VOS_UINT32 ulLength,
+MODULE_EXPORTED MsgBlock * V_AllocMsg(VOS_PID Pid, VOS_UINT32 ulLength,
                        VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     VOS_INT         ulTotalLength;
@@ -640,7 +639,7 @@ MsgBlock * VOS_AllocTimerMsg(VOS_PID Pid, VOS_UINT32 ulLength )
  Other      : This function was only called to free a message which was
               allocated by VOS_AllocMsg but not been send.
  *****************************************************************************/
-VOS_UINT32 V_FreeMsg(VOS_PID Pid, VOS_VOID **ppMsg,
+MODULE_EXPORTED VOS_UINT32 V_FreeMsg(VOS_PID Pid, VOS_VOID **ppMsg,
                             VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     VOS_VOID            *pMsgBlkHead;
@@ -794,7 +793,7 @@ VOS_BOOL VOS_CheckMsgCPUId( VOS_UINT32 ulCPUId )
 }
 
 
-VOS_UINT32 VOS_CheckInterrupt( VOS_VOID )
+MODULE_EXPORTED VOS_UINT32 VOS_CheckInterrupt( VOS_VOID )
 {
 
     return (VOS_UINT32)in_interrupt();
@@ -945,6 +944,20 @@ VOS_UINT32 V_CheckMsgPara(VOS_PID Pid, VOS_VOID **ppMsg,
         (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
         return(VOS_ERRNO_MSG_ICC_CPUIDISBIG);
+    }
+
+    if ( ulPid < VOS_PID_CPU_ID_0_DOPRAEND )
+    {
+        (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_PIDTOOSMALL);
+
+        LogPrint1("# V_SendMsg Error,pid too small, PID is %d.\n", (VOS_INT)ulPid);
+
+        VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_PIDTOOSMALL,(VOS_INT)ulFileID,lLineNo,
+                             (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
+
+        (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
+
+        return(VOS_ERRNO_MSG_ICC_PIDTOOSMALL);
     }
 
     if ( ulPid >= g_astVOSSendMsgProcTable[ulCpuID].ulEndPID )  /*The Receive PID is too large*/
@@ -1146,8 +1159,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
 
         LogPrint1("\n# V_SendMsgByICC Error Timer Sender Icc Msg, Rec PID %d\n", (VOS_INT)pMsgCtrlBlk->ulReceiverPid);
 
-        VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_PIDTERROR, (VOS_INT)ulFileID, lLineNo,
-                             (VOS_CHAR*)&lResult, sizeof(lResult));          /*Save the UDI result*/
+        VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_PIDTERROR, (VOS_INT)pMsgCtrlBlk->ulReceiverPid, 0, 0, 0);
 
         return(VOS_ERRNO_MSG_ICC_PIDTERROR);
     }
@@ -1209,7 +1221,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
  Return     : VOS_OK on success and error code on failure
  Other      : After sending message, the status would be changed to ready.
  *****************************************************************************/
-VOS_UINT32 V_SendMsg(VOS_PID Pid, VOS_VOID **ppMsg,
+MODULE_EXPORTED VOS_UINT32 V_SendMsg(VOS_PID Pid, VOS_VOID **ppMsg,
                             VOS_UINT32 ulFileID, VOS_INT32 lLineNo)
 {
     VOS_UINT32          ulResult;
@@ -1336,7 +1348,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
     if(VOS_TRUE == g_msglpm)
     {
         g_msglpm = VOS_FALSE;
-        
+
         if (VOS_CPU_ID_0_PID_BUTT > pMsgCtrlBlk->ulSenderPid)
         {
             stOsaMsgLog.enType        = PM_LOG_AOSA_PAM_MSG;
@@ -1348,7 +1360,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
         }
 
 
-        (VOS_VOID)vos_printf("[C SR] v_msg senderpid %d, receivepid %d, msgid 0x%x.\n",
+        (VOS_VOID)vos_printf("[PAM][OSA][C SR] %s: v_msg senderpid =: %d, receivepid =: %d, msgid =: 0x%x.\n", __FUNCTION__,
             pMsgCtrlBlk->ulSenderPid, pMsgCtrlBlk->ulReceiverPid, *((VOS_UINT32*)(pMsgCtrlBlk->aucValue))); /* [false alarm]: ÆÁ±ÎFortify´íÎó */
     }
 
@@ -1562,7 +1574,7 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
               pMsg -- pointer of the message to be send
  Return     : Rerurn value of Msg_SendMsg
  *****************************************************************************/
-VOS_UINT32 V_SendUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
+MODULE_EXPORTED VOS_UINT32 V_SendUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
                                   VOS_UINT32 ulFileID, VOS_INT32 lLineNo )
 {
     VOS_UINT32          ulResult;
@@ -1613,7 +1625,7 @@ VOS_UINT32 V_SendUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
  Other      : 1) The sender Pid and Receiver Pid must in the same local Board.
               2) The caller should Alloc and Release Msg by itself.
  *****************************************************************************/
-VOS_UINT32 V_PostMsg(VOS_PID Pid, VOS_VOID * pMsg,
+MODULE_EXPORTED VOS_UINT32 V_PostMsg(VOS_PID Pid, VOS_VOID * pMsg,
                             VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     VOS_UINT32          ulReceiverPid;

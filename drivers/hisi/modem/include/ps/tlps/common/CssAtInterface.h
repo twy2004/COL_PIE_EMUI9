@@ -28,7 +28,7 @@ extern "C" {
 #define AT_CSS_PLMN_MAX_LINE_NUM             (64)                /* 云端预置高铁线路一个PLMN下包含的最大线路个数 */
 #define AT_CSS_TACLAC_MAX_LINE_NUM           (10)                /* 云端预置高铁线路一个TAC/LAC所对应的最大线路个数 */
 
-
+#define AT_CSS_MRU_MAX_NUM                   (10)                /* MRU可以存储的最大个数 */
 
 /*****************************************************************************
   3 枚举定义
@@ -44,6 +44,9 @@ enum CSS_AT_MSG_TYPE_ENUM
     ID_AT_CSS_LINE_INDEX_LIST_SET_REQ         = 0x0005,                           /* _H2ASN_MsgChoice AT_CSS_LINE_INDEX_LIST_SET_REQ_STRU */
     ID_AT_CSS_LINE_DETAIL_SET_REQ             = 0x0006,                           /* _H2ASN_MsgChoice AT_CSS_LINE_DETAIL_SET_REQ_STRU */
     ID_AT_CSS_LINE_INDEX_LIST_QUERY_REQ       = 0x0007,                           /* _H2ASN_MsgChoice AT_CSS_LINE_INDEX_LIST_QUERY_REQ_STRU */
+    ID_AT_CSS_VZWMRUC_SET_REQ                 = 0x0008,                           /* _H2ASN_MsgChoice AT_CSS_VZWMRUC_SET_REQ_STRU */
+    ID_AT_CSS_VZWMRUE_SET_REQ                 = 0x0009,                           /* _H2ASN_MsgChoice AT_CSS_VZWMRUE_SET_REQ_STRU */
+    ID_AT_CSS_VZWMRUE_QUERY_REQ               = 0x000a,                           /* _H2ASN_MsgChoice AT_CSS_VZWMRUE_QUERY_REQ_STRU */
 
     /* CSS->AT */
     ID_CSS_AT_MCC_INFO_SET_CNF                = 0x1001,                           /* _H2ASN_MsgChoice CSS_AT_MCC_INFO_SET_CNF_STRU */
@@ -57,6 +60,9 @@ enum CSS_AT_MSG_TYPE_ENUM
     ID_CSS_AT_LINE_INDEX_LIST_QUERY_CNF       = 0x1009,                           /* _H2ASN_MsgChoice CSS_AT_LINE_INDEX_LIST_QUERY_CNF_STRU */
     ID_CSS_AT_LINE_PLMN_NOTIFY                = 0x100a,                           /* _H2ASN_MsgChoice CSS_AT_LINE_PLMN_NOTIFY_STRU */
     ID_CSS_AT_LINE_INDEX_NOTIFY               = 0x100b,                           /* _H2ASN_MsgChoice CSS_AT_LINE_INDEX_NOTIFY_STRU */
+    ID_CSS_AT_VZWMRUC_SET_CNF                 = 0x100c,                           /* _H2ASN_MsgChoice CSS_AT_VZWMRUC_SET_CNF_STRU */
+    ID_CSS_AT_VZWMRUE_SET_CNF                 = 0x100d,                           /* _H2ASN_MsgChoice CSS_AT_VZWMRUE_SET_CNF_STRU */
+    ID_CSS_AT_VZWMRUE_QUERY_CNF               = 0x100e,                           /* _H2ASN_MsgChoice CSS_AT_VZWMRUE_QUERY_CNF_STRU */
 
     ID_CSS_AT_MSG_BUTT
 };
@@ -131,6 +137,7 @@ enum AT_CSS_LINE_DETAIL_INFO_TYPE_ENUM
     AT_CSS_LINE_DETAIL_INFO_TACLAC_PAIR     = 0,           /* TACLAC对 */
     AT_CSS_LINE_DETAIL_INFO_HO_PATH,                       /* HO预置路径 */
     AT_CSS_LINE_DETAIL_INFO_HO_BAR,                        /* HO预置Bar路径 */
+    AT_CSS_LINE_DETAIL_INFO_LTE_HO_PATH,                   /* LTE预置路径 */
     AT_CSS_LINE_DETAIL_INFO_NO_INFO         = 0xFF         /* 表示没有消息信息，停止解析 */
 };
 typedef  VOS_UINT8  AT_CSS_LINE_DETAIL_INFO_TYPE_ENUM_UINT8;
@@ -574,6 +581,78 @@ typedef struct
     VOS_UINT16                          ausLineIndexList[AT_CSS_TACLAC_MAX_LINE_NUM]; /* 线路列表 */
     CSS_AT_PLMN_ID_STRU                 stPlmnId;                           /* plmn id */
 } CSS_AT_LINE_INDEX_NOTIFY_STRU;
+
+
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                          /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                            /* _H2ASN_Skip */
+    VOS_UINT16                          usClientId;
+    MODEM_ID_ENUM_UINT16                usModemId;
+} AT_CSS_VZWMRUC_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                                /* _H2ASN_Skip */
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           aucRsv[2];
+    VOS_UINT32                          ulResult;                               /* VOS_OK表示成功，VOS_ERR表示失败 */
+} CSS_AT_VZWMRUC_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucEntry;
+    AT_CSS_RAT_ENUM_UINT8               enRat;
+    VOS_UINT16                          usBandId;
+    CSS_AT_PLMN_ID_STRU                 stPlmnId;
+}AT_CSS_MRU_STRU;
+
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                          /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                            /* _H2ASN_Skip */
+    VOS_UINT16                          usClientId;
+    MODEM_ID_ENUM_UINT16                usModemId;
+    AT_CSS_MRU_STRU                     stMru;
+} AT_CSS_VZWMRUE_SET_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                                /* _H2ASN_Skip */
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           aucRsv[2];
+    VOS_UINT32                          ulResult;                               /* VOS_OK表示成功，VOS_ERR表示失败 */
+} CSS_AT_VZWMRUE_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                          /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                            /* _H2ASN_Skip */
+    VOS_UINT16                          usClientId;
+    MODEM_ID_ENUM_UINT16                usModemId;
+} AT_CSS_VZWMRUE_QUERY_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
+    VOS_UINT32                          ulMsgId;                                /* _H2ASN_Skip */
+    VOS_UINT32                          ulResult;                               /* VOS_OK表示成功，VOS_ERR表示失败 */
+    VOS_UINT16                          usClientId;
+    VOS_UINT8                           ucRsv;
+    VOS_UINT8                           ucMruNum;
+    AT_CSS_MRU_STRU                     astMru[AT_CSS_MRU_MAX_NUM];
+} CSS_AT_VZWMRUE_QUERY_CNF_STRU;
 
 
 /*****************************************************************************

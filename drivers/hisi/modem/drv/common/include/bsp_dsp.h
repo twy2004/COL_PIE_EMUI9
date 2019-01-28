@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -105,9 +105,9 @@ struct drv_hifi_image_sec
     unsigned short                      sn;              /* 编号 */
     unsigned char                       type;            /* 类型 */
     unsigned char                       load_attib;      /* 加载属性 */
-    unsigned long                       src_offset;      /* 在文件中的偏移, bytes */
-    unsigned long                       des_addr;        /* 加载目的地址, bytes */
-    unsigned long                       size;            /* 段长度, bytes */
+    unsigned int                       src_offset;      /* 在文件中的偏移, bytes */
+    unsigned int                       des_addr;        /* 加载目的地址, bytes */
+    unsigned int                       size;            /* 段长度, bytes */
 };
 
 /*****************************************************************************
@@ -117,7 +117,7 @@ struct drv_hifi_image_sec
 struct drv_hifi_image_head
 {
     char                                time_stamp[24]; /* 镜像编译时间 */
-    unsigned long                       image_size;     /* 镜像文件大小, bytes */
+    unsigned int                       image_size;     /* 镜像文件大小, bytes */
     unsigned int                        sections_num;   /* 文件包含段数目 */
     struct drv_hifi_image_sec           sections[HIFI_SEC_MAX_NUM];    /* 段信息, 共sections_num个 */
 };
@@ -293,16 +293,6 @@ static inline int bsp_dsp_store_tcm(void)
     return 0;
 }
 
-static inline void bsp_dsp_set_pll_div(u32 dsp_pll_freq, u32 req_value)
-{
-    return;
-}
-
-static inline void bsp_bbe_chose_pll(u32 flag)
-{
-    return;
-}
-
 static inline int bsp_dsp_pll_disable(void)
 {
     return 0;
@@ -423,6 +413,7 @@ int bsp_dsp_is_hifi_exist(void);
 
 int bsp_dsp_info(void);
 
+int bsp_dsp_store_tcm(void);
 
 #endif
 
@@ -438,7 +429,6 @@ int bsp_load_modem_dsp(void);
 /* the interface below is just for myself */
 
 extern void drv_hifi_fill_mb_info(unsigned int addr);
-int bsp_dsp_store_tcm(void);
 void bsp_hifi_init(void);
 
 

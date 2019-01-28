@@ -65,6 +65,7 @@
 #define THIS_FILE_ID PS_FILE_ID_ACPU_NFEX_CTRL_C
 
 
+
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
@@ -253,7 +254,7 @@ STATIC VOS_UINT32 NFExt_ReadNvCfg(VOS_VOID)
     ulRet = GUCTTF_NV_Read (MODEM_ID_0, en_NV_Item_NETFILTER_HOOK_MASK, &g_stNfExtNv , sizeof(NF_EXT_NV_STRU));
     if (NV_OK != ulRet)
     {
-        PS_PRINTF("NFExt_ReadNvCfg Fail, Read NV FAIL, Error Code \n");
+        pr_err("[nfext]:NFExt_ReadNvCfg Fail, Read NV FAIL, Error Code \n");
         return VOS_ERR;
     }
 
@@ -521,7 +522,7 @@ STATIC VOS_VOID NFExt_FlowCtrlInit(VOS_VOID)
 {
     if (NFExt_RegHooks(NF_EXT_DEF_FLOW_CTRL_HOOK_ON_MASK))
     {
-        PS_PRINTF("NFExt_FlowCtrlInit NFExt_RegHooks fail");
+        pr_err("[nfext]:NFExt_FlowCtrlInit NFExt_RegHooks fail");
 
         return;
     }
@@ -830,7 +831,7 @@ VOS_VOID NFExt_BindToCpu(VOS_VOID)
     ret = sched_getaffinity(target_pid, &(g_stExEntity.orig_mask));
     if (ret < 0)
     {
-        PS_PRINTF("warning: unable to get cpu affinity\n");
+        pr_err("[nfext]: unable to get cpu affinity\n");
         return;
     }
 
@@ -855,7 +856,7 @@ VOS_VOID NFExt_BindToCpu(VOS_VOID)
     ret = sched_setaffinity(target_pid, &(g_stExEntity.curr_mask));
     if (ret < 0)
     {
-        PS_PRINTF("warning: unable to set cpu affinity\n");
+        pr_err("[nfext]: unable to set cpu affinity\n");
         return;
     }
 
@@ -1027,7 +1028,7 @@ VOS_UINT32 NFExt_PidInit( enum VOS_INIT_PHASE_DEFINE ip )
             g_stExEntity.pRingBufferId = OM_RingBufferCreate(NF_EXT_RING_BUF_SIZE);
             if ( VOS_NULL_PTR == g_stExEntity.pRingBufferId )
             {
-                PS_PRINTF("NFExt_PidInit : ERROR : Create ring buffer Failed!" );
+                pr_err("[nfext]:NFExt_PidInit : ERROR : Create ring buffer Failed!" );
                 return VOS_ERR;
             }
 
@@ -1067,7 +1068,7 @@ VOS_UINT32 NFExt_FidInit ( enum VOS_INIT_PHASE_DEFINE ip )
             /* 先完成模块初始化 */
             if ( 0 != NFExt_Init() )
             {
-                PS_PRINTF("NFExt_FidInit NFExt_Init FAIL!\n");
+                pr_err("[nfext]:NFExt_FidInit NFExt_Init FAIL!\n");
                 return VOS_ERR;
             }
 
@@ -1077,21 +1078,21 @@ VOS_UINT32 NFExt_FidInit ( enum VOS_INIT_PHASE_DEFINE ip )
                                 (Msg_Fun_Type)NFExt_MsgProc);
             if( VOS_OK != ulRslt )
             {
-                PS_PRINTF("NFExt_FidInit VOS_RegisterPIDInfo FAIL!\n");
+                pr_err("[nfext]:NFExt_FidInit VOS_RegisterPIDInfo FAIL!\n");
                 return VOS_ERR;
             }
 
             ulRslt = VOS_RegisterMsgTaskEntry(ACPU_FID_NFEXT, (VOS_VOIDFUNCPTR)NFExt_FidTask);
             if (VOS_OK != ulRslt)
             {
-                PS_PRINTF("NFExt_FidInit VOS_RegisterMsgTaskEntry fail!\n");
+                pr_err("[nfext]:NFExt_FidInit VOS_RegisterMsgTaskEntry fail!\n");
                 return VOS_ERR;
             }
 
             ulRslt = VOS_RegisterMsgTaskPrio(ACPU_FID_NFEXT, VOS_PRIORITY_M4);
             if( VOS_OK != ulRslt )
             {
-                PS_PRINTF("NFExt_FidInit VOS_RegisterTaskPrio Failed!\n");
+                pr_err("[nfext]:NFExt_FidInit VOS_RegisterTaskPrio Failed!\n");
                 return VOS_ERR;
             }
 

@@ -68,7 +68,9 @@ static int __init early_parse_ufs_product_name_cmdline(char *arg)
 {
 	if (arg) {
 		strncpy(ufs_product_name, arg, strnlen(arg, sizeof(ufs_product_name)));
+#ifdef CONFIG_HISI_DEBUG_FS
 		pr_info("cmdline ufs_product_name=%s\n", ufs_product_name);
+#endif
 	} else {
 		pr_info("no ufs_product_name cmdline\n");
 	}
@@ -156,23 +158,6 @@ free_context:
 no_memory:
 	pr_err("%s: failed end ++\n", __func__);
 	return ret;
-}
-
-void uie_close_session(void)
-{
-	if (session) {
-		TEEK_CloseSession(session);
-		kfree(session);
-		session = NULL;
-	}
-
-	if (context) {
-		TEEK_FinalizeContext(context);
-		kfree(context);
-		context = NULL;
-	}
-
-	pr_err("%s: end\n", __func__);
 }
 
 static int set_key_in_tee(void)
@@ -1254,7 +1239,9 @@ static void ufs_kirin_populate_mgc_dt(struct device_node *parent_np,
 
 		ret = of_property_read_u32(child_np, "manufacturer_id", &man_id);
 		if (ret) {
+#ifdef CONFIG_HISI_DEBUG_FS
 			pr_err("check the manufacturer_id %s\n", child_np->name);
+#endif
 			continue;
 		}
 
@@ -1351,7 +1338,9 @@ void ufs_kirin_populate_dt(struct device *dev,
 	ret = of_property_match_string(np, "ufs-0db-equalizer-product-names",
 				     ufs_product_name);
 	if (ret >= 0) {
+#ifdef CONFIG_HISI_DEBUG_FS
 		dev_info(dev, "find %s in dts\n", ufs_product_name);
+#endif
 		host->tx_equalizer = 0;
 	} else {
 #ifdef UFS_TX_EQUALIZER_35DB

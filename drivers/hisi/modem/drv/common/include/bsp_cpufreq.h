@@ -201,6 +201,8 @@ static inline int bsp_cpufreq_qos_update(int qos_id, int req_id, unsigned int re
 {
 	return cpufreq_qos_update(qos_id, req_id, req_value);
 }
+
+void bsp_cpufreq_set_temp_mark(u32 mark);
 u32 bsp_cpufreq_get_temp_protect_mark(void);
 struct freq_dump_st * bsp_cpufreq_get_dump_addr(void);
 

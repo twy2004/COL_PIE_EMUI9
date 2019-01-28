@@ -74,11 +74,10 @@
 #include "bsp_icc.h"
 #include "bsp_llt.h"
 #include "bsp_slice.h"
-#include "bsp_trace.h"
 #include "bsp_efuse.h"
 
 #include "securec.h"
-
+#define THIS_MODU mod_efuse
 #include <mdrv.h>
 #include "../../adrv/adrv.h"
 
@@ -101,7 +100,7 @@ void efuse_handle_work(struct work_struct *work)
     efuse_debug_flag = efuse_debug_flag ? efuse_debug_flag : is_in_llt();
 
     if (EFUSE_READ == (u32)msg->opt) {
-        pr_info("efuse read start group = %d, length = %d.\n", msg->start, msg->len);
+        efuse_print_info("efuse read start group = %d, length = %d.\n", msg->start, msg->len);
         if (msg->start == EFUSE_GRP_HUK) {
             msg->ret = get_efuse_kce_value((unsigned char *)msg->buf, (unsigned int)msg->len * 4, 0);
         } else {
@@ -109,18 +108,18 @@ void efuse_handle_work(struct work_struct *work)
             efuse_print_error("error group for efuse read, group = %d\n", msg->start);
         }
         if (efuse_debug_flag) {
-            pr_info("efuse read end group %d length %d.\n", msg->start, msg->len);
+            efuse_print_info("efuse read end group %d length %d.\n", msg->start, msg->len);
             for(i = 0; i < msg->len; i++) {
-                pr_info("efuse buf[%d] is 0x%x.\n", i, msg->buf[i]);
+                efuse_print_info("efuse buf[%d] is 0x%x.\n", i, msg->buf[i]);
             }
         }
-        pr_info("efuse read finish, ret = %d\n", msg->ret);
+        efuse_print_info("efuse read finish, ret = %d\n", msg->ret);
     }
     else if (EFUSE_WRITE == (u32)msg->opt) {
-        pr_info("efuse write start group = %d, length = %d.\n", msg->start, msg->len);
+        efuse_print_info("efuse write start group = %d, length = %d.\n", msg->start, msg->len);
         if (efuse_debug_flag) {
             for(i = 0; i < msg->len; i++) {
-                pr_info("efuse buf[%d] is 0x%x.\n", i, msg->buf[i]);
+                efuse_print_info("efuse buf[%d] is 0x%x.\n", i, msg->buf[i]);
             }
         }
 
@@ -131,7 +130,7 @@ void efuse_handle_work(struct work_struct *work)
             efuse_print_error("error group for efuse write, group = %d\n", msg->start);
         }
 
-        pr_info("efuse write finish, ret = %d\n", msg->ret);
+        efuse_print_info("efuse write finish, ret = %d\n", msg->ret);
     } else {
         msg->ret = EFUSE_ERROR_ARGS;
         efuse_print_error("error opt, opt = 0x%08X\n", msg->opt);
@@ -163,12 +162,12 @@ int bsp_efuse_data_receive(u32 channel_id , u32 len, void* context)
 
     ret = schedule_work(&efuse_work);
 
-    pr_info("efuse schedule_work begin, ret = %d\n", (int)ret);
+    efuse_print_info("efuse schedule_work begin, ret = %d\n", (int)ret);
 
     return EFUSE_OK;
 }
 
-static int __init bsp_efuse_agent_init(void)
+int __init bsp_efuse_agent_init(void)
 {
     int ret;
     u32 chan_id = ICC_CHN_IFC << 16 | IFC_RECV_FUNC_EFUSE;
@@ -187,6 +186,3 @@ static int __init bsp_efuse_agent_init(void)
 
     return EFUSE_OK;
 }
-
-module_init(bsp_efuse_agent_init);
-

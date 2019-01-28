@@ -3155,6 +3155,7 @@ static int extend_config_before_sensor_detect(struct device_node *dn, int index)
 		case SH_AOD:
 			sensor_manager[index].detect_result = DET_SUCC;
 			read_aod_data_from_dts(dn);
+			break;
 		default:
 			ret = -1;
 			break;

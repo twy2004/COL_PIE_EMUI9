@@ -405,6 +405,7 @@ EXTRA_CFLAGS += $(DHDCFLAGS) -DDHD_DEBUG
 EXTRA_CFLAGS += -DSRCBASE=\"$(src)\"
 EXTRA_CFLAGS += -I$(src)/include/ -I$(src)/
 KBUILD_CFLAGS += -I$(LINUXDIR)/include -I$(shell pwd)
+KBUILD_CFLAGS += -I$(LINUXDIR)/drivers
 EXTRA_CFLAGS += -Idrivers/huawei_platform/connectivity/bcm/wifi/include
 
 DHDOFILES := dhd_pno.o dhd_common.o dhd_ip.o dhd_custom_gpio.o \

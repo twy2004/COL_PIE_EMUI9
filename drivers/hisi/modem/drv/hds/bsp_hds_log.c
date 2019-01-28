@@ -55,6 +55,9 @@
 #include "bsp_hds_ind.h"
 #include "bsp_hds_service.h"
 
+#undef THIS_MODU
+#define THIS_MODU mod_hds
+
 u32 g_printlog_conn   = false;
 u32 g_printlog_enable = false;
 u32 g_translog_conn   = false;
@@ -78,7 +81,7 @@ int bsp_printlog_cfg(u32 enable,u32 level)
 {
     if(level>7)
     {
-       printk(KERN_ERR"printlog level err %d\n",level);
+       hds_printf("printlog level=%d is error\n",level);
        return BSP_ERROR;
     }
     g_printlog_level=level;
@@ -92,7 +95,7 @@ int bsp_printlog_cfg(u32 enable,u32 level)
         g_printlog_enable=false;
     }
 
-    printk(KERN_ERR"printlog switch:%d,level:%d\n",g_printlog_enable,g_printlog_level);
+    hds_printf("printlog switch:%d,level:%d\n",g_printlog_enable,g_printlog_level);
     return BSP_OK;
 }
 

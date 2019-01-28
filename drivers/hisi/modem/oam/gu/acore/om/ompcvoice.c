@@ -279,7 +279,7 @@ VOS_UINT32 OM_Read32Reg( VOS_UINT_PTR ulRegAddr )
 {
     if ( 0 != (ulRegAddr & 0x03) )/* not 4byte aligned */
     {
-        LogPrint1("OM_Read32Reg Address: 0x%p not aligned.\r\n", (VOS_INT32)ulRegAddr);
+        LogPrint("[pam_om]:<OM_Read32Reg> address not aligned.\r\n");
         return 0;
     }
 
@@ -298,7 +298,7 @@ VOS_VOID OM_Write32Reg( VOS_UINT_PTR ulRegAddr, VOS_UINT32 ulRegVal)
 {
     if ( 0 != (ulRegAddr & 0x03) )/* not 4byte aligned */
     {
-        LogPrint1("OM_Write32Reg Address: 0x%p not aligned.\r\n", (VOS_INT32)ulRegAddr);
+        LogPrint("[pam_om]:<OM_Write32Reg> address not aligned.\r\n");
         return;
     }
 
@@ -317,7 +317,7 @@ VOS_UINT16 OM_Read16Reg( VOS_UINT_PTR ulRegAddr )
 {
     if ( 0 != (ulRegAddr & 0x01) )/* not 2byte aligned */
     {
-        LogPrint1("OM_Read16Reg Address: 0x%p not aligned.\r\n", (VOS_INT32)ulRegAddr);
+        LogPrint("[pam_om]:<OM_Read16Reg> address not aligned.\r\n");
         return 0;
     }
 
@@ -336,7 +336,7 @@ VOS_VOID OM_Write16Reg( VOS_UINT_PTR ulRegAddr, VOS_UINT16 usRegVal)
 {
     if ( 0 != (ulRegAddr & 0x01) )/* not 2byte aligned */
     {
-        LogPrint1("OM_Write16Reg Address: 0x%p not aligned.\r\n", (VOS_INT32)ulRegAddr);
+        LogPrint("[pam_om]:<OM_Write16Reg> address not aligned.\r\n");
         return;
     }
 
@@ -347,34 +347,6 @@ VOS_VOID OM_Write16Reg( VOS_UINT_PTR ulRegAddr, VOS_UINT16 usRegVal)
 
 VOS_VOID OM_PcvHookInd(VOS_UCHAR* pucBuf, VOS_UINT16 usLen, VOS_UINT16 usBit, VOS_UINT32 ulFrameTick)
 {
-    OM_PCV_TRANS_IND_STRU              *pstOmToAppMsg;
-    DIAG_TRANS_IND_STRU                 stPcvIndMsg;
-
-    pstOmToAppMsg = (OM_PCV_TRANS_IND_STRU *)VOS_MemAlloc(ACPU_PID_PCVOICE, DYNAMIC_MEM_PT, sizeof(OM_PCV_TRANS_IND_STRU) + usLen);
-
-    if (VOS_NULL_PTR == pstOmToAppMsg)
-    {
-        PS_LOG(ACPU_PID_PCVOICE, 0, PS_PRINT_ERROR, "OM_PcvHookInd: VOS_AllocMsg failure.\n");
-        return;
-    }
-
-    PAM_MEM_CPY_S((VOS_UINT8*)pstOmToAppMsg + sizeof(OM_PCV_TRANS_IND_STRU), usLen, (VOS_VOID*)pucBuf, usLen);
-
-    /* ¹³È¡µãµÄbitmap */
-    pstOmToAppMsg->usHookTarget   = (VOS_UINT16) PAM_PCV_BIT_N(usBit);
-    pstOmToAppMsg->ulFrameTick    = ulFrameTick;
-    pstOmToAppMsg->usDataLen      = usLen;
-
-    stPcvIndMsg.ulModule  = DIAG_GEN_MODULE(DIAG_MODEM_0, DIAG_MODE_COMM);
-    stPcvIndMsg.ulPid     = ACPU_PID_PCVOICE;
-    stPcvIndMsg.ulMsgId   = OM_APP_VOICE_HOOK_IND;
-    stPcvIndMsg.ulLength  = usLen + sizeof(OM_PCV_TRANS_IND_STRU);
-    stPcvIndMsg.pData     = (VOS_VOID *)pstOmToAppMsg;
-
-    (VOS_VOID)DIAG_TransReport(&stPcvIndMsg);
-
-    (VOS_VOID)VOS_MemFree(ACPU_PID_PCVOICE, pstOmToAppMsg);
-
     return;
 }
 
@@ -994,24 +966,24 @@ VOS_UINT32 PCV_AcpuFidInit(enum VOS_INIT_PHASE_DEFINE ip)
 
 VOS_VOID OM_PcvLogShow(VOS_VOID)
 {
-    (VOS_VOID)vos_printf("\r\n g_ulPcvStatus is   %d", g_ulPcvStatus);
-    (VOS_VOID)vos_printf("\r\n g_ucPcvComPort is  %d\r\n", g_ucPcvComPort);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_ulPcvStatus :=   %d", __FUNCTION__, g_ulPcvStatus);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_ucPcvComPort :=  %d\r\n", __FUNCTION__, g_ucPcvComPort);
 
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ulDataErr =  %d", g_stErrLogFlag.ulDataErr);
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ulFullErr =  %d", g_stErrLogFlag.ulFullErr);
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ulRcvNum  =  %d", g_stErrLogFlag.ulRcvNum);
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ulFullNum =  %d", g_stErrLogFlag.ulFullNum);
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ul10sFlag =  %d\r\n", g_stErrLogFlag.ul10sFlag);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ulDataErr =:  %d", __FUNCTION__, g_stErrLogFlag.ulDataErr);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ulFullErr =:  %d", __FUNCTION__, g_stErrLogFlag.ulFullErr);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ulRcvNum  =:  %d", __FUNCTION__, g_stErrLogFlag.ulRcvNum);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ulFullNum =:  %d", __FUNCTION__, g_stErrLogFlag.ulFullNum);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ul10sFlag =:  %d\r\n", __FUNCTION__, g_stErrLogFlag.ul10sFlag);
 
-    (VOS_VOID)vos_printf("\r\n g_stPcvDebuggingInfo.ulRcvUsbSize =  %d", g_stPcvDebuggingInfo.ulRcvUsbSize);
-    (VOS_VOID)vos_printf("\r\n g_stPcvDebuggingInfo.ulPutSize    =  %d", g_stPcvDebuggingInfo.ulPutSize);
-    (VOS_VOID)vos_printf("\r\n g_stErrLogFlag.ulRcvNum           =  %d\r\n", g_stPcvDebuggingInfo.ulRcvDspSize);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvDebuggingInfo.ulRcvUsbSize =:  %d", __FUNCTION__, g_stPcvDebuggingInfo.ulRcvUsbSize);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvDebuggingInfo.ulPutSize    =:  %d", __FUNCTION__, g_stPcvDebuggingInfo.ulPutSize);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stErrLogFlag.ulRcvNum           =:  %d\r\n", __FUNCTION__, g_stPcvDebuggingInfo.ulRcvDspSize);
 
-    (VOS_VOID)vos_printf("\r\n g_stPcvLog.ulStatus        =  %d", g_stPcvLog.ulStatus);
-    (VOS_VOID)vos_printf("\r\n g_stPcvLog.ulPort          =  %d", g_stPcvLog.ulPort);
-    (VOS_VOID)vos_printf("\r\n g_stPcvLog.ulCurrentStatus =  %d", g_stPcvLog.ulCurrentStatus);
-    (VOS_VOID)vos_printf("\r\n g_stPcvLog.ulIntSlice      =  %d", g_stPcvLog.ulIntSlice);
-    (VOS_VOID)vos_printf("\r\n g_stPcvLog.ulErrSlice      =  %d\r\n", g_stPcvLog.ulErrSlice);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvLog.ulStatus        =:  %d", __FUNCTION__, g_stPcvLog.ulStatus);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvLog.ulPort          =:  %d", __FUNCTION__, g_stPcvLog.ulPort);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvLog.ulCurrentStatus =:  %d", __FUNCTION__, g_stPcvLog.ulCurrentStatus);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvLog.ulIntSlice      =:  %d", __FUNCTION__, g_stPcvLog.ulIntSlice);
+    (VOS_VOID)vos_printf("\r\n[PAM][OM] %s:  g_stPcvLog.ulErrSlice      =:  %d\r\n", __FUNCTION__, g_stPcvLog.ulErrSlice);
 
     return;
 }

@@ -57,6 +57,7 @@
 #include "PsTypeDef.h"
 #include "product_config.h"
 #include "NVIM_Interface.h"
+#include "v_private.h"
 
 #if (VOS_WIN32 != VOS_OS_VER)
 #include "mdrv_om_common.h"
@@ -88,7 +89,7 @@ extern "C"{
 #define PAM_VOS_QUEREY_PID_INFO_REQ      (0x5aa5)
 #define PAM_VOS_QUEREY_PID_INFO_CNF      (0xa55a)
 
-#define PAM_LOG_PARTH                    "/modem_log/PAM"
+#define PAM_LOG_PATH                     MODEM_LOG_ROOT"/PAM"
 #define PAM_FILE_EXIST                   (0)
 
 #define PAM_STR_MAX_LEN                  (64*1024)
@@ -187,10 +188,20 @@ enum
     HPA_3GFRAME_ISR_NOT_INTERRUPT_CALL  = 0x20000092,
 
     PAM_USIMM_SLOT_MODEM_ERR            = 0x200000A0,
+    PAM_USIMM_SLOT_MODEM_ERR_1          = 0x200000A1,
+    PAM_USIMM_SLOT_MODEM_ERR_2          = 0x200000A2,
+    PAM_USIMM_SLOT_MODEM_ERR_3          = 0x200000A3,
+    PAM_USIMM_SLOT_MODEM_ERR_4          = 0x200000A4,
+
+    PAM_PIH_SCICHG_TIMEOUT              = 0x200000B0,
 
     PAM_REBOOT_MEMCPY_MEM               = 0x21000000,
     PAM_REBOOT_MEMSET_MEM               = 0x22000000,
     PAM_REBOOT_MEMMOVE_MEM              = 0x23000000,
+
+    PAM_CBT_REBOOT_MEMCPY_MEM           = 0x24000000,
+    PAM_CBT_REBOOT_MEMSET_MEM           = 0x25000000,
+    PAM_CBT_REBOOT_MEMMOVE_MEM          = 0x26000000,
 
     OAM_PROTECTION_ID_BUTT              = 0x2fffffff
 };

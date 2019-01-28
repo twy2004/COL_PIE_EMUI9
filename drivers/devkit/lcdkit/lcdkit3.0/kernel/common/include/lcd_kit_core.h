@@ -26,6 +26,7 @@ struct lcd_kit_ops {
 	int (*power_monitor_on)(void);
 	int (*power_monitor_off)(void);
 	int (*write_otp_gamma)(u8 *buf);
+	int (*set_vss_by_thermal)(void);
 };
 
 /*TS sync*/

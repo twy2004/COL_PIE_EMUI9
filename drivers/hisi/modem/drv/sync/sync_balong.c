@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -51,13 +51,16 @@
 #include <linux/delay.h>
 #include <osl_spinlock.h>
 #include <osl_module.h>
-#include <bsp_trace.h>
 #include <bsp_ipc.h>
 #include <bsp_shared_ddr.h>
 #include <mdrv_sync.h>
 #include <bsp_slice.h>
 #include <bsp_hardtimer.h>
+#include <bsp_print.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_sync
+#define sync_print_err(fmt, ...)  (bsp_err(fmt, ##__VA_ARGS__))
 #define SYNC_LOCK_ADDR           (SHM_BASE_ADDR+SHM_OFFSET_SYNC)
 #define SYNC_STATE_ADDR         (SYNC_LOCK_ADDR + 0x30)
 #define SYNC_SLEEP(a) msleep(a*10)
@@ -121,7 +124,7 @@ s32 mdrv_sync_lock(SYNC_MODULE_E u32Module, u32 *pState, u32 u32TimeOut)
 	 BSP_SYNC_Init();
 	if(!pState || (u32Module >= SYNC_MODULE_BUTT))
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_Lock, invalid param,(butt =0x%x, module=0x%x )or *pState is null\n",(u32)SYNC_MODULE_BUTT ,u32Module);
+		sync_print_err("BSP_SYNC_Lock, invalid param,(butt =0x%x, module=0x%x )or *pState is null\n",(u32)SYNC_MODULE_BUTT ,u32Module);
 		return BSP_ERROR;
 	}
 	tick_begin = bsp_get_slice_value();
@@ -149,7 +152,7 @@ s32 mdrv_sync_lock(SYNC_MODULE_E u32Module, u32 *pState, u32 u32TimeOut)
 		{
 			if(bsp_get_slice_value()>tick_end)
 			{
-				bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_Lock, timeout2, module=0x%x, u32TimeOut=0x%x\n", u32Module, u32TimeOut);
+				sync_print_err("BSP_SYNC_Lock, timeout2, module=0x%x, u32TimeOut=0x%x\n", u32Module, u32TimeOut);
 				return BSP_ERR_SYNC_TIMEOUT;
 			}
 		}
@@ -182,7 +185,7 @@ s32 mdrv_sync_unlock(SYNC_MODULE_E u32Module, u32 u32State)
 	 BSP_SYNC_Init();
 	if(u32Module >= SYNC_MODULE_BUTT)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_UnLock, invalid param, module=0x%x\n", u32Module);
+		sync_print_err("BSP_SYNC_UnLock, invalid param, module=0x%x\n", u32Module);
 		return BSP_ERROR;
 	}
 	sync_ctrl.g_pSyncState[u32Module] = (char)u32State;
@@ -211,7 +214,7 @@ s32 mdrv_sync_wait(SYNC_MODULE_E u32Module, u32 u32TimeOut)
 
 	if(u32Module >= SYNC_MODULE_BUTT)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_UnLock, invalid param, module=0x%x\n", u32Module);
+		sync_print_err("BSP_SYNC_UnLock, invalid param, module=0x%x\n", u32Module);
 		return BSP_ERROR;
 	}
 	tick_begin = bsp_get_slice_value();
@@ -226,7 +229,7 @@ s32 mdrv_sync_wait(SYNC_MODULE_E u32Module, u32 u32TimeOut)
 		{
 			if(bsp_get_slice_value()>tick_end)
 			{
-				bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_Wait, timeout, module=0x%x, u32TimeOut=0x%x\n", u32Module, u32TimeOut);
+				sync_print_err("BSP_SYNC_Wait, timeout, module=0x%x, u32TimeOut=0x%x\n", u32Module, u32TimeOut);
 				return BSP_ERR_SYNC_TIMEOUT;
 			}
 		}
@@ -252,7 +255,7 @@ s32 mdrv_sync_give(SYNC_MODULE_E u32Module)
 
 	if(u32Module >= SYNC_MODULE_BUTT)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"BSP_SYNC_Give, invalid param, module=0x%x\n", u32Module);
+		sync_print_err("BSP_SYNC_Give, invalid param, module=0x%x\n", u32Module);
 		return BSP_ERROR;
 	}
 	sync_ctrl.g_pSyncState[u32Module] = 1;
@@ -264,7 +267,7 @@ int bsp_sync_reset(SYNC_MODULE_E u32Module)
 	BSP_SYNC_Init();
 	if(u32Module >= SYNC_MODULE_BUTT)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SYNC,"bsp_sync_reset, invalid param, module=0x%x\n", u32Module);
+		sync_print_err("bsp_sync_reset, invalid param, module=0x%x\n", u32Module);
 		return BSP_ERROR;
 	}
 	sync_ctrl.g_pSyncState[u32Module] = 0;

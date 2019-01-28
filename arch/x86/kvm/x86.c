@@ -4119,14 +4119,13 @@ long kvm_arch_vm_ioctl(struct file *filp,
 		mutex_unlock(&kvm->lock);
 		break;
 	case KVM_XEN_HVM_CONFIG: {
-		struct kvm_xen_hvm_config xhc;
 		r = -EFAULT;
-		if (copy_from_user(&xhc, argp, sizeof(xhc)))
+		if (copy_from_user(&kvm->arch.xen_hvm_config, argp,
+				   sizeof(struct kvm_xen_hvm_config)))
 			goto out;
 		r = -EINVAL;
-		if (xhc.flags)
+		if (kvm->arch.xen_hvm_config.flags)
 			goto out;
-		memcpy(&kvm->arch.xen_hvm_config, &xhc, sizeof(xhc));
 		r = 0;
 		break;
 	}
@@ -4401,17 +4400,12 @@ int kvm_read_guest_virt(struct x86_emulate_ctxt *ctxt,
 }
 EXPORT_SYMBOL_GPL(kvm_read_guest_virt);
 
-static int emulator_read_std(struct x86_emulate_ctxt *ctxt,
-			     gva_t addr, void *val, unsigned int bytes,
-			     struct x86_exception *exception, bool system)
+static int kvm_read_guest_virt_system(struct x86_emulate_ctxt *ctxt,
+				      gva_t addr, void *val, unsigned int bytes,
+				      struct x86_exception *exception)
 {
 	struct kvm_vcpu *vcpu = emul_to_vcpu(ctxt);
-	u32 access = 0;
-
-	if (!system && kvm_x86_ops->get_cpl(vcpu) == 3)
-		access |= PFERR_USER_MASK;
-
-	return kvm_read_guest_virt_helper(addr, val, bytes, vcpu, access, exception);
+	return kvm_read_guest_virt_helper(addr, val, bytes, vcpu, 0, exception);
 }
 
 static int kvm_read_guest_phys_system(struct x86_emulate_ctxt *ctxt,
@@ -4454,27 +4448,6 @@ int kvm_write_guest_virt_system(struct x86_emulate_ctxt *ctxt,
 	}
 out:
 	return r;
-}
-
-static int emulator_write_std(struct x86_emulate_ctxt *ctxt, gva_t addr, void *val,
-			      unsigned int bytes, struct x86_exception *exception,
-			      bool system)
-{
-	struct kvm_vcpu *vcpu = emul_to_vcpu(ctxt);
-	u32 access = PFERR_WRITE_MASK;
-
-	if (!system && kvm_x86_ops->get_cpl(vcpu) == 3)
-		access |= PFERR_USER_MASK;
-
-	return kvm_write_guest_virt_helper(addr, val, bytes, vcpu,
-					   access, exception);
-}
-
-int kvm_write_guest_virt_system(struct kvm_vcpu *vcpu, gva_t addr, void *val,
-				unsigned int bytes, struct x86_exception *exception)
-{
-	return kvm_write_guest_virt_helper(addr, val, bytes, vcpu,
-					   PFERR_WRITE_MASK, exception);
 }
 EXPORT_SYMBOL_GPL(kvm_write_guest_virt_system);
 

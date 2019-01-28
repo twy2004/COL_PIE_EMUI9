@@ -185,7 +185,6 @@ ipcp_Setup(struct ipcp *ipcp, VOS_UINT32 mask)
   ipcp->PriNbns_neg = 0;
   ipcp->SecNbns_neg = 0;
   ipcp->IpAddrs_neg = 0;
-  ipcp->CompressProto_neg = 0;
 
   ipcp->heis1172 = 0;
   ipcp->peer_req = 0;
@@ -353,100 +352,14 @@ VOS_UINT32 StringCompare(VOS_CHAR* pString1,VOS_VOID* pString2,VOS_UINT16 len)
     VOS_INT32 i;
     VOS_CHAR* pString3 = (VOS_CHAR*)pString2;
 
-    for(i=0;i<len;i++)
+    for(i = 0; i < len; i++)
     {
-            if(*(pString1+i) != *(pString3+i))
+        if(*(pString1+i) != *(pString3+i))
             return VOS_ERR;
     }
     return VOS_OK;
 }
 
-/*****************************************************************************
- Prototype      : DecodeAtIndication
- Description    : 解析从AT接收到的ACK与NAK报文。
-
- Input          : ---pIpcp:指向该报文所在的ipcp结构
-                  ---pEchoBuffer:指向接收到的来自AT的ACK或NAK报文的首地址
-                  ---BufferLen:指向接收到的来自AT的ACK或NAK报文的长度
- Output         : ---
- Return Value   : ---成功返回VOS_OK，否则返回VOS_ERR
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-12-31
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-/*lint -e{64}  type mismatch*/
-VOS_UINT32
-DecodeAtIndication(struct ipcp* pIpcp,VOS_CHAR* pEchoBuffer,VOS_UINT16 BufferLen)
-{
-    struct fsm_opt *opt;
-    VOS_UINT16 Len = 0;
-
-    PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "decode at indication\r\n");
-
-    while(Len < BufferLen)
-    {
-        opt = (struct fsm_opt *)(pEchoBuffer + Len);
-        if (opt->hdr.len < sizeof(struct fsm_opt_hdr))
-            {
-                PPP_MNTN_LOG1(PS_PID_APP_PPP, 0, LOG_LEVEL_WARNING,
-                              "Bad option length = %f\r\n", opt->hdr.len);
-                return VOS_ERR;
-            }
-
-        switch (opt->hdr.id)
-            {
-                case TY_IPADDR:
-                    PSACORE_MEM_CPY(&(pIpcp->peer_ip.s_addr), (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                    pIpcp->IpAddr_neg |= NEG_ACCEPTED;
-                    break;
-
-                case TY_COMPPROTO:
-                    PSACORE_MEM_CPY(pIpcp->CompressProto, (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                    pIpcp->ComressProtoLen = (opt->hdr.len-2);
-                    pIpcp->CompressProto_neg|= NEG_ACCEPTED;
-                    break;
-
-                case TY_IPADDRS:
-                    break;
-
-                case TY_PRIMARY_NBNS:
-                    if (WINS_CONFIG_ENABLE == g_ucPppConfigWins)
-                    {
-                        PSACORE_MEM_CPY(&(pIpcp->PriNbnsAddr.s_addr), (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                        pIpcp->PriNbns_neg |= NEG_ACCEPTED;
-                    }
-                    break;
-
-                case TY_SECONDARY_NBNS:
-                    if (WINS_CONFIG_ENABLE == g_ucPppConfigWins)
-                    {
-                        PSACORE_MEM_CPY(&(pIpcp->SecNbnsAddr.s_addr), (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                        pIpcp->SecNbns_neg |= NEG_ACCEPTED;
-                    }
-                    break;
-
-                case TY_PRIMARY_DNS:
-                    PSACORE_MEM_CPY(&(pIpcp->PriDnsAddr.s_addr), (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                    pIpcp->PriDns_neg |= NEG_ACCEPTED;
-                    break;
-
-                case TY_SECONDARY_DNS:
-                    PSACORE_MEM_CPY(&(pIpcp->SecDnsAddr.s_addr), (opt->hdr.len-2), opt->data, (opt->hdr.len-2));
-                    pIpcp->SecDns_neg |= NEG_ACCEPTED;
-                    break;
-
-                default:
-                    break;
-            }
-        Len += (VOS_UINT16)(opt->hdr.len);
-    }
-
-    return VOS_OK;
-}
 
 /*lint -e{64}  type mismatch*/
 void
@@ -503,32 +416,15 @@ IpcpDecodeConfig(struct fsm *fp, VOS_CHAR *cp, VOS_CHAR *end, VOS_INT32 mode_typ
     case TY_COMPPROTO:
       switch (mode_type) {
       case MODE_REQ:
-        if (!IsAccepted(ipcp->CompressProto_neg)) /* [false alarm]:移植开源代码 */
+        if (fp->link->ipcp.stage == IPCP_SUCCESS_FROM_GGSN)
         {
-          if (fp->link->ipcp.stage == IPCP_SUCCESS_FROM_GGSN)
-          {
-              fsm_rej(dec, opt);
-              PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro rej!\r\n");
-          }
-          else
-          {
-              fsm_nak(dec, opt);
-              PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro nak(no neg)!\r\n");
-          }
+            fsm_rej(dec, opt);
+            PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro rej!\r\n");
         }
         else
         {
-            if(VOS_OK != StringCompare(opt->data,ipcp->CompressProto,ipcp->ComressProtoLen))
-            {
-                PSACORE_MEM_CPY(opt->data, ipcp->ComressProtoLen, ipcp->CompressProto, ipcp->ComressProtoLen);
-                fsm_nak(dec, opt);
-                PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro nak!\r\n");
-            }
-            else
-            {
-                fsm_ack(dec, opt);
-                PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro ack!\r\n");
-            }
+            fsm_nak(dec, opt);
+            PPP_MNTN_LOG(PS_PID_APP_PPP, 0, PS_PRINT_NORMAL, "ipcp:CompressPro nak(no neg)!\r\n");
         }
 
         break;

@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -110,8 +110,14 @@ typedef enum tagPWC_CLIENT_ID_E
     PWRCTRL_SLEEP_MSP,
     PWRCTRL_SLEEP_VOWIFI,
     PWRCTRL_SLEEP_DSFLOW1,
-    /*以下部分的ID已经不使用了，后期会删除*/
-    PWRCTRL_TEST_DEEPSLEEP  = 0x11f,
+    PWRCTRL_SLEEP_LTEV,
+    PWRCTRL_SLEEP_TTF,
+
+    /*LRCCPU WAKELOCK END*/
+
+    /*NRCCPU WAKELOCK BEGIN*/
+    PWRCTRL_NRCCPU_WAKELOCK_L2HAC = PWRCTRL_SLEEP_BEGIN,/*while l2hac wake,nrccpu donot sleep*/
+    PWRCTRL_NRCCPU_WAKELOCK_HL1C ,/*lint !e488*//*lint 488warning:,value==PWRCTRL_SLEEP_PS_G0,not an error*//*while hl1c(r8) wake,nrccpu donot sleep*/
     PWRCTRL_SLEEP_END =0x120
 }PWC_CLIENT_ID_E;
 
@@ -123,10 +129,12 @@ typedef enum tagPWC_COMM_MODE_E
     PWC_COMM_MODE_TDS=3,
     PWC_COMM_MODE_CDMA_1X=4,
     PWC_COMM_MODE_CDMA_HRPD=5,
+    PWC_COMM_MODE_LTE_V=6,
     PWC_COMM_MODE_NUMBER,
     PWC_COMM_MODE_COMMON=PWC_COMM_MODE_NUMBER,
 	PWC_COMM_MODE_REMOTE_CLK_W,
 	PWC_COMM_MODE_REMOTE_CLK_G,
+	PWC_COMM_MODE_COMMON1 = PWC_COMM_MODE_REMOTE_CLK_G,
     PWC_COMM_MODE_BUTT
 }PWC_COMM_MODE_E;
 /*注意:枚举扩充时，若PWC_COMM_MODEM_BUTT*PWC_COMM_MODE_BUTT > 32时需要知会各投票组件修改投票代码
@@ -224,7 +232,7 @@ int mdrv_pm_info_stat_register(pm_info_cbfun pcbfun, struct pm_info_usr_data *us
 *
 * 返 回 值  : 0，执行成功；非零，失败
 *
-* 其它说明  : 
+* 其它说明  :
 *
 *****************************************************************************/
 int mdrv_pm_log(int mod_id,  unsigned int data_len , void *data);

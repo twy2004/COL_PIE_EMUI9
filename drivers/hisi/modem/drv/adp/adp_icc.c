@@ -50,6 +50,8 @@
 #include <icc_core.h>
 
 
+#undef THIS_MODU
+#define THIS_MODU mod_icc
 extern struct icc_control g_icc_ctrl;
 
 #define ICC_DEFAULT_SUB_CHANNEL   (0)
@@ -76,7 +78,7 @@ static struct icc_channel_map_logic2phy g_icc_channel_map_logic2phy[] = {
     [MDRV_ICC_GUOM3]   =                 {MDRV_ICC_GUOM3,                   (ICC_CHN_GUOM3             <<16)  | ICC_DEFAULT_SUB_CHANNEL},
     [MDRV_ICC_GUOM4]   =                 {MDRV_ICC_GUOM4,                   (ICC_CHN_GUOM4             <<16)  | ICC_DEFAULT_SUB_CHANNEL},
     [MDRV_ICC_GUOM5]   =                 {MDRV_ICC_GUOM5,                   (ICC_CHN_GUOM5             <<16)  | ICC_DEFAULT_SUB_CHANNEL},
-
+    [MDRV_ICC_NRCCPU_APCPU_OSA] = {MDRV_ICC_NRCCPU_APCPU_OSA, (ICC_CHN_NRCCPU_APCPU_OSA  <<16)  | ICC_DEFAULT_SUB_CHANNEL},
 };
 
 s32 icc_read_cb_wraper(u32 channel_id , u32 len, void* context);
@@ -214,6 +216,7 @@ int BSP_ICC_Write(unsigned int u32ChanId, unsigned char* pData, int s32Size)
 {
     u32 channel_id = 0;
     u32 channel_index = 0;
+    u32 dst_core;
 
     if (icc_channel_logic2phy(u32ChanId, &channel_id))
     {
@@ -228,8 +231,16 @@ int BSP_ICC_Write(unsigned int u32ChanId, unsigned char* pData, int s32Size)
         icc_print_error("invalid param[%d], pData[0x%p]\n", channel_index, pData);
         return ICC_INVALID_PARA;
     }
-
-    return (BSP_S32)bsp_icc_send(ICC_SEND_CPU, channel_id, (u8*)pData, (u32)s32Size);
+	
+    if(u32ChanId == MDRV_ICC_NRCCPU_APCPU_OSA)
+    {
+        dst_core = ICC_CPU_NRCCPU;
+    } 
+    else
+    {
+        dst_core = ICC_SEND_CPU;
+    }
+    return (BSP_S32)bsp_icc_send(dst_core, channel_id, (u8*)pData, (u32)s32Size);
 }
 
 int mdrv_icc_register_resume_cb(unsigned int u32ChanId, FUNCPTR_1 debug_routine, int param)

@@ -69,20 +69,34 @@ int ispcpu_qos_cfg(void)
     }
     pr_info("[%s]  vivobus_base.%pK, ", __func__, vivobus_base);
 
-    __raw_writel(QOS_PRIO_3,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_PRIORITY_ADDR));
-    __raw_writel(QOS_BYPASS_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_MODE_ADDR));
-    __raw_writel(QOS_PRIO_3,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_PRIORITY_ADDR));
-    __raw_writel(QOS_BYPASS_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_MODE_ADDR));
-    __raw_writel(QOS_PRIO_3,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_PRIORITY_ADDR));
-    __raw_writel(QOS_BYPASS_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_MODE_ADDR));
-    __raw_writel(QOS_PRIO_3,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_PRIORITY_ADDR));
-    __raw_writel(QOS_BYPASS_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_MODE_ADDR));
+    __raw_writel(QOS_LIMITER_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_MODE_ADDR));
+    __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_EXTCONTROL_ADDR));
+    __raw_writel(QOS_LIMITER_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_MODE_ADDR));
+    __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_EXTCONTROL_ADDR));
+    __raw_writel(QOS_EXTCONTROL,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_EXTCONTROL_ADDR));
+    __raw_writel(QOS_EXTCONTROL,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_EXTCONTROL_ADDR));
+    __raw_writel(QOS_LIMITER_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_MODE_ADDR));
+    __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_EXTCONTROL_ADDR));
+    __raw_writel(QOS_LIMITER_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_MODE_ADDR));
+    __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_EXTCONTROL_ADDR));
     __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_PRIORITY_ADDR));
     __raw_writel(QOS_FIX_MODE,    (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_MODE_ADDR));
     __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_PRIORITY_ADDR));
     __raw_writel(QOS_FIX_MODE,    (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_MODE_ADDR));
 
 
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_SATURATION_ADDR));
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_SATURATION_ADDR));
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_SATURATION_ADDR));
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_SATURATION_ADDR));
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_SATURATION_ADDR));
+    __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_BANDWIDTH_ADDR));
+    __raw_writel(QOS_SATURATION_ISP, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_SATURATION_ADDR));
 
     pr_info("QOS : ISP.rd.(prio.0x%x, mode.0x%x), ISP.wr.(prio.0x%x, mode.0x%x), A7.rd.(prio.0x%x, mode.0x%x), A7.wr.(prio.0x%x, mode.0x%x)\n",
         __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_PRIORITY_ADDR)),
@@ -100,6 +114,29 @@ int ispcpu_qos_cfg(void)
         __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_PRIORITY_ADDR)),
         __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_MODE_ADDR)));
 
+    pr_info("QOS : ISP.rd.(bandwidth.0x%x, saturation.0x%x), ISP.wr.(bandwidth.0x%x, saturation.0x%x), A7.rd.(bandwidth.0x%x, saturation.0x%x), A7.wr.(bandwidth.0x%x, saturation.0x%x)\n",
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_SATURATION_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_SATURATION_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_SATURATION_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_SATURATION_ADDR)));
+
+    pr_info("QOS : ISP1.rd.(bandwidth.0x%x, saturation.0x%x), ISP1.wr.(bandwidth.0x%x, saturation.0x%x)\n",
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_SATURATION_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_BANDWIDTH_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_SATURATION_ADDR)));
+
+    pr_info("QOS : ISP.rd.(extcontrol.0x%x), ISP.wr.(extcontrol.0x%x), A7.rd.(extcontrol.0x%x), A7.wr.(extcontrol.0x%x), ISP1.rd.(extcontrol.0x%x), ISP1.wr.(extcontrol.0x%x)\n",
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_EXTCONTROL_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_WR_QOS_EXTCONTROL_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_EXTCONTROL_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_EXTCONTROL_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_EXTCONTROL_ADDR)),
+    __raw_readl((volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_EXTCONTROL_ADDR)));
 
     return 0;
 }

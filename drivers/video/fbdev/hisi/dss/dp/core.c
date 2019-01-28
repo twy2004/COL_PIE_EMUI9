@@ -400,10 +400,6 @@ void dptx_phy_set_lanes_status(struct dp_ctrl *dptx, bool bopen)
 		phyifctrl |= (3 << 17);
 	}
 	dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
-	if (bopen) {
-		usb31phy_cr_write(0x4, 0x211);
-		usb31phy_cr_write(0x4, 0);
-	}
 }
 
 int dptx_phy_get_lanes(struct dp_ctrl *dptx)

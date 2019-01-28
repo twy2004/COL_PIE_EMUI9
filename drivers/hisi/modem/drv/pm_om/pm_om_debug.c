@@ -65,6 +65,10 @@
 #include "pm_om_pressure.h"
 #include "product_config.h"
 #include <mdrv_pm_common.h>
+#include "securec.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_pm_om
 
 struct pm_om_debug g_pmom_debug;
 char *wakelock_name[]={
@@ -97,7 +101,9 @@ char *wakelock_name[]={
     "HRPD",
     "MSP",
     "VOWIFI",
-    "DSFLOW1"
+    "DSFLOW1",
+    "LTEV",
+    "TTF"
 };
 /*lint --e{64,528}*//*64:list_for_each_entry, 528 for not referenced referenced*/
 void pm_om_wakeup_log(void)
@@ -258,7 +264,7 @@ static inline void print_dpm_device_info(void)
     struct dpm_device_info *device_info;
     device_info = (struct dpm_device_info *)(g_pmom_debug.cdrx_dump_addr + CDRX_DUMP_DPM_INFOS_OFFSET);/*lint !e826 suppress pointer-to-pointer conversion */
 
-    count += snprintf(print_buf,(size_t)print_buf_size,"[C SR]dpm (fail_cnt, max suspend, resume):");
+    count += snprintf_s(print_buf,(size_t)print_buf_size,(size_t)(print_buf_size-1),"[C SR]dpm (fail_cnt, max suspend, resume):");
 
     while(*device_info->device_name != 0){
         if( ((unsigned long)device_info + sizeof(struct dpm_device_info)) >= ((unsigned long)g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_DPM_INFOS_END)){
@@ -272,12 +278,12 @@ static inline void print_dpm_device_info(void)
             printk(KERN_ERR"print cdpm, count=%d, buf no mem\n",(int)count);
             break;
         }
-        count += snprintf(print_buf+count,(size_t)(print_buf_size-count),"%s(%d,%d,%d),"\
+        count += snprintf_s(print_buf+count,(size_t)(print_buf_size-count),(size_t)(print_buf_size-count-1),"%s(%d,%d,%d),"\
             ,device_info->device_name, device_info->fail_cnt, device_info->max_s, device_info->max_r);
 
         device_info++;
     }
-    count += snprintf(print_buf+count,(size_t)(print_buf_size-count),"\n");/* [false alarm]:ÆÁ±ÎFortify */
+    count += snprintf_s(print_buf+count,(size_t)(print_buf_size-count),(size_t)(print_buf_size-count-1),"\n");/* [false alarm]:ÆÁ±ÎFortify */
 
     printk(KERN_ERR"%s",print_buf);
 }
@@ -287,7 +293,7 @@ static inline void print_ccpu_wakeup_irq_info(void)
 	struct pm_wakeup_irq_info *wakeirq_debug_addr;
 	wakeirq_debug_addr = (struct pm_wakeup_irq_info *)(g_pmom_debug.cdrx_dump_corepm_addr +WAKEUP_IRQ_DEBUG );/*lint !e826 suppress pointer-to-pointer conversion */
 	ret = (u32)readl(g_pmom_debug.cdrx_dump_corepm_addr + WAKEUP_INT_NUM);
-	cnt += snprintf((char*)print_buf,(size_t)print_buf_size,"[C SR]pm wake cnt:");/*lint !e737 suppress promotion from int to unsigned int */
+	cnt += snprintf_s((char*)print_buf,(size_t)print_buf_size,(size_t)(print_buf_size-1),"[C SR]pm wake cnt:");/*lint !e737 suppress promotion from int to unsigned int */
 	for(i=0;i<ret;i++)
 	{
 		if(strlen((wakeirq_debug_addr+i)->name)>dpm_debug_char_num){
@@ -298,24 +304,24 @@ static inline void print_ccpu_wakeup_irq_info(void)
 			printk(KERN_ERR"print cwakelock, count=%d, buf no mem\n",cnt);
 			break;
 		}
-		cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"%s(%d),",\
+		cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"%s(%d),",\
 			(wakeirq_debug_addr+i)->name,\
 			(wakeirq_debug_addr+i)->wake_cnt);
 	}
-	cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"\n");
+	cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"\n");
 	printk(KERN_ERR"%s",print_buf);
 }
 static inline void print_ccpu_wakelock_info(void)
 {/*lint --e{737} suppress snprintf return value turn to unsigned int, TODO*/
 	u32 i,ret,cnt = 0,temp;
-	cnt += snprintf((char*)print_buf,(size_t)print_buf_size,"[C SR]wakelock(locked,total time):");
+	cnt += snprintf_s((char*)print_buf,(size_t)print_buf_size,(size_t)(print_buf_size-1),"[C SR]wakelock(locked,total time):");
 	ret = (u32)readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_WAKE_OFFSET);
 	temp = sizeof(wakelock_name)/sizeof(wakelock_name[0]);
 	for(i=0;i<temp;i++)
 	{
-		cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"%s(%d,0x%x),", wakelock_name[i],(ret>>i)&0x1,readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_WAKELOCK_TIME_OFFSET+0x4*i));
+		cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt), (size_t)(print_buf_size-cnt-1),"%s(%d,0x%x),", wakelock_name[i],(ret>>i)&0x1,readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_WAKELOCK_TIME_OFFSET+0x4*i));
 	}
-	cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"\n");
+	cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"\n");
 	printk(KERN_ERR"%s",print_buf);
 }
 
@@ -343,21 +349,21 @@ static inline void print_ccpu_ipc_info(void)
 	u32 i, cnt = 0;
 
 	/* coverity[secure_coding] */
-	cnt += snprintf((char*)print_buf,(size_t)print_buf_size,"[C SR]ipcm(int count):");
+	cnt += snprintf_s((char*)print_buf,(size_t)print_buf_size,(size_t)(print_buf_size-1),"[C SR]ipcm(int count):");
 	for(i=0; i<IPC_INT_BUTTOM; i++)
 	{
 		/* coverity[secure_coding] */
-		cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_IPC_OFFSET+4*i)); /* [false alarm]:fortify */
+		cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_IPC_OFFSET+4*i)); /* [false alarm]:fortify */
 	}
 	/* coverity[secure_coding] */
-	cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size -cnt),"\n[C SR]ipclock(stopsuspend count):");
+	cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size -cnt),(size_t)(print_buf_size-cnt-1),"\n[C SR]ipclock(stopsuspend count):");
 	for(i=0; i<IPC_SEM_BUTTOM; i++)
 	{
 		/* coverity[secure_coding] */
-		cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_IPC_OFFSET + (4*IPC_INT_BUTTOM)+4*i)); /* [false alarm]:fortify */
+		cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_IPC_OFFSET + (4*IPC_INT_BUTTOM)+4*i)); /* [false alarm]:fortify */
 	}
 	/* coverity[secure_coding] */
-	cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"\n");
+	cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"\n");
 	printk(KERN_ERR"%s",print_buf);
 }
 
@@ -366,14 +372,14 @@ static inline void print_ccpu_icc_info(void)
 	u32 i, cnt = 0;
 
 	/* coverity[secure_coding] */
-	cnt += snprintf((char*)print_buf,(size_t)print_buf_size,"[C SR]icc(channel count):");
+	cnt += snprintf_s((char*)print_buf,(size_t)print_buf_size,(size_t)(print_buf_size-1),"[C SR]icc(channel count):");
 	for(i=0; i<ICC_CHN_ID_MAX; i++)
 	{
 		/* coverity[secure_coding] */
-		cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_ICC_OFFSET+4*i)); /* [false alarm]:fortify */
+		cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"%d,", readl(g_pmom_debug.cdrx_dump_addr+CDRX_DUMP_ICC_OFFSET+4*i)); /* [false alarm]:fortify */
 	}
 	/* coverity[secure_coding] */
-	cnt += snprintf((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),"\n");
+	cnt += snprintf_s((char*)print_buf+cnt,(size_t)(print_buf_size-cnt),(size_t)(print_buf_size-cnt-1),"\n");
 	printk(KERN_ERR"%s",print_buf);
 }
 
@@ -520,7 +526,7 @@ static ssize_t pm_stat_info_get(struct device *dev, struct device_attribute *att
     tmp_low  = (u32)(sw_value & (u32)0xFFFFFFFF);
     tmp_high = (u32)((sw_value >> 32) & (u32)0xFFFFFFFF);
 
-    len = snprintf(buf, (size_t)32, "0x%08x%08x\n", tmp_high, tmp_low);
+    len = snprintf_s(buf, (size_t)32, (size_t)31, "0x%08x%08x\n", tmp_high, tmp_low);
 	return len;
 }
 
@@ -540,8 +546,8 @@ static ssize_t pm_stat_info_on_set(struct device *dev, struct device_attribute *
 		return -EINVAL;
 	}
 
-	memset(p, 0, sizeof(p));
-	memcpy(p,buf, count);
+	memset_s(p, sizeof(p), 0, sizeof(p));
+	memcpy_s(p, sizeof(p), buf, count);
 	pointer = p;
 
 	for(i = 0; i < 64 && ((tempp = strsep(&pointer, " ")) != NULL); i++ )
@@ -588,8 +594,8 @@ static ssize_t pm_stat_info_off_set(struct device *dev, struct device_attribute 
 		return -EINVAL;
 	}
 
-	memset(p, 0, sizeof(p));
-	memcpy(p, buf, count);
+	memset_s(p, sizeof(p), 0, sizeof(p));
+	memcpy_s(p, sizeof(p), buf, count);
 	pointer = p;
 
 	for(i = 0; i < 64 && ((tempp = strsep(&pointer, " ")) != NULL); i++ )
@@ -739,7 +745,7 @@ int pm_om_debug_init(void)
 			pm_om_spin_unlock(&ctrl->log.lock, flags);
 		}
 	}
-	memset((void *)&g_pmom_debug, 0, sizeof(g_pmom_debug));
+	memset_s((void *)&g_pmom_debug, sizeof(g_pmom_debug), 0, sizeof(g_pmom_debug));
 	g_pmom_debug.stat.waket_prev    = bsp_get_slice_value();
 	g_pmom_debug.stat.waket_min     = 0xffffffff;
 	g_pmom_debug.stat.logt_print_sw = ctrl->log.smem->nv_cfg.reserved;

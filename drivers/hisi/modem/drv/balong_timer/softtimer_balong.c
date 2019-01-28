@@ -56,11 +56,14 @@
 #include <osl_list.h>
 #include <osl_spinlock.h>
 #include <bsp_softtimer.h>
-#include <bsp_trace.h>
 #include <osl_thread.h>
 #include "softtimer_balong.h"
-#define MOD_NAME "softtimer"
-#define softtimer_print(fmt, ...)  (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_SOFTTIMER, "<%s> "fmt" ", MOD_NAME, ##__VA_ARGS__))
+#include <bsp_print.h>
+#include "securec.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_softtimer
+#define softtimer_print(fmt, ...)  (bsp_err(fmt, ##__VA_ARGS__))
 
 struct debug_wakeup_softtimer_s
 {
@@ -125,6 +128,11 @@ void bsp_softtimer_add(struct softtimer_list * timer)
 		softtimer_print("timer to be added is NULL\n");
 		return;
 	}
+	if(unlikely((timer->wake_type != SOFTTIMER_WAKE) && (timer->wake_type != SOFTTIMER_NOWAKE)))
+	{
+		softtimer_print("wake type %d, invalid\n",timer->wake_type);
+		return;
+	}
 	spin_lock_irqsave(&(timer_control[timer->wake_type].timer_list_lock),flags);
 	if(!list_empty(&timer->entry))
 	{
@@ -164,6 +172,11 @@ s32 bsp_softtimer_delete(struct softtimer_list * timer)
 	if (NULL == timer)
 	{
 		softtimer_print("NULL pointer \n");
+		return BSP_ERROR;
+	}
+	if(unlikely((timer->wake_type != SOFTTIMER_WAKE) && (timer->wake_type != SOFTTIMER_NOWAKE)))
+	{
+		softtimer_print("wake type %d, invalid\n",timer->wake_type);
 		return BSP_ERROR;
 	}
 	spin_lock_irqsave(&(timer_control[timer->wake_type].timer_list_lock),flags);
@@ -261,6 +274,11 @@ s32 bsp_softtimer_modify(struct softtimer_list *timer,u32 new_expire_time)
 	{
 		return BSP_ERROR;
 	}
+	if(unlikely((timer->wake_type != SOFTTIMER_WAKE) && (timer->wake_type != SOFTTIMER_NOWAKE)))
+	{
+        softtimer_print("wake type 0x%d, invalid\n",timer->wake_type);
+		return BSP_ERROR;
+	}
 	timer->timeout = new_expire_time;
 	return set_timer_expire_time(timer,new_expire_time);
 }
@@ -269,13 +287,26 @@ s32 bsp_softtimer_create(struct softtimer_list *timer)
 {
 	s32 ret = 0,i=0;
 	unsigned long flags;
-	if (!timer || !timer_control[(u32)timer->wake_type].support)
+	if(!timer)
 	{
-		softtimer_print("para or wake type is error\n");
+		softtimer_print("para is null\n");
+		return BSP_ERROR;
+	}
+	if(unlikely((timer->wake_type != SOFTTIMER_WAKE) && (timer->wake_type != SOFTTIMER_NOWAKE)))
+	{
+		softtimer_print("wake type %d, invalid\n",timer->wake_type);
+		return BSP_ERROR;
+	}
+	if (!timer_control[(u32)timer->wake_type].support)
+	{
+		softtimer_print("wake type not support\n");
 		return BSP_ERROR;
 	}
 	if(timer->init_flags==TIMER_INIT_FLAG)
+	{
+		softtimer_print("timer already create\n");
 		return BSP_ERROR;
+	}
 	spin_lock_irqsave(&(timer_control[timer->wake_type].timer_list_lock),flags);/*lint !e550*/
 	INIT_LIST_HEAD(&(timer->entry));
 	timer->is_running = TIMER_FALSE;
@@ -296,7 +327,7 @@ s32 bsp_softtimer_create(struct softtimer_list *timer)
 	}
 	if (SOFTTIMER_MAX_NUM == i)
 	{
-		bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SOFTTIMER,"error,not enough timerid for alloc, already 40 exists\n");
+		softtimer_print("error,not enough timerid for alloc, already 40 exists\n");
 		spin_unlock_irqrestore(&(timer_control[timer->wake_type].timer_list_lock),flags);
 		return BSP_ERROR;
 	}
@@ -310,6 +341,11 @@ s32 bsp_softtimer_free(struct softtimer_list *timer)
 	unsigned long flags;
 	if ((NULL == timer)||(!list_empty(&timer->entry)))
 	{
+		return BSP_ERROR;
+	}
+	if(unlikely((timer->wake_type != SOFTTIMER_WAKE) && (timer->wake_type != SOFTTIMER_NOWAKE)))
+	{
+		softtimer_print("wake type %d, invalid\n",timer->wake_type);
 		return BSP_ERROR;
 	}
 	spin_lock_irqsave(&(timer_control[timer->wake_type].timer_list_lock),flags);/*lint !e550*/
@@ -455,7 +491,7 @@ int  bsp_softtimer_init(void)
 	/* coverity[var_decl] */
 	struct bsp_hardtimer_control timer_ctrl ;
 	/*coverity[secure_coding]*/
-	memset((void*)&timer_ctrl,0,sizeof(struct bsp_hardtimer_control));
+	memset_s((void*)&timer_ctrl,sizeof(struct bsp_hardtimer_control),0,sizeof(struct bsp_hardtimer_control));
 	INIT_LIST_HEAD(&(timer_control[SOFTTIMER_WAKE].timer_list_head));
 	INIT_LIST_HEAD(&(timer_control[SOFTTIMER_NOWAKE].timer_list_head));
 	timer_control[SOFTTIMER_NOWAKE].hard_timer_id	  = ACORE_SOFTTIMER_NOWAKE_ID;
@@ -543,7 +579,7 @@ int  bsp_softtimer_init(void)
 		}
 		wake_lock_init(&timer_control[SOFTTIMER_NOWAKE].wake_lock, WAKE_LOCK_SUSPEND, "softtimer_nowake");
 	 }
-	 bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SOFTTIMER,"softtimer init success\n");
+	 softtimer_print("softtimer init success\n");
 	return BSP_OK;
 }
 
@@ -572,7 +608,5 @@ EXPORT_SYMBOL(bsp_softtimer_add);
 EXPORT_SYMBOL(bsp_softtimer_free);
 EXPORT_SYMBOL(check_softtimer_support_type);
 EXPORT_SYMBOL(show_list);
-arch_initcall(bsp_softtimer_init);
-
 
 

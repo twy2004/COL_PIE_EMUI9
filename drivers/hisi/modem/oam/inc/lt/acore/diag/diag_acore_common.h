@@ -72,8 +72,6 @@ extern "C" {
 
 #define     DIAG_DEBUG_TRANS                (0x00000001)
 
-
-
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
@@ -141,36 +139,30 @@ extern VOS_SPINLOCK             g_stScmCnfSrcBuffSpinLock;
 /*****************************************************************************
   8 Fuction Extern
 *****************************************************************************/
-extern VOS_VOID diag_TransTimeoutProc(REL_TIMER_MSG *pTimer);
-
-extern VOS_UINT32 diag_TransCnfProc(VOS_UINT8* pstCnf ,VOS_UINT32 ulLen,
+VOS_VOID diag_TransTimeoutProc(REL_TIMER_MSG *pTimer);
+VOS_UINT32 diag_TransCnfProc(VOS_UINT8* pstCnf ,VOS_UINT32 ulLen,
                                     DIAG_MESSAGE_TYPE_U32 ulGroupId, DIAG_TRANS_HEADER_STRU *pstHead);
-
-extern DIAG_TRANS_NODE_STRU* diag_AddTransInfoToList(VOS_UINT8 * pstReq, VOS_UINT32 ulRcvlen,
+DIAG_TRANS_NODE_STRU* diag_AddTransInfoToList(VOS_UINT8 * pstReq, VOS_UINT32 ulRcvlen,
                                     DIAG_TRANS_HEADER_STRU *pstHead);
 
-extern DIAG_TRANS_NODE_STRU * diag_IsTransCnf(DIAG_TRANS_MSG_STRU* pstPsCnf, DIAG_TRANS_HEADER_STRU *pstHead);
+DIAG_TRANS_NODE_STRU * diag_IsTransCnf(DIAG_TRANS_MSG_STRU* pstPsCnf, DIAG_TRANS_HEADER_STRU *pstHead);
 
-extern VOS_VOID diag_GetTransInfo(MSP_DIAG_CNF_INFO_STRU *pstInfo,
-                                 DIAG_TRANS_CNF_STRU    *pstDiagCnf,
-                                 DIAG_TRANS_MSG_STRU    *pstPsCnf,
-                                 DIAG_TRANS_NODE_STRU   *pNode);
+VOS_VOID diag_GetTransInfo(MSP_DIAG_CNF_INFO_STRU *pstInfo,
+                          DIAG_TRANS_CNF_STRU    *pstDiagCnf,
+                          DIAG_TRANS_MSG_STRU    *pstPsCnf,
+                          DIAG_TRANS_NODE_STRU   *pNode);
 
-extern VOS_VOID diag_DelTransCmdNode(DIAG_TRANS_NODE_STRU* pTempNode);
+VOS_VOID diag_DelTransCmdNode(DIAG_TRANS_NODE_STRU* pTempNode);
 
-extern VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADER_STRU *pstHead);
+VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADER_STRU *pstHead);
+VOS_VOID OM_AcpuCltInfoCnfMsgProc(MsgBlock* pMsg);
+VOS_VOID OM_AcpuCltInfoCnfNotNeedProcessSetFlag(VOS_VOID);
+VOS_VOID OM_AcpuRcvCltInfoFinish(VOS_VOID);
 
-#if(FEATURE_ON == FEATURE_PTM)
-extern VOS_VOID OM_AcpuRcvMsgFinish(VOS_VOID);
-#endif
-
-extern VOS_VOID OM_AcpuCltInfoCnfMsgProc(MsgBlock* pMsg);
-extern VOS_VOID OM_AcpuCltInfoCnfNotNeedProcessSetFlag(VOS_VOID);
-extern VOS_VOID OM_AcpuRcvCltInfoFinish(VOS_VOID);
-
-extern VOS_VOID PPM_SockOmServerTask(VOS_VOID);
-extern VOS_VOID PPM_SockAtServerTask(VOS_VOID);
-u32 diag_DisconnectTLPort(void);
+VOS_VOID PPM_SockOmServerTask(VOS_VOID);
+VOS_VOID PPM_SockAtServerTask(VOS_VOID);
+VOS_UINT32 diag_DisconnectTLPort(void);
+VOS_VOID diag_ApAgentMsgProc(MsgBlock* pMsgBlock);
 
 /*****************************************************************************
   9 OTHERS

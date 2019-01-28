@@ -181,21 +181,22 @@ enum MTC_SESSION_TYPE_ENUM
     
     MTC_SESSION_TYPE_COMBINED_ATTACH                        = 17,
     MTC_SESSION_TYPE_COMBINED_RAU                           = 18,
+    MTC_SESSION_TYPE_CS_MT_PAGING                           = 19,
 
-    MTC_SESSION_TYPE_CS_BUTT                                = 19,               /* 这个枚举之前为CS相关类型 */
+    MTC_SESSION_TYPE_CS_BUTT                                = 20,               /* 这个枚举之前为CS相关类型 */
 
-    MTC_SESSION_TYPE_PS_CONVERSAT_CALL                      = 20,
-    MTC_SESSION_TYPE_PS_STREAM_CALL                         = 21,
-    MTC_SESSION_TYPE_PS_INTERACT_CALL                       = 22,
-    MTC_SESSION_TYPE_PS_BACKGROUND_CALL                     = 23,
-    MTC_SESSION_TYPE_PS_SUBSCRIB_TRAFFIC_CALL               = 24,
-    MTC_SESSION_TYPE_PS_MO_SMS                              = 25,
-    MTC_SESSION_TYPE_PS_MT_SMS                              = 26,
-    MTC_SESSION_TYPE_PS_ATTACH                              = 27,
-    MTC_SESSION_TYPE_PS_RAU                                 = 28,
-    MTC_SESSION_TYPE_PS_DETACH                              = 29,
-    MTC_SESSION_TYPE_1X_PS_CALL                             = 30,               /* 1X上报的PS业务 */
-    MTC_SESSION_TYPE_BUTT                                   = 31                /* 从MTC_SESSION_TYPE_CS_BUTT到这个枚举为PS相关类型 */
+    MTC_SESSION_TYPE_PS_CONVERSAT_CALL                      = 21,
+    MTC_SESSION_TYPE_PS_STREAM_CALL                         = 22,
+    MTC_SESSION_TYPE_PS_INTERACT_CALL                       = 23,
+    MTC_SESSION_TYPE_PS_BACKGROUND_CALL                     = 24,
+    MTC_SESSION_TYPE_PS_SUBSCRIB_TRAFFIC_CALL               = 25,
+    MTC_SESSION_TYPE_PS_MO_SMS                              = 26,
+    MTC_SESSION_TYPE_PS_MT_SMS                              = 27,
+    MTC_SESSION_TYPE_PS_ATTACH                              = 28,
+    MTC_SESSION_TYPE_PS_RAU                                 = 29,
+    MTC_SESSION_TYPE_PS_DETACH                              = 30,
+    MTC_SESSION_TYPE_1X_PS_CALL                             = 31,               /* 1X上报的PS业务 */
+    MTC_SESSION_TYPE_BUTT                                   = 32                /* 从MTC_SESSION_TYPE_CS_BUTT到这个枚举为PS相关类型 */
 };
 typedef VOS_UINT8 MTC_SESSION_TYPE_ENUM_UINT8;                                  /* 这个枚举在增加时，注意不要超过32个，否则记录会越界 */
 
@@ -240,6 +241,9 @@ enum MTC_RATMODE_ENUM
     MTC_RATMODE_TDS                     = 0x03,
     MTC_RATMODE_1X                      = 0x04,
     MTC_RATMODE_HRPD                    = 0x05,
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    MTC_RATMODE_NR                      = 0X06,
+#endif
     MTC_RATMODE_BUTT
 };
 typedef VOS_UINT8 MTC_RATMODE_ENUM_UINT8;

@@ -481,6 +481,11 @@ static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd,
 		if (need_max_bl_delay) {
 			usleep_range(mask_delay_time_before_fp, mask_delay_time_before_fp);
 			need_max_bl_delay = false;
+			// To avoid XCC influencing the lightness of mask layer,
+			// the config of XCC(include xcc enable state) should be stored and cleaned temporarily.
+			// XCC config will be ignored during mask layer exists, by setting mask_layer_xcc_flag to 1.
+			hisifd->mask_layer_xcc_flag = 1;
+			clear_xcc_table(hisifd);
 		}
 		need_min_bl_delay = true;
 		*masklayer_maxbacklight_flag = true;
@@ -492,6 +497,9 @@ static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd,
 		if (need_min_bl_delay) {
 			usleep_range(mask_delay_time_after_fp, mask_delay_time_after_fp);
 			need_min_bl_delay = false;
+			// restore XCC config(include XCC enable state) while mask layer disappear.
+			restore_xcc_table(hisifd);
+			hisifd->mask_layer_xcc_flag = 0;
 		}
 		need_max_bl_delay = true;
 		*masklayer_maxbacklight_flag = false;

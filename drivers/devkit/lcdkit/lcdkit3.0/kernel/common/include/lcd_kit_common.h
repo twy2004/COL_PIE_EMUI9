@@ -439,6 +439,15 @@ struct lcd_kit_ce {
 	struct lcd_kit_dsi_panel_cmds vivid_cmds;
 };
 
+struct lcd_kit_set_vss{
+	u32 support;
+	u32 power_off;
+	u32 new_backlight;
+	struct lcd_kit_dsi_panel_cmds cmds_fir;
+	struct lcd_kit_dsi_panel_cmds cmds_sec;
+	struct lcd_kit_dsi_panel_cmds cmds_thi;
+};
+
 struct lcd_kit_effect_on {
 	u32 support;
 	struct lcd_kit_dsi_panel_cmds cmds;
@@ -530,6 +539,8 @@ struct lcd_kit_common_info {
 	struct lcd_kit_checkreg check_reg;
 	/*PT current test*/
 	struct lcd_kit_pt_test pt;
+	/*vss*/
+	struct lcd_kit_set_vss set_vss;
 	/**********************end******************/
 	/**********************effect******************/
 	int bl_level_max;

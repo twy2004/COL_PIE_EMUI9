@@ -64,7 +64,7 @@ extern "C"
 #include "product_config.h"
 #include "hi_socp.h"
 #include "bsp_socp.h"
-#include "bsp_trace.h"
+#include "bsp_print.h"
 #include <linux/dma-mapping.h>
 #include <linux/semaphore.h>
 #include <linux/workqueue.h>
@@ -83,8 +83,8 @@ extern "C"
 /**************************************************************************
   宏定义
 **************************************************************************/
-//#define SOCP_VIRT_PHY(virt)          virt_to_phys((void*)virt)
-//#define SOCP_PHY_VIRT(phy)           phys_to_virt((unsigned long)phy)
+#define  THIS_MODU mod_socp
+
 #define SOCP_VIRT_PHY(virt)          (virt)
 #define SOCP_PHY_VIRT(phy)           (phy)
 
@@ -456,6 +456,15 @@ enum SOCP_ENC_DST_OUTPUT_COMPRESS_ENUM
 };
 typedef unsigned int SOCP_ENC_DST_COMPRESS_UINT32;
 
+/*压缩使能枚举*/
+enum SOCP_COMPRESS_ENABLE_ENUM
+{
+    SOCP_COMPRESS_DISABLE      =0,
+    SOCP_COMPRESS_ENBALE,
+    
+};
+typedef unsigned int SOCP_COMPRESS_ENABLE_ENUM;
+
 typedef struct tagSOCP_DEBUG_GBL_S
 {
     u32  u32SocpAllocEncSrcCnt;        /* SOCP申请编码源通道的次数*/
@@ -667,6 +676,7 @@ typedef struct
 #define SOCP_TIMEOUT_TRF_LONG_MIN       (0x0a)     // 10ms
 #define SOCP_TIMEOUT_TRF_SHORT_VAL      (0x0a)     // 10ms
 
+
 #define SOCP_DEC_PKTLGTH_MAX            (0x04)     //dec:4096, 单位为KB
 #define SOCP_DEC_PKTLGTH_MIN            (0x06)     //dec:6, 单位为字节
 #define SOCP_TIMEOUT_MAX                (0xffff)
@@ -742,13 +752,11 @@ void socp_help(void);
 #define BBP_REG_GETBITS(reg, pos, bits) BSP_REG_GETBITS(g_strSocpStat.armBaseAddr, reg, pos, bits)
 /**************************************************************************/
 
-// #define SOCP_FLUSH_CACHE(ptr, size) __dma_single_cpu_to_dev(ptr, size, 1)
-// #define SOCP_INVALID_CACHE(ptr, size) __dma_single_dev_to_cpu(ptr, size, 2)
-
 #define SOCP_FLUSH_CACHE(ptr, size)  (0)
 #define SOCP_INVALID_CACHE(ptr, size) (0)
 
-#define socp_printf(fmt,...)     bsp_trace(BSP_LOG_LEVEL_ERROR,BSP_MODU_SOCP,fmt,##__VA_ARGS__)
+#define socp_crit(fmt,...)       printk(KERN_ERR"[%s]:"fmt, BSP_MOD(THIS_MODU), ##__VA_ARGS__)
+#define socp_error(fmt,...)      printk(KERN_ERR"[%s]:<%s %d>"fmt, BSP_MOD(THIS_MODU), __FUNCTION__, __LINE__,##__VA_ARGS__)
 
 #define BIT_N(n)                (0x01 << (n))
 #define SOCP_DEBUG_READ_DONE    BIT_N(0)
@@ -758,7 +766,7 @@ void socp_help(void);
 do{\
     if(FALSE != (g_ulSocpDebugTraceCfg&ulSwitch)) \
     { \
-        socp_printf("[%s] %d, 0x%x, 0x%x, 0x%x, 0x%x\n", __FUNCTION__, __LINE__, ARG1, ARG2, ARG3, ARG4); \
+        socp_error("0x%x, 0x%x, 0x%x, 0x%x\n",ARG1, ARG2, ARG3, ARG4); \
     }\
 }while(0)
 

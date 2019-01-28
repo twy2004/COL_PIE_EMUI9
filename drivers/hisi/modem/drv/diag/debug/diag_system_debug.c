@@ -63,7 +63,10 @@
 #include  "OmCommonPpm.h"
 #include  "diag_system_debug.h"
 #include  "scm_ind_dst.h"
-#include  "soft_decode.h"
+#include  "scm_common.h"
+
+
+#define    DIAG_LOG_PATH       MODEM_LOG_ROOT"/drv/DIAG/"
 
 /*****************************************************************************
   2 Declare the Global Variable
@@ -78,6 +81,9 @@
 *****************************************************************************/
 DIAG_PTR_INFO_STRU g_stPtrInfo = {0};
 
+spinlock_t  g_stDiagThroughputSpinLock;
+
+u32 g_DiagLogLevel = 0;
 
 void diag_PTR(DIAG_PTR_ID_ENUM enType, u32 paraMark, u32 para0, u32 para1)
 {
@@ -99,15 +105,15 @@ void DIAG_DebugPTR(void)
     s32 pFile;
     u32 ret;
     u32 ulValue;
-    s8 *DirPath = "/modem_log/DIAG";
-    s8 *FilePath = "/modem_log/DIAG/DIAG_PTR.bin";
+    s8 *DirPath = DIAG_LOG_PATH;
+    s8 *FilePath = DIAG_LOG_PATH"DIAG_PTR.bin";
 
     /* 如果DIAG目录不存在则先创建目录 */
     if (BSP_OK != bsp_access(DirPath, RFILE_RDONLY))
     {
         if (BSP_OK != bsp_mkdir(DirPath, 0775))
         {
-            (void)diag_system_printf(" mdrv_file_mkdir /modem_log/DIAG failed.\n");
+            diag_error("mkdir %s failed.\n", DIAG_LOG_PATH);
             return ;
         }
     }
@@ -115,14 +121,14 @@ void DIAG_DebugPTR(void)
     pFile = bsp_open(FilePath, RFILE_RDWR|RFILE_CREAT, 0664);
     if(pFile < 0)
     {
-        (void)diag_system_printf(" bsp_open failed.\n");
+        diag_error(" bsp_open failed.\n");
         return ;
     }
 
     ret = DIAG_SystemDebugFileHeader(pFile);
     if(BSP_OK != ret)
     {
-        (void)diag_system_printf(" DIAG_DebugFileHeader failed .\n");
+        diag_error("DIAG_DebugFileHeader failed .\n");
         (void)bsp_close(pFile);
         return ;
     }
@@ -132,14 +138,14 @@ void DIAG_DebugPTR(void)
     ret = bsp_write((u32)pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write sizeof g_stPtrInfo failed.\n");
+        diag_error("write sizeof g_stPtrInfo failed.\n");
     }
 
     /* 再写入打点信息 */
     ret = bsp_write((u32)pFile, (s8 *)&g_stPtrInfo, sizeof(g_stPtrInfo));
     if(ret != sizeof(g_stPtrInfo))
     {
-        (void)diag_system_printf(" mdrv_file_write g_stPtrInfo failed.\n");
+        diag_error("write g_stPtrInfo failed.\n");
     }
 
     DIAG_SystemDebugFileTail(pFile, FilePath);
@@ -150,7 +156,7 @@ void DIAG_DebugPTR(void)
 }
 EXPORT_SYMBOL(DIAG_DebugPTR);
 
-char *g_PtrName[EN_DIAG_PTR_NV_AUTH_FAIL_CNF + 1] =
+char *g_PtrName[EN_DIAG_PTR_CFG_END + 1] =
 {
     "begin",            "ppm_rcv",      "cpm_rcv",          "scm_soft",     "scm_self",     "scm_rcv",      "scm_rcv1",     "scm_disp",
     "mspsvic1",         "mspsvic2",     "diagsvc1",         "diagsvc2",     "diagmsg1",     "diagmsg2",     "msgmsp1",      "msptrans",
@@ -164,7 +170,8 @@ char *g_PtrName[EN_DIAG_PTR_NV_AUTH_FAIL_CNF + 1] =
     "GET_MODEM_NUM",    "MODEM_NUM_CNF","GET_PID_TABLE",    "PID_TABLE_CNF","TRANS_CNF",    "FS_QUERY",     "FS_SCAN",      "FS_MAKE_DIR",
     "FS_OPEN",          "FS_IMPORT",    "FS_EXOPORT",       "FS_DELETE",    "FS_SPACE",     "NV_RD",        "NV_RD_OK",     "NV_RD_FAIL",
     "GET_NV_LIST",      "NV_LIST_OK",   "GET_NV_LIST_FAIL", "GET_RESUME_LIST","RESUME_LIST_OK","RESUME_LIST_FAIL","NV_WR",  "NV_WR_SUCESS",
-    "NV_WR_FAIL",       "AUTH_NV_CFG",  "NV_AUTH_PROC",     "NV_AUTH_FAIL",
+    "NV_WR_FAIL",       "AUTH_NV_CFG",  "NV_AUTH_PROC",     "NV_AUTH_FAIL", "TRANS",        "TRANS_CNF",    "HIGHTS",       "HIGHTS_CNF",
+    "USERPLANE",        "USERPLANE_CNF",
 };
 
 void DIAG_DebugShowPTR(u32 ulnum)
@@ -186,7 +193,7 @@ void DIAG_DebugShowPTR(u32 ulnum)
 
     cur = (pPtrTmp->ulCur - ulnum + DIAG_PTR_NUMBER)%DIAG_PTR_NUMBER;
 
-    diag_system_printf("current ptr:0x%x\n", pPtrTmp->ulCur);
+    diag_crit("current ptr:0x%x\n", pPtrTmp->ulCur);
     for(i = 0; i < ulnum; i++)
     {
         if(0 != pPtrTmp->stPtr[cur].ulTime)
@@ -196,13 +203,13 @@ void DIAG_DebugShowPTR(u32 ulnum)
                 (void)osl_task_delay(10);
             }
             event = pPtrTmp->stPtr[cur].enStep;
-            (void)bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_DIAG_SYSTEM,"%02d %-20s %08d ms \n", \
+            diag_crit("%02d %-20s %08d ms \n", \
                     event, g_PtrName[event], (pPtrTmp->stPtr[cur].ulTime/33));
         }
 
         cur = (cur + 1) % DIAG_PTR_NUMBER;
     }
-    (void)diag_system_printf("i = %d, over!\n", i);
+    diag_crit("i = %d, over!\n", i);
 
     osl_free(pPtrTmp);
 
@@ -219,7 +226,7 @@ u32 DIAG_SystemDebugFileHeader(u32 pFile)
     ret = (u32)bsp_lseek(pFile, 0, DRV_SEEK_SET);
     if(BSP_OK != ret)
     {
-        (void)diag_system_printf(" mdrv_file_seek failed .\n");
+        diag_error("file_seek failed .\n");
         return (u32)BSP_ERROR;
     }
 
@@ -229,7 +236,7 @@ u32 DIAG_SystemDebugFileHeader(u32 pFile)
     ret = (u32)bsp_write(pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write start flag failed.\n");
+        diag_error("write start flag failed.\n");
         return (u32)BSP_ERROR;
     }
 
@@ -239,7 +246,7 @@ u32 DIAG_SystemDebugFileHeader(u32 pFile)
     ret = (u32)bsp_write(pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write debug version failed.\n");
+        diag_error("write debug version failed.\n");
         return (u32)BSP_ERROR;
     }
 
@@ -249,7 +256,7 @@ u32 DIAG_SystemDebugFileHeader(u32 pFile)
     ret = (u32)bsp_write(pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write file size failed.\n");
+        diag_error("write file size failed.\n");
         return (u32)BSP_ERROR;
     }
 
@@ -259,7 +266,7 @@ u32 DIAG_SystemDebugFileHeader(u32 pFile)
     ret = (u32)bsp_write(pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write ulTime failed.\n");
+        diag_error("write ulTime failed.\n");
         return (u32)BSP_ERROR;
     }
 
@@ -279,9 +286,8 @@ void DIAG_SystemDebugFileTail(u32 pFile, s8 *FilePath)
     ret = (u32)bsp_write(pFile, (s8 *)&ulValue, sizeof(ulValue));
     if(ret != sizeof(ulValue))
     {
-        (void)diag_system_printf(" mdrv_file_write start flag failed.\n");
+        diag_error("write start flag failed.\n");
     }
-
 }
 
 DIAG_THRPUT_INFO_STRU g_astThroughput[EN_DIAG_THRPUT_MAX] = {{0,0,0,0,{{0,0},}}};
@@ -291,9 +297,11 @@ void diag_ThroughputSave(DIAG_THRPUT_ID_ENUM enChn, u32 bytes)
 {
     u32 slice = mdrv_timer_get_normal_timestamp();
     u32 ptr;
+    unsigned long ulLockLevel;
 
     g_astThroughput[enChn].ulBytes += bytes;
 
+    scm_SpinLockIntLock(&g_stDiagThroughputSpinLock, ulLockLevel);
     if(slice >= g_astThroughput[enChn].ulSlice)
     {
         /* 每次统计吞吐率最少间隔5秒以上 */
@@ -325,6 +333,7 @@ void diag_ThroughputSave(DIAG_THRPUT_ID_ENUM enChn, u32 bytes)
         g_astThroughput[enChn].ulSlice = slice;
         g_astThroughput[enChn].ulBytes = 0;
     }
+    scm_SpinUnlockIntUnlock(&g_stDiagThroughputSpinLock, ulLockLevel);
 }
 
 void DIAG_ShowThroughput(u32 ulIndex)
@@ -333,15 +342,15 @@ void DIAG_ShowThroughput(u32 ulIndex)
 
     if(ulIndex >= EN_DIAG_THRPUT_MAX)
     {
-        (void)diag_system_printf("ulIndex %d.\n", ulIndex);
+        diag_error("ulIndex %d.\n", ulIndex);
         return ;
     }
 
-    (void)diag_system_printf("max throughput 0x%x Bytes/s.\n", g_astThroughput[ulIndex].ulMax);
+    diag_crit("max throughput 0x%x Bytes/s.\n", g_astThroughput[ulIndex].ulMax);
 
     for(i = 0; i < DIAG_THRPUT_DEBUG_NUM; i++)
     {
-        (void)diag_system_printf("slice 0x%08x, throughput 0x%08x Bytes/s.\n",
+        diag_crit("slice 0x%08x, throughput 0x%08x Bytes/s.\n",
             g_astThroughput[ulIndex].stNode[i].ulSlice,
             g_astThroughput[ulIndex].stNode[i].ulThroughput);
     }
@@ -360,8 +369,8 @@ void DIAG_Throughput(void)
 {
     u32  pFile;
     u32     ret;
-    char *DirPath = "/modem_log/DIAG";
-    char *FilePath = "/modem_log/DIAG/DIAG_Throughput.bin";
+    char *DirPath = DIAG_LOG_PATH;
+    char *FilePath = DIAG_LOG_PATH"DIAG_Throughput.bin";
     char   aucInfo[DIAG_DEBUG_INFO_LEN];
 
     /* 如果DIAG目录不存在则先创建目录 */
@@ -369,7 +378,7 @@ void DIAG_Throughput(void)
     {
         if (BSP_OK != bsp_mkdir(DirPath, 0755))
         {
-            (void)diag_system_printf(" mdrv_file_mkdir /modem_log/DIAG failed.\n");
+            diag_error("mkdir %s failed.\n", DIAG_LOG_PATH);
             return ;
         }
     }
@@ -377,14 +386,14 @@ void DIAG_Throughput(void)
     pFile = bsp_open(FilePath, RFILE_RDWR|RFILE_CREAT, 0664);
     if(pFile == 0)
     {
-        (void)diag_system_printf(" mdrv_file_open failed.\n");
+        diag_error(" mdrv_file_open failed.\n");
         return;
     }
 
     ret = DIAG_SystemDebugFileHeader(pFile);
     if(BSP_OK != ret)
     {
-        (void)diag_system_printf(" DIAG_DebugFileHeader failed .\n");
+        diag_error(" DIAG_DebugFileHeader failed .\n");
         (void)bsp_close(pFile);
         return ;
     }
@@ -395,21 +404,21 @@ void DIAG_Throughput(void)
     ret = bsp_write(pFile, (s8 *)aucInfo, DIAG_DEBUG_INFO_LEN);
     if(ret != DIAG_DEBUG_INFO_LEN)
     {
-        (void)diag_system_printf(" mdrv_file_write DIAG number info failed.\n");
+        diag_error(" mdrv_file_write DIAG number info failed.\n");
     }
 
     ret = bsp_write(pFile, (s8 *)&g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_PHY],
         sizeof(g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_PHY]));
     if(ret != sizeof(g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_PHY]))
     {
-        (void)diag_system_printf(" mdrv_file_write pData failed.\n");
+        diag_error(" mdrv_file_write pData failed.\n");
     }
 
     ret = bsp_write(pFile, (s8 *)&g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_CB],
         sizeof(g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_CB]));
     if(ret != sizeof(g_astThroughput[EN_DIAG_THRPUT_DATA_CHN_CB]))
     {
-        (void)diag_system_printf(" mdrv_file_write pData failed.\n");
+        diag_error(" mdrv_file_write pData failed.\n");
     }
 
     DIAG_SystemDebugFileTail(pFile, FilePath);
@@ -427,6 +436,12 @@ u32              g_ulSendUSBStartSlice = 0;
 void diag_reset_dst_mntn_info(void)
 {
     memset_s(&g_ind_dst_mntn_info, sizeof(g_ind_dst_mntn_info), 0, sizeof(g_ind_dst_mntn_info));
+}
+
+u32 diag_debug_log_level(u32 level)
+{
+    g_DiagLogLevel = level;/*diag log level: 0=error, !0=debug*/
+    return g_DiagLogLevel;
 }
 
 s32 diag_system_debug_event_cb(unsigned int u32ChanID, SOCP_EVENT_ENUM_UIN32 u32Event, unsigned int u32Param)
@@ -463,62 +478,6 @@ void diag_debug_get_dst_mntn_info(DIAG_MNTN_DST_INFO_STRU * dst_mntn)
     return;
 }
 
-/*软解码*************************************************************************/
-void diag_save_soft_decode_info(void)
-{
-    u32  pFile;
-    u32  ret;
-    char *DirPath = "/modem_log/DIAG";
-    char *FilePath = "/modem_log/DIAG/DIAG_SoftDecode.bin";
-    char aucInfo[DIAG_DEBUG_INFO_LEN];
-
-    /* 如果DIAG目录不存在则先创建目录 */
-    if (BSP_OK != bsp_access(DirPath, 0))
-    {
-        if (BSP_OK != bsp_mkdir(DirPath, 0755))
-        {
-            (void)diag_system_printf(" mdrv_file_mkdir /modem_log/DIAG failed.\n");
-            return ;
-        }
-    }
-
-    pFile = bsp_open(FilePath, RFILE_RDWR|RFILE_CREAT, 0664);
-    if(pFile == 0)
-    {
-        (void)diag_system_printf(" mdrv_file_open failed.\n");
-        return;
-    }
-
-    ret = DIAG_SystemDebugFileHeader(pFile);
-    if(BSP_OK != ret)
-    {
-        (void)diag_system_printf(" DIAG_DebugFileHeader failed .\n");
-        (void)bsp_close(pFile);
-        return ;
-    }
-
-    (void)memset_s(aucInfo, sizeof(aucInfo), 0, DIAG_DEBUG_INFO_LEN);
-    (void)memcpy_s(aucInfo, sizeof(aucInfo), "DIAG SoftDecode info", strnlen("DIAG SoftDecode info", sizeof(aucInfo)-1));
-
-    ret = bsp_write(pFile, (s8 *)aucInfo, DIAG_DEBUG_INFO_LEN);
-    if(ret != DIAG_DEBUG_INFO_LEN)
-    {
-        (void)diag_system_printf(" mdrv_file_write DIAG number info failed.\n");
-    }
-
-    ret = bsp_write(pFile, (s8 *)&g_stScmSoftDecodeInfo,
-        sizeof(g_stScmSoftDecodeInfo));
-    if(ret != sizeof(g_stScmSoftDecodeInfo))
-    {
-        (void)diag_system_printf(" mdrv_file_write pData failed.\n");
-    }
-
-    DIAG_SystemDebugFileTail(pFile, FilePath);
-
-    (void)bsp_close(pFile);
-
-    return ;
-}
 EXPORT_SYMBOL(diag_save_soft_decode_info);
 
 

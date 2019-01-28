@@ -1239,11 +1239,17 @@ static int gtx8_parse_dts(void)
 						ts->roi.roi_rows, ts->roi.roi_cols);
 	}
 
+	ret = of_property_read_u32(device, GTP_STATIC_PID_SUPPORT, &value);
+	if (ret) {
+		value = 0;
+		TS_LOG_INFO("%s: gtx8_static_pid_support use default value\n", __func__);
+	}
+	ts->gtx8_static_pid_support = value;
+
 	ret = of_property_read_u32(device, GTP_TOOL_SUPPORT, &value);
 	if (ret) {
 		value = 0;
 		TS_LOG_INFO("%s: tools_support use default value\n", __func__);
-		ts->tools_support = false;
 	}
 	ts->tools_support = value;
 
@@ -1691,8 +1697,16 @@ static int gtx8_chip_init(void)
 
 	/* read version information. pid/vid/sensor id */
 	ret = gtx8_read_version(&ts->hw_info);
-	if (ret < 0)
+	if (ret < 0){
 		TS_LOG_ERR("%s: read_version fail!\n", __func__);
+		if(ts->gtx8_static_pid_support){
+			memset(ts->hw_info.pid, 0, PID_DATA_MAX_LEN);
+			strncpy(ts->hw_info.pid, GTX8_9886_CHIP_ID, PID_DATA_MAX_LEN - 1);
+			TS_LOG_INFO("%s: used static pid:%s!\n", __func__, ts->hw_info.pid);
+		}else{
+			TS_LOG_INFO("gtx8_static_pid do not support!\n");
+		}
+	}
 
 	/* obtain specific dt properties */
 	ret = gtx8_parse_specific_dts();

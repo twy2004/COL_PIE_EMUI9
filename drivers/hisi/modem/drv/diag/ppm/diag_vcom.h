@@ -100,12 +100,16 @@ struct diag_vcom_cb_ops_s {
   5. Function declarations
 *******************************************************************************/
 
-extern int diag_vcom_register_ops(uint32_t channel,
-							struct diag_vcom_cb_ops_s *ops);
+#ifdef CONFIG_DIAG_NETLINK
+extern int diag_vcom_register_ops(uint32_t channel, struct diag_vcom_cb_ops_s *ops);
 
-extern int diag_vcom_report_om_data(uint32_t channel, uint8_t *data,
-							uint32_t len, uint8_t mode);
+extern int diag_vcom_report_om_data(uint32_t channel, uint8_t *data, uint32_t len, uint8_t mode);
 
+#else
+static inline int diag_vcom_register_ops(uint32_t channel, struct diag_vcom_cb_ops_s *ops){return 0;};
+static inline int diag_vcom_report_om_data(uint32_t channel, uint8_t *data, uint32_t len, uint8_t mode){return 0;};
+static inline int diag_vcom_init(void){return 0;};
 
+#endif
 
 #endif /* __DIAG_VCOM_H__ */

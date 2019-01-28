@@ -1253,6 +1253,9 @@ struct ts_kit_platform_data
     unsigned int spi_mode;
     unsigned int cs_reset_low_delay;
     unsigned int cs_reset_high_delay;
+#if defined(HUAWEI_CHARGER_FB)
+    struct notifier_block charger_detect_notify;
+#endif
     struct device_node* node;
     struct i2c_client* client;
     struct spi_device *spi;
@@ -1286,9 +1289,6 @@ struct ts_kit_platform_data
 #endif
 #if defined (CONFIG_HUAWEI_DSM)
     struct ts_dsm_info dsm_info;
-#endif
-#if defined(HUAWEI_CHARGER_FB)
-    struct notifier_block charger_detect_notify;
 #endif
 };
 

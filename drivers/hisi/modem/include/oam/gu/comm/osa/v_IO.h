@@ -78,7 +78,6 @@
 #define _V_IO_H
 
 
-#include "stdarg.h"
 #include "dopra_def.h"
 #include "vos_config.h"
 #include "v_typdef.h"
@@ -92,13 +91,15 @@
 #include "math.h"
 #endif
 
+#if (VOS_TEN== VOS_OS_VER)
+#include "stdarg.h"
+#endif
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
 #endif /* __cpluscplus */
 #endif /* __cpluscplus */
-
-/*lint -e830*/
 
 #define LONGINT        0x01        /* long integer */
 #define LONGDBL        0x02        /* long double; unimplemented */
@@ -159,55 +160,36 @@ extern "C" {
 #define    BUF        (MAXEXP+MAXFRACT+1)    /* + decimal point */
 
 /*lint -save -e737*/
-/*lint -e830 -esym(830,*)*/
-#define ARG(basetype) \
-    ulLong = (VOS_UINT32)(lFlags&LONGINT ? va_arg(argp, long basetype) : \
-        lFlags&SHORTINT ? (short basetype)va_arg(argp, int) : \
-        va_arg(argp, int))
-
-/*lint +e830 +esym(830,*)*/
 #define    todigit(c)    ((c) - '0')
 #define    tochar(n)    ((n) + '0')
 
 typedef VOS_INT32 (* VOS_PRINT_HOOK)( VOS_CHAR * str );
 
-
-VOS_VOID  comio(VOS_UINT8 output, VOS_VOID *number,VOS_CHAR *);
-VOS_INT32 _C_formatter(const VOS_CHAR *format,
-                               VOS_VOID   put_one_char(VOS_UINT8, VOS_VOID *,VOS_CHAR *),
-                               VOS_VOID       *secret_pointer,
-                               va_list     ap,     VOS_CHAR * str);
-
-char *exponent(register char *p,register int lexp,unsigned char fmtch);
-int cvt(double number,register int prec,int flags,
-                unsigned char fmtch,char *signp, char *startp, char*endp);
-                /*lint -save -e750 -e752 -e745*/
-
-char * vos_round(double fract,int *exp,
-                    register char *start,
-                    register char *end,
-                       char ch,
-                    char *signp);
+/*lint -save -e750 -e752 -e745*/
 
 #if (VOS_RTOSCK == VOS_OS_VER)
+/*lint -esym(683,VOS_vsprintf_s)*/
 #define VOS_vsprintf_s vsprintf_s
 #else
 VOS_INT VOS_vsprintf_s(VOS_CHAR * str, VOS_SIZE_T ulDestSize, const VOS_CHAR *format,va_list argument);
 #endif
 
 #if (VOS_RTOSCK == VOS_OS_VER)
+/*lint -esym(683,VOS_sprintf_s)*/
 #define VOS_sprintf_s sprintf_s
 #else
 VOS_INT VOS_sprintf_s(VOS_CHAR *str, VOS_SIZE_T ulDestSize, const VOS_CHAR *fmt, ...);
 #endif
 
 #if (VOS_RTOSCK == VOS_OS_VER)
+/*lint -esym(683,VOS_nvsprintf_s)*/
 #define VOS_nvsprintf_s vsnprintf_s
 #else
 VOS_INT VOS_nvsprintf_s(VOS_CHAR * str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount, const VOS_CHAR *format, va_list arguments);
 #endif
 
 #if (VOS_RTOSCK == VOS_OS_VER)
+/*lint -esym(683,VOS_nsprintf_s)*/
 #define VOS_nsprintf_s snprintf_s
 #else
 VOS_INT VOS_nsprintf_s(VOS_CHAR *str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount, const VOS_CHAR *fmt, ...);
@@ -221,11 +203,7 @@ typedef VOS_UINT32   vos_u_quad_t;
 #define UQUAD_MAX    (0XFFFFFFFF)
 typedef vos_u_quad_t (*ccfntype)(const VOS_CHAR *, VOS_CHAR **, VOS_INT);
 
-/*lint -save -e830 -specific(-e830)*/
-/*lint -e830 -esym(830,*)*/
 VOS_INT32  vos_printf( const VOS_CHAR * format, ... );
-/*lint +e830 +esym(830,*)*/
-/*lint -restore*/
 
 VOS_VOID vos_assert( VOS_UINT32 ulFileID, VOS_INT LineNo);
 
@@ -437,19 +415,17 @@ extern VOS_INT logMsg(VOS_CHAR * fmt, VOS_INT arg1, VOS_INT arg2,
 #define VOS_ASSERT(exp) \
     if(!(exp))\
     {\
-        vos_assert(__FILE__, __LINE__);\
+        vos_assert(VOS_NULL, __LINE__);\
         return; }
 #define VOS_ASSERT_RTN(exp, ret) \
     if(!(exp))\
     {\
-        vos_assert(__FILE__, __LINE__);\
+        vos_assert(VOS_NULL, __LINE__);\
         return ret; }
 #else
 #define VOS_ASSERT( exp ) ( (VOS_VOID)0 )
 #define VOS_ASSERT_RTN(exp, ret) ( (VOS_VOID)0 )
 #endif
-
-/*lint +e830*/
 
 #ifdef __cplusplus
 #if __cplusplus

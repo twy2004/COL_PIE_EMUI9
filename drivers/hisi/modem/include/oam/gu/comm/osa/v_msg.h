@@ -127,6 +127,8 @@ extern "C" {
 #define VOS_ERRNO_MSG_EICC_WRITEMSGFULL                     0x20050071
 #define VOS_ERRNO_MSG_EICC_WRITEMSGERROR                    0x20040072
 
+#define VOS_EICC_HIGH_PRIORITY_FLAG                         0x5A5AA5A5
+
 /* The message block (packege) head for each message package    */
 typedef struct tagMsgBlockHead_S
 {
@@ -162,6 +164,7 @@ typedef struct tagMsgBlockHead_S
 #define VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH  \
                ((VOS_MSG_BLK_HEAD_LEN) + (VOS_MSG_HEAD_LENGTH))
 
+/*lint -save -e959*/
 #pragma pack(1)
 struct MsgCB
 {
@@ -169,6 +172,7 @@ struct MsgCB
     VOS_UINT8 aucValue[2];
 };
 #pragma pack()
+/*lint -restore*/
 
 typedef struct MsgCB MSG_CB;
 typedef struct MsgCB MsgBlock;

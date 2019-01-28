@@ -49,7 +49,6 @@
 #include <linux/mm.h>
 #include <linux/io.h>
 #include <soc_memmap.h>
-#include <bsp_trace.h>
 #include <bsp_s_memory.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_ddr.h>
@@ -57,11 +56,15 @@
 #include <linux/of_fdt.h>
 #include <linux/of.h>
 #include <linux/vmalloc.h>
+#include <bsp_print.h>
+#include <securec.h>
 
+#undef THIS_MODU
+#define THIS_MODU mod_mperf
 /*lint -e528*/
 
 #define  s_mem_pr_err(fmt, ...) \
-	(printk(KERN_ERR "[s_mem]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 
 
 
@@ -81,7 +84,7 @@ static int modem_mperf_reserve_area(struct reserved_mem *rmem)
 		return 0;
 	
 	/* coverity[secure_coding] */
-	(void)strncpy(reserved_mems[reserved_mem_count].name, rmem->name
+	(void)strncpy_s(reserved_mems[reserved_mem_count].name, 64, rmem->name
 		, min(sizeof(reserved_mems[reserved_mem_count].name)
 		, strnlen(rmem->name,sizeof(reserved_mems[reserved_mem_count].name))));/*lint !e666*/
 
@@ -165,7 +168,7 @@ EXPORT_SYMBOL(bsp_mem_unmap_uncached);
 
 static struct mperf_info  g_mperf_info = {0};
 
-static int __init  bsp_mem_init_mperf_info(void)
+int __init  bsp_mem_init_mperf_info(void)
 {
 	s32 ret = 0;
 	struct device_node *np = NULL;
@@ -195,5 +198,3 @@ struct mperf_info*  bsp_mem_get_mperf_info(void)
 		return NULL;
 }
 EXPORT_SYMBOL(bsp_mem_get_mperf_info);
-
-module_init(bsp_mem_init_mperf_info); /*lint !e528*/

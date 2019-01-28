@@ -29,7 +29,7 @@
 #define SAFE_MODE_TIMING_PIXEL_CLOCK 2517  /*The pixel clock of 640 * 480 = 25175. The saving pixel clock need 1/10.*/
 #define DPTX_CHECK_TIME_PERIOD 2000
 
-#define VBLANKING_MAX 255
+#define VBLANKING_MAX 32768
 
 uint32_t g_bit_hpd_status;
 

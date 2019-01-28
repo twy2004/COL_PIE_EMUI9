@@ -118,7 +118,7 @@ static int ipf_get_limit_addr(void)
 
 	type = &memblock.memory;
 	if(0 == type->cnt){
-		dev_err(g_ipf_ctx.dev, "ipf limit addr not get\n");
+		bsp_err("ipf limit addr not get\n");
 		g_ipf_ctx.limit_addr->block_err = 1;
 		return BSP_ERR_IPF_INVALID_PARA;
 	}
@@ -181,13 +181,13 @@ static void ipf_ul_bd_empty_cb(void){
 
 static void ipf_mst_sec_rd_err_cb(void){
     disable_irq_nosync(g_ipf_ctx.irq);
-	IPF_PRINT("ipf sec rd err\n");
+	bsp_err("ipf sec rd err\n");
 //	system_error(DRV_ERRNO_IPF_OUT_REG, 0, 0, (char*)&sm->uad0, sizeof(ipf_uad_u)+sizeof(ipf_uad_u));
 }
 
 static void ipf_mst_sec_wr_err_cb(void){
     disable_irq_nosync(g_ipf_ctx.irq);
-	IPF_PRINT("ipf sec wr err\n");
+	bsp_err("ipf sec wr err\n");
 //	system_error(DRV_ERRNO_IPF_OUT_REG, 0, 0, (char*)&sm->uad0, sizeof(ipf_uad_u)+sizeof(ipf_uad_u));
 }
 
@@ -253,7 +253,6 @@ static int ipf_ctx_init(void)
 
     g_ipf_ctx.dma_mask = g_ipf_ctx.desc->dma_mask;
     dma_set_mask_and_coherent(g_ipf_ctx.dev, g_ipf_ctx.dma_mask);
-    of_dma_configure(g_ipf_ctx.dev, g_ipf_ctx.dev->of_node);
     
     g_ipf_ctx.ul_info.pstIpfBDQ     = dmam_alloc_coherent(
                 g_ipf_ctx.dev, 
@@ -262,7 +261,7 @@ static int ipf_ctx_init(void)
 				GFP_KERNEL);
     if(!g_ipf_ctx.ul_info.pstIpfBDQ)
     {
-        pr_err("BDQ no mem!\n");
+        bsp_err("BDQ no mem!\n");
         goto ERROR0;
     }
 	
@@ -279,7 +278,7 @@ static int ipf_ctx_init(void)
                 GFP_KERNEL);
     if(!g_ipf_ctx.dl_info.pstIpfRDQ)
     {
-        pr_err("RDQ no mem!\n");
+        bsp_err("RDQ no mem!\n");
         goto ERROR1;
     }
 /*
@@ -303,9 +302,9 @@ ERROR0:
     return -ENOMEM;
 }
 
-struct ipf_desc_handler_s* ipf_get_desc_handler(unsigned int version)
+struct ipf_desc_handler_s* ipf_get_desc_handler(unsigned int version_id)
 {
-	if(version>IPF_VERSION_150a)
+	if(version_id>IPF_VERSION_150a)
         return &ipf_desc64_handler;
     else
         return &ipf_desc_handler;
@@ -321,21 +320,21 @@ int ipf_init(void)
 	
    	ret = ipf_ctx_init();
    	if(0 != ret) {
-		dev_err(g_ipf_ctx.dev, "ipf_ctx_init failed\n");
+		bsp_err("ipf_ctx_init failed\n");
 	}
     g_ipf_ctx.desc->config();
     
 	g_ipf_ctx.irq_hd = ipf_int_table;
 	ret = request_irq(g_ipf_ctx.irq, ipf_interrupt, IRQF_SHARED, "ipf", g_ipf_ctx.dev);
 	if(0 != ret) {
-		dev_err(g_ipf_ctx.dev, "request irq failed\n");
+		bsp_err("request irq failed\n");
 	}
 
     sm->init.status.modem = (unsigned int)IPF_FORRESET_CONTROL_ALLOW;
 
     if(0 != mdrv_sysboot_register_reset_notify("IPF_BALONG",bsp_ipf_reset_ccore_cb, 0, DRV_RESET_CB_PIOR_IPF))
     {
-    	dev_err(g_ipf_ctx.dev, "set modem reset call back func failed\n");
+    	bsp_err("set modem reset call back func failed\n");
     }
 
 	/*acore use first block,ccore use scnd block*/
@@ -350,7 +349,7 @@ int ipf_init(void)
 	g_ipf_ctx.psam_para.desc_hd = g_ipf_ctx.desc;
 	g_ipf_ctx.psam_pm = bsp_psam_set_ipf_para(&g_ipf_ctx.psam_para);
 
-	dev_err(g_ipf_ctx.dev, "ipf init success\n");
+	bsp_err("ipf init success\n");
 
 	return ret;
 }
@@ -386,7 +385,7 @@ int bsp_ipf_config_timeout(unsigned int u32Timeout)
 
     if((u32Timeout == 0) || (u32Timeout > 0xFFFF))
     {
-    	dev_err(g_ipf_ctx.dev, "%s para invalid\n", __func__);
+    	bsp_err("%s para invalid\n", __func__);
         return BSP_ERR_IPF_INVALID_PARA;
     }
 
@@ -413,7 +412,7 @@ void mdrv_ipf_reinit_dlreg(void)
 	psam_reinit_regs();
 
     g_ipf_ctx.status->init_ok = IPF_ACORE_INIT_SUCCESS;
-    dev_err(g_ipf_ctx.dev, "ipf dl register reinit success\n");
+    bsp_err("ipf dl register reinit success\n");
 
     return;
 
@@ -480,7 +479,7 @@ int bsp_ipf_reset_ccore_cb(DRV_RESET_CB_MOMENT_E eparam, int userdata)
 
         if (!time_out)
         {
-            bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_IPF,
+            bsp_err(
                 "\r IPF dl channel on after bsp_ipf_reset_ccore_cb called \n");
             g_ipf_ctx.stax.crst_timeout = bsp_get_slice_value();    
         }
@@ -521,7 +520,7 @@ int ipf_register_wakeup_dlcb(BSP_IPF_WakeupDlCb pFnWakeupDl)
     if(NULL == pFnWakeupDl)
     {
     	g_ipf_ctx.status->invalid_para++;
-    	pr_err("%s invalid para\n", __func__);
+    	bsp_err("%s invalid para\n", __func__);
         return BSP_ERR_IPF_INVALID_PARA;
     }
     g_ipf_ctx.dl_info.pFnDlIntCb = pFnWakeupDl;
@@ -533,7 +532,7 @@ int ipf_register_ul_bd_empty(ipf_bd_empty bd_handle)
    if(NULL == bd_handle)
     {
     	g_ipf_ctx.status->invalid_para++;
-    	pr_err("%s invalid para\n", __func__);
+    	bsp_err("%s invalid para\n", __func__);
         return BSP_ERR_IPF_INVALID_PARA;
     }
     g_ipf_ctx.ul_info.handle_bd_empty = bd_handle;
@@ -551,6 +550,12 @@ unsigned int mdrv_ipf_get_ulbd_num(void)
 	if(sm->init.status.acore==IPF_PWR_DOWN){
 		return 0;
 	}
+
+    if(IPF_FORRESET_CONTROL_FORBID <= g_ipf_ctx.modem_status)
+    {
+       	g_ipf_ctx.status->mdrv_called_not_init++;
+        return BSP_ERR_IPF_CCORE_RESETTING;
+    }
 
     u32IdleBd = g_ipf_ctx.desc->get_bd_num();
     *(g_ipf_ctx.ul_info.pu32IdleBd) = u32IdleBd;
@@ -582,7 +587,7 @@ int mdrv_ipf_config_ulbd(unsigned int u32Num, IPF_CONFIG_ULPARAM_S* pstUlPara)
     if((NULL == pstUlPara)||(0 == u32Num))
     {
     	g_ipf_ctx.status->invalid_para++;
-    	pr_err("%s para invalid\n", __func__);
+    	bsp_err("%s para invalid\n", __func__);
         return BSP_ERR_IPF_INVALID_PARA;
     }
 
@@ -590,7 +595,7 @@ int mdrv_ipf_config_ulbd(unsigned int u32Num, IPF_CONFIG_ULPARAM_S* pstUlPara)
     if(g_ipf_ctx.status && (IPF_ACORE_INIT_SUCCESS != g_ipf_ctx.status->init_ok))
     {
 		g_ipf_ctx.status->mdrv_called_not_init++;
-		pr_err("%s ipf not init\n", __func__);
+		bsp_err("%s ipf not init\n", __func__);
         return BSP_ERR_IPF_NOT_INIT;
     }
 
@@ -610,7 +615,7 @@ int mdrv_ipf_config_ulbd(unsigned int u32Num, IPF_CONFIG_ULPARAM_S* pstUlPara)
     {
         if(0 == pstUlPara[i].u16Len)
         {
-        	pr_err("%s the %d bdlen is zero drop packet\n", __func__, i);
+        	bsp_err("%s the %d bdlen is zero drop packet\n", __func__, i);
 			g_ipf_ctx.status->bd_len_zero_err++;
             return BSP_ERR_IPF_INVALID_PARA;
         }
@@ -640,7 +645,7 @@ int mdrv_ipf_register_ops(struct mdrv_ipf_ops *ops)
 		if(psam_register_adq_empty_dlcb((adq_emtpy_cb_t)ops->adq_empty_cb)!= IPF_SUCCESS)
 			return IPF_ERROR;
 	} else {
-		pr_err("%s para invalid\n", __func__);
+		bsp_err("%s para invalid\n", __func__);
 		g_ipf_ctx.status->invalid_para++;
 		return IPF_ERROR;
 	}
@@ -698,17 +703,16 @@ int reset_ipf_psam_from_sys(void)
 
 void ipf_om_dump_init(void)
 {
-    pr_err("ipf_om_dump_init\n");
 	g_ipf_ctx.dump_area= bsp_dump_register_field(DUMP_MODEMAP_IPF, "IPF_ACPU", 0, 0, IPF_DUMP_SIZE, 0);
 	
 	if (!g_ipf_ctx.dump_area) {
-		pr_err("ipf backup mem for dump alloc failed\n");
+		bsp_err("ipf backup mem for dump alloc failed\n");
 		return;
 	} 
 
     /* reg the dump callback to om */
 	if (-1 == bsp_dump_register_hook("IPF_ACPU", g_ipf_ctx.desc->dump)) {
-	    pr_err("ipf bsp_dump_register_hook failed\n");
+	    bsp_err("ipf bsp_dump_register_hook failed\n");
 	    return;
 	}
 }
@@ -740,12 +744,12 @@ static int ipf_probe(struct platform_device *pdev)
 
 	g_ipf_ctx.clk = devm_clk_get(g_ipf_ctx.dev, "ipf_clk");
 	if (IS_ERR(g_ipf_ctx.clk)) {
-		dev_err(g_ipf_ctx.dev, "ipf clock not available\n");
+		bsp_err("ipf clock not available\n");
 		return -ENXIO;
 	} else {
 		ret = clk_prepare_enable(g_ipf_ctx.clk);
 		if (ret) {
-			dev_err(g_ipf_ctx.dev, "failed to enable ipf clock\n");
+			bsp_err("failed to enable ipf clock\n");
 			return ret;
 		}
 	}
@@ -754,7 +758,7 @@ static int ipf_probe(struct platform_device *pdev)
     g_ipf_ctx.peribase = (void *)ioremap_nocache(g_ipf_ctx.reset_peri_crg[0], PERI_CRG_4K);
     if(!g_ipf_ctx.peribase)
     {
-        dev_err(g_ipf_ctx.dev, "ipf peribase ioremap_nocache failed\n");
+        bsp_err("ipf peribase ioremap_nocache failed\n");
     }
 	g_ipf_ctx.limit_addr = (IPF_LIMIT_ADDR_S *)sm->trans_limit;
     g_ipf_ctx.memblock_show = (unsigned long *)sm->memlock;
@@ -763,14 +767,13 @@ static int ipf_probe(struct platform_device *pdev)
 
 	if(ipf_get_limit_addr()){
 		g_ipf_ctx.not_get_space++;
-		dev_info(g_ipf_ctx.dev, "ipf addr limit func disable\n");
+		bsp_err("ipf addr limit func disable\n");
 	}
 
 	ipf_init();
 
 	g_ipf_ctx.pm = &ipf_dev_pm_ops;
 	sm->init.status.acore = IPF_PWR_UP;
-	printk("sm->init.status.save = %x\n", sm->init.status.save);
     sm->init.status.save = 0;
 
     ipf_om_dump_init();
@@ -797,6 +800,10 @@ static struct platform_driver ipf_pltfm_driver = {
 	},
 };
 
+__init int ipf_pltfm_driver_init(void)
+{
+    return platform_driver_register(&ipf_pltfm_driver);
+}
 EXPORT_SYMBOL(bsp_ipf_reset_ccore_cb);
 EXPORT_SYMBOL(g_ipf_ctx);
 EXPORT_SYMBOL(mdrv_ipf_config_dlad);
@@ -816,7 +823,6 @@ EXPORT_SYMBOL(mdrv_ipf_get_ulrd_num);
 EXPORT_SYMBOL(mdrv_ipf_register_ops);
 EXPORT_SYMBOL(ipf_register_wakeup_dlcb);
 
-module_platform_driver(ipf_pltfm_driver);//lint !e64
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:ipf");
 

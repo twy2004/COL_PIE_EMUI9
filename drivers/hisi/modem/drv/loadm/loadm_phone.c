@@ -67,8 +67,11 @@
 #include <bsp_hardtimer.h>
 #include <bsp_version.h>
 #include <bsp_nvim.h>
+#include <securec.h>
 #include "load_image.h"
-
+#include <bsp_print.h>
+#include <bsp_cold_patch.h>
+#define THIS_MODU mod_loadm
 #include <../../adrv/adrv.h>
 
 extern int modem_rfile_init(void);
@@ -86,7 +89,7 @@ int modem_sysboot_start_init(void)
     u64 jiffies_old = 0,jiffies_new=0;
     u64 jiffies_time=0;
 
-    printk(KERN_ERR "%s in.\n", __func__);
+    bsp_err("%s in.\n", __func__);
 
     if(bsp_get_version_info())
     {
@@ -99,51 +102,58 @@ int modem_sysboot_start_init(void)
     /*如果是recovery down模式时不能解复位modem*/
     if(!bsp_need_loadmodem())
 	{
-        printk(KERN_ERR "upload or charge mode, will not start modem.\n");
+        bsp_err("upload or charge mode, will not start modem.\n");
 		return 0;
 	}
 
-    printk(KERN_ERR "modem_rfile_init \n");
+    ret = modem_dir_init();
+    if(ret)
+    {
+        bsp_err("modem_dir_init failed, ret %#x\n", ret);
+        return ret;
+    }
+
+    bsp_err("modem_rfile_init \n");
     ret = modem_rfile_init();
     if (ret)
     {
-        printk(KERN_ERR "%s rfile init fail ",__func__);
+        bsp_err("%s rfile init fail ",__func__);
     }
 
-    printk(KERN_ERR "modem_nv_init \n");
+    bsp_err("modem_nv_init \n");
     ret = modem_nv_init();
     if (ret)
     {
-        printk(KERN_ERR "%s NV init fail ",__func__);
+        bsp_err("%s NV init fail ",__func__);
     }
 
-    printk(KERN_ERR "VOS_ModuleInit start\n");
+    bsp_err("VOS_ModuleInit start\n");
 
     jiffies_old = get_jiffies_64();
     ret = VOS_ModuleInit();
     if (ret)
     {
-        printk(KERN_ERR "%s vos module init fail ",__func__);
+        bsp_err("%s vos module init fail ",__func__);
     }
     jiffies_new  = get_jiffies_64();
     jiffies_time = jiffies_new -jiffies_old;
-    printk(KERN_ERR "VOS_ModuleInit end tick 0x%llx\n",jiffies_time);
-    printk(KERN_ERR "bsp_load_modem_images \n");
+    bsp_err("VOS_ModuleInit end tick 0x%llx\n",jiffies_time);
+    bsp_err("bsp_load_modem_images \n");
     ret = bsp_load_modem_images();
     if (ret)
     {
-        printk(KERN_ERR "%s his_load_image_start_up fail ",__func__);
+        bsp_err("%s his_load_image_start_up fail ",__func__);
     }
 
     /*只在MBB平台上需要发送复位请求中断*/
     ret = bsp_load_notify_ccpu_start();
     if (ret)
     {
-        printk(KERN_ERR"send ipc to unreset ccore failed, ret=0x%x\n", ret);
+        bsp_err("send ipc to unreset ccore failed, ret=0x%x\n", ret);
     }
     else
     {
-        printk(KERN_ERR"send ipc to unreset ccore succeed\n");
+        bsp_err("send ipc to unreset ccore succeed\n");
     }
 
     return 0;
@@ -152,7 +162,7 @@ int modem_sysboot_start_init(void)
 
 static int modem_sysboot_wait_start(void *data)
 {
-    printk(KERN_ERR "%s in.\n", __func__);
+    bsp_err("%s in.\n", __func__);
     /*此任务等待被唤醒*/
     wait_for_completion(&modem_sysboot_start_complete);
 
@@ -184,11 +194,11 @@ static ssize_t modem_sysboot_start_store(struct device *dev, struct device_attri
     if (modem_sysboot_start == MODEM_SYSBOOT_START)
     {
         complete(&modem_sysboot_start_complete);
-        printk(KERN_INFO "modem_sysboot_start write ok \n");
+        bsp_info("modem_sysboot_start write ok \n");
     }
     else
     {
-        printk(KERN_ERR "modem_sysboot_start write is %x\n",(unsigned int)modem_sysboot_start);
+        bsp_err("modem_sysboot_start write is %x\n",(unsigned int)modem_sysboot_start);
     }
     return status;
 }
@@ -198,8 +208,11 @@ static DEVICE_ATTR(modem_sysboot_start, S_IWUSR ,
                                     modem_sysboot_start_store);
 
 
+static DEVICE_ATTR(modem_image_patch_status, 0660 ,modem_imag_patch_status_show,modem_imag_patch_status_store);
+
 static struct attribute *his_modem_attributes[] = {
         &dev_attr_modem_sysboot_start.attr,
+        &dev_attr_modem_image_patch_status.attr,
         NULL
 };
 
@@ -214,7 +227,7 @@ static int __init his_modem_probe(struct platform_device *pdev)
     ret = sysfs_create_group(&pdev->dev.kobj, &his_modem_group);
     if (0 != ret)
     {
-        printk(KERN_ERR "create his modem sys node failed.\n");
+        bsp_err("create his modem sys node failed.\n");
         return -ENXIO;
     }
     return ret;
@@ -255,21 +268,21 @@ static struct platform_driver his_modem_drv = {
     },
 };
 
-static int __init his_modem_init_driver(void)
+int __init his_modem_init_driver(void)
 {
     int ret = 0;
 
     ret = platform_device_register(&his_modem_device);
     if(ret)
     {
-        printk(KERN_ERR "register his_modem device failed\n");
+        bsp_err("register his_modem device failed\n");
         return ret;
     }
 
     ret = platform_driver_register(&his_modem_drv);
     if(ret)
     {
-        printk(KERN_ERR "register his_modem driver failed\n");
+        bsp_err("register his_modem driver failed\n");
         platform_device_unregister(&his_modem_device);
     }
 
@@ -285,11 +298,6 @@ static void __exit his_modem_exit_driver(void)
     platform_device_unregister(&his_modem_device);
 }
 /* cov_verified_stop */
-
-
-/* arch_initcall(his_modem_init_driver);*/
-module_init(his_modem_init_driver);
-module_exit(his_modem_exit_driver);
 
 MODULE_DESCRIPTION("HIS Balong  Modem load ");
 MODULE_LICENSE("GPL");

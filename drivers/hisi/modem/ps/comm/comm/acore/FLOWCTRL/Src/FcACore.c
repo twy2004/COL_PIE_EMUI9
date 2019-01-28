@@ -67,9 +67,7 @@
 #include "NVIM_Interface.h"
 #include "FcACoreCReset.h"
 #include "TTFUtil.h"
-#include "acore_nv_stru_gucttf.h"
-
-
+#include "FcACore.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
@@ -80,6 +78,8 @@
 /*****************************************************************************
   2 全局变量定义
 *****************************************************************************/
+/* A核流控配置实体 */
+ACORE_FC_CFG_NV_STRU                    g_stFcAcoreCfg;
 
 /* 网桥速率统计使用的变量 */
 FC_BRIDGE_RATE_STRU                     g_stFcBridgeRate;
@@ -176,7 +176,6 @@ STATIC VOS_UINT32  FC_RcvCdsMsg( MsgBlock * pMsg );
 STATIC VOS_UINT32  FC_ACORE_RcvTimerMsg(REL_TIMER_MSG *pTimerMsg);
 STATIC VOS_UINT32  FC_CDMA_DownProcess( VOS_VOID );
 STATIC VOS_UINT32  FC_CDMA_UpProcess( VOS_VOID );
-STATIC VOS_VOID FC_JudgeDrvToMaxPara(VOS_VOID);
 STATIC VOS_UINT32  FC_GPRS_DownProcess( VOS_VOID );
 
 STATIC VOS_UINT32  FC_GPRS_UpProcess( VOS_VOID );
@@ -204,7 +203,7 @@ STATIC VOS_UINT32  FC_BRIDGE_GetRate( VOS_VOID )
 STATIC VOS_UINT32  FC_RmRateJudge( VOS_VOID )
 {
     /* 如果网桥速率超过门限，则认为是速率高引起CPU高 */
-    if (g_stFcBridgeRate.ulRate > g_stFcCfg.stFcCfgCpuA.ulRmRateThreshold)
+    if (g_stFcBridgeRate.ulRate > g_stFcAcoreCfg.stFcCfgCpuA.ulRmRateThreshold)
     {
         return VOS_TRUE;
     }
@@ -215,18 +214,21 @@ STATIC VOS_UINT32  FC_RmRateJudge( VOS_VOID )
 
 VOS_UINT32 FC_ACORE_RegDrvAssemFunc(FC_ACORE_DRV_ASSEMBLE_PARA_FUNC pFcDrvSetAssemParaFuncUe, FC_ACORE_DRV_ASSEMBLE_PARA_FUNC pFcDrvSetAssemParaFuncPc)
 {
-    FC_ADS_DRV_ASSEM_STRU stFcAdsAssemEntity;
+    /* ADS接口已经删除，后续启用该功能时寻找适合的接口 */
+    
+    /*FC_ADS_DRV_ASSEM_STRU stFcAdsAssemEntity;
 
     g_stDrvAssemParaEntity.pDrvSetAssemParaFuncUe = pFcDrvSetAssemParaFuncUe;
     g_stDrvAssemParaEntity.pDrvSetAssemParaFuncPc = pFcDrvSetAssemParaFuncPc;
-
+    
+    
     stFcAdsAssemEntity.ucEnableMask         = g_stCpuDriverAssePara.ucEnableMask;
     stFcAdsAssemEntity.ulDlRateUpLev        = FC_ADS_DL_RATE_UP_LEV;
     stFcAdsAssemEntity.ulDlRateDownLev      = FC_ADS_DL_RATE_DOWN_LEV;
     stFcAdsAssemEntity.ulExpireTmrLen       = FC_ADS_TIMER_LEN;
     stFcAdsAssemEntity.pDrvAssemFunc        = FC_JudgeDrvToMaxPara;
-
-    ADS_DL_RegDrvAssemFunc(&stFcAdsAssemEntity);
+    
+    ADS_DL_RegDrvAssemFunc(&stFcAdsAssemEntity);*/
 
     return VOS_OK;
 }
@@ -352,6 +354,31 @@ STATIC FC_CPU_DRV_ASSEM_PARA_STRU* FC_GetCurrentAssemPara(VOS_UINT32 ulAssemLev)
 }
 
 
+VOS_UINT32  FC_MNTN_TraceDrvAssemPara(FC_DRV_ASSEM_PARA_STRU *pstDrvAssenPara)
+{
+    FC_MNTN_DRV_ASSEM_PARA_STRU     stFcMntnDrvAssemPara;
+
+    if (VOS_NULL_PTR == pstDrvAssenPara)
+    {
+        return VOS_ERR;
+    }
+
+    PSACORE_MEM_SET(&stFcMntnDrvAssemPara, sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU), 0, sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU));
+
+    stFcMntnDrvAssemPara.ulSenderCpuId   = VOS_LOCAL_CPUID;
+    stFcMntnDrvAssemPara.ulSenderPid     = UEPS_PID_FLOWCTRL;
+    stFcMntnDrvAssemPara.ulReceiverCpuId = VOS_LOCAL_CPUID;
+    stFcMntnDrvAssemPara.ulReceiverPid   = UEPS_PID_FLOWCTRL;
+    stFcMntnDrvAssemPara.ulLength        = (sizeof(FC_MNTN_DRV_ASSEM_PARA_STRU) - VOS_MSG_HEAD_LENGTH);
+    stFcMntnDrvAssemPara.enMsgName       = ID_FC_MNTN_DRV_ASSEM_PARA;
+    PSACORE_MEM_CPY(&stFcMntnDrvAssemPara.stDrvAssemPara, sizeof(FC_DRV_ASSEM_PARA_STRU), pstDrvAssenPara, sizeof(FC_DRV_ASSEM_PARA_STRU));
+
+    FC_MNTN_TraceEvent(&stFcMntnDrvAssemPara);
+
+    return VOS_OK;
+}
+
+
 STATIC VOS_VOID FC_DoJudgeDrvAssem(FC_CPU_DRV_ASSEM_PARA_STRU *pstDrvAssemPara)
 {
     /* 使能开关打开 */
@@ -402,7 +429,7 @@ STATIC VOS_VOID FC_JudgeDrvAssemAction(VOS_UINT32 ulAssemLev)
 }
 
 
-STATIC VOS_VOID FC_JudgeDrvToMaxPara(VOS_VOID)
+VOS_VOID FC_JudgeDrvToMaxPara(VOS_VOID)
 {
     FC_CPU_DRV_ASSEM_PARA_STRU *pstDrvAssemPara;
 
@@ -587,11 +614,11 @@ VOS_VOID FC_CPUA_RcvCpuLoad(VOS_UINT32  ulCpuLoad)
 
 
     /* 参数检查 */
-    if ( FC_POLICY_MASK_CPU_A != (FC_POLICY_MASK_CPU_A & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CPU_A != (FC_POLICY_MASK_CPU_A & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* CPU流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CPU_ProcessLoad, INFO, CPU FlowCtrl is disabled %d\n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return;
     }
 
@@ -607,7 +634,7 @@ VOS_VOID FC_CPUA_RcvCpuLoad(VOS_UINT32  ulCpuLoad)
     }
 
 
-    pstFcCfgCpu = &(g_stFcCfg.stFcCfgCpuA);
+    pstFcCfgCpu = &(g_stFcAcoreCfg.stFcCfgCpuA);
     pstFcPolicy = FC_POLICY_Get(FC_PRIVATE_POLICY_ID_CPU_A_MODEM_0);
 
     /* 是否要进行CPU流控 */
@@ -639,7 +666,7 @@ VOS_UINT32  FC_CPUA_StopFcAttempt( VOS_UINT32 ulParam1, VOS_UINT32 ulParam2 )
     FC_CFG_CPU_STRU                     *pstCfgCpu;
 
 
-    pstCfgCpu   = &(g_stFcCfg.stFcCfgCpuA);
+    pstCfgCpu   = &(g_stFcAcoreCfg.stFcCfgCpuA);
     if (0 == pstCfgCpu->ulStopAttemptTimerLen)
     {
         return VOS_OK;
@@ -715,7 +742,7 @@ STATIC VOS_UINT32  FC_CPUA_StopFlowCtrl( VOS_VOID )
     FC_POLICY_STRU                     *pstFcPolicy;
     VOS_UINT32                          ulCpuLoad = 0;
 
-    pstFcCfgCpu = &(g_stFcCfg.stFcCfgCpuA);
+    pstFcCfgCpu = &(g_stFcAcoreCfg.stFcCfgCpuA);
     pstFcPolicy = FC_POLICY_Get(FC_PRIVATE_POLICY_ID_CPU_A_MODEM_0);
 
 
@@ -754,7 +781,7 @@ FC_PRI_ENUM_UINT8  FC_MEM_CalcUpTargetFcPri
     FC_CFG_MEM_STRU                    *pstMemCfg;
 
 
-    pstMemCfg   = &(g_stFcCfg.stFcCfgMem);
+    pstMemCfg   = &(g_stFcAcoreCfg.stFcCfgMem);
     enTargetPri = pPolicy->enDonePri;
 
     /* 内存策略只注册了一个优先级，按照Lev3处理 */
@@ -806,7 +833,7 @@ FC_PRI_ENUM_UINT8  FC_MEM_CalcDownTargetFcPri
     FC_PRI_ENUM_UINT8                  enTargetPri;
     FC_CFG_MEM_STRU                    *pstMemCfg;
 
-    pstMemCfg   = &(g_stFcCfg.stFcCfgMem);
+    pstMemCfg   = &(g_stFcAcoreCfg.stFcCfgMem);
     enTargetPri = pPolicy->enDonePri;
 
     /* 内存策略只注册了一个优先级 */
@@ -1002,11 +1029,11 @@ VOS_VOID FC_MEM_UpProcess( VOS_UINT32 ulMemValue  )
     VOS_ULONG                           ulFlags = 0UL;
 
     /* 参数检查 */
-    if ( FC_POLICY_MASK_MEM != (FC_POLICY_MASK_MEM & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_MEM != (FC_POLICY_MASK_MEM & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_MEM_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return;
     }
 
@@ -1041,11 +1068,11 @@ VOS_VOID  FC_MEM_DownProcess( VOS_UINT32 ulMemValue )
     VOS_ULONG                           ulFlags = 0UL;
 
     /* 参数检查 */
-    if ( FC_POLICY_MASK_MEM != (FC_POLICY_MASK_MEM & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_MEM != (FC_POLICY_MASK_MEM & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_MEM_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return;
     }
 
@@ -1079,7 +1106,7 @@ STATIC VOS_UINT32  FC_MEM_Init( VOS_VOID )
 
     /* V9R1项目中判断ACPU内存流控使能则注册回调函数，否则不注册 */
     /* 注册内存回调函数 */
-    if ( (FC_POLICY_MASK(FC_POLICY_ID_MEM) == (FC_POLICY_MASK(FC_POLICY_ID_MEM) & g_stFcCfg.ulFcEnbaleMask) ))
+    if ( (FC_POLICY_MASK(FC_POLICY_ID_MEM) == (FC_POLICY_MASK(FC_POLICY_ID_MEM) & g_stFcAcoreCfg.ulFcEnableMask) ))
     {
         /* A核内存流控策略初始化 */
         g_astFcPolicy[FC_POLICY_ID_MEM].pAdjustForUpFunc    = FC_MEM_AdjustPriForUp;
@@ -1103,11 +1130,11 @@ STATIC VOS_UINT32  FC_CST_UpProcess( VOS_UINT8 ucRabId )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CST != (FC_POLICY_MASK_CST & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CST != (FC_POLICY_MASK_CST & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CST_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1130,11 +1157,11 @@ STATIC VOS_UINT32  FC_CST_DownProcess( VOS_UINT8 ucRabId )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CST != (FC_POLICY_MASK_CST & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CST != (FC_POLICY_MASK_CST & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CST_DownProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1323,11 +1350,11 @@ VOS_UINT32  FC_CDS_UpProcess( VOS_UINT8 ucRabId, MODEM_ID_ENUM_UINT16 enModemId 
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CDS != (FC_POLICY_MASK_CDS & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CDS != (FC_POLICY_MASK_CDS & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CST_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1371,11 +1398,11 @@ VOS_UINT32  FC_CDS_DownProcess( VOS_UINT8 ucRabId, MODEM_ID_ENUM_UINT16 enModemI
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CDS != (FC_POLICY_MASK_CDS & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CDS != (FC_POLICY_MASK_CDS & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CDS_DownProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1446,11 +1473,11 @@ STATIC VOS_UINT32  FC_GPRS_UpProcess( VOS_VOID )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_GPRS != (FC_POLICY_MASK_GPRS & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_GPRS != (FC_POLICY_MASK_GPRS & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_GPRS_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1496,11 +1523,11 @@ STATIC VOS_UINT32  FC_GPRS_DownProcess( VOS_VOID )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_GPRS != (FC_POLICY_MASK_GPRS & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_GPRS != (FC_POLICY_MASK_GPRS & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_GPRS_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1518,11 +1545,11 @@ STATIC VOS_UINT32  FC_CDMA_UpProcess( VOS_VOID )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CDMA != (FC_POLICY_MASK_CDMA & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CDMA != (FC_POLICY_MASK_CDMA & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CDMA_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1541,11 +1568,11 @@ STATIC VOS_UINT32  FC_CDMA_DownProcess( VOS_VOID )
 
 
     /*====================================*//* 使能检查 */
-    if ( FC_POLICY_MASK_CDMA != (FC_POLICY_MASK_CDMA & g_stFcCfg.ulFcEnbaleMask) )
+    if ( FC_POLICY_MASK_CDMA != (FC_POLICY_MASK_CDMA & g_stFcAcoreCfg.ulFcEnableMask) )
     {
         /* 内存流控未使能 */
         FC_LOG1(PS_PRINT_INFO, "FC_CDMA_UpProcess, INFO, MEM FlowCtrl is disabled %d \n",
-                (VOS_INT32)g_stFcCfg.ulFcEnbaleMask);
+                (VOS_INT32)g_stFcAcoreCfg.ulFcEnableMask);
         return VOS_OK;
     }
 
@@ -1829,6 +1856,146 @@ VOS_UINT32  FC_ACORE_MsgProc( MsgBlock * pMsg )
 } /* FC_MsgProc */
 
 
+STATIC VOS_UINT32  FC_ACORE_CFG_SetDefaultValue( ACORE_FC_CFG_NV_STRU *pstAcoreFcCfg )
+{
+    FC_LOG(PS_PRINT_WARNING, "FC_CFG_SetDefaultValue, Set Default NV Value.\n");
+
+    PSACORE_MEM_SET(pstAcoreFcCfg, sizeof(ACORE_FC_CFG_NV_STRU), 0x0, sizeof(ACORE_FC_CFG_NV_STRU));
+
+    pstAcoreFcCfg->ulFcEnableMask = 0xFF;
+    FC_SetFcEnableMask(pstAcoreFcCfg->ulFcEnableMask);
+
+    pstAcoreFcCfg->stFcCfgCpuA.ulCpuOverLoadVal         = 95;
+    pstAcoreFcCfg->stFcCfgCpuA.ulCpuUnderLoadVal        = 70;
+    pstAcoreFcCfg->stFcCfgCpuA.ulSmoothTimerLen         = 8;
+    pstAcoreFcCfg->stFcCfgCpuA.ulStopAttemptTimerLen    = 100;
+    pstAcoreFcCfg->stFcCfgCpuA.ulUmUlRateThreshold      = 1048576;
+    pstAcoreFcCfg->stFcCfgCpuA.ulUmDlRateThreshold      = 10485760;
+    pstAcoreFcCfg->stFcCfgCpuA.ulRmRateThreshold        = 10485760;
+
+    pstAcoreFcCfg->stFcCfgMem.ulThresholdCnt                    = 4;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[0].ulSetThreshold    = 300;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[0].ulStopThreshold   = 350;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[1].ulSetThreshold    = 250;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[1].ulStopThreshold   = 300;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[2].ulSetThreshold    = 150;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[2].ulStopThreshold   = 200;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[3].ulSetThreshold    = 0;
+    pstAcoreFcCfg->stFcCfgMem.astThreshold[3].ulStopThreshold   = 20;
+
+    pstAcoreFcCfg->stFcCfgCst.stThreshold.ulSetThreshold        = 3072;
+    pstAcoreFcCfg->stFcCfgCst.stThreshold.ulStopThreshold       = 1024;
+
+    return VOS_OK;
+}
+
+
+STATIC VOS_UINT32  FC_ACORE_CFG_CheckMemParam( FC_CFG_MEM_STRU *pstFcCfgMem )
+{
+    VOS_UINT32                          ulThresholdLoop;
+
+    if ( FC_MEM_THRESHOLD_LEV_BUTT < pstFcCfgMem->ulThresholdCnt )
+    {
+        FC_LOG1(PS_PRINT_WARNING,
+                "FC, FC_ACORE_CFG_CheckMemParam, WARNING, ulThresholdCnt %d\n",
+                (VOS_INT32)pstFcCfgMem->ulThresholdCnt);
+
+        return VOS_ERR;
+    }
+
+    for ( ulThresholdLoop = 0 ; ulThresholdLoop < pstFcCfgMem->ulThresholdCnt ; ulThresholdLoop++ )
+    {
+        /* 内存流控设置的是空闲值 */
+        if ( pstFcCfgMem->astThreshold[ulThresholdLoop].ulSetThreshold
+             > pstFcCfgMem->astThreshold[ulThresholdLoop].ulStopThreshold )
+        {
+            FC_LOG3(PS_PRINT_WARNING,
+                    "FC, FC_ACORE_CFG_CheckMemParam, WARNING, ulThresholdLoop %d ulSetThreshold %D less than ulStopThreshold %d\n",
+                    (VOS_INT32)ulThresholdLoop,
+                    (VOS_INT32)pstFcCfgMem->astThreshold[ulThresholdLoop].ulSetThreshold,
+                    (VOS_INT32)pstFcCfgMem->astThreshold[ulThresholdLoop].ulStopThreshold);
+            return VOS_ERR;
+        }
+    }
+
+    return VOS_OK;
+}
+
+
+VOS_UINT32  FC_ACORE_CFG_CheckParam( ACORE_FC_CFG_NV_STRU *pstAcoreFcCfg )
+{
+    /* 设计约束，A核需要判断是否因为速传引起CPU占用率高，第一次CPU占用率
+       超标时才启动计算速传速率，所以至少需要2次 */
+    if (2 > pstAcoreFcCfg->stFcCfgCpuA.ulSmoothTimerLen)
+    {
+        FC_LOG1(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, CPUA flow ctrl ulSmoothTimerLen is %d!\n",
+                                  (VOS_INT32)pstAcoreFcCfg->stFcCfgCpuA.ulSmoothTimerLen);
+        return VOS_ERR;
+    }
+
+    if ( VOS_OK != FC_CFG_CheckCpuParam(&(pstAcoreFcCfg->stFcCfgCpuA)) )
+    {
+        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check CPUA flow ctrl param failed!\n");
+        return VOS_ERR;
+    }
+
+    if ( VOS_OK != FC_ACORE_CFG_CheckMemParam(&(pstAcoreFcCfg->stFcCfgMem)) )
+    {
+        FC_LOG(PS_PRINT_WARNING, "FC_CFG_CheckParam, WARNING, Check mem flow ctrl param failed!\n");
+        return VOS_ERR;
+    }
+
+    return VOS_OK;
+}
+
+
+VOS_VOID FC_ACORE_CFG_Init(VOS_VOID)
+{
+    VOS_UINT32                          ulResult;
+    VOS_UINT32                          ulFcEnableMask;
+
+    PSACORE_MEM_SET(&g_stFcAcoreCfg, sizeof(ACORE_FC_CFG_NV_STRU), 0, sizeof(ACORE_FC_CFG_NV_STRU));
+
+    ulResult = GUCTTF_NV_Read(MODEM_ID_0, en_NV_Item_Acore_Flow_Ctrl_Config,\
+                   &g_stFcAcoreCfg, sizeof(ACORE_FC_CFG_NV_STRU));
+
+    /* 将A核FC NV项的开关状态映射到FC模块的总状态 */
+    ulFcEnableMask  = g_stFcAcoreCfg.ulFcEnableMask;
+    g_stFcAcoreCfg.ulFcEnableMask   = 0;
+    g_stFcAcoreCfg.ulFcEnableMask   |= ((1 == FC_ACORE_GetEnableMask(ulFcEnableMask, FC_ACORE_MEM_ENABLE_MASK))?(FC_POLICY_MASK(FC_POLICY_ID_MEM)):(0));
+    g_stFcAcoreCfg.ulFcEnableMask   |= ((1 == FC_ACORE_GetEnableMask(ulFcEnableMask, FC_ACORE_CPUA_ENABLE_MASK))?(FC_POLICY_MASK(FC_POLICY_ID_CPU_A)):(0));
+    g_stFcAcoreCfg.ulFcEnableMask   |= ((1 == FC_ACORE_GetEnableMask(ulFcEnableMask, FC_ACORE_CDS_ENABLE_MASK))?(FC_POLICY_MASK(FC_POLICY_ID_CDS)):(0));
+    g_stFcAcoreCfg.ulFcEnableMask   |= ((1 == FC_ACORE_GetEnableMask(ulFcEnableMask, FC_ACORE_CST_ENABLE_MASK))?(FC_POLICY_MASK(FC_POLICY_ID_CST)):(0));
+
+    /* C核独立使用的流控功能默认打开 */
+    g_stFcAcoreCfg.ulFcEnableMask |= FC_POLICY_MASK_GPRS;
+    g_stFcAcoreCfg.ulFcEnableMask |= FC_POLICY_MASK_TMP;
+    g_stFcAcoreCfg.ulFcEnableMask |= FC_POLICY_MASK_CPU_C;
+    g_stFcAcoreCfg.ulFcEnableMask |= FC_POLICY_MASK_CDMA;
+    FC_SetFcEnableMask(g_stFcAcoreCfg.ulFcEnableMask);
+
+    if ( NV_OK != ulResult )
+    {
+        FC_LOG1(PS_PRINT_WARNING, "FC_ACORE_CFG_Init, WARNING, Fail to read NV, result %d\n",
+                (VOS_INT32)ulResult);
+
+        (VOS_VOID)FC_ACORE_CFG_SetDefaultValue(&g_stFcAcoreCfg);
+
+        return;
+    }
+
+    ulResult = FC_ACORE_CFG_CheckParam(&g_stFcAcoreCfg);
+
+    if ( VOS_OK != ulResult )
+    {
+        FC_LOG(PS_PRINT_ERROR, "FC_CommInit, ERROR, Check NV parameter fail!\n");
+
+        /* 当前的NV值有错，设置默认值返回成功 */
+        (VOS_VOID)FC_ACORE_CFG_SetDefaultValue(&g_stFcAcoreCfg);
+    }
+
+    return;
+}
 
 
 VOS_UINT32  FC_ACORE_Init( VOS_VOID )
@@ -1844,6 +2011,9 @@ VOS_UINT32  FC_ACORE_Init( VOS_VOID )
         FC_LOG(PS_PRINT_ERROR, "FC_Init, ERROR, FC_CommInit return error!\n");
         return VOS_ERR;
     }
+
+    /* 流控配置项初始化 */
+    FC_ACORE_CFG_Init();
 
     ulResult    = FC_CPUA_Init();
     if ( VOS_OK != ulResult )
@@ -1931,6 +2101,8 @@ VOS_UINT32 FC_ACORE_FidInit(enum VOS_INIT_PHASE_DEFINE enPhase)
 
     return VOS_OK;
 }
+
+
 
 
 

@@ -253,25 +253,6 @@ int dptx_link_set_ssc(struct dp_ctrl *dptx, bool bswitchphy)
 			phyifctrl &= ~DPTX_PHYIF_CTRL_SSC_DIS;
 			dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
 
-			switch (dptx->link.rate) {
-				case DPTX_PHYIF_CTRL_RATE_RBR:
-					usb31phy_cr_write(0x36, 0x100a);
-					usb31phy_cr_write(0x37, 0x1e6);
-					break;
-				case DPTX_PHYIF_CTRL_RATE_HBR:
-				case DPTX_PHYIF_CTRL_RATE_HBR2:
-					usb31phy_cr_write(0x36, 0x101e);
-					usb31phy_cr_write(0x37, 0x18a);
-					break;
-				case DPTX_PHYIF_CTRL_RATE_HBR3:
-					usb31phy_cr_write(0x36, 0x1045);
-					usb31phy_cr_write(0x37, 0x15c);
-					break;
-				default:
-					HISI_FB_ERR("[DP] Invalid PHY rate %d\n", dptx->link.rate);
-					break;
-			}
-
 		retval = dptx_read_dpcd(dptx, DP_DOWNSPREAD_CTRL, &byte);
 		if (retval) {
 			HISI_FB_ERR("[DP] Read DPCD error\n");
@@ -288,9 +269,6 @@ int dptx_link_set_ssc(struct dp_ctrl *dptx, bool bswitchphy)
 			phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
 			phyifctrl |= DPTX_PHYIF_CTRL_SSC_DIS;
 			dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
-
-			usb31phy_cr_write(0x36, 0x25);
-			usb31phy_cr_write(0x37, 0x66);
 
 		retval = dptx_read_dpcd(dptx, DP_DOWNSPREAD_CTRL, &byte);
 		if (retval) {

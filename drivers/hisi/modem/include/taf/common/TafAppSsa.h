@@ -764,8 +764,12 @@ typedef struct
     TAF_SS_DATA_CODING_SCHEME               DatacodingScheme;
     TAF_SS_ALERTINGPATTERN                  AlertingPattern;
     TAF_UINT8                               aucMsisdn[TAF_SS_MAX_MSISDN_LEN + 1];
+
+    VOS_UINT16                              usUssdTransMode;
+
     TAF_SSA_SIGNALLING_TYPE_ENUM_UINT8      enSsaSignallingType;
-    VOS_UINT8                               aucReserved1[3];
+
+    VOS_UINT8                               aucReserved1;
 }TAF_SS_PROCESS_USS_REQ_STRU;
 
 /*9. SS-TAF struct:processUnstructuredSS-Request -result  NETWORK->MS*/

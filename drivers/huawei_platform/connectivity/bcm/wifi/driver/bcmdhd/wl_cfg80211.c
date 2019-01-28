@@ -7805,7 +7805,6 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 	u32 ekvr_channel;
 	u32 ekvr_opclass;
 	u32 ekvr_freq, band;
-	int pm = -1;
 #endif
 #ifndef  BRCM_RSDB
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0))
@@ -7948,14 +7947,6 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		if (memcmp(mac, curmacp, ETHER_ADDR_LEN)) {
 			WL_ERR(("Wrong Mac address: "MACDBG" != "MACDBG"\n",
 				MAC2STRDBG(mac), MAC2STRDBG(curmacp)));
-		}
-
-		if (dhd->early_suspended) {
-			err = wldev_ioctl(dev, WLC_GET_PM, &pm, sizeof(pm), true);
-			if (err) {
-				WL_ERR(("Could not get PM (%d)\n", err));
-			}
-			WL_ERR(("now pm is %d\n",pm));
 		}
 
 		/* Report the current tx rate */

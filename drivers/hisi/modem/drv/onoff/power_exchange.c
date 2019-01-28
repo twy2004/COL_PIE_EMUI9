@@ -54,6 +54,7 @@
 #include "power_exchange.h"
 #include "bsp_blk.h"
 #include "bsp_onoff.h"
-
+#include <bsp_print.h>
+#define THIS_MODU mod_onoff
 #define SRAM_REBOOT_ADDR  (((SRAM_SMALL_SECTIONS*)((char*)SRAM_BASE_ADDR + SRAM_OFFSET_SMALL_SECTIONS))->SRAM_REBOOT_INFO)
 

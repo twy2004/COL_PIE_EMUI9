@@ -15,7 +15,14 @@ obj-y       += socp_ind_delay.o socp_debug.o
 #socp_balong_test.o socp_balong_test_llt.o 
 
 ifeq ($(strip $(CFG_CONFIG_DEFLATE)),YES)
-obj-y      += deflate.o  deflate_test.o
+obj-y      += deflate.o  
+endif
+
+
+ifneq ($(strip $(OBB_SEPARATE)),true) 
+ifeq ($(strip $(CFG_CONFIG_DIAG_SYSTEM)),YES)
+obj-y				+= soft_decode/
+endif
 endif
 
 subdir-ccflags-y := -Werror

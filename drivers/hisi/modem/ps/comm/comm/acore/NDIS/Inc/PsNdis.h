@@ -58,7 +58,13 @@ extern "C" {
 #include "vos.h"
 #include "ImmInterface.h"
 #include "AtNdisInterface.h"
+
+#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
+#include "ads_dev_i.h"
+#else
 #include "AdsDeviceInterface.h"
+#endif
+#include "AdsNdisInterface.h"
 #include "PsTypeDef.h"
 #include "TTFComm.h"
 #if (VOS_OS_VER != VOS_WIN32)
@@ -244,6 +250,7 @@ extern VOS_VOID Coverity_Tainted_Set(VOS_VOID* pkt);
 #else
 #define COVERITY_TAINTED_SET(pkt)
 #endif
+
 
 
 #ifdef _lint
@@ -644,7 +651,7 @@ extern NDIS_ENTITY_STRU* NDIS_AllocEntity(VOS_VOID);
 extern VOS_VOID Ndis_StopARPTimer(NDIS_ARP_PERIOD_TIMER_STRU *pstArpPeriodTimer);
 
 extern VOS_UINT32 Ndis_MsgHook (VOS_UINT8 *pucData,VOS_UINT32 ulLength,
-     AT_NDIS_MSG_TYPE_ENUM_UINT32 enMsgId);
+     AT_NDIS_MSG_ID_ENUM_UINT32 enMsgId);
 
 extern VOS_VOID Ndis_LomTraceRcvUlData(VOS_VOID);
 extern VOS_VOID Ndis_LomTraceRcvDlData(VOS_VOID);

@@ -37,6 +37,7 @@ struct lcd_kit_panel_ops {
 	int (*lcd_kit_rgbw_set_mode)(struct hisi_fb_data_type* hisifd, int mode);
 	int (*lcd_get_2d_barcode)(char *oem_data, struct hisi_fb_data_type *hisifd);
 	int (*lcd_kit_set_backlight_by_type)(struct platform_device* pdev, int backlight_type);
+	int (*lcd_set_vss_by_thermal)(void *hld);
 };
 
 struct lcd_kit_panel_map {

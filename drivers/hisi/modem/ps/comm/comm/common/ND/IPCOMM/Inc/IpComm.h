@@ -162,7 +162,7 @@ extern "C" {
 
 #define IP_ICMPV6_RS_MAX_LENGTH                             (200)
 
-#define IP_ND_STAT_INC(x)           (x) = ((x) + (1))
+#define IP_ND_STAT_INC(x)           ((x) = ((x) + (1)))
 
 #define IP_ICMPV6_NA_FLAG_OFFSET                            (4)
 
@@ -293,7 +293,7 @@ extern "C" {
                 (*((pucFirstByte) + 2)) = ((ulUint32Data) >> IP_BITMOVE_8) & 0xff;\
                 (*((pucFirstByte) + 3)) = (ulUint32Data) & 0xff;\
             }
- 
+
 /*封装写IP消息头的宏*/
 #define ND_IP_WRITE_MSG_HEAD(pstMsg, ulRabmMsgID, ulSendPid, ulReceivePid)\
                     (pstMsg)->ulMsgId   = (ulRabmMsgID);\

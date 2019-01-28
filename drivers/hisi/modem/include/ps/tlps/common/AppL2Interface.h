@@ -12,7 +12,7 @@ extern "C" {
 /*****************************************************************************
   1 其他头文件包含
 *****************************************************************************/
-#include "LPSCommon.h"
+#include "LPSCommon.h"   /*lint !e537*/
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
@@ -212,7 +212,7 @@ enum LUP_OM_MSG_TYPE_ENUM
 
     ID_TL_OM_MSG_TYPE_END
 };
-typedef VOS_UINT32 LRRC_LMAC_MSG_TYPE_ENUM_UINT32;
+typedef VOS_UINT32 LUP_OM_MSG_TYPE_ENUM_UINT32;
 
 
 /*****************************************************************************

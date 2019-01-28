@@ -46,7 +46,7 @@
  *
  */
 
- 
+
 
 #ifndef __DIAG_CFG_H__
 #define __DIAG_CFG_H__
@@ -61,11 +61,12 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "vos.h"
-#include  "VosPidDef.h"
-#include  "nv_stru_msp.h"
-#include  "msp_diag.h"
-#include  "diag_common.h"
+#include "vos.h"
+#include "VosPidDef.h"
+#include "nv_stru_msp.h"
+#include "msp_diag.h"
+#include "diag_common.h"
+#include "diag_cfg_comm.h"
 
 #pragma pack(4)
 
@@ -81,9 +82,11 @@ extern "C" {
 /*层间消息模块ID合法性检查*/
 #define DIAG_CFG_LAYER_MODULE_IS_ACORE(ulModuleId) ((ulModuleId >= VOS_PID_CPU_ID_1_DOPRAEND)&&(ulModuleId < VOS_CPU_ID_1_PID_BUTT))
 #define DIAG_CFG_LAYER_MODULE_IS_CCORE(ulModuleId) ((ulModuleId >= VOS_PID_CPU_ID_0_DOPRAEND)&&(ulModuleId < VOS_CPU_ID_0_PID_BUTT))
+#define DIAG_CFG_LAYER_MODULE_IS_NRM(ulModuleId)   ((ulModuleId >= VOS_PID_CPU_ID_2_DOPRAEND)&&(ulModuleId < VOS_CPU_ID_2_PID_BUTT))
 
 #define DIAG_CFG_LAYER_MODULE_ACORE_OFFSET(ulModuleId)  (ulModuleId - VOS_PID_CPU_ID_1_DOPRAEND)
 #define DIAG_CFG_LAYER_MODULE_CCORE_OFFSET(ulModuleId)  (ulModuleId - VOS_PID_CPU_ID_0_DOPRAEND)
+#define DIAG_CFG_LAYER_MODULE_NRM_OFFSET(ulModuleId)  (ulModuleId - VOS_PID_CPU_ID_2_DOPRAEND)
 
 
 /* DIAG已初始化 */
@@ -127,10 +130,26 @@ extern "C" {
 
 #define DIAG_GET_MODEM_INFO                         (0x02000002)
 
+#define DIAG_CMD_LOG_CATETORY_LAYER_ID              (1<<12)
+
+/* diag初始化成功且HSO连接上 */
+#define  DIAG_IS_CONN_ON            ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_CONN )) == (DIAG_CFG_INIT | DIAG_CFG_CONN ))
+
+/* 允许LT 空口上报 */
+#define  DIAG_IS_LT_AIR_ON          ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_LT_AIR)) == (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_LT_AIR))
+
+/* 允许GU 空口上报 */
+#define  DIAG_IS_GU_AIR_ON          ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_GU_AIR)) == (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_GU_AIR))
+
+/* 允许事件上报 */
+#define  DIAG_IS_EVENT_ON           ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_EVT)) == (DIAG_CFG_INIT | DIAG_CFG_CONN | DIAG_CFG_EVT))
+
+/* 允许开机(PowerOn)log上报 */
+#define  DIAG_IS_POLOG_ON           ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_POWERONLOG)) == (DIAG_CFG_INIT | DIAG_CFG_POWERONLOG))
+
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
-
 
 /*****************************************************************************
   4 Enum
@@ -155,16 +174,6 @@ enum ENUM_DIAG_CFG_SWT
 };
 typedef VOS_UINT8 ENUM_DIAG_CFG_SWT_U8;
 
-typedef enum
-{
-    SYSVIEW_MEM_TRACE       = 1,
-    SYSVIEW_CPU_INFO        = 2,
-    SYSVIEW_TASK_INFO       = 3,
-    SYSVIEW_INT_LOCK_INFO   = 4,
-    SYSVIEW_SWT_ALL         = 0xff,
-    SYSVIEW_SWT_MAX         /* 边界值 */
-} BSP_SYSVIEW_TYPE_E;
-
 
 /*****************************************************************************
    5 STRUCT
@@ -185,23 +194,12 @@ typedef struct
     VOS_UINT32 ulInfo;          /* 查询信息 */
 } DIAG_CMD_GET_MDM_INFO_REQ_STRU;
 
-
-/* disconnect 通知结构体 */
-typedef struct
-{
-    VOS_UINT32                  ulRsv;
-} DIAG_MSG_TO_OTHERCPU_DISCONN_STRU;
-
 /*****************************************************************************
  描述 : 针对模块的打印开关命令,支持多个命令参数
 ID   : DIAG_CMD_REPLAY_SET_CNF_STRU
 REQ : DIAG_CMD_REPLAY_SET_REQ_STRU
 CNF : DIAG_CMD_REPLAY_SET_CNF_STRU
 *****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulReserved;/*保留*/
-} DIAG_CMD_REPLAY_SET_REQ_STRU;
 
 typedef struct
 {
@@ -209,95 +207,6 @@ typedef struct
     VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
     VOS_UINT32 ulRet;
 } DIAG_CMD_REPLAY_SET_CNF_STRU;
-
-
-/*****************************************************************************
- 描述 : 针对模块的打印开关命令,支持多个命令参数
-ID   : DIAG_CMD_LOG_CAT_PRINT
-REQ : DIAG_CMD_LOG_CAT_PRINT_REQ_STRU
-CNF : DIAG_CMD_LOG_CAT_PRINT_CNF_STRU
-IND : DIAG_CMD_LOG_PRINT_RAW_TXT_IND_STRU
-*****************************************************************************/
-
-typedef struct
-{
-    VOS_UINT32 ulModuleId;      /* 如果为0xFFFFFFFF表示为所有模块的Level开关*/
-    VOS_UINT32 ulLevelFilter;   /* (0|ERROR|WARNING|NORMAL|INFO|0|0|0) 1:OPEN, 0:CLOSE*/
-} DIAG_CMD_LOG_CAT_PRINT_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
-    VOS_UINT32 ulModuleId;
-} DIAG_CMD_LOG_CAT_PRINT_CNF_STRU;
-
-/*****************************************************************************
-描述 : 针对模块的层间开关,支持多个命令参数
-ID   : DIAG_CMD_LOG_CAT_LAYER
-REQ : DIAG_CMD_LOG_CAT_LAYER_REQ_STRU
-CNF : DIAG_CMD_LOG_CAT_LAYER_CNF_STRU
-说明: 如果多包命令参数的情况，一个模块错误，就会返回失败，但是正确的模块参数依然会存储
-IND : DIAG_CMD_LOG_LAYER_IND_STRU
-*****************************************************************************/
-
-typedef struct
-{
-    VOS_UINT32 ulModuleId;       /* 模块ID*/
-    VOS_UINT32 ulIsDestModule;   /* 0: 表示Source Module， 1：表示Dest Module*/
-    VOS_UINT32 ulSwitch;         /* (0x00000000): 关；(0x80000000)：开*/
-} DIAG_CMD_LOG_CAT_LAYER_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
-    VOS_UINT32 ulModuleId;
-} DIAG_CMD_LOG_CAT_LAYER_CNF_STRU;
-
-/*****************************************************************************
-描述 : 针对AIR的总开关,支持多个命令参数
-ID   : DIAG_CMD_LOG_CAT_AIR
-REQ : DIAG_CMD_LOG_CAT_AIR_REQ_STRU
-CNF : DIAG_CMD_LOG_CAT_AIR_CNF_STRU
-IND : DIAG_CMD_LOG_AIR_IND_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulSwitch;        /* (0x00000000): 关；(0x80000000)：开*/
-    VOS_UINT32 ulGuSwitch;      /*  1开，0关*/
-} DIAG_CMD_LOG_CAT_AIR_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
-} DIAG_CMD_LOG_CAT_AIR_CNF_STRU;
-
-/*****************************************************************************
-描述 : 针对EVENT的总开关,支持多个命令参数
-ID   : DIAG_CMD_LOG_CAT_EVENT
-REQ : DIAG_CMD_LOG_CAT_EVENT_REQ_STRU
-CNF : DIAG_CMD_LOG_CAT_EVENT_CNF_STRU
-IND : DIAG_CMD_LOG_EVENT_IND_STRU
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulSwt;
-    VOS_UINT32 ulCount;
-    VOS_UINT32 aulModuleId[0];
-} DIAG_CMD_LOG_CAT_EVENT_REQ_STRU;
-
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
-} DIAG_CMD_LOG_CAT_EVENT_CNF_STRU;
-
 /*****************************************************************************
 描述 : 针对消息ID/命令ID开关,支持多个命令参数
 ID   : DIAG_CMD_LOG_CAT_CFG
@@ -361,9 +270,11 @@ extern VOS_UINT32 g_ulDiagCfgInfo;
 
 extern VOS_UINT8 g_ALayerSrcModuleCfg[VOS_CPU_ID_1_PID_BUTT - VOS_PID_CPU_ID_1_DOPRAEND];
 extern VOS_UINT8 g_CLayerSrcModuleCfg[VOS_CPU_ID_0_PID_BUTT - VOS_PID_CPU_ID_0_DOPRAEND];
+extern VOS_UINT8 g_NrmLayerSrcModuleCfg[VOS_CPU_ID_2_PID_BUTT - VOS_PID_CPU_ID_2_DOPRAEND];
 extern VOS_UINT8 g_ALayerDstModuleCfg[VOS_CPU_ID_1_PID_BUTT - VOS_PID_CPU_ID_1_DOPRAEND];
 extern VOS_UINT8 g_CLayerDstModuleCfg[VOS_CPU_ID_0_PID_BUTT - VOS_PID_CPU_ID_0_DOPRAEND];
-
+extern VOS_UINT8 g_NrmLayerDstModuleCfg[VOS_CPU_ID_2_PID_BUTT - VOS_PID_CPU_ID_2_DOPRAEND];
+extern VOS_UINT32 g_ulTransCfg;
 extern VOS_UINT8 g_PrintModuleCfg[DIAG_CFG_PID_NUM];
 extern VOS_UINT32 g_PrintTotalCfg;
 extern DIAG_CFG_LOG_CAT_CFG_STRU g_stMsgCfg;
@@ -378,26 +289,25 @@ extern DIAG_CFG_LOG_CAT_CFG_STRU g_stMsgCfg;
 *****************************************************************************/
 
 
-extern VOS_VOID diag_CfgResetAllSwt(VOS_VOID);
-extern VOS_UINT32 diag_CfgSetGlobalBitValue(VOS_UINT32* pstDiagGlobal,ENUM_DIAG_CFG_BIT_U32 enBit,ENUM_DIAG_CFG_SWT_U8 enSwtich);
-extern VOS_UINT32 diag_CfgSetLayerSwt(DIAG_CMD_LOG_CAT_LAYER_REQ_STRU* pstLayerReq, VOS_UINT32 ulCfgSize);
-extern VOS_UINT32 diag_CfgSetMsgSwt(DIAG_CMD_LOG_CAT_CFG_REQ_STRU *pstCatCfgReq,VOS_UINT32 ulCfgSize);
-extern VOS_UINT32 diag_CfgSetPrintSwt(DIAG_CMD_LOG_CAT_PRINT_REQ_STRU* pstPrintReq, VOS_UINT32 ulCfgSize);
-extern VOS_UINT32 diag_GetTimeStampInitValue(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_GetModemNum(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_GetPidTable(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_DisConnProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_DisConnNotifyOtherCpu(VOS_VOID);
-extern VOS_UINT32 diag_EventCfgProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_LayerCfgProc (VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_MsgCfgProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_PrintCfgProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_UsrPlaneCfgProc(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_AirCfgProc (VOS_UINT8* pstReq);
-extern VOS_VOID diag_AppAgentTimeOutProcEntry(VOS_VOID* pstPara);
-extern VOS_VOID diag_BbpEnableSocpChan(VOS_VOID);
-
-
+VOS_VOID diag_CfgResetAllSwt(VOS_VOID);
+VOS_UINT32 diag_CfgSetGlobalBitValue(VOS_UINT32* pstDiagGlobal,ENUM_DIAG_CFG_BIT_U32 enBit,ENUM_DIAG_CFG_SWT_U8 enSwtich);
+VOS_UINT32 diag_CfgSetLayerSwt(DIAG_CMD_LOG_CAT_LAYER_REQ_STRU* pstLayerReq, VOS_UINT32 ulCfgSize);
+VOS_UINT32 diag_CfgSetMsgSwt(DIAG_CMD_LOG_CAT_CFG_REQ_STRU *pstCatCfgReq,VOS_UINT32 ulCfgSize);
+VOS_UINT32 diag_CfgSetPrintSwt(DIAG_CMD_LOG_CAT_PRINT_REQ_STRU* pstPrintReq, VOS_UINT32 ulCfgSize);
+VOS_UINT32 diag_GetTimeStampInitValue(VOS_UINT8* pstReq);
+VOS_UINT32 diag_GetModemNum(VOS_UINT8* pstReq);
+VOS_UINT32 diag_GetPidTable(VOS_UINT8* pstReq);
+VOS_UINT32 diag_DisConnProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_DisConnNotifyOtherCpu(VOS_VOID);
+VOS_UINT32 diag_EventCfgProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_LayerCfgProc (VOS_UINT8* pstReq);
+VOS_UINT32 diag_MsgCfgProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_PrintCfgProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_UsrPlaneCfgProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_AirCfgProc (VOS_UINT8* pstReq);
+VOS_VOID diag_AppAgentTimeOutProcEntry(VOS_VOID* pstPara);
+VOS_UINT32 diag_TransCfgProc(VOS_UINT8* pstReq);
+VOS_UINT32 diag_UserPlaneCfgProc(VOS_UINT8* pstReq);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

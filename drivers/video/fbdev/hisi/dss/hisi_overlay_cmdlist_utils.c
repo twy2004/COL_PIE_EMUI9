@@ -916,6 +916,38 @@ void hisi_cmdlist_config_mif_reset(struct hisi_fb_data_type *hisifd,
 
 	//check mif chn status & mif ctrl0: chn disable
 	if (mctl_idx == DSS_MCTL5) {
+		for (i= DSS_RCHN_V2; i < DSS_CHN_MAX_DEFINE; i++) {
+			is_timeout = false;
+
+			while (1) {
+				for (j = 1; j <= mif_sub_ch_nums; j++) {
+					tmp |= inp32(dss_base + DSS_MIF_OFFSET + MIF_STAT1 + 0x10 * (i * mif_sub_ch_nums+ j));
+				}
+
+				if (delay_count > 500 || ((tmp & 0x1f) == 0x0)) {
+					is_timeout = (delay_count > 500) ? true : false;
+					delay_count = 0;
+					break;
+				} else {
+					udelay(10);
+					++delay_count;
+				}
+			}
+
+			if (is_timeout) {
+				HISI_FB_ERR("mif_ch%d MIF_STAT1=0x%x !\n", i, tmp);
+			}
+		}
+
+		tmp_base = hisifd->dss_module.mif_ch_base[DSS_RCHN_V2];
+		if (tmp_base) {
+			set_reg(tmp_base + MIF_CTRL0, 0x0, 1, 0);
+		}
+
+		tmp_base = hisifd->dss_module.mif_ch_base[DSS_WCHN_W2];
+		if (tmp_base) {
+			set_reg(tmp_base + MIF_CTRL0, 0x0, 1, 0);
+		}
 	} else {
 		cmdlist_idxs_temp = cmdlist_idxs;
 		for (i = 0; i < mif_nums_max; i++) {
@@ -1062,7 +1094,11 @@ void hisifb_mctl_sw_clr(struct hisi_fb_data_type *hisifd,
 		outp32(hisifd->dss_base + DSS_LDI0_OFFSET + LDI_CPU_ITF_INT_MSK, tmp);
 	} else if (hisifd->index == EXTERNAL_PANEL_IDX) {
 		isr_s1 = inp32(hisifd->dss_base + GLB_CPU_SDP_INTS);
-		ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+		if (is_dp_panel(hisifd)) {
+			ldi_base = hisifd->dss_base + DSS_LDI_DP_OFFSET;
+		} else {
+			ldi_base = hisifd->dss_base + DSS_LDI1_OFFSET;
+		}
 		isr_s2 = inp32(ldi_base + LDI_CPU_ITF_INTS);
 		outp32(ldi_base + LDI_CPU_ITF_INTS, isr_s2);
 		outp32(hisifd->dss_base + GLB_CPU_SDP_INTS, isr_s1);

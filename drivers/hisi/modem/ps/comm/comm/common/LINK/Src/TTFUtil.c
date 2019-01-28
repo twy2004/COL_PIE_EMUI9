@@ -56,6 +56,7 @@
 #include "PsTypeDef.h"
 #include "TTFComm.h"
 #include "mdrv.h"
+#include "securec.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
@@ -360,7 +361,7 @@ VOS_UINT32 TTF_SetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucSta
  Return     : value
  Other      :
  *****************************************************************************/
-VOS_UINT32 TTF_GetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucStartBit, VOS_UINT8 ucEndBit)
+MODULE_EXPORTED VOS_UINT32 TTF_GetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucStartBit, VOS_UINT8 ucEndBit)
 {
     VOS_UINT32                          ulOrgMask;
 
@@ -388,7 +389,7 @@ VOS_UINT32 TTF_GetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucSta
 
 
 
-VOS_VOID TTF_InsertSortAsc16bit
+MODULE_EXPORTED VOS_VOID TTF_InsertSortAsc16bit
 (
     VOS_UINT32                          ulPid,
     VOS_UINT16                          ausSortElement[],
@@ -440,7 +441,7 @@ VOS_VOID TTF_InsertSortAsc16bit
 
 
 
-VOS_VOID TTF_RemoveDupElement16bit
+MODULE_EXPORTED VOS_VOID TTF_RemoveDupElement16bit
 (
     VOS_UINT32                          ulPid,
     VOS_UINT16                          ausSortElement[],
@@ -490,7 +491,7 @@ VOS_VOID TTF_RemoveDupElement16bit
 
 
 
-VOS_VOID TTF_RingBufWrite(VOS_UINT32 ulPid, VOS_UINT32 ulDstRingBufBaseAddr, VOS_UINT16 usOffset,
+MODULE_EXPORTED VOS_VOID TTF_RingBufWrite(VOS_UINT32 ulPid, VOS_UINT32 ulDstRingBufBaseAddr, VOS_UINT16 usOffset,
     VOS_UINT8 *pucSrcData, VOS_UINT16 usDataLen, VOS_UINT16 usModLen)
 {
     VOS_UINT16  usBufLeftLen;
@@ -584,42 +585,26 @@ VOS_VOID PSACORE_MEM_SET_EX(VOS_VOID *ToSet, VOS_SIZE_T ulDestSize, VOS_CHAR Cha
                                         VOS_UINT32 ulFileNo, VOS_UINT32 ulLineNo)
 {
     VOS_VOID                                *pRslt  = VOS_NULL_PTR;
-    TTF_ACCORE_MEM_SET_SOFT_REBOOT_STRU     stAccoreMemSetSoftReboot;
-
-    stAccoreMemSetSoftReboot.pucToSet       = (VOS_UINT8 *)ToSet;
-    stAccoreMemSetSoftReboot.ulDestSize     = ulDestSize;
-    stAccoreMemSetSoftReboot.cChar          = Char;
-    stAccoreMemSetSoftReboot.ulCount        = Count;
-
     pRslt = V_MemSet_s(ToSet, ulDestSize, Char, Count, ulFileNo, (VOS_INT32)ulLineNo);
     if (VOS_NULL_PTR == pRslt)
     {
-        /* 内存错误发起软复位 */
-        mdrv_om_system_error((VOS_INT32)TTF_MEM_SET_FAIL_ERROR, (VOS_INT32)ulFileNo, (VOS_INT32)ulLineNo, (VOS_CHAR *)&stAccoreMemSetSoftReboot, (VOS_INT32)sizeof(TTF_ACCORE_MEM_SET_SOFT_REBOOT_STRU));
     }
 }
 /*lint +e429*/
 
 
-VOS_VOID PSACORE_MEM_CPY_EX(VOS_VOID *Dest, VOS_SIZE_T ulDestSize, const VOS_VOID *Src, VOS_SIZE_T Count,
+MODULE_EXPORTED VOS_VOID PSACORE_MEM_CPY_EX(VOS_VOID *Dest, VOS_SIZE_T ulDestSize, const VOS_VOID *Src, VOS_SIZE_T Count,
                                         VOS_UINT32 ulFileNo, VOS_UINT32 ulLineNo)
 {
     VOS_VOID                                *pRslt          = VOS_NULL_PTR;
     const VOS_VOID                          *pDestChk       = Dest;
     const VOS_VOID                          *pSrcChk        = Src;
-    TTF_ACCORE_MEM_CPY_SOFT_REBOOT_STRU     stAccoreMemCpySoftReboot;
 
-    stAccoreMemCpySoftReboot.pucDest        = (VOS_UINT8 *)Dest;
-    stAccoreMemCpySoftReboot.ulDestSize     = ulDestSize;
-    stAccoreMemCpySoftReboot.pucSrc         = (VOS_UINT8 *)Src;
-    stAccoreMemCpySoftReboot.ulCount        = Count;
-
-    /* 如果源地址为空，并且拷贝长度为0，则不进行下面的操作 */
-    if ( (VOS_NULL_PTR == Src)
-      && (0 == Count) )
+    if (0 == Count)
     {
         return;
     }
+
 
     /*  情况1: 从内存高地址向低地址拷贝，并且是从列表的头部开始拷贝，这种拷贝是允许的。所以，针对这种拷贝直接使用MemMove，这
                样做可以兼容现有代码，目前代码中存在这种内存拷贝情况，且是正常现象，没有必要复位，如果一一排查都改成MemMove，
@@ -634,8 +619,6 @@ VOS_VOID PSACORE_MEM_CPY_EX(VOS_VOID *Dest, VOS_SIZE_T ulDestSize, const VOS_VOI
         /*lint +e668 +e613*/
         if (VOS_NULL_PTR == pRslt)
         {
-            /* 内存错误发起软复位 */
-            mdrv_om_system_error((VOS_INT32)TTF_MEM_MOVE_FAIL_ERROR, (VOS_INT32)ulFileNo, (VOS_INT32)ulLineNo, (VOS_CHAR *)&stAccoreMemCpySoftReboot, (VOS_INT32)sizeof(TTF_ACCORE_MEM_CPY_SOFT_REBOOT_STRU));
         }
 
         return;
@@ -648,13 +631,9 @@ VOS_VOID PSACORE_MEM_CPY_EX(VOS_VOID *Dest, VOS_SIZE_T ulDestSize, const VOS_VOI
                拷贝的实现都是从列表头部开始拷贝的，所以目前代码中这种情况不会出现。*/
     /* 工程组自定义了安全函数的检查规则，-sem(V_MemCpy_s,1p>=4n,1p,3p),
        要求第一个参数和第三个参数不为空指针，函数V_MemCpy_s实现中已经做了空指针检查，因此这里屏蔽处理 */
-    /*lint -e668 -e613*/
-    pRslt = V_MemCpy_s( Dest, ulDestSize, Src, Count, ulFileNo, (VOS_INT32)ulLineNo );
-    /*lint +e668 +e613*/
-    if (VOS_NULL_PTR == pRslt)
+    /*lint -e{668, 613}*/
+    if ((Count > ulDestSize) || (VOS_OK != memcpy_s( Dest, ulDestSize, Src, Count))) /* [false alarm]: Count大于ulDestSize时if判断会短路,不会执行memcpy_s*/
     {
-        /* 内存错误发起软复位 */
-        mdrv_om_system_error((VOS_INT32)TTF_MEM_CPY_FAIL_ERROR, (VOS_INT32)ulFileNo, (VOS_INT32)ulLineNo, (VOS_CHAR *)&stAccoreMemCpySoftReboot, (VOS_INT32)sizeof(TTF_ACCORE_MEM_CPY_SOFT_REBOOT_STRU));
     }
 }
 
@@ -663,26 +642,17 @@ VOS_VOID PSACORE_MEM_MOVE_EX(VOS_VOID *Dest, VOS_SIZE_T ulDestSize, const VOS_VO
                                         VOS_UINT32 ulFileNo, VOS_UINT32 ulLineNo)
 {
     VOS_VOID                                *pRslt  = VOS_NULL_PTR;
-    TTF_ACCORE_MEM_MOVE_SOFT_REBOOT_STRU    stAccoreMemMovSoftReboot;
 
-    stAccoreMemMovSoftReboot.pucDest        = (VOS_UINT8 *)Dest;
-    stAccoreMemMovSoftReboot.ulDestSize     = ulDestSize;
-    stAccoreMemMovSoftReboot.pucSrc         = (VOS_UINT8 *)Src;
-    stAccoreMemMovSoftReboot.ulCount        = Count;
-
-    /* 如果源地址为空，并且拷贝长度为0，则不进行下面的操作 */
-    if ( (VOS_NULL_PTR == Src)
-      && (0 == Count) )
+    if (0 == Count)
     {
         return;
     }
+    
     /*lint -e668 -e613*/
     pRslt = V_MemMove_s( Dest, ulDestSize, Src, Count, ulFileNo, (VOS_INT32)ulLineNo );
     /*lint +e668 +e613*/
     if (VOS_NULL_PTR == pRslt)
     {
-        /* 内存错误发起软复位 */
-        mdrv_om_system_error((VOS_INT32)TTF_MEM_MOVE_FAIL_ERROR, (VOS_INT32)ulFileNo, (VOS_INT32)ulLineNo, (VOS_CHAR *)&stAccoreMemMovSoftReboot, (VOS_INT32)sizeof(TTF_ACCORE_MEM_MOVE_SOFT_REBOOT_STRU));
     }
 }
 /*lint -restore */

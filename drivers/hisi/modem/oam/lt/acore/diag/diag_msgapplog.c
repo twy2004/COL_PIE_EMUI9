@@ -52,6 +52,7 @@
 #include <mdrv.h>
 #include <mdrv_diag_system.h>
 #include "diag_msgapplog.h"
+#include "diag_msgmsp.h"
 #include "diag_debug.h"
 #include "msp_diag_comm.h"
 #include "diag_connect.h"
@@ -67,8 +68,6 @@ DIAG_APPLOG_CTRL g_DiagApplogCtrl =
     .ulChannelNum = 1,
     .ulChannelID = SOCP_CODER_SRC_AP_APP,
 };
-
-VOS_UINT32 diag_MspMsgProc(DIAG_FRAME_INFO_STRU *pData);
 
 /*****************************************************************************
  Function Name   : diag_AppLogMsgProc
@@ -109,7 +108,7 @@ APP_OUT:
     ulRet = DIAG_MsgReport(&stDiagInfo, &stAppLog, sizeof(stAppLog));
     if(ulRet)
     {
-       diag_printf("Rcv  Msg Id fail!\n");
+       diag_error("MsgReport fail(0x%x)\n",ulRet);
     }
     return ulRet;
 }
@@ -129,7 +128,7 @@ VOS_UINT32 diag_AppLogMsgProc(DIAG_FRAME_INFO_STRU *pData)
 
     if(DIAG_MSG_TYPE_APP != pData->stID.pri4b)
     {
-        diag_printf("%s Rcv Error Msg Id 0x%x\n",__FUNCTION__,pData->ulCmdId);
+        diag_error("Rcv Error Msg Id 0x%x\n",pData->ulCmdId);
         return ulRet;
     }
 
@@ -164,7 +163,7 @@ VOS_VOID diag_AppLogMsgInit(VOS_VOID)
     ulRet = diag_ConnMgrSendFuncReg(DIAG_CONN_ID_ACPU_APP, g_DiagApplogCtrl.ulChannelNum, &g_DiagApplogCtrl.ulChannelID, diag_AppConnect);
     if(ulRet)
     {
-        diag_printf("reg connect msg fail, ret:0x%x\n", ulRet);
+        diag_error("reg connect msg fail, ret:0x%x\n", ulRet);
     }
 }
 
@@ -181,7 +180,7 @@ VOS_UINT32 diag_AppConnect(VOS_UINT8 * pData)
         ulRet = (VOS_UINT32)mdrv_applog_conn();
         if(ulRet)
         {
-            diag_printf("app log conn fail, ret:0x%x\n", ulRet);
+            diag_error("app log conn fail, ret:0x%x\n", ulRet);
         }
     }
     else

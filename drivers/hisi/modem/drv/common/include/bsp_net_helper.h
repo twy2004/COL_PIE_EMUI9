@@ -2,6 +2,7 @@
 #define __BSP_NET_HELPER__
 
 #include <linux/if_ether.h>
+#include <linux/ip.h>
 
 struct ip_limit_cfg {
     unsigned long local_jiffies;

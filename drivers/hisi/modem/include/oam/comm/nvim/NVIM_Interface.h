@@ -51,7 +51,7 @@
 #ifndef _NVIM_INTERFACE_H
 #define _NVIM_INTERFACE_H
 
-
+/*lint --e{537}*/
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -76,6 +76,9 @@ enum NV_RESUME_ITEM    /*comm*/
 typedef VOS_UINT32 NV_RESUME_ITEM_ENUM_UINT32;
 
 extern unsigned int mdrv_nv_readex(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
+
+extern unsigned int mdrv_nv_readex_factory(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
+extern unsigned int mdrv_nv_readex_img(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
 
 extern unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pdata, unsigned int ulLength);
 

@@ -162,12 +162,6 @@ int HDCP_Read_TEInfo(struct dp_ctrl *dptx)
     }
     //HISI_FB_DEBUG("dptx_read BKSV: 0x%lx\n", g_BKSV);
 
-    retval = dptx_read_dpcd(dptx, 0x68028, &g_bcaps);
-    if (retval) {
-        HISI_FB_ERR("failed to dptx_read_bytes_from_dpcd bcaps, retval=%d.\n", retval);
-        return retval;
-    }
-    HISI_FB_DEBUG("dptx_read bcaps:%x!\n", g_bcaps);
 
     //dptx_read_dpcd(dptx, 0x68029, &bstatus);
 

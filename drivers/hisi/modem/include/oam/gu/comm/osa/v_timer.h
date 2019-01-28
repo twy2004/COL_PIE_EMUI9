@@ -84,7 +84,6 @@
 #include "v_typdef.h"
 #include "vos_config.h"
 #include "v_msg.h"
-#include "v_private.h"
 #include "v_int.h"
 
 #ifdef __cplusplus
@@ -96,6 +95,8 @@ extern "C" {
 #define VOS_32K_TIMER_ENABLE  VOS_YES
 
 /* errno definiens */
+#define VOS_ERRNO_RELTM_CTRLBLK_INITFAIL                    0x20060000
+#define VOS_ERRNO_RELTM_TASK_INITFAIL                       0x20060001
 #define VOS_ERRNO_RELTM_START_MSGNOTINSTALL                 0x20060004
 #define VOS_ERRNO_RELTM_START_INPUTMODEINVALID              0x20060005
 #define VOS_ERRNO_SYSTIME_VALIDTIME_INPUTISNULL             0x20060006
@@ -147,6 +148,14 @@ extern "C" {
 #define VOS_ERRNO_DRXTIME_START_STOP_FAIL                   0x2060f002
 #define VOS_ERRNO_DRXTIME_START_MSGNOTINSTALL               0x2060f003
 #define VOS_ERRNO_DRXTIME_ERROR_TIMERHANDLE                 0x2060f004
+#define VOS_ERRNO_DRXTIME_RESOURCE_INITFAIL                 0x2060f005
+#define VOS_ERRNO_DRXTIME_TASK_INITFAIL                     0x2060f006
+
+#define VOS_ERRNO_BIT64TIME_START_STOP_FAIL                 0x2060f011
+#define VOS_ERRNO_BIT64TIME_START_MSGNOTINSTALL             0x2060f012
+#define VOS_ERRNO_BIT64TIME_ERROR_TIMERNOUSED               0x2060f013
+#define VOS_ERRNO_BIT64TIME_RESOURCE_INITFAIL               0x2060f014
+#define VOS_ERRNO_BIT64TIME_TASK_INITFAIL                   0x2060f015
 
 #define VOS_ERRNO_SYSTIMER_FULL                             0x2060FFFF
 
@@ -169,6 +178,10 @@ typedef struct
     VOS_UINT32      ulExpiredSendErrSlice;          /* SOC Timer发送消息失败时间 */
     VOS_UINT32      ulExpiredLongErrCount;          /* SOC Timer超时时间大于配置时间次数 */
     VOS_UINT32      ulExpiredLongErrSlice;          /* SOC Timer超时时间大于配置时间时间 */
+    VOS_UINT32      ulBit64TimerStartCount;
+    VOS_UINT32      ulBit64TimerStopCount;
+    VOS_UINT32      ulBit64TimerStartErrCount;
+    VOS_UINT32      ulBit64TimerStopErrCount;
 }VOS_TIMER_SOC_TIMER_INFO_STRU;
 
 typedef struct
@@ -356,6 +369,15 @@ typedef struct
 #endif
 #define DRX_TIMER_TIMEOUT_INTERVAL                    (10*32768)
 
+#if ( FEATURE_MULTI_MODEM == FEATURE_ON )
+#define BIT64_TIMER_MAX_NUMBER                        (64)
+#else
+#define BIT64_TIMER_MAX_NUMBER                        (32)
+#endif
+
+#define BIT64_TIMER_NOT_USED_FLAG                     (1)
+#define BIT64_TIMER_USED_FLAG                         (2)
+
 VOS_UINT32 VOS_TimerCtrlBlkInit(VOS_VOID);
 
 VOS_UINT32 VOS_TimerTaskCreat(VOS_VOID);
@@ -371,6 +393,7 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     VOS_UINT32 ulLength, VOS_UINT32 ulName, VOS_UINT32 ulParam,
     VOS_UINT8 ucMode, REL_TIMER_FUNC TimeOutRoutine,
     VOS_UINT32 ulFileID, VOS_INT32 usLineNo);
+
 
 VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
     VOS_UINT32 ulName, VOS_UINT32 ulParam, VOS_UINT8 ucMode, VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision,
@@ -433,6 +456,26 @@ VOS_UINT32 VOS_GetTick( VOS_VOID );
 VOS_UINT32 VOS_CalRelativeSec( SYS_T  *pFirstTm, SYS_T  *pSecondTm,
                                VOS_UINT32 *RelativeSec );
 
+/*****************************************************************************
+ 函 数 名  : V_StartCallBackRelTimer
+ 功能描述  : 申请一个带有回调的RTC定时器
+ 输入参数  : VOS_PID Pid    申请组件PID
+             VOS_UINT32 ulLength    定时器时长,最大VOS_TIMER_MAX_LENGTH(18小时)，超过最大长度OSA发起主动复位
+             VOS_UINT32 ulName      定时器名称
+             VOS_UINT32 ulParam     定时器参数
+             VOS_UINT8 ucMode       定时器循环模式
+                       VOS_RELTIMER_LOOP  -- start periodically
+                       VOS_RELTIMER_NOLOO -- start once time
+             REL_TIMER_FUNC TimeOutRoutine 回调接口
+             VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision    定时器精度要求，单位0 - 100->0%- 100%
+             VOS_UINT32 ulFileID    调用文件号
+             VOS_INT32 lLineNo      调用行号
+ 输出参数  : HTIMER *phTm timer句柄
+ 返 回 值  : VOS_OK 定时器创建成功或者ERRNO表示创建失败
+ 调用函数  :
+ 被调函数  :
+
+*****************************************************************************/
 VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     VOS_UINT32 ulLength, VOS_UINT32 ulName, VOS_UINT32 ulParam,
     VOS_UINT8 ucMode, REL_TIMER_FUNC TimeOutRoutine, VOS_TIMER_PRECISION_ENUM_UINT32 enPrecision,
@@ -530,6 +573,8 @@ VOS_UINT32 VOS_GetFirst32KTimer( VOS_VOID );
 
 VOS_UINT32 VOS_GetSlice(VOS_VOID);
 
+VOS_UINT64 VOS_Get64BitSlice(VOS_VOID);
+
 VOS_UINT32 VOS_GetSliceUnit(VOS_VOID);
 
 VOS_BOOL VOS_CalcTimerInfo(VOS_VOID);
@@ -551,6 +596,31 @@ VOS_UINT32 VOS_DrxTimerCtrlBlkInit(VOS_VOID);
 VOS_UINT32 VOS_DrxTimerTaskCreat(VOS_VOID);
 
 
+#if ((OSA_CPU_CCPU == VOS_OSA_CPU) || (OSA_CPU_NRCPU == VOS_OSA_CPU)) && (FEATURE_ON == FEATURE_VOS_18H_TIMER)
+VOS_UINT32 VOS_Bit64RtcTimerCtrlBlkInit(VOS_VOID);
+
+VOS_UINT32 VOS_Bit64TimerTaskCreat(VOS_VOID);
+
+VOS_UINT32 VOS_StartBit64Timer( HTIMER *phTm,
+                                     VOS_PID Pid,
+                                     VOS_UINT32 ulLength,
+                                     VOS_UINT32 ulName,
+                                     VOS_UINT32 ulParam,
+                                     VOS_UINT32 ulFileID,
+                                     VOS_INT32 lLineNo);
+VOS_UINT32 VOS_StopBit64Timer( HTIMER *phTm,
+                                     VOS_UINT32 ulFileID,
+                                     VOS_INT32 lLineNo,
+                                     VOS_TIMER_OM_EVENT_STRU *pstEvent);
+VOS_UINT32 VOS_Bit64TimerCheckTimer( HTIMER *phTm );
+VOS_UINT32 VOS_RestartBit64Timer( HTIMER *phTm,
+                                        VOS_UINT32 ulFileID,
+                                        VOS_INT32 lLineNo );
+VOS_UINT32 VOS_GetBit64RemainTime( HTIMER *phTm,
+                                   VOS_UINT32 *pulTime,
+                                   VOS_UINT32 ulFileID,
+                                   VOS_INT32 lLineNo );
+#endif
 
 #ifdef __cplusplus
 #if __cplusplus

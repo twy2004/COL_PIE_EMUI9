@@ -65,32 +65,33 @@ extern "C" {
 #pragma pack(4)
 
 /*****************************************************************************
-  2 宏定义
+  2 ???
 *****************************************************************************/
 
 
 /*****************************************************************************
-  3 枚举定义
+  3 ????
 *****************************************************************************/
 
 
 enum ERR_LOG_FAULT_ID_ENUM
 {
     /* TODO: python search flag satrt */
-    FAULT_ID_GU_ERR_LOG_REPT                = 0X00, /* GU ErrLog 上报相关 */
+    FAULT_ID_GU_ERR_LOG_REPT                = 0X00, /* GU ErrLog ???? */
+    FAULT_ID_EMC_DOMAIN_SEL_AND_RETRY       = 0x78,  /* ???????? */
 
-    FAULT_ID_1X_OOS                         = 0XA1, /* 1x掉网 */
-    FAULT_ID_1X_MO_CALL_FAIL                = 0XA2, /* 1x主叫失败 */
-    FAULT_ID_1X_MT_CALL_FAIL                = 0XA3, /* 1x被叫失败 */
-    FAULT_ID_1X_CALL_EXCEPTION              = 0XA4, /* 1x掉话 */
-    FAULT_ID_1X_REG_FAIL                    = 0XA5, /* 注册失败 */
-    FAULT_ID_1X_SHORT_MSG_SEND_FAIL         = 0XA6, /* 短息发送失败 */
-    FAULT_ID_1X_SHORT_MSG_RCV_FAIL          = 0XA7, /* 短息接收失败 */
-    FAULT_ID_1X_OOS_RECOVERY                = 0XA8, /* 1x掉网恢复 */
-    FAULT_ID_1X_QPCH_CHANGE                 = 0xA9, /* QPCH能力指示 */
-    FAULT_ID_1X_VOICE_QUALITY_BAD           = 0XB1, /* 语音质量差 */
-    FAULT_ID_AP_GET_PHY_COUNT_DATA_REQ      = 0XB2, /* AP定时查询触发物理层主动上报 */
-    FAULT_ID_1X_COUNT_DATA_REPORT           = 0XB3, /* CSDR 1X主动上报统计数据 */
+    FAULT_ID_1X_OOS                         = 0XA1, /* 1x?? */
+    FAULT_ID_1X_MO_CALL_FAIL                = 0XA2, /* 1x???? */
+    FAULT_ID_1X_MT_CALL_FAIL                = 0XA3, /* 1x???? */
+    FAULT_ID_1X_CALL_EXCEPTION              = 0XA4, /* 1x?? */
+    FAULT_ID_1X_REG_FAIL                    = 0XA5, /* ???? */
+    FAULT_ID_1X_SHORT_MSG_SEND_FAIL         = 0XA6, /* ?????? */
+    FAULT_ID_1X_SHORT_MSG_RCV_FAIL          = 0XA7, /* ?????? */
+    FAULT_ID_1X_OOS_RECOVERY                = 0XA8, /* 1x???? */
+    FAULT_ID_1X_QPCH_CHANGE                 = 0xA9, /* QPCH???? */
+    FAULT_ID_1X_VOICE_QUALITY_BAD           = 0XB1, /* ????? */
+    FAULT_ID_AP_GET_PHY_COUNT_DATA_REQ      = 0XB2, /* AP????????????? */
+    FAULT_ID_1X_COUNT_DATA_REPORT           = 0XB3, /* CSDR 1X???????? */
     FAULT_ID_1X_WAKESLEEP_REPORT            = 0XB4, /* MODEM功耗异常 */
     FAULT_ID_1X_ABNORMAL_REPORT             = 0XB5, /* 1x异常主动上报 */
     FAULT_ID_HRPD_OR_LTE_OOS                = 0XC1, /* CL模式下HRPD或LTE丢网*/
@@ -114,6 +115,11 @@ enum ERR_LOG_FAULT_ID_ENUM
 
     FAULT_ID_ENC_VOICE_FAIL                = 0xD0,  /* 加密语音失败 */
 
+    FAULT_ID_LOCK_COUNT                     = 0xD1, /* lock related */
+
+    FAULT_ID_CL_IMS_INFO                    = 0XD2, /* ??CL???,ims?????? */
+
+    FAULT_ID_EHRPD_HRPD_INFO                = 0XD3, /* EHRPD?PDN???? */
     /* TODO: python search flag end */
     FAULT_ID_ERR_LOG_ENUM_BUT
 };

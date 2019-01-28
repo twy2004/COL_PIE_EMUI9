@@ -55,6 +55,7 @@
 
 #include "dms.h"
 #include "vos.h"
+#include "PsCommonDef.h"
 #if (VOS_OS_VER == VOS_LINUX)
 #include "linux/module.h"
 #include <linux/types.h>
@@ -74,7 +75,6 @@
 #include <linux/dma-mapping.h>
 #include <asm/dma-mapping.h>
 #include <asm/io.h>
-/*#include <asm/system.h>*/
 #include <asm/uaccess.h>
 #include <asm/bitops.h>
 
@@ -91,7 +91,7 @@
 
 #include <net/netlink.h>
 #include <net/sock.h>
-#include  <linux/wakelock.h>
+#include <linux/wakelock.h>
 #else
 #include "Linuxstub.h"
 #endif
@@ -148,7 +148,7 @@ extern "C" {
             {\
                 if (VOS_FALSE != (g_ulDmsDebugLevel & lvl))\
                 {\
-                    vos_printf(__VA_ARGS__);\
+                    PS_PRINTF(__VA_ARGS__);\
                 }\
             }while(0)
 #endif

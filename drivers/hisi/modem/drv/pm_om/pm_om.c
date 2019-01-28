@@ -46,11 +46,11 @@
  *
  */
 
-#include <securec.h>
 #include <osl_generic.h>
 #include <osl_spinlock.h>
 #include <osl_module.h>
 #include <osl_malloc.h>
+#include <securec.h>
 #include <bsp_nvim.h>
 #include <bsp_ipc.h>
 #include <bsp_slice.h>
@@ -61,6 +61,9 @@
 #include <nv_stru_drv.h>
 #include "pm_om_platform.h"
 #include "pm_om_debug.h"
+
+#undef THIS_MODU
+#define THIS_MODU mod_pm_om
 
 struct pm_om_ctrl g_pmom_ctrl;
 u32 g_pm_om_magic_tbl[PM_OM_MOD_ID_ENUM_MAX]={
@@ -146,7 +149,7 @@ int pm_om_log_out(u32 mod_id, u32 typeid, u32 data_len , void *data)
 	UNUSED(flags);
 	if(mod_id>=PM_OM_MOD_ID_ENUM_MAX)
 	{
-		pmom_pr_err("mod_id(%d)\n", mod_id);
+		pmom_pr_err("mod_id:(%d)\n", mod_id);
 		return PM_OM_ERR;
 	}
 	/* 记录log过长会影响DRX寻呼(栈上变量) */
@@ -274,7 +277,7 @@ void *bsp_pm_dump_get(u32 mod_id, u32 len)
 
 	if (reg_cnt >= PM_OM_MOD_ID_MAX)
 	{
-		pmom_pr_err("num(%d)>max(%d)", reg_cnt, PM_OM_MOD_ID_MAX);
+		pmom_pr_err("num:(%d)>max:(%d)", reg_cnt, PM_OM_MOD_ID_MAX);
 		return NULL;
 	}
 
@@ -425,8 +428,6 @@ int bsp_pm_info_stat_register(pm_info_cbfun pcbfun, struct pm_info_usr_data *usr
 /*lint -restore +e144 +e413 +e613 +e64 +e826*/
 
 /*lint --e{528}*/
-module_init(bsp_pm_om_log_init);        /*lint !e19 */
-arch_initcall_sync(bsp_pm_om_dump_init);/*lint !e19 */
 EXPORT_SYMBOL(bsp_pm_log_type);         /*lint !e19 */
 EXPORT_SYMBOL(bsp_pm_log);              /*lint !e19 */
 EXPORT_SYMBOL(pm_om_ctrl_get);          /*lint !e19 */

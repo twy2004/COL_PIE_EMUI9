@@ -9,11 +9,6 @@
 # define __always_inline	inline __attribute__((always_inline))
 #endif
 
-/* Are two types/vars the same type (ignoring qualifiers)? */
-#ifndef __same_type
-# define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
-#endif
-
 #ifdef __ANDROID__
 /*
  * FIXME: Big hammer to get rid of tons of:
@@ -26,8 +21,6 @@
 #endif
 
 #define __user
-#define __rcu
-#define __read_mostly
 
 #ifndef __attribute_const__
 # define __attribute_const__
@@ -56,8 +49,6 @@
 #ifndef unlikely
 # define unlikely(x)		__builtin_expect(!!(x), 0)
 #endif
-
-#define uninitialized_var(x) x = *(&(x))
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 

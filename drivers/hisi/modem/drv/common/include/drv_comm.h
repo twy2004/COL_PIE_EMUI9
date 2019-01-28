@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -52,7 +52,7 @@
 #if !defined( __OS_RTOSCK__) && !defined( __OS_RTOSCK_SMP__)
 typedef void                VOID;
 #endif
-
+/*lint --e(761) */
 /*************************GLOBAL BEGIN*****************************/
 /* 基本数据类型定义 */
 #ifndef _WIN32_COMPILE
@@ -110,7 +110,7 @@ typedef int*                BSP_PBOOL;
 typedef void*               BSP_PVOID;
 typedef int*                BSP_PSTATUS;
 typedef BSP_S32             STATUS;
-typedef BSP_S32             UDI_HANDLE;
+//typedef BSP_S32             UDI_HANDLE;
 
 #ifndef BSP_CONST
 #define BSP_CONST           const
@@ -153,7 +153,6 @@ typedef BSP_S32             UDI_HANDLE;
 #endif
 
 typedef int (*PWRCTRLFUNCPTRVOID)(void);
-typedef unsigned int (*PWRCTRLFUNCPTR)(unsigned int arg);     /* ptr to function returning int */
 
 #ifdef __OS_VXWORKS__
 #ifndef INLINE
@@ -227,12 +226,7 @@ typedef BSP_VOID (*VOIDFUNCPTR)(BSP_U32);
 #define DRV_INTERFACE_RSLT_OK           (0)
 
 /* 基本数据类型定义 */
-
-typedef int  (*pFUNCPTR)(void);
-
 typedef unsigned long (*pFUNCPTR2)( unsigned long ulPara1, unsigned long ulPara2);
-
-typedef unsigned int tagUDI_DEVICE_ID_UINT32;
 
 /* 上行线路收包函数指针 */
 typedef BSP_VOID (*UpLinkRxFunc)(BSP_U8 *buf, BSP_U32 len);

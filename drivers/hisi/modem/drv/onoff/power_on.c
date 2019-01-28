@@ -68,13 +68,15 @@
 #include <securec.h>
 
 #include "power_off_mbb.h"
-
+#include <bsp_print.h>
+#define THIS_MODU mod_onoff
 
 /*****************************************************************************
  函 数 名  : bsp_start_mode_get
  功能描述  : 用于获取开机模式
  输入参数  :
- 输出参数  : 无
+ 输出参数  : 无n
+
  返 回 值  :
  调用函数  :
  被调函数  :
@@ -104,7 +106,7 @@ static void bsp_power_icc_send_state(void)
     ret = bsp_icc_send(ICC_CPU_MODEM, icc_channel_id, (u8*)&mode, (u32)sizeof(mode));
     if (ret != (int)sizeof(mode))
     {
-        pr_dbg("send len(%x) != expected len(%lu)\n", ret, (unsigned long)sizeof(mode));
+        bsp_debug("send len(%x) != expected len(%lu)\n", ret, (unsigned long)sizeof(mode));
     }
 }
 
@@ -124,14 +126,14 @@ static s32 bsp_power_ctrl_read_cb(void)
     stCtrlMsg msg;
     u32 channel_id = ICC_CHN_IFC << 16 | IFC_RECV_FUNC_ONOFF;
 
-	read_len = bsp_icc_read(channel_id, (u8*)&msg, (u32)sizeof(stCtrlMsg));
-	if(read_len != (int)sizeof(stCtrlMsg))
-	{
-		pr_dbg("read len(%x) != expected len(%lu)\n", read_len, (unsigned long)sizeof(stCtrlMsg));
-		return -1;
-	}
+    read_len = bsp_icc_read(channel_id, (u8*)&msg, (u32)sizeof(stCtrlMsg));
+    if(read_len != (int)sizeof(stCtrlMsg))
+    {
+        bsp_debug("read len(%x) != expected len(%lu)\n", read_len, (unsigned long)sizeof(stCtrlMsg));
+        return -1;
+    }
 
-	pr_dbg("[onoff]bsp_power_ctrl_read_cb is called, msg: 0x%x\n", msg.pwr_type);
+    bsp_debug("[onoff]bsp_power_ctrl_read_cb is called, msg: 0x%x\n", msg.pwr_type);
 
     switch(msg.pwr_type)
     {
@@ -157,7 +159,7 @@ static s32 bsp_power_ctrl_read_cb(void)
         bsp_drv_power_reboot();
         break;
     default:
-        pr_dbg("invalid ctrl by ccore\n");
+        bsp_debug("invalid ctrl by ccore\n");
         break;
     }
 
@@ -180,7 +182,7 @@ static int __init his_boot_probe(struct platform_device *pdev)
 
     rt = bsp_icc_event_register(channel_id, (read_cb_func)bsp_power_ctrl_read_cb, NULL, NULL, NULL);
     if(rt != 0){
-        pr_dbg("icc event register failed.\n");
+        bsp_debug("icc event register failed.\n");
     }
 
     return rt;
@@ -196,34 +198,31 @@ static struct platform_device his_boot_dev = {
 
 static struct platform_driver his_boot_drv = {
     .probe      = his_boot_probe,
-	.driver		= {
-		.name	= "his_boot",
-		.owner	= THIS_MODULE,/*lint !e64*/
-	},/*lint !e785*/
+    .driver     = {
+        .name   = "his_boot",
+        .owner  = THIS_MODULE,/*lint !e64*/
+    },/*lint !e785*/
 };/*lint !e785*/
 
-static int __init his_boot_init(void)
+int __init his_boot_init(void)
 {
     int ret;
 
-    pr_dbg(KERN_DEBUG "his_boot_init.\n");
+    bsp_debug("his_boot_init.\n");
 
     ret = platform_device_register(&his_boot_dev);
     if(ret)
     {
-        pr_dbg("register his_boot device failed.\n");
+        bsp_debug("register his_boot device failed.\n");
         return ret;
     }
 
     ret = platform_driver_register(&his_boot_drv);/*lint !e64*/
     if(ret)
     {
-        pr_dbg("register his_boot driver failed.\n");
+        bsp_debug("register his_boot driver failed.\n");
         platform_device_unregister(&his_boot_dev);
     }
 
     return ret;
 }
-
-late_initcall(his_boot_init);
-

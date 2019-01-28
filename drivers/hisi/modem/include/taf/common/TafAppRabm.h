@@ -96,16 +96,17 @@ extern "C"{
 
 
 
-#if ((TAF_OS_VER == TAF_WIN32) || (TAF_OS_VER == TAF_NUCLEUS))
+#if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else
 #pragma pack(0)
 #endif
 
+
 #ifdef __cplusplus
-    #if __cplusplus
-        }
-    #endif
+#if __cplusplus
+}
+#endif
 #endif
 
 #endif /* end of TafAppRabm.h */

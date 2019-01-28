@@ -46,8 +46,9 @@ enum PAM_NV_ID_ENUM
 /* 8261  */      en_NV_Item_TerminalProfile_Set = 8261,
 
 /* 50041  */     en_NV_Item_NV_HUAWEI_DOUBLE_IMSI_CFG_I   = 50041,
-
+#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
 /* 9283 */       en_NV_Item_ESN_MEID = 9283,
+#endif
 };
 
 /*****************************************************************************

@@ -46,12 +46,13 @@
 *
 */
 
-#ifndef __CDSADSINTERFACE_H__
-#define __CDSADSINTERFACE_H__
+#ifndef __CDS_ADS_INTERFACE_H__
+#define __CDS_ADS_INTERFACE_H__
 
 /*****************************************************************************
   1 头文件包含
 *****************************************************************************/
+
 #include "vos.h"
 
 #ifdef __cplusplus
@@ -60,39 +61,58 @@ extern "C" {
 #endif
 #endif
 
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
+#else
+#pragma pack(push, 4)
+#endif
 
+#ifdef WIN32
+#pragma warning(disable:4200) /* zero-sized array in struct/union */
+#endif
 
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
-/* !!!!!!!!!!!暂时定义，最终的值由北京确定 */
-#define ADS_CDS_MSG_HDR                (0x00)
-#define CDS_ADS_MSG_HDR                (0x10)
 
-#define CDS_ADS_ALL_RABID               (0xFF)
+#define ADS_CDS_MSG_ID_HEADER           (0x0000)
+#define CDS_ADS_MSG_ID_HEADER           (0x0010)
+
+#define CDS_ADS_MSG_ID_HEADER_V2        (0x0100)
+#define ADS_CDS_MSG_ID_HEADER_V2        (0x0120)
 
 
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
 
+/*****************************************************************************
+ 枚举名称: CDS_ADS_MSG_ID_ENUM
+ 枚举说明: CDS和ADS的之间的消息
+*****************************************************************************/
 enum CDS_ADS_MSG_ID_ENUM
 {
-    ID_CDS_ADS_STOP_SENDDATA_IND     = CDS_ADS_MSG_HDR + 0x01,                  /* CDS->ADS STOP SENDDATA IND */
-    ID_CDS_ADS_STOP_SENDDATA_RSP     = ADS_CDS_MSG_HDR + 0x01,                  /* ADS->CDS STOP SENDDATA RSP */
-    ID_CDS_ADS_START_SENDDATA_IND    = CDS_ADS_MSG_HDR + 0x02,                  /* CDS->ADS START SENDDATA IND */
-    ID_CDS_ADS_START_SENDDATA_RSP    = ADS_CDS_MSG_HDR + 0x02,                  /* ADS->CDS START SENDDATA RSP */
-    ID_CDS_ADS_CLEAR_DATA_IND        = CDS_ADS_MSG_HDR + 0x03,                  /* CDS->ADS CLEAR DATA IND */
-    ID_CDS_ADS_CLEAR_DATA_RSP        = ADS_CDS_MSG_HDR + 0x03,                  /* ADS->CDS CLEAR DATA RSP */
-    ID_CDS_ADS_IP_PACKET_IND         = CDS_ADS_MSG_HDR + 0x04,                  /* CDS->ADS IP PACKET IND */
-    ID_ADS_CDS_ERR_IND               = ADS_CDS_MSG_HDR + 0x04,                  /* ADS->CDS IP PACKET DECODE ERR IND*/
-    ID_CDS_ADS_MSG_ID_ENUM_BUTT
+    /* 0x01~0x03 消息废弃 */
+
+    /* CDS<--->ADS */
+    ID_CDS_ADS_DATA_IND                 = CDS_ADS_MSG_ID_HEADER + 0x04,
+    ID_ADS_CDS_ERR_IND                  = ADS_CDS_MSG_ID_HEADER + 0x04,
+
+    /* CDS<--->ADS */
+    ID_CDS_ADS_DATA_IND_V2              = CDS_ADS_MSG_ID_HEADER_V2 + 0x01,
+    ID_ADS_CDS_DATA_IND_V2              = ADS_CDS_MSG_ID_HEADER_V2 + 0x01,
+
+    /* ADS--->CDS */
+    ID_ADS_CDS_ERR_IND_V2               = ADS_CDS_MSG_ID_HEADER_V2 + 0x11,
+
+    ID_CDS_ADS_MSG_ID_BUTT
 };
-typedef VOS_UINT32  CDS_ADS_MSG_ID_ENUM_UINT32;
+typedef VOS_UINT32 CDS_ADS_MSG_ID_ENUM_UINT32;
 
-
-
+/*****************************************************************************
+ 枚举名称: CDS_ADS_IP_PACKET_TYPE_ENUM_UINT8
+ 枚举说明: CDS与ADS的IP消息包类型定义
+*****************************************************************************/
 enum CDS_ADS_IP_PACKET_TYPE_ENUM
 {
     CDS_ADS_IP_PACKET_TYPE_DHCP_SERVERV4   = 0x00,
@@ -104,170 +124,214 @@ enum CDS_ADS_IP_PACKET_TYPE_ENUM
 };
 typedef VOS_UINT8 CDS_ADS_IP_PACKET_TYPE_ENUM_UINT8;
 
-
+/*****************************************************************************
+ 枚举名称: CDS_ADS_DL_IPF_BEARER_ID_ENUM
+ 枚举说明: CDS与ADS下行的IPF Bearer Id定义
+           IPF Bearer ID:
+               0~4      保留
+               5~15     EPS Bearer ID
+               16       下行DHCP
+               17       下行DHCPv6
+               18       下行ICMP
+               19       下行ICMPv6
+               20       下行Link Local Address FE80
+               21       下行Link Local Address FF
+               22       下行MIP
+               23       下行MIP
+               24~62    暂时保留，可扩展
+               63       不匹配任何Filter
+*****************************************************************************/
 enum CDS_ADS_DL_IPF_BEARER_ID_ENUM
 {
-    CDS_ADS_DL_IPF_BEARER_ID_RSV0     = 0,                                      /* 0~4保留 */
-    CDS_ADS_DL_IPF_BEARER_ID_EPSBID5  = 5,                                      /* 5~15 EPS Bearer ID*/
-    CDS_ADS_DL_IPF_BEARER_ID_EPSBID15 = 15,
-    CDS_ADS_DL_IPF_BEARER_ID_DHCPV4   = 16,                                     /* 下行DHCP */
-    CDS_ADS_DL_IPF_BEARER_ID_DHCPV6   = 17,                                     /* 下行DHCPv6*/
-    CDS_ADS_DL_IPF_BEARER_ID_ICMPV4   = 18,                                     /* 下行ICMP */
-    CDS_ADS_DL_IPF_BEARER_ID_ICMPV6   = 19,                                     /* 下行ICMPv6 */
-    CDS_ADS_DL_IPF_BEARER_ID_LL_FE80  = 20,
-    CDS_ADS_DL_IPF_BEARER_ID_LL_FF    = 21,
-    CDS_ADS_DL_IPF_BEARER_ID_MIP_ADV  = 22,
+    CDS_ADS_DL_IPF_BEARER_ID_RSV0       = 0,
+    CDS_ADS_DL_IPF_BEARER_ID_EPSBID5    = 5,
+    CDS_ADS_DL_IPF_BEARER_ID_EPSBID15   = 15,
+    CDS_ADS_DL_IPF_BEARER_ID_DHCPV4     = 16,
+    CDS_ADS_DL_IPF_BEARER_ID_DHCPV6     = 17,
+    CDS_ADS_DL_IPF_BEARER_ID_ICMPV4     = 18,
+    CDS_ADS_DL_IPF_BEARER_ID_ICMPV6     = 19,
+    CDS_ADS_DL_IPF_BEARER_ID_LL_FE80    = 20,
+    CDS_ADS_DL_IPF_BEARER_ID_LL_FF      = 21,
+    CDS_ADS_DL_IPF_BEARER_ID_MIP_ADV    = 22,
     CDS_ADS_DL_IPF_BEARER_ID_MIP_REG_REPLY = 23,
-    CDS_ADS_DL_IPF_BEARER_ID_INVALID  = 63                                      /* 不匹配任何Filter，0x3F*/
+    CDS_ADS_DL_IPF_BEARER_ID_INVALID    = 63
 };
-typedef VOS_UINT32 CDS_ADS_DL_IPF_BEARER_ID_ENUM_UINT32;
+typedef VOS_UINT8 CDS_ADS_DL_IPF_BEARER_ID_ENUM_UINT8;
 
-
+/*****************************************************************************
+ 枚举名称: ADS_CDS_IPF_PKT_TYPE_ENUM_UINT8
+ 枚举说明: ADS给CDS的数据包类型
+*****************************************************************************/
 enum ADS_CDS_PKT_TYPE_ENUM
 {
-    ADS_CDS_IPF_PKT_TYPE_IP   = 0x00,                                           /* IP类型 */
-    ADS_CDS_IPF_PKT_TYPE_PPP  = 0x01,                                           /* PPP类型 */
+    ADS_CDS_IPF_PKT_TYPE_IP   = 0x00,
+    ADS_CDS_IPF_PKT_TYPE_PPP  = 0x01,
+
     ADS_CDS_IPF_PKT_TYPE_BUTT
 };
 typedef VOS_UINT8 ADS_CDS_IPF_PKT_TYPE_ENUM_UINT8;
 
 /*****************************************************************************
-  4 全局变量声明
+ 枚举名称: CDS_ADS_DL_IPF_BID_ENUM
+ 枚举说明: IPF下行过滤结果中BID定义
+           IPF Bearer ID:
+               0~4      保留
+               5~15     EPS Bearer ID
+               16       下行DHCP
+               17       下行DHCPv6
+               18       下行ICMP
+               19       下行ICMPv6
+               20       下行Link Local Address FE80
+               21       下行Link Local Address FF
+               22       下行MIP
+               23       下行MIP
+               24~254   暂时保留，可扩展
+               255      不匹配任何Filter
 *****************************************************************************/
+enum CDS_ADS_DL_IPF_BID_ENUM
+{
+    CDS_ADS_DL_IPF_BID_RSV0             = 0,
+    CDS_ADS_DL_IPF_BID_EPSBID5          = 5,
+    CDS_ADS_DL_IPF_BID_EPSBID15         = 15,
+    CDS_ADS_DL_IPF_BID_DHCPV4           = 16,
+    CDS_ADS_DL_IPF_BID_DHCPV6           = 17,
+    CDS_ADS_DL_IPF_BID_ICMPV4           = 18,
+    CDS_ADS_DL_IPF_BID_ICMPV6           = 19,
+    CDS_ADS_DL_IPF_BID_LL_FE80          = 20,
+    CDS_ADS_DL_IPF_BID_LL_FF            = 21,
+    CDS_ADS_DL_IPF_BID_MIP_ADV          = 22,
+    CDS_ADS_DL_IPF_BID_MIP_REG_REPLY    = 23,
+    CDS_ADS_DL_IPF_BID_INVALID          = 255
+};
+typedef VOS_UINT8 CDS_ADS_DL_IPF_BID_ENUM_UINT8;
+
+/*****************************************************************************
+ 枚举名称: CDS_ADS_UL_IPF_BID_ENUM
+ 枚举说明: IPF上行过滤结果中BID内容定义
+           IPF Bearer ID:
+               0~4      保留
+               5~15     EPS Bearer ID
+               16       上行DHCP
+               17       上行DHCPv6
+               18       上行ICMP
+               19       上行ICMPv6
+               20       上行Link Local Address FE80
+               21       上行Link Local Address FF
+               22~254   暂时保留，可扩展
+               255      不匹配任何Filter
+*****************************************************************************/
+enum CDS_ADS_UL_IPF_BID_ENUM
+{
+    CDS_ADS_UL_IPF_BID_RSV0             = 0,
+    CDS_ADS_UL_IPF_BID_EPSBID5          = 5,
+    CDS_ADS_UL_IPF_BID_EPSBID15         = 15,
+    CDS_ADS_UL_IPF_BID_DHCPV4           = 16,
+    CDS_ADS_UL_IPF_BID_DHCPV6           = 17,
+    CDS_ADS_UL_IPF_BID_ICMPV4           = 18,
+    CDS_ADS_UL_IPF_BID_ICMPV6           = 19,
+    CDS_ADS_UL_IPF_BID_LL_FE80          = 20,
+    CDS_ADS_UL_IPF_BID_LL_FF            = 21,
+    CDS_ADS_UL_IPF_BID_INVALID          = 255
+};
+typedef VOS_UINT8 CDS_ADS_UL_IPF_BID_ENUM_UINT8;
 
 
 /*****************************************************************************
-  5 消息头定义
+  4 STRUCT定义
 *****************************************************************************/
-
 
 /*****************************************************************************
-  6 消息定义
+ 结构名称: CDS_ADS_DATA_IND_STRU
+ 结构说明: ID_CDS_ADS_DATA_IND 消息结构
 *****************************************************************************/
-
-
-/*****************************************************************************
-  7 STRUCT定义
-*****************************************************************************/
-
 typedef struct
 {
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
+    VOS_MSG_HEADER
+    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
+
     MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucReserved[1];
-
-} CDS_ADS_STOP_SENDDATA_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
-    MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucReserved[1];
-} CDS_ADS_STOP_SENDDATA_RSP_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
-    MODEM_ID_ENUM_UINT16                enModemId ;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucReserved[1];
-} CDS_ADS_START_SENDDATA_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
-    MODEM_ID_ENUM_UINT16                enModemId ;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucReserved[1];
-} CDS_ADS_START_SENDDATA_RSP_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
-    MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucRsv[1];                              /* 保留*/
-} CDS_ADS_CLEAR_DATA_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* 消息头 */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* 消息ID */
-    MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* Rab Id*/
-    VOS_UINT8                           aucRsv[1];                              /* 保留*/
-} CDS_ADS_CLEAR_DATA_RSP_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* _H2ASN_Skip */
-    MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* RAB标识，取值范围:[5,15] */
-    CDS_ADS_IP_PACKET_TYPE_ENUM_UINT8   enIpPacketType;                         /* IP PACKET TYPE*/
-    VOS_UINT16                          usLen;                                  /* Zc Len*/
-    VOS_UINT8                           aucRsv[2];                              /* 保留*/
-    VOS_UINT8                           aucData[4];                             /* 数据包 */
+    VOS_UINT8                           ucRabId;
+    CDS_ADS_IP_PACKET_TYPE_ENUM_UINT8   enIpPacketType;
+    VOS_UINT16                          usLen;
+    VOS_UINT8                           aucRsv[2];
+    VOS_UINT8                           aucData[4];
 } CDS_ADS_DATA_IND_STRU;
 
-/** ****************************************************************************
- * Name        : ADS_CDS_IP_PACKET_ERR_IND_STRU
- *
- * Description :
- *******************************************************************************/
+/*****************************************************************************
+ 结构名称: ADS_CDS_ERR_IND_STRU
+ 结构说明: ID_ADS_CDS_ERR_IND 消息结构
+*****************************************************************************/
 typedef struct
 {
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;                                /* _H2ASN_Skip */
+    VOS_MSG_HEADER
+    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
+
     MODEM_ID_ENUM_UINT16                enModemId;
-    VOS_UINT8                           ucRabId;                                /* RAB标识，取值范围:[5,15] */
+    VOS_UINT8                           ucRabId;
+    VOS_UINT8                           ucErrRate;
+    VOS_UINT8                           aucRsv[4];
+} ADS_CDS_ERR_IND_STRU;
+
+/*****************************************************************************
+ 结构名称: CDS_ADS_DATA_IND_V2_STRU
+ 结构说明: ID_CDS_ADS_DATA_IND_V2 消息结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
+
+    VOS_UINT8                           ucIfaceId;
+    CDS_ADS_UL_IPF_BID_ENUM_UINT8       enBid;
+    VOS_UINT16                          usLen;
+    VOS_UINT8                           aucData[0];/*lint !e43*/
+} CDS_ADS_DATA_IND_V2_STRU;
+
+/*****************************************************************************
+ 结构名称: ADS_CDS_SEPCIAL_PACKET_IND_STRU
+ 结构说明: ID_ADS_CDS_DATA_IND_V2 消息结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
+
+    VOS_UINT8                           ucIfaceId;
+    CDS_ADS_DL_IPF_BID_ENUM_UINT8       enBid;
+    MODEM_ID_ENUM_UINT16                enModemId;
+    VOS_UINT8                           ucPduSessionId;
+    VOS_UINT8                           aucRsv[1];
+    VOS_UINT16                          usLen;
+    VOS_UINT8                           aucData[0];/*lint !e43*/
+} ADS_CDS_DATA_IND_V2_STRU;
+
+/*****************************************************************************
+ 结构名称: ADS_CDS_ERR_IND_V2_STRU
+ 结构说明: ID_ADS_CDS_ERR_IND_V2 消息结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_MSG_HEADER
+    CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
+
+    VOS_UINT8                           ucIfaceId;
     VOS_UINT8                           ucErrRate;                              /* 错包率，扩展备用，目前不处理*/
-    VOS_UINT8                           aucRsv[4];                              /* 保留*/
-}ADS_CDS_ERR_IND_STRU;
-
-/*****************************************************************************
-  8 UNION定义
-*****************************************************************************/
-
-
-/*****************************************************************************
-  9 OTHERS定义
-*****************************************************************************/
-
-/*****************************************************************************
-  10 函数声明
-*****************************************************************************/
+    VOS_UINT8                           aucRsv[2];                              /* 保留*/
+} ADS_CDS_ERR_IND_V2_STRU;
 
 
 
-
-
-
-#if (VOS_OS_VER == VOS_WIN32)
+#if (VOS_OS_VER != VOS_WIN32)
 #pragma pack()
 #else
-#pragma pack(0)
+#pragma pack(pop)
 #endif
-
 
 #ifdef __cplusplus
-    #if __cplusplus
-        }
-    #endif
-#endif
+#if __cplusplus
+}
+#endif /* __cpluscplus */
+#endif /* __cpluscplus */
 
-#endif
+#endif /* __CDS_ADS_INTERFACE_H__ */
 

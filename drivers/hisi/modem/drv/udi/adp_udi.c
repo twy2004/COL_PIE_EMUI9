@@ -56,6 +56,9 @@
 
 
 #include <securec.h>
+#include "bsp_print.h"
+
+#define THIS_MODU mod_udi
 
 
 static int udiAdpAcmInit(void);
@@ -121,7 +124,7 @@ static int udiAdpAcmInit(void)
 	pDrvInterface = kmalloc(sizeof(UDI_DRV_INTEFACE_TABLE), GFP_KERNEL);
 	if (NULL == pDrvInterface)
 	{
-		printk(KERN_ERR "BSP_MODU_UDI NO Mem, line:%d\n", __LINE__);
+		bsp_err("BSP_MODU_UDI NO Mem, line:%d\n",  __LINE__);
 		return (-1);
 	}
 	memset_s((void*)pDrvInterface, sizeof(*pDrvInterface), 0, sizeof(UDI_DRV_INTEFACE_TABLE));

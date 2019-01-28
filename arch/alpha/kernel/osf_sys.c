@@ -561,20 +561,25 @@ SYSCALL_DEFINE0(getdtablesize)
  */
 SYSCALL_DEFINE2(osf_getdomainname, char __user *, name, int, namelen)
 {
-	int len, err = 0;
-	char *kname;
+	unsigned len;
+	int i;
 
-	if (namelen > 32)
-		namelen = 32;
+	if (!access_ok(VERIFY_WRITE, name, namelen))
+		return -EFAULT;
+
+	len = namelen;
+	if (len > 32)
+		len = 32;
 
 	down_read(&uts_sem);
-	kname = utsname()->domainname;
-	len = strnlen(kname, namelen);
-	if (copy_to_user(name, kname, min(len + 1, namelen)))
-		err = -EFAULT;
+	for (i = 0; i < len; ++i) {
+		__put_user(utsname()->domainname[i], name + i);
+		if (utsname()->domainname[i] == '\0')
+			break;
+	}
 	up_read(&uts_sem);
 
-	return err;
+	return 0;
 }
 
 /*

@@ -45,16 +45,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
- 
+
 #include <linux/slab.h>
 #include <linux/syscalls.h>
-#include <linux/kernel.h> 
+#include <linux/kernel.h>
 #include <asm/string.h>
-#include "securec.h"
 #include "bsp_rfile.h"
 #include "osl_types.h"
 #include "drv_comm.h"
-#include "dump_print.h"
+#include "securec.h"
+#include "dump_config.h"
+#undef	THIS_MODU
+#define THIS_MODU mod_dump
 
 /*****************************************************************************
 * 函 数 名  : dump_save_file
@@ -82,14 +84,14 @@ void dump_save_file(char * file_name, void * addr, u32 len)
     fd = bsp_open(file_name, O_CREAT|O_RDWR|O_SYNC, 0660);
     if(fd < 0)
     {
-        dump_fetal("creat file %s failed\n", file_name);
+        dump_error("fail to creat file %s \n", file_name);
         return;
     }
 
     bytes = bsp_write(fd, addr, len);
     if(bytes != len)
     {
-        dump_fetal("write data to %s failed, bytes %d, len %d\n", file_name, bytes, len);
+        dump_error("write data to %s failed, bytes %d, len %d\n", file_name, bytes, len);
         (void)bsp_close(fd);
         return;
     }
@@ -97,7 +99,7 @@ void dump_save_file(char * file_name, void * addr, u32 len)
     ret = bsp_close(fd);
     if(0 != ret)
     {
-        dump_fetal("close file failed, ret = %d\n", ret);
+        dump_error("fail to close file, ret = %d\n", ret);
         return;
     }
 
@@ -129,7 +131,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
         fd  = bsp_mkdir((s8*)dir, 0660);
         if(fd < 0)
         {
-            dump_fetal("create om dir failed! ret = %d\n", fd);
+            dump_error("fail to create om dir ! ret = %d\n", fd);
 
             return fd;
         }
@@ -137,7 +139,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
 
     if(BSP_OK != fd)
     {
-        dump_fetal("create dir failed! ret = %d\n", ret);
+        dump_error("fail to create dir ! ret = %d\n", ret);
         goto out;
     }
 
@@ -147,7 +149,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
         fd = bsp_open((s8*)filename, RFILE_CREAT|RFILE_RDWR, 0755);
         if(fd < 0)
         {
-            dump_fetal("open failed while mode is create, ret = %d\n", fd);
+            dump_error("fail to open %s,while mode is create, ret = %d\n", filename,fd);
             goto out;
         }
     }
@@ -156,7 +158,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
         fd = bsp_open((s8*)filename, RFILE_APPEND|RFILE_RDWR, 0755);
         if(fd < 0)
         {
-            dump_fetal("open failed while mode is append, ret = %d\n", fd);
+            dump_error("open failed while mode is append, ret = %d\n", fd);
             goto out;
         }
 
@@ -165,7 +167,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
     len = bsp_lseek((u32)fd, 0, SEEK_END);
     if(ERROR == len)
     {
-        dump_fetal("seek failed! ret = %d\n", len);
+        dump_error("fail to seek ! ret = %d\n", len);
         goto out1;
     }
 
@@ -175,14 +177,14 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
         ret = bsp_remove((s8*)filename);
         if (BSP_OK != ret)
         {
-            dump_fetal("remove failed! ret = %d\n", ret);
+            dump_error("fail to remove ! ret = %d\n", ret);
             goto out;
         }
 
         fd = bsp_open((s8*)filename, RFILE_CREAT|RFILE_RDWR, 0755);
         if(fd < 0)
         {
-            dump_fetal("create failed! ret = %d\n", fd);
+            dump_error("fail to create %s ! ret = %d\n",filename, fd);
             goto out;
         }
     }
@@ -190,7 +192,7 @@ int dump_append_file(char * dir, char *filename, void * address, u32 length, u32
     bytes = (u32)bsp_write((u32)fd, address, length);
     if(bytes != length)
     {
-        dump_fetal("write data failed! ret = %d\n", bytes);
+        dump_error("fail to write data ! ret = %d\n", bytes);
         ret = BSP_ERROR;
         goto out1;
     }
@@ -228,9 +230,9 @@ int dump_create_dir(char *path)
     {
         return BSP_ERROR;
     }
-    dump_fetal("path = %s\n", path);
+    dump_ok("create dir path is %s\n", path);
 
-    fd = bsp_access(path, 0); 
+    fd = bsp_access(path, 0);
     if(0 != fd)
     {
         /*rfile创建目录不允许使用/结束路径*/
@@ -240,7 +242,7 @@ int dump_create_dir(char *path)
             dir_name = kmalloc((len + 1), GFP_KERNEL);
             if(dir_name == NULL)
             {
-                dump_fetal("malloc memry fail\n");
+                dump_error("malloc memry fail\n");
                 return BSP_ERROR;
             }
             memset_s(dir_name,(len + 1),'\0',(len + 1));
@@ -257,7 +259,7 @@ int dump_create_dir(char *path)
         }
         if(fd < 0)
         {
-            dump_fetal("create dir fail,fd = %d\n ",fd);
+            dump_error("fail to create dir ,fd = %d\n ",fd);
             return fd;
         }
     }

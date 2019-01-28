@@ -129,7 +129,7 @@ VOS_INT VOS_nsprintf_s(VOS_CHAR *str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount
 {
     VOS_SIZE_T                          ulPrintLen;
 
-    /*lint -e530 -e830 */
+    /*lint -e530 */
     va_list arg;
     register VOS_INT nc;
 
@@ -163,7 +163,7 @@ VOS_INT VOS_nsprintf_s(VOS_CHAR *str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount
     va_end(arg);
     /*lint +e586*/
     return (nc);
-    /*lint +e530 +e830 */
+    /*lint +e530 */
 }
 
 
@@ -174,11 +174,11 @@ VOS_INT VOS_nsprintf_s(VOS_CHAR *str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount
  Output     : None
  Return     : VOS_OK on success and VOS_ERROR on error
  *****************************************************************************/
-VOS_INT32 vos_printf( const VOS_CHAR * format, ... )
+MODULE_EXPORTED VOS_INT32 vos_printf( const VOS_CHAR * format, ... )
 {
     VOS_UINT32 ulReturn = VOS_OK;
 
-    /*lint -e530 -e830 */
+    /*lint -e530 */
     va_list    argument;
     VOS_CHAR   output_info[VOS_MAX_PRINT_LEN + 4] = {0};
 
@@ -194,7 +194,7 @@ VOS_INT32 vos_printf( const VOS_CHAR * format, ... )
     /*lint -e586*/
     va_end( argument );
     /*lint +e586*/
-    /*lint +e530 +e830 */
+    /*lint +e530 */
 
     output_info[VOS_MAX_PRINT_LEN - 1] = '\0';
 

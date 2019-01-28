@@ -45,11 +45,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+ 
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/io.h>
 #include <soc_memmap.h>
-#include <bsp_trace.h>
 #include <bsp_s_memory.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_ddr.h>
@@ -57,17 +57,21 @@
 #include <linux/of_fdt.h>
 #include <linux/of.h>
 #include <linux/vmalloc.h>
-#include "securec.h"
+#include <securec.h>
+#include <bsp_print.h>
+
+#undef THIS_MODU
+#define THIS_MODU mod_s_mem
 
 /*lint -e528*/
 
 #define  s_mem_pr_err(fmt, ...) \
-	(printk(KERN_ERR "[s_mem]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+	(bsp_err("<%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
 struct mem_ctrl g_mem_ctrl;
 
-static int __init bsp_shared_mem_init(void)
+int __init bsp_shared_mem_init(void)
 {
-	(void)memset_s((void *)&g_mem_ctrl, sizeof(struct mem_ctrl), 0x0, sizeof(struct mem_ctrl));
+	memset_s(&g_mem_ctrl, sizeof(struct mem_ctrl), 0x0, sizeof(struct mem_ctrl));
 	g_mem_ctrl.sddr_phy_addr  = (void*)HI_SHARED_DDR_BASE_ADDR;
 	g_mem_ctrl.sddr_mem_size  = HI_SHARED_DDR_SIZE;
 	g_mem_ctrl.sddr_virt_addr = (void*)ioremap_wc((unsigned long)g_mem_ctrl.sddr_phy_addr, g_mem_ctrl.sddr_mem_size);
@@ -76,6 +80,5 @@ static int __init bsp_shared_mem_init(void)
 	return 0;
 }
 
-core_initcall(bsp_shared_mem_init); /*lint !e528*/
 EXPORT_SYMBOL_GPL(g_mem_ctrl);
 

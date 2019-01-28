@@ -17,62 +17,61 @@ void bsp_ipf_show_status(void)
 
 	g_ipf_ctx.status->flt_chain_loop = (unsigned int)ipf_readl(HI_IPF_FLT_CHAIN_LOOP_OFFSET);
 
-	pr_err("======acore only=======================");
-	pr_err("ipf_rst_leave 		%d\n", g_ipf_ctx.ipf_rst_leave);
-	pr_err("dont get acore seg  %d\n", g_ipf_ctx.not_get_space);
+	bsp_err("======acore only=======================");
+	bsp_err("ipf_rst_leave 		%d\n", g_ipf_ctx.ipf_rst_leave);
+	bsp_err("dont get acore seg  %d\n", g_ipf_ctx.not_get_space);
 
 	for (i = 0; i < IPF_CHANNEL_MAX; i++) {
-		pr_err("====ipf %score status====\n", i == 0 ? "a" : "c");
-		pr_err("flt_chain_loop		%d\n",  ptr->flt_chain_loop);
-		pr_err("get_rd_num_times		%d\n", ptr->get_rd_num_times);
-		pr_err("get_rd_times			%d\n", ptr->get_rd_times);
-		pr_err("get_rd_short_cnt		%d\n", ptr->get_rd_cnt[IPF_AD_0]);
-		pr_err("get_rd_long_cnt		%d\n", ptr->get_rd_cnt[IPF_AD_1]);
-		pr_err("rd_len_update		%d\n", ptr->rd_len_update);
-		pr_err("rd_len		%d\n", ptr->rd_len);
-		pr_err("rd_len		%d\n", ptr->rd_ts);
-		pr_err("get_ad_num_times		%d\n", ptr->get_ad_num_times);
-		pr_err("cfg_ad_times		%d\n", ptr->cfg_ad_times);
-		pr_err("get_ad_thred		%d\n", ptr->ad_thred);
-		pr_err("short_adq_cfg_count	%d\n", ptr->cfg_ad_cnt[IPF_AD_0]);
-		pr_err("short_adq_out_ptr_null	%d\n", ptr->ad_out_ptr_null[IPF_AD_0]);
-		pr_err("long_adq_cfg_count	%d\n", ptr->cfg_ad_cnt[IPF_AD_1]);
-		pr_err("long_adq_out_ptr_null	%d\n", ptr->ad_out_ptr_null[IPF_AD_1]);;
-		pr_err("get_bd_num_times		%d\n", ptr->get_bd_num_times);
-		pr_err("bd_cfg_times		%d\n", ptr->cfg_bd_times);
-		pr_err("cfg_bd_cnt		%d\n", ptr->cfg_bd_cnt);
-		pr_err("bd_full			%d\n", ptr->bd_full);
-		pr_err("bd_len_zero_err		%d\n", ptr->bd_len_zero_err);
-		pr_err("cd_not_enough			%d\n", ptr->cd_not_enough);
-		pr_err("busy_cnt			%d\n", ptr->busy_cnt);
-		pr_err("resume			%d\n", ptr->resume);
-		pr_err("resume_with_intr			%d\n", ptr->resume_with_intr);
-		pr_err("suspend			%d\n", ptr->suspend);
-		pr_err("time_stamp_en		%d\n", ptr->timestamp_en);
-		pr_err("rate_en			%d\n", ptr->rate_en);
-		pr_err("init_ok			0x%x\n", ptr->init_ok);
-		pr_err("mdrv_called_not_init	%d\n", ptr->mdrv_called_not_init);
-		pr_err("invalid_para		%d\n", ptr->invalid_para);
-		pr_err("scr wr			%d\n", ptr->reg_scur_wr_err);
-		pr_err("scr rd			%d\n", ptr->reg_scur_rd_err);
-		pr_err("occupy_cnt		%d\n", ptr->occupy_cnt);
-		pr_err("ccore rst idle err		%d\n", ptr->ccore_rst_err);
-		pr_err("ccore_reset		%d\n", ptr->ccore_reset);
-		pr_err("core_rst_done		%d\n", ptr->core_rst_done);
-        pr_err("cp_flag		%x\n", ptr->cp_flag);
-        pr_err("rst_ts		%d\n", ptr->rst_ts);
-		pr_err("dump_mem_alloc_ok		%d\n", ptr->dump_mem_alloc_ok);
-		pr_err("dump_mem_alloc_ok		%d\n", ptr->rsr_suspend_begin);
-		pr_err("dump_mem_alloc_ok		%d\n", ptr->rsr_suspend_end);
-		pr_err("dump_mem_alloc_ok		%d\n", ptr->rsr_resume_begin);
-		pr_err("dump_mem_alloc_ok		%d\n", ptr->rsr_resume_end);
-		pr_err("========================\n");
+		bsp_err("====ipf %score status====\n", i == 0 ? "a" : "c");
+		bsp_err("flt_chain_loop		%d\n",  ptr->flt_chain_loop);
+		bsp_err("get_rd_num_times		%d\n", ptr->get_rd_num_times);
+		bsp_err("get_rd_times			%d\n", ptr->get_rd_times);
+		bsp_err("get_rd_short_cnt		%d\n", ptr->get_rd_cnt[IPF_AD_0]);
+		bsp_err("get_rd_long_cnt		%d\n", ptr->get_rd_cnt[IPF_AD_1]);
+		bsp_err("rd_len_update		%d\n", ptr->rd_len_update);
+		bsp_err("rd_len		%d\n", ptr->rd_len);
+		bsp_err("rd_len		%d\n", ptr->rd_ts);
+		bsp_err("get_ad_num_times		%d\n", ptr->get_ad_num_times);
+		bsp_err("cfg_ad_times		%d\n", ptr->cfg_ad_times);
+		bsp_err("get_ad_thred		%d\n", ptr->ad_thred);
+		bsp_err("short_adq_cfg_count	%d\n", ptr->cfg_ad_cnt[IPF_AD_0]);
+		bsp_err("short_adq_out_ptr_null	%d\n", ptr->ad_out_ptr_null[IPF_AD_0]);
+		bsp_err("long_adq_cfg_count	%d\n", ptr->cfg_ad_cnt[IPF_AD_1]);
+		bsp_err("long_adq_out_ptr_null	%d\n", ptr->ad_out_ptr_null[IPF_AD_1]);;
+		bsp_err("get_bd_num_times		%d\n", ptr->get_bd_num_times);
+		bsp_err("bd_cfg_times		%d\n", ptr->cfg_bd_times);
+		bsp_err("cfg_bd_cnt		%d\n", ptr->cfg_bd_cnt);
+		bsp_err("bd_full			%d\n", ptr->bd_full);
+		bsp_err("bd_len_zero_err		%d\n", ptr->bd_len_zero_err);
+		bsp_err("cd_not_enough			%d\n", ptr->cd_not_enough);
+		bsp_err("busy_cnt			%d\n", ptr->busy_cnt);
+		bsp_err("resume			%d\n", ptr->resume);
+		bsp_err("resume_with_intr			%d\n", ptr->resume_with_intr);
+		bsp_err("suspend			%d\n", ptr->suspend);
+		bsp_err("time_stamp_en		%d\n", ptr->timestamp_en);
+		bsp_err("init_ok			0x%x\n", ptr->init_ok);
+		bsp_err("mdrv_called_not_init	%d\n", ptr->mdrv_called_not_init);
+		bsp_err("invalid_para		%d\n", ptr->invalid_para);
+		bsp_err("scr wr			%d\n", ptr->reg_scur_wr_err);
+		bsp_err("scr rd			%d\n", ptr->reg_scur_rd_err);
+		bsp_err("occupy_cnt		%d\n", ptr->occupy_cnt);
+		bsp_err("ccore rst idle err		%d\n", ptr->ccore_rst_err);
+		bsp_err("ccore_reset		%d\n", ptr->ccore_reset);
+		bsp_err("core_rst_done		%d\n", ptr->core_rst_done);
+        bsp_err("cp_flag		%x\n", ptr->cp_flag);
+        bsp_err("rst_ts		%d\n", ptr->rst_ts);
+		bsp_err("dump_mem_alloc_ok		%d\n", ptr->dump_mem_alloc_ok);
+		bsp_err("dump_mem_alloc_ok		%d\n", ptr->rsr_suspend_begin);
+		bsp_err("dump_mem_alloc_ok		%d\n", ptr->rsr_suspend_end);
+		bsp_err("dump_mem_alloc_ok		%d\n", ptr->rsr_resume_begin);
+		bsp_err("dump_mem_alloc_ok		%d\n", ptr->rsr_resume_end);
+		bsp_err("========================\n");
 		ptr++;
 	}
 
 	for(i=0;i<32;i++)
 	{
-		IPF_PRINT("%s\t%d\n", hd[i].name, hd[i].cnt);
+		bsp_err("%s\t%d\n", hd[i].name, hd[i].cnt);
 	}
 	
 }
@@ -89,15 +88,15 @@ int bsp_ipf_bdinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32BdqPtr)
                 return IPF_ERROR;
             }
 			g_ipf_ctx.desc->bd_h2s(&sw_bd, g_ipf_ctx.ul_info.pstIpfBDQ, u32BdqPtr);
-            IPF_PRINT("==========BD Info=========\n");
-            IPF_PRINT("BD位置:         %d\n", u32BdqPtr);
-            IPF_PRINT("int_en:   %d\n", sw_bd.int_en);
-            IPF_PRINT("fc_head:   %d\n", sw_bd.fc_head);
-            IPF_PRINT("u16PktLen:      %d\n", sw_bd.u16Len);
-            IPF_PRINT("InPtr:       0x%lx\n", (unsigned long)sw_bd.Data);
-            IPF_PRINT("u16UsrField1:   %d\n", sw_bd.u16UsrField1);
-            IPF_PRINT("u32UsrField2:   0x%x\n", sw_bd.u32UsrField2);
-            IPF_PRINT("u32UsrField3:   0x%x\n", sw_bd.u32UsrField3);
+            bsp_err("==========BD Info=========\n");
+            bsp_err("BD位置:         %d\n", u32BdqPtr);
+            bsp_err("int_en:   %d\n", sw_bd.int_en);
+            bsp_err("fc_head:   %d\n", sw_bd.fc_head);
+            bsp_err("u16PktLen:      %d\n", sw_bd.u16Len);
+            bsp_err("InPtr:       0x%lx\n", (unsigned long)sw_bd.Data);
+            bsp_err("u16UsrField1:   %d\n", sw_bd.u16UsrField1);
+            bsp_err("u32UsrField2:   0x%x\n", sw_bd.u32UsrField2);
+            bsp_err("u32UsrField3:   0x%x\n", sw_bd.u32UsrField3);
             break;
        case IPF_CHANNEL_DOWN:
             if(u32BdqPtr >= IPF_DLBD_DESC_SIZE)
@@ -105,21 +104,21 @@ int bsp_ipf_bdinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32BdqPtr)
                 return IPF_ERROR;
             }
 			g_ipf_ctx.desc->bd_h2s(&sw_bd, g_ipf_ctx.dl_info.pstIpfBDQ, u32BdqPtr);
-            IPF_PRINT("==========BD Info=========\n");
-            IPF_PRINT("BD位置:         %d\n",u32BdqPtr);
-            IPF_PRINT("int_en:   %d\n", sw_bd.int_en);
-            IPF_PRINT("fc_head:   %d\n", sw_bd.fc_head);
-			IPF_PRINT("u16PktLen:      %d\n", sw_bd.u16Len);
-            IPF_PRINT("InPtr:       0x%lx\n", (unsigned long)sw_bd.Data);
-            IPF_PRINT("u16UsrField1:   %d\n", sw_bd.u16UsrField1);
-            IPF_PRINT("u32UsrField2:   0x%x\n", sw_bd.u32UsrField2);
-            IPF_PRINT("u32UsrField3:   0x%x\n", sw_bd.u32UsrField3);
-//			IPF_PRINT("BD Desc Virt Addr:	0x%llx\n",(unsigned long long)(g_ipf_ctx.dl_info.pstIpfBDQ + u32BdqPtr));
+            bsp_err("==========BD Info=========\n");
+            bsp_err("BD位置:         %d\n",u32BdqPtr);
+            bsp_err("int_en:   %d\n", sw_bd.int_en);
+            bsp_err("fc_head:   %d\n", sw_bd.fc_head);
+			bsp_err("u16PktLen:      %d\n", sw_bd.u16Len);
+            bsp_err("InPtr:       0x%lx\n", (unsigned long)sw_bd.Data);
+            bsp_err("u16UsrField1:   %d\n", sw_bd.u16UsrField1);
+            bsp_err("u32UsrField2:   0x%x\n", sw_bd.u32UsrField2);
+            bsp_err("u32UsrField3:   0x%x\n", sw_bd.u32UsrField3);
+//			bsp_err("BD Desc Virt Addr:	0x%llx\n",(unsigned long long)(g_ipf_ctx.dl_info.pstIpfBDQ + u32BdqPtr));
             break; 
         default:
             break;
     }
-    IPF_PRINT("************************\n");
+    bsp_err("************************\n");
     return 0;
 }
 
@@ -145,7 +144,7 @@ int bsp_ipf_dump_bdinfo(IPF_CHANNEL_TYPE_E eChnType)
         break;
 
         default:
-        IPF_PRINT("Input param invalid ! \n");
+        bsp_err("Input param invalid ! \n");
         break;
 
     }
@@ -179,16 +178,16 @@ int bsp_ipf_rdinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32RdqPtr)
                 return IPF_ERROR;
             }
 			g_ipf_ctx.desc->rd_h2s(&sw_rd, g_ipf_ctx.ul_info.pstIpfRDQ, u32RdqPtr);
-            IPF_PRINT("===========RD Info==========\n");
-            IPF_PRINT("RD位置:             %d\n",u32RdqPtr);
-            IPF_PRINT("u16Attribute:       %d\n",sw_rd.u16Attribute);
-            IPF_PRINT("u16PktLen:          %d\n",sw_rd.u16PktLen);
-            IPF_PRINT("InPtr:              0x%lx\n",(unsigned long)sw_rd.InPtr);
-            IPF_PRINT("OutPtr:          0x%lx\n",(unsigned long)sw_rd.OutPtr);
-            IPF_PRINT("u16Result:          0x%x\n",sw_rd.u16Result);
-            IPF_PRINT("u16UsrField1:       0x%x\n",sw_rd.u16UsrField1);
-            IPF_PRINT("u32UsrField2:       0x%x\n",sw_rd.u32UsrField2);
-            IPF_PRINT("u32UsrField3:       0x%x\n",sw_rd.u32UsrField3);
+            bsp_err("===========RD Info==========\n");
+            bsp_err("RD位置:             %d\n",u32RdqPtr);
+            bsp_err("u16Attribute:       %d\n",sw_rd.u16Attribute);
+            bsp_err("u16PktLen:          %d\n",sw_rd.u16PktLen);
+            bsp_err("InPtr:              0x%lx\n",(unsigned long)sw_rd.InPtr);
+            bsp_err("OutPtr:          0x%lx\n",(unsigned long)sw_rd.OutPtr);
+            bsp_err("u16Result:          0x%x\n",sw_rd.u16Result);
+            bsp_err("u16UsrField1:       0x%x\n",sw_rd.u16UsrField1);
+            bsp_err("u32UsrField2:       0x%x\n",sw_rd.u32UsrField2);
+            bsp_err("u32UsrField3:       0x%x\n",sw_rd.u32UsrField3);
             break;
        case IPF_CHANNEL_DOWN:
             if(u32RdqPtr >= IPF_DLRD_DESC_SIZE)
@@ -196,21 +195,21 @@ int bsp_ipf_rdinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32RdqPtr)
                 return IPF_ERROR;
             }
 			g_ipf_ctx.desc->rd_h2s(&sw_rd, g_ipf_ctx.dl_info.pstIpfRDQ, u32RdqPtr);
-            IPF_PRINT("============RD Info===========\n");
-            IPF_PRINT("RD位置:             %d\n",u32RdqPtr);
-            IPF_PRINT("u16Attribute:       %d\n",sw_rd.u16Attribute);
-            IPF_PRINT("u16PktLen:          %d\n",sw_rd.u16PktLen);
-            IPF_PRINT("InPtr:           0x%lx\n",(unsigned long)sw_rd.InPtr);
-            IPF_PRINT("OutPtr:          0x%lx\n",(unsigned long)sw_rd.OutPtr);
-            IPF_PRINT("u16Result:          0x%x\n",sw_rd.u16Result);
-            IPF_PRINT("u16UsrField1:       0x%x\n",sw_rd.u16UsrField1);
-            IPF_PRINT("u32UsrField2:       0x%x\n",sw_rd.u32UsrField2);
-            IPF_PRINT("u32UsrField3:       0x%x\n",sw_rd.u32UsrField3);
+            bsp_err("============RD Info===========\n");
+            bsp_err("RD位置:             %d\n",u32RdqPtr);
+            bsp_err("u16Attribute:       %d\n",sw_rd.u16Attribute);
+            bsp_err("u16PktLen:          %d\n",sw_rd.u16PktLen);
+            bsp_err("InPtr:           0x%lx\n",(unsigned long)sw_rd.InPtr);
+            bsp_err("OutPtr:          0x%lx\n",(unsigned long)sw_rd.OutPtr);
+            bsp_err("u16Result:          0x%x\n",sw_rd.u16Result);
+            bsp_err("u16UsrField1:       0x%x\n",sw_rd.u16UsrField1);
+            bsp_err("u32UsrField2:       0x%x\n",sw_rd.u32UsrField2);
+            bsp_err("u32UsrField3:       0x%x\n",sw_rd.u32UsrField3);
             break;
         default:
             break;
     }
-    IPF_PRINT("************************\n");
+    bsp_err("************************\n");
     return 0;
 }
 
@@ -236,7 +235,7 @@ int bsp_ipf_dump_rdinfo(IPF_CHANNEL_TYPE_E eChnType)
             }
         break;
         default:
-        IPF_PRINT("Input param invalid ! \n");
+        bsp_err("Input param invalid ! \n");
         break;
     }
     return 0;
@@ -255,18 +254,18 @@ int bsp_ipf_adinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32AdqPtr, unsigned
             if(0 == u32AdType)
             {
             	g_ipf_ctx.desc->ad_h2s(&sw_ad, g_ipf_ctx.ul_info.pstIpfADQ0, u32AdqPtr);
-                 IPF_PRINT("===========UL AD0 Info==========\n");
-                 IPF_PRINT("AD位置:             %d\n",u32AdqPtr);
-                 IPF_PRINT("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
-                 IPF_PRINT("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
+                 bsp_err("===========UL AD0 Info==========\n");
+                 bsp_err("AD位置:             %d\n",u32AdqPtr);
+                 bsp_err("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
+                 bsp_err("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
             }
             else
             {
             	g_ipf_ctx.desc->ad_h2s(&sw_ad, g_ipf_ctx.ul_info.pstIpfADQ1, u32AdqPtr);
-                 IPF_PRINT("===========UL AD1 Info==========\n");
-                 IPF_PRINT("AD位置:             %d\n",u32AdqPtr);
-                 IPF_PRINT("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
-                 IPF_PRINT("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
+                 bsp_err("===========UL AD1 Info==========\n");
+                 bsp_err("AD位置:             %d\n",u32AdqPtr);
+                 bsp_err("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
+                 bsp_err("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
             }
             break;
        case IPF_CHANNEL_DOWN:
@@ -277,24 +276,24 @@ int bsp_ipf_adinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32AdqPtr, unsigned
             if(0 == u32AdType)
 	      	{
 	      		g_ipf_ctx.desc->ad_h2s(&sw_ad, g_ipf_ctx.dl_info.pstIpfADQ0, u32AdqPtr);
-                 IPF_PRINT("===========DL AD0 Info==========\n");
-                 IPF_PRINT("AD位置:             %d\n",u32AdqPtr);
-                 IPF_PRINT("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
-                 IPF_PRINT("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
+                 bsp_err("===========DL AD0 Info==========\n");
+                 bsp_err("AD位置:             %d\n",u32AdqPtr);
+                 bsp_err("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
+                 bsp_err("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
             }
             else
             {
             	g_ipf_ctx.desc->ad_h2s(&sw_ad, g_ipf_ctx.dl_info.pstIpfADQ1, u32AdqPtr);
-                 IPF_PRINT("===========DL AD1 Info==========\n");
-                 IPF_PRINT("AD位置:             %d\n",u32AdqPtr);
-                 IPF_PRINT("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
-                 IPF_PRINT("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
+                 bsp_err("===========DL AD1 Info==========\n");
+                 bsp_err("AD位置:             %d\n",u32AdqPtr);
+                 bsp_err("OutPtr0(phy_addr, use by hardware):       0x%lx\n",(unsigned long)sw_ad.OutPtr0);
+                 bsp_err("OutPtr1(usrfield skb_addr default):          0x%lx\n",(unsigned long)sw_ad.OutPtr1);
             }
             break;
         default:
             break;
     }
-    IPF_PRINT("************************\n");
+    bsp_err("************************\n");
     return 0;
 }
 
@@ -321,7 +320,7 @@ int bsp_ipf_dump_adinfo(IPF_CHANNEL_TYPE_E eChnType, unsigned int u32AdType)
         break;
 
         default:
-        IPF_PRINT("Input param invalid ! \n");
+        bsp_err("Input param invalid ! \n");
         break;
     }
     return 0;
@@ -402,23 +401,23 @@ int bsp_ipf32_info(IPF_CHANNEL_TYPE_E eChnType)
     {
         return 1;
     }
-    IPF_PRINT("============================\n");
-    IPF_PRINT("通道 状态:            0x%x\n", u32status);
-    IPF_PRINT("BD 深度:            %d\n", u32BdqDepth);
-    IPF_PRINT("BD 写指针:          %d\n", u32BdqWptr);
-    IPF_PRINT("BD 读指针:          %d\n", u32BdqRptr);
-    IPF_PRINT("BD 写地址:          0x%x\n", u32BdqWaddr);
-    IPF_PRINT("BD 读地址:          0x%x\n", u32BdqRaddr);
-    IPF_PRINT("RD 深度:            %d\n", u32RdqDepth);
-    IPF_PRINT("RD 读指针:          %d\n", u32RdqRptr);
-    IPF_PRINT("RD 写指针:          %d\n", u32RdqWptr);
-    IPF_PRINT("RD 读地址:          0x%x\n", u32RdqRaddr);
-    IPF_PRINT("RD 写地址:          0x%x\n", u32RdqWaddr);
-    IPF_PRINT("AD0 读指针:          %d\n", u32Adq0Rptr);
-    IPF_PRINT("AD0 写指针:          %d\n", u32Adq0Wptr);
-    IPF_PRINT("AD1 读指针:          %d\n", u32Adq1Rptr);
-    IPF_PRINT("AD1 写指针:          %d\n", u32Adq1Wptr);
-    IPF_PRINT("============================\n");
+    bsp_err("============================\n");
+    bsp_err("通道 状态:            0x%x\n", u32status);
+    bsp_err("BD 深度:            %d\n", u32BdqDepth);
+    bsp_err("BD 写指针:          %d\n", u32BdqWptr);
+    bsp_err("BD 读指针:          %d\n", u32BdqRptr);
+    bsp_err("BD 写地址:          0x%x\n", u32BdqWaddr);
+    bsp_err("BD 读地址:          0x%x\n", u32BdqRaddr);
+    bsp_err("RD 深度:            %d\n", u32RdqDepth);
+    bsp_err("RD 读指针:          %d\n", u32RdqRptr);
+    bsp_err("RD 写指针:          %d\n", u32RdqWptr);
+    bsp_err("RD 读地址:          0x%x\n", u32RdqRaddr);
+    bsp_err("RD 写地址:          0x%x\n", u32RdqWaddr);
+    bsp_err("AD0 读指针:          %d\n", u32Adq0Rptr);
+    bsp_err("AD0 写指针:          %d\n", u32Adq0Wptr);
+    bsp_err("AD1 读指针:          %d\n", u32Adq1Rptr);
+    bsp_err("AD1 写指针:          %d\n", u32Adq1Wptr);
+    bsp_err("============================\n");
     return 0;
 }
 
@@ -507,23 +506,23 @@ int bsp_ipf64_info(IPF_CHANNEL_TYPE_E eChnType)
     {
         return 1;
     }
-    IPF_PRINT("============================\n");
-    IPF_PRINT("通道 状态:            0x%x\n", u32status);
-    IPF_PRINT("BD 深度:            %d\n", u32BdqDepth);
-    IPF_PRINT("BD 写指针:          %d\n", u32BdqWptr);
-    IPF_PRINT("BD 读指针:          %d\n", u32BdqRptr);
-    IPF_PRINT("BD 写地址:          0x%x\n", u32BdqWaddr);
-    IPF_PRINT("BD 读地址:          0x%x\n", u32BdqRaddr);
-    IPF_PRINT("RD 深度:            %d\n", u32RdqDepth);
-    IPF_PRINT("RD 读指针:          %d\n", u32RdqRptr);
-    IPF_PRINT("RD 写指针:          %d\n", u32RdqWptr);
-    IPF_PRINT("RD 读地址:          0x%x\n", u32RdqRaddr);
-    IPF_PRINT("RD 写地址:          0x%x\n", u32RdqWaddr);
-    IPF_PRINT("AD0 读指针:          %d\n", u32Adq0Rptr);
-    IPF_PRINT("AD0 写指针:          %d\n", u32Adq0Wptr);
-    IPF_PRINT("AD1 读指针:          %d\n", u32Adq1Rptr);
-    IPF_PRINT("AD1 写指针:          %d\n", u32Adq1Wptr);
-    IPF_PRINT("============================\n");
+    bsp_err("============================\n");
+    bsp_err("通道 状态:            0x%x\n", u32status);
+    bsp_err("BD 深度:            %d\n", u32BdqDepth);
+    bsp_err("BD 写指针:          %d\n", u32BdqWptr);
+    bsp_err("BD 读指针:          %d\n", u32BdqRptr);
+    bsp_err("BD 写地址:          0x%x\n", u32BdqWaddr);
+    bsp_err("BD 读地址:          0x%x\n", u32BdqRaddr);
+    bsp_err("RD 深度:            %d\n", u32RdqDepth);
+    bsp_err("RD 读指针:          %d\n", u32RdqRptr);
+    bsp_err("RD 写指针:          %d\n", u32RdqWptr);
+    bsp_err("RD 读地址:          0x%x\n", u32RdqRaddr);
+    bsp_err("RD 写地址:          0x%x\n", u32RdqWaddr);
+    bsp_err("AD0 读指针:          %d\n", u32Adq0Rptr);
+    bsp_err("AD0 写指针:          %d\n", u32Adq0Wptr);
+    bsp_err("AD1 读指针:          %d\n", u32Adq1Rptr);
+    bsp_err("AD1 写指针:          %d\n", u32Adq1Wptr);
+    bsp_err("============================\n");
     return 0;
 }
 
@@ -546,41 +545,22 @@ void bsp_ipf_mem(void)
 	ddr_info= &g_ipf_ctx.status->share_ddr_info;
 	
 	
-	IPF_PRINT("IPF Shared DDR information:\n");
-	IPF_PRINT("start                 0x%x \n", ddr_info->start);
-	IPF_PRINT("ul_start              0x%x \n", ddr_info->ul_start);
-	IPF_PRINT("dl_start              0x%x \n", dl_start);
-	IPF_PRINT("filter_pwc_start      0x%x \n", ddr_info->filter_pwc_start);
-	IPF_PRINT("pwc_info_start        0x%x \n", ddr_info->pwc_info_start);
-	IPF_PRINT("dlcdrptr              0x%x \n", ddr_info->dlcdrptr);
-	IPF_PRINT("debug_dlcd_start      0x%x \n", ddr_info->debug_dlcd_start);
-	IPF_PRINT("debug_dlcd_size       0x%x \n", ddr_info->debug_dlcd_size);
-	IPF_PRINT("end                   0x%x \n", ddr_info->end);
-	IPF_PRINT("len(The max:0x10000)  0x%x \n", ddr_info->len);
+	bsp_err("IPF Shared DDR information:\n");
+	bsp_err("start                 0x%x \n", ddr_info->start);
+	bsp_err("ul_start              0x%x \n", ddr_info->ul_start);
+	bsp_err("dl_start              0x%x \n", dl_start);
+	bsp_err("filter_pwc_start      0x%x \n", ddr_info->filter_pwc_start);
+	bsp_err("pwc_info_start        0x%x \n", ddr_info->pwc_info_start);
+	bsp_err("dlcdrptr              0x%x \n", ddr_info->dlcdrptr);
+	bsp_err("debug_dlcd_start      0x%x \n", ddr_info->debug_dlcd_start);
+	bsp_err("debug_dlcd_size       0x%x \n", ddr_info->debug_dlcd_size);
+	bsp_err("end                   0x%x \n", ddr_info->end);
+	bsp_err("len(The max:0x10000)  0x%x \n", ddr_info->len);
 
-    IPF_PRINT("=======================================\n");
-    IPF_PRINT("   bsp_ipf_mem          ADDR            SIZE\n");
-    IPF_PRINT("%s%lx\t%d\n", "IPF_INIT_ADDR        ", (unsigned long)&sm->init, IPF_INIT_SIZE);
-    IPF_PRINT("%s%lx\t\t%lu\n", "IPF_DEBUG_INFO_ADDR  ", (unsigned long)&sm->debug[0], (unsigned long)IPF_DEBUG_INFO_SIZE);
-}
-
-void ipf_enable_dl_time_stamp(int en)
-{
-	g_ipf_ctx.status->timestamp_en = en;
-    return;
-}
-
-void ipf_enable_rd_rate(int en)
-{
-	g_ipf_ctx.status->rate_en = en;
-    return;
-}
-
-void ipf_clear_time_stamp(void)
-{
-
-
-    return;
+    bsp_err("=======================================\n");
+    bsp_err("   bsp_ipf_mem          ADDR            SIZE\n");
+    bsp_err("%s%lx\t%d\n", "IPF_INIT_ADDR        ", (unsigned long)&sm->init, IPF_INIT_SIZE);
+    bsp_err("%s%lx\t\t%lu\n", "IPF_DEBUG_INFO_ADDR  ", (unsigned long)&sm->debug[0], (unsigned long)IPF_DEBUG_INFO_SIZE);
 }
 
 static inline
@@ -598,20 +578,20 @@ void ipf_dump_time_stamp(void)
     unsigned int tmp = 0;
     int i;
 
-    printk(" max diff:%u(%uus)\n",
+    bsp_err(" max diff:%u(%uus)\n",
               stamp_info->diff_max, stamp_info->diff_max*10/192);
-    printk(" sum diff:%u(%uus)\n",
+    bsp_err(" sum diff:%u(%uus)\n",
               stamp_info->diff_sum, stamp_info->diff_max/19);
 
     if (stamp_info->cnt_sum) {
         tmp = stamp_info->diff_sum / stamp_info->cnt_sum;
     }
 
-    printk(" avg diff:%u(%uus)\n", tmp, tmp*10/192);
+    bsp_err(" avg diff:%u(%uus)\n", tmp, tmp*10/192);
 
     for (i = 0; i < IPF_MAX_STAMP_ORDER; i++) {
         tmp = ipf_calc_percent(stamp_info->diff_order_cnt[i], stamp_info->cnt_sum);
-        printk(" diff time (%u~%u) (%uus~%uus) count:%u (%u %%)\n",
+        bsp_err(" diff time (%u~%u) (%uus~%uus) count:%u (%u %%)\n",
             (0x80000000 >> (31-i)),
             (0xFFFFFFFF >> (31-i)),
             (0x80000000 >> (31-i))/19,
@@ -636,36 +616,36 @@ void bsp_ipf_ad_status(void)
 
 	if((ad0_stat.bits.dl_adq0_buf_epty == 1)&&(ad0_stat.bits.dl_adq0_buf_full == 1))
 	{
-		printk("\r CH1_AD0_BUF_FLAG_ERROR.\n");
+		bsp_err("\r CH1_AD0_BUF_FLAG_ERROR.\n");
 	}
 	else if(ad0_stat.bits.dl_adq0_buf_full == 1)
 	{
-		printk("\r CH1_AD0_BUF_NUM 2,2 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD0_BUF_NUM 2,2 unused AD in AD_Buff.\n");
 	}
 	else if(ad0_stat.bits.dl_adq0_buf_epty == 1)
 	{
-		printk("\r CH1_AD0_BUF_NUM 0,0 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD0_BUF_NUM 0,0 unused AD in AD_Buff.\n");
 	}
 	else
 	{
-		printk("\r CH1_AD0_BUF_NUM 1,1 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD0_BUF_NUM 1,1 unused AD in AD_Buff.\n");
 	}
 	
 	if((ad1_stat.bits.dl_adq1_buf_epty == 1)&&(ad1_stat.bits.dl_adq1_buf_full == 1))
 	{
-		printk("\r CH1_AD1_BUF_FLAG_ERROR.\n");
+		bsp_err("\r CH1_AD1_BUF_FLAG_ERROR.\n");
 	}
 	else if(ad1_stat.bits.dl_adq1_buf_full == 1)
 	{
-		printk("\r CH1_AD1_BUF_NUM 2,2 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD1_BUF_NUM 2,2 unused AD in AD_Buff.\n");
 	}
 	else if(ad1_stat.bits.dl_adq1_buf_epty == 1)
 	{
-		printk("\r CH1_AD1_BUF_NUM 0,0 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD1_BUF_NUM 0,0 unused AD in AD_Buff.\n");
 	}
 	else
 	{
-		printk("\r CH1_AD1_BUF_NUM 1,1 unused AD in AD_Buff.\n");
+		bsp_err("\r CH1_AD1_BUF_NUM 1,1 unused AD in AD_Buff.\n");
 	}
 	return;
 }
@@ -730,23 +710,23 @@ int ipf_rd_rate(unsigned int enable, IPF_CHANNEL_TYPE_E eChnType)
 	}
 
 	if(rd_len <= 0 || rd_ts <= 0) {
-		IPF_PRINT("ipf rd len or ts err!\n");
+		bsp_err("ipf rd len or ts err!\n");
 		return IPF_ERROR;
 	} else {
 		rate = rd_len / (rd_ts * ratio);
-		IPF_PRINT("ipf rd rate:%uMbps\n", rate);
+		bsp_err("ipf rd rate:%uMbps\n", rate);
 	}
 
 	return IPF_SUCCESS;
 }
 
-void ipf_print_statx(void)
+void bsp_err_statx(void)
 {
-    IPF_PRINT("direct_bd:                  %10u\n", g_ipf_ctx.stax.direct_bd);
-    IPF_PRINT("indirect_bd:                %10u\n", g_ipf_ctx.stax.indirect_bd);
-    IPF_PRINT("wakeup_irq:                 %10u\n", g_ipf_ctx.stax.wakeup_irq);
-    IPF_PRINT("pkt_dbg_in:                 %10u\n", g_ipf_ctx.stax.pkt_dbg_in);
-    IPF_PRINT("pkt_dbg_out:                %10u\n", g_ipf_ctx.stax.pkt_dbg_out);
+    bsp_err("direct_bd:                  %10u\n", g_ipf_ctx.stax.direct_bd);
+    bsp_err("indirect_bd:                %10u\n", g_ipf_ctx.stax.indirect_bd);
+    bsp_err("wakeup_irq:                 %10u\n", g_ipf_ctx.stax.wakeup_irq);
+    bsp_err("pkt_dbg_in:                 %10u\n", g_ipf_ctx.stax.pkt_dbg_in);
+    bsp_err("pkt_dbg_out:                %10u\n", g_ipf_ctx.stax.pkt_dbg_out);
 }
 
 struct ipf_mannul_unit ipf_mannul[] = {
@@ -762,7 +742,6 @@ struct ipf_mannul_unit ipf_mannul[] = {
     {SYMBOL(ipf_clear_time_stamp),  "清除实际戳记录\n"},
     {SYMBOL(ipf_dump_time_stamp),   "Linux:下行时间差, vxWorks:上行时间差\n"},
     {SYMBOL(bsp_ipf_mem),   "无参数，显示 IPF内存信息"},
-    {SYMBOL(ipf_enable_rd_rate),    "参数1:0-disable, 1-enable\n"},
     {SYMBOL(ipf_enable_dl_time_stamp),    "参数1:0-disable, 1-enable\n"},
     {SYMBOL(ipf_clear_time_stamp),  "无参数 清除时间戳信息"},
     {SYMBOL(ipf_dump_time_stamp),  "无参数 显示时间戳信息"},
@@ -775,10 +754,10 @@ void bsp_ipf_help(void)
 
     for(i=0;i<sizeof(ipf_mannul)/sizeof(ipf_mannul[0]);i++)
     {
-        IPF_PRINT("%s",ipf_mannul[i].name);
-        IPF_PRINT("\t");
-        IPF_PRINT("%s",ipf_mannul[i].desc);
-        IPF_PRINT("\n");
+        bsp_err("%s",ipf_mannul[i].name);
+        bsp_err("\t");
+        bsp_err("%s",ipf_mannul[i].desc);
+        bsp_err("\n");
     }
 }
 

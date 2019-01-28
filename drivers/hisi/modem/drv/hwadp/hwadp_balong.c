@@ -49,15 +49,19 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
+#include <linux/module.h>
 #include <product_config.h>
 #include <mdrv_memory.h>
 #include <bsp_sram.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_sysctrl.h>
-#include <bsp_trace.h>
 #include <bsp_hwadp.h>
+#include <bsp_print.h>
 
-#define hwadp_printf(fmt, ...) printk(fmt , ##__VA_ARGS__)
+#undef THIS_MODU
+#define THIS_MODU mod_hwadp
+
+#define hwadp_printf(fmt, ...) bsp_err(fmt , ##__VA_ARGS__)
 
 extern void hwadp_register_gu_base(void * phy_base, void * virt_base, unsigned int size);
 
@@ -141,4 +145,3 @@ int hwadp_init(void)
     return ret;
 }
 
-subsys_initcall(hwadp_init);

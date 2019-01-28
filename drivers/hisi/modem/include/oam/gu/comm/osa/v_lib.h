@@ -97,8 +97,6 @@ extern "C" {
 #endif /* __cpluscplus */
 #endif /* __cpluscplus */
 
-/*lint -e830*/
-
 /* errno definiens */
 #define VOS_ERRNO_LIB_64DIV32_QUOTIENT_NULL                 0x20290010
 #define VOS_ERRNO_LIB_64DIV32_DIVIDE_ZERO                   0x20290011
@@ -160,18 +158,14 @@ VOS_VOID * V_MemSet_s( VOS_VOID * ToSet, VOS_SIZE_T ulDestSize, VOS_CHAR Char, V
 #define VOS_MemSet_s( ToSet, ulDestSize, Char, Count )\
     V_MemSet_s( (ToSet), (ulDestSize), (Char), (Count), VOS_FILE_ID, __LINE__ )
 
-/*lint -save -e830 -specific(-e830)*/
-/*lint -e830 -esym(830,*)*/
-/*lint -function(memcpy,V_MemCpy)*/
 
+
+/*lint -function(memcpy,V_MemCpy)*/
 VOS_VOID * V_MemCpy_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
                        VOS_UINT32 ulFileID, VOS_INT32 usLineNo );
 
 #define VOS_MemCpy_s( Dest, ulDestSize, Src, Count )\
     V_MemCpy_s( (Dest), (ulDestSize), (Src), (Count), VOS_FILE_ID, __LINE__ )
-
-/*lint +e830 +esym(830,*)*/
-/*lint -restore*/
 
 /*lint -function(memmove,V_MemMove)*/
 VOS_VOID * V_MemMove_s( VOS_VOID * Dest, VOS_SIZE_T ulDestSize, const VOS_VOID * Src, VOS_SIZE_T Count,
@@ -225,8 +219,6 @@ VOS_CHAR *VOS_StrTok(VOS_CHAR *Str1, const VOS_CHAR *Str2);
 #endif
 
 VOS_CHAR *VOS_StrTok_s(VOS_CHAR *Str1, const VOS_CHAR *Str2, VOS_CHAR** pPosition);
-
-/*lint +e830*/
 
 
 #ifdef __cplusplus

@@ -10,7 +10,11 @@
 #include <osl_sem.h>
 #include <osl_bio.h>
 #include <bsp_thermal.h>
+#include <bsp_print.h>
+#undef THIS_MODU
+#define THIS_MODU  mod_thermal
 
+#define thermal_print(fmt, ...)  (bsp_err("<%s> <%d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__))
 #define CORE_HEATING_MAX_NUM    12
 
 struct core_heating{
@@ -152,9 +156,13 @@ s32 thermal_icc_callback(u32 icc_channel_id , u32 len, void* context)
 {
     s32 ret = 0;
     u32 cp_icc_info;
-
+    if(len != THERMAL_ICC_LENGTH)
+    {
+        thermal_print("ICC read length error \n");
+        return THERMAL_UP_ERROR;
+    }
     ret = bsp_icc_read((u32)SYSTEM_HEADING_CHAN_ID, (u8*)&cp_icc_info, len);
-    if (ret != (int)sizeof(u32))
+    if (ret != (int)THERMAL_ICC_LENGTH)
     {
          thermal_print("bsp_icc_read errNo = 0x%x\n",ret);
          return THERMAL_UP_ERROR;
@@ -178,7 +186,7 @@ s32 thermal_icc_callback(u32 icc_channel_id , u32 len, void* context)
     return THERMAL_UP_OK;
 }
 
-static int thermal_up_init(void)
+int thermal_up_init(void)
 {
     s32 ret = 0;
     osl_sem_init(1,&thermal_sem);
@@ -194,6 +202,3 @@ static int thermal_up_init(void)
     }
     return THERMAL_UP_OK;
 }
-
-module_init(thermal_up_init);
-

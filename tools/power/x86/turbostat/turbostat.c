@@ -3202,9 +3202,7 @@ void process_cpuid()
 	family = (fms >> 8) & 0xf;
 	model = (fms >> 4) & 0xf;
 	stepping = fms & 0xf;
-	if (family == 0xf)
-		family += (fms >> 20) & 0xff;
-	if (family >= 6)
+	if (family == 6 || family == 0xf)
 		model += ((fms >> 16) & 0xf) << 4;
 
 	if (debug) {

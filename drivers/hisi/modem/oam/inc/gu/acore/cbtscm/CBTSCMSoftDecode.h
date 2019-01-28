@@ -54,7 +54,7 @@
 *****************************************************************************/
 #include "vos.h"
 #include "omringbuffer.h"
-#include "msp_debug.h"
+#include "msp_diag_comm.h"
 
 
 #ifdef __cplusplus

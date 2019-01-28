@@ -116,8 +116,8 @@ typedef enum _diag_frame_mode_type
     DIAG_FRAME_MODE_UMTS = 0x3,
     DIAG_FRAME_MODE_1X   = 0x4,
     DIAG_FRAME_MODE_HRPD = 0x5,
-    DIAG_FRAME_MODE_COMM = 0xf
-
+    DIAG_FRAME_MODE_LTEV = 0x6,
+    DIAG_FRAME_MODE_COMM = 0xf,
 }diag_frame_mode_type;
 
 
@@ -183,7 +183,7 @@ typedef struct
     u32 ulModule;     /* 源模块ID*/
     u32 ulMsgId;      /* ID*/
     u32 ulNo;         /* 序号*/
-    u8  aucDta[0];    /* 用户数据缓存区*/
+    u8  aucDta[0];    /* 用户数据缓存区*//*lint !e43 */
 } diag_trans_head_stru;
 
 #ifdef DIAG_SYSTEM_5G
@@ -237,7 +237,7 @@ typedef struct
 {
     u32 ulAuid;         /* 原AUID*/
     u32 ulSn;           /* HSO分发，插件命令管理*/
-    u8  ucData[0];      /* 参数的数据*/
+    u8  ucData[0];      /* 参数的数据*//*lint !e43 */
 }MSP_DIAG_DATA_REQ_STRU;
 
 
@@ -253,15 +253,15 @@ typedef struct
     };
 
     u32                     u32MsgLen;
-    u8                      aucData[0];
+    u8                      aucData[0];         /*lint !e43 */
 }diag_frame_head_stru;
 
 
 typedef struct
 {
     u32                  u32HisiMagic;   /*"HISI"*/
-    u32                  u32DataLen;      /*数据长度*/
-    u8                   aucData[0];
+    u32                  u32DataLen;     /*数据长度*/
+    u8                   aucData[0];     /*lint !e43 */
 }diag_socp_head_stru;
 
 typedef struct

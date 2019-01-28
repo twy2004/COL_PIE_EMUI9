@@ -349,15 +349,6 @@ extern VOS_UINT32 AT_GetModemIdFromClient(
     MODEM_ID_ENUM_UINT16               *pModemId
 );
 
-extern MN_CLIENT_ID_T AT_GetRealClientId(
-    MN_CLIENT_ID_T                      usClientId,
-    VOS_UINT32                          ulPid
-);
-
-extern MN_CLIENT_ID_T MN_GetRealClientId(
-    MN_CLIENT_ID_T                      usClientId,
-    VOS_UINT32                          ulPid
-);
 
 
 #if (VOS_OS_VER == VOS_WIN32)

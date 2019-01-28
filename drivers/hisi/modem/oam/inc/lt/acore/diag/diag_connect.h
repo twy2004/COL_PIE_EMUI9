@@ -78,6 +78,7 @@ extern "C" {
 #define     DIAG_CHANN_DEFAULT              (0x5C5C5C5C)
 #define     DIAG_CHANN_NOT_IN_USE           (0x5A5A5A5A)
 #define     DIAG_CHANN_REGISTER             (0x5B5B5B5B)
+#define     DIAG_CHANN_OWNER_NOT_INIT       (0x5E5E5E5E)
 /* 通道断开时填写固定的SN */
 #define     DIAG_CHANN_DIS_SN               (0x5D5D5D5D)
 
@@ -291,6 +292,7 @@ VOS_UINT32 diag_SetChanDisconn(MsgBlock* pMsgBlock);
 VOS_UINT32 diag_ConnMgrProc(VOS_UINT8* pstReq);
 VOS_UINT32 diag_DisConnMgrProc(VOS_UINT8* pstReq);
 VOS_UINT32 diag_SetChanDisconnProc(MsgBlock* pMsgBlock);
+VOS_UINT32 diag_GetImei(VOS_CHAR szimei [16]);
 
 
 #pragma pack(pop)
