@@ -157,7 +157,7 @@
 			status = "ok";
 			bq25970: bq25970@65 {
 				compatible = "bq25970";
-				switchcap_int = <&gpio27 4 0>;
+				gpio_int = <&gpio27 4 0>;
 				switching_frequency = <675>;
 				reg = <0x65>;
 				status = "ok";

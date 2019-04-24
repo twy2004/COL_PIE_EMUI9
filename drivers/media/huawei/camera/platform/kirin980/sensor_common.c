@@ -22,6 +22,7 @@
 //lint -save -e529 -e542
 static int is_fpga = 0; //default is no fpga
 static atomic_t volatile s_powered = ATOMIC_INIT(0);
+extern int strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count);
 
 
 typedef struct __power_seq_type_tab {
@@ -1152,6 +1153,86 @@ int hw_sensor_get_phyinfo_data(struct device_node *of_node,
 	return ret;
 }
 
+int hw_sensor_get_ext_dt_data(struct device_node *of_node, hwsensor_board_info_t *sensor_info)
+{
+	int rc = 0;
+	unsigned int i = 0;
+	unsigned int count = 0;
+	const char* ext_name = NULL;
+
+	if (NULL == of_node || NULL == sensor_info) {
+		cam_err("%s of_node or sensor_info is NULL", __func__);
+		return -EINVAL;
+	}
+	sensor_info->ext_type = 0;
+	rc = of_property_read_u32(of_node, "huawei,ext_type", (u32 *)&sensor_info->ext_type);
+	if (rc < 0) {
+		cam_warn("%s no ext name %d\n", __func__, __LINE__);
+		sensor_info->ext_type = 0;
+		return 0;
+	}
+	cam_info("%s sensor_info->ext_type %d, rc %d\n", __func__, sensor_info->ext_type, rc);
+
+	if(sensor_info->ext_type == EXT_INFO_NO_ADC)
+	{
+		rc = of_property_read_string(of_node, "huawei,ext_name", &ext_name);
+		if (rc < 0) {
+			cam_err("%s get ext_name failed %d\n", __func__, __LINE__);
+			sensor_info->ext_type = NO_EXT_INFO;
+			return -EINVAL;
+		} else {
+			strncpy_s(sensor_info->ext_name[0], DEVICE_NAME_SIZE-1, ext_name, strlen(ext_name)+1);
+			cam_info("%s huawei,ext_name %s, rc %d\n", __func__, ext_name, rc);
+		}
+	}
+
+	if(sensor_info->ext_type == EXT_INFO_ADC)
+	{
+		sensor_info->adc_channel = -1;
+		rc = of_property_read_u32(of_node, "huawei,adc_channel", (u32 *)&sensor_info->adc_channel);
+		if (rc < 0) {
+			cam_err("%s get adc_channel failed %d\n", __func__, __LINE__);
+			sensor_info->ext_type = NO_EXT_INFO;
+			return -EINVAL;
+		}
+		cam_info("%s sensor_info->adc_channel %d, rc %d\n", __func__, sensor_info->adc_channel, rc);
+		sensor_info->ext_num = 0;
+		sensor_info->ext_num = of_property_count_elems_of_size(of_node, "huawei,adc_threshold", sizeof(u32));
+		if ((sensor_info->ext_num > 0)&&(sensor_info->ext_num <= EXT_THRESHOLD_NUM)) {
+			rc = of_property_read_u32_array(of_node, "huawei,adc_threshold",(u32*)sensor_info->adc_threshold, sensor_info->ext_num);
+			if(rc < 0)
+			{
+				sensor_info->ext_type = NO_EXT_INFO;
+				cam_err("%s get huawei,adc_threshold failed %d\n", __func__, __LINE__);
+				return -EINVAL;
+			}
+		} else {
+			cam_err("%s ext threshold num(%d) out of range\n", __func__, sensor_info->ext_num);
+			sensor_info->ext_type = NO_EXT_INFO;
+		}
+		count = of_property_count_strings(of_node, "huawei,ext_name");
+		if((count > 0)&&(count <= EXT_NAME_NUM)) {
+			for (i = 0; i < count; i++) {
+				rc = of_property_read_string_index(of_node, "huawei,ext_name", i, &ext_name);
+				if(rc < 0)
+				{
+					sensor_info->ext_type = NO_EXT_INFO;
+					cam_err("%s get ext_name failed %d\n", __func__, __LINE__);
+					return -EINVAL;
+				}
+				strncpy_s(sensor_info->ext_name[i], DEVICE_NAME_SIZE-1, ext_name, strlen(ext_name)+1);
+				cam_info("%s ext_name: %s\n", __func__, ext_name);
+			}
+		} else {
+			cam_err("%s ext name num(%d) out of range\n", __func__, count);
+			sensor_info->ext_type = NO_EXT_INFO;
+		}
+	}
+
+	return 0;
+}
+
+
 int hw_sensor_get_dt_data(struct platform_device *pdev,
 	sensor_t *sensor)
 {
@@ -1349,6 +1430,17 @@ int hw_sensor_get_dt_data(struct platform_device *pdev,
 	if (!rc && (1 == sensor_info->phyinfo_valid || 2 == sensor_info->phyinfo_valid)) {
 		rc = hw_sensor_get_phyinfo_data(of_node, sensor_info, sensor_info->phyinfo_valid);
 	}
+
+	rc = of_property_read_u32(of_node, "need_rpc", &sensor_info->need_rpc); /*lint !e64 */
+	cam_info("%s need_rpc 0x%x, rc %d\n", __func__, sensor_info->need_rpc, rc);
+	if (rc < 0) {
+		sensor_info->need_rpc = 0;
+		cam_warn("%s read need_rpc failed, rc %d, set default value %d\n",
+		__func__, rc, sensor_info->need_rpc);
+		rc = 0;
+	}
+
+	hw_sensor_get_ext_dt_data(of_node, sensor_info);
 
 	return rc;
 fail:

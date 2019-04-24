@@ -31,6 +31,9 @@
 #include <huawei_platform/inputhub/motionhub.h>
 #include <huawei_platform/inputhub/sensorhub.h>
 #include <huawei_platform/log/imonitor.h>
+#ifdef CONFIG_HUAWEI_HISHOW
+#include <huawei_platform/usb/hw_hishow.h>
+#endif
 
 #ifdef CONFIG_CONTEXTHUB_SHMEM
 #include "shmem.h"
@@ -41,6 +44,10 @@
 #ifdef TIMESTAMP_SIZE
 #undef TIMESTAMP_SIZE
 #define TIMESTAMP_SIZE (8)
+#endif
+
+#ifdef CONFIG_HUAWEI_HISHOW
+#define HALL1_N_VALUE           (4)
 #endif
 
 int step_ref_cnt;
@@ -97,6 +104,9 @@ extern struct completion iom3_resume_all;
 extern atomic_t iom3_rec_state;
 extern uint32_t need_reset_io_power;
 extern uint8_t tag_to_hal_sensor_type[TAG_SENSOR_END];
+#ifdef CONFIG_HUAWEI_HISHOW
+extern int support_hall_hishow;
+#endif
 
 extern int ak8789_register_report_data(int ms);
 extern int color_sensor_enable(bool enable);
@@ -392,8 +402,26 @@ int report_sensor_event(int tag, int value[], int length)
 		event.length + OFFSET_OF_END_MEM(struct sensor_data, length));
 }
 
+#ifdef CONFIG_HUAWEI_HISHOW
+void check_hall_hishow_state(int type)
+{
+	if (type == HALL1_N_VALUE) {
+		hwlog_info("check_hall_hishow_state is connected type: %d\n", type);
+		hishow_notify_android_uevent(HISHOW_DEVICE_ONLINE, HISHOW_HALL_DEVICE);//start hishow
+	} else {
+		hwlog_info("check_hall_hishow_state is disconnect type: %d\n", type);
+		hishow_notify_android_uevent(HISHOW_DEVICE_OFFLINE, HISHOW_HALL_DEVICE);//stop hishow
+	}
+}
+#endif
+
 int ap_hall_report(int value)
 {
+#ifdef CONFIG_HUAWEI_HISHOW
+	if (support_hall_hishow == 1) {
+		check_hall_hishow_state(value);
+	}
+#endif
 	hall_value = value;
 	return report_sensor_event(TAG_HALL, &value, sizeof(value));
 }

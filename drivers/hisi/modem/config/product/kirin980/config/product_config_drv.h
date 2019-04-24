@@ -1,4 +1,4 @@
-/* MD5: f815b76007c133db6163b71281a95f25*/
+/* MD5: 7f1d811732808ef029da251d8ae80518*/
 #if !defined(__PRODUCT_CONFIG_DRV_H__)
 #define __PRODUCT_CONFIG_DRV_H__
 
@@ -408,10 +408,6 @@
 #endif 
 
 #ifndef CONFIG_WATCHPOINT
-#endif 
-
-#ifndef CONFIG_MODEM_MINI_DUMP
-#define CONFIG_MODEM_MINI_DUMP 
 #endif 
 
 #ifndef CONFIG_DSPDVS

@@ -438,9 +438,9 @@ void USBPDEnable(FSC_BOOL DeviceUpdate, SourceOrSink TypeCDFP)
         {
             USBPDActive = TRUE;                                                 // Set the active flag
             platform_set_timer(&NoResponseTimer, T_TIMER_DISABLE);                                  // Disable the no response timer by default
-            PolicyIsSource = TypeCDFP;                                          // Set whether we should be initially a source or sink
-            PolicyIsDFP = TypeCDFP;
-            IsVCONNSource = TypeCDFP;
+            PolicyIsSource = (FSC_BOOL)TypeCDFP;                                          // Set whether we should be initially a source or sink
+            PolicyIsDFP = (FSC_BOOL)TypeCDFP;
+            IsVCONNSource = (FSC_BOOL)TypeCDFP;
             // Set the initial data port direction
             if (PolicyIsSource)                                                 // If we are a source...
             {
@@ -787,8 +787,8 @@ void PolicyErrorRecovery(void)
 #if defined(FSC_HAVE_SRC) || (defined(FSC_HAVE_SNK) && defined(FSC_HAVE_ACCMODE))
 void PolicySourceSendHardReset(void)
 {
-    HardResetCounter++;
     FSC_U8 data;
+    HardResetCounter++;
     data = Registers.Control.byte[3] | 0x40;                                    // Set the send hard reset bit
     DeviceWrite(regControl3, 1, &data);
 }
@@ -2092,9 +2092,9 @@ void PolicySourceEvaluateVCONNSwap(void)
 #ifdef FSC_HAVE_SNK
 void PolicySinkSendHardReset(void)
 {
-	HardResetCounter++;
+    FSC_U8 data;
+    HardResetCounter++;
     IsHardReset = TRUE;
-	FSC_U8 data;
     data = Registers.Control.byte[3] | 0x40;                                    // Set the send hard reset bit
     DeviceWrite(regControl3, 1, &data);                                         // Send the hard reset
 }

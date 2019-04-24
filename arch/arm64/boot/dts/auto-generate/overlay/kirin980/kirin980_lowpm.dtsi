@@ -11,6 +11,7 @@
 		pmu-addr-end = <0x29E>;
 		mg-sec-reg = <0xE896C700 0xE896C728 0xFFF11700 0xFFF11750>;
 		cg-sec-reg = <0xE896CF00 0xE896CF28 0xFFF11F00 0xFFF11F50>;
+		sec-gpio-no = <24 31>;
 		status = "ok";
 		ap-irq-table = "IPI_RESCHEDULE",
 		            "IPI_CALL_FUNC",

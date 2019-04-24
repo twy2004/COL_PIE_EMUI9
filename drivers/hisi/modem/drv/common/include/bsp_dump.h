@@ -82,7 +82,7 @@ extern "C" {
 *****************************************************************************/
 #define RDR_MODEM_NR_MOD_ID_START          0xb0000000
 #define RDR_MODEM_NR_MOD_ID_END            0xbfffffff
-
+#define OM_SYSCTRL_MAGIC        (0x5B5C5C5B)
 
 /* dumpÇÖÈëÄÚºËÐÞ¸Ä begin */
 #ifdef __KERNEL__

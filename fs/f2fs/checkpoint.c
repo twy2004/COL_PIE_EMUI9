@@ -114,7 +114,6 @@ repeat:
 	if (unlikely(!PageUptodate(page))) {
 		f2fs_stop_checkpoint(sbi, false);
 		f2fs_msg(sbi->sb, KERN_ERR,"f2fs readed meta page is not uptodate!");
-		WARN_ON(1);
 #ifdef CONFIG_HUAWEI_F2FS_DSM
 			if (f2fs_dclient && !dsm_client_ocuppy(f2fs_dclient)) {
 				dsm_client_record(f2fs_dclient, "F2FS reboot: %s:%d\n",
@@ -122,7 +121,7 @@ repeat:
 				dsm_client_notify(f2fs_dclient, DSM_F2FS_NEED_FSCK);
 			}
 #endif
-		f2fs_add_restart_wq();
+		f2fs_restart(); /* force restarting */
 	}
 out:
 	return page;
@@ -1143,8 +1142,6 @@ static int block_operations(struct f2fs_sb_info *sbi)
 
 retry_flush_quotas:
 	if (__need_flush_quota(sbi)) {
-		int locked;
-
 		if (++cnt >= DEFAULT_RETRY_QUOTA_FLUSH_COUNT) {
 			set_sbi_flag(sbi, SBI_QUOTA_SKIP_FLUSH);
 			f2fs_lock_all(sbi);
@@ -1152,11 +1149,7 @@ retry_flush_quotas:
 		}
 		clear_sbi_flag(sbi, SBI_QUOTA_NEED_FLUSH);
 
-		/* only failed during mount/umount/freeze/quotactl */
-		locked = down_read_trylock(&sbi->sb->s_umount);
 		f2fs_quota_sync(sbi->sb, -1);
-		if (locked)
-			up_read(&sbi->sb->s_umount);
 	}
 
 	f2fs_lock_all(sbi);

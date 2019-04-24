@@ -743,7 +743,7 @@ ssize_t APP_VCOM_Read(
     if ((pstVcomDev->current_len - count) > 0)
     {
         /* FIFO数据前移 */
-        memmove(pstVcomDev->pucAppVcomMem, (pstVcomDev->pucAppVcomMem + count), (pstVcomDev->current_len - count));
+        memmove(pstVcomDev->pucAppVcomMem, (pstVcomDev->pucAppVcomMem + count), (pstVcomDev->current_len - count)); /* unsafe_function_ignore: memmove */
         APP_VCOM_TRACE_INFO(ucIndex, "APP_VCOM_Read, FIFO move. ");
     }
 
@@ -987,7 +987,7 @@ VOS_UINT32  APP_VCOM_Send (
     }
 
     /* 复制到BUFFER */
-    memcpy(pstVcomDev->pucAppVcomMem + pstVcomDev->current_len, pData, uslength);
+    memcpy(pstVcomDev->pucAppVcomMem + pstVcomDev->current_len, pData, uslength); /* unsafe_function_ignore: memcpy */
     pstVcomDev->current_len += uslength;
 
     APP_VCOM_TRACE_INFO(enDevIndex, "APP_VCOM_Send, written %d byte(s), new len: %d. ", uslength, pstVcomDev->current_len);

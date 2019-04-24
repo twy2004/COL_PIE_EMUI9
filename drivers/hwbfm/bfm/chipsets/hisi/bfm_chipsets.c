@@ -63,11 +63,8 @@
 
 #define BFM_MAX_U32 (0xFFFFFFFFU)
 #define BFM_HISI_PWR_KEY_PRESS_KEYWORD "power key press interrupt"
-#define BFM_BOOT_SUCCESS_TIME_IN_KENREL ((long long)40000000) /* unit: microsecond */
-#define BFM_US_PER_SEC ((long long)1000000)
-#define BFM_MS_PER_SEC ((long long)1000)
+#define BFM_BOOT_SUCCESS_TIME_IN_KENREL ((long long)60) /* unit: second */
 #define BFM_DATAREADY_PATH "/proc/data-ready"
-#define BFM_POWERDOWN_CHARGE_KEYWORD "powerdown charge is true"
 
 
 /*----local prototypes----------------------------------------------------------------*/
@@ -310,6 +307,9 @@ static bfmr_hw_fault_map_table_t s_hw_fault_map_table[] = {
     {HW_FAULT_OCP, HISI_PMIC_OCP_EVENT},
 };
 
+static bool s_is_recovery_mode = false;
+static bool s_power_off_charge = false;
+
 
 /*----global variables-----------------------------------------------------------------*/
 
@@ -348,8 +348,6 @@ static unsigned int bfmr_capture_logcat_on_beta_version(char *buf, unsigned int 
 static unsigned int bfmr_capture_beta_kmsg(char *buf, unsigned int buf_len, char *src_log_file_path);
 static unsigned int bfmr_capture_critical_process_crash_log(char *buf, unsigned int buf_len, char *src_log_file_path);
 static unsigned int bfmr_capture_fixed_framework_bootfail_log(char *buf, unsigned int buf_len, char *src_log_file_path);
-static bool bfm_is_valid_long_press_bootfail_log(char *log_add, unsigned int log_len,
-    char *pfastboot_log_add, unsigned int fastboot_log_len);
 static int bfm_save_bootfail_log_to_fs_immediately(
     bfm_process_bootfail_param_t *process_bootfail_param,
     bfm_bootfail_log_saving_param_t *psave_param,
@@ -359,9 +357,6 @@ static int bfm_check_validity_of_bootfail_log_in_dfx(bfm_bfi_member_info_t *pbfi
 static int bfm_read_log_in_dfx_part(void);
 static void bfm_release_buffer_saving_dfx_log(void);
 static bool bfmr_userdata_is_ready(void);
-static unsigned int bfm_get_latest_fastboot_log(char *pdst, unsigned int dst_size,
-    char *pfastboot_log_add, unsigned int fastboot_log_len);
-static unsigned int bfm_get_text_kmsg(char *pbuf, unsigned int buf_size, bfmr_log_src_t *src);
 static int bfm_add_bfi_info(bfm_bfi_member_info_t *pbfi_memeber, unsigned int bfi_memeber_len);
 static int bfm_update_save_flag_in_bfi(bfm_bfi_member_info_t *pbfi_info);
 static void bfm_sort_dfx_log_by_create_time(struct dfx_head_info *pdfx_head_info, char **paddr_buf, size_t addr_count);
@@ -578,44 +573,6 @@ static unsigned int bfmr_capture_fixed_framework_bootfail_log(char *buf, unsigne
 }
 
 
-static unsigned int bfm_get_text_kmsg(char *pbuf, unsigned int buf_size, bfmr_log_src_t *src)
-{
-    unsigned int bytes_captured = 0U;
-    bfm_dfx_log_read_param_t *pdfx_log_read_param = NULL;
-
-    if (unlikely((NULL == pbuf) || (0U == buf_size) || (NULL == src)))
-    {
-        BFMR_PRINT_INVALID_PARAMS("buf: %p, src: %p\n", pbuf, src);
-        return 0U;
-    }
-
-    if (NULL == src->log_save_context)
-    {
-        return 0U;
-    }
-
-    pdfx_log_read_param = (bfm_dfx_log_read_param_t *)src->log_save_context;
-    if (pdfx_log_read_param->kernel_log_len != 0)
-    {
-        struct persistent_ram_buffer *log_header = (struct persistent_ram_buffer *)pdfx_log_read_param->kernel_log_start;
-        unsigned int new_log_size = 0U;
-        unsigned int total_log_size = 0U;
-
-        total_log_size = BFMR_MIN(log_header->size, buf_size);
-        new_log_size = BFMR_MIN(total_log_size, log_header->start);
-        memcpy(pbuf, pdfx_log_read_param->kernel_log_start + sizeof(struct persistent_ram_buffer) + new_log_size, (unsigned long)(total_log_size - new_log_size));
-        memcpy(pbuf + (total_log_size - new_log_size), pdfx_log_read_param->kernel_log_start + sizeof(struct persistent_ram_buffer), (unsigned long)new_log_size);
-        bytes_captured = total_log_size;
-    }
-    else
-    {
-        BFMR_PRINT_KEY_INFO("There is no kernel boot fail log!\n");
-    }
-
-    return bytes_captured;
-}
-
-
 static unsigned int bfm_copy_user_log(char *buf, unsigned int buf_len, bfm_process_bootfail_param_t *pparam, bool from_begin)
 {
     unsigned int bytes_captured = 0U;
@@ -695,8 +652,8 @@ unsigned int bfmr_capture_log_from_system(char *buf, unsigned int buf_len, bfmr_
             pdfx_log_read_param = (bfm_dfx_log_read_param_t *)src->log_save_context;
             if (pdfx_log_read_param->bl2_log_len != 0)
             {
-                bytes_captured = bfm_get_latest_fastboot_log(buf, buf_len,
-                    pdfx_log_read_param->bl2_log_start, pdfx_log_read_param->bl2_log_len);
+                bytes_captured = BFMR_MIN(pdfx_log_read_param->bl2_log_len, buf_len);
+                memcpy((void *)buf, (void *)pdfx_log_read_param->bl2_log_start, bytes_captured);
             }
             else
             {
@@ -743,8 +700,21 @@ unsigned int bfmr_capture_log_from_system(char *buf, unsigned int buf_len, bfmr_
     case LOG_TYPE_TEXT_KMSG:
         {
             /* get text kmsg on commercial version */
-            bytes_captured = bfm_get_text_kmsg(buf, buf_len, src);
+            if (NULL == src->log_save_context)
+            {
+                break;
+            }
 
+            pdfx_log_read_param = (bfm_dfx_log_read_param_t *)src->log_save_context;
+            if (pdfx_log_read_param->kernel_log_len != 0)
+            {
+                bytes_captured = BFMR_MIN(pdfx_log_read_param->kernel_log_len, buf_len);
+                memcpy((void *)buf, (void *)pdfx_log_read_param->kernel_log_start, bytes_captured);
+            }
+            else
+            {
+                BFMR_PRINT_KEY_INFO("There is no Kernel boot fail log!\n");
+            }
             break;
         }
     case LOG_TYPE_RAMOOPS:
@@ -1022,94 +992,6 @@ __out:
 }
 
 
-static unsigned int bfm_get_latest_fastboot_log(char *pdst, unsigned int dst_size,
-    char *pfastboot_log_add, unsigned int fastboot_log_len)
-{
-    fastboot_log_header_t *pfastboot_log_header = (fastboot_log_header_t *)pfastboot_log_add;
-    unsigned int latest_log_len = 0U;
-
-    if (unlikely((NULL == pdst) || (0U == dst_size) || (NULL == pfastboot_log_add) || (0U == fastboot_log_len)))
-    {
-        BFMR_PRINT_INVALID_PARAMS("pdst is NULL or dst_size is 0\n");
-        return 0U;
-    }
-
-    BFMR_PRINT_KEY_INFO("fastboot_log_start: %u, fastboot_log_offset: %u, fastboot_log_len: %u\n",
-        pfastboot_log_header->log_start, pfastboot_log_header->log_offset, fastboot_log_len);
-    if ((pfastboot_log_header->log_start > fastboot_log_len) || (pfastboot_log_header->log_offset > fastboot_log_len))
-    {
-        return 0U;
-    }
-
-    if (pfastboot_log_header->log_start >= pfastboot_log_header->log_offset)
-    {
-        latest_log_len = fastboot_log_len - pfastboot_log_header->log_start;
-        memcpy(pdst, pfastboot_log_add + pfastboot_log_header->log_start, latest_log_len);
-        memcpy(pdst + latest_log_len, pfastboot_log_add + sizeof(fastboot_log_header_t),
-            (pfastboot_log_header->log_offset - sizeof(fastboot_log_header_t)));
-        latest_log_len += (pfastboot_log_header->log_offset - sizeof(fastboot_log_header_t));
-    }
-    else
-    {
-        latest_log_len = pfastboot_log_header->log_offset - pfastboot_log_header->log_start;
-        memcpy(pdst, pfastboot_log_add + pfastboot_log_header->log_start, latest_log_len);
-    }
-
-    return latest_log_len;
-}
-
-
-static bool bfm_is_valid_long_press_bootfail_log(char *log_add, unsigned int log_len,
-    char *pfastboot_log_add, unsigned int fastboot_log_len)
-{
-    char *ptemp = NULL;
-    unsigned int total_log_size = 0;
-    bool is_valid_long_press_bootfail_log = true;
-    unsigned int keyword_len = strlen(BFM_POWERDOWN_CHARGE_KEYWORD);
-    unsigned int usefull_log_len = 0U;
-    char *plog = NULL;
-
-    if (unlikely((NULL == log_add) || (0U == log_len) || (NULL == pfastboot_log_add) || (0U == fastboot_log_len)))
-    {
-        BFMR_PRINT_INVALID_PARAMS("log_add is NULL or log_len is 0\n");
-        goto __out;
-    }
-
-    /* alloc buffer */
-    total_log_size = BFMR_MIN(fastboot_log_len, FASTBOOTLOG_SIZE);
-    ptemp = (char *)bfmr_malloc((unsigned long)(total_log_size + 1));
-    if (NULL == ptemp)
-    {
-        BFMR_PRINT_ERR("bfmr_malloc failed!\n");
-        goto __out;
-    }
-    memset((void *)ptemp, 0, (unsigned long)(total_log_size + 1));
-
-    /* get usefull fastboot log and find the powerdown charge keyword */
-    usefull_log_len = bfm_get_latest_fastboot_log(ptemp, total_log_size, pfastboot_log_add, fastboot_log_len);
-    plog = ptemp;
-    while (usefull_log_len > keyword_len)
-    {
-        if (0 == memcmp(plog, BFM_POWERDOWN_CHARGE_KEYWORD, keyword_len))
-        {
-            BFMR_PRINT_ERR("This is powerdown charge log!\n");
-            is_valid_long_press_bootfail_log = false;
-            break;
-        }
-        plog++;
-        usefull_log_len--;
-    }
-
-__out:
-    if (NULL != ptemp)
-    {
-        bfmr_free(ptemp);
-    }
-
-    return is_valid_long_press_bootfail_log;
-}
-
-
 static void bfm_sort_dfx_log_by_create_time(struct dfx_head_info *pdfx_head_info, char **paddr_buf, size_t addr_count)
 {
     int log_max_count = 0;
@@ -1238,15 +1120,6 @@ static int bfm_save_bootfail_log_to_fs_immediately(
             pdfx_log_read_param->applogcat_log_len = 0U;
         }
         pdfx_log_read_param->save_log_after_reboot = process_bootfail_param->save_log_after_reboot;
-
-        if ((KERNEL_PRESS10S == process_bootfail_param->bootfail_errno)
-            && (!bfm_is_valid_long_press_bootfail_log(pdfx_log_read_param->kernel_log_start,
-            pdfx_log_read_param->kernel_log_len, pdfx_log_read_param->bl2_log_start, pdfx_log_read_param->bl2_log_len)))
-        {
-            BFMR_PRINT_ERR("Invalid long press log!\n");
-            goto __next;
-        }
-
         ret = psave_param->capture_and_save_bootfail_log(process_bootfail_param);
         if (0 != ret)
         {
@@ -1882,6 +1755,10 @@ int bfm_platform_process_boot_fail(bfm_process_bootfail_param_t *param)
     return 0;
 }
 
+int bfm_update_platform_logs(bfm_bootfail_log_info_t *pbootfail_log_info)
+{
+    return 0;
+}
 
 /**
     @function: int bfm_platform_process_boot_success(void)
@@ -2791,12 +2668,6 @@ void bfmr_update_raw_log_info(bfmr_log_src_t *psrc, bfmr_log_dst_t *pdst, unsign
 }
 
 
-int bfm_get_kmsg_log_header_size(void)
-{
-    return (int)sizeof(struct persistent_ram_buffer);
-}
-
-
 static struct notifier_block ocp_event_nb = {
     .notifier_call = bfm_process_ocp_callback,
     .priority	= INT_MAX,
@@ -2903,6 +2774,51 @@ static int bfm_process_ocp_callback(struct notifier_block *self, unsigned long v
     up(&s_process_ocp_sem);
 
     return NOTIFY_DONE;
+}
+
+
+static int __init bfm_early_parse_recovery_mode_cmdline(char *p)
+{
+    if (NULL != p)
+    {
+        s_is_recovery_mode = (0 == strncmp(p, "1", strlen("1"))) ? true : false;
+    }
+
+    return 0;
+}
+early_param("enter_recovery", bfm_early_parse_recovery_mode_cmdline);
+
+static int __init bfm_early_parse_power_off_charge_cmdline(char *p)
+{
+    if (NULL != p)
+    {
+        s_power_off_charge = (0 == strncmp(p, "charger", strlen("charger"))) ? true : false;
+    }
+
+    return 0;
+}
+early_param("androidboot.mode", bfm_early_parse_power_off_charge_cmdline);
+
+
+void bfm_set_valid_long_press_flag(void)
+{
+    bfmr_rrecord_misc_msg_param_t misc_msg;
+    bfmr_detail_boot_stage_e bfmr_bootstage = STAGE_BOOT_SUCCESS;
+
+    bfm_get_boot_stage(&bfmr_bootstage);
+    if (!s_is_recovery_mode && !s_power_off_charge
+        && (bfmr_get_bootup_time() > BFM_BOOT_SUCCESS_TIME_IN_KENREL)
+        && (bfmr_bootstage < STAGE_BOOT_SUCCESS))
+    {
+        memset((void *)&misc_msg, 0, sizeof(misc_msg));
+        memcpy(misc_msg.command, BFR_VALID_LONG_PRESS_LOG,
+            BFMR_MIN(sizeof(misc_msg.command) - 1, strlen(BFR_VALID_LONG_PRESS_LOG)));
+        (void)bfmr_write_rrecord_misc_msg(&misc_msg);
+    }
+    else
+    {
+        BFMR_PRINT_KEY_INFO("There's no need to save long press log\n");
+    }
 }
 
 

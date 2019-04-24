@@ -9,11 +9,11 @@
 /include/ "kirin980_fpga_cs_060_overlay.dtsi"
 
 / {
-    board_id = <8041>;
+    board_id = <8046>;
 };
 
 	&rootparam{
-		hisi,boardid = <8 0 4 1>;
+		hisi,boardid = <8 0 4 6>;
 		hisi,boardname = "kirin980_fpga_cs_061";
 		hisi,product_id = <0x37F5FC11>;
 	};

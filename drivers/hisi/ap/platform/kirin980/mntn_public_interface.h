@@ -236,6 +236,7 @@ typedef enum
     BR_L2_CACHE_FAIL = 0x29,
     BR_POWERON_CHARGE = 0x2a,
     gpscoldboot = 0x2b,
+    atfactoryreset0 = 0x2c,
     REBOOT_REASON_LABEL1 = 0x40,
     AP_S_ABNORMAL = REBOOT_REASON_LABEL1,
     AP_S_TSENSOR0 = 0x41,
@@ -269,6 +270,7 @@ typedef enum
     AP_S_MAILBOX = 0x67,
     AP_S_HHEE_PANIC = 0x68,
     AP_S_SUBPMU = 0x69,
+    AP_S_VENDOR_PANIC = 0x6A,
     REBOOT_REASON_LABEL3 = 0x70,
     CP_S_MODEMDMSS = REBOOT_REASON_LABEL3,
     CP_S_MODEMNOC = 0x71,
@@ -321,6 +323,8 @@ typedef enum
     FASTBOOT_VERIFY_FAIL = 0xaa,
     FASTBOOT_SOC_TEMP_ERR = 0xab,
     FASTBOOT_FLASHCERT_FAIL = 0xac,
+    FASTBOOT_MULCOREON_FAIL = 0xad,
+    FASTBOOT_MULCOREOFF_FAIL = 0xae,
     REBOOT_REASON_LABEL5 = 0xc0,
     BFM_S_NATIVE_BOOT_FAIL = REBOOT_REASON_LABEL5,
     BFM_S_BOOT_TIMEOUT,
@@ -423,6 +427,9 @@ typedef enum {
     MNTN_DUMP_FTRACE,
     MNTN_DUMP_PSTORE_RAMOOPS,
     MNTN_DUMP_BC_PANIC,
+#if defined(CONFIG_GCOV_KERNEL) || defined(CONFIG_HISI_GCOV_FASTBOOT)
+    MNTN_DUMP_GCOV,
+#endif
     MNTN_DUMP_MAX
 }mntn_dump_module;
 #define MNTN_DUMP_HEAD_SIZE (sizeof(struct mdump_head))
@@ -433,6 +440,9 @@ typedef enum {
 #define MNTN_DUMP_FTRACE_SIZE (0x30)
 #define MNTN_DUMP_PSTORE_RAMOOPS_SIZE (0x30)
 #define MNTN_DUMP_BC_PANIC_SIZE (0x20)
+#if defined(CONFIG_GCOV_KERNEL) || defined(CONFIG_HISI_GCOV_FASTBOOT)
+#define MNTN_DUMP_GCOV_SIZE (0x10)
+#endif
 #define MNTN_DUMP_MAXSIZE (0x1000 - MNTN_DUMP_KASLR_SIZE)
 struct mdump_regs_info{
  int mid;
@@ -529,4 +539,10 @@ struct mntn_reg_val {
 };
 void mntn_reg_save(void *mntn_reg);
 void mntn_reg_restore(void *mntn_reg);
+#if defined(CONFIG_GCOV_KERNEL) || defined(CONFIG_HISI_GCOV_FASTBOOT)
+struct mdump_gcov {
+ unsigned long gcda_addr;
+ unsigned int gcda_size;
+};
+#endif
 #endif

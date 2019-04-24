@@ -42,6 +42,14 @@
 		hisi,modem_id = <0x37001000>;
 		hisi,product_name = "HMA-LX9";
 	};
+	
+	&codec_controller {
+		hi64xx_irq@0{
+				hi6403_codec@0 {
+						hisilicon,wakeup_hisi_algo_support = <0>;
+				};
+		};
+	};
 
     /*hisi customize*/
     &hisi_cust_cfg {

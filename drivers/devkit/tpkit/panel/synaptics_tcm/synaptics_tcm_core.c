@@ -401,13 +401,13 @@ static int synaptics_tcm_get_project_id(char *project_id)
 			return 0;
 		}
 	}
-
+	project_id[PROJECT_ID_FW_LEN] = 0;
 	return retval;
 }
 
 static int synaptics_tcm_get_fw_ver(void)
 {
-
+	return 0;
 }
 static int synaptics_tcm_chip_get_info(struct ts_chip_info_param *info)
 {
@@ -448,7 +448,7 @@ static int synaptics_tcm_chip_get_info(struct ts_chip_info_param *info)
 		memcpy(info->ic_vendor, buf_proj_id, len);
 	}
 
-	strncpy(info->mod_vendor, buf_proj_id, CHIP_INFO_LENGTH);
+	strncpy(info->mod_vendor, buf_proj_id, CHIP_INFO_LENGTH - 1);
 	strncpy(info->fw_vendor, buf_fw_ver, CHIP_INFO_LENGTH);
 
 	return 0;
@@ -545,6 +545,12 @@ static int syna_tcm_spi_rmi_read(struct syna_tcm_hcd *tcm_hcd,
 {
 	int retval = NO_ERR;
 
+#if defined (CONFIG_TEE_TUI)
+	if (tcm_hcd->syna_tcm_chip_data->report_tui_enable) {
+		return NO_ERR;
+	}
+#endif
+
 	retval = syna_tcm_spi_alloc_mem(tcm_hcd, length + 2);
 	if (retval < 0) {
 		TS_LOG_ERR("Failed to allocate memory\n");
@@ -615,6 +621,12 @@ static int syna_tcm_spi_rmi_write(struct syna_tcm_hcd *tcm_hcd,
 {
 	int retval = NO_ERR;
 
+#if defined (CONFIG_TEE_TUI)
+	if (tcm_hcd->syna_tcm_chip_data->report_tui_enable) {
+		return NO_ERR;
+	}
+#endif
+
 	retval = syna_tcm_spi_alloc_mem(tcm_hcd, (length + 2));
 	if (retval < 0) {
 		TS_LOG_ERR("Failed to allocate memory\n");
@@ -673,6 +685,12 @@ static int syna_tcm_spi_read(struct syna_tcm_hcd *tcm_hcd, unsigned char *data,
 {
 	int retval = NO_ERR;
 
+#if defined (CONFIG_TEE_TUI)
+	if (tcm_hcd->syna_tcm_chip_data->report_tui_enable) {
+		return NO_ERR;
+	}
+#endif
+
 	retval = syna_tcm_spi_alloc_mem(tcm_hcd, length);
 	if (retval < 0) {
 		TS_LOG_ERR("Failed to allocate memory\n");
@@ -730,6 +748,12 @@ static int syna_tcm_spi_write(struct syna_tcm_hcd *tcm_hcd, unsigned char *data,
 		unsigned int length)
 {
 	int retval = NO_ERR;
+
+#if defined (CONFIG_TEE_TUI)
+	if (tcm_hcd->syna_tcm_chip_data->report_tui_enable) {
+		return NO_ERR;
+	}
+#endif
 
 	retval = syna_tcm_spi_write_transfer(tcm_hcd, data, length);
 	if (retval < 0) {
@@ -1652,9 +1676,18 @@ static int syna_tcm_pinctrl_select_normal(void)
 
 static void syna_tcm_power_on_gpio_set(void)
 {
+	int ret = 0;
+
 	syna_tcm_pinctrl_select_normal();
-	gpio_direction_input(tcm_hcd->syna_tcm_chip_data->ts_platform_data->irq_gpio);
-	gpio_direction_output(tcm_hcd->syna_tcm_chip_data->ts_platform_data->reset_gpio, 1);
+	ret = gpio_direction_input(tcm_hcd->syna_tcm_chip_data->ts_platform_data->irq_gpio);
+	if (ret) {
+		TS_LOG_ERR("%s: gpio_direction_input for irq gpio failed\n", __func__);
+	}
+
+	ret = gpio_direction_output(tcm_hcd->syna_tcm_chip_data->ts_platform_data->reset_gpio, 1);
+	if (ret) {
+		TS_LOG_ERR("%s: gpio_direction_output for reset gpio failed\n", __func__);
+	}
 }
 
 static void ts_kit_power_gpio_enable(void)
@@ -1691,16 +1724,24 @@ static void syna_tcm_vddio_on(void)
 
 static void syna_tcm_gpio_reset(void)
 {
+	int ret = 0;
+
 	TS_LOG_INFO("synaptics_gpio_reset\n");
 	if (!tcm_hcd->syna_tcm_chip_data->ts_platform_data->reset_gpio) {
 		TS_LOG_INFO("reset_gpio is null, not supported reset\n");
 		return;
 	}
 
-	gpio_direction_input(tcm_hcd->syna_tcm_chip_data->ts_platform_data->irq_gpio);
+	ret = gpio_direction_input(tcm_hcd->syna_tcm_chip_data->ts_platform_data->irq_gpio);
+	if (ret) {
+		TS_LOG_ERR("%s: gpio_direction_input for irq gpio failed\n", __func__);
+	}
 	TS_LOG_INFO("set gpio int input\n");
 
-	gpio_direction_output(tcm_hcd->syna_tcm_chip_data->ts_platform_data->reset_gpio, GPIO_OUTPUT_HIGH);
+	ret = gpio_direction_output(tcm_hcd->syna_tcm_chip_data->ts_platform_data->reset_gpio, GPIO_OUTPUT_HIGH);
+	if (ret) {
+		TS_LOG_ERR("%s: gpio_direction_output for reset gpio failed\n", __func__);
+	}
 	mdelay(1);
 }
 
@@ -2608,7 +2649,6 @@ static int syna_tcm_resume(void)
 
 	pre_finger_status = 0;
 	tcm_hcd->in_suspend = false;
-
 	return retval;
 }
 
@@ -2777,7 +2817,7 @@ static int syna_tcm_irq_bottom_half(struct ts_cmd_node *in_cmd,
 		tcm_hcd->syna_tcm_chip_data->algo_id;
 	TS_LOG_DEBUG("order: %d\n",
 			out_cmd->cmd_param.pub_params.algo_param.algo_order);
-
+	tcm_hcd->esd_report_status = NOT_NEED_REPORT;
 	retval = syna_tcm_read_one_package(info);
 	if (retval < 0) {
 		TS_LOG_ERR("Failed to syna_tcm_read_one_package, try to read F$35\n");
@@ -3614,7 +3654,6 @@ static int syna_tcm_charger_switch(struct ts_charger_info *info)
 		retval = -EINVAL;
 		break;
 	}
-	return retval;
 #endif
 	return retval;
 }
@@ -3633,6 +3672,11 @@ static int syna_tcm_glove_switch(struct ts_glove_info *info)
 		TS_LOG_ERR("synaptics_glove_switch: info is Null\n");
 		retval = -ENOMEM;
 		return retval;
+	}
+
+	if (!info->glove_supported) {
+		TS_LOG_INFO("%s:not support glove\n", __func__);
+		return NO_ERR;
 	}
 
 	switch (info->op_action) {

@@ -19,6 +19,7 @@
 /include/ "lcdkit3.0/ever_tugl/devkit_lcd_kit.dtsi"
 /include/ "desayatl_4900_39k_4400.dtsi"
 /include/ "sunwodamurata_4900_110k_4400.dtsi"
+/include/ "scudguangyu_4900_22k_4400.dtsi"
 
 / {
     board_id = <8452>;
@@ -229,9 +230,9 @@
 };
 
 &fastboot_pmic {
-	hisilicon,init-reg-num = <4>;
-	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E 0x02E9>;
-	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4 0x06>;
+	hisilicon,init-reg-num = <3>;
+	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E>;
+	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4>;
 };
 
 	&rootparam {
@@ -426,7 +427,7 @@
 	};
 
 	&hisi_battery {
-		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400>;
+		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400 &scudguangyu_4900_22k_4400>;
 		status = "ok";
 	};
 
@@ -1744,6 +1745,7 @@
 				fm_enable = <1>;
 				micbias_modify = <1>; //MICBIAS output 2.7V factory test, change from MAINMIC to MIC4.
 				hisilicon,hs_det_trigger = <1>;
+				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -2353,7 +2355,7 @@
 				ps_calib_3cm_threshold=<500>;
 				gpio_int1=<&gpio27 1 0>;
 				poll_interval = <80>;
-				ps_oily_threshold = <6>;
+				ps_oily_threshold = <3>;
 				oily_max_near_pdata=<1000>;
 				max_oily_add_pdata=<100>;
 				max_near_pdata_loop=<3>;
@@ -2678,10 +2680,10 @@
 				status = "disabled";
 				phone_type = /bits/ 16 <0x06>;// 1:ALPS  2:BLANC  3:EMILY  4:NEO  5:CHARLOTTE 6:after EVER
 				to_ap_threshold = /bits/ 16 <0xc8>;
-				to_modem_threshold = /bits/ 16 <0x74CC 0x1A90 0x9C4 0x00 0x00 0x00 0x00 0x00>;
-				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x430744FF 0x293D2600 0x273F2080 0x00000000>;
+				to_modem_threshold = /bits/ 16 <0x74CC 0xDAC 0x514 0x00 0x00 0x00 0x00 0x00>;
+				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x431A44FF 0x293D2600 0x273F2080 0x00000000>;
 				ph = <0x2f>;
-				calibrate_thred = /bits/ 16 <8671 14452 8357 22032>;//for the factory far and near calibrate
+				calibrate_thred = /bits/ 16 <9500 14452 8357 22032>;//for the factory far and near calibrate
 				sensorlist_name="CAP_PROX sensor-sx9323";
 				vendor="semtech";
 			};

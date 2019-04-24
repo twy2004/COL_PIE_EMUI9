@@ -121,16 +121,16 @@ static void smartpakit_dsm_report_by_i2c_error(const char *model, int id, int fl
 #ifdef CONFIG_HUAWEI_DSM_AUDIO
 	if (0 == flag) { // read i2c error
 		if (info) {
-			hwlog_info("%s: dsm report, %s_%d i2c read errno(%d) %u fail times of %u all times, err_details is %lu.\n", __func__, model, id, errno, info->err_count, info->regs_num, info->err_details);
-			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c read errno(%d) %u fail times of %u all times, err_details is %lu.", model, id, errno, info->err_count, info->regs_num, info->err_details);
+			hwlog_info("%s: dsm report, %s_%d i2c read errno(%d) %u fail times of %u all times, err_details is 0x%lx.\n", __func__, model, id, errno, info->err_count, info->regs_num, info->err_details);
+			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c read errno(%d) %u fail times of %u all times, err_details is 0x%lx.", model, id, errno, info->err_count, info->regs_num, info->err_details);
 		} else {
 			hwlog_info("%s: dsm report, %s_%d i2c read errno %d.\n", __func__, model, id, errno);
 			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c read errno %d.", model, id, errno);
 		}
 	} else { // 1 == flag write i2c error
 		if (info) {
-			hwlog_info("%s: dsm report, %s_%d i2c write errno(%d) %u fail times of %u all times, err_details is %lu.\n", __func__, model, id, errno, info->err_count, info->regs_num, info->err_details);
-			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c write errno(%d) %u fail times of %u all times, err_details is %lu.", model, id, info->err_count, info->regs_num, info->err_details);
+			hwlog_info("%s: dsm report, %s_%d i2c write errno(%d) %u fail times of %u all times, err_details is 0x%lx.\n", __func__, model, id, errno, info->err_count, info->regs_num, info->err_details);
+			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c write errno(%d) %u fail times of %u all times, err_details is 0x%lx.", model, id, errno, info->err_count, info->regs_num, info->err_details);
 		} else {
 			hwlog_info("%s: dsm report, %s_%d i2c write errno %d.\n", __func__, model, id, errno);
 			audio_dsm_report_info(AUDIO_SMARTPA, DSM_SMARTPA_I2C_ERR, "%s_%d i2c write errno %d.", model, id, errno);
@@ -423,9 +423,9 @@ static int smartpakit_do_write_regs(smartpakit_i2c_priv_t *i2c_priv, unsigned in
 			ret = smartpakit_regmap_update_bits(cfg->regmap, regs[i].index, regs[i].mask, regs[i].value);
 		}
 		if (ret) {
-			hwlog_err("%s: regs[%d]:%d, value:%d write error(errno:%d).\n", __func__,i, regs[i].index, regs[i].value, ret);
+			hwlog_err("%s: regs[%d]:0x%x, value:0x%x write error(errno:%d).\n", __func__,i, regs[i].index, regs[i].value, ret);
 			if (i < I2C_STATUS_B64) {
-				info.err_details |= 1 << i;
+				info.err_details |= (unsigned long int)1 << i;
 			}
 			info.err_count++;
 			errno = ret;

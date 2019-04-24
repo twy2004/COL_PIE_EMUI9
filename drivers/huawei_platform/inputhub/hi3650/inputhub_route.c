@@ -2386,7 +2386,7 @@ int register_mcu_event_notifier(int tag, int cmd,
 		if ((tag == pnode->tag) && (cmd == pnode->cmd)
 		    && (notify == pnode->notify)) {
 			hwlog_warn
-			    ("tag = %d, cmd = %d, notify = %Kpf has already registed in %s\n!",
+			    ("tag = %d, cmd = %d, notify = %pK has already registed in %s\n!",
 			     tag, cmd, notify, __func__);
 			goto out;	/*return when already registed*/
 		}

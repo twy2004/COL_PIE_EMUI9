@@ -342,7 +342,7 @@ int rnic_create_netdev(void)
 	int rc = 0;
 	uint8_t devid;
 
-	memset(dev_ctx->netdev, 0,
+	memset(dev_ctx->netdev, 0, /* unsafe_function_ignore: memset */
 		sizeof(struct net_device *) * RNIC_DEV_ID_BUTT);
 
 	for (devid = 0; devid < RNIC_DEV_ID_BUTT; devid++) {
@@ -352,8 +352,8 @@ int rnic_create_netdev(void)
 			goto err_name_param;
 		}
 
-		memcpy(dst_mac, rnic_dev_dst_mac_base, ETH_ALEN);
-		memcpy(src_mac, rnic_dev_src_mac_base, ETH_ALEN);
+		memcpy(dst_mac, rnic_dev_dst_mac_base, ETH_ALEN); /* unsafe_function_ignore: memcpy */
+		memcpy(src_mac, rnic_dev_src_mac_base, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		dst_mac[ETH_ALEN - 1] += devid;
 		src_mac[ETH_ALEN - 1] += devid;
 
@@ -369,7 +369,7 @@ int rnic_create_netdev(void)
 			rnic_dev_name_param_table[devid].suffix);
 		dev->flags &= ~(IFF_BROADCAST | IFF_MULTICAST);
 		dev->mtu = ETH_DATA_LEN;
-		memcpy(dev->dev_addr, dst_mac, ETH_ALEN);
+		memcpy(dev->dev_addr, dst_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		dev->netdev_ops = &rnic_dev_ops;
 
 		priv = (struct rnic_dev_priv_s *)netdev_priv(dev);
@@ -383,12 +383,12 @@ int rnic_create_netdev(void)
 		skb_queue_head_init(&priv->napi_queue);
 		netif_napi_add(dev, &priv->napi, rnic_napi_poll, 16);
 
-		memcpy(priv->v4_eth_header.h_dest, dst_mac, ETH_ALEN);
-		memcpy(priv->v4_eth_header.h_source, src_mac, ETH_ALEN);
+		memcpy(priv->v4_eth_header.h_dest, dst_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
+		memcpy(priv->v4_eth_header.h_source, src_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		priv->v4_eth_header.h_proto = htons(ETH_P_IP);/*lint !e778*/
 
-		memcpy(priv->v6_eth_header.h_dest, dst_mac, ETH_ALEN);
-		memcpy(priv->v6_eth_header.h_source, src_mac, ETH_ALEN);
+		memcpy(priv->v6_eth_header.h_dest, dst_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
+		memcpy(priv->v6_eth_header.h_source, src_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		priv->v6_eth_header.h_proto = htons(ETH_P_IPV6);/*lint !e778*/
 
 		dev->features |= NETIF_F_SG;

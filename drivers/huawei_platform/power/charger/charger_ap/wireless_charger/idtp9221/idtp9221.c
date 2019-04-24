@@ -249,6 +249,7 @@ static int idtp9221_clear_interrupt(u16 itr)
 	return 0;
 
 }
+#if 0
 static int idtp9221_set_interrupt(u16 itr)
 {
 	int ret;
@@ -279,6 +280,8 @@ static int idtp9221_set_interrupt(u16 itr)
 	hwlog_info("%s:set interrupt success!\n", __func__);
 	return 0;
 }
+#endif
+
 static int idtp9221_send_msg(u8 cmd, u8 *data, int data_len)
 {
 	int ret;
@@ -2345,28 +2348,13 @@ static void idtp9221_handle_qi_ask_packet(struct idtp9221_device_info *di)
 		hwlog_info("[%s]signal strength = %d\n", __func__, packet_data[1]);
 	}
 }
-static bool idtp9221_check_ask_header(u8 head)
-{
-	int i;
-	for (i = 1; i < IDT9221_RX_TO_TX_DATA_LEN+2; i++) {
-		if (head == idtp9221_send_msg_len[i]) {
-			return true;
-		}
-	}
-	return false;
-}
 static void idtp9221_handle_ask_packet(struct idtp9221_device_info *di)
 {
-	int i;
 	u16 tx_id = 0;
 	u8 chrg_stage = 0;
 	u8 packet_data[IDT9221_RX_TO_TX_PACKET_LEN] = {0};
 	//handle ask packet!  byte]0]: header;   byte[1]: cmd;   byte[2 3 4 5]: data
 	idtp9221_get_ask_packet(packet_data, IDT9221_RX_TO_TX_PACKET_LEN);
-	if (!idtp9221_check_ask_header(packet_data[0])) {
-		hwlog_err("%s: head(0x%x) not correct\n", __func__, packet_data[0]);
-		return;
-	}
 	switch (packet_data[1]) {
 		case IDT9221_CMD_GET_TX_ID:
 			tx_id = (packet_data[2] << BITS_PER_BYTE) | packet_data[3];
@@ -2405,7 +2393,7 @@ static void idtp9221_handle_tx_ept(struct idtp9221_device_info *di)
 		case IDT9221_TX_EPT_CMD:
 			di->ept_type &= ~IDT9221_TX_EPT_CMD;
 			hwlog_info("[%s] ept command\n!", __func__);
-			//blocking_notifier_call_chain(&tx_event_nh, WL_TX_EVENT_EPT_CMD, NULL);
+			blocking_notifier_call_chain(&tx_event_nh, WL_TX_EVENT_EPT_CMD, NULL);
 			break;
 		case IDT9221_TX_EPT_CEP_TIMEOUT:
 			di->ept_type &= ~IDT9221_TX_EPT_CEP_TIMEOUT;

@@ -4598,15 +4598,6 @@ dhd_fillup_ioct_reqst(dhd_pub_t *dhd, uint16 len, uint cmd, void* buf, int ifidx
 	ioct_rqst->input_buf_len = htol16(rqstlen);
 	ioct_rqst->host_input_buf_addr.high = htol32(PHYSADDRHI(prot->ioctbuf.pa));
 	ioct_rqst->host_input_buf_addr.low = htol32(PHYSADDRLO(prot->ioctbuf.pa));
-
-#ifdef CONFIG_HW_WIFI_DMA_ADDR_CTRL
-	if ((ioct_rqst->host_input_buf_addr.low > ATLANTA_CODE_ADDR_BEGIN) && (ioct_rqst->host_input_buf_addr.low < ATLANTA_CODE_ADDR_END)) {
-		DHD_ERROR(("%s: ioct_rqst->host_input_buf_addr, BASE(PA) %x:%x\n", __FUNCTION__,
-		      ioct_rqst->host_input_buf_addr.high,
-		      ioct_rqst->host_input_buf_addr.low));
-	}
-#endif
-
 	/* copy ioct payload */
 	ioct_buf = (void *) prot->ioctbuf.va;
 

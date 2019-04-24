@@ -82,7 +82,14 @@ void ParentLayerFinish (void *p, struct fsm *fsm);
 *****************************************************************************/
 struct link*            pgPppLink = VOS_NULL_PTR;
 
-PPP_HDLC_CONFIG_STRU    g_astHdlcConfig[PPP_MAX_ID_NUM] = {{0, 0, 0, 0}};
+PPP_HDLC_CONFIG_STRU    g_astHdlcConfig[PPP_MAX_ID_NUM] = {
+    [0] = {
+            .pFunProcData = VOS_NULL_PTR,
+            .pFunProcProtocolPacket = VOS_NULL_PTR,
+            .pFunDisable = VOS_NULL_PTR,
+            .pFunProcAsFrmData = VOS_NULL_PTR
+    }
+};
 
 PPP_HDLC_CONFIG_STRU    *g_pstHdlcConfig = &g_astHdlcConfig[0];
 
@@ -394,7 +401,7 @@ VOS_UINT32 PPP_SendPulledData(VOS_UINT16 usPppId,  PPP_ZC_STRU *pstImmZc, VOS_UI
 {
     VOS_UINT8                          ucRabId = PPP_INVALID_RABID;
 
-    /*Add by y45445*/
+ 
     /* 通过usPppId，寻找到usRabId */
     if ( !PPP_PPPID_TO_RAB(usPppId, &ucRabId) )
     {
@@ -406,7 +413,7 @@ VOS_UINT32 PPP_SendPulledData(VOS_UINT16 usPppId,  PPP_ZC_STRU *pstImmZc, VOS_UI
 
         return PS_FAIL;
     }
-    /*Add by y45445*/
+
 
     /* 数据发送给ADS，如果失败由ADS释放内存 */
     if ( VOS_OK != ADS_UL_SendPacket(pstImmZc, ucRabId) )

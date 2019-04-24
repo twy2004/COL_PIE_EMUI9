@@ -583,7 +583,6 @@ static int load_data_to_secos(const char* file_name, u32 offset, u32 size,
             skip_offset = VRL_SIZE;
         }
     }
-    sec_print_info("need read file %s 0x%x to 0x%x though secos from offset 0x%x\n",file_name, image->run_addr, remain_bytes, skip_offset);
 
     /* 检查读取的大小是否超过ddr分区大小 */
     if((u32)remain_bytes > image->ddr_size)

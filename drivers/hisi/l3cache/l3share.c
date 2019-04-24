@@ -25,6 +25,10 @@
 #define MAX_GROUP_NUM			4
 
 
+DEFINE_MUTEX(l3c_share_lock);
+static u32 g_acp_flag;
+
+
 bool req_pending_flag = false;
 bool acp_enable_flag = false;
 bool acp_first_flag = true;
@@ -99,11 +103,6 @@ void l3_cache_disable_acp(unsigned int id)
 
 
 
-
-
-DEFINE_MUTEX(l3c_share_lock);
-static u32 g_acp_flag;
-
 int l3_cache_request(struct l3_cache_request_params *request_params)
 {
 	int ret = 0;
@@ -119,6 +118,8 @@ int l3_cache_request(struct l3_cache_request_params *request_params)
 	}
 
 	mutex_lock(&l3c_share_lock);
+	pr_debug("%s enter request id %d, size = %d, g_acp_flag = 0x%x\n", __func__,
+			request_params->id, request_params->request_size, g_acp_flag);
 	trace_l3_cache_request_enter(request_params->id, request_params->request_size, g_acp_flag);
 	if (g_acp_flag){
 		pr_err("%s permit only one module can request L3 at the same time \n", __func__);
@@ -168,6 +169,8 @@ int l3_cache_release(struct l3_cache_release_params *release_params)
 	}
 
 	mutex_lock(&l3c_share_lock);
+	pr_debug("%s enter release id %d, g_acp_flag = 0x%x\n", __func__,
+			release_params->id,  g_acp_flag);
 	trace_l3_cache_release_enter(release_params->id, g_acp_flag);
 	if (0 == (g_acp_flag & BIT(release_params->id))){
 		pr_err("%s  moduleid %d not request\n", __func__, release_params->id);
@@ -230,7 +233,7 @@ static int l3_share_resume(struct platform_device *pdev)
 }
 
 
-#define MODULE_NAME		"hisilicon,l3cache"
+#define MODULE_NAME		"hisi,l3share"
 static const struct of_device_id l3_share_match[] = {
 	{ .compatible = MODULE_NAME },
 	{},

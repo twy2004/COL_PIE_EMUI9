@@ -38,6 +38,23 @@
 		btf_ichg_para = "0";
 		btf_fitting_para = "0", "0", "0", "0", "0";
 	};
+	vbat_hkadc: vbat_hkadc {
+		compatible = "huawei,vbat_hkadc";
+		status = "diabled";
+		adc_channel = <12>;
+		offset_channel = <13>;
+		coef = <1328>;
+	};
+	hw_batt_vol: hw_batt_vol {
+		compatible = "huawei,battery_voltage";
+		status = "disabled";
+		batt_vol {
+			batt_vol0{
+				batt_id = <0>;
+				ops_name = "hisi_coul";
+			};
+		};
+	};
 	wireless_sc: wireless_sc {
 		compatible = "huawei,wireless_sc";
 		vbatt_max = <4350>;
@@ -136,6 +153,13 @@
 	};
 	vbat_ovp: vbat_ovp{
 		compatible = "vbat,ovp";
+		status = "disabled";
+	};
+	ltc7820: ltc7820 {
+		compatible = "huawei,ltc7820";
+		gpio_en = <&gpio21 1 0>;
+		gpio_freq = <&gpio31 7 0>;
+		gpio_int = <&gpio23 2 0>;
 		status = "disabled";
 	};
 	direct_charge_ps: direct_charge_ps {
@@ -392,6 +416,12 @@
 				rx_fod_9v = <11670 11656 10376 10374 6534 6534 0 0>;
 				rx_fod_12v = <11670 11656 10376 10374 6534 6534 0 0>;
 				rx_ss_good_lth = <95>;
+				status = "disabled";
+			};
+			ina231_i2c6: ina231_i2c6@41 {
+				compatible = "huawei,ina231_for_charge";
+				reg = <0x41>;
+				gpio_int = <&gpio30 2 0>;
 				status = "disabled";
 			};
 		};

@@ -729,6 +729,8 @@ static int kirin_pcie_turn_off(struct pcie_port *pp, enum rc_power_status on_fla
 		goto MUTEX_UNLOCK;
 	}
 
+	atomic_set(&(pcie->is_power_on), 0);
+
 	ret = kirin_pcie_noc_power(pcie, ENABLE);
 	if (ret)
 		PCIE_PR_ERR("Failed to set noc idle");
@@ -766,7 +768,6 @@ static int kirin_pcie_turn_off(struct pcie_port *pp, enum rc_power_status on_fla
 
 	kirin_pcie_iso_ctrl(pcie, ENABLE);
 
-	atomic_set(&(pcie->is_power_on), 0);
 	PCIE_PR_DEBUG("-OFF-");
 
 MUTEX_UNLOCK:

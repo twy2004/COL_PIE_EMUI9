@@ -49,7 +49,6 @@
 #define __DUMP_CP_AGENT_H__
 #include "osl_types.h"
 
-#define OM_SYSCTRL_MAGIC              0x5B5C5C5B
 
 typedef struct
 {

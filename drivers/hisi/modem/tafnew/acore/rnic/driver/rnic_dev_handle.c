@@ -183,7 +183,7 @@ STATIC void rnic_net_rx_handle(struct sk_buff *skb,
 	eth = (ip_family == RNIC_IPV4_ADDR) ?
 					&priv->v4_eth_header : &priv->v6_eth_header;
 	skb_push(skb, ETH_HLEN);
-	memcpy(skb->data, eth, ETH_HLEN);
+	memcpy(skb->data, eth, ETH_HLEN); /* unsafe_function_ignore: memcpy */
 
 	skb->protocol = eth_type_trans(skb, priv->netdev);
 

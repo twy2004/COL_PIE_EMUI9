@@ -465,6 +465,11 @@ static long npu_process_workqueue(unsigned long arg)
     }
 
     coreid = param[0];
+    if ((NPU_CORE_1 == coreid) && (NPU_VERSION_V150 == hard_version)) {
+        NPU_ERR("The hardware version is ES, but received a small core task. coreid[%d]", coreid);
+        coreid = 0;
+        param[0] = 0;
+    }
 
     if (coreid > adapter->common.feature.core_num - 1) {
         NPU_ERR("param err coreid[%d]!", coreid);
@@ -591,7 +596,7 @@ static long npu_set_secure_mode(unsigned long arg)
     if (copy_from_user(param, (void __user *)arg, sizeof(param))) {
         NPU_ERR("copy arg failed!\n");
         return -EFAULT;
-    }
+    }
 
     coreid = param[0];
     profile = param[1];
@@ -756,6 +761,11 @@ static long npu_set_report_statistic(unsigned long arg)
     }
 
     /* only smmu_stat.coreID is an input param, other members in smmu_stat are output params, no need check */
+    if ((NPU_CORE_1 == smmu_stat.coreID) && (NPU_VERSION_V150 == hard_version)) {
+        NPU_ERR("The hardware version is ES, but received a small core task. coreid[%d]", smmu_stat.coreID);
+        smmu_stat.coreID = 0;
+    }
+
     if (smmu_stat.coreID > adapter->common.feature.core_num - 1) {
         NPU_ERR("invalid input core number=%u", smmu_stat.coreID);
         return -EFAULT;
@@ -894,6 +904,11 @@ long npu_set_workprofile(unsigned long arg)
 
     coreid  = param[0];
     profile = param[1];   /*profile clock module check*/
+
+    if ((NPU_CORE_1 == coreid) && (NPU_VERSION_V150 == hard_version)) {
+        NPU_ERR("The hardware version is ES, but received a small core task. coreid[%d]", coreid);
+        coreid = 0;
+    }
 
     if (coreid > adapter->common.feature.core_num - 1) {
         NPU_ERR("coreid[%u] err\n", coreid);

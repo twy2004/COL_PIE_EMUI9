@@ -67,10 +67,6 @@ struct dsm_client *f2fs_dclient = NULL;
 #define SSR_WD_WATERLINE_128G       60		/* 80% default warm data waterline for 128G devices */
 #endif
 
-static atomic_t restart;
-static struct workqueue_struct *f2fs_wq;
-static struct work_struct f2fs_work;
-
 static struct kmem_cache *f2fs_inode_cachep;
 
 #ifdef CONFIG_F2FS_JOURNAL_APPEND
@@ -277,25 +273,6 @@ static match_table_t f2fs_tokens = {
 	{Opt_nosubdivision, "nosubdivision"},
 	{Opt_err, NULL},
 };
-
-static void f2fs_reboot(struct work_struct *work)
-{
-	if (work)
-		kernel_restart("mount failed!");
-
-	/* should not be here */
-	panic("f2fs reboot error!");
-}
-
-void f2fs_add_restart_wq(void)
-{
-	if(!atomic_xchg(&restart, 1)) {
-		if (system_state > SYSTEM_RUNNING)
-			return;
-		printk(KERN_ERR "f2fs reboot for some IO ERR!\n");
-		queue_work(f2fs_wq, &f2fs_work);
-	}
-}
 
 #ifndef CONFIG_F2FS_CHECK_FS
 void need_fsck_fn(struct work_struct *work)
@@ -949,9 +926,6 @@ static int f2fs_drop_inode(struct inode *inode)
 
 			sb_end_intwrite(inode->i_sb);
 
-			if (!f2fs_inline_encrypted_inode(inode))
-				fscrypt_put_encryption_info(inode, NULL);
-
 			spin_lock(&inode->i_lock);
 			atomic_dec(&inode->i_count);
 		}
@@ -1140,6 +1114,14 @@ static void f2fs_put_super(struct super_block *sb)
 		kfree(sbi->write_io[i]);
 	kfree(sbi);
 	f2fs_msg(sb, KERN_ALERT, "f2fs put super sucessfully\n");
+}
+
+int __f2fs_sync_fs(struct super_block *sb, int sync)
+{
+	if (is_gc_test_set(F2FS_SB(sb), GC_TEST_DISABLE_SYNCFS))
+		return 0;
+
+	return f2fs_sync_fs(sb, sync);
 }
 
 int f2fs_sync_fs(struct super_block *sb, int sync)
@@ -2114,7 +2096,7 @@ static const struct super_operations f2fs_sops = {
 #endif
 	.evict_inode	= f2fs_evict_inode,
 	.put_super	= f2fs_put_super,
-	.sync_fs	= f2fs_sync_fs,
+	.sync_fs	= __f2fs_sync_fs,
 	.freeze_fs	= f2fs_freeze,
 	.unfreeze_fs	= f2fs_unfreeze,
 	.statfs		= f2fs_statfs,
@@ -3355,9 +3337,11 @@ try_onemore:
 	 */
 	if (f2fs_sb_has_quota_ino(sb) && !sb_rdonly(sb)) {
 		err = f2fs_enable_quotas(sb);
-		if (err)
+		if (err) {
 			f2fs_msg(sb, KERN_ERR,
 				"Cannot turn on quotas: error %d", err);
+			goto free_sysfs;
+		}
 	}
 #endif
 	/* all the print info of sbi is created and ready now */
@@ -3468,6 +3452,9 @@ free_meta:
 	 * falls into an infinite loop in sync_meta_pages().
 	 */
 	truncate_inode_pages_final(META_MAPPING(sbi));
+#ifdef CONFIG_QUOTA
+free_sysfs:
+#endif
 	f2fs_unregister_sysfs(sbi);
 free_root_inode:
 	dput(sb->s_root);
@@ -3542,9 +3529,9 @@ static void kill_f2fs_super(struct super_block *sb)
 #endif
 
 	if (sb->s_root) {
-		set_sbi_flag(sbi, SBI_IS_CLOSE);
-		stop_gc_thread(sbi);
-		stop_discard_thread(sbi);
+		set_sbi_flag(F2FS_SB(sb), SBI_IS_CLOSE);
+		stop_gc_thread(F2FS_SB(sb));
+		stop_discard_thread(F2FS_SB(sb));
 
 		if (is_sbi_flag_set(sbi, SBI_IS_RECOVERED) && f2fs_readonly(sb))
 			sb->s_flags &= ~MS_RDONLY;
@@ -3597,13 +3584,6 @@ static int __init init_f2fs_fs(void)
 	int err;
 
 	f2fs_build_trace_ios();
-
-	/*wq for reboot in interrupt context*/
-	atomic_set(&restart, 0);
-	f2fs_wq = alloc_workqueue("f2fs", WQ_FREEZABLE, 0);
-	if (!f2fs_wq)
-		return -ENOMEM;
-	INIT_WORK(&f2fs_work, f2fs_reboot);
 
 	err = init_inodecache();
 	if (err)
@@ -3680,7 +3660,6 @@ static void __exit exit_f2fs_fs(void)
 	destroy_node_manager_caches();
 	destroy_inodecache();
 	f2fs_destroy_trace_ios();
-	destroy_workqueue(f2fs_wq);
 }
 
 module_init(init_f2fs_fs)

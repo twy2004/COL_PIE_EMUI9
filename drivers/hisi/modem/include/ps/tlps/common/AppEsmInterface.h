@@ -1,18 +1,50 @@
-/******************************************************************************
-
-  Copyright(C)2008,Hisilicon Co. LTD.
-
- ******************************************************************************
-  File Name       : AppEsmInterface.h
-  Description     : AppEsmInterface.h header file
-  History         :
-      1.sunbing       2008-12-16   Draft Enact
-      2.yangqianhui   2008-12-22   Modify
-      3.sunbing       2009-01-06   Modify  BA8D00870
-      4.yangqianhui   2009-02-05   Modify  BA8D00933
-      5.yangqianhui   2009-03-06   Modify  BA8D01127
-
-******************************************************************************/
+/*
+ * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #ifndef __APPESMINTERFACE_H__
 #define __APPESMINTERFACE_H__
@@ -81,10 +113,8 @@ extern "C" {
 
 #define APP_ESM_TFT_MAX_PF_NUM                              16
 
-/* niuxiufan DT begin */
 #define APP_ESM_DT_REPORT_STATUS_OPEN                       1
 #define APP_ESM_DT_REPORT_STATUS_CLOSE                      0
-/* niuxiufan DT end */
 
 #define APP_ESM_MAX_CUSTOM_PCO_CONTAINER_NUM                (3)
 #define APP_ESM_MAX_CUSTOM_PCO_CONTAINER_CONTENT_LEN        (53)
@@ -134,20 +164,22 @@ enum APP_ESM_MSG_TYPE_ENUM
 
     ID_APP_ESM_SET_GW_AUTH_REQ          = 0x11+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_GW_AUTH_REQ_STRU*/
     ID_APP_ESM_SET_GW_AUTH_CNF          = 0x11+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_GW_AUTH_CNF_STRU*/
-    /* niuxiufan modify begin */
+
     ID_APP_ESM_IPV6_INFO_NOTIFY         = 0x12+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_IPV6_INFO_NOTIFY_STRU*/
 
     ID_APP_ESM_PROCEDURE_ABORT_NOTIFY   = 0x13+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PROCEDURE_ABORT_NOTIFY_STRU*/
-    /* niuxiufan modify end */
 
     ID_APP_ESM_NDISCONN_REQ             = 0x14+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_NDISCONN_REQ_STRU*/
     ID_APP_ESM_NDISCONN_CNF             = 0x12+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_NDISCONN_CNF_STRU*/
 
     ID_APP_ESM_SET_CGDCONT_REQ          = 0x15+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_CGDCONT_REQ_STRU*/
     ID_APP_ESM_SET_CGDCONT_CNF          = 0x13+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_CGDCONT_CNF_STRU*/
+
     ID_APP_ESM_APN_ENABLE_INFO_CHANGE_NTF  = 0x16+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_APN_ENABLE_INFO_CHANGE_NTF_STRU*/
+
     ID_APP_ESM_SET_APN_THROT_INFO_REQ= 0x17+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_APN_THROT_INFO_REQ_STRU*/
     ID_APP_ESM_SET_APN_THROT_INFO_CNF          = 0x14+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_SET_APN_THROT_INFO_CNF_STRU*/
+
     /*参数查询原语*/
     ID_APP_ESM_INQ_TFT_REQ              = 0x31+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_TFT_REQ_STRU*/
     ID_APP_ESM_INQ_TFT_CNF              = 0x32+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_TFT_CNF_STRU*/
@@ -189,14 +221,14 @@ enum APP_ESM_MSG_TYPE_ENUM
     ID_APP_ESM_INQ_GW_AUTH_REQ          = 0x4A+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_GW_AUTH_REQ_STRU*/
     ID_APP_ESM_INQ_GW_AUTH_CNF          = 0x4A+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_GW_AUTH_CNF_STRU*/
 
-    /* niuxiufan DT begin */
+
     ID_APP_ESM_DT_INQ_PDP_INFO_REQ      = 0x4B+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_PDP_INFO_REQ_STRU*/
     ID_APP_ESM_DT_INQ_PDP_INFO_CNF      = 0x4B+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_PDP_INFO_CNF_STRU*/
     ID_APP_ESM_DT_INQ_PDP_INFO_IND      = 0x4C+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_INQ_PDP_INFO_IND_STRU*/
-    /* niuxiufan DT end */
 
     ID_ESM_DSM_NOTIFICATION_IND         = 0x4D + APP_ESM_MSG_ID_HEADER,/* _H2ASN_MsgChoice ESM_DSM_NOTIFICATION_IND_STRU */
     ID_ESM_DSM_REG_CID_IND              = 0x4E + ESM_APP_MSG_ID_HEADER,/* _H2ASN_MsgChoice ESM_DSM_REG_CID_IND_STRU */
+
     /*承载建立、修改和释放消息原语结构*/
     ID_APP_ESM_PDP_SETUP_REQ         = 0x61+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_SETUP_REQ_STRU*/
     ID_APP_ESM_PDP_SETUP_CNF         = 0x62+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_SETUP_CNF_STRU*/
@@ -348,7 +380,6 @@ enum APP_ESM_PDN_TYPE_ENUM
 };
 typedef VOS_UINT32 APP_ESM_PDN_TYPE_ENUM_UINT32;
 
-/*Modify by sunbing 49683 for CL multimode 2014-01-09 begin*/
 /*****************************************************************************
  枚举名    : APP_ESM_PDN_REQUEST_TYPE_ENUM
  枚举说明  : PDN请求类型取值 24008 10.5.6.17
@@ -360,7 +391,6 @@ enum APP_ESM_PDN_REQUEST_TYPE_ENUM
     APP_ESM_PDN_REQUEST_TYPE_BUTT
 };
 typedef VOS_UINT32 APP_ESM_PDN_REQUEST_TYPE_ENUM_UINT32;
-/*Modify by sunbing 49683 for CL multimode 2014-01-09 end*/
 
 
 /*****************************************************************************
@@ -458,7 +488,6 @@ enum APP_ESM_BEARER_MANAGE_MODE_ENUM
 };
 typedef VOS_UINT8  APP_ESM_BEARER_MANAGE_MODE_ENUM_UINT8;
 
-/*niuxiufan DT begin */
 
 /*****************************************************************************
  结构名    : NAS_ESM_DT_BEARER_TYPE_ENUM
@@ -469,12 +498,13 @@ enum NAS_ESM_DT_BEARER_TYPE_ENUM
 {
     NAS_ESM_DT_BEARER_TYPE_DEFAULT = 0,                /*缺省承载*/
     NAS_ESM_DT_BEARER_TYPE_DEDICATED,                  /*专有承载*/
+
     NAS_ESM_DT_BEARER_TYPE_EMERGENCY,                  /*紧急承载*/
+
 
     NAS_ESM_DT_BEARER_TYPE_BUTT
 };/*承载的属性*/
 typedef VOS_UINT8  NAS_ESM_DT_BEARER_TYPE_ENUM_UINT8;
-/*niuxiufan DT end */
 
 enum APP_ESM_PCSCF_DISCOVERY_ENUM
 {
@@ -503,7 +533,6 @@ enum APP_ESM_PDP_EMC_IND_ENUM
     APP_ESM_PDP_EMC_IND_BUTT
 };
 typedef VOS_UINT32 APP_ESM_PDP_EMC_IND_ENUM_UINT32;
-
 /*****************************************************************************
  枚举名    : APP_ESM_PDP_RELEASE_CAUSE_ENUM
  枚举说明  : PDP释放原因
@@ -514,8 +543,6 @@ enum APP_ESM_PDP_RELEASE_CAUSE_ENUM
     APP_ESM_PDP_RELEASE_CAUSE_IPV6_ADDR_ALLOC_FAIL    = 1,
     APP_ESM_PDP_RELEASE_CAUSE_IPV6_ADDR_TIME_OUT      = 2,
     APP_ESM_PDP_RELEASE_CAUSE_PCSCF_ADDR_ALLOC_FAIL   = 3,
-    /* del reattach type */
-
 
     APP_ESM_PDP_RELEASE_CAUSE_DATA_OFF                = 4,
     APP_ESM_PDP_RELEASE_CAUSE_CELLULAR2W_HO           = 5,
@@ -589,7 +616,6 @@ typedef struct
     VOS_UINT32                          ulRegCid;
 }ESM_DSM_REG_CID_IND_STRU;
 
-
 /*****************************************************************************
  结构名    : APP_ESM_APN_CLASS_INFO_STRU
  结构说明  : 注册APN信息结构
@@ -602,6 +628,7 @@ typedef struct
     VOS_UINT8                           aucReserved[2];
     VOS_UINT32                          ulInactivityTimerValue;/*Inactivity Timer Value in second*/
 }APP_ESM_APN_CLASS_INFO_STRU;
+
 
 /*****************************************************************************
  结构名    : APP_ESM_PARA_SET_CNF_STRU
@@ -670,6 +697,7 @@ typedef struct
                                                                     ucRmtIpv6Mask[7]为低字节位*/
 
     VOS_UINT32                          ulFlowLabelType;          /*FlowLabelType*/
+
     VOS_UINT8                           aucLocalIpv4Addr[APP_MAX_IPV4_ADDR_LEN];
     VOS_UINT8                           aucLocalIpv4Mask[APP_MAX_IPV4_ADDR_LEN];
     VOS_UINT8                           aucLocalIpv6Addr[APP_MAX_IPV6_ADDR_LEN];
@@ -815,6 +843,7 @@ typedef struct
 }APP_ESM_SET_APN_REQ_STRU;
 
 typedef  APP_ESM_PARA_SET_CNF_STRU APP_ESM_SET_APN_CNF_STRU;
+
 /*****************************************************************************
  结构名    : APP_ESM_SET_EXCESSIVE_PDN_CTRL_PARA_REQ_STRU
  结构说明  : APN  参数设置
@@ -859,8 +888,6 @@ typedef struct
     VOS_UINT32                          ulRslt;
 
 }APP_ESM_SET_APN_THROT_INFO_CNF_STRU;
-
-
 
 /*****************************************************************************
  结构名    : APP_ESM_APN_AMBR_INFO_STRU
@@ -1031,6 +1058,7 @@ typedef struct
     VOS_UINT32                          bitOpLinkdCId        : 1;
     VOS_UINT32                          bitIpv4AddrAllocType : 1;
     VOS_UINT32                          bitOpGwAuthInfo      : 1;
+
     VOS_UINT32                          bitOpPcscfDiscovery  : 1;
     VOS_UINT32                          bitOpImsCnSignalFlag : 1;
     VOS_UINT32                          bitOpSpare           : 24;
@@ -1047,6 +1075,7 @@ typedef struct
     APP_ESM_APN_INFO_STRU               stApnInfo;
     APP_ESM_GW_AUTH_INFO_STRU           stGwAuthInfo;
     APP_ESM_TFT_INFO_STRU               astCntxtTftInfo[APP_ESM_MAX_SDF_PF_NUM];
+
     APP_ESM_PCSCF_DISCOVERY_ENUM_UINT32 enPcscfDiscovery;
     APP_ESM_IMS_CN_SIG_FLAG_ENUM_UINT32 enImsCnSignalFlag;
 }APP_ESM_SDF_PARA_STRU;
@@ -1557,7 +1586,6 @@ typedef struct
 } APP_ESM_INQ_PDP_INFO_IND_STRU;
 
 
-/* niuxiufan DT end */
 
 /*****************************************************************************
 *                                                                            *
@@ -1597,7 +1625,6 @@ typedef struct
     VOS_UINT32                                  ulContainerNum;
     APP_ESM_CUSTOM_PCO_CONTAINER_STRU           astContainerList[APP_ESM_MAX_CUSTOM_PCO_CONTAINER_NUM];
 }APP_ESM_CUSTOM_PCO_INFO_STRU;
-
 typedef struct
 {
     VOS_UINT8                           aucIpV4Addr[APP_MAX_IPV4_ADDR_LEN];
@@ -1668,6 +1695,7 @@ typedef struct
     VOS_UINT32                          bitOpPCscfSec        :1;
     VOS_UINT32                          bitOpGateWayAddrInfo :1;
     VOS_UINT32                          bitOpCustomPco       :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
+
     VOS_UINT32                          bitOpEpdgInfo        : 1; /* 用于R1定制需求中,把EPDG地址上报给APS时,指示是否要上报给IMSA。 1:需要 0:不需要 */
     VOS_UINT32                          bitOpSpare           : 18;
 
@@ -1707,7 +1735,9 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;             /*本次操作标识符*/
     VOS_UINT32                          ulCid;              /*上下文序列号，范围:0~31*/
+
     APP_ESM_BEARER_PRIO_ENUM_UINT32     enBearerPrio;       /* NAS signalling priority标识 */
+
     VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PDP_MODIFY_REQ_STRU;
 
@@ -1726,6 +1756,7 @@ typedef struct
     VOS_UINT32                          bitOpRabId          :1;
     VOS_UINT32                          bitOpSdfQos         :1;
     VOS_UINT32                          bitOpCustomPco      :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
+
     VOS_UINT32                          bitOpSpare          :27;
 
     VOS_UINT32                          ulRslt ;            /*删除操作结果;取值范围:参见附录3.1*/
@@ -1778,6 +1809,7 @@ typedef struct
     VOS_UINT32                          bitOpLinkCid        :1;
     VOS_UINT32                          bitOpPdnAddr        :1;
     VOS_UINT32                          bitOpCustomPco      :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
+
     VOS_UINT32                          bitOpSpare          :29;
 
     VOS_UINT32                          ulRslt;
@@ -1862,7 +1894,7 @@ typedef struct
     VOS_UINT8                           aucReserved[2];
     APP_ESM_IPV6_PREFIX_STRU            astIpv6PrefixArray[APP_ESM_MAX_IPV6_PREFIX_NUM];
 }APP_ESM_IPV6_INFO_NOTIFY_STRU;
-/*niuxiufan modify begin */
+
 /*****************************************************************************
  结构名    : APP_ESM_PROCEDURE_ABORT_NOTIFY_STRU
  结构说明  : APS-->ESM 流程终止消息结构
@@ -1876,8 +1908,6 @@ typedef struct
     VOS_UINT32                          ulCid;
     VOS_UINT32                          ulPsCallId;     /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PROCEDURE_ABORT_NOTIFY_STRU;
-/*niuxiufan modify end */
-
 
 /*****************************************************************************
  结构名    : APP_ESM_NDISCONN_REQ_STRU
@@ -1895,10 +1925,12 @@ typedef struct
     VOS_UINT32                                  bitOpPdnType           :1;
     VOS_UINT32                                  bitOpApn               :1;
     VOS_UINT32                                  bitOpGwAuth            :1;
+
     VOS_UINT32                                  bitOpIpv4AddrAlloc     :1;                /* Ipv4AddrAlloc*/
     VOS_UINT32                                  bitOpPcscfDiscovery    :1;                /* P-CSCF discovery */
     VOS_UINT32                                  bitOpImCnSignalFlg     :1;                /* IM CN Signalling Flag */
     VOS_UINT32                                  bitOpSpare             :26;
+
 
     APP_ESM_APN_INFO_STRU                       stApnInfo;
     APP_ESM_PDN_TYPE_ENUM_UINT32                enPdnType;
@@ -1937,6 +1969,7 @@ typedef struct
     VOS_UINT32                                  bitOpPCscfSec       :1;
     VOS_UINT32                                  bitOpGateWayAddrInfo    :1;
     VOS_UINT32                                  bitOpCustomPco      :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
+
     VOS_UINT32                                  bitOpEpdgInfo        : 1; /* 用于R1定制需求中,把EPDG地址上报给APS时,指示是否上报给IMSA。 1:需要 0:不需要 */
     VOS_UINT32                                  bitOpSpare           : 19;
 
@@ -1978,8 +2011,10 @@ typedef struct
     VOS_UINT32                                  bitOpApn               :1;
 
     VOS_UINT32                                  bitOpIpv4AddrAllocType :1;
+
     VOS_UINT32                                  bitOpPcscfDiscovery    :1;
     VOS_UINT32                                  bitOpImsCnSignalFlag   :1;
+
     VOS_UINT32                                  bitOpSpare             :26;
 
 
@@ -2007,7 +2042,6 @@ typedef struct
     VOS_UINT32                                  ulRslt;
 
 } APP_ESM_SET_CGDCONT_CNF_STRU;
-
 /*****************************************************************************
  结构名    : APP_ESM_APN_ENABLE_INFO_CHANGE_NTF_STRU
  结构说明  : APN enable参数设置的消息结构
@@ -2024,7 +2058,6 @@ typedef struct
     VOS_UINT8                                   ucEnableFlag;  /* apn enable flag */
     VOS_UINT8                                   aucReserved[2];
 } APP_ESM_APN_ENABLE_INFO_CHANGE_NTF_STRU;
-
 
 /*****************************************************************************
  结构名    : APP_ESM_PDP_MANAGE_INFO_STRU
@@ -2109,13 +2142,11 @@ extern VOS_UINT32 APP_ESM_GetAllApnClassInfo
     VOS_UINT32                         *pulApnNum,
     APP_ESM_APN_CLASS_INFO_STRU        *pstApnClassInfo
 );
-
 extern VOS_UINT32 APP_GetDataSwitchInfoByModemId
 (
     MODEM_ID_ENUM_UINT16                enModemId,
     APP_ESM_DATA_SWITCH_INFO_STRU      *pstDataSwitchInfo
 );
-
 extern VOS_UINT32 APP_AllocPsCallIdByModemId
 (
     MODEM_ID_ENUM_UINT16                enModemId,

@@ -180,6 +180,11 @@ VOS_VOID* AT_PrivacyMatchAppMsgTypeSendReq(
 VOS_VOID*  AT_PrivacyMatchCposSetReq(
     MsgBlock                           *pstMsg
 );
+
+VOS_VOID*  AT_PrivacyMatchSimLockWriteExSetReq(
+    MsgBlock                           *pstMsg
+);
+
 VOS_VOID*  AT_PrivacyMatchMeidSetReq(
     MsgBlock                           *pstMsg
 );
@@ -210,7 +215,13 @@ VOS_VOID* AT_PrivacyMatchRegisterSsMsg(
 VOS_VOID* AT_PrivacyMatchProcessUssMsg(
     MsgBlock                           *pstMsg
 );
+VOS_VOID* AT_PrivacyMatchInterRogateMsg(
+    MsgBlock                           *pstMsg
+);
 
+VOS_VOID* AT_PrivacyMatchErasessMsg(
+    MsgBlock                           *pstMsg
+);
 VOS_VOID* AT_PrivacyMatchCallAppOrigReq(
     MsgBlock                           *pstMsg
 );

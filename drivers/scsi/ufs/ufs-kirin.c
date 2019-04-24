@@ -169,6 +169,11 @@ static int set_key_in_tee(void)
 	u32 origin = 0;
 	int ret = 0;
 
+	if (!session) {
+		pr_err("%s: session is null\n", __func__);
+		return ret;
+	}
+
 	pr_err("%s: start ++\n", __func__);
 
 	/* operation params create  */
@@ -658,7 +663,7 @@ void ufs_kirin_uie_utrd_prepare(struct ufs_hba *hba,
 #else
 		crypto_cci = lrbp->task_tag;
 		spin_lock_irqsave(hba->host->host_lock, flags);
-		ufs_kirin_uie_key_prepare(hba, crypto_cci, lrbp->cmd->request->ci_key);
+		ufs_kirin_uie_key_prepare(hba, crypto_cci, lrbp->cmd->request->hisi_req.ci_key);
 		spin_unlock_irqrestore(hba->host->host_lock, flags);
 #endif
 	} else {
@@ -953,9 +958,10 @@ int ufs_kirin_pwr_change_notify(struct ufs_hba *hba, bool status,
 		}
 		/*for hisi MPHY*/
 		deemphasis_config(host, hba, dev_req_params);
-
 		if (host->caps & USE_HISI_MPHY_TC) {
-			adapt_pll_to_power_mode(hba);
+			if(!IS_V200_MPHY(hba)) {
+				adapt_pll_to_power_mode(hba);
+			}
 		}
 
 		ufs_kirin_pwr_change_pre_change(hba);
@@ -1434,14 +1440,6 @@ int ufs_kirin_init(struct ufs_hba *hba)
 	}
 #endif
 
-#ifdef CONFIG_SCSI_UFS_ENHANCED_INLINE_CRYPTO_V2
-	err = uie_open_session();
-	if (err) {
-		dev_err(dev, "uie_open_session error\n");
-		goto host_free;
-	}
-#endif
-
 	goto out;
 
 host_free:
@@ -1486,6 +1484,20 @@ int ufs_kirin_get_pwr_by_sysctrl(struct ufs_hba *hba)
 #endif
 /*lint -restore*/
 
+bool IS_V200_MPHY(struct ufs_hba *hba)
+{
+	u32 reg;
+	/* V200 memorymap is not equal to V120 */
+	ufs_i2c_readl(hba, &reg, REG_SC_APB_IF_V200);
+	dev_err(hba->dev, "UFS MPHY  %s\n",
+		(MPHY_BOARDID_V200 == reg) ? "V200" : "V120");
+	if (MPHY_BOARDID_V200 == reg) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 /**
  * struct ufs_hba_kirin_vops - UFS KIRIN specific variant operations
  *
@@ -1520,4 +1532,22 @@ const struct ufs_hba_variant_ops ufs_hba_kirin_vops = {
 #endif
 };
 /*lint -restore*/
+
+
+static int __init uie_open_session_late(void)
+{
+	int err = 0;
+
+#ifdef CONFIG_SCSI_UFS_ENHANCED_INLINE_CRYPTO_V2
+	err = uie_open_session();
+	if (err) {
+		BUG_ON(1);
+	}
+#endif
+
+	return err;
+}
+
+late_initcall(uie_open_session_late);
+
 EXPORT_SYMBOL(ufs_hba_kirin_vops);

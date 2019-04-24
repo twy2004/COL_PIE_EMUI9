@@ -32,7 +32,6 @@ struct ivp_sec_device ivp_sec_dev;
 struct ivp_sec_ion_s *ivp_secmem_ion = NULL;
 extern struct mutex ivp_sec_mem_mutex;
 extern struct mutex ivp_power_up_off_mutex;
-
 static int ivp_sec_load_and_verify_image(void)
 {
     struct load_image_info loadinfo;

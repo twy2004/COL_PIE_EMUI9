@@ -218,6 +218,8 @@
 #define TS_SWITCH_FM_ENABLE		1
 #define TS_SWITCH_FM_DISABLE	2
 
+#define TS_SWITCH_ROI_DELAY_ENABLE	1
+
 enum ts_scene_code {
 	TS_SWITCH_SCENE_3 = 3,
 	TS_SWITCH_SCENE_4,
@@ -780,7 +782,7 @@ struct ts_glove_info
     u8 glove_switch;
     int op_action;
     int status;
-    u16 glove_switch_addr;
+    u32 glove_switch_addr;
     u16 glove_switch_bit;
 };
 
@@ -790,7 +792,7 @@ struct ts_holster_info
     u8 holster_switch;
     int op_action;
     int status;
-    u16 holster_switch_addr;
+    u32 holster_switch_addr;
     u16 holster_switch_bit;
 };
 
@@ -800,7 +802,7 @@ struct ts_roi_info
     u8 roi_switch;
     int op_action;
     int status;
-    u16 roi_control_addr;
+    u32 roi_control_addr;
     u8 roi_control_bit;
     u16 roi_data_addr;
 };
@@ -821,7 +823,7 @@ struct ts_easy_wakeup_info
 {
     enum ts_sleep_mode sleep_mode;
     int off_motion_on;
-    int easy_wakeup_gesture;
+    unsigned int easy_wakeup_gesture;
     int easy_wakeup_flag;
     int palm_cover_flag;
     int palm_cover_control;
@@ -1207,6 +1209,7 @@ struct ts_kit_device_data
 	int fp_tp_report_touch_minor_event;
 	int support_crc_err_do_reset;
 	u8 rawdata_newformatflag;   // 0 - old format   1 - new format
+	unsigned int roi_delay_flag;
 };
 
 struct ts_bus_info

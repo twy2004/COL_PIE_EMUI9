@@ -315,6 +315,85 @@ VOS_VOID* AT_PrivacyMatchProcessUssMsg(
 }
 
 
+VOS_VOID* AT_PrivacyMatchInterRogateMsg(
+    MsgBlock                           *pstMsg
+)
+{
+
+    MN_APP_REQ_MSG_STRU                *pstInterRogate = VOS_NULL_PTR;
+    TAF_SS_INTERROGATESS_REQ_STRU      *pstSsReq       = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstInterRogate = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                        DYNAMIC_MEM_PT,
+                                                        ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstInterRogate)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstInterRogate,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSsReq = (TAF_SS_INTERROGATESS_REQ_STRU *)pstInterRogate->aucContent;
+
+    TAF_MEM_SET_S(pstSsReq->aucPassword,
+                  sizeof(pstSsReq->aucPassword),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN);
+
+    return (VOS_VOID *)pstInterRogate;
+}
+
+
+VOS_VOID* AT_PrivacyMatchErasessMsg(
+    MsgBlock                           *pstMsg
+)
+{
+
+    MN_APP_REQ_MSG_STRU                *pstErasess      = VOS_NULL_PTR;
+    TAF_SS_ERASESS_REQ_STRU            *pstSsReq        = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstErasess = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                      DYNAMIC_MEM_PT,
+                                                      ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstErasess)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstErasess,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSsReq = (TAF_SS_ERASESS_REQ_STRU *)pstErasess->aucContent;
+
+    TAF_MEM_SET_S(pstSsReq->aucPassword,
+                  sizeof(pstSsReq->aucPassword),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN);
+
+    return (VOS_VOID *)pstErasess;
+}
+
 VOS_VOID* AT_PrivacyMatchCallAppOrigReq(
     MsgBlock                           *pstMsg
 )
@@ -970,6 +1049,47 @@ VOS_VOID*  AT_PrivacyMatchCposSetReq(
 
     return (VOS_VOID *)pstMatchAppMsgCposSetReq;
 }
+
+
+VOS_VOID*  AT_PrivacyMatchSimLockWriteExSetReq(
+    MsgBlock                           *pstMsg
+)
+{
+    /* 记录申请的内存 */
+    MN_APP_REQ_MSG_STRU                          *pstMatchAppMsgSimlockWriteExSetReq = VOS_NULL_PTR;
+    DRV_AGENT_SIMLOCKWRITEEX_SET_REQ_STRU        *pstSimlockWriteExSetReq;
+    VOS_UINT32                                    ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存 */
+    pstMatchAppMsgSimlockWriteExSetReq  = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                                    DYNAMIC_MEM_PT,
+                                                                    ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstMatchAppMsgSimlockWriteExSetReq)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    pstSimlockWriteExSetReq = (DRV_AGENT_SIMLOCKWRITEEX_SET_REQ_STRU *)pstMatchAppMsgSimlockWriteExSetReq->aucContent;
+
+    /* 过滤敏感消息 */
+    TAF_MEM_CPY_S(pstMatchAppMsgSimlockWriteExSetReq,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    TAF_MEM_SET_S(pstSimlockWriteExSetReq,
+                  (ulLength - sizeof(MN_APP_REQ_MSG_STRU) + sizeof(pstMatchAppMsgSimlockWriteExSetReq->aucContent)),
+                  0x00,
+                  sizeof(DRV_AGENT_SIMLOCKWRITEEX_SET_REQ_STRU));
+
+    return (VOS_VOID *)pstMatchAppMsgSimlockWriteExSetReq;
+}
+
 
 VOS_VOID*  AT_PrivacyMatchMeidSetReq(
     MsgBlock                           *pstMsg

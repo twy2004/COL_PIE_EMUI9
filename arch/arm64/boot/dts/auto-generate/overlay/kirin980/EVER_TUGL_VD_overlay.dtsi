@@ -17,6 +17,7 @@
 /include/ "lcdkit3.0/ever_tugl/devkit_lcd_kit.dtsi"
 /include/ "desayatl_4900_39k_4400.dtsi"
 /include/ "sunwodamurata_4900_110k_4400.dtsi"
+/include/ "scudguangyu_4900_22k_4400.dtsi"
 
 / {
     board_id = <8453>;
@@ -72,137 +73,43 @@
 
     hisi,detect_wireless_tm_chanel = <9>;
     hisi,detect_wireless_tm_ntc = "austin_hkadc_soc_temp_table";
-    hisi,detect_wireless_tm_state = "disable";
+    hisi,detect_wireless_tm_state = "enable";
 
     hisi,detect_ir_tm_chanel = <12>;
     hisi,detect_ir_tm_ntc = "austin_hkadc_soc_temp_table";
-    hisi,detect_ir_tm_state = "disable";
+    hisi,detect_ir_tm_state = "enable";
 
     hisi,detect_dot_tm_chanel = <13>;
     hisi,detect_dot_tm_ntc = "austin_hkadc_soc_temp_table";
-    hisi,detect_dot_tm_state = "disable";
+    hisi,detect_dot_tm_state = "enable";
 
     status = "ok";
 };
 
 &hisi_shell {
-	compatible = "hisi,shell-temp";
-	interval = <5000>;
-	bias = <0>;
-	count = <4>;
-	tsensor_para = "10000","100000","0";
-	ntc_para = "2000","80000","-20000";
-	status = "ok";
-	sensors {
-		sensor0 {
-			type = "Battery";
-			coef = "3409","739","1729","1191";
-		};
-		sensor1 {
-			type = "system_h";
-			coef = "16057","3580","2369","57206";
-		};
-		sensor2 {
-			type = "charger";
-			coef = "-8315","-8707","-8326","-7891";
-		};
-		sensor3 {
-			type = "pa_0";
-			coef = "38568","13476","2878","-78302";
-		};
-		sensor4 {
-			type = "pa_1";
-			coef = "13329","-10373","7012","7742";
-		};
-		sensor5 {
-			type = "rfboard";
-			coef = "62032","44288","26522","2494";
-		};
-		sensor6 {
-			type = "usb";
-			coef = "-15294","-16333","-20200","-34598";
-		};
-	};
-};
-
-&shell_front {
-	compatible = "hisi,shell-temp";
-	interval = <5000>;
-	bias = <0>;
-	count = <4>;
-	tsensor_para = "10000","100000","0";
-	ntc_para = "2000","80000","-20000";
-	status = "ok";
-	sensors {
-		sensor0 {
-			type = "Battery";
-			coef = "1926","130","1136","-289";
-		};
-		sensor1 {
-			type = "system_h";
-			coef = "19402","-4344","-6239","66548";
-		};
-		sensor2 {
-			type = "charger";
-			coef = "-7913","-8380","-7726","-6955";
-		};
-		sensor3 {
-			type = "pa_0";
-			coef = "53392","18224","1003","-98951";
-		};
-		sensor4 {
-			type = "pa_1";
-			coef = "6120","-11150","9656","11162";
-		};
-		sensor5 {
-			type = "rfboard";
-			coef = "69949","49972","27962","1087";
-		};
-		sensor6 {
-			type = "usb";
-			coef = "-16081","-17868","-20805","-35225";
-		};
-	};
-};
-
-&shell_back {
-	compatible = "hisi,shell-temp";
-	interval = <5000>;
-	bias = <0>;
-	count = <5>;
-	tsensor_para = "10000","100000","0";
-	ntc_para = "2000","80000","-20000";
-	status = "ok";
-	sensors {
-		sensor0 {
-			type = "Battery";
-			coef = "2464","739","1733","847","579";
-		};
-		sensor1 {
-			type = "system_h";
-			coef = "13302","10382","4398","-2467","68125";
-		};
-		sensor2 {
-			type = "charger";
-			coef = "-7880","-8428","-7904","-7406","-6982";
-		};
-		sensor3 {
-			type = "pa_0";
-			coef = "49548","11779","11433","-6460","-103601";
-		};
-		sensor4 {
-			type = "pa_1";
-			coef = "8318","-9684","-5226","6522","19453";
-		};
-		sensor5 {
-			type = "rfboard";
-			coef = "67899","49830","33629","13179","-14787";
-		};
-		sensor6 {
-			type = "usb";
-			coef = "-19426","-15140","-14086","-18000","-31465";
-		};
-	};
+    compatible = "hisi,shell-temp";
+    interval = <5000>;
+    bias = <0>;
+    count = <6>;
+    status = "ok";
+    sensors {
+        sensor0 {
+            type = "system_h";
+            coef = "0","0","0","0","0","0";
+        };
+        sensor1 {
+            type = "charger";
+            coef = "0","0","0","0","0","0";
+        };
+        sensor2 {
+            type = "pa_0";
+            coef = "0","0","0","0","0","0";
+        };
+        sensor3 {
+            type = "dcxo0";
+            coef = "0","0","0","0","0","0";
+        };
+    };
 };
 
 &hisi_ambient {
@@ -227,9 +134,9 @@
 };
 
 &fastboot_pmic {
-	hisilicon,init-reg-num = <4>;
-	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E 0x02E9>;
-	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4 0x06>;
+	hisilicon,init-reg-num = <3>;
+	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E>;
+	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4>;
 };
 
 	&rootparam {
@@ -444,7 +351,7 @@
 	};
 
 	&hisi_battery {
-		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400>;
+		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400 &scudguangyu_4900_22k_4400>;
 		status = "ok";
 	};
 
@@ -1762,6 +1669,7 @@
 				fm_enable = <1>;
 				micbias_modify = <1>; //MICBIAS output 2.7V factory test, change from MAINMIC to MIC4.
 				hisilicon,hs_det_trigger = <1>;
+				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -2253,7 +2161,6 @@
 		quirk_adjust_dtout;
 		quirk_force_disable_host_lpm;
 		quirk_enable_p4_gate;
-		usb_firmware_es = <0>;
 	};
 
 
@@ -2372,7 +2279,7 @@
 				ps_calib_3cm_threshold=<500>;
 				gpio_int1=<&gpio27 1 0>;
 				poll_interval = <80>;
-				ps_oily_threshold = <6>;
+				ps_oily_threshold = <3>;
 				oily_max_near_pdata=<1000>;
 				max_oily_add_pdata=<100>;
 				max_near_pdata_loop=<3>;
@@ -2697,10 +2604,10 @@
 				status = "disabled";
 				phone_type = /bits/ 16 <0x06>;// 1:ALPS  2:BLANC  3:EMILY  4:NEO  5:CHARLOTTE 6:after EVER
 				to_ap_threshold = /bits/ 16 <0xc8>;
-				to_modem_threshold = /bits/ 16 <0x74CC 0x1A90 0x9C4 0x00 0x00 0x00 0x00 0x00>;
-				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x430744FF 0x293D2600 0x273F2080 0x00000000>;
+				to_modem_threshold = /bits/ 16 <0x74CC 0xDAC 0x514 0x00 0x00 0x00 0x00 0x00>;
+				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x431A44FF 0x293D2600 0x273F2080 0x00000000>;
 				ph = <0x2f>;
-				calibrate_thred = /bits/ 16 <8671 14452 8357 22032>;//for the factory far and near calibrate
+				calibrate_thred = /bits/ 16 <9500 14452 8357 22032>;//for the factory far and near calibrate
 				sensorlist_name="CAP_PROX sensor-sx9323";
 				vendor="semtech";
 			};
@@ -3016,7 +2923,7 @@
 		"sensor_dvdd", "sensor_dvdd2",
 		"sensor_pmic", "sensor_pmic",
 		"sensor_pmic", "sensor_pmic", "laser_xshut";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1140000 1100000 1800000 2800000 2800000 2850000 0>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1140000 1100000 1800000 2800000 2800000 2850000>;
 		huawei,cam-power-down-seq-val = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 2 1 0 5 0xFF>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 2 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <1 1 1 1 0 0 0 0 0 0 0 1>;

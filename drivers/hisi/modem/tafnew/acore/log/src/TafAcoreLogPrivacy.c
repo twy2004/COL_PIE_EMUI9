@@ -228,6 +228,7 @@ AT_LOG_PRIVACY_MATCH_AT_CMD_MAP_TBL_STRU                    g_astPrivacyMatchAtC
     {"\r\n^CUSS"                ,   "\r\n^CUSS\r\n"},
     {"\r\n^CCWA"                ,   "\r\n^CCWA\r\n"},
     {"\r\n^CSSI"                ,   "\r\n^CSSI\r\n"},
+    {"\r\n+CSSU"                ,   "\r\n+CSSU\r\n"},
     {"\r\n+CCWA"                ,   "\r\n+CCWA\r\n"},
     {"\r\n+CNAP"                ,   "\r\n+CNAP\r\n"},
     {"\r\n^CNAP"                ,   "\r\n^CNAP\r\n"},
@@ -239,6 +240,7 @@ AT_LOG_PRIVACY_MATCH_AT_CMD_MAP_TBL_STRU                    g_astPrivacyMatchAtC
     {"\r\n+CPOSR"               ,   "\r\n+CPOSR\r\n"},
     {"\r\n^DIALOGNTF"           ,   "\r\n^DIALOGNTF\r\n"},
     {"\r\n^NVRD"           ,        "\r\n^NVRD\r\n"},
+    {"\r\n^SIMLOCKNWDATAWRITE"  ,   "\r\n^SIMLOCKNWDATAWRITE\r\n"},
 };
 AT_LOG_PRIVACY_MAP_CMD_TO_FUNC_STRU                         g_astPrivacyMapCmdToFuncTbl[] =
 {
@@ -261,6 +263,8 @@ TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU                          g_astAtAcorePrivacyM
     {TAF_CALL_APP_ECONF_DIAL_REQ,                           AT_PrivacyMatchCallAppEconfDialReq},
     {TAF_MSG_REGISTERSS_MSG,                                AT_PrivacyMatchRegisterSsMsg},
     {TAF_MSG_PROCESS_USS_MSG,                               AT_PrivacyMatchProcessUssMsg},
+    {TAF_MSG_INTERROGATESS_MSG,                             AT_PrivacyMatchInterRogateMsg},
+    {TAF_MSG_ERASESS_MSG,                                   AT_PrivacyMatchErasessMsg},
     {MN_CALL_APP_ORIG_REQ,                                  AT_PrivacyMatchCallAppOrigReq},
     {MN_CALL_APP_SUPS_CMD_REQ,                              AT_PrivacyMatchCallAppSupsCmdReq},
     {MN_CALL_APP_START_DTMF_REQ,                            AT_PrivacyMatchCallAppStartDtmfReq},
@@ -284,6 +288,11 @@ TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU                          g_astAtAcorePrivacyM
     {ID_AT_MTA_MEID_SET_REQ,                                AT_PrivacyMatchMeidSetReq},
 };
 
+/* AT发给DRV_AGENT模块消息的脱敏处理函数表 */
+TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU                          g_astAtAcorePrivacyMatchToDrvAgentMsgListTbl[] =
+{
+    {DRV_AGENT_SIMLOCKWRITEEX_SET_REQ,                      AT_PrivacyMatchSimLockWriteExSetReq},
+};
 
 /**********************************************************************************************/
 /***************************** WUEPS_PID_TAF发送消息脱敏函数处理表 *****************************/
@@ -377,6 +386,7 @@ TAF_LOG_PRIVACY_RCV_PID_MATCH_TBL_STRU                      g_astAtAcorePrivacyM
     {UEPS_PID_XSMS,     sizeof(g_astAtAcorePrivacyMatchToXsmsMsgListTbl)/sizeof(TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU),         g_astAtAcorePrivacyMatchToXsmsMsgListTbl},
     /* AT发送给MTA的消息 */
     {UEPS_PID_MTA,      sizeof(g_astAtAcorePrivacyMatchToMtaMsgListTbl)/sizeof(TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU),          g_astAtAcorePrivacyMatchToMtaMsgListTbl},
+    {WUEPS_PID_DRV_AGENT,      sizeof(g_astAtAcorePrivacyMatchToDrvAgentMsgListTbl)/sizeof(TAF_LOG_PRIVACY_MSG_MATCH_TBL_STRU),          g_astAtAcorePrivacyMatchToDrvAgentMsgListTbl},
 
 };
 

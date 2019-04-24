@@ -136,7 +136,6 @@ static void f2fs_write_end_io(struct bio *bio)
 			f2fs_stop_checkpoint(sbi, true);
 			f2fs_msg(sbi->sb, KERN_ERR,
 				"f2fs reboot for bio submit error! erro_num = %d\n", bio->bi_error);
-			WARN_ON(1);
 #ifdef CONFIG_HUAWEI_F2FS_DSM
 			if (f2fs_dclient && !dsm_client_ocuppy(f2fs_dclient)) {
 				dsm_client_record(f2fs_dclient, "F2FS reboot: %s:%d [%d]\n",
@@ -144,7 +143,7 @@ static void f2fs_write_end_io(struct bio *bio)
 				dsm_client_notify(f2fs_dclient, DSM_F2FS_NEED_FSCK);
 			}
 #endif
-			f2fs_add_restart_wq();
+			f2fs_restart(); /* force restarting */
 		}
 #ifndef CONFIG_F2FS_CHECK_FS
 		if (page->mapping == NODE_MAPPING(sbi) &&
@@ -633,9 +632,6 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 				return ERR_PTR(-ENOKEY);
 			need_key = true;
 		}
-
-		/* wait the page to be moved by cleaning */
-		f2fs_wait_on_block_writeback(sbi, blkaddr);
 	}
 
 	bio = f2fs_bio_alloc(sbi, min_t(int, nr_pages, BIO_MAX_PAGES), false);
@@ -668,6 +664,9 @@ static int f2fs_submit_page_read(struct inode *inode, struct page *page,
 
 	if (IS_ERR(bio))
 		return PTR_ERR(bio);
+
+	/* wait for GCed page writeback via META_MAPPING */
+	f2fs_wait_on_block_writeback(inode, blkaddr);
 
 	if (bio_add_page(bio, page, PAGE_SIZE, 0) < PAGE_SIZE) {
 		bio_put(bio);
@@ -1096,6 +1095,10 @@ int f2fs_map_blocks(struct inode *inode, struct f2fs_map_blocks *map,
 		map->m_pblk = ei.blk + pgofs - ei.fofs;
 		map->m_len = min((pgoff_t)maxblocks, ei.fofs + ei.len - pgofs);
 		map->m_flags = F2FS_MAP_MAPPED;
+		/* for hardware encryption, but to avoid potential issue in future */
+		if (flag == F2FS_GET_BLOCK_DIO)
+			f2fs_wait_on_block_writeback_range(inode,
+						map->m_pblk, map->m_len);
 		goto out;
 	}
 
@@ -1223,6 +1226,10 @@ skip:
 	goto next_dnode;
 
 sync_out:
+	/* for hardware encryption, but to avoid potential issue in future */
+	if (flag == F2FS_GET_BLOCK_DIO && map->m_flags & F2FS_MAP_MAPPED)
+		f2fs_wait_on_block_writeback_range(inode,
+						map->m_pblk, map->m_len);
 	f2fs_put_dnode(&dn);
 unlock_out:
 	if (create) {
@@ -1266,7 +1273,7 @@ static int get_data_block_dio(struct inode *inode, sector_t iblock,
 			struct buffer_head *bh_result, int create)
 {
 	return __get_data_block(inode, iblock, bh_result, create,
-						F2FS_GET_BLOCK_DEFAULT, NULL);
+						F2FS_GET_BLOCK_DIO, NULL);
 }
 
 static int get_data_block_bmap(struct inode *inode, sector_t iblock,
@@ -1494,6 +1501,12 @@ submit_and_realloc:
 			}
 		}
 
+		/*
+		 * If the page is under writeback, we need to wait for
+		 * its completion to see the correct decrypted data.
+		 */
+		f2fs_wait_on_block_writeback(inode, block_nr);
+
 		if (bio_add_page(bio, page, blocksize, 0) < blocksize)
 			goto submit_and_realloc;
 
@@ -1569,7 +1582,7 @@ static int encrypt_one_page(struct f2fs_io_info *fio)
 		return 0;
 
 	/* wait for GCed encrypted page writeback */
-	f2fs_wait_on_block_writeback(fio->sbi, fio->old_blkaddr);
+	f2fs_wait_on_block_writeback(inode, fio->old_blkaddr);
 
 
 	if (!f2fs_inline_encrypted_inode(inode)) {
@@ -2360,10 +2373,6 @@ repeat:
 	}
 
 	f2fs_wait_on_page_writeback(page, DATA, false);
-
-	/* wait for GCed encrypted page writeback */
-	if (f2fs_encrypted_file(inode))
-		f2fs_wait_on_block_writeback(sbi, blkaddr);
 
 	if (len == PAGE_SIZE || PageUptodate(page))
 		return 0;

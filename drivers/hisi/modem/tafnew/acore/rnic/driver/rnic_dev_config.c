@@ -193,12 +193,12 @@ int rnic_set_ps_iface_up(struct rnic_ps_iface_config_s *iface_config)
 
 	switch (iface_config->ip_family) {
 	case RNIC_IPV4_ADDR:
-		memcpy(&priv->v4_info, &iface_config->info,
+		memcpy(&priv->v4_info, &iface_config->info, /* unsafe_function_ignore: memcpy */
 			sizeof(struct rnic_ps_iface_info_s));
 		priv->v4_data_tx_func = iface_config->data_tx_func;
 		break;
 	case RNIC_IPV6_ADDR:
-		memcpy(&priv->v6_info, &iface_config->info,
+		memcpy(&priv->v6_info, &iface_config->info, /* unsafe_function_ignore: memcpy */
 			sizeof(struct rnic_ps_iface_info_s));
 		priv->v6_data_tx_func = iface_config->data_tx_func;
 		break;
@@ -233,12 +233,12 @@ int rnic_set_ps_iface_down(struct rnic_ps_iface_config_s *iface_config)
 
 	switch (iface_config->ip_family) {
 	case RNIC_IPV4_ADDR:
-		memcpy(&priv->v4_info, &iface_config->info,
+		memcpy(&priv->v4_info, &iface_config->info, /* unsafe_function_ignore: memcpy */
 			sizeof(struct rnic_ps_iface_info_s));
 		priv->v4_data_tx_func = NULL;
 		break;
 	case RNIC_IPV6_ADDR:
-		memcpy(&priv->v4_info, &iface_config->info,
+		memcpy(&priv->v4_info, &iface_config->info, /* unsafe_function_ignore: memcpy */
 			sizeof(struct rnic_ps_iface_info_s));
 		priv->v6_data_tx_func = NULL;
 		break;

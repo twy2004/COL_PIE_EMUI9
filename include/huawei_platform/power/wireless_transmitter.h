@@ -17,7 +17,6 @@
 #define WL_TX_VIN_MIN                                 (4500) //(mV)
 #define WL_TX_VIN_MAX                                 (5800) //(mV)
 #define WL_TX_VIN_RETRY_CNT                           (25)
-#define WL_TX_VIN_RETRY_CNT2                          (250)
 #define WL_TX_VIN_SLEEP_TIME                          (20)
 #define WL_TX_IIN_SAMPLE_LEN                          (10)
 #define WL_TX_PING_TIMEOUT_1                          (120)
@@ -29,7 +28,6 @@
 #define WL_TX_IIN_LOW                                 (300) //mA
 #define WL_TX_IIN_LOW_CNT                             (30*60*1000) //30min
 #define WL_TX_MODE_ERR_CNT                            (10)
-#define WL_TX_MODE_ERR_CNT2                           (20)
 
 #define WL_TX_MONITOR_LOG_INTERVAL                    (3000)
 #define WI_TX_CHARGER_TYPE_MAX                        (12)

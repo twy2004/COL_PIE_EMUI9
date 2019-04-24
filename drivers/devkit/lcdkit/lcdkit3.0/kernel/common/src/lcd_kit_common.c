@@ -15,6 +15,11 @@
 #include "lcd_kit_dbg.h"
 #include "lcd_kit_parse.h"
 
+#if defined (CONFIG_HUAWEI_DSM)
+#include <dsm/dsm_pub.h>
+extern struct dsm_client* lcd_dclient;
+#endif
+
 int lcd_kit_msg_level = MSG_LEVEL_INFO;
 /*common info*/
 struct lcd_kit_common_info g_lcd_kit_common_info;
@@ -518,13 +523,85 @@ static int lcd_kit_off_cmds(void* hld)
 	return ret;
 }
 
+static int lcd_kit_check_reg_report_dsm(void* hld,struct lcd_kit_check_reg_dsm *check_reg_dsm)
+{
+	int ret = LCD_KIT_OK;
+	uint8_t read_value[MAX_REG_READ_COUNT] = {0};
+	int i = 0;
+	char* expect_ptr = NULL;
+	struct lcd_kit_adapt_ops* adapt_ops = NULL;
+
+	if(NULL == hld || NULL == check_reg_dsm ) {
+		LCD_KIT_ERR("null pointer!\n");
+		return LCD_KIT_FAIL;
+	}
+
+	adapt_ops = lcd_kit_get_adapt_ops();
+	if (!adapt_ops) {
+		LCD_KIT_ERR("can not register adapt_ops!\n");
+		return LCD_KIT_FAIL;
+	}
+	if (check_reg_dsm->support) {
+		expect_ptr = (char *)check_reg_dsm->value.buf;
+		if (adapt_ops->mipi_rx) {
+			ret = adapt_ops->mipi_rx(hld, read_value, &check_reg_dsm->cmds);
+		}
+		if(ret == LCD_KIT_OK) {
+			for (i = 0; i < check_reg_dsm->cmds.cmd_cnt; i++) {
+				if(check_reg_dsm->support_dsm_report) {
+					if ((char)read_value[i] != expect_ptr[i]) {
+						ret = LCD_KIT_FAIL;
+						LCD_KIT_ERR("read_value[%d] = 0x%x, but expect_ptr[%d] = 0x%x!\n",
+									i, read_value[i], i, expect_ptr[i]);
+#if defined (CONFIG_HUAWEI_DSM)
+						dsm_client_record(lcd_dclient,"read_value[%d] = 0x%x, but expect_ptr[%d] = 0x%x!\n",
+									i, read_value[i], i, expect_ptr[i]);
+#endif
+						break;
+					}
+					LCD_KIT_INFO("read_value[%d] = 0x%x same with expect value!\n",
+							i, read_value[i]);
+				}
+				else {
+					LCD_KIT_INFO("read_value[%d] = 0x%x!\n",
+							i, read_value[i]);
+				}
+			}
+		}
+		else {
+			LCD_KIT_ERR("mipi read error!\n");
+		}
+	}
+	if (ret != LCD_KIT_OK) {
+		if(check_reg_dsm->support_dsm_report) {
+#if defined (CONFIG_HUAWEI_DSM)
+			if (!dsm_client_ocuppy(lcd_dclient)) {
+			dsm_client_notify(lcd_dclient, DSM_LCD_STATUS_ERROR_NO);
+#endif
+			}
+		}
+	}
+	return ret;
+}
+
 static int lcd_kit_mipi_power_ctrl(void* hld, int enable)
 {
+	int ret = LCD_KIT_OK;
+	int ret_check_reg = LCD_KIT_OK;
 	if (enable) {
-		return lcd_kit_on_cmds(hld);
+		ret = lcd_kit_on_cmds(hld);
+		ret_check_reg = lcd_kit_check_reg_report_dsm(hld,&common_info->check_reg_on);
+		if(ret_check_reg != LCD_KIT_OK) {
+			LCD_KIT_ERR("power on check reg error!\n");
+		}
 	} else {
-		return lcd_kit_off_cmds(hld);
+		ret = lcd_kit_off_cmds(hld);
+		ret_check_reg = lcd_kit_check_reg_report_dsm(hld,&common_info->check_reg_off);
+		if(ret_check_reg != LCD_KIT_OK) {
+			LCD_KIT_ERR("power off check reg error!\n");
+		}
 	}
+	return ret;
 }
 
 static int lcd_kit_ts_resume(int sync)
@@ -1130,7 +1207,7 @@ static u32 lcd_kit_get_blmaxnit(void)
 	if (common_info->blmaxnit.get_blmaxnit_type == GET_BLMAXNIT_FROM_DDIC && lcd_kit_brightness_ddic_info > BL_MIN && lcd_kit_brightness_ddic_info < BL_MAX){
 		bl_max_nit = (lcd_kit_brightness_ddic_info < BL_REG_NOUSE_VALUE) ? (lcd_kit_brightness_ddic_info + BL_NIT): (lcd_kit_brightness_ddic_info + BL_NIT - 1);
 	} else {
-		bl_max_nit = common_info->bl_max_nit;
+		bl_max_nit = common_info->actual_bl_max_nit;
 	}
 	return bl_max_nit;
 }
@@ -1628,7 +1705,7 @@ static int lcd_kit_set_mipi_backlight(void* hld, u32 level)
 		LCD_KIT_ERR("lcd_ops is null\n");
 		return 0;
 	}
-
+	
 	adapt_ops = lcd_kit_get_adapt_ops();
 	if (!adapt_ops) {
 		LCD_KIT_ERR("can not register adapt_ops!\n");
@@ -1686,6 +1763,7 @@ static int lcd_kit_get_test_config(char* buf)
 
 static int lcd_kit_set_test_config(const char* buf)
 {
+
 	if (buf == NULL) {
 		LCD_KIT_ERR("buf is null\n");
 		return LCD_KIT_FAIL;
@@ -1750,12 +1828,37 @@ static void lcd_kit_panel_parse_running(struct device_node* np)
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,scan-revert-cmds", "lcd-kit,scan-revert-cmds-state",
 								&common_info->scan.revert_cmds);
 	}
+
 	/*check reg*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-reg-support", &common_info->check_reg.support, 0);
 	if (common_info->check_reg.support) {
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,check-reg-cmds", "lcd-kit,check-reg-cmds-state",
 								&common_info->check_reg.cmds);
-		lcd_kit_parse_array_data(np, "lcd-kit,check-value", &common_info->check_reg.value);
+		lcd_kit_parse_array_data(np, "lcd-kit,check-reg-value", &common_info->check_reg.value);
+	}
+	/*check reg on*/
+	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-reg-on-support", &common_info->check_reg_on.support, 0);
+	if (common_info->check_reg_on.support) {
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,check-reg-on-cmds", "lcd-kit,check-reg-on-cmds-state",
+								&common_info->check_reg_on.cmds);
+		lcd_kit_parse_array_data(np, "lcd-kit,check-reg-on-value", &common_info->check_reg_on.value);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-reg-on-support-dsm-report", &common_info->check_reg_on.support_dsm_report, 0);
+	}
+	/*check reg off*/
+	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-reg-off-support", &common_info->check_reg_off.support, 0);
+	if (common_info->check_reg_off.support) {
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,check-reg-off-cmds", "lcd-kit,check-reg-off-cmds-state",
+								&common_info->check_reg_off.cmds);
+		lcd_kit_parse_array_data(np, "lcd-kit,check-reg-off-value", &common_info->check_reg_off.value);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,check-reg-off-support-dsm-report", &common_info->check_reg_off.support_dsm_report, 0);
+	}
+	/*check mipi*/
+	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,mipi-check-support", &common_info->mipi_check.support, 0);
+	if (common_info->mipi_check.support) {
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,panel-mipi-error-report-threshold", &common_info->mipi_check.mipi_error_report_threshold, 1);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,mipi-check-cmds", "lcd-kit,mipi-check-cmds-state",
+								&common_info->mipi_check.cmds);
+		lcd_kit_parse_array_data(np, "lcd-kit,mipi-check-value", &common_info->mipi_check.value);
 	}
 	/*pt test*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,pt-support", &common_info->pt.support, 0);
@@ -2055,7 +2158,11 @@ static int lcd_kit_common_init(struct device_node* np)
 		LCD_KIT_ERR("NOT FOUND device node!\n");
 		return LCD_KIT_FAIL;
 	}
+
+#ifdef LCD_KIT_DEBUG_ENABLE
 	lcd_kit_debugfs_init();
+#endif
+
 	lcd_kit_panel_parse_dt(np);
 	/*register check thread*/
 	lcd_kit_check_thread_register();
@@ -2064,6 +2171,101 @@ static int lcd_kit_common_init(struct device_node* np)
 	}
 
 	return LCD_KIT_OK;
+}
+
+int lcd_dsm_client_record(struct dsm_client *lcd_dclient, char *record_buf, int lcd_dsm_error_no, int rec_num_limit, int *cur_rec_time){
+#if defined (CONFIG_HUAWEI_DSM)
+	if (NULL==lcd_dclient || NULL==record_buf || NULL==cur_rec_time) {
+		LCD_KIT_ERR("null pointer!\n");
+		return LCD_KIT_FAIL;
+	}
+
+	if (rec_num_limit >= 0 && *cur_rec_time > rec_num_limit) {
+		LCD_KIT_INFO("dsm record limit!\n");
+		return LCD_KIT_OK;
+	}
+
+	if (!dsm_client_ocuppy(lcd_dclient)) {
+		dsm_client_record(lcd_dclient, record_buf);
+		dsm_client_notify(lcd_dclient, lcd_dsm_error_no);
+		(*cur_rec_time)++;
+		return LCD_KIT_OK;
+	}
+	LCD_KIT_ERR("dsm_client_ocuppy failed!\n");
+	return LCD_KIT_FAIL;
+#endif
+}
+
+#define MAX_ERROR_TIMES 100000000		/*used to avoid a uint32_t happening overflow*/
+static void lcd_kit_mipi_check(void* pdata, char *panel_name, long display_on_record_time)
+{
+	int i = 0;
+	int ret = 0;
+	uint32_t read_value[MAX_REG_READ_COUNT] = {0};
+	static struct lcd_kit_mipierrors mipi_errors[MAX_REG_READ_COUNT] = {{0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}};
+	struct lcd_kit_adapt_ops* adapt_ops =  lcd_kit_get_adapt_ops();
+	uint32_t* expect_ptr = common_info->mipi_check.value.buf;
+
+#if defined (CONFIG_HUAWEI_DSM)
+	#define REC_LIMIT_TIMES -1
+	#define RECORD_BUFLEN 200
+	char record_buf[RECORD_BUFLEN] = {'\0'};
+	static int recordtime = 0;
+	struct timeval tv = {0,0};
+	long diskeeptime = 0;
+#endif
+
+	if (NULL == pdata || NULL == adapt_ops || NULL == expect_ptr) {
+		LCD_KIT_ERR("mipi check happened parameter error!\n");
+		return;
+	}
+
+	if (common_info->mipi_check.support == 0) {
+		return;
+	}
+
+	if (NULL == adapt_ops->mipi_rx) {
+		LCD_KIT_ERR("mipi_rx function is null!\n");
+		return;
+	}
+
+	ret = adapt_ops->mipi_rx(pdata, (u8 *)read_value,  &common_info->mipi_check.cmds);
+	if (ret){
+		LCD_KIT_ERR("mipi read failed!\n");
+		return;
+	}
+	for (i = 0; i < common_info->mipi_check.value.cnt; i++) {
+		if (mipi_errors[i].total_errors >= MAX_ERROR_TIMES) {
+			LCD_KIT_ERR("mipi error times is too large!\n");
+			return;
+		}
+		mipi_errors[i].mipi_check_times++;
+		if (read_value[i] != expect_ptr[i]) {
+			mipi_errors[i].mipi_error_times++;
+			mipi_errors[i].total_errors += read_value[i];
+			LCD_KIT_ERR("mipi check error[%d]: current error times:%d! total error times:%d, check-error-times/check-times:%d/%d\n",
+					i, read_value[i], mipi_errors[i].total_errors, mipi_errors[i].mipi_error_times, mipi_errors[i].mipi_check_times);
+
+#if defined (CONFIG_HUAWEI_DSM)
+			if (read_value[i] < common_info->mipi_check.mipi_error_report_threshold) {
+				continue;
+			}
+			do_gettimeofday(&tv);
+			diskeeptime = tv.tv_sec - display_on_record_time;
+			ret = snprintf(record_buf, RECORD_BUFLEN, "%s:display_on_keep_time=%ds, reg_val[%d]=0x%x!\n",
+					panel_name,diskeeptime,common_info->mipi_check.cmds.cmds[i].payload[0],read_value[i]);
+			if (ret < 0) {
+				LCD_KIT_ERR("snprintf happened error!\n");
+				continue;
+			}
+			(void)lcd_dsm_client_record(lcd_dclient, record_buf, DSM_LCD_MIPI_TRANSMIT_ERROR_NO, REC_LIMIT_TIMES, &recordtime);
+#endif
+
+			continue;
+		}
+		LCD_KIT_INFO("mipi check nomal[%d]: total error times:%d, check-error-times/check-times:%d/%d\n",
+				i, mipi_errors[i].total_errors, mipi_errors[i].mipi_error_times, mipi_errors[i].mipi_check_times);
+	}
 }
 
 /*common ops*/
@@ -2101,5 +2303,6 @@ struct lcd_kit_common_ops g_lcd_kit_common_ops = {
 	.set_test_config = lcd_kit_set_test_config,
 	.set_mipi_backlight = lcd_kit_set_mipi_backlight,
 	.get_bias_voltage = lcd_kit_get_bias_voltage,
+	.mipi_check = lcd_kit_mipi_check,
 };
 

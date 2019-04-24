@@ -160,6 +160,7 @@ struct kbase_mem_phy_alloc {
 			dma_addr_t *dma_addrs;
 		} user_buf;
 	} imported;
+	unsigned int  lb_policy_id; /* the cache policy id of the system-cache. */
 	u64 header_page_number;
 };
 
@@ -423,6 +424,7 @@ static inline struct kbase_mem_phy_alloc *kbase_alloc_create(size_t nr_pages, en
 		alloc->imported.user_buf.dma_addrs =
 				(void *) (alloc->pages + nr_pages);
 
+	alloc->lb_policy_id = 0;
 	alloc->header_page_number = 0;
 	return alloc;
 }
@@ -510,6 +512,7 @@ static inline u32 kbase_atomic_sub_pages(u32 num_pages, atomic_t *used_pages)
  * @pool:      Memory pool to initialize
  * @max_size:  Maximum number of free pages the pool can hold
  * @order:     Page order for physical page size (order=0=>4kB, order=9=>2MB)
+ * @lb_policy_id: The policy id of last buffer, 0 for normal memory.
  * @kbdev:     Kbase device where memory is used
  * @next_pool: Pointer to the next pool or NULL.
  *
@@ -532,6 +535,7 @@ static inline u32 kbase_atomic_sub_pages(u32 num_pages, atomic_t *used_pages)
 int kbase_mem_pool_init(struct kbase_mem_pool *pool,
 		size_t max_size,
 		size_t order,
+		unsigned int lb_policy_id,
 		struct kbase_device *kbdev,
 		struct kbase_mem_pool *next_pool);
 
@@ -1102,6 +1106,10 @@ enum hrtimer_restart kbasep_as_poke_timer_callback(struct hrtimer *timer);
 void kbase_as_poking_timer_retain_atom(struct kbase_device *kbdev, struct kbase_context *kctx, struct kbase_jd_atom *katom);
 void kbase_as_poking_timer_release_atom(struct kbase_device *kbdev, struct kbase_context *kctx, struct kbase_jd_atom *katom);
 
+
+struct kbase_mem_pool* kbase_mem_select_pool(struct kbase_context *kctx,
+		unsigned int lb_policy_id, bool large_page);
+
 /**
  * kbase_alloc_phy_pages_helper - Allocates physical pages.
  * @alloc:              allocation object to add pages to
@@ -1204,30 +1212,15 @@ void kbase_free_phy_pages_helper_locked(struct kbase_mem_phy_alloc *alloc,
 
 static inline void kbase_set_dma_addr(struct page *p, dma_addr_t dma_addr)
 {
-	SetPagePrivate(p);
-	if (sizeof(dma_addr_t) > sizeof(p->private)) {
-		/* on 32-bit ARM with LPAE dma_addr_t becomes larger, but the
-		 * private field stays the same. So we have to be clever and
-		 * use the fact that we only store DMA addresses of whole pages,
-		 * so the low bits should be zero */
-		KBASE_DEBUG_ASSERT(!(dma_addr & (PAGE_SIZE - 1)));
-		set_page_private(p, dma_addr >> PAGE_SHIFT);
-	} else {
-		set_page_private(p, dma_addr);
-	}
 }
 
 static inline dma_addr_t kbase_dma_addr(struct page *p)
 {
-	if (sizeof(dma_addr_t) > sizeof(p->private))
-		return ((dma_addr_t)page_private(p)) << PAGE_SHIFT;
-
-	return (dma_addr_t)page_private(p);
+	return (dma_addr_t)page_to_phys(p);
 }
 
 static inline void kbase_clear_dma_addr(struct page *p)
 {
-	ClearPagePrivate(p);
 }
 
 /**

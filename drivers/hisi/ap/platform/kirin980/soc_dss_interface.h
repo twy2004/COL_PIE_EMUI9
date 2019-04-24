@@ -3163,6 +3163,7 @@ typedef struct dss_arsr1p {
 #define LDI_CMD_EVENT_SEL (0x0060)
 #define LDI_SRAM_LP_CTRL (0x0064)
 #define LDI_ITF_RD_SHADOW (0x006C)
+#define LDI_DPI_SET (0x0070)
 #define LDI_DP_DSI_SEL (0x0080)
 #define VSYNC_DELAY_TIME (0x008C)
 #define VSYNC_DELAY_EN (0x0090)

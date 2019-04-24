@@ -118,6 +118,7 @@ struct ice40_spi_priv_data {
     int            enable_number;       /*enable and disable times*/
     int            power_up_times;      /*power up times*/
     load_fw_status load_fw_state;       /*load firmware status*/
+    int            load_fw_number;
     int            load_fw_fail_time;
     int            self_check_fail_time;
     /*
@@ -139,5 +140,5 @@ int ice40_spi_load_fw(void);
 void fpga_enable_gpio_power_up(u8 val);
 int ice40_spi_init_fun(void);
 int ice40_spi_close_fun(void);
-
+int ice40_spi_checkdevice(void);
 #endif

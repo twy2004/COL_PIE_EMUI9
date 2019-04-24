@@ -16,11 +16,11 @@
 #define ADDR_IVP_CFG_SEC_REG_FAMA_ADDR_REMAP0_2    (0x053C)
 
 #define LISTENTRY_SIZE         (0x00600000)
+#define GIC_IRQ_CLEAR_REG      (0xe82b11a4)
 
 #define IVP_CLKRATE_HIGH       (640000000)
 #define IVP_CLKRATE_MEDIUM     (480000000)
 #define IVP_CLKRATE_LOW        (415000000)
-#define GIC_IRQ_CLEAR_REG      (0xea0001a4)
 
 #define IVP_SEC_BUFF_SIZE      0x100000
 #define IVP_SEC_SHARE_ADDR     0x11600000
@@ -74,10 +74,12 @@ extern int ivp_poweron_remap(struct ivp_device *ivp_devp);
 extern int ivp_poweroff_pri(struct ivp_device *ivp_devp);
 extern int ivp_init_pri(struct platform_device *pdev, struct ivp_device *ivp_devp);
 extern void ivp_deinit_pri(struct ivp_device *ivp_devp);
-extern int ivp_change_clk(struct ivp_device *ivp_devp);
+extern int ivp_change_clk(struct ivp_device *ivp_devp, unsigned int level);
 extern int ivp_init_resethandler(struct ivp_device *pdev);
 extern void ivp_deinit_resethandler(struct ivp_device *pdev);
 extern int ivp_check_resethandler(struct ivp_device *pdev);
 extern int  ivp_sec_loadimage(struct ivp_device *pdev);
+extern void ivp_dev_hwa_enable(void);
+extern void ivp_hw_enable_reset(struct ivp_device *devp);
 
 #endif /* _IVP_PLATFORM_H_ */

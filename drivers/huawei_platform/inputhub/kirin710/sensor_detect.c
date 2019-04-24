@@ -98,7 +98,9 @@ extern void select_als_para(struct device_node *dn);
 extern int iom3_need_recovery(int modid, exp_source_t f);
 
 static int _device_detect(struct device_node *dn, int index, struct sensor_combo_cfg *p_succ_ret);
-
+#ifdef CONFIG_HUAWEI_HISHOW
+int support_hall_hishow = 0;
+#endif
 
 #define DEF_SENSOR_COM_SETTING \
 {\
@@ -179,6 +181,7 @@ struct als_platform_data als_data = {
 	.init_time = 150,
 	.als_phone_type = 0,
 	.als_phone_version = 0,
+	.als_gain_dynamic = 0,
 };
 
 struct ps_platform_data ps_data = {
@@ -402,7 +405,7 @@ void read_sensorlist_info(struct device_node *dn, int sensor)
 		hwlog_info("sensor SENSOR_DETECT_LIST %d get vendor %s\n", sensor, sensorlist_info[sensor].vendor);
 	}
 	else
-		sensorlist_info[sensor].name[0] = '\0';
+		sensorlist_info[sensor].vendor[0] = '\0';
 
 	if (0 == of_property_read_u32(dn, "version", &temp))
 	{
@@ -817,6 +820,7 @@ void read_als_data_from_dts(struct device_node *dn)
 	int temp = 0;
 	int als_phone_type = 0;
 	int als_phone_version = 0;
+	int als_gain_dynamic = 0;
 	int ret = 0;
 	char *chip_info = NULL;
 	read_chip_info(dn, ALS);
@@ -903,6 +907,9 @@ void read_als_data_from_dts(struct device_node *dn)
 		bh1726_flag= 1;
 		//hwlog_info("%s:B i2c_address suc,%d \n", __func__, temp);
 	}
+	if (!strncmp(chip_info, "huawei,apds9308_als",sizeof("huawei,apds9308_als"))) {
+		g_apds9308Flag = 1;
+	}
 	temp = of_get_named_gpio(dn, "gpio_int1", 0);
 	if (temp < 0)
 		hwlog_err("%s:read gpio_int1 fail\n", __func__);
@@ -943,6 +950,11 @@ void read_als_data_from_dts(struct device_node *dn)
 		//hwlog_err("%s:read als_phone_type fail\n", __func__);
 	else
 		als_data.als_phone_type = (uint8_t) als_phone_type;
+
+	if (of_property_read_u32(dn, "als_gain_dynamic", &als_gain_dynamic));
+		//hwlog_err("%s:read als_gian_dynamic fail\n" __func__);
+	else
+		als_data.als_gain_dynamic = (uint8_t) als_gain_dynamic;
 
 	if (of_property_read_u32(dn, "als_phone_version", &als_phone_version));
 		//hwlog_err("%s:read als_phone_version fail\n", __func__);
@@ -1871,6 +1883,16 @@ static int get_adapt_file_id_for_dyn_load(void)
 			hwlog_info("%s : docom_step_counter status is %s \n",__func__,step_count_ty);
 		}
 	}
+#ifdef CONFIG_HUAWEI_HISHOW
+	if (0 == of_property_read_u32(sensorhub_node, "is_support_hall_hishow", &i))
+	{
+		if(1 == i)
+		{
+			support_hall_hishow = 1;
+			hwlog_info("sensor get support_hall_hishow: %d\n", support_hall_hishow);
+		}
+	}
+#endif
 	return 0;
 }
 

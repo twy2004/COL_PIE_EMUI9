@@ -114,6 +114,13 @@ static struct inputhub_route_table package_route_tbl[] = {
 	{ROUTE_FHB_UD_PORT, {NULL,0}, {NULL,0}, {NULL,0}, __WAIT_QUEUE_HEAD_INITIALIZER(package_route_tbl[4].read_wait)},
 };
 
+static struct {
+	int ext_hall_adapt;
+	int ext_hall_value[HALL_ONE_DATA_NUM];
+} ext_hall_table[] = {
+    { 0, {1, 0, 2, -1}},
+};
+
 bool really_do_enable_disable(int *ref_cnt, bool enable, int bit)
 {
 	bool ret = false;
@@ -402,8 +409,6 @@ int report_sensor_event(int tag, int value[], int length)
 
 static int adapt_hall_value(int value)
 {
-	int ext_val = 0;
-
 	if(adapt_ext_hall_index >= ARRAY_SIZE(ext_hall_table)){
 		return -EPERM;
 	}
@@ -1692,16 +1697,16 @@ static int process_drop_report(const pkt_drop_data_req_t* head)
 		return -1;
 	}
 
-	ret += imonitor_set_param(obj, E936005000_TYPE_TINYINT, (long)(head->data.type));
-	ret += imonitor_set_param(obj, E936005000_INITSPEED_INT, (long)(head->data.initial_speed));
-	ret += imonitor_set_param(obj, E936005000_HEIGHT_INT, (long)(head->data.height));
-	ret += imonitor_set_param(obj, E936005000_PITCH_INT, (long)(head->data.angle_pitch));
-	ret += imonitor_set_param(obj, E936005000_ROLL_INT, (long)(head->data.angle_roll));
-	ret += imonitor_set_param(obj, E936005000_MATERIAL_TINYINT, (long)(head->data.material));
-	ret += imonitor_set_param(obj, E936005000_YAW_INT, (long)(yaw));
-	ret += imonitor_set_param(obj, E936005000_SPEED_INT, (long)(speed));
-	ret += imonitor_set_param(obj, E936005000_SHELL_TINYINT, (long)(shell));
-	ret += imonitor_set_param(obj, E936005000_FILM_TINYINT, (long)(film));
+	ret += imonitor_set_param_integer_v2(obj, "Type", (long)(head->data.type));
+	ret += imonitor_set_param_integer_v2(obj, "InitSpeed", (long)(head->data.initial_speed));
+	ret += imonitor_set_param_integer_v2(obj, "Height", (long)(head->data.height));
+	ret += imonitor_set_param_integer_v2(obj, "Pitch", (long)(head->data.angle_pitch));
+	ret += imonitor_set_param_integer_v2(obj, "Roll", (long)(head->data.angle_roll));
+	ret += imonitor_set_param_integer_v2(obj, "Yaw", (long)(head->data.material));
+	ret += imonitor_set_param_integer_v2(obj, "Material", (long)(yaw));
+	ret += imonitor_set_param_integer_v2(obj, "Speed", (long)(speed));
+	ret += imonitor_set_param_integer_v2(obj, "Shell", (long)(shell));
+	ret += imonitor_set_param_integer_v2(obj, "Film", (long)(film));
 
 	if (ret) {
 		imonitor_destroy_eventobj(obj);

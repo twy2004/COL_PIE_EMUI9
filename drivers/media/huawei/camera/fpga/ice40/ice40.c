@@ -105,6 +105,11 @@ void ice40_notify_error( uint32_t id)
     hwfpga_intf_notify_error(s_ice40.notify, &ice40_ev);
 }
 
+int ice40_checkdevice(const hwfpga_intf_t* i)
+{
+    return ice40_spi_checkdevice();
+}
+
 static hwfpga_vtbl_t
 s_vtbl_ice40 =
 {
@@ -116,6 +121,7 @@ s_vtbl_ice40 =
     .disable  = ice40_disable,
     .init  = ice40_init_fun,
     .close = ice40_close_fun,
+    .checkdevice = ice40_checkdevice,
 };
 
 static ice40_t

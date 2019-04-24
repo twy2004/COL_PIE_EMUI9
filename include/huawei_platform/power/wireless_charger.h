@@ -395,7 +395,6 @@ struct wireless_charge_device_info {
 	struct work_struct wired_vbus_disconnect_work;
 	struct work_struct rx_program_otp_work;
 	struct work_struct wireless_rx_event_work;
-	struct work_struct wireless_pwroff_reset_work;
 	struct delayed_work wireless_vbus_disconnect_work;
 	struct delayed_work wireless_ctrl_work;
 	struct delayed_work wireless_monitor_work;
@@ -444,7 +443,6 @@ struct wireless_charge_device_info {
 	enum tx_power_state tx_pg_state;
 	struct completion wc_af_completion;
 	u8 antifake_key_index;
-	int pwroff_reset_flag;
 };
 enum wireless_charge_sysfs_type {
 	WIRELESS_CHARGE_SYSFS_CHIP_ID = 0,

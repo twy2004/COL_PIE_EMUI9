@@ -40,14 +40,16 @@
 #define FRAG_JOB_DESC_MIN_TILE_COORD_WORD 8
 /* Word 9: Maximum Tile Coordinates */
 #define FRAG_JOB_DESC_MAX_TILE_COORD_WORD 9
-
+/*lint -e578*/
+/*lint -e668*/
 int kbasep_10969_workaround_clamp_coordinates(struct kbase_jd_atom *katom)
 {
 	struct device *dev = katom->kctx->kbdev->dev;
 	u32   clamped = 0;
 	struct kbase_va_region *region;
 	struct tagged_addr *page_array;
-	u64 page_index;
+	u64 page_index;//lint !e578
+
 	u32 offset = katom->jc & (~PAGE_MASK);
 	u32 *page_1 = NULL;
 	u32 *page_2 = NULL;
@@ -201,6 +203,7 @@ int kbasep_10969_workaround_clamp_coordinates(struct kbase_jd_atom *katom)
 					JOB_HEADER_SIZE - copy_size,
 					DMA_TO_DEVICE);
 		}
+
 	}
 	if (copy_size < JOB_HEADER_SIZE)
 		kunmap_atomic(page_2);
@@ -211,3 +214,5 @@ out_unlock:
 	kbase_gpu_vm_unlock(katom->kctx);
 	return clamped;
 }
+/*lint +e668*/
+/*lint +e578*/

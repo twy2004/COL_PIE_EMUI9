@@ -234,7 +234,6 @@ int hisifb_ctrl_on(struct hisi_fb_data_type *hisifd)
 		hrtimer_start(&hisifd->esd_ctrl.esd_hrtimer, ktime_set(ESD_CHECK_TIME_PERIOD / 1000,
 			(ESD_CHECK_TIME_PERIOD % 1000) * 1000000), HRTIMER_MODE_REL);
 	}
-
 	return ret;
 }
 
@@ -326,7 +325,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 		return -EINVAL;
 	}
 
-	down(&hisifd->power_sem);
+	down(&hisifd->power_esd_sem);
 
 	if (!hisifd->panel_power_on) {
 		HISI_FB_DEBUG("fb%d, panel power off!\n", hisifd->index);
@@ -342,7 +341,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 	}
 
 err_out:
-	up(&hisifd->power_sem);
+	up(&hisifd->power_esd_sem);
 
 	return ret;
 }
@@ -506,7 +505,7 @@ int hisifb_ctrl_dss_voltage_get(struct fb_info *info, void __user *argp)
 		return -EINVAL;
 	}
 	voltage_value = peri_get_volt(pvp);
-	dss_vote_cmd.dss_voltage_level = dpe_get_voltage_level(hisifd, voltage_value);
+	dss_vote_cmd.dss_voltage_level = dpe_get_voltage_level(voltage_value);
 	if (copy_to_user(argp, &dss_vote_cmd, sizeof(dss_vote_cmd_t))) {
 		HISI_FB_ERR("copy to user fail\n");
 		return -EFAULT;
@@ -566,7 +565,7 @@ int hisifb_ctrl_dss_voltage_set(struct fb_info *info, void __user *argp)
 		HISI_FB_ERR("copy_from_user failed!ret=%d!\n", ret);
 		return ret;
 	}
-	voltage_value = dpe_get_voltage_value(hisifd, &dss_vote_cmd);
+	voltage_value = dpe_get_voltage_value(&dss_vote_cmd);
 	if (voltage_value < 0) {
 		HISI_FB_ERR("get votage_value failed!\n");
 		return -EINVAL;
@@ -608,7 +607,7 @@ int hisifb_ctrl_dss_voltage_set(struct fb_info *info, void __user *argp)
 
 	voltage_value = peri_get_volt(pvp);
 
-	dss_vote_cmd.dss_voltage_level = dpe_get_voltage_level(hisifd, voltage_value);
+	dss_vote_cmd.dss_voltage_level = dpe_get_voltage_level(voltage_value);
 	if (copy_to_user(argp, &dss_vote_cmd, sizeof(dss_vote_cmd_t))) {
 		HISI_FB_ERR("copy to user fail\n");
 		return -EFAULT;

@@ -2891,7 +2891,7 @@ VOS_UINT32  IP_NDSERVER_SendDhcp6Reply
     ulTmpDestLen = IP_IPM_MTU - IP_ETHERNET_HEAD_LEN - sizeof(NDIS_IP6_HDR_STRU) - sizeof(UDP_HEAD_ST) - IP_IPV6_DHCP6_REPLY_HDR_LEN - IP_IPV6_DHCP_DUID_LL_OPT_LEN;
     if ( VOS_NULL_PTR != pstDhcpClientIdOpt )
     {
-        if((VOS_NTOHS(pstDhcpClientIdOpt->usDhcpOptLen) + 4) > ulTmpDestLen)
+        if(((VOS_UINT32)(VOS_NTOHS(pstDhcpClientIdOpt->usDhcpOptLen) + 4)) > ulTmpDestLen)
         {
             IPND_ERROR_LOG(NDIS_NDSERVER_PID, "IP_NDSERVER_SendDhcp6Reply, DHCP CLient ID option is err!");
             return PS_FAIL;

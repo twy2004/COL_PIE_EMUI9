@@ -408,6 +408,26 @@ struct lcd_kit_checkreg {
 	struct lcd_kit_array_data value;
 };
 
+struct lcd_kit_check_reg_dsm {
+	u32 support;
+	u32 support_dsm_report;
+	struct lcd_kit_dsi_panel_cmds cmds;
+	struct lcd_kit_array_data value;
+};
+
+struct lcd_kit_mipicheck {
+	u32 support;
+	u32 mipi_error_report_threshold;
+	struct lcd_kit_dsi_panel_cmds cmds;
+	struct lcd_kit_array_data value;
+};
+
+struct lcd_kit_mipierrors {
+	u32 mipi_check_times;
+	u32 mipi_error_times;
+	u32 total_errors;
+};
+
 struct lcd_kit_dirty {
 	u32 support;
 	struct lcd_kit_dsi_panel_cmds cmds;
@@ -525,6 +545,7 @@ struct lcd_kit_common_ops {
 	int (*set_mipi_backlight)(void* hld, u32 bl_level);
 	int (*common_init)(struct device_node* np);
 	int (*get_bias_voltage)(int *vpos, int *vneg);
+	void (*mipi_check)(void* pdata, char *panel_name, long display_on_record_time);
 };
 
 struct lcd_kit_common_info {
@@ -537,6 +558,12 @@ struct lcd_kit_common_info {
 	struct lcd_kit_scan scan;
 	/*running test check reg*/
 	struct lcd_kit_checkreg check_reg;
+	/*power on check reg*/
+	struct lcd_kit_check_reg_dsm check_reg_on;
+	/*power off check reg*/
+	struct lcd_kit_check_reg_dsm check_reg_off;
+	/*mipi check commond*/
+	struct lcd_kit_mipicheck mipi_check;
 	/*PT current test*/
 	struct lcd_kit_pt_test pt;
 	/*vss*/

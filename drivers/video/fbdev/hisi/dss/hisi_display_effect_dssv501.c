@@ -669,6 +669,7 @@ static u32 gmp_lut_table_high4bit_init[4913] = {
 #define XCC_COEF_INDEX_01	1
 #define XCC_COEF_INDEX_12	6
 #define XCC_COEF_INDEX_23	11
+#define XCC_DEFAULT	0x8000
 #define GMP_BLOCK_SIZE	137
 #define GMP_CNT_NUM 18
 #define GMP_COFE_CNT 4913   //17*17*17
@@ -1426,7 +1427,6 @@ int hisifb_ce_service_set_lut(struct fb_info *info, void __user *argp)
 
 	return ret;
 }
-
 
 ssize_t hisifb_display_effect_al_ctrl_show(struct fb_info *info, char *buf)
 {
@@ -2665,6 +2665,11 @@ static void hisi_dss_dpp_hiace_set_lut_reg(struct hisi_fb_data_type *hisifd, cha
 	uint32_t i = 0;
 	uint32_t sel_gamma_ab_shadow= 0;
 
+	if(hisifd == NULL){
+		HISI_FB_ERR("hisifd is null pointer\n");
+		return;
+	}
+
 	sel_gamma_ab_shadow = inp32(hiace_base + DPE_GAMMA_AB_SHADOW) & 0xe;
 
 	if ((g_table_update & DETAIL_WEIGHT_TABLE_UPDATED) && (hisifd->effect_info.hiace.detail_weight_table != NULL)) {
@@ -3242,6 +3247,11 @@ void hisifb_update_gm_from_reserved_mem(uint32_t *gm_r, uint32_t *gm_g, uint32_t
 
 static void free_gamma_table(struct gamma_info *gamma)
 {
+	if(gamma == NULL){
+		HISI_FB_ERR("gamma is null pointer\n");
+		return;
+	}
+
 	hisi_effect_kfree(&gamma->gamma_r_table);
 	hisi_effect_kfree(&gamma->gamma_g_table);
 	hisi_effect_kfree(&gamma->gamma_b_table);
@@ -3980,6 +3990,11 @@ err_ret:
 static int hisi_efffect_gamma_lut_set(struct gamma_info *gammaDst, struct gamma_info *gammaSrc,
                                   struct hisi_panel_info* pInfo) {
 
+	if((gammaDst == NULL) || (gammaSrc == NULL) || (pInfo == NULL)){
+		HISI_FB_ERR("gammaDst or gammaSrc or pInfo is null pointer\n");
+		return -1;
+	}
+
 	if (gammaSrc->para_mode == 0) {
 		//Normal mode
 		if (hisi_effect_alloc_and_copy(&gammaDst->gamma_r_table, pInfo->gamma_lut_table_R,
@@ -4052,15 +4067,20 @@ err_ret:
 
 static int hisi_efffect_gamma_lut_pre_set(struct gamma_info *gammaDst, struct gamma_info *gammaSrc,
                                   struct hisi_panel_info* pInfo) {
-        if(NULL==gammaDst){
+        if(NULL == gammaDst){
 		HISI_FB_ERR("gammaDst is NULL!\n");
 		return -EINVAL;
         }
 
-        if(NULL==gammaSrc){
+        if(NULL == gammaSrc){
 		HISI_FB_ERR("gammaSrc is NULL!\n");
 		return -EINVAL;
         }
+
+	if(NULL == pInfo){
+		HISI_FB_ERR("pInfo is NULL!\n");
+		return -EINVAL;
+	}
 
 	if ((0x0 == gammaSrc->gamma_dual_lcd_top_left) && (0x0 == gammaSrc->gamma_dual_lcd_bot_right)){
 		gammaDst->gamma_dual_lcd_top_left= (pInfo->yres/2)<<16;
@@ -4165,15 +4185,20 @@ static int hisi_efffect_gamma_param_set(struct gamma_info *gammaDst, struct gamm
                                   struct hisi_panel_info* pInfo) {
 	int ret;
 
-	if(NULL==gammaDst){
+	if(NULL == gammaDst){
 		HISI_FB_ERR("gammaDst is NULL!\n");
 		return -EINVAL;
         }
 
-	if(NULL==gammaSrc){
+	if(NULL == gammaSrc){
 		HISI_FB_ERR("gammaSrc is NULL!\n");
 		return -EINVAL;
         }
+
+	if(NULL == pInfo){
+		HISI_FB_ERR("pInfo is NULL!\n");
+		return -EINVAL;
+	}
 
 	ret = hisi_efffect_gamma_lut_set(gammaDst, gammaSrc,pInfo);
 	if (ret < 0) {
@@ -4307,9 +4332,35 @@ static bool lcp_xcc_set_reg(char __iomem *xcc_base, struct lcp_info *lcp_param)
 static void reset_xcc_reg(char __iomem *xcc_base)
 {
 	int cnt;
+	uint32_t coef_01 = 0;
+	uint32_t coef_12 = 0;
+	uint32_t coef_23 = 0;
+	uint32_t max_coef = 0;
+
+	coef_01 = inp32(xcc_base + XCC_COEF_01);
+	coef_12 = inp32(xcc_base + XCC_COEF_12);
+	coef_23 = inp32(xcc_base + XCC_COEF_23);
+	max_coef = max(coef_01, coef_12);
+	max_coef = max(max_coef, coef_23);
+	if (max_coef > 0xFFFF) {
+		HISI_FB_INFO("xcc coef is negative!\n");
+		return;
+	}
+	if (max_coef != 0) {
+		coef_01 = coef_01 * XCC_DEFAULT / max_coef;
+		coef_12 = coef_12 * XCC_DEFAULT / max_coef;
+		coef_23 = coef_23 * XCC_DEFAULT / max_coef;
+	} else {
+		coef_01 = XCC_DEFAULT;
+		coef_12 = XCC_DEFAULT;
+		coef_23 = XCC_DEFAULT;
+	}
+	set_reg(xcc_base + XCC_COEF_01,  coef_01, 17, 0);
+	set_reg(xcc_base + XCC_COEF_12,  coef_12, 17, 0);
+	set_reg(xcc_base + XCC_COEF_23,  coef_23, 17, 0);
+
 	for (cnt = 0; cnt < XCC_COEF_LEN; cnt++) {
 		if (cnt == XCC_COEF_INDEX_01 || cnt == XCC_COEF_INDEX_12 || cnt == XCC_COEF_INDEX_23) {
-			set_reg(xcc_base + XCC_COEF_00 +cnt * 4,  0x8000, 17, 0);
 		} else {
 			set_reg(xcc_base + XCC_COEF_00 +cnt * 4,  0x0, 17, 0);
 		}
@@ -4645,7 +4696,7 @@ void hisi_effect_lcp_set_reg(struct hisi_fb_data_type *hisifd)
 						set_reg(gmp_lut_base + i * 2 * 4, lcp_param->gmp_table_low32[i], 32, 0); // lint !e679
 						set_reg(gmp_lut_base + i * 2 * 4 + 4, lcp_param->gmp_table_high4[i], 4, 0); // lint !e679
 						if( 0 == (i%500))
-							HISI_FB_DEBUG("[effect] gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,lcp_param->gmp_table_low32[i],i,lcp_param->gmp_table_high4[i]);
+							HISI_FB_INFO("[effect] gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,lcp_param->gmp_table_low32[i],i,lcp_param->gmp_table_high4[i]);
 					}
 					spin_unlock(&g_gmp_effect_lock);
 				}
@@ -4783,6 +4834,10 @@ void hisi_effect_color_dimming_acm_reg_init(struct hisi_fb_data_type *hisifd) {
 #define ARSR1P_MAX_SRC_WIDTH_SIZE 3840
 static void config_arsr1p_param(dss_arsr1p_t *dst_arsr1p, struct arsr1p_info *src_arsr1p)
 {
+	if((dst_arsr1p == NULL) || (src_arsr1p == NULL)){
+		HISI_FB_ERR("dst_arsr1p or src_arsr1p is NULL!");
+		return;
+	}
 
 	dst_arsr1p->mode = set_bits32(dst_arsr1p->mode, ~src_arsr1p->enable, 1, 0);
 	dst_arsr1p->mode = set_bits32(dst_arsr1p->mode, src_arsr1p->sharp_enable, 1, 1);
@@ -4845,6 +4900,26 @@ static int set_arsr1p_param(struct hisi_fb_data_type *hisifd, dss_arsr1p_t *post
 	struct hisi_panel_info *pinfo = NULL;
 	struct arsr1p_info *arsr1p_rog = NULL;
 
+	if(hisifd == NULL){
+		HISI_FB_ERR("hisifd is NULL!");
+		return -1;
+	}
+
+	if(post_scf == NULL){
+		HISI_FB_ERR("post_scf is NULL!");
+		return -1;
+	}
+
+	if(arsr1p_param == NULL){
+		HISI_FB_ERR("arsr1p_param is NULL!");
+		return -1;
+	}
+
+	if(pov_req == NULL){
+		HISI_FB_ERR("pov_req is NULL!");
+		return -1;
+	}
+
 	pinfo = &(hisifd->panel_info);
 
 	if (!hisifd->effect_ctl.arsr1p_sharp_support)
@@ -4896,6 +4971,11 @@ int hisi_arsr1p_set_rect(struct hisi_fb_data_type *hisifd, dss_overlay_t *pov_re
 	int32_t extraw_right = 0;
 	dss_rect_t src_rect = {0};
 	dss_rect_t dst_rect = {0};
+
+	if((hisifd == NULL) || (pov_req == NULL) || (post_scf == NULL) || (pinfo == NULL)){
+		HISI_FB_ERR("hisifd or pov_req or post_scf or pinfo is null pointer\n");
+		return -1;
+	}
 
 	/*if((pov_req->res_updt_rect.w != hisifd->ov_req_prev.res_updt_rect.w)
 	|| (pov_req->res_updt_rect.h != hisifd->ov_req_prev.res_updt_rect.h))
@@ -5220,11 +5300,6 @@ int hisifb_get_reg_val(struct fb_info *info, void __user *argp) {
 		return -EINVAL;
 	}
 
-	if (hisifd->panel_power_on == false) {
-		HISI_FB_ERR("[effect] panel power off\n");
-		return -EINVAL;
-	}
-
 	pinfo = &(hisifd->panel_info);
 	if (!pinfo->hiace_support) {
 		EFFECT_DEBUG_LOG(DEBUG_EFFECT_ENTRY, "[effect] Don't support HIACE\n");
@@ -5261,7 +5336,18 @@ int hisifb_get_reg_val(struct fb_info *info, void __user *argp) {
 			return -EINVAL;
 	}
 
+	down(&hisifd->blank_sem);
+	if (hisifd->panel_power_on == false) {
+		HISI_FB_ERR("[effect] panel power off\n");
+		up(&hisifd->blank_sem);
+		return -EINVAL;
+	}
+	hisifb_activate_vsync(hisifd);
+
 	reg.value = (uint32_t)inp32(hisifd->dss_base + addr);
+
+	hisifb_deactivate_vsync(hisifd);
+	up(&hisifd->blank_sem);
 
 	ret = (int)copy_to_user(argp, &reg, sizeof(struct dss_reg));
 	if (ret) {

@@ -38,6 +38,8 @@
         hi110x,gpio_power_on = <&gpio32 2 0>;                /*GPIO_258*/
         hi110x,gpio_bfgx_power_on = <&gpio25 2 0>;           /*GPIO_202*/
         hi110x,gpio_wlan_power_on = <&gpio25 0 0>;           /*GPIO_200*/
+        hi110x,gpio_ssi_clk  = <&gpio33 0 0>;                /*GPIO_264*/
+        hi110x,gpio_ssi_data = <&gpio33 2 0>;                /*GPIO_266*/
         huawei,pmu_clk32b = "clk_pmu32kb";
         hi110x,asic_version;
     };
@@ -77,3 +79,10 @@
         addr_base = <0xfff11000>;
         addr_offset = <0x0b8>;
     };
+
+     /*irda*/
+     &irda {
+         compatible = "irda,config";
+         irda,chiptype = <2>; /*hi110x*/
+     };
+

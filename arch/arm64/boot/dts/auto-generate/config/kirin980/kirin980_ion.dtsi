@@ -98,7 +98,7 @@
 			heap-id   = <0x5>;
 			heap-base = <0x0>;
 
-			heap-size = <0x8000000>;
+			heap-size = <0xC000000>;
 			heap-attr = <2>;
 			cma-type = <1>;
 			cma-region = <&hisi_cma>;

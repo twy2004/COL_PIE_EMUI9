@@ -156,6 +156,9 @@ void __iomem **g_cg_reg;
 int g_mg_sec_reg_num;
 int g_cg_sec_reg_num;
 
+unsigned int *g_sec_gpio_array;
+int g_sec_gpio_num;
+
 char *processor_name[IPC_PROCESSOR_MAX] = {
 	"gic1",
 	"gic2",
@@ -946,15 +949,23 @@ void show_iocg_reg(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
 }
 
 
-void show_gpio_info(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
+void show_gpio_info(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups, unsigned int gpio_id)
 {
 	void __iomem *addr = NULL;
 	void __iomem **addr1 = NULL;
 	int value = 0;
 	int data = 0;
+	int j = 0;
 
 	if(NULL == hisi_iocfg_lookups)
 		return;
+
+	for(j = 1; j < g_sec_gpio_num; j = j + 2){
+		if ((gpio_id >= g_sec_gpio_array[j-1]) && (gpio_id <= g_sec_gpio_array[j])){
+			printk("sec gpio, can't access!\n");
+			return;
+		}
+	}
 
 	if (hisi_iocfg_lookups[i].iomg_val == FUNC0) {
 		addr = GPIO_DIR(sysreg_base.gpio_base[hisi_iocfg_lookups[i].gpio_group_id]);
@@ -985,7 +996,7 @@ void show_gpio_info(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
 void dbg_io_status_show(void)
 {
 	unsigned int i = 0;
-	int gpio_id = 0;
+	unsigned int gpio_id = 0;
 	unsigned int len = 0;
 	struct iocfg_lp *hisi_iocfg_lookups = NULL;
 
@@ -1008,7 +1019,7 @@ void dbg_io_status_show(void)
 		gpio_id = ((hisi_iocfg_lookups[i].gpio_group_id << 3)
 					+ hisi_iocfg_lookups[i].ugpio_bit);
 
-		printk("gpio - %d  gpio_logic - %s\t",
+		printk("gpio - %u  gpio_logic - %s\t",
 				gpio_id, hisi_iocfg_lookups[i].gpio_logic);
 
 	/* show iomg register's value */
@@ -1018,7 +1029,7 @@ void dbg_io_status_show(void)
 	show_iocg_reg(i, hisi_iocfg_lookups);
 
 	/* if this is gpio pin*/
-	show_gpio_info(i, hisi_iocfg_lookups);
+	show_gpio_info(i, hisi_iocfg_lookups, gpio_id);
 	}
 }
 
@@ -1771,7 +1782,7 @@ err:
 	return ret;
 }
 
-static int init_sec_gpio(struct device_node *np)
+static int init_sec_io(struct device_node *np)
 {
 	int ret = 0;
 	int i = 0;
@@ -1822,7 +1833,7 @@ static int init_sec_gpio(struct device_node *np)
 		}
 	}
 
-	pr_info("%s:%d init sec GPIO success!\n", __func__, __LINE__);
+	pr_info("%s:%d init sec ioc success!\n", __func__, __LINE__);
 	return ret;
 
 err_free_iocg:
@@ -1831,6 +1842,47 @@ err_free_iocg:
 err_free_iomg:
 	kfree(g_mg_reg);
 	g_mg_reg = NULL;
+err:
+	pr_err("%s: init fail!\n", __func__);
+	return ret;
+
+}
+
+
+static int init_sec_gpio(struct device_node *np)
+{
+	int ret = 0;
+	int i = 0;
+
+	/* find sec gpio num range */
+	g_sec_gpio_num = of_property_count_u32_elems(np, "sec-gpio-no");
+	if (g_sec_gpio_num < 0) {
+		pr_err("%s[%d], no sec-gpio-no!\n", __func__, __LINE__);
+		ret = -ENODEV;
+		goto err;
+	}
+	pr_info("%s[%d], find sec-gpio-no num: %d\n", __func__, __LINE__, g_sec_gpio_num);
+	g_sec_gpio_array = kzalloc(g_sec_gpio_num * sizeof(unsigned int), GFP_KERNEL);
+	if (NULL == g_sec_gpio_array) {
+		pr_err("%s[%d]: kzalloc err!!\n", __func__, __LINE__);
+		ret = -ENOMEM;
+		goto err;
+	}
+	for (i = 0; i < g_sec_gpio_num; i++) {
+		ret = of_property_read_u32_index(np, "sec-gpio-no", i, &g_sec_gpio_array[i]);
+		if (ret) {
+			pr_err("%s[%d], i = %d, no sec-gpio-no!\n", __func__, __LINE__, i);
+			ret = -ENODEV;
+			goto err_free_gpio;
+		}
+	}
+
+	pr_info("%s:%d init sec GPIO success!\n", __func__, __LINE__);
+	return ret;
+
+err_free_gpio:
+	kfree(g_sec_gpio_array);
+	g_sec_gpio_array = NULL;
 err:
 	pr_err("%s: init fail!\n", __func__);
 	return ret;
@@ -1856,6 +1908,13 @@ static int init_lowpm_data(void)
 	if (ret) {
 		pr_err("%s[%d], no plat-name!\n", __func__, __LINE__);
 		ret = -ENODEV;
+		goto err_put_node;
+	}
+
+	/*init sec IO*/
+	ret = init_sec_io(np);
+	if (ret < 0) {
+		pr_err("%s:%d init sec IO failed!\n", __func__,__LINE__);
 		goto err_put_node;
 	}
 

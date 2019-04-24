@@ -17,11 +17,11 @@
 					 0         4      0x00C           1        0x010      0     0xffff     0xffff
 					 4         3      0x058           2        0x05C      0     0xffff     0xffff
 					 4         4      0x05C           2        0x060      0     0xffff     0xffff
-					 4         5      0x060           1        0x064      0     0xffff     0xffff
+					 4         5      0x060           0        0x064      0          1          0
 					 4         6      0x064           1        0x068      0     0xffff     0xffff
 					 4         7      0x068           1        0x06C      0     0xffff     0xffff
 					 5         0      0x06C           4        0x070      0     0xffff     0xffff
-					 5         1      0x070           1        0x074      0     0xffff     0xffff
+					 5         1      0x070           0        0x074      0          1          0
 					 5         2      0x074           1        0x078      0     0xffff     0xffff
 					 5         3      0x078           1        0x07C      0     0xffff     0xffff
 					 5         4      0x07C           1        0x080      0     0xffff     0xffff
@@ -40,12 +40,12 @@
 					 7         1      0x0B0           1        0x0B4      0     0xffff     0xffff
 					 7         2      0x0B4           1        0x0B8      0     0xffff     0xffff
 					 7         3      0x0B8           1        0x0BC      0     0xffff     0xffff
-					 7         4      0x0BC           3        0x0C0      0     0xffff     0xffff
-					 7         5      0x0C0           3        0x0C4      2     0xffff     0xffff
-					 7         6      0x0C4           0        0x0C8      0          1          0
+					 7         4      0x0BC           1        0x0C0      0     0xffff     0xffff
+					 7         5      0x0C0           1        0x0C4      0     0xffff     0xffff
+					 7         6      0x0C4           1        0x0C8      0     0xffff     0xffff
 					 7         7      0x0C8           1        0x0CC      0     0xffff     0xffff
-					 8         0      0x0CC           2        0x0D0      0     0xffff     0xffff
-					 8         1      0x0D0           2        0x0D4      2     0xffff     0xffff
+					 8         0      0x0CC           1        0x0D0      0     0xffff     0xffff
+					 8         1      0x0D0           1        0x0D4      0     0xffff     0xffff
 					 8         2      0x0D4           1        0x0D8      0     0xffff     0xffff
 					 8         3      0x0D8           1        0x0DC      2     0xffff     0xffff
 					 8         4      0x0DC           1        0x0E0      0     0xffff     0xffff
@@ -56,18 +56,18 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      1          0     0xffff
-					33         1      0x108           0        0x13C      0     0xffff     0xffff
-					33         2      0x10C           0        0x140      2     0xffff     0xffff
+					33         1      0x108           3        0x13C      1     0xffff     0xffff
+					33         2      0x10C           3        0x140      0     0xffff     0xffff
 					>;
 			pinctrl-1 = <
 					 0         4      0x00C           1        0x010      0     0xffff     0xffff
 					 4         3      0x058           2        0x05C      0     0xffff     0xffff
 					 4         4      0x05C           2        0x060      0     0xffff     0xffff
-					 4         5      0x060           1        0x064      0     0xffff     0xffff
+					 4         5      0x060           0        0x064      0          1     0xffff
 					 4         6      0x064           1        0x068      0     0xffff     0xffff
 					 4         7      0x068           1        0x06C      0     0xffff     0xffff
 					 5         0      0x06C           4        0x070      0     0xffff     0xffff
-					 5         1      0x070           1        0x074      0     0xffff     0xffff
+					 5         1      0x070           0        0x074      0          1     0xffff
 					 5         2      0x074           1        0x078      0     0xffff     0xffff
 					 5         3      0x078           1        0x07C      0     0xffff     0xffff
 					 5         4      0x07C           1        0x080      0     0xffff     0xffff
@@ -86,12 +86,12 @@
 					 7         1      0x0B0           1        0x0B4      0     0xffff     0xffff
 					 7         2      0x0B4           1        0x0B8      0     0xffff     0xffff
 					 7         3      0x0B8           1        0x0BC      0     0xffff     0xffff
-					 7         4      0x0BC           3        0x0C0      0     0xffff     0xffff
-					 7         5      0x0C0           3        0x0C4      2     0xffff     0xffff
-					 7         6      0x0C4           0        0x0C8      0          1     0xffff
+					 7         4      0x0BC           1        0x0C0      0     0xffff     0xffff
+					 7         5      0x0C0           1        0x0C4      0     0xffff     0xffff
+					 7         6      0x0C4           1        0x0C8      0     0xffff     0xffff
 					 7         7      0x0C8           1        0x0CC      0     0xffff     0xffff
-					 8         0      0x0CC           2        0x0D0      0     0xffff     0xffff
-					 8         1      0x0D0           2        0x0D4      2     0xffff     0xffff
+					 8         0      0x0CC           1        0x0D0      0     0xffff     0xffff
+					 8         1      0x0D0           1        0x0D4      0     0xffff     0xffff
 					 8         2      0x0D4           1        0x0D8      0     0xffff     0xffff
 					 8         3      0x0D8           1        0x0DC      2     0xffff     0xffff
 					 8         4      0x0DC           1        0x0E0      0     0xffff     0xffff
@@ -102,18 +102,18 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      1          0     0xffff
-					33         1      0x108           0        0x13C      0     0xffff     0xffff
-					33         2      0x10C           0        0x140      2     0xffff     0xffff
+					33         1      0x108           3        0x13C      1     0xffff     0xffff
+					33         2      0x10C           3        0x140      0     0xffff     0xffff
 					>;
 			pinctrl-2 = <
 					 0         4      0x00C           1        0x010      0     0xffff     0xffff
 					 4         3      0x058           2        0x05C      0     0xffff     0xffff
 					 4         4      0x05C           2        0x060      0     0xffff     0xffff
-					 4         5      0x060           1        0x064      0     0xffff     0xffff
+					 4         5      0x060           0        0x064      0          1          0
 					 4         6      0x064           1        0x068      0     0xffff     0xffff
 					 4         7      0x068           1        0x06C      0     0xffff     0xffff
 					 5         0      0x06C           4        0x070      0     0xffff     0xffff
-					 5         1      0x070           1        0x074      0     0xffff     0xffff
+					 5         1      0x070           0        0x074      0          1          0
 					 5         2      0x074           1        0x078      0     0xffff     0xffff
 					 5         3      0x078           1        0x07C      0     0xffff     0xffff
 					 5         4      0x07C           1        0x080      0     0xffff     0xffff
@@ -132,12 +132,12 @@
 					 7         1      0x0B0           1        0x0B4      0     0xffff     0xffff
 					 7         2      0x0B4           1        0x0B8      0     0xffff     0xffff
 					 7         3      0x0B8           1        0x0BC      0     0xffff     0xffff
-					 7         4      0x0BC           3        0x0C0      0     0xffff     0xffff
-					 7         5      0x0C0           3        0x0C4      2     0xffff     0xffff
-					 7         6      0x0C4           0        0x0C8      0          1          0
+					 7         4      0x0BC           1        0x0C0      0     0xffff     0xffff
+					 7         5      0x0C0           1        0x0C4      0     0xffff     0xffff
+					 7         6      0x0C4           1        0x0C8      0     0xffff     0xffff
 					 7         7      0x0C8           1        0x0CC      0     0xffff     0xffff
-					 8         0      0x0CC           2        0x0D0      0     0xffff     0xffff
-					 8         1      0x0D0           2        0x0D4      2     0xffff     0xffff
+					 8         0      0x0CC           1        0x0D0      0     0xffff     0xffff
+					 8         1      0x0D0           1        0x0D4      0     0xffff     0xffff
 					 8         2      0x0D4           1        0x0D8      0     0xffff     0xffff
 					 8         3      0x0D8           1        0x0DC      2     0xffff     0xffff
 					 8         4      0x0DC           1        0x0E0      0     0xffff     0xffff
@@ -148,8 +148,8 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      1          0     0xffff
-					33         1      0x108           0        0x13C      0     0xffff     0xffff
-					33         2      0x10C           0        0x140      2     0xffff     0xffff
+					33         1      0x108           3        0x13C      1     0xffff     0xffff
+					33         2      0x10C           3        0x140      0     0xffff     0xffff
 					>;
 			pinctrl-num   = <44 44 44>;
 			status = "ok";

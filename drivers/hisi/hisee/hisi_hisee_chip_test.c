@@ -84,6 +84,7 @@ extern void release_hisee_semphore(void);/*should be semaphore; whatever..*/
 /* this interface is defined in hisi_flash_hisee_otp.c  */
 extern bool flash_otp_task_is_started(void);
 
+
 /* set the otp1 write work status */
 void hisee_chiptest_set_otp1_status(E_RUN_STATUS status)
 {
@@ -124,7 +125,7 @@ static int otp_image_upgrade_func(void *buf, int para)
 		pr_err("%s() hisee_get_cosid failed ret=%d\n", __func__, ret);
 		set_errno_and_return(ret);
 	}
-	if (COS_IMG_ID_0 != cos_id) {
+	if (COS_IMG_ID_0 != cos_id && COS_IMG_ID_1 != cos_id) {
 		pr_err("hisee:%s() cosid=%d not support otp image upgrade now, bypass!\n", __func__, cos_id);
 		return ret;
 	}
@@ -393,7 +394,7 @@ static int hisee_apdu_test_process(hisee_cos_imgid_type cos_id)
 {
     int ret;
 
-	if (COS_IMG_ID_0 != cos_id) {
+	if (COS_IMG_ID_0 != cos_id && COS_IMG_ID_1 != cos_id) {
 		ret = wait_hisee_ready(HISEE_STATE_COS_READY, DELAY_FOR_HISEE_POWERON_BOOTING);
 		if (HISEE_OK != ret) {
 			pr_err("hisee:%s(): wait_hisee_ready failed,retcode=%d\n", __func__, ret);
@@ -448,7 +449,7 @@ static int hisee_poweron_booting_misc_process(void *buf)
 	CHECK_OK(ret);
 
 	cos_default_buf_para[1] = '0' + cos_id;
-	if (COS_IMG_ID_0 != cos_id) {
+	if (COS_IMG_ID_0 != cos_id && COS_IMG_ID_1 != cos_id) {
 		ret = hisee_poweron_booting_func((void *)cos_default_buf_para, HISEE_POWER_ON_BOOTING);
 		pr_err("hisee:%s() cosid=%d not support misc booting now, bypass!\n", __func__, cos_id);
 		CHECK_OK(ret);
@@ -469,12 +470,12 @@ static int hisee_poweron_booting_misc_process(void *buf)
     ret = hisee_write_casd_key();
     CHECK_OK(ret);
 
-    /* cos patch upgrade only supported in this function */
-    ret = hisee_cos_patch_read(img_type + (HISEE_MAX_MISC_IMAGE_NUMBER * cos_id));
-    CHECK_OK(ret);
+	/* cos patch upgrade only supported in this function */
+	ret = hisee_cos_patch_read(img_type + (HISEE_MAX_MISC_IMAGE_NUMBER * cos_id));
+	CHECK_OK(ret);
 
     /* misc image upgrade only supported in this function */
-    ret = misc_image_upgrade_func(NULL, cos_id);
+    ret = misc_image_upgrade_func(cos_default_buf_para, cos_id);
     CHECK_OK(ret);
 
     /* wait hisee cos ready for later process */
@@ -493,6 +494,7 @@ err_process:
     check_and_print_result();
     return ret;
 }
+
 
 /*************************************************************
 函数原型：int run_hisee_nvmformat(void)
@@ -700,16 +702,16 @@ int load_cos_flash_do_factory_test(void *buf, int para)
 	hisee_mdelay(DELAY_FOR_HISEE_POWERON_BOOTING); /*lint !e744 !e747 !e748*/
 
 	ret = sm_write_rpmb_key_process();
-	if (HISEE_OK != ret) {
-		pr_err("hisee:%s() sm_write_rpmb_key_process failed, ret=%d\n", __func__, ret);
-		goto poweroff_process;
-	}
+	check_result_and_goto(ret, poweroff_process);
+
 
 	ret = run_hisee_nvmformat();
 	if (HISEE_OK != ret) {
 		pr_err("hisee:%s() run_hisee_nvmformat failed, ret=%d\n", __func__, ret);
 		goto poweroff_process;
 	}
+
+
 	ret = hisee_poweroff_func((void *)cos_flash_buf_para, 0);
 	CHECK_OK(ret);
 	/* wait hisee power down, if timeout or fail, return errno */
@@ -717,8 +719,6 @@ int load_cos_flash_do_factory_test(void *buf, int para)
 	CHECK_OK(ret);
 
 	if (HISEE_FACTORY_TEST_VERSION == para) {
-		/*删除/mnt/hisee_fs/cos_flash.img，是否需要，请注意*/
-		filesys_rm_cos_flash_file();
 		/* poweron upgrading hisee */
 		ret = hisee_poweron_upgrade_func(p_curr_cos_buf, 0);
 	    CHECK_OK(ret);
@@ -768,7 +768,7 @@ static int hisee_manufacture_image_upgrade_process(void *buf, unsigned int hisee
 		pr_err("hisee:%s() hisee_get_cosid failed ret=%d\n", __func__, ret);
 		goto err_process;
 	}
-	if (COS_IMG_ID_0 == cos_id) {/*only cos0 support load cos_flash image*/
+	if (COS_IMG_ID_0 == cos_id || COS_IMG_ID_1 == cos_id) {/*only cos0/1 support load cos_flash image*/
 		ret = load_cos_flash_do_factory_test(buf, HISEE_FACTORY_TEST_VERSION);
 		CHECK_OK(ret);
 	}
@@ -830,6 +830,8 @@ static int hisee_total_manufacture_func(void *buf, int para)
 	CHECK_OK(ret);
 	pr_err("hisee:%s() set hisee to SM state succes\n", __func__);
 	ret = HISEE_OK;
+	/*remove /mnt/hisee_fs/cos_flash.img after pinstall success.*/
+	filesys_rm_cos_flash_file();
 err_process:
     ret1 = hisee_poweroff_func(p_buff_para, HISEE_PWROFF_LOCK);
     if (HISEE_OK == ret) {
@@ -886,33 +888,6 @@ int hisee_parallel_manufacture_func(void *buf, int para)
 
 /* hisee slt test function begin */
 /* hisee slt test function end */
-
-/****************************************************************************//**
- * @brief      : hisee_temp_limit_cfg
- * @param[in]  : flag, on or off
- * @return     : void
- * @note       :
-********************************************************************************/
-static void hisee_temp_limit_cfg(hisee_tmp_cfg_state flag)
-{
-	unsigned int value;
-	static void __iomem *hisee_temp_addr = 0;
-
-	if (!hisee_temp_addr) {
-		hisee_temp_addr = ioremap(HISEE_HIGH_TEMP_PROTECT_ADDR, sizeof(unsigned int));
-		if (!hisee_temp_addr) {
-			pr_err("hisee init temp addr failed!\n");
-			return;
-		}
-	}
-	value = readl(hisee_temp_addr);
-	if (HISEE_TEMP_CFG_OFF == flag) {
-		value |= BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT);
-	} else {
-		value &= (~BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT));
-	}
-	writel(value, hisee_temp_addr);
-}
 
 /****************************************************************************//**
  * @brief      : hisee_factory_check
@@ -979,10 +954,6 @@ static int hisee_factory_check_body(void *arg)
 	factory_slt_test_para[0] = HISEE_CHAR_SPACE;
 	factory_slt_test_para[2] = '0' + COS_PROCESS_UPGRADE;
 
-	/*To avoid enter into the otp flash process in case the status is PREPARED.*/
-	hisee_chiptest_set_otp1_status(NO_NEED);
-	hisee_temp_limit_cfg(HISEE_TEMP_CFG_OFF);
-
 	for (cos_id = 0; cos_id < cos_image_num; cos_id++) {
 		/* If there is no image for current cos id in hisee_img, bypass upgrading. */
 		if (HISEE_COS_EXIST != g_hisee_data.hisee_img_head.is_cos_exist[cos_id]) {
@@ -1016,7 +987,6 @@ err_process:
 	if (HISEE_OK == ret){
 		ret = ret1;
 	}
-	hisee_temp_limit_cfg(HISEE_TEMP_CFG_ON);;
 	set_errno_and_return(ret);
 }
 

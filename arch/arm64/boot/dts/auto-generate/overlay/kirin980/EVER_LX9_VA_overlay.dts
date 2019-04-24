@@ -23,6 +23,13 @@
 		hisi,product_name = "EVR-LX9";
 	};
 
+	&codec_controller {
+		hi64xx_irq@0{
+				hi6403_codec@0 {
+						hisilicon,wakeup_hisi_algo_support = <0>;
+				};
+		};
+	};
 	/*nfc*/
 	&nfc_exist {
 		hisee_exist_flag = "0";

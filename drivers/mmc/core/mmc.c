@@ -2200,9 +2200,13 @@ static int _mmc_suspend(struct mmc_host *host, bool is_suspend)
 	if (mmc_can_sleep(host->card)){
 		if (mmc_can_poweroff_notify(host->card) &&
 			((host->caps2 & MMC_CAP2_FULL_PWR_CYCLE && mmc_can_sleep_notify(host->card)) || !is_suspend)) {
-			err = mmc_poweroff_notify(host->card, notify_type);
-			if (err)
-				goto out;
+			if (is_suspend || !(host->card->quirks & MMC_QUIRK_DISABLE_PON)) {
+				err = mmc_poweroff_notify(host->card, notify_type);
+				if (err)
+					goto out;
+			} else {
+				pr_err("ignore pon for micron 3D \n");
+			}
 		}
 #ifdef CONFIG_HISI_MMC
 		err = mmc_card_sleep(host);

@@ -292,11 +292,6 @@ int wireless_charge_set_tx_vout(int tx_vout)
 			__func__, tx_vout);
 		return -1;
 	}
-	if (di->pwroff_reset_flag && tx_vout > TX_DEFAULT_VOUT) {
-		hwlog_err("%s: pwroff_reset_flag = %d, tx_vout should be set to %dmV at most\n",
-			__func__, di->pwroff_reset_flag, TX_DEFAULT_VOUT);
-		return -1;
-	}
 	hwlog_info("[%s] tx_vout is set to %dmV\n", __func__, tx_vout);
 	return di->ops->set_tx_vout(tx_vout);
 }
@@ -309,11 +304,6 @@ int wireless_charge_set_rx_vout(int rx_vout)
 	}
 	if (WIRELESS_CHANNEL_OFF == g_wireless_channel_state) {
 		hwlog_err("%s: not in wireless charging\n", __func__);
-		return -1;
-	}
-	if (di->pwroff_reset_flag && rx_vout > RX_DEFAULT_VOUT) {
-		hwlog_err("%s: pwroff_reset_flag = %d, rx_vout should be set to %dmV at most\n",
-			__func__, di->pwroff_reset_flag, RX_DEFAULT_VOUT);
 		return -1;
 	}
 	hwlog_info("%s: rx_vout is set to %dmV\n", __func__, rx_vout);
@@ -716,6 +706,7 @@ static int wireless_charge_get_rx_hash(struct wireless_charge_device_info *di)
 		recheck_tx_cert_flag = 0;
 		return AF_SRV_NO_RESPONSE;
 	}
+	return AF_SRV_NOT_READY;
 }
 static int wireless_charge_tx_certification(struct wireless_charge_device_info *di)
 {
@@ -838,7 +829,7 @@ void wireless_charge_update_max_vout_and_iout(bool ignore_cnt_flag)
 	di->tx_vout_max = min(di->tx_vout_max, di->sysfs_data.tx_vout_max);
 	di->rx_vout_max = min(di->rx_vout_max, di->sysfs_data.rx_vout_max);
 	di->rx_iout_max = min(di->rx_iout_max, di->sysfs_data.rx_iout_max);
-	if (IN_OTG_MODE == wireless_otg_get_mode() || di->pwroff_reset_flag) {
+	if (IN_OTG_MODE == wireless_otg_get_mode()) {
 		di->tx_vout_max = min(di->tx_vout_max, TX_DEFAULT_VOUT);
 		di->rx_vout_max = min(di->rx_vout_max, RX_DEFAULT_VOUT);
 		di->rx_iout_max = min(di->rx_iout_max, RX_DEFAULT_IOUT);
@@ -1423,7 +1414,6 @@ static void wireless_charge_para_init(struct wireless_charge_device_info *di)
 	di->curr_vmode_index = 0;
 	di->curr_icon_type = 0;
 	di->curr_power_time_out = 0;
-	di->pwroff_reset_flag = 0;
 	g_rx_vrect_low_cnt = 0;
 	g_rx_vout_err_cnt = 0;
 	g_rx_ocp_cnt = 0;
@@ -1741,22 +1731,6 @@ static void wireless_charge_rx_sample_work(struct work_struct *work)
 
 	schedule_delayed_work(&di->rx_sample_work, msecs_to_jiffies(RX_SAMPLE_WORK_DELAY));
 }
-static void wireless_charge_pwroff_reset_work(struct work_struct *work)
-{
-	struct wireless_charge_device_info *di =
-		container_of(work, struct wireless_charge_device_info, wireless_pwroff_reset_work);
-	if (!di) {
-		hwlog_err("%s: di null\n", __func__);
-		wireless_charge_wake_unlock();
-		return;
-	}
-	if (di->pwroff_reset_flag) {
-		msleep(60);  //test result, about 60ms
-		wireless_charge_set_tx_vout(TX_DEFAULT_VOUT);
-		wireless_charge_set_rx_vout(RX_DEFAULT_VOUT);
-	}
-	wireless_charge_wake_unlock();
-}
 static void wireless_charge_rx_event_work(struct work_struct *work)
 {
 	int ret;
@@ -1897,16 +1871,11 @@ static int wireless_charge_pwrkey_event_notifier_call(struct notifier_block *pwr
 		hwlog_err("%s: di is NULL\n", __func__);
 		return NOTIFY_OK;
 	}
-
 	switch(event) {
 		case HISI_PRESS_KEY_6S:
-			wireless_charge_wake_lock();
 			hwlog_err("%s: response long press 6s interrupt, reset tx vout\n", __func__);
-			di->pwroff_reset_flag = 1;
-			schedule_work(&di->wireless_pwroff_reset_work);
-			break;
-		case HISI_PRESS_KEY_UP:
-			di->pwroff_reset_flag = 0;
+			wireless_charge_set_tx_vout(ADAPTER_5V * MVOLT_PER_VOLT);
+			wireless_charge_set_rx_vout(ADAPTER_5V * MVOLT_PER_VOLT);
 			break;
 		default:
 			break;
@@ -2846,7 +2815,6 @@ static int wireless_charge_probe(struct platform_device *pdev)
 	INIT_WORK(&di->rx_program_otp_work, wireless_charge_rx_program_otp_work);
 #endif
 	INIT_WORK(&di->wireless_rx_event_work, wireless_charge_rx_event_work);
-	INIT_WORK(&di->wireless_pwroff_reset_work, wireless_charge_pwroff_reset_work);
 	INIT_DELAYED_WORK(&di->wireless_ctrl_work, wireless_charge_control_work);
 	INIT_DELAYED_WORK(&di->rx_sample_work, wireless_charge_rx_sample_work);
 	INIT_DELAYED_WORK(&di->wireless_monitor_work, wireless_charge_monitor_work);

@@ -2183,8 +2183,11 @@ int write_customize_cmd(const struct write_info *wr, struct read_info *rd)
 	if (wr->wr_buf != NULL) {
 		memcpy(buf + sizeof(pkt_header_t), wr->wr_buf, wr->wr_len);
 	}
-
-	return inputhub_mcu_write_cmd_adapter(buf,
+      if ((wr->tag == TAG_SHAREMEM) && (g_iom3_state == IOM3_ST_REPEAT || g_iom3_state == IOM3_ST_RECOVERY || iom3_power_state == ST_SLEEP))
+      {
+         return inputhub_mcu_write_cmd_nolock(buf, sizeof(pkt_header_t) + wr->wr_len);
+      }
+	 return inputhub_mcu_write_cmd_adapter(buf,
 					      sizeof(pkt_header_t) + wr->wr_len,
 					      rd);
 }
@@ -2420,7 +2423,7 @@ int register_mcu_event_notifier(int tag, int cmd,
 		if ((tag == pnode->tag) && (cmd == pnode->cmd)
 		    && (notify == pnode->notify)) {
 			hwlog_warn
-			    ("tag = %d, cmd = %d, notify = %Kpf has already registed in %s\n!",
+			    ("tag = %d, cmd = %d, notify = %pK has already registed in %s\n!",
 			     tag, cmd, notify, __func__);
 			goto out;	/*return when already registed*/
 		}

@@ -235,6 +235,7 @@ struct rproc_boot_device {
     struct hisi_isp_vring_s hisi_isp_vring[HISI_ISP_VRING_NUM];
 #endif
     int probe_finished;
+    int sec_thread_wake;
     struct hisi_isp_clk_dump_s hisi_isp_clk;
     unsigned char isp_efuse_flag;
 } rproc_boot_dev;
@@ -580,13 +581,16 @@ void hisp_rproc_resource_cleanup(struct rproc *rproc)
 		list_del(&cache_entry->node);
 		kfree(cache_entry);
 	}
+	/*clean up sec tsctable mem*/
+	if (use_sec_isp())
+		free_secmem_rsctable();
 	/* clean dynamic mem pool */
 	hisp_dynamic_mem_pool_clean();
 }
 
 void hisp_virtio_boot_complete(struct rproc *rproc, int flag)
 {
-	if (flag) {
+	if (flag != 0) {
 		rproc->rproc_enable_flag = false;
 		pr_err("[%s] Failed : handle resources flag.%d\n", __func__, flag);
 	} else {
@@ -855,7 +859,6 @@ int sec_rproc_boot(struct rproc *rproc)
 	    pr_err("[%s] Failed : rproc_find_rsc_table.%pK\n", __func__, table);
 		return -EINVAL;
 	}
-
 	/* Verify that resource table in loaded fw is unchanged */
 	if (rproc->table_csum != crc32(0, table, tablesz)) {
 		dev_err(dev, "Failed : resource checksum 0x%x = 0x%x\n", rproc->table_csum, crc32(0, table, tablesz));
@@ -905,21 +908,20 @@ clean_up:
     rproc_resource_cleanup(rproc);
     return ret;
 }
-
-void sec_rscwork_func(struct work_struct *work)
+int hisi_firmware_load_func(struct rproc *rproc)
 {
-    struct rproc *rproc;
-    int ret;
+    int ret = 0;
 
-    if ((ret = hisp_rsctable_init()) < 0) {
-        pr_err("[%s] Failed : hisp_rsctable_init.%d\n", __func__, ret);
-        return;
+    if (use_sec_isp()) {
+        if ((ret = hisp_rsctable_init()) < 0) {
+            pr_err("[%s] Failed : hisp_rsctable_init.%d\n", __func__, ret);
+            return ret;
+        }
     }
 
-    rproc = container_of(work, struct rproc, sec_rscwork);
     rproc_fw_config_virtio(NULL, rproc);
+    return 0;
 }
-
 struct rproc_shared_para *rproc_get_share_para(void)
 {
     pr_debug("%s: enter.\n", __func__);
@@ -1893,10 +1895,10 @@ static void hisi_isp_efuse_deskew(void)
     }
 
     if ((ret = get_efuse_deskew_value(&efuse, 1, 1000)) < 0) {
-        pr_err("[%s] Failed: pefuse.%d, ret.%d\n", __func__, efuse, ret);
+        pr_err("[%s] Failed: ret.%d\n", __func__, ret);
     }
-    pr_err("[%s] : efuse.%d\n", __func__, efuse);
 
+    pr_err("[%s] : efuse.%d\n", __func__, ret);
     hisp_lock_sharedbuf();
     share_para = rproc_get_share_para();
     if (!share_para) {
@@ -2733,6 +2735,7 @@ static int isp_mbox_rx_thread(void *context)
             mutex_unlock(&rproc_dev->hisi_isp_power_mutex);
             return -ENODEV;
         }
+        hisp_recvthread();
         isp_mbox_rx_work();
         mutex_unlock(&rproc_dev->hisi_isp_power_mutex);
     }
@@ -3043,13 +3046,19 @@ int hisi_isp_rproc_enable(void)
         RPROC_INFO("Failed : isp_rproc.%pK\n", rproc_dev->isp_rproc);
         return -ENOMEM;
     }
-
     if (atomic_read(&rproc_dev->rproc_enable_status) > 0 ) {
         pr_err("[%s] hisi_isp_rproc had been enabled, rproc_enable_status.0x%x\n", __func__, atomic_read(&rproc_dev->rproc_enable_status));
         return -ENODEV;
     }
     else
         atomic_set(&rproc_dev->rproc_enable_status, 1);
+
+    if (rproc_dev->secisp) {
+        if(rproc_dev->sec_thread_wake == 0) {
+            wakeup_secisp_kthread();
+            rproc_dev->sec_thread_wake = 1;
+        }
+    }
 
     rproc = rproc_dev->isp_rproc->rproc;
 
@@ -3727,7 +3736,8 @@ static int hisi_rproc_probe(struct platform_device *pdev)
     int ret;
 
     RPROC_INFO("+\n");
-    rproc_dev->probe_finished = 0;
+    rproc_dev->probe_finished  = 0;
+    rproc_dev->sec_thread_wake = 0;
     rproc_dev->isp_pdev = pdev;
     memset(&rproc_dev->hisi_isp_clk,0,sizeof(struct hisi_isp_clk_dump_s));
     mutex_init(&rproc_dev->sharedbuf_mutex);
@@ -3789,7 +3799,6 @@ static int hisi_rproc_probe(struct platform_device *pdev)
             }
         }
     }
-
 	if ((data = hisi_rproc_data_dtget(dev)) == NULL ) {
 		dev_err(&pdev->dev, "hisi_rproc_data_dtget: %pK\n", data);
 		goto free_regaddr_init;
@@ -3861,7 +3870,9 @@ static int hisi_rproc_probe(struct platform_device *pdev)
 #ifdef ISP_CORESIGHT
     coresight_mem_init(dev);
 #endif
-
+    if ((ret = hisp_rpmsg_rdr_init()) < 0 ) {
+        dev_err(&pdev->dev, "Fail :hisp_rpmsg_rdr_init: %d\n", ret);
+    }
     if (!client_isp)
         client_isp = dsm_register_client(&dev_isp);
     rproc_dev->probe_finished = 1;
@@ -3935,6 +3946,8 @@ static int hisi_rproc_remove(struct platform_device *pdev)
         free_mdc_ion(MEM_MDC_SIZE);
     }
     hisp_regaddr_deinit();
+    if ((ret = hisp_rpmsg_rdr_deinit()) < 0 )
+        RPROC_ERR("Fail :hisp_rpmsg_rdr_deinit: %d\n", ret);
 
     RPROC_INFO("-\n");
     return 0;

@@ -108,6 +108,11 @@ config HUAWEI_CAMERA_USE_IMX600HYBRID
     default n
     depends on HUAWEI_CAMERA
 
+config HUAWEI_CAMERA_USE_IMX600IMX351HYBRID
+    bool "imx600imx351hybrid"
+    default n
+    depends on HUAWEI_CAMERA
+
 config HUAWEI_CAMERA_USE_OV13A40
     bool "ov13a40"
     default n
@@ -135,6 +140,11 @@ config HUAWEI_CAMERA_USE_IMX498HYBIRD_COL
 
 config HUAWEI_CAMERA_USE_IMX576
     bool "imx576"
+    default n
+    depends on HUAWEI_CAMERA
+
+config HUAWEI_CAMERA_USE_IMX616
+    bool "imx616"
     default n
     depends on HUAWEI_CAMERA
 
@@ -765,6 +775,11 @@ config HUAWEI_CAMERA_USE_IMX498IMX550HYBIRD_PAR
         bool "imx498imx550_par"
     default n
         depends on HUAWEI_CAMERA
+
+config HUAWEI_CAMERA_USE_OV16B10OV24AHYBIRD_PAR
+    bool "ov16b10ov24ahybird_par"
+    default n
+    depends on HUAWEI_CAMERA
 
 config HUAWEI_CAMERA_USE_IMX576_PAR
         bool "imx576_par"

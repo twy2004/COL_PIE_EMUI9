@@ -346,21 +346,18 @@ static int dpe_set_pxl_clk_rate(struct hisi_fb_data_type *hisifd)
 	pinfo = &(hisifd->panel_info);
 
 	if (hisifd->index == PRIMARY_PANEL_IDX) {
-		if (hisifd_list[EXTERNAL_PANEL_IDX]) {
-			down(&hisifd_list[EXTERNAL_PANEL_IDX]->blank_sem);
-			if (hisifd_list[EXTERNAL_PANEL_IDX]->panel_power_on
-				&& (hisifd->pipe_clk_ctrl.pipe_clk_rate > pinfo->pxl_clk_rate)) {
-				ret = clk_set_rate(hisifd->dss_pxl0_clk, hisifd->pipe_clk_ctrl.pipe_clk_rate);
-				if (ret) {
-					HISI_FB_ERR("set pipe_clk_rate[%llu] fail, reset to [%llu], ret[%d].\n",
-						hisifd->pipe_clk_ctrl.pipe_clk_rate, pinfo->pxl_clk_rate, ret);
+		if (hisifd_list[EXTERNAL_PANEL_IDX]
+			&& hisifd_list[EXTERNAL_PANEL_IDX]->panel_power_on
+			&& (hisifd->pipe_clk_ctrl.pipe_clk_rate > pinfo->pxl_clk_rate)) {
+			ret = clk_set_rate(hisifd->dss_pxl0_clk, hisifd->pipe_clk_ctrl.pipe_clk_rate);
+			if (ret) {
+				HISI_FB_ERR("set pipe_clk_rate[%llu] fail, reset to [%llu], ret[%d].\n",
+					hisifd->pipe_clk_ctrl.pipe_clk_rate, pinfo->pxl_clk_rate, ret);
 
-					ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
-				}
+				ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
 			} else {
 				ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
 			}
-			up(&hisifd_list[EXTERNAL_PANEL_IDX]->blank_sem);
 		} else {
 			ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
 		}
@@ -538,7 +535,7 @@ int dpe_set_clk_rate(struct platform_device *pdev)
 	return ret;
 }
 
-int dpe_get_voltage_value(struct hisi_fb_data_type *hisifd, dss_vote_cmd_t *vote_cmd)
+int dpe_get_voltage_value(dss_vote_cmd_t *vote_cmd)
 {
 	if (!vote_cmd) {
 		HISI_FB_ERR("vote_cmd is null\n");
@@ -559,7 +556,7 @@ int dpe_get_voltage_value(struct hisi_fb_data_type *hisifd, dss_vote_cmd_t *vote
 	}
 }
 
-int dpe_get_voltage_level(struct hisi_fb_data_type *hisifd, int votage_value)
+int dpe_get_voltage_level(int votage_value)
 {
 	switch (votage_value) {
 		case PERI_VOLTAGE_LEVEL0_065V: // 0.65v
@@ -578,6 +575,11 @@ int dpe_set_pixel_clk_rate_on_pll0(struct hisi_fb_data_type *hisifd)
 {
 	int ret = 0;
 	uint64_t clk_rate;
+
+	if (NULL == hisifd) {
+		HISI_FB_ERR("hisifd is NULL Pointer!\n");
+		return -EINVAL;
+	}
 
 	if (is_dp_panel(hisifd)) {
 		clk_rate = DEFAULT_DSS_PXL1_CLK_RATE_POWER_OFF;
@@ -1595,6 +1597,7 @@ void init_dbuf(struct hisi_fb_data_type *hisifd)
 				thd_flux_req_aftdfs_in = 0x3b9;
 		}
 	}
+	thd_dfs_ok = thd_flux_req_befdfs_in;
 
 	outp32(dbuf_base + DBUF_FRM_SIZE, pinfo->xres * pinfo->yres);
 	outp32(dbuf_base + DBUF_FRM_HSIZE, DSS_WIDTH(pinfo->xres));
@@ -1910,6 +1913,8 @@ void init_ldi(struct hisi_fb_data_type *hisifd, bool fastboot_enable)
 	init_wb_pkg_en(hisifd, fastboot_enable);
 	pipe_sw_ctrl(hisifd);
 
+	hisifb_pipe_clk_updt_handler(hisifd, true);
+
 	if (is_hisync_mode(hisifd)) {
 		hisifb_hisync_disp_sync_enable(hisifd);
 	}
@@ -1918,7 +1923,9 @@ void init_ldi(struct hisi_fb_data_type *hisifd, bool fastboot_enable)
 	if (!fastboot_enable) {
 		set_reg(ldi_base + LDI_CTRL, 0x0, 1, 0);
 	}
-
+	if (pinfo->dpi01_exchange_flag == 1){
+		set_reg(ldi_base + LDI_DPI_SET, 0x01, 1, 0);
+	}
 	HISI_FB_DEBUG("-.!\n");
 }
 /*lint +e712, +e838*/
@@ -2600,8 +2607,8 @@ void init_igm_gmp_xcc_gm(struct hisi_fb_data_type *hisifd)
 					//outp32(gmp_lut_base + i * 2 * 4 + 4, lcp_param->gmp_table_high4[i]);
 					set_reg(gmp_lut_base + i * 2 * 4, lcp_param->gmp_table_low32[i], 32, 0); // lint !e679
 					set_reg(gmp_lut_base + i * 2 * 4 + 4, lcp_param->gmp_table_high4[i], 4, 0); // lint !e679
-					if( 0 == (i%500))
-						HISI_FB_DEBUG("[effect] lcp_param gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,lcp_param->gmp_table_low32[i],i,lcp_param->gmp_table_high4[i]);
+					if (0 == (i % 500))
+						HISI_FB_INFO("[effect] lcp_param gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,lcp_param->gmp_table_low32[i],i,lcp_param->gmp_table_high4[i]);
 				}
 			}
 			spin_unlock(&g_gmp_effect_lock);
@@ -2610,7 +2617,7 @@ void init_igm_gmp_xcc_gm(struct hisi_fb_data_type *hisifd)
 			set_reg(gmp_base + GMP_LUT_SEL, (~(gmp_lut_sel & 0x1)) & 0x1, 1, 0);
 
 			//enable gmp
-			HISI_FB_DEBUG("[effect] gmp enable=%d, gmp_lut_sel=%d\n",lcp_param->gmp_enable,gmp_lut_sel);
+			HISI_FB_INFO("[effect] gmp enable=%d, gmp_lut_sel=%d\n",lcp_param->gmp_enable,gmp_lut_sel);
 			set_reg(gmp_base + GMP_EN, lcp_param->gmp_enable, 1, 0);
 		} else {
 			if (pinfo->gmp_lut_table_len == gmp_cnt_cofe && pinfo->gmp_lut_table_low32bit && pinfo->gmp_lut_table_high4bit) {
@@ -2618,12 +2625,12 @@ void init_igm_gmp_xcc_gm(struct hisi_fb_data_type *hisifd)
 					outp32(gmp_lut_base + i * 2 * 4, pinfo->gmp_lut_table_low32bit[i]);
 					outp32(gmp_lut_base + i * 2 * 4 + 4, pinfo->gmp_lut_table_high4bit[i]);
 					if( 0 == (i%500))
-						HISI_FB_DEBUG("[effect] pinfo gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,pinfo->gmp_lut_table_low32bit[i],i,pinfo->gmp_lut_table_high4bit[i]);
+						HISI_FB_INFO("[effect] pinfo gmp_table_low32[%d]=%d,gmp_table_high4[%d]=%d\n",i,pinfo->gmp_lut_table_low32bit[i],i,pinfo->gmp_lut_table_high4bit[i]);
 				}
 
 				gmp_lut_sel = (uint32_t)inp32(gmp_base + GMP_LUT_SEL);
 				set_reg(gmp_base + GMP_LUT_SEL, (~(gmp_lut_sel & 0x1)) & 0x1, 1, 0);
-				HISI_FB_DEBUG("[effect] gmp_lut_sel=%d\n",gmp_lut_sel);
+				HISI_FB_INFO("[effect] gmp_lut_sel=%d\n",gmp_lut_sel);
 				//not enable gmp
 				set_reg(gmp_base + GMP_EN, 0x0, 1, 0);
 			}

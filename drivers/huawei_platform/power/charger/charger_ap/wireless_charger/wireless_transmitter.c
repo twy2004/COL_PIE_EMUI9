@@ -213,6 +213,19 @@ static void wireless_tx_check_rx_disconnect(struct wireless_tx_device_info *di)
 		di->stop_reverse_charge = true;
 	}
 }
+static void wireless_tx_check_in_tx_mode(struct wireless_tx_device_info *di)
+{
+	bool in_tx_mode = di->tx_ops->in_tx_mode();
+	if (!in_tx_mode) {
+		if (++di->tx_mode_err_cnt >= WL_TX_MODE_ERR_CNT) {
+			hwlog_info("[%s] not in tx mode!\n",__func__);
+			wireless_tx_set_tx_status(WL_TX_STATUS_TX_CLOSE);
+			di->stop_reverse_charge = true;
+		}
+	} else {
+		di->tx_mode_err_cnt = 0;
+	}
+}
 static void wireless_tx_en_enable(struct wireless_tx_device_info *di, bool enable)
 {
 	di->tx_ops->rx_enable(enable);
@@ -274,10 +287,9 @@ static int wireless_tx_power_supply(struct wireless_tx_device_info *di)
 		}
 		count++;
 		hwlog_info("[%s] tx_vin = %dmV, retry times = %d!\n", __func__, tx_vin, count);
-	} while (count < WL_TX_VIN_RETRY_CNT2);
+	} while (count < WL_TX_VIN_RETRY_CNT);
 
 	hwlog_err("%s: power supply for TX fail!\n", __func__);
-	wireless_tx_set_tx_status(WL_TX_STATUS_TX_CLOSE);
 	wireless_tx_dsm_report(ERROR_WIRELESS_TX_POWER_SUPPLY_FAIL, dsm_buff);
 	return WL_TX_FAIL;
 }
@@ -310,29 +322,6 @@ static int wireless_tx_chip_init(struct wireless_tx_device_info *di)
 	}
 	hwlog_info("%s: TX chip init succ!\n", __func__);
 	return WL_TX_SUCC;
-}
-static void wireless_tx_check_in_tx_mode(struct wireless_tx_device_info *di)
-{
-	int ret;
-	bool in_tx_mode = di->tx_ops->in_tx_mode();
-	if (!in_tx_mode) {
-		if (++di->tx_mode_err_cnt >= WL_TX_MODE_ERR_CNT2) {
-			hwlog_err("%s: not in tx mode, close TX!\n",__func__);
-			wireless_tx_set_tx_status(WL_TX_STATUS_TX_CLOSE);
-			di->stop_reverse_charge = true;
-		} else if (di->tx_mode_err_cnt >= WL_TX_MODE_ERR_CNT) {
-			hwlog_err("%s: not in tx mode, reinit TX!\n",__func__);
-			wireless_tx_chip_init(di);
-			if (ret) {
-				hwlog_err("%s: chip_init fail\n", __func__);
-			}
-			wireless_tx_enable_tx_mode(di, true);
-		} else {
-			/*do nothing*/
-		}
-	} else {
-		di->tx_mode_err_cnt = 0;
-	}
 }
 static int wireless_tx_ping_rx(struct wireless_tx_device_info *di)
 {

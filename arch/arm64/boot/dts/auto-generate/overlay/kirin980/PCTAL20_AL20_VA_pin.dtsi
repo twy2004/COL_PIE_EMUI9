@@ -554,8 +554,10 @@
 		};
 
 		gpio181_pmx_func {
+                     pinctrl-single,pins = <0x00C    0x0>;
 		};
 		gpio181_pmx_idle {
+                     pinctrl-single,pins = <0x00C    0x0>;
 		};
 
 		gpio182_pmx_func {
@@ -2294,8 +2296,18 @@
 		};
 
 		gpio181_cfg_func {
+                     pinctrl-single,pins = <0x034  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 		gpio181_cfg_idle {
+                     pinctrl-single,pins = <0x034  0>;
+                     pinctrl-single,bias-pulldown = <2 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 
 		gpio182_cfg_func {

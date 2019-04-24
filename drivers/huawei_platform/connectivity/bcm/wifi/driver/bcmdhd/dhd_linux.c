@@ -2111,6 +2111,7 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 						DHD_ERROR(("nd_ra_filter :%d\n",
 							   ret));
 				}
+				dhd_dev_get_drop_pkt(dhd, 0);
 				dhd_os_suppress_logging(dhd, TRUE);
 #ifdef BCM_PATCH_GC_WAKE_BY_NOA
 				host_suspend = 1;
@@ -2125,6 +2126,7 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 #endif
 				/* Kernel resumed  */
 				DHD_ERROR(("%s: Remove extra suspend setting \n", __FUNCTION__));
+				dhd_dev_get_drop_pkt(dhd, 1);
 #ifdef HW_WATCHDOG_MS
 				dhd_os_wd_timer(dhd, dhd_watchdog_ms);
 #endif
@@ -10956,6 +10958,26 @@ void dhd_apf_unlock(struct net_device *dev)
 {
 	dhd_info_t *dhd = DHD_DEV_INFO(dev);
 	_dhd_apf_unlock_local(dhd);
+}
+
+void
+dhd_dev_get_drop_pkt(dhd_pub_t *dhd, uint32 enable)
+{
+	int ret,i;
+	uint32 filter_id = PKT_FILTER_APF_ID;
+	char smbuf[WLC_IOCTL_SMLEN]={0};
+	wl_pkt_filter_stats_t *filter_stat;
+
+	bcm_mkiovar("pkt_filter_stats", (char *)&(filter_id), 4, smbuf, WLC_IOCTL_SMLEN);
+	ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, smbuf, WLC_IOCTL_SMLEN, FALSE, 0);
+	if (ret < 0) {
+		DHD_ERROR(("%s: failed to get apf filter stats ret=%d\n", __FUNCTION__,ret));
+		return ;
+	}
+
+	filter_stat = (wl_pkt_filter_stats_t *)smbuf;
+	DHD_ERROR(("scr on: %d,forwarded:%d,discarded:%d\n", enable,filter_stat->num_pkts_forwarded,filter_stat->num_pkts_discarded));
+
 }
 
 int

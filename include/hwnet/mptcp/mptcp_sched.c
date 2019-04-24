@@ -65,12 +65,6 @@ static bool mptcp_is_temp_unavailable(struct sock *sk,
 			return true;
 	}
 
-	/* If TSQ is already throttling us, do not send on this subflow. When
-	 * TSQ gets cleared the subflow becomes eligible again.
-	 */
-	if (test_bit(TSQ_THROTTLED, &tp->tsq_flags))
-		return true;
-
 	in_flight = tcp_packets_in_flight(tp);
 	/* Not even a single spot in the cwnd */
 	if (in_flight >= tp->snd_cwnd)
@@ -223,7 +217,7 @@ struct sock *get_available_subflow(struct sock *meta_sk, struct sk_buff *skb,
 {
 	struct mptcp_cb *mpcb = tcp_sk(meta_sk)->mpcb;
 	struct sock *sk;
-	bool force;
+	bool looping = false, force;
 
 	/* if there is only one subflow, bypass the scheduling function */
 	if (mpcb->cnt_subflows == 1) {
@@ -244,6 +238,7 @@ struct sock *get_available_subflow(struct sock *meta_sk, struct sk_buff *skb,
 	}
 
 	/* Find the best subflow */
+restart:
 	sk = get_subflow_from_selectors(mpcb, skb, &subflow_is_active,
 					zero_wnd_test, &force);
 	if (force)
@@ -254,7 +249,7 @@ struct sock *get_available_subflow(struct sock *meta_sk, struct sk_buff *skb,
 
 	sk = get_subflow_from_selectors(mpcb, skb, &subflow_is_backup,
 					zero_wnd_test, &force);
-	if (!force && skb)
+	if (!force && skb) {
 		/* one used backup sk or one NULL sk where there is no one
 		 * temporally unavailable unused backup sk
 		 *
@@ -262,6 +257,12 @@ struct sock *get_available_subflow(struct sock *meta_sk, struct sk_buff *skb,
 		 * sks, so clean the path mask
 		 */
 		TCP_SKB_CB(skb)->path_mask = 0;
+
+		if (!looping) {
+			looping = true;
+			goto restart;
+		}
+	}
 	return sk;
 }
 EXPORT_SYMBOL_GPL(get_available_subflow);
@@ -467,13 +468,33 @@ struct mptcp_sched_ops mptcp_sched_default = {
 static struct mptcp_sched_ops *mptcp_sched_find(const char *name)
 {
 	struct mptcp_sched_ops *e;
+	char tmp_name[MPTCP_SCHED_NAME_MAX] = {0};
+	if (strcmp(name, MPTCP_SCHED_NAME_HANDOVER) == 0)
+		strncpy(tmp_name, MPTCP_SCHED_NAME_REDUNDANT, MPTCP_SCHED_NAME_MAX - 1);
+	else
+		strncpy(tmp_name, name, MPTCP_SCHED_NAME_MAX - 1);
 
 	list_for_each_entry_rcu(e, &mptcp_sched_list, list) {
-		if (strcmp(e->name, name) == 0)
+		if (strcmp(e->name, tmp_name) == 0)
 			return e;
 	}
 
 	return NULL;
+}
+
+bool mptcp_sched_check_exist(const char *name)
+{
+	bool ret = false;
+
+	if (!name)
+		return ret;
+
+	spin_lock(&mptcp_sched_list_lock);
+	if (mptcp_sched_find(name))
+		ret = true;
+	spin_unlock(&mptcp_sched_list_lock);
+
+	return ret;
 }
 
 int mptcp_register_scheduler(struct mptcp_sched_ops *sched)
@@ -522,7 +543,8 @@ void mptcp_get_default_scheduler(char *name)
 
 	rcu_read_lock();
 	sched = list_entry(mptcp_sched_list.next, struct mptcp_sched_ops, list);
-	strncpy(name, sched->name, MPTCP_SCHED_NAME_MAX);
+	(void)strncpy(name, sched->name, MPTCP_SCHED_NAME_MAX);
+	name[MPTCP_SCHED_NAME_MAX - 1] = '\0';
 	rcu_read_unlock();
 }
 
@@ -606,11 +628,21 @@ int mptcp_set_scheduler(struct sock *sk, const char *name)
 
 	if (!sched) {
 		err = -ENOENT;
-	} else if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN)) {
+	}/* else if (!ns_capable(sock_net(sk)->user_ns, CAP_NET_ADMIN)) {
 		err = -EPERM;
-	} else {
-		strcpy(tcp_sk(sk)->mptcp_sched_name, name);
+	} */else {
+		(void)strncpy(tcp_sk(sk)->mptcp_sched_name, name, MPTCP_SCHED_NAME_MAX);
+		tcp_sk(sk)->mptcp_sched_name[MPTCP_SCHED_NAME_MAX - 1] = '\0';
 		tcp_sk(sk)->mptcp_sched_setsockopt = 1;
+
+		if (0 == strcmp(name, MPTCP_SCHED_NAME_HANDOVER)) {
+			if (0 == *(u32 *)(tcp_sk(sk)->mptcp_sched_params))
+				*(u32 *)(tcp_sk(sk)->mptcp_sched_params) =
+					MPTCP_HANDOVER_DEFAULT_RTT_THR;
+		}
+
+		if (0 == strcmp(name, MPTCP_SCHED_NAME_REDUNDANT))
+			*(u32 *)(tcp_sk(sk)->mptcp_sched_params) = 0;
 	}
 	rcu_read_unlock();
 

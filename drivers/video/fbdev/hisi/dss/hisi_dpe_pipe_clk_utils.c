@@ -17,7 +17,6 @@ static int hisifb_change_pipe_clk_rate(struct hisi_fb_data_type *hisifd, uint64_
 {
 	int ret = -1;
 
-	HISI_FB_DEBUG("fb%d, +.\n", hisifd->index);
 	if (hisifd->dss_pxl0_clk) {
 		ret = clk_set_rate(hisifd->dss_pxl0_clk, pipe_clk_rate); //ppll0 div
 		if (ret < 0) {
@@ -32,7 +31,7 @@ static int hisifb_change_pipe_clk_rate(struct hisi_fb_data_type *hisifd, uint64_
 			}
 		}
 
-		HISI_FB_INFO("dss_pxl0_clk:[%llu]->[%llu].\n",
+		HISI_FB_INFO("dss_pxl0_clk:set[%llu], get[%llu].\n",
 			pipe_clk_rate, (uint64_t)clk_get_rate(hisifd->dss_pxl0_clk));
 	}
 
@@ -73,11 +72,25 @@ static int hisifb_pipe_clk_updt_config(struct hisi_fb_data_type *hisifd)
 	mipi_idx = is_dual_mipi_panel(hisifd) ? 1 : 0;
 	pxl0_divxcfg = g_mipi_ifbc_division[mipi_idx][pinfo->ifbc_type].pxl0_divxcfg;
 	pxl0_divxcfg = (pxl0_divxcfg + 1) * pipe_clk_ctrl->pipe_clk_rate_div;
+
 	set_reg(ldi_base + LDI_PXL0_DIVXCFG, (pxl0_divxcfg - 1), 3, 0);
+	if (pxl0_divxcfg > 1) {
+		set_reg(ldi_base + LDI_PXL0_DSI_GT_EN, 3, 2, 0);
+	} else {
+		set_reg(ldi_base + LDI_PXL0_DSI_GT_EN, 1, 2, 0);
+	}
+
+	HISI_FB_INFO("fullhdplus[%d], set pxl0_divxcfg[%d].\n", pipe_clk_ctrl->fullhdplus, pxl0_divxcfg - 1);
+
+	if ((pipe_clk_ctrl->pipe_clk_updt_hporch[0] == pinfo->ldi.h_back_porch)
+		&& (pipe_clk_ctrl->pipe_clk_updt_hporch[1] == pinfo->ldi.h_front_porch)
+		&& (pipe_clk_ctrl->pipe_clk_updt_hporch[2] == pinfo->ldi.h_pulse_width)) {
+		return ret;
+	}
 
 	if (is_mipi_video_panel(hisifd)) {
 		outp32(ldi_base + LDI_DPI0_HRZ_CTRL0,
-				pipe_clk_ctrl->pipe_clk_updt_hporch[1] | ((pipe_clk_ctrl->pipe_clk_updt_hporch[0] + DSS_WIDTH(pipe_clk_ctrl->pipe_clk_updt_hporch[2])) << 16));
+			pipe_clk_ctrl->pipe_clk_updt_hporch[1] | ((pipe_clk_ctrl->pipe_clk_updt_hporch[0] + DSS_WIDTH(pipe_clk_ctrl->pipe_clk_updt_hporch[2])) << 16));
 	} else {
 		outp32(ldi_base + LDI_DPI0_HRZ_CTRL0, pipe_clk_ctrl->pipe_clk_updt_hporch[1] | (pipe_clk_ctrl->pipe_clk_updt_hporch[0] << 16));
 		outp32(ldi_base + LDI_DPI0_HRZ_CTRL1, DSS_WIDTH(pipe_clk_ctrl->pipe_clk_updt_hporch[2]));
@@ -92,10 +105,7 @@ static int hisifb_pipe_clk_updt_config(struct hisi_fb_data_type *hisifd)
 		}
 	}
 
-	HISI_FB_INFO("set pipe_clk_updt: rate[%llu], div[%d], pxl0_divxcfg[%d]; updt hporch: hbp[%d], hfp[%d], hpw[%d].\n",
-		pipe_clk_ctrl->pipe_clk_rate,
-		pipe_clk_ctrl->pipe_clk_rate_div,
-		pxl0_divxcfg,
+	HISI_FB_INFO("updt hporch: hbp[%d], hfp[%d], hpw[%d].\n",
 		pipe_clk_ctrl->pipe_clk_updt_hporch[0],
 		pipe_clk_ctrl->pipe_clk_updt_hporch[1],
 		pipe_clk_ctrl->pipe_clk_updt_hporch[2]);
@@ -121,29 +131,24 @@ int hisifb_pipe_clk_updt_handler(struct hisi_fb_data_type *primary_hisifd, bool 
 
 	pinfo = &(primary_hisifd->panel_info);
 	if (NULL == pinfo) {
+		HISI_FB_ERR("pinfo is null.\n");
 		return -EINVAL;
 	}
 	pipe_clk_ctrl = &(primary_hisifd->pipe_clk_ctrl);
 
-	HISI_FB_INFO("+, primary_panel_pwr_on[%d].\n", primary_panel_pwr_on);
+	HISI_FB_DEBUG("+, primary_panel_pwr_on[%d].\n", primary_panel_pwr_on);
 
 	if (primary_panel_pwr_on) {
-		if (hisifd_list[EXTERNAL_PANEL_IDX]) {
-			down(&hisifd_list[EXTERNAL_PANEL_IDX]->blank_sem0);
-			if ((hisifd_list[EXTERNAL_PANEL_IDX]->panel_power_on)
-				&& (pipe_clk_ctrl->pipe_clk_rate > pinfo->pxl_clk_rate)) {
-				ret = hisifb_pipe_clk_updt_config(primary_hisifd);
-			}
-			up(&hisifd_list[EXTERNAL_PANEL_IDX]->blank_sem0);
+		if (hisifd_list[EXTERNAL_PANEL_IDX]
+			&& hisifd_list[EXTERNAL_PANEL_IDX]->panel_power_on
+			&& (pipe_clk_ctrl->pipe_clk_rate > pinfo->pxl_clk_rate)) {
+			ret = hisifb_pipe_clk_updt_config(primary_hisifd);
 		}
 	} else {
-		if (pipe_clk_ctrl->pipe_clk_rate < pinfo->pxl_clk_rate) {
-			HISI_FB_INFO("pipe_clk_rate[%llu] is less than pxl0_clk_rate[%llu].\n",
-				pipe_clk_ctrl->pipe_clk_rate, pinfo->pxl_clk_rate);
-			return ret;
-		}
 		/*only for pipe_clk_updt in vactive_end*/
-		ret = hisifb_pipe_clk_updt_config(primary_hisifd);
+		if (pipe_clk_ctrl->pipe_clk_rate >= pinfo->pxl_clk_rate) {
+			ret = hisifb_pipe_clk_updt_config(primary_hisifd);
+		}
 	}
 
 	HISI_FB_DEBUG("-.\n");
@@ -275,17 +280,102 @@ static uint64_t calc_pipe_clk_rate_by_ppll(uint64_t ppll_clk_rate, uint64_t dp_p
 	return pipe_clk_rate_ppll;
 }
 
+static int get_pxl_clk_div_by_ppll(uint64_t pxl_clk_rate, uint64_t ppll_clk_rate, int *out_div)
+{
+	uint32_t div = 1;
+	int ret = 0;
+
+	if (ppll_clk_rate != CRGPERI_PLL0_CLK_RATE
+		&& ppll_clk_rate != CRGPERI_PLL2_CLK_RATE
+		&& ppll_clk_rate != CRGPERI_PLL3_CLK_RATE) {
+		HISI_FB_ERR("wrong ppll_clk_rate[%llu], which must be configed in panel init.\n", ppll_clk_rate);
+		return -1;
+	}
+
+	if (ppll_clk_rate < pxl_clk_rate) {
+		ret = -1;
+	} else if (ppll_clk_rate == pxl_clk_rate) {
+		div = 1;
+	} else {
+		for (div = 1; div < 20; div++) {
+			if ((ppll_clk_rate / div) <= pxl_clk_rate) {
+				break;
+			}
+		}
+		if (div < 1) {
+			ret = -2;
+		}
+	}
+
+	if (ret) {
+		HISI_FB_ERR("ret=%d, pxl_clk_rate[%llu], div[%d].\n", ret, pxl_clk_rate, div);
+	}
+	*out_div = div;
+
+	return ret;
+}
+
 static int get_para_for_pipe_clk_updt(struct hisi_fb_data_type *hisifd, uint64_t dp_pxl_clk_rate)
 {
 	struct hisi_panel_info *pinfo = NULL;
+	struct hisifb_pipe_clk *pipe_clk_ctrl = NULL;
 	uint64_t pipe_clk_rate;
 	uint64_t pipe_clk_rate_ppll[3];
 	uint32_t pipe_clk_rate_div = 1;
 	int count;
 	int ret = 0;
 	uint64_t pxl_clk_rate_max_080v = 645000000UL;
+	int pxl0_div =1;
 
 	pinfo = &(hisifd->panel_info);
+	pipe_clk_ctrl = &(hisifd->pipe_clk_ctrl);
+
+	if (hisifd->pipe_clk_ctrl.fullhdplus) {
+		ret = get_pxl_clk_div_by_ppll(pinfo->pxl_clk_rate, pipe_clk_ctrl->pxl0_ppll_rate, &pxl0_div);
+		switch (pxl0_div) {
+			case 10:
+			case 8:
+			case 6:
+				pipe_clk_ctrl->pipe_clk_rate_div = 2;
+				break;
+			case 9:
+				pipe_clk_ctrl->pipe_clk_rate_div = 3;
+				break;
+			default:
+				ret = -1;
+				break;
+		}
+
+		if (!ret) {
+			pipe_clk_ctrl->pipe_clk_rate = (CRGPERI_PLL0_CLK_RATE / (pxl0_div / pipe_clk_ctrl->pipe_clk_rate_div)) + 1;//lint !e573
+			pipe_clk_ctrl->pipe_clk_updt_hporch[0] = pinfo->ldi.h_back_porch;
+			pipe_clk_ctrl->pipe_clk_updt_hporch[1] = pinfo->ldi.h_front_porch;
+			pipe_clk_ctrl->pipe_clk_updt_hporch[2] = pinfo->ldi.h_pulse_width;
+			if (pipe_clk_ctrl->pipe_clk_rate < dp_pxl_clk_rate) {
+				ret = -1;
+				HISI_FB_INFO("pipe_clk_rate is less than pipe_clk_rate\n");
+			}
+		}
+
+		if (ret) {
+			if (pipe_clk_ctrl->hporch_pre_set[0] != 0) {
+				pipe_clk_ctrl->pipe_clk_rate = 600000000;
+				pipe_clk_ctrl->pipe_clk_rate_div = pipe_clk_ctrl->div_pre_set;
+				pipe_clk_ctrl->pipe_clk_updt_hporch[0] = pipe_clk_ctrl->hporch_pre_set[0];
+				pipe_clk_ctrl->pipe_clk_updt_hporch[1] = pipe_clk_ctrl->hporch_pre_set[1];
+				pipe_clk_ctrl->pipe_clk_updt_hporch[2] = pipe_clk_ctrl->hporch_pre_set[2];
+				HISI_FB_INFO("self-adaption not support, use pre-set value\n");
+				if (pipe_clk_ctrl->pipe_clk_rate < dp_pxl_clk_rate) {
+					HISI_FB_ERR("pre-set value is less than pipe_clk_rate\n");
+				}
+				ret = 0;
+			} else {
+				HISI_FB_ERR("DP might not be support on this phone\n");
+				ret = -1;
+			}
+		}
+		return ret;
+	}
 
 	pipe_clk_rate_ppll[0] = calc_pipe_clk_rate_by_ppll(CRGPERI_PLL0_CLK_RATE, dp_pxl_clk_rate);
 	pipe_clk_rate_ppll[1] = calc_pipe_clk_rate_by_ppll(CRGPERI_PLL2_CLK_RATE, dp_pxl_clk_rate);
@@ -556,6 +646,7 @@ static void hisi_pipe_clk_updt_work_handler(struct work_struct *work)
 {
 	struct hisi_fb_data_type *hisifd = NULL;
 	struct hisifb_pipe_clk *pipe_clk_ctrl = NULL;
+	int delay_count = 0;
 
 	pipe_clk_ctrl = container_of(work, struct hisifb_pipe_clk, pipe_clk_handle_work);
 	hisifd = pipe_clk_ctrl->hisifd;
@@ -594,6 +685,16 @@ static void hisi_pipe_clk_updt_work_handler(struct work_struct *work)
 
 	hisifb_activate_vsync(hisifd);
 	disable_ldi(hisifd);
+
+	while((inp32(hisifd->dss_base + DSS_LDI0_OFFSET + LDI_VSTATE) & 0x7FF) != 0x1) {
+		if (++delay_count > 16) {
+			HISI_FB_ERR("wait ldi vstate idle timeout.\n");
+			break;
+		}
+		msleep(1);
+	}
+	HISI_FB_INFO("wait ldi vstate idle %d ms.\n", delay_count);
+
 	if (hisifb_pipe_clk_updt_handler(hisifd, false) < 0) {
 		pipe_clk_ctrl->pipe_clk_updt_state = PARA_UPDT_NEED;
 		pipe_clk_ctrl->pipe_clk_updt_times ++;
@@ -632,10 +733,9 @@ void hisifb_pipe_clk_updt_isr_handler(struct hisi_fb_data_type *hisifd)
 		pipe_clk_ctrl->pipe_clk_updt_state = PARA_UPDT_END;
 		return;
 	}
-	if ((inp32(hisifd->dss_base + DSS_LDI0_OFFSET + LDI_CTRL) & 0x1) != 0) {
-		HISI_FB_INFO("disable ldi fail, continue trying to update pipe_clk.\n");
-	}
+
 	queue_work(pipe_clk_ctrl->pipe_clk_handle_wq, &(pipe_clk_ctrl->pipe_clk_handle_work));
+
 	return;
 }
 
@@ -664,6 +764,17 @@ void hisifb_pipe_clk_updt_work_init(struct hisi_fb_data_type *hisifd)
 	pipe_clk_ctrl->underflow_int = 0;
 	pipe_clk_ctrl->pipe_clk_updt_state = PARA_UPDT_END;
 	pipe_clk_ctrl->dirty_region_updt_disable = 0;
+
+	/*FIXME:delete this, config in panel init*/
+	pipe_clk_ctrl->pxl0_ppll_rate = CRGPERI_PLL0_CLK_RATE;
+
+	if ((hisifd->panel_info.xres == 1080)
+		&& (hisifd->panel_info.yres > 1920)
+		&& is_mipi_video_panel(hisifd)) {
+		pipe_clk_ctrl->fullhdplus = 1;
+	} else {
+		pipe_clk_ctrl->fullhdplus = 0;
+	}
 
 	pipe_clk_ctrl->pipe_clk_handle_wq = create_singlethread_workqueue("pipe_clk_updt_work");
 	if (!pipe_clk_ctrl->pipe_clk_handle_wq) {

@@ -1419,6 +1419,7 @@ void ts_kit_tui_secos_init(void)
 	}
 
 	if (!g_ts_kit_platform_data.chip_data->report_tui_enable) {
+		ts_stop_wd_timer(&g_ts_kit_platform_data);
 		disable_irq(g_ts_kit_platform_data.irq_id);
 		times = 0;
 		while (times < TS_FB_LOOP_COUNTS) {
@@ -1450,6 +1451,7 @@ void ts_kit_tui_secos_exit(void)
 	int ret = 0;
 
 	if (g_ts_kit_platform_data.chip_data->report_tui_enable) {
+		ts_start_wd_timer(&g_ts_kit_platform_data);
 		if (TS_BUS_I2C == g_ts_kit_platform_data.bops->btype) {
 			i2c_exit_secos(g_ts_kit_platform_data.client->adapter);
 		} else {
@@ -1468,20 +1470,27 @@ void ts_kit_tui_secos_exit(void)
 
 		if (g_ts_kit_platform_data.chip_data->tui_set_flag & 0x1) {
 			TS_LOG_INFO("TUI exit, do before suspend\n");
-			ts_kit_power_control_notify(TS_BEFORE_SUSPEND,
+			ret = ts_kit_power_control_notify(TS_BEFORE_SUSPEND,
 						SHORT_SYNC_TIMEOUT);
+			if (ret) {
+				TS_LOG_ERR("ts beforce suspend device err\n");
+			}
 		}
 
 		if (g_ts_kit_platform_data.chip_data->tui_set_flag & 0x2) {
 			TS_LOG_INFO("TUI exit, do suspend\n");
-			ts_kit_power_control_notify(TS_SUSPEND_DEVICE,
+			ret = ts_kit_power_control_notify(TS_SUSPEND_DEVICE,
 						NO_SYNC_TIMEOUT);
+			if (ret) {
+				TS_LOG_ERR("ts suspend device err\n");
+			}
 		}
 
 		g_ts_kit_platform_data.chip_data->tui_set_flag = 0;
 		TS_LOG_INFO("ts_kit_tui_secos_exit: report_tui_enable is %d\n",
 			    g_ts_kit_platform_data.chip_data->report_tui_enable);
 	}
+	return ;
 }
 
 static int tui_tp_init(void *data, int secure)
@@ -2869,9 +2878,7 @@ static long ts_ioctl_get_fingers_info(unsigned long arg)
                 atomic_set(&g_ts_kit_platform_data.fingers_waitq_flag, AFT_WAITQ_IGNORE);
                 return -EINVAL;
 	}
-	//TS_LOG_ERR("[MUTI_AFT] get_fingers_info status:%d, x:%d, y:%d,major:%d, minor:%d\n",g_ts_kit_platform_data.fingers_send_aft_info.fingers[0].status,
-		//g_ts_kit_platform_data.fingers_send_aft_info.fingers[0].x,g_ts_kit_platform_data.fingers_send_aft_info.fingers[0].y,
-		//g_ts_kit_platform_data.fingers_send_aft_info.fingers[0].major,g_ts_kit_platform_data.fingers_send_aft_info.fingers[0].minor);
+
 	if(atomic_read(&g_ts_kit_platform_data.fingers_waitq_flag) == AFT_WAITQ_WAKEUP)
 	{
 		if (copy_to_user(argp, &g_ts_kit_platform_data.fingers_send_aft_info,
@@ -2960,8 +2967,7 @@ static long ts_ioctl_set_coordinates(unsigned long arg)
         {
             if (lcdkit_fps_support_query() && lcdkit_fps_tscall_support_query())
                 lcdkit_fps_ts_callback();
-            //TS_LOG_ERR("[MUTI_AFT] down: id is %d, finger->fingers[id].pressure = %d, finger->fingers[id].x = %d, finger->fingers[id].y = %d\n",
-                        // id, finger->fingers[id].pressure, finger->fingers[id].x, finger->fingers[id].y);
+
             finger_num++;
             input_report_abs(input_dev, ABS_MT_PRESSURE, finger->fingers[id].pressure);
             input_report_abs(input_dev, ABS_MT_POSITION_X, finger->fingers[id].x);
@@ -3046,10 +3052,6 @@ static long ts_ioctl_set_coordinates(unsigned long arg)
 
 
     atomic_set(&g_ts_kit_data_report_over, 1);
-    /*TS_LOG_ERR("[MUTI_AFT] set_coordinates status:%d, x:%d, y:%d,major:%d, minor:%d \n",g_ts_kit_platform_data.fingers_recv_aft_info.fingers[0].status,
-		g_ts_kit_platform_data.fingers_recv_aft_info.fingers[0].x,g_ts_kit_platform_data.fingers_recv_aft_info.fingers[0].y,
-		g_ts_kit_platform_data.fingers_recv_aft_info.fingers[0].major,g_ts_kit_platform_data.fingers_recv_aft_info.fingers[0].minor);
-    up(&g_ts_kit_platform_data.fingers_aft_done); */
     return 0;
 }
 static int aft_get_info_misc_open(struct inode* inode, struct file* filp)

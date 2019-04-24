@@ -66,23 +66,28 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 
 	adapt_ops = lcd_kit_get_adapt_ops();
 	if (!adapt_ops) {
+		LCD_KIT_ERR("can not register adapt_ops!\n");
 		return LCD_KIT_FAIL;
 	}
 
 	if (NULL == pdev) {
+		LCD_KIT_ERR("NULL Pointer\n");
 		return LCD_KIT_FAIL;
 	}
 	hisifd = platform_get_drvdata(pdev);
 
 	if (NULL == hisifd) {
+		LCD_KIT_ERR("NULL Pointer\n");
 		return LCD_KIT_FAIL;
 	}
+	LCD_KIT_INFO("backlight_type is %d\n", backlight_type);
 
 	max_backlight = g_max_backlight_from_app;
 	min_backlight = g_min_backlight_from_app;
 	hisifb_display_effect_fine_tune_backlight(hisifd, g_min_backlight_from_app, (int*)&min_backlight);
 	bl_delay_time = FRAME_TIME * (hisifd->panel_info.bl_delay_frame);
 
+	LCD_KIT_INFO("panel_version is %s\n", hisifd->panel_info.lcd_panel_version);
 
 	if (!strcmp(hisifd->panel_info.lcd_panel_version, " VER:VN1")
 		||!strcmp(hisifd->panel_info.lcd_panel_version, " VER:V4")){
@@ -115,6 +120,7 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 					ret = adapt_ops->mipi_tx((void *)hisifd, &common_info->hbm.prepare_cmds_fou);
 				}
 				else {
+					LCD_KIT_INFO("backlight level is too high or too low when fingerprint.\n");
 				}
 			}
 		}
@@ -131,6 +137,7 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 			//if timer is not timeout, restart timer
 			mod_timer(&backlight_second_timer, (jiffies + 12*HZ/10));// 1.2s
 		}
+		LCD_KIT_INFO("backlight_type is (%d), set_backlight is (%d)\n", backlight_type, max_backlight);
 		break;
 	case BACKLIGHT_LOW_LEVEL:
 		if(disp_info->bl_is_start_second_timer == true) {
@@ -159,17 +166,21 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 					ret = adapt_ops->mipi_tx((void *)hisifd, &common_info->hbm.exit_cmds_fou);
 				}
 				else {
+					LCD_KIT_INFO("backlight level is too high or too low when fingerprint.\n");
 				}
 			}
 		}
+
+		LCD_KIT_INFO("backlight_type is (%d), set_backlight is (%d)\n", backlight_type, min_backlight);
 		break;
 	default:
+		LCD_KIT_ERR("backlight_type is not define(%d).\n", backlight_type);
 		break;
 	}
 	return ret;
 }
 
-static int lcd_set_vss_by_thermal(void *hld)
+static int boe_r66451_set_vss_by_thermal(void *hld)
 {
 	int ret = LCD_KIT_OK;
 	int bl_level = 0;
@@ -196,6 +207,7 @@ static int lcd_set_vss_by_thermal(void *hld)
 	thermal_zone = thermal_zone_get_zone_by_name("shell_front");
 	if(IS_ERR_OR_NULL(thermal_zone)){
 		LCD_KIT_ERR("Failed getting thermal zone!\n");
+		thermal_zone = NULL;
 		return LCD_KIT_FAIL;
 	}
 	ret = thermal_zone_get_temp(thermal_zone, &current_thermal);
@@ -222,8 +234,8 @@ static int lcd_set_vss_by_thermal(void *hld)
 	}
 	bl_level = common_info->set_vss.new_backlight;
 
-	LCD_KIT_DEBUG("[boe_set_vss] enter_times = %d, descend_flag = %d\n", enter_times, descend_flag);
-	LCD_KIT_DEBUG("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
+	LCD_KIT_INFO("[boe_set_vss] enter_times = %d, descend_flag = %d\n", enter_times, descend_flag);
+	LCD_KIT_INFO("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
 	if((enter_times == FIRST_TIME || descend_flag)&&(zone_flag != ZONE_FIRST)&&(current_thermal <= CRITICAL_THERAML1)&&(bl_level >= BL_LEVEL1 && bl_level < BL_LEVEL2)){
 		if(adapt_ops->mipi_tx) {
 			ret = adapt_ops->mipi_tx((void *)hisifd, &common_info->set_vss.cmds_fir);
@@ -249,14 +261,14 @@ static int lcd_set_vss_by_thermal(void *hld)
 		mini_thermal = current_thermal;
 	}
 	enter_times = FIRST_TIME;
-	LCD_KIT_DEBUG("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
+	LCD_KIT_INFO("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
 
 	return ret;
 }
 
 static struct lcd_kit_panel_ops boe_r66451_ops = {
 	.lcd_kit_set_backlight_by_type = boe_r66451_set_backlight_by_type,
-	.lcd_set_vss_by_thermal = lcd_set_vss_by_thermal,
+	.lcd_set_vss_by_thermal = boe_r66451_set_vss_by_thermal,
 };
 
 int boe_r66451_probe(void)

@@ -1,15 +1,50 @@
-/******************************************************************************
-
-  Copyright(C)2008,Hisilicon Co. LTD.
-
- ******************************************************************************
-  File Name       : AppNasComm.h
-  Description     : AppNasComm.h header file
-  History         :
-      1.sunbing       2008-12-17   Draft Enact
-      2.lihong        2009-09-22   Modify
-
-******************************************************************************/
+/*
+ * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
+ * foss@huawei.com
+ *
+ * If distributed as part of the Linux kernel, the following license terms
+ * apply:
+ *
+ * * This program is free software; you can redistribute it and/or modify
+ * * it under the terms of the GNU General Public License version 2 and
+ * * only version 2 as published by the Free Software Foundation.
+ * *
+ * * This program is distributed in the hope that it will be useful,
+ * * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * * GNU General Public License for more details.
+ * *
+ * * You should have received a copy of the GNU General Public License
+ * * along with this program; if not, write to the Free Software
+ * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
+ *
+ * Otherwise, the following license terms apply:
+ *
+ * * Redistribution and use in source and binary forms, with or without
+ * * modification, are permitted provided that the following conditions
+ * * are met:
+ * * 1) Redistributions of source code must retain the above copyright
+ * *    notice, this list of conditions and the following disclaimer.
+ * * 2) Redistributions in binary form must reproduce the above copyright
+ * *    notice, this list of conditions and the following disclaimer in the
+ * *    documentation and/or other materials provided with the distribution.
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
+ * *    without specific prior written permission.
+ *
+ * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 
 #ifndef __APPNASCOMM_H__
 #define __APPNASCOMM_H__
@@ -188,21 +223,28 @@ extern "C" {
 #define APP_ERR_SM_BACKOFF_ALG_NOT_ALLOWED_PERM             (APP_ERR_SM_SECTION_BEGIN + 39)
 #define APP_ERR_SM_BACKOFF_ALG_NOT_ALLOWED_TEMP             (APP_ERR_SM_SECTION_BEGIN + 40)
 #define APP_ERR_SM_BACKOFF_ALG_NOT_ALLOWED_RSV              (APP_ERR_SM_SECTION_BEGIN + 41)
+
 #define APP_ERR_SM_THROT_T3396_IS_RUNNING                   (APP_ERR_SM_SECTION_BEGIN + 42)
+
 #define APP_ERR_SM_NAS_SIG_LOW_PRIORITY_NOT_SUPPROT         (APP_ERR_SM_SECTION_BEGIN + 43)
 
 #define APP_ERR_SM_NAS_MO_SIG_ACCESS_BAR                    (APP_ERR_SM_SECTION_BEGIN + 44)
 #define APP_ERR_SM_MAX_EPS_NUM_REACHED                      (APP_ERR_SM_SECTION_BEGIN + 45)
+
 #define APP_ERR_SM_THROT_BACKOFF_IS_RUNNING                 (APP_ERR_SM_SECTION_BEGIN + 46)
+
 #define APP_ERR_SM_MM_NOT_SYNC                              (APP_ERR_SM_SECTION_BEGIN + 47)
 #define APP_ERR_SM_NW_RECONFIGURE                           (APP_ERR_SM_SECTION_BEGIN + 48)
 #define APP_ERR_SM_DELETE_SDF                               (APP_ERR_SM_SECTION_BEGIN + 49)
+
 #define APP_ERR_SM_NOT_IN_ACL_LIST                          (APP_ERR_SM_SECTION_BEGIN + 50)
 #define APP_ERR_SM_APN_DISABLE                              (APP_ERR_SM_SECTION_BEGIN + 51)
 #define APP_ERR_SM_IMS_DEREG_NOT_ATTACH                     (APP_ERR_SM_SECTION_BEGIN + 52)
+
 #define APP_ERR_SM_BEARER_ALLOC_NOT_ALLOWED     (APP_ERR_SM_SECTION_BEGIN + 53)
 
 #define APP_ERR_SM_BEARER_MOD_NOT_ALLOWED     (APP_ERR_SM_SECTION_BEGIN + 54)
+
 
 /* SM与网侧错误码 */
 #define APP_ERR_SM_NW_OPERATOR_DETERMINED_BARRING           (APP_ERR_SM_NW_SECTION_BEGIN + 0)
@@ -246,9 +288,12 @@ extern "C" {
 #define APP_ERR_SM_NW_APN_RESTRICTION_INCOMPATIBLE_WITH_ACT_EPS_BEARER  (APP_ERR_SM_NW_SECTION_BEGIN + 38)
 #define APP_ERR_SM_NW_UNSUPPORTED_QCI_VALUE                 (APP_ERR_SM_NW_SECTION_BEGIN + 39)
 #define APP_ERR_SM_NW_APN_NOT_SUPPORT_IN_CURRENT_RAT_AND_PLMN     (APP_ERR_SM_NW_SECTION_BEGIN + 40)
+
 #define APP_ERR_SM_NW_REACTIVATION_REQUESTED                      (APP_ERR_SM_NW_SECTION_BEGIN + 41)
+
 #define APP_ERR_SM_NW_BEARER_HANDLING_NOT_SUPPORTED               (APP_ERR_SM_NW_SECTION_BEGIN + 42)
 #define APP_ERR_SM_NW_MAXIMUM_NUMBER_OF_EPS_BEARERS_REACHED       (APP_ERR_SM_NW_SECTION_BEGIN + 43)
+
 
 #define NAS_MM_MAX_TA_NUM               64                  /* TA 列表最大个数 */
 #define NAS_MM_MAX_LA_NUM               64                  /* LA 列表最大个数 */
@@ -297,14 +342,11 @@ extern "C" {
 #define NAS_LMM_DAM_NV_CSERVICE_MIN_VALUE     1
 #define NAS_LMM_DAM_CSERVICE_DEFAULT_VALUE    5
 
-
 #define NAS_TMO_IMSI_HPLMN_MAX_NUM       8
 #define NAS_MM_MAX_HOME_NODEB_NAME_LEN  (48)
 
 #define NAS_MM_MAX_T3402_PLMN_NUM       (16)
-
 #define NAS_MT_DETACH_TAU_PLMN_MAX_NUM  (6)
-
 #define NAS_MM_MAX_T3396_PLMN_NUM       (7)
 #define NAS_LMM_BAND_MAX_LENTH          (8)
 
@@ -417,7 +459,6 @@ enum NAS_LMM_CS_SERVICE_ENUM
 typedef VOS_UINT32   NAS_LMM_CS_SERVICE_ENUM_UINT32;
 
 
-/* h41410 for ue mode begin */
 /*****************************************************************************
  枚举名    : NAS_LMM_GU_UE_MODE_ENUM
  结构说明  : GU的UE操作模式
@@ -506,7 +547,6 @@ typedef VOS_UINT32  NAS_EMM_USAGE_SETTING_UINT32;
 
 typedef NAS_EMM_USAGE_SETTING_UINT32    LNAS_LMM_UE_CENTER_ENUM_UINT32;
 
-/* h41410 CHANGE for ue mode */
 
 
 /*****************************************************************************
@@ -536,7 +576,6 @@ enum NAS_ESM_BEARER_PRIO_ENUM
    NAS_ESM_BEARER_PRIO_BUTT
 };
 typedef VOS_UINT32   NAS_ESM_BEARER_PRIO_ENUM_UINT32;
-
 
 /*****************************************************************************
  结构名称: LRRC_LNAS_CELL_TYPE_ENUM_UINT8
@@ -1011,6 +1050,7 @@ typedef struct
     VOS_UINT32                          ulCellStatus;
     VOS_UINT32                          aulLteBand[NAS_LMM_BAND_MAX_LENTH];
     VOS_UINT32                          ulArfcn;                                /* 驻留频点信息 */
+
     VOS_UINT16                          usPhysCellId;               /* 物理小区ID */
     NAS_MM_CELL_TYPE_ENUM_UINT8         ucCellType;
     VOS_UINT8                           ucAccessType;
@@ -1228,7 +1268,6 @@ typedef struct
     VOS_UINT8                           aucOp[NAS_EMM_SOFT_USIM_OP_LEN];
 }NAS_EMM_SOFT_USIM_AUTH_PARAM_STRU;
 
-/*self-adaption NW cause modify begin for leili*/
 
 /*****************************************************************************
 结构名称    :NAS_LMM_ADAPTION_CAUSE_STRU
@@ -1252,8 +1291,6 @@ typedef struct
     VOS_UINT8                           aucRsv[3];
     NAS_LMM_ADAPTION_CAUSE_STRU         astAdaptCause[NAS_LMM_MAX_CAUSE_NUM];
 }LNAS_LMM_CONFIG_NWCAUSE_STRU;
-/*self-adaption NW cause modify end for leili*/
-
 
 /*****************************************************************************
 结构名称    :NAS_MM_DAM_PLMN_LIST_STRU
@@ -1300,7 +1337,6 @@ typedef struct
     VOS_UINT8              ucFxTemp;     /* 1小时内临时拒绝限定次数 */
     VOS_UINT8              ucRsv;
 } NAS_CONFIG_BACKOFF_FX_PARA_STRU;
-
 /*****************************************************************************
 结构名称    :NAS_DAM_CONFIG_PLMN_PARA
 使用说明    :TMO定制需求生效的IMSI PLMN列表
@@ -1322,7 +1358,6 @@ typedef struct
     VOS_UINT32                          ulTimerLen;                             /* 网侧分配的T3402定时器时长(UNIT: 秒) */
     VOS_UINT32                          ulTimerRemainLen;                       /* 关机时Timer暂停状态下的剩余时长(UNIT: ms)*/
 }NAS_PLMN_T3402_STRU;
-
 /*****************************************************************************
 结构名称    :NAS_MM_MT_DETACH_TAU_PLMN_LIST_STRU
 使用说明    :TAU优化网络周期DETACH生效的PLMN列表

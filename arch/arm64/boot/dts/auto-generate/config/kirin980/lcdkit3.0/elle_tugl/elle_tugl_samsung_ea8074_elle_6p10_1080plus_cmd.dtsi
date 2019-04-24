@@ -307,6 +307,10 @@
 		lcd-kit,check-reg-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
 		lcd-kit,check-reg-cmds-state = "dsi_lp_mode";
 		lcd-kit,check-reg-value = <0x9c>;
+		lcd-kit,check-reg-on-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
+		lcd-kit,check-reg-on-value = <0x9c>;
+		lcd-kit,check-reg-off-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
+		lcd-kit,check-reg-off-value = <0x08>;
 		lcd-kit,pcd-errflag-check-support = <0>;
 		lcd-kit,gpio-pcd = <0>;
 		lcd-kit,gpio-errflag = <0>;
@@ -403,6 +407,12 @@
 		lcd-kit,inversion-support = <0>;
 		lcd-kit,scan-support = <0>;
 		lcd-kit,check-reg-support = <0>;
+		lcd-kit,check-reg-on-support = <1>;
+		lcd-kit,check-reg-on-support-dsm-report = <0>;
+		lcd-kit,check-reg-off-support = <1>;
+		lcd-kit,check-reg-off-support-dsm-report = <0>;
+		lcd-kit,mipi-check-support = <0>;
+		lcd-kit,panel-mipi-error-report-threshold = <1>;
 		lcd-kit,checksum-support = <0>;
 		lcd-kit,current-det-support = <0>;
 		lcd-kit,lv-det-support = <0>;
@@ -473,7 +483,6 @@
 		lcd-kit,brightness-color-uniform-support = <0>;
 		lcd-kit,dbv-curve-mapped-support = <0>;
 		lcd-kit,gamma-support = <1>;
-		lcd-kit,otp-gamma-support = <0>;
 		lcd-kit,ce-support = <0>;
 		lcd-kit,effect-on-support = <0>;
 		lcd-kit,gmp-support = <1>;

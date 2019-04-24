@@ -7,6 +7,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/rpmsg.h>
+#include <linux/hisi/hisi_adc.h>
 
 #include "hwsensor.h"
 #include "sensor_commom.h"
@@ -20,6 +21,9 @@
 #define CTL_RESET_RELEASE (1)
 
 extern struct hw_csi_pad hw_csi_pad;
+extern int strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count);
+extern int memset_s(void *dest, size_t destMax, int c, size_t count);
+extern int rpc_status_change_for_camera(unsigned int status);
 
 //lint -save -e846 -e514 -e866 -e429 -e605 -e30 -e84 -e785 -e64 -e826 -e838 -e715 -e747 -e778 -e774 -e732 -e650 -e31 -e731 -e528 -e753 -e737
 
@@ -123,6 +127,46 @@ int hisensor_csi_disable(hwsensor_intf_t* si)
 	return 0;
 }
 
+int get_ext_name(sensor_t *sensor, struct sensor_cfg_data *cdata)
+{
+	int i = 0;
+	int j = 0;
+	int volt = 0;
+	int max = 0;
+	int min = 0;
+
+	if (NULL == sensor || NULL == cdata) {
+		cam_err("%s. si or data is NULL.", __func__);
+		return -EINVAL;
+	}
+
+	if(sensor->board_info->ext_type == EXT_INFO_NO_ADC){
+		cam_info("%s no adc channel, use ext_name config in overlay:%s", __func__, sensor->board_info->ext_name[0]);
+		strncpy_s(cdata->info.extend_name, DEVICE_NAME_SIZE - 1, sensor->board_info->ext_name[0], strlen(sensor->board_info->ext_name[0])+1);
+	}
+
+	if(sensor->board_info->ext_type == EXT_INFO_ADC){
+		volt = hisi_adc_get_value(sensor->board_info->adc_channel);
+		if(volt < 0){ //negative means get adc fail
+			cam_err("get volt fail\n");
+			return -EINVAL;
+		}
+		cam_info("get adc value = %d\n", volt);
+		for(i = 0,j =0; (i < (sensor->board_info->ext_num - 1)) && (j < EXT_NAME_NUM); i+=2,j++)//each ext_name has two adc threshold
+		{
+			max = sensor->board_info->adc_threshold[i];
+			min = sensor->board_info->adc_threshold[(unsigned int)(i+1)];
+			if((volt < max) && (volt > min))
+			{
+				cam_info("%s adc ext_name: %s\n", __func__, sensor->board_info->ext_name[j]);
+				strncpy_s(cdata->info.extend_name, DEVICE_NAME_SIZE - 1, sensor->board_info->ext_name[j], strlen(sensor->board_info->ext_name[j])+1);
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int hisensor_match_id(hwsensor_intf_t* si, void * data)
 {
 	sensor_t* sensor = NULL;
@@ -141,6 +185,11 @@ static int hisensor_match_id(hwsensor_intf_t* si, void * data)
 
 	cdata = (struct sensor_cfg_data *)data;
 	cdata->data = sensor->board_info->sensor_index;
+	memset_s(cdata->info.extend_name, DEVICE_NAME_SIZE, 0, DEVICE_NAME_SIZE);
+
+	if(sensor->board_info->ext_type != 0){
+		get_ext_name(sensor, cdata);
+	}
 
 	return 0;
 }
@@ -167,6 +216,28 @@ enum camera_metadata_enum_android_hw_dual_primary_mode{
 #define RESET_TYPE_SECOND (2)
 #define RESET_TYPE_BOTH (3)
 
+static void hisensor_deliver_camera_status(struct work_struct *work)
+{
+	rpc_info_t *rpc_info = NULL;
+
+	if (work == NULL) {
+		cam_err("%s work is null", __func__);
+		return;
+	}
+
+	rpc_info = container_of(work, rpc_info_t, rpc_work);
+	if (rpc_info == NULL) {
+		cam_err("%s rpc_info is null", __func__);
+		return;
+	}
+
+	if (rpc_status_change_for_camera(rpc_info->camera_status)) {
+		cam_err("%s set_rpc %d fail", __func__, rpc_info->camera_status);
+	} else {
+		cam_info("%s set_rpc %d success", __func__, rpc_info->camera_status);
+	}
+}
+
 static int hisensor_do_hw_reset(hwsensor_intf_t* si, int ctl, int id)
 {
 	//lint -save -e826 -e778 -e774 -e747
@@ -185,6 +256,19 @@ static int hisensor_do_hw_reset(hwsensor_intf_t* si, int ctl, int id)
 		return 0;
 	}
 	cam_info("reset_type = %d ctl %d id %d", b_info->reset_type, ctl, id);
+
+	// camera radio power ctl for radio frequency interference
+	if (b_info->need_rpc == 1) {
+		if (ctl == CTL_RESET_RELEASE) {
+			b_info->rpc_info.camera_status = 1; // set rpc
+		} else {
+			b_info->rpc_info.camera_status = 0;
+		}
+
+		if (b_info->rpc_info.rpc_work_queue != NULL) {
+			queue_work(b_info->rpc_info.rpc_work_queue, &(b_info->rpc_info.rpc_work));
+		}
+	}
 
 	if (b_info->reset_type == RESET_TYPE_PRIMARY) {
 		ret  = gpio_request(b_info->gpios[RESETB].gpio, "reset-0");
@@ -384,6 +468,7 @@ static int32_t hisensor_platform_probe(struct platform_device* pdev)
 
 	sensor_t *s_ctrl = NULL;
 	atomic_t* hisensor_powered = NULL;
+	hwsensor_board_info_t *b_info = NULL;
 	cam_info("%s enter", __func__);
 	if (NULL == pdev) {
 		cam_err("%s:%d pdev is null.\n", __func__, __LINE__);
@@ -435,6 +520,17 @@ static int32_t hisensor_platform_probe(struct platform_device* pdev)
 		goto hisensor_probe_fail;
 	}
 
+	b_info = s_ctrl->board_info;
+	if ((b_info != NULL) && (b_info->need_rpc == 1)) {
+		b_info->rpc_info.rpc_work_queue = create_singlethread_workqueue("camera_radio_power_ctl");
+		if (b_info->rpc_info.rpc_work_queue == NULL) {
+			cam_err("%s - create workqueue error", __func__);
+		} else {
+			INIT_WORK(&(b_info->rpc_info.rpc_work), hisensor_deliver_camera_status);
+			cam_info("%s - create workqueue success",__func__);
+		}
+	}
+
 	return rc;
 
 hisensor_probe_fail:
@@ -464,6 +560,7 @@ static int32_t hisensor_platform_remove(struct platform_device* pdev)
 {
 	struct v4l2_subdev *sd = platform_get_drvdata(pdev);
 	sensor_t *s_ctrl = NULL;
+	hwsensor_board_info_t *b_info = NULL;
 	if (!sd) {
 		cam_err("%s: Subdevice is NULL\n", __func__);
 		return 0;
@@ -473,6 +570,13 @@ static int32_t hisensor_platform_remove(struct platform_device* pdev)
 	if (!s_ctrl) {
 		cam_err("%s: eeprom device is NULL\n", __func__);
 		return 0;
+	}
+
+	b_info = s_ctrl->board_info;
+	if ((b_info != NULL) && (b_info->need_rpc == 1) && (b_info->rpc_info.rpc_work_queue != NULL)) {
+		destroy_workqueue(b_info->rpc_info.rpc_work_queue);
+		b_info->rpc_info.rpc_work_queue = NULL;
+		cam_info("%s - destroy workqueue success",__func__);
 	}
 
 	rpmsg_sensor_unregister((void*)s_ctrl);

@@ -31,7 +31,7 @@
 #define STB_LV                                  0x80     //Flash mode trigger mode with strobe pin signal
 #define LED1_EN                                 0x10    //LED1 current source enable bit
 #define FLASH_MODE_CUR                          0x06    //Device mode setting bits flash mode
-#define TORCH_MODE_CUR                          0x04    //Device mode setting bits torch mode
+#define TORCH_MODE_CUR                          0x04    //Device mode setting bits assist light mode
 #define TORCH_TX_MODE_CUR                       0x00    //Device mode setting bits torch mode
 #define INDICATOR_MODE_CUR                      0x02    //Device mode setting bits indicator mode
 #define FS_SD                                   0x03    // Disable switching frequency stretching down from 1Mhz if VIN is close to VOUT

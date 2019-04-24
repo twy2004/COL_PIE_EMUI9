@@ -79,10 +79,10 @@ int ispcpu_qos_cfg(void)
     __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_RD_QOS_EXTCONTROL_ADDR));
     __raw_writel(QOS_LIMITER_MODE, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_MODE_ADDR));
     __raw_writel(QOS_EXTCONTROL, (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP1_WR_QOS_EXTCONTROL_ADDR));
-    __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_PRIORITY_ADDR));
     __raw_writel(QOS_FIX_MODE,    (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_MODE_ADDR));
-    __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_PRIORITY_ADDR));
     __raw_writel(QOS_FIX_MODE,    (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_MODE_ADDR));
+    __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_RD_QOS_PRIORITY_ADDR));
+    __raw_writel(QOS_PRIO_4,      (volatile void __iomem*)(vivobus_base + VIVO_BUS_A7T0VIVOBUS_WR_QOS_PRIORITY_ADDR));
 
 
     __raw_writel(QOS_BANDWIDTH_ISP,  (volatile void __iomem*)(vivobus_base + VIVO_BUS_ISP_RD_QOS_BANDWIDTH_ADDR));

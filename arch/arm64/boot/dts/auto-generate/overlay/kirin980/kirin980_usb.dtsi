@@ -58,5 +58,15 @@
 			compatible = "hisilicon,proxy-hcd-hifi";
 			hifi_usb_phy_ldo_33v = <0x19a 0x3 0x0 0x0>;
 			hifi_usb_phy_ldo_18v = <0x197 0x4 0x0 0x0>;
+			base-quirk-devices = <
+				/* format:0xVIDPID */
+				/* Western Digital - Elements 10B8 */
+				0x105810b8
+				/* SanDisk - Ultra USB 3.0 */
+				0x07815595
+				0x07815591
+				/* CBM - Flash disk */
+				0x2ba31220
+			>;
 		};
   };

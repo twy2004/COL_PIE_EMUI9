@@ -28,7 +28,8 @@
 #define PANEL_SAMSUNG_EA8076_V2   "samsung_ea8076_elle_v2_6p11_1080plus_cmd"
 #define PANEL_SAMSUNG_EA8074   "samsung_ea8074_ever_7p21_1080plus_cmd"
 #define PANEL_BOE_R66451       "boe_r66451_6p39_1440plus_cmd"
-
+#define PANEL_TONY_SAMSUNG_EA8076_V4 "samsung_ea8076_v4_6p39_1080plus_cmd"
+#define PANEL_TONY_SAMSUNG_EA8076 "samsung_ea8076_6p39_1080plus_cmd"
 /*
 *struct
 */

@@ -54,8 +54,6 @@
 #define GT_CLK_PPLL3                    (1 << 26)
 
 #define PERI_CRG_CLK_EN5                0x50
-#define PERI_CRG_PERRSTEN4		0x90
-#define PERI_CRG_PERRSTDIS4		0x94
 #define PERI_CRG_PERRSTSTAT4		0x98
 
 #define SC_USB3PHY_ABB_GT_EN            (1 << 15)
@@ -77,16 +75,60 @@
 #define IP_RST_USB3OTG_32K		(1 << 6)
 #define IP_RST_USB3OTG_MISC		(1 << 7)
 
+/* USB MISC CTRL */
+/* bit of USBOTG3_CTRL1 */
+#define HOST_U3_PORT_DISABLE_B		1
+
+#define USB_MISC_CFGA0			0xa0
+/* bit of USB_MISC_CFGA0 */
+#define CFGA0_USB31C_RESETN_B		8
+
 /* clk freq usb default usb3.0 237M usb2.0 60M */
 static uint32_t g_usb3otg_aclk_freq = 237000000;
 static uint32_t g_usb2otg_aclk_freq = 61000000;
 
 extern struct hisi_dwc3_device *hisi_dwc3_dev;
+extern bool __clk_is_enabled(struct clk *clk);
 static int usb3_phy_33v_enable(struct hisi_dwc3_device *hisi_dwc3);
 static int usb3_phy_33v_disable(struct hisi_dwc3_device *hisi_dwc3);
 
 #define SET_NBITS_MASK(start, end) (((2u << ((end) - (start))) - 1) << (start))
 #define SET_BIT_MASK(bit) SET_NBITS_MASK(bit, bit)
+
+int usb3_open_misc_ctrl_clk(struct hisi_dwc3_device *hisi_dwc3)
+{
+	int ret;
+
+	if (!hisi_dwc3) {
+		usb_err("usb driver not setup!\n");
+		return -EINVAL;
+	}
+
+	/* open hclk gate */
+	ret = clk_prepare_enable(hisi_dwc3->gt_hclk_usb3otg);
+	if (ret) {
+		usb_err("clk_enable gt_hclk_usb3otg failed\n");
+		return ret;
+	}
+
+	if (__clk_is_enabled(hisi_dwc3->gt_hclk_usb3otg) == false) {
+		usb_err("gt_hclk_usb3otg  enable err\n");
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+void usb3_close_misc_ctrl_clk(struct hisi_dwc3_device *hisi_dwc3)
+{
+	if (!hisi_dwc3) {
+		usb_err("usb driver not setup!\n");
+		return;
+	}
+
+	/* disable usb3otg hclk */
+	clk_disable_unprepare(hisi_dwc3->gt_hclk_usb3otg);
+}
 
 static int usb3_misc_ctrl_is_unreset(void __iomem *pericfg_base)
 {
@@ -98,34 +140,6 @@ static int usb3_misc_ctrl_is_unreset(void __iomem *pericfg_base)
 static int usb3_misc_ctrl_is_reset(void __iomem *pericfg_base)
 {
 	return !usb3_misc_ctrl_is_unreset(pericfg_base);
-}
-
-void usb3_reset_misc_ctrl(void)
-{
-	void __iomem *pericfg_base;
-
-	if (!hisi_dwc3_dev) {
-		usb_err("[USB3] usb driver not setup!\n");
-		return;
-	}
-
-	pericfg_base = hisi_dwc3_dev->pericfg_reg_base;/*lint !e438 */
-	writel(IP_RST_USB3OTG_MISC | IP_RST_USB3OTG_32K,
-			pericfg_base + PERI_CRG_PERRSTEN4);
-}
-
-void usb3_unreset_misc_ctrl(void)
-{
-	void __iomem *pericfg_base;
-
-	if (!hisi_dwc3_dev) {
-		usb_err("[USB3] usb driver not setup!\n");
-		return;
-	}
-
-	pericfg_base = hisi_dwc3_dev->pericfg_reg_base;/*lint !e438 */
-	writel(IP_RST_USB3OTG_MISC | IP_RST_USB3OTG_32K,
-			pericfg_base + PERI_CRG_PERRSTDIS4);
 }
 
 static int dwc3_combophy_sw_sysc(struct hisi_dwc3_device *hisi_dwc3, TCPC_MUX_CTRL_TYPE new_mode)
@@ -532,16 +546,6 @@ static int dwc3_set_highspeed_only_step2(struct hisi_dwc3_device *hisi_dwc3)
 	return 0;
 }
 
-int hisi_dwc3_is_fpga(void)
-{
-	if (!hisi_dwc3_dev) {
-		usb_err("usb driver not probed!\n");
-		return 0;
-	}
-
-	return !!hisi_dwc3_dev->fpga_flag;
-}
-
 static int dwc3_release(struct hisi_dwc3_device *hisi_dwc3)
 {
 	int ret;
@@ -590,7 +594,7 @@ static int dwc3_release(struct hisi_dwc3_device *hisi_dwc3)
 	/* release usb2.0 phy */
 	usb3_sc_misc_reg_setbit(0, 0x618);
 
-	highspeed_only = dwc3_is_highspeed_only();
+	highspeed_only = combophy_is_highspeed_only();
 	if (highspeed_only) {
 		usb_dbg("[USB.DP] DP4 mode, set usb2.0 only, setp 1\n");
 		ret = dwc3_set_highspeed_only_step1();
@@ -656,6 +660,37 @@ static void mar_notify_speed(struct hisi_dwc3_device *hisi_dwc3)
 
 	usb_dbg("-\n");
 }
+
+static void mar_logic_analyzer_trace_print(struct hisi_dwc3_device *hisi_dwc3)
+{
+	int times;
+	for(times = 0; times < 10; times++) {
+		usb_dbg("[misc 28:0x%x]\n", usb3_misc_reg_readl(USB_MISC_REG_LOGIC_ANALYZER_TRACE_L));
+		usb_dbg("[misc 2c:0x%x]\n", usb3_misc_reg_readl(USB_MISC_REG_LOGIC_ANALYZER_TRACE_H));
+	}
+}
+
+
+static void mar_cmd_tmo_dbg_print(struct hisi_dwc3_device *hisi_dwc3)
+{
+
+	u32 regvalue;
+	usb_dbg("+\n");
+	regvalue = readl(hisi_dwc3->usb_core_reg_base + DWC3_GDBGLSPMUX_DEV);
+	regvalue = DWC3_GDBGLSPMUX_DEV_ANALYZER_SET(regvalue, 0x0);
+	writel(regvalue, hisi_dwc3->usb_core_reg_base + DWC3_GDBGLSPMUX_DEV);
+
+	mar_logic_analyzer_trace_print(hisi_dwc3);
+
+	regvalue = readl(hisi_dwc3->usb_core_reg_base + DWC3_GDBGLSPMUX_DEV);
+	regvalue = DWC3_GDBGLSPMUX_DEV_ANALYZER_SET(regvalue, 0x17);
+	writel(regvalue, hisi_dwc3->usb_core_reg_base + DWC3_GDBGLSPMUX_DEV);
+
+	mar_logic_analyzer_trace_print(hisi_dwc3);
+	usb_dbg("-\n");
+
+}
+
 
 
 static void dwc3_reset(struct hisi_dwc3_device *hisi_dwc3)
@@ -836,15 +871,15 @@ volatile unsigned int hisi_dwc3_usbcore_read(u32 offset)
 		return 0;
 	}
 
-    pericfg_base = hisi_dwc3_dev->pericfg_reg_base;
-	if(usb3_misc_ctrl_is_unreset(pericfg_base) && usb3_clk_is_open(pericfg_base)) {
-		if(usb3_phy_controller_is_release()) {
+	pericfg_base = hisi_dwc3_dev->pericfg_reg_base;
+	if (usb3_misc_ctrl_is_unreset(pericfg_base) && usb3_clk_is_open(pericfg_base)) {
+		if (usb3_phy_controller_is_release()) {
 			usb_err("read offset:%x.\n", offset);
 			return readl(hisi_dwc3_dev->usb_core_reg_base + offset);
 		} else {
 			usb_err(" usb controller is reset, please release first.\n");
 		}
-	}else {
+	} else {
 		usb_err("misc ctrl is reset, please release it first.\n");
 	}
 
@@ -1103,6 +1138,20 @@ static int mar_get_dts_resource(struct hisi_dwc3_device *hisi_dwc3)
 	return 0;
 }
 
+static void mar_disable_usb3(void)
+{
+	/* need reset controller */
+	usb3_misc_reg_clrbit(CFGA0_USB31C_RESETN_B, USB_MISC_CFGA0);
+	udelay(100);
+
+	/* disable usb3 SS port */
+	usb3_misc_reg_setbit(HOST_U3_PORT_DISABLE_B, USBOTG3_CTRL1);
+	udelay(100);
+
+	/* unreset controller */
+	usb3_misc_reg_setbit(CFGA0_USB31C_RESETN_B, USB_MISC_CFGA0);
+}
+
 static int mar_shared_phy_init(struct hisi_dwc3_device *hisi_dwc3, unsigned int combophy_flag)
 {
 	int ret;
@@ -1268,18 +1317,6 @@ static void mar_check_voltage(struct hisi_dwc3_device *hisi_dwc)
 	usb_dbg("-\n");
 }
 
-static struct usb3_phy_ops mar_phy_ops = {
-	.init		= mar_usb3phy_init,
-	.shutdown	= mar_usb3phy_shutdown,
-	.get_dts_resource = mar_get_dts_resource,
-	.shared_phy_init	= mar_shared_phy_init,
-	.shared_phy_shutdown	= mar_shared_phy_shutdown,
-	.set_hi_impedance	= mar_set_hi_impedance,
-	.notify_speed	= mar_notify_speed,
-	.check_voltage = mar_check_voltage,
-	.cptest_enable		= dwc3_compliance_mode_enable,
-};
-
 static void config_usbphy_power(void __iomem *sctrl_base)
 {
 	volatile uint32_t scdeepsleeped;
@@ -1336,7 +1373,7 @@ static int mar_usb3phy_init(struct hisi_dwc3_device *hisi_dwc3)
 		goto out_phy_reset;
 	}
 
-	if (dwc3_is_highspeed_only()) {
+	if (combophy_is_highspeed_only()) {
 		usb_dbg("set USB2OTG_ACLK_FREQ\n");
 		ret = clk_set_rate(hisi_dwc3->gt_aclk_usb3otg, g_usb2otg_aclk_freq);
 		if (ret)
@@ -1370,6 +1407,20 @@ out:
 	usb3_phy_33v_disable(hisi_dwc3);
 	return ret;
 }
+
+static struct usb3_phy_ops mar_phy_ops = {
+	.init		= mar_usb3phy_init,
+	.shutdown	= mar_usb3phy_shutdown,
+	.get_dts_resource = mar_get_dts_resource,
+	.shared_phy_init	= mar_shared_phy_init,
+	.shared_phy_shutdown	= mar_shared_phy_shutdown,
+	.set_hi_impedance	= mar_set_hi_impedance,
+	.notify_speed	= mar_notify_speed,
+	.cmd_tmo_dbg_print = mar_cmd_tmo_dbg_print,
+	.check_voltage = mar_check_voltage,
+	.cptest_enable		= dwc3_compliance_mode_enable,
+	.disable_usb3		= mar_disable_usb3,
+};
 
 static int dwc3_mar_probe(struct platform_device *pdev)
 {

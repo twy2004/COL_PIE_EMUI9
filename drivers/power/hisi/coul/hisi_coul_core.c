@@ -1,7 +1,14 @@
 
 
 #include "hisi_coul_core.h"
+#ifdef CONFIG_HISI_SOH
 #include <linux/power/hisi/soh/hisi_soh_interface.h>
+#else
+#define ACR_CHECK_CYCLE_S           (20*60)
+#define ACR_MAX_BATTERY_CURRENT_MA   (100)
+#define DCR_CHECK_CYCLE_S           (20*60)
+#define DCR_MAX_BATTERY_CURRENT_MA   (100)
+#endif
 #include <linux/power/hisi/coul/hisi_coul_event.h>
 #ifdef CONFIG_HUAWEI_CHARGER_SENSORHUB
 #include "inputhub_bridge.h"
@@ -30,6 +37,7 @@
 #define LOW_INT_VOL_COUNT 3
 #define LOW_INT_VOL_SLEEP_TIME 1000
 
+static int check_ocv_data_enable = 0;
 static int last_charge_cycles = 0;
 char* p_charger = NULL;/*0x34A10000~0x34A11000 is reserved for pmu coulomb, we use these to transfer coul information from fastboot to kernel,we add charger info*/
 extern struct blocking_notifier_head notifier_list;
@@ -2018,11 +2026,26 @@ int coul_battery_temperature_tenth_degree(BATTERY_TEMP_USER_TYPE user)
     int cnt = 0;
     int T_adc;
     int temperature;
+    struct smartstar_coul_device *di = g_smartstar_coul_dev;
 
     /*default is no battery in sft and udp, so here temp is fixed 25c to prevent low power reset*/
     if ( BAT_BOARD_ASIC != is_board_type) {
         return DEFAULT_TEMP*10;
     }
+
+    if (di && di->coul_dev_ops && di->coul_dev_ops->get_bat_temp){
+        T_adc = di->coul_dev_ops->get_bat_temp();
+        if(T_adc < 0)
+        {
+            coul_core_err("Bat temp read fail!,retry_cnt = %d\n",cnt);
+        }
+        else
+        {
+            temperature = adc_to_temp(T_adc);
+            return 10*temperature;
+        }
+    }
+
     while(cnt++ < retry_times)
     {
         T_adc = hisi_adc_get_adc(adc_batt_temp);
@@ -3082,6 +3105,67 @@ static bool is_in_capacity_dense_area(int ocv_uv)
 	return FALSE;
 }
 
+/*get array max value and min value.*/
+static void max_min_value(int array[],u32 size, int *min, int *max)
+{
+    u32 i;
+    int max_value, min_value;
+
+    if (!size || !max || !min)
+        return;
+    max_value = min_value = array[0];
+
+    for (i = 1; i < size; i++) {
+        if (array[i] > max_value)
+            max_value = array[i];
+
+        if(array[i] < min_value)
+            min_value = array[i];
+    }
+
+    *max = max_value;
+    *min = min_value;
+}
+
+/*******************************************************
+  Function:        ocv_vol_data_is_valid
+  Description:     check vol data from fifo valid.
+  Input:           vol_data[]:vol data array from fifo
+                   data_cnt: vol data count
+  Output:          NULL
+  Return:          -1:data invalid
+                    0:data valid.
+  Remark:          1 all data is same ,invalid.
+                   2 error exceeding 5mv, invalid.
+********************************************************/
+static int check_ocv_vol_data_valid(int vol_data[], u32 data_cnt)
+{
+    int max = 0;
+    int min = 0;
+
+    if (data_cnt > VOL_FIFO_MAX)
+        data_cnt = VOL_FIFO_MAX;
+
+    if (!check_ocv_data_enable) {
+        coul_core_err("[%s] not check!\n", __func__);
+        return 0;
+    }
+    max_min_value(vol_data, data_cnt, &min, &max);
+
+    /*all data is  same ,invalid*/
+    if (max == min) {
+        coul_core_err("[%s] all vol data is same ,invalid!\n", __func__);
+        return -1;
+    }
+    /*Error exceeding 5mv, invalid*/
+    if (abs(max - min) > VOL_MAX_DIFF_UV) {
+        coul_core_err("[%s] fifo vol difference is more than 5 millivolts, invalid!\n", __func__);
+        return -1;
+    }
+    coul_core_err("[%s] ocv data valid!\n", __func__);
+    return 0;
+}
+
 static int get_ocv_vol_from_fifo(struct smartstar_coul_device *di)
 {
     int i = 0;
@@ -3090,6 +3174,7 @@ static int get_ocv_vol_from_fifo(struct smartstar_coul_device *di)
     int voltage_uv = 0;
     int totalvol, totalcur;
     int fifo_depth = 0;
+    int vol_fifo[VOL_FIFO_MAX] = {0};
 
 	if(NULL == di || NULL == di->coul_dev_ops)
 	{
@@ -3119,15 +3204,19 @@ static int get_ocv_vol_from_fifo(struct smartstar_coul_device *di)
 			continue;
 		}
 		DBG_CNT_INC(dbg_valid_vol);
-		coul_core_info("valid current = %d ua\n", current_ua);
-        totalvol += di->coul_dev_ops->get_battery_vol_uv_from_fifo(i);
+		coul_core_info("valid current = %d ua, vol = %d uv!\n", current_ua, voltage_uv);
+        totalvol += voltage_uv;
         totalcur += current_ua;
+        vol_fifo[used%VOL_FIFO_MAX] = voltage_uv;
 		used++;
 	}
 
 	coul_core_info("used = %d\n", used);
-	if (used > 0)
+	if (used > 3)
 	{
+	    /*check vol inalid*/
+	    if (check_ocv_vol_data_valid(vol_fifo, used))
+            return 0;
 		voltage_uv = totalvol / used;
 		current_ua = totalcur / used;
 		voltage_uv += current_ua/1000*(di->r_pcb/1000 + DEFAULT_BATTERY_OHMIC_RESISTANCE);
@@ -3248,8 +3337,10 @@ static int get_high_pre_qmax(struct smartstar_coul_device *di)
         design_fcc_mah = interpolate_fcc(di, di->batt_ocv_temp);
         /*get the percent of power after the CV is lowered */
         delta_cv_pc = basp_full_pc_by_voltage(di)/TENTH;
+        if (!delta_cv_pc)
+            delta_cv_pc = PERCENT;
         /*calculate qmax*/
-        if ((0 != di->qmax_end_pc - di->qmax_start_pc) && delta_cv_pc)
+        if (0 != di->qmax_end_pc - di->qmax_start_pc)
             tmp_qmax =  (- di->qmax_cc)*PERCENT*di->qmax_end_pc/(di->qmax_end_pc - di->qmax_start_pc)/delta_cv_pc;
         else {
             coul_core_err("[%s] qmax_end_pc = %d ,start_pc =%d, delta_cv_pc=%d! \n", __func__, di->qmax_end_pc, di->qmax_start_pc, delta_cv_pc);
@@ -3273,7 +3364,6 @@ static int get_high_pre_qmax(struct smartstar_coul_device *di)
     coul_core_info("[%s] not update!\n", __func__);
     return -1;
 }
-
 /*******************************************************
   Function:        get_ocv_by_vol
   Description:     calculate ocv by 10 history data when AP exist from deep sleep
@@ -3304,6 +3394,9 @@ static void get_ocv_by_vol(struct smartstar_coul_device *di)
 	record_ocv_cali_info(di);
 	coul_clear_cc_register();
 	coul_clear_coul_time();
+#ifdef CONFIG_HISI_COUL_POLAR
+        clear_polar_err_b();
+#endif
 	di->coul_dev_ops->save_ocv(voltage_uv, IS_UPDATE_FCC);
 	coul_core_info("awake from deep sleep, new OCV = %d,fcc_flag=%d \n", di->batt_ocv, di->batt_ocv_valid_to_refresh_fcc);
 	DBG_CNT_INC(dbg_ocv_cng_0);
@@ -4575,6 +4668,7 @@ void coul_start_soh_check(void)
     }else
         charged_cnt = 0;
 }
+
 static void coul_set_work_interval(struct smartstar_coul_device *di)
 {
     if (NULL == di)
@@ -4587,7 +4681,6 @@ static void coul_set_work_interval(struct smartstar_coul_device *di)
         else
             di->soc_work_interval = CALCULATE_SOC_MS/2;
     }
-    /*work fast when we use super charge*/
 #ifdef CONFIG_DIRECT_CHARGER
     if (get_super_charge_flag() && (CHARGING_STATE_CHARGE_START == di->charging_state)
         && (di->soc_work_interval > (CALCULATE_SOC_MS/4)))
@@ -5748,7 +5841,7 @@ static void isc_splash2_file_sync(struct iscd_info *iscd)
 
 static void fatal_isc_dmd_wkfunc(struct work_struct *work)
 {
-    fatal_isc_dmd *reporter = container_of(work, fatal_isc_dmd, work);
+    fatal_isc_dmd *reporter = container_of(work, fatal_isc_dmd, work.work);
     struct iscd_info *iscd = container_of(reporter, struct iscd_info, dmd_reporter);
 
     if (!dsm_client_ocuppy(power_dsm_get_dclient(POWER_DSM_BATTERY))) {
@@ -5775,7 +5868,7 @@ static int fatal_isc_dsm_report(struct notifier_block *self,
     int j;
     struct iscd_info *iscd = container_of(self, struct iscd_info, fatal_isc_dsm_report_nb);
 
-    if(iscd->isc_status && iscd->fatal_isc_hist.dmd_report && event == ISC_LIMIT_BOOT_STAGE) {
+    if(iscd->isc_status && iscd->fatal_isc_hist.dmd_report && event == ISC_LIMIT_BOOT_STAGE && iscd->app_ready == ISC_APP_READY) {
         iscd->dmd_reporter.retry = 0;
         /* check isc status is one of valid types */
         if(iscd->isc_status <= iscd->fatal_isc_trigger.valid_num) {
@@ -5865,7 +5958,7 @@ static void fatal_isc_protection(struct iscd_info *iscd, unsigned long event)
 
 static void isc_limit_monitor_work(struct work_struct *work)
 {
-    struct iscd_info *iscd = container_of(work, struct iscd_info, isc_limit_work);
+    struct iscd_info *iscd = container_of(work, struct iscd_info, isc_limit_work.work);
 
     fatal_isc_protection(iscd, ISC_LIMIT_UNDER_MONITOR_STAGE);
 
@@ -6643,8 +6736,13 @@ static void fatal_isc_judgement(struct iscd_info *iscd, int type)
         iscd->need_monitor = 0;
         break;
     case SUCCESSIVE_ISC_JUDGEMENT_TIME:
-        iscd->fatal_isc_hist.trigger_type = SUCCESSIVE_ISC_JUDGEMENT_TIME;
-        successive_isc_judgement_time(iscd);
+        if(ISC_APP_READY == iscd->app_ready)
+        {
+            iscd->fatal_isc_hist.trigger_type = SUCCESSIVE_ISC_JUDGEMENT_TIME;
+            successive_isc_judgement_time(iscd);
+        }else{
+            iscd->fatal_isc_hist.trigger_type = INVALID_ISC_JUDGEMENT;
+        }
         break;
     default:
         coul_core_err("Unexpected type(%d) found in %s.\n", type, __func__);
@@ -7052,43 +7150,54 @@ static bool could_update_polar_ocv(struct smartstar_coul_device *di,
     return TRUE;
 }
 
-static void update_polar_ocv(struct smartstar_coul_device *di,int time_now,
-                                    int temp, int soc)
+static void update_polar_ocv(struct smartstar_coul_device *di,
+                                    int temp, int soc, int sr_sleep_time, int sleep_cc)
 {
     int eco_cc = 0;
     int eco_vbat = 0;
     int eco_ibat = 0;
     int cc_now = 0;
-    int sleep_cc = 0;
+    int eco_sleep_cc = 0;
     int sample_time = 0;
     int curr_ma = 0;
     int duration = 0;
+    int current_sec = 0;
     u8 eco_sample_flag = 0;
     unsigned long sample_time_rtc = 0;
     if (NULL == di)
         return;
     /*判断eco数据是否被清空*/
     di->coul_dev_ops->get_eco_sample_flag(&eco_sample_flag);
+    current_sec = di->coul_dev_ops->get_coul_time();
     coul_core_debug("[%s]vbat:0x%x, ibat:0x%x\n",
         __FUNCTION__,  di->eco_info.eco_vbat_reg,  di->eco_info.eco_ibat_reg);
-    if (0 == di->eco_info.eco_vbat_reg || 0 == eco_sample_flag) {
+    if (0 == di->eco_info.eco_vbat_reg || 0 == eco_sample_flag || 0 == current_sec) {
+        sample_time_rtc = hisi_getcurtime();
+        sample_time = (int)(sample_time_rtc / NSEC_PER_MSEC);
+        if (sr_sleep_time) {
+            curr_ma = -CC_UAS2MA(sleep_cc, sr_sleep_time);
+            get_resume_polar_info(eco_ibat, curr_ma,
+                (sr_sleep_time * MSEC_PER_SEC), sample_time, temp, soc);
+        }
         return;
     }
-
     eco_vbat = coul_convert_regval2uv(di->eco_info.eco_vbat_reg);
     eco_ibat = -coul_convert_regval2ua(di->eco_info.eco_ibat_reg);
     eco_cc = coul_convert_regval2uah(di->eco_info.eco_cc_reg);
     coul_core_debug("[%s]vbat:%d, ibat:%d\n",__FUNCTION__,  eco_vbat,  eco_ibat);
-    sleep_cc = eco_cc - di->suspend_cc;
+    eco_sleep_cc = eco_cc - di->suspend_cc;
     sample_time_rtc = hisi_getcurtime();
     sample_time = (int)(sample_time_rtc / NSEC_PER_MSEC);
-    sample_time -= ((time_now - di->eco_info.now_sample_time) * MSEC_PER_SEC);
+    sample_time -= ((current_sec - di->eco_info.now_sample_time) * MSEC_PER_SEC);
     duration = di->eco_info.now_sample_time - di->suspend_time;
-    curr_ma = -CC_UAS2MA(sleep_cc, duration);
-    get_resume_polar_info(eco_ibat, curr_ma, duration, sample_time, temp, soc);
+    if (duration) {
+        curr_ma = -CC_UAS2MA(eco_sleep_cc, duration);
+        get_resume_polar_info(eco_ibat, curr_ma,
+            (duration * MSEC_PER_SEC), sample_time, temp, soc);
+    }
     if (-1 == polar_ocv_params_calc(&di->polar, soc, temp, eco_ibat / UA_PER_MA))
         return;
-    if (0 == enable_ocv_calc && FALSE == could_update_polar_ocv(di, time_now, eco_ibat / UA_PER_MA))
+    if (0 == enable_ocv_calc && FALSE == could_update_polar_ocv(di, current_sec, eco_ibat / UA_PER_MA))
         return;
     if (di->polar.sr_polar_err_a > 0)
         di->polar.polar_ocv = eco_vbat - (eco_ibat / UA_PER_MA) * (di->r_pcb / UOHM_PER_MOHM)
@@ -7096,13 +7205,31 @@ static void update_polar_ocv(struct smartstar_coul_device *di,int time_now,
     else
         di->polar.polar_ocv = eco_vbat - (eco_ibat / UA_PER_MA) * (di->r_pcb / UOHM_PER_MOHM)
                           - di->polar.sr_polar_vol0;
-    di->polar.polar_ocv_time = time_now;
+    di->polar.polar_ocv_time = current_sec;
 
     cc_now = di->coul_dev_ops->calculate_cc_uah();
-    cc_now = (eco_cc - cc_now);
+    cc_now = (cc_now - eco_cc);
+    duration = (int)(sample_time_rtc / NSEC_PER_MSEC) - sample_time;
+    sample_time = (int)(sample_time_rtc / NSEC_PER_MSEC);
+    if (duration) {
+        curr_ma = -CC_UAS2MA(cc_now, (duration / MSEC_PER_SEC));
+        get_resume_polar_info(0, curr_ma, duration, sample_time, temp, soc);
+    }
     coul_core_info("[%s]polar_ocv:%d, polar_ocv_time:%d,cc_comp:%d\n",
         __FUNCTION__,  di->polar.polar_ocv,  di->polar.polar_ocv_time, cc_now);
-
+    #ifdef CONFIG_HISI_DEBUG_FS
+    if (!is_in_capacity_dense_area(di->polar.polar_ocv)) {
+        di->batt_ocv_valid_to_refresh_fcc = 1;
+        di->batt_ocv = di->polar.polar_ocv;
+        di->batt_ocv_temp = temp;
+        di->coul_dev_ops->save_ocv_temp((short)temp);
+        di->coul_dev_ops->save_ocv(di->polar.polar_ocv, IS_UPDATE_FCC);
+    	coul_clear_cc_register();
+        coul_clear_coul_time();
+        clear_polar_err_b();
+        di->coul_dev_ops->save_cc_uah(cc_now);
+    }
+    #endif
     return;
 }
 static void polar_ipc_init(struct smartstar_coul_device *di)
@@ -8032,6 +8159,20 @@ static void get_bci_dts_info(struct smartstar_coul_device* di,struct device_node
     }
 }
 
+
+static void get_ocv_data_check_flag(struct device_node* np)
+{
+    int ret = 0;
+	if (!np)
+		return;
+    ret = of_property_read_u32(np, "check_ocv_data_enable", &check_ocv_data_enable);
+    if (ret) {
+        check_ocv_data_enable = 0;
+        coul_core_err("dts:get ocv data check flag fail\n");
+    }
+    coul_core_info("ocv_data_check_flag is %d\n", check_ocv_data_enable);
+}
+
 static void coul_core_get_dts(struct smartstar_coul_device *di)
 {
 	struct device_node *batt_node;
@@ -8060,9 +8201,10 @@ static void coul_core_get_dts(struct smartstar_coul_device *di)
 	get_multi_ocv_open_flag(np);
 	get_fcc_update_limit_flag(np);
     get_cutoff_vol_mv(di,np);
+    get_current_full_enable(di,np);
     get_dischg_ocv_enable_flag(di,np);
     get_dischg_ocv_soc(di,np);
-    get_current_full_enable(di,np);
+    get_ocv_data_check_flag(np);
     if (of_property_read_u32(np, "current_offset_a",(u32 *)&c_offset_a)){
 	    c_offset_a = DEFAULT_C_OFF_A;
 		coul_core_err("error:get current_offset_a value failed!\n");
@@ -8258,7 +8400,7 @@ static void isc_hist_info_init(struct work_struct *work)
     char *buff;
     char *find_str;
     mm_segment_t old_fs;
-    struct iscd_info *iscd = container_of(work, struct iscd_info, isc_splash2_work);
+    struct iscd_info *iscd = container_of(work, struct iscd_info, isc_splash2_work.work);
 
     if(iscd->isc_splash2_ready) {
         coul_core_info("ISC splash2 has been initialized, so does not need to be reinitialized.\n");
@@ -8404,6 +8546,32 @@ static ssize_t isc_show(struct device *dev, struct device_attribute *attr, char 
 
     return snprintf(buf, sizeof(iscd->isc_status), "%d", iscd->isc_status);
 }
+
+static ssize_t isc_shutdown_status_show(struct device *dev, struct device_attribute *attr, char *buf
+)
+{
+    struct iscd_info *iscd;
+
+    if(!g_smartstar_coul_dev || !g_smartstar_coul_dev->iscd) {
+        coul_core_err("g_smartstar_coul_dev is Null found in %s.\n", __func__);
+        return snprintf_s(buf, sizeof("Error"),sizeof("Error")-1, "%s", "Error");
+
+    }
+    iscd = g_smartstar_coul_dev->iscd;
+
+    spin_lock(&iscd->boot_complete);
+    if(!iscd->isc_splash2_ready) {
+        spin_unlock(&iscd->boot_complete);
+        schedule_delayed_work(&iscd->isc_splash2_work, 0);
+    } else if(iscd->uevent_wait_for_send) {
+        iscd->uevent_wait_for_send = 0;
+        spin_unlock(&iscd->boot_complete);
+        fatal_isc_protection(iscd, ISC_LIMIT_BOOT_STAGE);
+    } else {
+        spin_unlock(&iscd->boot_complete);
+    }
+    return snprintf_s(buf, sizeof(iscd->isc_status), sizeof(iscd->isc_status)-1, "%d", iscd->isc_status);
+}
 static ssize_t isc_limit_support_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
     struct iscd_info *iscd;
@@ -8418,10 +8586,12 @@ static ssize_t isc_limit_support_show(struct device *dev, struct device_attribut
 }
 
 static DEVICE_ATTR_RO(isc);
+static DEVICE_ATTR_RO(isc_shutdown_status);
 static DEVICE_ATTR_RO(isc_limit_support);
 
 static struct attribute *isc_func_attrs[] = {
     &dev_attr_isc.attr,
+    &dev_attr_isc_shutdown_status.attr,
     &dev_attr_isc_limit_support.attr,
     NULL,
 };
@@ -8924,6 +9094,9 @@ static void clear_moved_battery_data(struct smartstar_coul_device *di)
         my_nv_info.latest_record_index = 0;
         memset(di->nv_info.real_fcc_record, 0, sizeof(di->nv_info.real_fcc_record));
         memset(my_nv_info.real_fcc_record, 0, sizeof(my_nv_info.real_fcc_record));
+#ifdef CONFIG_HISI_COUL_POLAR
+        polar_clear_flash_data();
+#endif
         coul_core_info("battery changed, reset chargecycles!\n");
     } else {
         coul_core_info("battery not changed, chargecycles = %d%%\n", di->batt_chargecycles);
@@ -9277,7 +9450,7 @@ static int  hisi_coul_remove(struct platform_device *pdev)
 
 #ifdef CONFIG_PM
 
-static int hisi_coul_pm_notify(struct notifier_block * nb, unsigned long mode, void * unused)/*lint !e578*/
+static int hisi_coul_pm_notify(struct notifier_block * nb, unsigned long mode, void * priv_unused)/*lint !e578*/
 {
     struct smartstar_coul_device *di = container_of(nb, struct smartstar_coul_device, pm_notify);
 
@@ -9821,10 +9994,6 @@ static int hisi_coul_resume(struct platform_device *pdev)
     sr_sleep_time = current_sec - di->sr_suspend_time;
     sleep_cc = di->coul_dev_ops->calculate_cc_uah();
     sleep_cc = sleep_cc - di->suspend_cc;  /* sleep uah */
-#ifdef CONFIG_HISI_COUL_POLAR
-    update_polar_ocv(di, current_sec, di->batt_temp, di->batt_soc_real);
-    start_polar_sample();
-#endif
     disable_temperature_debounce = 0;
     coul_set_low_vol_int(di, LOW_INT_STATE_RUNNING);
     DI_LOCK();
@@ -9839,10 +10008,14 @@ static int hisi_coul_resume(struct platform_device *pdev)
     else {
         coul_core_err("[SR]%s(%d): sr_sleep_time = %d\n", __func__, __LINE__, sr_sleep_time);
     }
+
     if ((current_sec - di->charging_stop_time > 30*60)
 		&& multi_ocv_open_flag && multi_ocv_could_update(di)){
 		record_ocv_cali_info(di);
         save_multi_ocv_and_level(di);
+#ifdef CONFIG_HISI_COUL_POLAR
+        clear_polar_err_b();
+#endif
     } else if((current_sec - di->charging_stop_time > 30*60)
     	&& !multi_ocv_open_flag && ocv_could_update(di)) {
 		get_ocv_resume(di);
@@ -9865,6 +10038,10 @@ static int hisi_coul_resume(struct platform_device *pdev)
             di->batt_ocv_valid_to_refresh_fcc = 0;
         }
     }
+#ifdef CONFIG_HISI_COUL_POLAR
+    update_polar_ocv(di, di->batt_temp, di->batt_soc_real, sr_sleep_time, sleep_cc);
+    start_polar_sample();
+#endif
 	di->coul_dev_ops->exit_eco();
     di->soc_limit_flag = 2;
     di->soc_monitor_flag = 2;

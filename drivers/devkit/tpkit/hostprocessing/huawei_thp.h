@@ -20,6 +20,7 @@
 #include <huawei_platform/log/hw_log.h>
 #include <linux/platform_device.h>
 #include <linux/ctype.h>
+#include <linux/spi/spi.h>
 
 #define THP_UNBLOCK		(5)
 #define THP_TIMEOUT		(6)
@@ -47,6 +48,10 @@
 #define THP_IOCTL_CMD_SET_IRQ              _IOW(THP_IO_TYPE, 0x07, u32)
 #define THP_IOCTL_CMD_GET_FRAME_COUNT      _IOW(THP_IO_TYPE, 0x08, u32)
 #define THP_IOCTL_CMD_CLEAR_FRAME_BUFFER _IOW(THP_IO_TYPE, 0x09, u32)
+#define THP_IOCTL_CMD_GET_IRQ_GPIO_VALUE      _IOW(THP_IO_TYPE, 0x0A, u32)
+#define THP_IOCTL_CMD_SET_SPI_SPEED _IOW(THP_IO_TYPE, 0x0B, u32)
+#define THP_IOCTL_CMD_SPI_SYNC_SSL_BL _IOWR(THP_IO_TYPE, 0x0c, struct thp_ioctl_spi_sync_data)
+
 
 #define GPIO_LOW  (0)
 #define GPIO_HIGH (1)
@@ -102,6 +107,11 @@ enum thp_status_type {
 	THP_STATUS_MAX,
 };
 
+enum thp_afe_notify_event_type {
+	THP_AFE_NOTIFY_FW_UPDATE,
+	THP_AFE_NOTIFY_EVENT_MAX,
+};
+
 struct thp_ioctl_get_frame_data {
 	char __user *buf;
 	char __user *tv; /* struct timeval* */
@@ -149,6 +159,7 @@ struct thp_device_ops {
 	int (*resume)(struct thp_device *tdev);
 	int (*suspend)(struct thp_device *tdev);
 	void (*exit)(struct thp_device *tdev);
+	int (*afe_notify)(struct thp_device *tdev, unsigned long event);
 };
 
 
@@ -324,6 +335,8 @@ extern int thp_set_status(int type, int status);
 extern int thp_get_status(int type);
 extern u32 thp_get_status_all(void);
 extern  int thp_parse_feature_config(struct device_node *thp_node,
+			struct thp_core_data *cd);
+extern int thp_parse_trigger_config(struct device_node *thp_node,
 			struct thp_core_data *cd);
 int thp_spi_sync(struct spi_device *spi, struct spi_message *message);
 int thp_power_supply_get(enum thp_power_id power_id);

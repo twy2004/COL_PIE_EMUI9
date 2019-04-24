@@ -247,11 +247,10 @@ static int fusb_dual_role_set_prop(struct dual_role_phy_instance *dual_role,
 }
 FSC_S32 fusb_dual_role_phy_init(void)
 {
-	FSC_PRINT("%s +\n", __func__);
 	struct dual_role_phy_desc *dual_desc = NULL;
 	struct dual_role_phy_instance *dual_role = NULL;
 	struct fusb30x_chip* chip = fusb30x_GetChip();
-
+	FSC_PRINT("%s +\n", __func__);
 	if (!chip) {
 		pr_err("invalid fusb30x_chip\n");
 		return -EINVAL;

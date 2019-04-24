@@ -74,7 +74,6 @@
 #define RT5112_PIN_DISABLE (0)
 #define RT5112_POWERON_MASK   (0x80)
 #define RT5112_POWEROFF_MASK (0x7F)
-#define RT5112_ENABLE_GPIO (75)
 
 // Private data struct
 struct rt5112_private_data_t {
@@ -503,6 +502,7 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
     i2c_client = pmic_ctrl->pmic_i2c_client;
     i2c_func = pmic_ctrl->pmic_i2c_client->i2c_func_tbl;
     pdata = (struct rt5112_private_data_t *)pmic_ctrl->pdata;
+    cam_info("%s pmic_ctrl->pdata pin is %d.",__func__,pdata->pin);
 
     // PMU_STAT
     i2c_func->i2c_read(i2c_client, RT5112_PMU_STATUS_REG, &pmu_status);
@@ -544,9 +544,9 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
 
     rt5112_clear_interrupt(pmic_ctrl);
     // reset rt5112_ENABLE
-    gpio_set_value(RT5112_ENABLE_GPIO,RT5112_PIN_DISABLE);
+    gpio_set_value(pdata->pin,RT5112_PIN_DISABLE);
     udelay(1000);
-    gpio_set_value(RT5112_ENABLE_GPIO,RT5112_PIN_ENABLE);
+    gpio_set_value(pdata->pin,RT5112_PIN_ENABLE);
     //mask boost interrupt
     i2c_func->i2c_write(i2c_client, RT5112_MASK_INTR_REG, RT5112_MASK_BOOST_5V);
 

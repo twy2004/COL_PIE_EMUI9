@@ -64,7 +64,7 @@ static DEFINE_MUTEX(secs_mutex_lock);
 static DEFINE_TIMER(secs_timer, hisi_secs_timer_func, 0, 0);/*lint -e785 */
 
 static unsigned long g_secs_power_ctrl_count = 0;
-unsigned long g_secs_suspend_status = 0;
+static unsigned long g_secs_suspend_status = 0;
 static struct regulator_bulk_data regu_burning;
 static struct clk *secs_clk = NULL;
 static struct device_node *secs_np = NULL;

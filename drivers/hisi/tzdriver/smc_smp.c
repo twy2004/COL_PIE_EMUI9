@@ -48,9 +48,6 @@
 #include "dynamic_mem.h"
 struct session_crypto_info *g_session_root_key = NULL;
 
-#define SECS_SUSPEND_STATUS   (0xA5A5)
-extern unsigned long g_secs_suspend_status;
-
 /*lint -save -e750 -e529*/
 #define MAX_EMPTY_RUNS		100
 
@@ -932,15 +929,10 @@ void fiq_shadow_work_func(uint64_t target)
 		return;
 	}
 
-	if (g_secs_suspend_status == SECS_SUSPEND_STATUS) {
-		tloge("WARNING irq during suspend! No = %lld\n", target);
-	}
-
 	if (hisi_secs_power_on()) {
 		tloge("hisi_secs_power_on failed\n");
 		goto secs_power_err;
 	}
-
 	smp_smc_send(TSP_REQUEST, SMC_OPS_START_FIQSHD, current->pid, &secret);
 	if (hisi_secs_power_down()) {
 		tloge("hisi_secs_power_down failed\n");
@@ -1450,8 +1442,47 @@ free_mem:
 	g_session_root_key = NULL;
 	return ret;
 }
-static inline void smc_set_cfc_info(void) {}
-static inline void smc_get_cfc_info(void) {}
+extern char __cfc_rules_start[];
+extern char __cfc_rules_stop[];
+extern char __cfc_area_start[];
+extern char __cfc_area_stop[];
+unsigned int *cfc_seqlock;
+
+static void smc_set_cfc_info(void)
+{
+	struct cfc_rules_pos {
+		u64 magic;
+		u64 address;
+		u64 size;
+		u64 cfc_area_start;
+		u64 cfc_area_stop;
+	} __attribute__((packed)) *buffer = (void *)(cmd_data->out);
+
+	buffer->magic = 0xCFC00CFC00CFCCFC;
+	buffer->address = virt_to_phys(__cfc_rules_start);
+	buffer->size = (void *)__cfc_rules_stop - (void *)__cfc_rules_start;
+	buffer->cfc_area_start = virt_to_phys(__cfc_area_start);
+	buffer->cfc_area_stop = virt_to_phys(__cfc_area_stop);
+	cfc_seqlock = (u32 *)__cfc_rules_start;
+}
+
+/* Sync with trustedcore_src TEE/cfc.h */
+enum cfc_info_to_linux {
+       CFC_TO_LINUX_IS_ENABLED = 0xCFC0CFC1,
+       CFC_TO_LINUX_IS_DISABLED = 0xCFC0CFC2,
+};
+
+/* default is false */
+bool cfc_is_enabled;
+
+static void smc_get_cfc_info(void)
+{
+	uint32_t cfc_flag = ((uint32_t *)(cmd_data->out))[0];
+
+	if (cfc_flag == (uint32_t) CFC_TO_LINUX_IS_ENABLED)
+		cfc_is_enabled = true;
+}
+
 
 #define compile_time_assert(cond, msg) \
     typedef char ASSERT_##msg[(cond) ? 1 : -1]

@@ -47,7 +47,7 @@
 				pwindows_value=<105>;
 				pwave_value=<51>;
 				threshold_value=<60>;
-				max_oily_add_pdata=<280>;
+				max_oily_add_pdata=<200>;
 			};
 		};
 	};

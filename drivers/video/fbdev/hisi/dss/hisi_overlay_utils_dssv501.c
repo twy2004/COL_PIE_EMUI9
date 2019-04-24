@@ -788,8 +788,8 @@ int hisi_dss_aif1_ch_config(struct hisi_fb_data_type *hisifd, dss_overlay_t *pov
 						scfd_h, scfd_v, credit_step);
 				}
 
-				if (credit_step < 32) {
-					credit_step = 32;
+				if (credit_step < 50) {
+					credit_step = 50;
 				}
 
 				aif1->aif_ch_ctl = set_bits32(aif1->aif_ch_ctl, 0x0, 3, 8);
@@ -2816,6 +2816,27 @@ void hisi_dss_post_clip_set_reg(struct hisi_fb_data_type *hisifd,
 /*******************************************************************************
 **
 */
+static bool hisi_check_wblayer_buff_paremeters_validate(struct hisi_fb_data_type *hisifd, dss_wb_layer_t *wb_layer)
+{
+	if (!hisifd || !(hisifd->pdev)) {
+		HISI_FB_ERR("hisifd is NULL!\n");
+		return false;
+	}
+
+	if (NULL == hisifd->ion_client) {
+		HISI_FB_ERR("fb%u, ion_client is NULL!\n", hisifd->index);
+		return false;
+	}
+
+	if (NULL == wb_layer) {
+		HISI_FB_ERR("fb%u, wb_layer is NULL!\n", hisifd->index);
+		return false;
+	}
+
+	return true;
+}
+
+/*lint -e613*/
 static int hisi_dss_check_wblayer_buff(struct hisi_fb_data_type *hisifd, dss_wb_layer_t *wb_layer)
 {
 	struct ion_handle *ionhnd = NULL;
@@ -2824,13 +2845,7 @@ static int hisi_dss_check_wblayer_buff(struct hisi_fb_data_type *hisifd, dss_wb_
 	unsigned long buf_addr = 0;
 	bool succ = true;
 
-	if (!hisifd || !(hisifd->pdev)) {
-		HISI_FB_ERR("hisifd is NULL!\n");
-		return -EINVAL;
-	}
-
-	if (NULL == hisifd->ion_client) {
-		HISI_FB_ERR("fb%d, ion_client is NULL!\n", hisifd->index);
+	if (!hisi_check_wblayer_buff_paremeters_validate(hisifd, wb_layer)) {
 		return -EINVAL;
 	}
 
@@ -2878,10 +2893,14 @@ static int hisi_dss_check_wblayer_buff(struct hisi_fb_data_type *hisifd, dss_wb_
 
 		if (!succ)
 			return -EINVAL;
+	} else {
+		HISI_FB_ERR("fb%u, wb_layer shared_fd=%d is invalid!\n", hisifd->index, wb_layer->dst.shared_fd);
+		return -EINVAL;
 	}
 
 	return 0;
 }
+/*lint +e613*/
 
 static int hisi_dss_check_wblayer_rect(struct hisi_fb_data_type *hisifd, dss_wb_layer_t *wb_layer)
 {
@@ -2985,6 +3004,7 @@ static int hisi_dss_check_userdata_dst(dss_wb_layer_t *wb_layer, uint32_t index)
 	}
 	return 0;
 }
+
 int hisi_dss_check_userdata(struct hisi_fb_data_type *hisifd,
 	dss_overlay_t *pov_req, dss_overlay_block_t *pov_h_block_infos)
 {
@@ -3118,6 +3138,27 @@ int hisi_dss_check_userdata(struct hisi_fb_data_type *hisifd,
 	return 0;
 }
 
+static bool hisi_check_layer_buff_paremeters_validate(struct hisi_fb_data_type *hisifd, dss_layer_t *layer)
+{
+	if (!hisifd || !(hisifd->pdev)) {
+		HISI_FB_ERR("hisifd is NULL!\n");
+		return false;
+	}
+
+	if (NULL == hisifd->ion_client) {
+		HISI_FB_ERR("fb%u, ion_client is NULL!\n", hisifd->index);
+		return false;
+	}
+
+	if (NULL == layer) {
+		HISI_FB_ERR("fb%u, layer is NULL!\n", hisifd->index);
+		return false;
+	}
+
+	return true;
+}
+
+/*lint -e613*/
 static int hisi_dss_check_layer_buff(struct hisi_fb_data_type *hisifd, dss_layer_t *layer)
 {
 	struct ion_handle *ionhnd = NULL;
@@ -3126,13 +3167,7 @@ static int hisi_dss_check_layer_buff(struct hisi_fb_data_type *hisifd, dss_layer
 	unsigned long buf_addr = 0;
 	bool succ = true;
 
-	if (!hisifd || !(hisifd->pdev)) {
-		HISI_FB_ERR("hisifd is NULL!\n");
-		return -EINVAL;
-	}
-
-	if (NULL == hisifd->ion_client) {
-		HISI_FB_ERR("fb%d, ion_client is NULL!\n", hisifd->index);
+	if (!hisi_check_layer_buff_paremeters_validate(hisifd, layer)) {
 		return -EINVAL;
 	}
 
@@ -3181,10 +3216,14 @@ static int hisi_dss_check_layer_buff(struct hisi_fb_data_type *hisifd, dss_layer
 
 		if (!succ)
 			return -EINVAL;
+	} else {
+		HISI_FB_ERR("fb%u, layer_idx%d, shared_fd=%d is invalid!\n", hisifd->index, layer->layer_idx, layer->img.shared_fd);
+		//return -EINVAL;
 	}
 
 	return 0;
 }
+/*lint +e613*/
 
 static int hisi_dss_check_layer_rect(dss_layer_t *layer)
 {

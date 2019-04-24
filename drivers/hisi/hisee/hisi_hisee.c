@@ -415,6 +415,22 @@ int send_smc_process(atf_message_header *p_message_header, phys_addr_t phy_addr,
 	set_errno_and_return(ret);
 }
 
+/***************************************************************************
+* 函数：int hisee_get_smx_cfg(unsigned int *p_smx_cfg)
+* 参数：无
+* 返回：获取smx状态:TRUE or FALSE;
+* 处理：通过SMC向ATF发出获取smx状态的命令；
+* 实现：
+***************************************************************************/
+void hisee_get_smx_cfg(unsigned int *p_smx_cfg)
+{
+	if (NULL == p_smx_cfg) {
+		pr_err("hisee:%s() input param error!\n", __func__);
+		return;
+	}
+	*p_smx_cfg = SMX_PROCESS_1;
+}
+
 static int write_apdu_command_func (char *apdu_buf, unsigned int apdu_len)
 {
 	atf_message_header *p_message_header;
@@ -707,10 +723,6 @@ void nfc_irq_cfg(hisee_nfc_irq_cfg_state flag)
 
 	if (0 == hisee_nfc_irq_addr) {
 		hisee_nfc_irq_addr = (unsigned int *)HISEE_NFC_IRQ_ADDR;
-		if (0 == hisee_nfc_irq_addr) {
-			pr_err("%s() hisee_nfc_irq_addr remap err!\n", __func__);
-			return;
-		}
 		pr_err("%s() hisee_nfc_irq_addr get\n", __func__);
 	}
 	value = *(volatile unsigned int *)(hisee_nfc_irq_addr); /*lint !e747*/
