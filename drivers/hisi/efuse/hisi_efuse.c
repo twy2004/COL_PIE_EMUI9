@@ -500,6 +500,7 @@ static s32 set_efuse_securitydebug_value(unsigned char *buf,
 
 	mutex_lock(&g_efusec.efuse_mutex);
 
+
 	vote_efuse_volt_flag = vote_efuse_volt();
 
 	memmove((void *)g_efusec.vaddr, (void *)buf, sizeof(u32));
@@ -514,7 +515,6 @@ static s32 set_efuse_securitydebug_value(unsigned char *buf,
 		/* start otp1 flash stask for hisee pinstall task */
 		creat_flash_otp_thread();
 	}
-
 	mutex_unlock(&g_efusec.efuse_mutex);
 	pr_info("%s: ret=%d.\n", __func__, ret);
 
@@ -615,8 +615,7 @@ s32 set_efuse_kce_value(unsigned char *buf, u32 size, u32 timeout)
 static long efusec_ioctl(struct file *file, u32 cmd, unsigned long arg)
 {
 	s32 ret = OK;
-	void __user *argp = (void __user *)arg;
-	u32 i;
+	void __user *argp = (void __user *)(uintptr_t)arg;
 	u32 bits_width, bytes;
 
 	u32 read_buf[EFUSE_BUFFER_MAX_BYTES / sizeof(u32)] = { 0 };
@@ -903,9 +902,6 @@ static s32 efuse_get_share_mem_from_dts(void)
 		goto error0;
 	}
 
-	pr_info("g_efusec.paddr=0x%lx, g_efusec.vaddr=0x%lx ",
-		(unsigned long)g_efusec.paddr, (unsigned long)g_efusec.vaddr);
-
 	pr_info("%s success\n", __func__);
 error0:
 	return ret;
@@ -937,7 +933,7 @@ static s32 efuse_create_device_node(void)
 		goto error1;
 	}
 
-	pdevice = device_create(pclass, NULL, MKDEV(major, 0),
+	pdevice = device_create(pclass, NULL, MKDEV((u32)major, 0),
 				NULL, EFUSE_DEV_NAME);
 	if (IS_ERR(pdevice)) {
 		ret = -EFAULT;

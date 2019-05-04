@@ -63,10 +63,14 @@
 #include "soc_socp_adapter.h"
 #include "diag_time_stamp.h"
 #include "diag_msgps.h"
+#include "diag_api.h"
 #include "diag_connect.h"
 
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_CONNECT_C
+
+VOS_UINT32 g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
+HTIMER     g_AuthTimer = VOS_NULL;
 
 #define DIAG_NV_IMEI_LEN                             15
 
@@ -111,10 +115,9 @@ VOS_UINT32 diag_GetImei(VOS_CHAR szimei [16])
 VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 {
     VOS_UINT32 ulCnfRst;
-    DIAG_SRV_HEADER_STRU stSrvHeader = {};
     DIAG_CMD_HOST_CONNECT_CNF_STRU stCnf    = {0};
     const MODEM_VER_INFO_S* pstVerInfo;
-    DIAG_MSG_REPORT_HEAD_STRU stDiagHead    = {0};
+    MSP_DIAG_CNF_INFO_STRU stDiagInfo;
 
     /*处理结果*/
     stCnf.ulAuid = ((MSP_DIAG_DATA_REQ_STRU*)(pstDiagHead->aucData))->ulAuid;
@@ -158,26 +161,22 @@ VOS_VOID diag_GetModemInfo(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
 	stCnf.ulLpdMode                             = 0x5a5a5a5a;
     stCnf.ulRc                                  = ERR_MSP_SUCCESS;
 
-
     (VOS_VOID)VOS_MemSet_s(stCnf.szProduct, (VOS_UINT32)sizeof(stCnf.szProduct),0,(VOS_UINT32)sizeof(stCnf.szProduct));
     (VOS_VOID)VOS_MemCpy_s(stCnf.szProduct, (VOS_UINT32)sizeof(stCnf.szProduct),
         PRODUCT_FULL_VERSION_STR, VOS_StrNLen(PRODUCT_FULL_VERSION_STR, sizeof(stCnf.szProduct)-1));
 
-    /* 填充数据头 */
-    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stSrvHeader);
-    DIAG_SRV_SET_MODEM_ID(&stSrvHeader.frame_header, DIAG_MODEM_0);
-    DIAG_SRV_SET_TRANS_ID(&stSrvHeader.frame_header, pstDiagHead->stService.ulMsgTransId);
-    DIAG_SRV_SET_COMMAND_ID_EX(&stSrvHeader.frame_header, pstDiagHead->ulCmdId);
-    DIAG_SRV_SET_MSG_LEN(&stSrvHeader.frame_header, sizeof(stCnf));
+    stDiagInfo.ulSSId       = DIAG_SSID_CPU;
+    stDiagInfo.ulMsgType    = DIAG_MSG_TYPE_MSP;
+    stDiagInfo.ulMode       = pstDiagHead->stID.mode4b;
+    stDiagInfo.ulSubType    = pstDiagHead->stID.sec5b;
+    stDiagInfo.ulDirection  = DIAG_MT_CNF;
+    stDiagInfo.ulModemid    = 0;
+    stDiagInfo.ulMsgId      = pstDiagHead->ulCmdId;
 
-    stDiagHead.pHeaderData      = (VOS_VOID *)&stSrvHeader;
-    stDiagHead.ulHeaderSize     = sizeof(stSrvHeader);
+    stCnf.ulAuid = ((MSP_DIAG_DATA_REQ_STRU*)(pstDiagHead->aucData))->ulAuid;
+    stCnf.ulSn = ((MSP_DIAG_DATA_REQ_STRU*)(pstDiagHead->aucData))->ulSn;
 
-    stDiagHead.ulDataSize       = sizeof(stCnf);
-    stDiagHead.pData            = &stCnf;
-
-    ulCnfRst = diag_ServicePackCnfData(&stDiagHead);
-
+    ulCnfRst = mdrv_diag_report_cnf((DRV_DIAG_CNF_INFO_STRU *)&stDiagInfo, (VOS_VOID *)&stCnf, sizeof(stCnf));
     if(ERR_MSP_SUCCESS != ulCnfRst)
     {
         diag_error("diag_GetModemInfo failed.\n");
@@ -206,12 +205,17 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     mdrv_diag_PTR(EN_DIAG_PTR_MSGMSP_CONN_IN, 1, pstDiagHead->ulCmdId, 0);
 
     /* 新增获取modem信息的命令用于工具查询单板信息 */
-    if(sizeof(DIAG_CMD_GET_MDM_INFO_REQ_STRU) == pstDiagHead->ulMsgLen)
+    if(pstDiagHead->ulMsgLen >= sizeof(DIAG_CMD_GET_MDM_INFO_REQ_STRU))
     {
         pstInfo = (DIAG_CMD_GET_MDM_INFO_REQ_STRU *)pstDiagHead->aucData;
-        if((VOS_NULL != pstInfo) && (DIAG_GET_MODEM_INFO == pstInfo->ulInfo))
+        if(DIAG_GET_MODEM_INFO_BIT == (pstInfo->ulInfo&DIAG_GET_MODEM_INFO_BIT))
         {
             diag_GetModemInfo((DIAG_CONNECT_FRAME_INFO_STRU *)pstDiagHead);
+            return ERR_MSP_SUCCESS;
+        }
+        if(DIAG_VERIFY_SIGN_BIT == (pstInfo->ulInfo&DIAG_VERIFY_SIGN_BIT))
+        {
+            diag_ConnAuth((DIAG_CONNECT_FRAME_INFO_STRU *)pstDiagHead);
             return ERR_MSP_SUCCESS;
         }
     }
@@ -224,6 +228,7 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
 
     diag_crit("Receive tool connect cmd!\n");
 
+    g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
     pstConn = (DIAG_MSG_MSP_CONN_STRU *)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, (VOS_UINT32)(sizeof(DIAG_MSG_MSP_CONN_STRU)-VOS_MSG_HEAD_LENGTH));
     if(VOS_NULL == pstConn)
     {
@@ -276,7 +281,7 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     pstConn->stConnInfo.diag_cfg.CtrlFlag.ulDrxControlFlag = 0; /*和HIDS确认此处不再使用,打桩处理即可*/
     pstConn->stConnInfo.diag_cfg.CtrlFlag.ulPortFlag = 0;
     pstConn->stConnInfo.diag_cfg.CtrlFlag.ulOmUnifyFlag = 1;
-
+    pstConn->stConnInfo.diag_cfg.CtrlFlag.ulAuthFlag = 1;
     pstConn->stConnInfo.ulLpdMode = 0x5a5a5a5a;
 
     (VOS_VOID)VOS_MemSet_s(pstConn->stConnInfo.szProduct, (VOS_UINT32)sizeof(pstConn->stConnInfo.szProduct),
@@ -307,10 +312,8 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
     if(ERR_MSP_SUCCESS == ulCnfRst)
     {
         /*复位维测信息记录*/
-        diag_reset_src_mntn_info();
-        mdrv_diag_reset_dst_mntn_info();
-
-        diag_StartMntnTimer();
+        mdrv_diag_reset_mntn_info(DIAGLOG_SRC_MNTN);
+        mdrv_diag_reset_mntn_info(DIAGLOG_DST_MNTN);
 
         mdrv_applog_conn();
 
@@ -318,10 +321,6 @@ VOS_UINT32 diag_ConnProc(VOS_UINT8* pstReq)
 
         mdrv_hds_translog_conn();
 
-        if(!DIAG_IS_POLOG_ON)
-        {
-            mdrv_socp_send_data_manager(SOCP_CODER_DST_OM_IND, SOCP_DEST_DSM_ENABLE);
-        }
         diag_crit("Diag send ConnInfo to Modem success.\n");
 
         return ulCnfRst;
@@ -333,13 +332,21 @@ DIAG_ERROR:
     {
         VOS_FreeMsg(MSP_PID_DIAG_APP_AGENT, pstConn);
     }
-    DIAG_MSG_COMMON_PROC(stDiagInfo, stCnf, pstDiagHead);
-
-    stDiagInfo.ulMsgType    = DIAG_MSG_TYPE_MSP;
 
     stCnf.ulRc   = ulCnfRst;
 
-    ulCnfRst = DIAG_MsgReport(&stDiagInfo, &stCnf, (VOS_UINT32)sizeof(stCnf));
+    stDiagInfo.ulSSId       = DIAG_SSID_CPU;
+    stDiagInfo.ulMsgType    = DIAG_MSG_TYPE_MSP;
+    stDiagInfo.ulMode       = pstDiagHead->stID.mode4b;
+    stDiagInfo.ulSubType    = pstDiagHead->stID.sec5b;
+    stDiagInfo.ulDirection  = DIAG_MT_CNF;
+    stDiagInfo.ulModemid    = 0;
+    stDiagInfo.ulMsgId      = pstDiagHead->ulCmdId;
+
+    stCnf.ulAuid = ((MSP_DIAG_DATA_REQ_STRU*)(pstDiagHead->aucData))->ulAuid;
+    stCnf.ulSn = ((MSP_DIAG_DATA_REQ_STRU*)(pstDiagHead->aucData))->ulSn;
+
+    ulCnfRst = mdrv_diag_report_cnf((DRV_DIAG_CNF_INFO_STRU *)&stDiagInfo, &stCnf, (VOS_UINT32)sizeof(stCnf));
 
     diag_error("diag connect failed.\n");
 
@@ -347,9 +354,10 @@ DIAG_ERROR:
 }
 
 
-
 VOS_UINT32 diag_SetChanDisconn(MsgBlock* pMsgBlock)
 {
+    g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
+
     if(!DIAG_IS_CONN_ON)
     {
         return 0;
@@ -367,7 +375,7 @@ VOS_UINT32 diag_SetChanDisconn(MsgBlock* pMsgBlock)
         mdrv_hds_translog_disconn();
 
         /*将状态发送给C核*/
-        diag_SendMsg(MSP_PID_DIAG_APP_AGENT,MSP_PID_DIAG_AGENT,ID_MSG_DIAG_HSO_DISCONN_IND, VOS_NULL, 0);
+        (VOS_VOID)diag_SendMsg(MSP_PID_DIAG_APP_AGENT,MSP_PID_DIAG_AGENT,ID_MSG_DIAG_HSO_DISCONN_IND, VOS_NULL, 0);
 
         mdrv_socp_send_data_manager(SOCP_CODER_DST_OM_IND, SOCP_DEST_DSM_DISABLE);
     }
@@ -387,6 +395,9 @@ VOS_UINT32 diag_DisConnProc(VOS_UINT8* pstReq)
     DIAG_MSG_A_TRANS_C_STRU *pstInfo;
 
     diag_crit("Receive tool disconnect cmd!\n");
+
+        /* 清空鉴权状态 */
+        g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
 
     pstDiagHead = (DIAG_FRAME_INFO_STRU *)pstReq;
 
@@ -430,7 +441,84 @@ DIAG_ERROR:
     return ret;
 
 }
+VOS_VOID diag_ConnAuth(DIAG_CONNECT_FRAME_INFO_STRU *pstDiagHead)
+{
+    VOS_UINT32 ulRet = 0;
 
+    g_ulAuthState = DIAG_AUTH_TYPE_AUTHING;
+
+    /* 鉴权消息DIAG 三级头+ 鉴权key */
+    if((pstDiagHead->ulMsgLen < sizeof(MSP_DIAG_DATA_REQ_STRU))||(pstDiagHead->ulMsgLen > DIAG_FRAME_SUM_LEN))
+    {
+        diag_error("rev msglen is too small, len:0x%x\n", pstDiagHead->ulMsgLen);
+        g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
+        (VOS_VOID)diag_FailedCmdCnf((DIAG_FRAME_INFO_STRU *)pstDiagHead, ERR_MSP_INALID_LEN_ERROR);
+        return;
+    }
+
+    ulRet = diag_SendMsg(MSP_PID_DIAG_APP_AGENT, MSP_PID_DIAG_AGENT, DIAG_MSG_MSP_AUTH_REQ, pstDiagHead->aucData, pstDiagHead->ulMsgLen);
+    if(ulRet)
+    {
+        g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
+        diag_FailedCmdCnf((DIAG_FRAME_INFO_STRU *)pstDiagHead, ulRet);
+    }
+
+    return;
+}
+VOS_VOID diag_ConnAuthRst(MsgBlock* pMsgBlock)
+{
+    MSP_DIAG_CNF_INFO_STRU stDiagInfo = {};
+    DIAG_CMD_AUTH_CNF_STRU stCmdAuthCnf = {};
+    DIAG_DATA_MSG_STRU *pstMsg = (DIAG_DATA_MSG_STRU*)pMsgBlock;
+    DIAG_AUTH_CNF_STRU *pstAuthRst = NULL;
+
+    /* 不是在鉴权中 */
+    if(g_ulAuthState != DIAG_AUTH_TYPE_AUTHING)
+    {
+        diag_error("no auth req, g_ulAuthState:0x%x\n", g_ulAuthState);
+        return;
+    }
+
+    if(pstMsg->ulLength  < sizeof(DIAG_DATA_MSG_STRU) - VOS_MSG_HEAD_LENGTH + sizeof(DIAG_AUTH_CNF_STRU) )
+    {
+        diag_error("rev datalen is too small,len:0x%x\n", pstMsg->ulLength);
+        return;
+    }
+
+    pstAuthRst = (DIAG_AUTH_CNF_STRU *)(pstMsg->pContext);
+
+    /* success */
+    if(pstAuthRst->ulRet == ERR_MSP_SUCCESS)
+    {
+        g_ulAuthState = DIAG_AUTH_TYPE_SUCCESS;
+        if(!DIAG_IS_POLOG_ON)
+        {
+            mdrv_socp_send_data_manager(SOCP_CODER_DST_OM_IND, SOCP_DEST_DSM_ENABLE);
+        }
+        diag_crit("tools auth success\n");
+    }
+    else
+    {
+        diag_error("tools auth fail, ret:0x%x\n", pstAuthRst->ulRet);
+    }
+
+    /* CNF to tools */
+    stCmdAuthCnf.ulAuid = pstAuthRst->stMdmInfo.ulAuid;
+    stCmdAuthCnf.ulSn   = pstAuthRst->stMdmInfo.ulSn;
+    stCmdAuthCnf.ulRc   = pstAuthRst->ulRet;
+
+    stDiagInfo.ulSSId       = DIAG_SSID_CPU;
+    stDiagInfo.ulMsgType    = DIAG_MSG_TYPE_MSP;
+    stDiagInfo.ulMode       = DIAG_MODE_LTE;
+    stDiagInfo.ulSubType    = DIAG_MSG_CMD;
+    stDiagInfo.ulDirection  = DIAG_MT_CNF;
+    stDiagInfo.ulModemid    = 0;
+    stDiagInfo.ulMsgId      = DIAG_CMD_HOST_CONNECT;
+    stDiagInfo.ulTransId    = 0;
+
+    (VOS_VOID)DIAG_MsgReport(&stDiagInfo, (VOS_VOID *)&stCmdAuthCnf, sizeof(stCmdAuthCnf));
+    return;
+}
 VOS_UINT32 diag_ConnTimerProc(VOS_VOID)
 {
     return ERR_MSP_SUCCESS;
@@ -454,4 +542,5 @@ VOS_UINT32 diag_ConnCnf (VOS_UINT32  ulConnId,  VOS_UINT32 ulSn, VOS_UINT32 ulCo
 {
     return ERR_MSP_SUCCESS;
 }
+
 

@@ -50,7 +50,7 @@
 #include "platform/sensor_commom.h"
 #include <linux/wakelock.h>
 #include <linux/hisi/hisi_ion.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/platform_data/remoteproc-hisi.h>
 #include <linux/iommu.h>
 #include <linux/mutex.h>
@@ -60,8 +60,10 @@
 
 DEFINE_MUTEX(hisi_rpmsg_service_mutex);
 
+#ifdef CONFIG_HISI_DEBUG_FS
 static struct pm_qos_request qos_request_ddr_down_record;
 static int current_ddr_bandwidth = 0;
+#endif
 static struct wake_lock hisp_power_wakelock;
 static struct mutex hisp_wake_lock_mutex;
 static struct mutex hisp_power_lock_mutex;
@@ -138,6 +140,8 @@ struct hisp200_mem_pool {
     size_t align_size;
     int active;
     unsigned int security_isp_mode;
+    unsigned int is_ap_cached;
+    unsigned int shared_fd;
     struct ion_client *ion_client;
     struct ion_handle* hdl;
 } ;
@@ -189,10 +193,11 @@ static int hisp200_close(hisp_intf_t *i);
 static int hisp200_send_rpmsg(hisp_intf_t *i, hisp_msg_t *m, size_t len);
 static int hisp200_recv_rpmsg(hisp_intf_t *i,
 				  hisp_msg_t *user_addr, size_t len);
-
+#ifdef CONFIG_HISI_DEBUG_FS
 static void hisp200_set_ddrfreq(int ddr_bandwidth);
 static void hisp200_release_ddrfreq(void);
 static void hisp200_update_ddrfreq(unsigned int ddr_bandwidth);
+#endif
 
 void hisp200_init_timestamp(void);
 void hisp200_destroy_timestamp(void);
@@ -256,7 +261,7 @@ void hisp200_set_timestamp(unsigned int *timestampH, unsigned int *timestampL)
 		return;
 	}
 
-	cam_debug("%s ack_high:0x%x ack_low:0x%x", __func__,
+	cam_info("%s ack_high:0x%x ack_low:0x%x", __func__,
 		*timestampH, *timestampL);
 
 	if (*timestampH == 0 && *timestampL == 0) {
@@ -274,7 +279,7 @@ void hisp200_set_timestamp(unsigned int *timestampH, unsigned int *timestampL)
 	*timestampH = (u32)(fw_micro_second >>32 & 0xFFFFFFFF);
 	*timestampL = (u32)(fw_micro_second & 0xFFFFFFFF);
 
-	cam_debug("%s h:0x%x l:0x%x", __func__, *timestampH, *timestampL);
+	cam_info("%s h:0x%x l:0x%x", __func__, *timestampH, *timestampL);
 }
 
 void hisp200_handle_msg(hisp_msg_t *msg)
@@ -285,7 +290,7 @@ void hisp200_handle_msg(hisp_msg_t *msg)
 	{
 		case BATCH_REQUEST_RESPONSE:
 			msg->u.ack_batch_request.system_couter_rate = s_system_couter_rate;
-			cam_debug("%s batch h:0x%x l:0x%x, rate %d",
+			cam_info("%s batch h:0x%x l:0x%x, rate %d",
 				__func__,
 				msg->u.ack_batch_request.timestampH,
 				msg->u.ack_batch_request.timestampL,
@@ -378,11 +383,11 @@ static void hisp200_save_rpmsg_data(void *data, int len)
  *********************************************/
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
-static void
+static int
 hisp200_rpmsg_ept_cb(struct rpmsg_device *rpdev,
 			 void *data, int len, void *priv, u32 src)
 #else
-	static void
+static int
 hisp200_rpmsg_ept_cb(struct rpmsg_channel *rpdev,
 			 void *data, int len, void *priv, u32 src)
 #endif
@@ -393,11 +398,11 @@ hisp200_rpmsg_ept_cb(struct rpmsg_channel *rpdev,
 
 	if (NULL == hisi_serv){
 		cam_err("func %s: hisi_serv is NULL",__func__);
-		return;
+		return -1;
 	}
 	if (NULL == data){
 		cam_err("func %s: data is NULL",__func__);
-		return;
+		return -1;
 	}
 
 	hisp_assert(len > 0);
@@ -417,6 +422,7 @@ hisp200_rpmsg_ept_cb(struct rpmsg_channel *rpdev,
 	/* save the data and wait for hisp200_recv_rpmsg to get the data*/
 	hisp_recvx(data);
 	hisp200_save_rpmsg_data(data, len);
+	return 0;
 }
 
 char const *hisp200_get_name(hisp_intf_t *i)
@@ -598,6 +604,8 @@ static int hisp200_init_r8isp_memory_pool(void *cfg)
     s_hisp200.mem_pool[ipool].size  = pcfg->param.size;
     s_hisp200.mem_pool[ipool].align_size  = pcfg->param.pool_align_size;
     s_hisp200.mem_pool[ipool].security_isp_mode  = pcfg->param.security_isp_mode;
+    s_hisp200.mem_pool[ipool].is_ap_cached = pcfg->param.isApCached;
+    s_hisp200.mem_pool[ipool].shared_fd = pcfg->param.sharedFd;
 
     if(ipool == MEM_POOL_ATTR_READ_WRITE_CACHE_OFF_LINE)
     {
@@ -876,6 +884,8 @@ static int hisp200_alloc_r8isp_addr(void *cfg)
     pcfg->param.vaddr = (void *)(((unsigned char *)s_hisp200.mem_pool[ipool].ap_va) + offset);
     pcfg->param.iova = r8_iova;
     pcfg->param.offset_in_pool = offset;
+    pcfg->param.isApCached = s_hisp200.mem_pool[ipool].is_ap_cached;
+    pcfg->param.sharedFd = s_hisp200.mem_pool[ipool].shared_fd;
 
     mutex_unlock(&hisi_rpmsg_service_mutex);
     return 0;
@@ -1449,24 +1459,20 @@ static void hisp200_rpmsg_remove(struct rpmsg_channel *rpdev)
 		return;
 	}
 
-//	mutex_lock(&hisi_rpmsg_service_mutex);
-	/*unblock any pending thread */
-	//complete(hisi_serv->comp);
 	mutex_destroy(&hisi_serv->send_lock);
 	mutex_destroy(&hisi_serv->recv_lock);
 
 	kfree(hisi_serv);
 	rpmsg_local.hisi_isp_serv = NULL;
-//	mutex_unlock(&hisi_rpmsg_service_mutex);
 	cam_notice("rpmsg hisi driver is removed\n");
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
-static void
+static int
 hisp200_rpmsg_driver_cb(struct rpmsg_device *rpdev,
 			void *data, int len, void *priv, u32 src)
 #else
-	static void
+static int
 hisp200_rpmsg_driver_cb(struct rpmsg_channel *rpdev,
 			void *data, int len, void *priv, u32 src)
 #endif
@@ -1477,6 +1483,7 @@ hisp200_rpmsg_driver_cb(struct rpmsg_channel *rpdev,
 
 	print_hex_dump(KERN_DEBUG, __func__, DUMP_PREFIX_NONE, 16, 1,
 			   data, len, true);
+	return 0;
 }
 
 static int
@@ -1670,12 +1677,10 @@ RET:
 	return rc;
 }
 
+#ifdef CONFIG_HISI_DEBUG_FS
 static void hisp200_set_ddrfreq(int ddr_bandwidth)
 {
 	cam_info("%s enter,ddr_bandwidth:%d\n",__func__,ddr_bandwidth);
-	/* qos_request_ddr_down_record.pm_qos_class = 0; */
-	/* pm_qos_add_request(&qos_request_ddr_down_record,PM_QOS_MEMORY_THROUGHPUT , ddr_bandwidth); */
-	/* current_ddr_bandwidth = ddr_bandwidth; */
 }
 
 static void hisp200_release_ddrfreq(void)
@@ -1736,7 +1741,7 @@ static ssize_t hisp_ddr_freq_store(struct device *dev,
 
 	return count;
 }
-
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
 static int32_t hisp200_rpmsg_probe(struct rpmsg_device *rpdev)
@@ -1834,7 +1839,7 @@ hisp200_platform_probe(
 	}
 
 	init_completion(&rpmsg_local.isp_comp);
-	ret = hisp_register(&s_hisp200.intf, &s_hisp200.notify);
+	ret = hisp_register(pdev, &s_hisp200.intf, &s_hisp200.notify);
 	if (0 == ret) {
 		atomic_set(&s_hisp200.opened, 0); /*lint !e1058 */
 	} else {
@@ -1858,7 +1863,7 @@ hisp200_platform_probe(
 	if (ret < 0) {
 		cam_err("%s failed to creat hisp ddr freq ctrl attribute.", __func__);
 		unregister_rpmsg_driver(&rpmsg_hisp200_driver);
-		hisp_unregister(&s_hisp200.intf);
+		hisp_unregister(s_hisp200.pdev);
 		goto error;
 	}
 #endif
@@ -1895,7 +1900,7 @@ static void __exit
 hisp200_exit_module(void)
 {
 	cam_notice("%s enter\n", __func__);
-	hisp_unregister(&s_hisp200.intf);
+	hisp_unregister(s_hisp200.pdev);
 	platform_driver_unregister(&s_hisp200_driver);
 	wake_lock_destroy(&hisp_power_wakelock);
 	mutex_destroy(&hisp_wake_lock_mutex);

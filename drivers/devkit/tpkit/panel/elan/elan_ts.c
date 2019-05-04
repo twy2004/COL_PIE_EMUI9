@@ -344,6 +344,8 @@ static ssize_t elan_iap_write(struct file *filp, const char *buff, size_t count,
 	}
 	if (copy_from_user(tmp, buff, count)) {
 		TS_LOG_ERR("[elan]%s:fail to copy_from_user\n",__func__);
+		kfree(tmp);
+		tmp = NULL;
 		return -EFAULT;
 	}
 
@@ -354,7 +356,7 @@ static ssize_t elan_iap_write(struct file *filp, const char *buff, size_t count,
 	}
 	kfree(tmp);
 	tmp = NULL;
-	return (ret <0) ? ret : count;
+	return count;
 }
 
 static ssize_t elan_iap_read(struct file *filp, char *buff, size_t count, loff_t *offp)
@@ -671,18 +673,21 @@ static void parse_fingers_point(struct ts_fingers *pointinfo,u8 *pbuf)
 
 static void parse_pen_point(struct ts_pens *pointinfo,u8 *pbuf, struct ts_cmd_node *out_cmd)
 {
-	uint16_t x =0, y =0,p=0;
-	int pen_down = pbuf[3]&0x03;   //pbuf[3] bit 0,1 tip and inrange
+	uint16_t x = 0;
+	uint16_t y = 0;
+	uint16_t p = 0;
+	int pen_down = 0;   //pbuf[3] bit 0,1 tip and inrange
 	int lcm_max_x=0;
 	int lcm_max_y=0;
 	if ((!pointinfo)||(!pbuf)||(!elan_ts)||(!elan_ts->elan_chip_data)) {
 		TS_LOG_ERR("[elan]%s:arg is NULL\n",__func__);
 		return ;
 	}
+	pen_down = pbuf[3] & 0x03;
 	lcm_max_x=elan_ts->elan_chip_data->x_max;
 	lcm_max_y=elan_ts->elan_chip_data->y_max;
 	if (pen_down) {
-		elan_ktf_pen_parse_xy(pbuf, &y, &x, &p);
+		elan_ktf_pen_parse_xy(pbuf, &x, &y, &p);
 		if ((elan_ts->pen_x_resolution>0)&&(elan_ts->pen_y_resolution>0)) {
 			x=x*lcm_max_x/elan_ts->pen_x_resolution;
 			y=y*lcm_max_y/elan_ts->pen_y_resolution;
@@ -1306,7 +1311,7 @@ static int elan_set_voltage(void)
 		rc = regulator_set_voltage(elan_ts->vdda, elan_ts->elan_chip_data->regulator_ctr.vci_value, \
 		elan_ts->elan_chip_data->regulator_ctr.vci_value);
 		if (rc < 0) {
-			TS_LOG_ERR("[elan]:%s, failed to set elan vdda to %d, regulator_ctr.vci_value = %dV,p=%p\n", \
+			TS_LOG_ERR("[elan]:%s, failed to set elan vdda to %d,regulator_ctr.vci_value = %dV,p=%pK\n",
 				__func__, rc,elan_ts->elan_chip_data->regulator_ctr.vci_value,elan_ts->vdda);
 			return -EINVAL;
 		}
@@ -1374,6 +1379,7 @@ static int elan_before_suspend(void)
 static int elan_ktf_chip_detect(struct ts_kit_platform_data *platform_data)
 {
  	int ret = NO_ERR;
+	int retval = 0;
 	TS_LOG_INFO("[elan]:%s enter!\n", __func__);
 
 	if (((!platform_data)||(!platform_data->ts_dev))||(!elan_ts)||(!elan_ts->elan_chip_data)) {
@@ -1460,12 +1466,18 @@ power_off:
 	}
 	if (VCI_LDO_TYPE == elan_ts->elan_chip_data->vci_regulator_type) {
 		if (!IS_ERR(elan_ts->vdda)) {
-			regulator_disable(elan_ts->vdda);
+			retval = regulator_disable(elan_ts->vdda);
+			if (retval < 0)
+				TS_LOG_ERR("%s: failed to disable regulator vdda\n",
+					__func__);
 		}
 	}
 	if (VDD_LDO_TYPE == elan_ts->elan_chip_data->vddio_regulator_type) {
 		if (!IS_ERR(elan_ts->vddd)) {
-			regulator_disable(elan_ts->vddd);
+			retval = regulator_disable(elan_ts->vddd);
+			if (retval < 0)
+				TS_LOG_ERR("%s: failed to disable regulator vddd\n",
+					__func__);
 		}
 	}
 free_power_gpio:
@@ -1818,6 +1830,7 @@ static int elan_ktf_core_resume(void)
 
 static void elan_chip_shutdown(void)
 {
+	int ret = 0;
 	TS_LOG_INFO("[elan]:%s: enter\n", __func__);
 	elants_reset_pin_low();
 	mdelay(2);//spec need
@@ -1835,12 +1848,16 @@ static void elan_chip_shutdown(void)
 	}
 	if (VCI_LDO_TYPE == elan_ts->elan_chip_data->vci_regulator_type) {
 		if (!IS_ERR(elan_ts->vdda)) {
-			regulator_disable(elan_ts->vdda);
+			ret = regulator_disable(elan_ts->vdda);
+			if (ret < 0)
+				TS_LOG_ERR("%s: failed to disable regulator vdda.\n", __func__);
 		}
 	}
 	if (VDD_LDO_TYPE == elan_ts->elan_chip_data->vddio_regulator_type) {
 		if (!IS_ERR(elan_ts->vddd)) {
-			regulator_disable(elan_ts->vddd);
+			ret = regulator_disable(elan_ts->vddd);
+			if (ret < 0)
+				TS_LOG_ERR("%s: failed to disable regulator vddd.\n", __func__);
 		}
 	}
 	elan_regulator_put();

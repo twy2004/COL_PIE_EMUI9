@@ -35,7 +35,7 @@ static struct vcodecbus_clock vcodecbus_clock_config;
 int npu_clock_init(struct device *dev)
 {
 	int ret = 0;
-	int property_rd;
+	unsigned int property_rd;
 	struct device_node *node;
 	int coreID;
 	int core_number = (NPU_VERSION_V200 == hard_version) ? MAX_SUPPORT_CORE_NUM: (NPU_CORE_0 + 1);
@@ -76,12 +76,12 @@ int npu_clock_init(struct device *dev)
 			goto exit_error;
 		}
 
-		property_rd  = of_property_read_u32(node, "start-rate",             &clk[coreID].default_rate);
-		property_rd |= of_property_read_u32(node, "stop-rate",              &clk[coreID].stop_rate);
-		property_rd |= of_property_read_u32(node, "npu-low",                &clk[coreID].npu_low);
-		property_rd |= of_property_read_u32(node, "npu-middle",             &clk[coreID].npu_middle);
-		property_rd |= of_property_read_u32(node, "npu-high",               &clk[coreID].npu_high);
-		property_rd |= of_property_read_u32(node, "npu-low-temperature",    &clk[coreID].npu_low_temperature);
+		property_rd  = (unsigned int)of_property_read_u32(node, "start-rate",             &clk[coreID].default_rate);
+		property_rd |= (unsigned int)of_property_read_u32(node, "stop-rate",              &clk[coreID].stop_rate);
+		property_rd |= (unsigned int)of_property_read_u32(node, "npu-low",                &clk[coreID].npu_low);
+		property_rd |= (unsigned int)of_property_read_u32(node, "npu-middle",             &clk[coreID].npu_middle);
+		property_rd |= (unsigned int)of_property_read_u32(node, "npu-high",               &clk[coreID].npu_high);
+		property_rd |= (unsigned int)of_property_read_u32(node, "npu-low-temperature",    &clk[coreID].npu_low_temperature);
 		if (property_rd) {
 			NPU_ERR("read property of npu[%u] clock error, default_start/stop/low/middle/high/low_temperature=%u/%u/%u/%u/%u/%u\n",
 				coreID, clk[coreID].default_rate, clk[coreID].stop_rate,
@@ -102,9 +102,9 @@ int npu_clock_init(struct device *dev)
 		goto exit_error;
 	}
 
-	property_rd |= of_property_read_u32(node, "vcodecbus-low",          &vcodecbus->vcodecbus_low);
-	property_rd |= of_property_read_u32(node, "vcodecbus-middle",       &vcodecbus->vcodecbus_middle);
-	property_rd |= of_property_read_u32(node, "vcodecbus-high",         &vcodecbus->vcodecbus_high);
+	property_rd |= (unsigned int)of_property_read_u32(node, "vcodecbus-low",          &vcodecbus->vcodecbus_low);
+	property_rd |= (unsigned int)of_property_read_u32(node, "vcodecbus-middle",       &vcodecbus->vcodecbus_middle);
+	property_rd |= (unsigned int)of_property_read_u32(node, "vcodecbus-high",         &vcodecbus->vcodecbus_high);
 	if (property_rd) {
 		NPU_ERR("read property of clock error. vcodecbus_low/middle/high=%u/%u/%u\n",
 			vcodecbus->vcodecbus_low, vcodecbus->vcodecbus_middle, vcodecbus->vcodecbus_high);

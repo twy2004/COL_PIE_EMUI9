@@ -100,6 +100,9 @@
 #include <./cgroup_huawei/cgroup_pids.h>
 #endif
 #include <linux/cpufreq_times.h>
+#ifdef CONFIG_HWAA
+#include <huawei_platform/hwaa/hwaa_proc_hooks.h>
+#endif
 /*
  * Minimum number of threads to boot the kernel
  */
@@ -218,9 +221,13 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
 		tsk->stack_vm_area = find_vm_area(stack);
 	return stack;
 #else
+#ifdef CONFIG_ALLOC_MEM_SUPPORT_4GPLUS
 	struct page *page = alloc_pages_node(node, THREADINFO_GFP,
 					     THREAD_SIZE_ORDER);
-
+#else
+	struct page *page = alloc_pages_node(node, THREADINFO_GFP | __GFP_HIGHMEM,
+					     THREAD_SIZE_ORDER);
+#endif
 	return page ? page_address(page) : NULL;
 #endif
 }
@@ -573,6 +580,9 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 					struct mm_struct *oldmm)
 {
 	struct vm_area_struct *mpnt, *tmp, *prev, **pprev;
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+	struct vm_area_struct *last = NULL;
+#endif
 	struct rb_node **rb_link, *rb_parent;
 	int retval;
 	unsigned long charge;
@@ -682,6 +692,15 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		rb_parent = &tmp->vm_rb;
 
 		mm->map_count++;
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+		/*
+		 * Mark this VMA as changing to prevent the
+		 * speculative page fault hanlder to process
+		 * it until the TLB are flushed below.
+		 */
+		last = mpnt;
+		vm_write_begin(mpnt);
+#endif
 		retval = copy_page_range(mm, oldmm, mpnt);
 
 		if (tmp->vm_ops && tmp->vm_ops->open)
@@ -696,6 +715,13 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 out:
 	up_write(&mm->mmap_sem);
 	flush_tlb_mm(oldmm);
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+	for (; last; last = last->vm_prev) {
+		if (last->vm_flags & VM_DONTCOPY)
+			continue;
+		vm_write_end(last);
+	}
+#endif
 	up_write(&oldmm->mmap_sem);
 fail_uprobe_end:
 	uprobe_end_dup_mmap();
@@ -1338,7 +1364,9 @@ static int copy_sighand(unsigned long clone_flags, struct task_struct *tsk)
 		return -ENOMEM;
 
 	atomic_set(&sig->count, 1);
+	spin_lock_irq(&current->sighand->siglock);
 	memcpy(sig->action, current->sighand->action, sizeof(sig->action));
+	spin_unlock_irq(&current->sighand->siglock);
 	return 0;
 }
 
@@ -1575,6 +1603,17 @@ static __latent_entropy struct task_struct *copy_process(
 	retval = hkip_check_xid_root();
 	if (retval)
 		goto bad_fork_free;
+	/*
+	 * This _must_ happen before we call free_task(), i.e. before we jump
+	 * to any of the bad_fork_* labels. This is to avoid freeing
+	 * p->set_child_tid which is (ab)used as a kthread's data pointer for
+	 * kernel threads (PF_KTHREAD).
+	 */
+	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
+	/*
+	 * Clear TID on mm_release()?
+	 */
+	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
 
 	ftrace_graph_init_task(p);
 
@@ -1759,11 +1798,6 @@ static __latent_entropy struct task_struct *copy_process(
 		}
 	}
 
-	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
-	/*
-	 * Clear TID on mm_release()?
-	 */
-	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
 #ifdef CONFIG_BLOCK
 	p->plug = NULL;
 #endif
@@ -2051,6 +2085,9 @@ long _do_fork(unsigned long clone_flags,
 		pid = get_task_pid(p, PIDTYPE_PID);
 		nr = pid_vnr(pid);
 
+#ifdef CONFIG_HWAA
+		hwaa_proc_on_task_forked(p);
+#endif
 		if (clone_flags & CLONE_PARENT_SETTID)
 			put_user(nr, parent_tidptr);
 

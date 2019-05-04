@@ -1,7 +1,7 @@
  / {
     soh_core:soh_core {
         compatible = "hisi,soh_core";
-		acr_support = <1>;
+        acr_support = <1>;
         dcr_support = <1>;
         pd_ocv_support = <1>;
         soh_ovp_support = <0>;
@@ -27,4 +27,9 @@
                  };
 	};
     };
+   hisi_soh_charger: hisi_soh_charger@1 {
+                                compatible = "hisi_soh_charger";
+                                scharger_acr_support = <1>;
+                                status = "disabled";
+                 };
 };

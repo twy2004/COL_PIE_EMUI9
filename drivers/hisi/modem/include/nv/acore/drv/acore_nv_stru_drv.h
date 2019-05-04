@@ -126,6 +126,12 @@ typedef struct
 {
     u32 enable;        /*总线挂死寄存器解析使能标志, 0, 去使能;  1, 使能*/
     u32 reset_enable;  /*复位使能标志, 0, 去使能; 1, 使能*/
+}DRV_PDLOCK_AP_CFG_STRU;
+
+typedef struct
+{
+    u32 enable;        /*总线挂死寄存器解析使能标志, 0, 去使能;  1, 使能*/
+    u32 reset_enable;  /*复位使能标志, 0, 去使能; 1, 使能*/
 }DRV_DLOCK_CFG_STRU;
 /* dlock = 0xd155 */
 
@@ -158,6 +164,13 @@ typedef struct
     u32 enable;         /*mbb ap侧noc err probe解析使能标志, 0, 去使能;  1, 使能*/
     u32 reset_enable;   /*mbb ap侧复位使能标志, 0, 去使能; 1, 使能*/
 }DRV_NOC_AP_CFG_STRU;
+
+typedef struct
+{
+    u32 enable;         /*mbb ap侧bus err probe解析使能标志, 0, 去使能;  1, 使能*/
+	u32 reset_enable;   /*mbb ap侧复位使能标志, 0, 去使能; 1, 使能*/
+}DRV_BUS_ERR_AP_CFG_STRU;
+
 typedef struct
 {
     u32 enable;        /*mbb ap侧dmss解析使能标志, 0, 去使能;  1, 使能*/

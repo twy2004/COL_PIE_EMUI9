@@ -210,7 +210,6 @@ typedef struct
 {
     VOS_MSG_HEADER                                                              /* 消息头 */     /* _H2ASN_Skip */
     VOS_UINT32                          ulMsgId;                                /* 消息类型 */  /* _H2ASN_Skip */
-
     MODEM_ID_ENUM_UINT16                enModemId;
     union
     {

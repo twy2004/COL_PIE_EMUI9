@@ -52,7 +52,6 @@
 #include "vos.h"
 #include "PsNdis.h"
 
-
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -76,7 +75,7 @@ extern "C" {
 #ifndef NDIS_RELEASE
 
 #if (VOS_WIN32 == VOS_OS_VER)
-#define NDIS_ASSERT vos_printf("Assert, File: %s, Line:%d\n", __FILE__,__LINE__)
+#define NDIS_ASSERT PS_PRINTF_INFO("Assert, File: %s, Line:%d\n", __FILE__,__LINE__)
 #else
 #define NDIS_ASSERT vos_assert((VOS_UINT32)__FILE__, (VOS_INT)__LINE__)
 #endif
@@ -134,10 +133,10 @@ extern "C" {
 
 /*针对当前打印进行宏定义*/
 #ifndef NDIS_RELEASE
-#define IP_INFO_LOG(STRING)                              PS_PRINTF("%s,%d,%s \r\n",__FILE__,__LINE__,STRING)
-#define IP_ERROR_LOG(STRING)                             PS_PRINTF("%s,%d,%s \r\n",__FILE__,__LINE__,STRING)
-#define IP_ERROR_LOG1(STRING,lPara)                      PS_PRINTF("%s,%d,%s,%d \r\n", __FILE__,__LINE__,STRING,lPara)
-#define IP_ERROR_LOG2(STRING,lPara1,lPara2)              PS_PRINTF("%s,%d,%s,%d,%d \r\n",__FILE__,__LINE__,STRING,lPara1,lPara2)
+#define IP_INFO_LOG(STRING)                              PS_PRINTF_INFO("%s,%d,%s \r\n",__FILE__,__LINE__,STRING)
+#define IP_ERROR_LOG(STRING)                             PS_PRINTF_INFO("%s,%d,%s \r\n",__FILE__,__LINE__,STRING)
+#define IP_ERROR_LOG1(STRING,lPara)                      PS_PRINTF_INFO("%s,%d,%s,%d \r\n", __FILE__,__LINE__,STRING,lPara)
+#define IP_ERROR_LOG2(STRING,lPara1,lPara2)              PS_PRINTF_INFO("%s,%d,%s,%d,%d \r\n",__FILE__,__LINE__,STRING,lPara1,lPara2)
 #else
 #define IP_INFO_LOG(STRING)
 #define IP_ERROR_LOG(STRING)

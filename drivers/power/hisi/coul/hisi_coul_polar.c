@@ -163,7 +163,7 @@ static int polar_linear_interpolate(int y0, int x0, int y1, int x1, int x)
   Output:           插值后数组中最接近x的row1和row2
   Return:          NA
 ********************************************************/
-static void interpolate_find_pos(int *x_array, int rows, int x,
+static void interpolate_find_pos(const int *x_array, int rows, int x,
                                     int *row1, int *row2)
 {
     int i;
@@ -207,7 +207,7 @@ static void interpolate_find_pos(int *x_array, int rows, int x,
   Output:           插值后数组中最接近x的row1和row2
   Return:          NA
 ********************************************************/
-static void interpolate_find_pos_reverse(int *x_array, int rows, int x,
+static void interpolate_find_pos_reverse(const int *x_array, int rows, int x,
                                     int *row1, int *row2)
 {
     int i;
@@ -251,7 +251,7 @@ static void interpolate_find_pos_reverse(int *x_array, int rows, int x,
   Output:           插值后数组中最接近x的index
   Return:          NA
 ********************************************************/
-static int interpolate_linear_x(int *x_array, int *y_array, int rows, int x)
+static int interpolate_linear_x(int *x_array, const int *y_array, int rows, int x)
 {
     int row1 = 0;
     int row2 = 0;
@@ -355,7 +355,7 @@ static int interpolate_two_dimension(polar_res_tbl* lut,
   Output:           插值后数组中最接近x的index
   Return:          NA
 ********************************************************/
-static int interpolate_nearest_x(int *x_array, int rows, int x)
+static int interpolate_nearest_x(const int *x_array, int rows, int x)
 {
     int row1 = 0;
     int row2 = 0;
@@ -383,7 +383,7 @@ static int interpolate_nearest_x(int *x_array, int rows, int x)
   Output:           插值后对应矢量表中的电流向量index
   Return:          NA
 ********************************************************/
-static int interpolate_curr_vector(int *x_array, int rows, int x)
+static int interpolate_curr_vector(const int *x_array, int rows, int x)
 {
     int row1 = 0;
     int row2 = 0;
@@ -404,6 +404,7 @@ static int interpolate_curr_vector(int *x_array, int rows, int x)
     return index;
 }
 
+#ifdef CONFIG_HISI_DEBUG_FS
 /*******************************************************
   Function:       interpolate_polar_ocv
   Description:    look for ocv according to temp, lookup table and pc
@@ -475,7 +476,7 @@ static int interpolate_polar_ocv(polar_ocv_tbl *lut,
 
     return ocv;
 }
-
+#endif
 /*******************************************************
   Function:        get_polar_vector
   Description:     获取极化矢量数据
@@ -682,7 +683,7 @@ close:
  * @return     : void
  * @note       :
 ********************************************************************************/
-void polar_add_flash_data(void *p_buf, u32 buf_size, u32 flash_offset)
+void polar_add_flash_data(const void *p_buf, u32 buf_size, u32 flash_offset)
 {
 	int ret, fd_flash, cnt=0;
 	mm_segment_t old_fs;
@@ -941,7 +942,7 @@ static bool could_vbat_learn_a (struct hisi_polar_device *di, int ocv_soc_mv,
     if (VBAT_LEARN_GAP_MV <= (int)di->v_cutoff - vol_now_mv)
         return FALSE;
     /*即[OCV(tn)-VBAT(tn)+I(tn)*RPCB]/ [OCV(tn)-Vcutoff+I(tn)*RPCB]>0.8@放电电流为负*/
-    vol_coe = (TENTH * (ocv_soc_mv - vol_now_mv)) /(ocv_soc_mv - (int)di->v_cutoff + 
+    vol_coe = (TENTH * (ocv_soc_mv - vol_now_mv)) /(ocv_soc_mv - (int)di->v_cutoff +
             (cur * ((int)di->r_pcb / UOHM_PER_MOHM))/UVOLT_PER_MVOLT);
     polar_debug("%s:vol_coe:%d, last_avgcurr_5s:%d\n", __func__, vol_coe, di->last_avgcurr_5s);
     if (VBAT_LEARN_COE_HIGH < vol_coe)
@@ -1892,7 +1893,7 @@ void get_resume_polar_info(int eco_ibat, int curr, int duration, int sample_time
     if (NULL == di || 0 >= duration)
         return;
     /*sample for Tn-1*/
-    if (0 != eco_ibat) 
+    if (0 != eco_ibat)
         node.sample_time = sample_time - di->fifo_interval;
     else
         node.sample_time = sample_time;
@@ -1903,7 +1904,7 @@ void get_resume_polar_info(int eco_ibat, int curr, int duration, int sample_time
     node.list.next = NULL;
     node.list.prev = NULL;
     polar_debug("%s:time:%lu,curr:%d,duration:%lu,temp:%d:soc:%d\n",
-        __func__, node.sample_time, node.current_ma, node.duration, 
+        __func__, node.sample_time, node.current_ma, node.duration,
         node.temperature, node.soc_now);
     fill_up_polar_fifo(di, &node, &di->coul_fifo_head.list,
                        di->fifo_buffer, COUL_FIFO_SAMPLE_TIME);
@@ -1917,7 +1918,7 @@ void get_resume_polar_info(int eco_ibat, int curr, int duration, int sample_time
         node_eco.list.next = NULL;
         node_eco.list.prev = NULL;
         polar_debug("%s:time:%lu,curr:%d,duration:%lu,temp:%d:soc:%d\n",
-            __func__, node_eco.sample_time, node_eco.current_ma, node_eco.duration, 
+            __func__, node_eco.sample_time, node_eco.current_ma, node_eco.duration,
             node_eco.temperature, node_eco.soc_now);
         fill_up_polar_fifo(di, &node_eco, &di->coul_fifo_head.list,
                            di->fifo_buffer, COUL_FIFO_SAMPLE_TIME);
@@ -2262,7 +2263,7 @@ static int get_polar_table_info(struct device_node *bat_node,
 static int get_polar_dts_info(struct hisi_polar_device *di)
 {
     int id_voltage = 0;
-    int ret = 0;
+    int ret = 0, ret1 = 0;
     int batt_count = 0;
     struct device_node *bat_node;
     struct device_node *coul_node;
@@ -2272,9 +2273,9 @@ static int get_polar_dts_info(struct hisi_polar_device *di)
     if (coul_node) {
         ret = of_property_read_u32(coul_node, "normal_cutoff_vol_mv",
                                    &di->v_cutoff);
-        ret |= of_property_read_u32(coul_node, "r_pcb",&di->r_pcb);
+        ret1 = of_property_read_u32(coul_node, "r_pcb",&di->r_pcb);
     }
-    if (!coul_node || ret) {
+    if (!coul_node || ret || ret1) {
         di->v_cutoff = BATTERY_NORMAL_CUTOFF_VOL;
         di->r_pcb = DEFAULT_RPCB;
         polar_err("get coul info failed\n");
@@ -2288,7 +2289,7 @@ static int get_polar_dts_info(struct hisi_polar_device *di)
         return ret;
     }
     polar_info("fifo_interval:%d\n", di->fifo_interval);
-    ret = of_property_read_u32(di->np, "fifo_depth", 
+    ret = of_property_read_u32(di->np, "fifo_depth",
             &di->fifo_depth);
     if (ret) {
         polar_err("get fifo_depth failed\n");
@@ -2353,7 +2354,7 @@ static int polar_info_init(struct hisi_polar_device *di)
 {
     int i, batt_fcc;
     int batt_present;
-    int ret = 0;
+    int ret = 0, ret1 = 0;
 
     batt_fcc = hisi_battery_fcc();
     batt_present = is_hisi_battery_exist();
@@ -2382,10 +2383,10 @@ static int polar_info_init(struct hisi_polar_device *di)
     if (ret)
         polar_err("failed to create file");
 #endif
-    ret |= get_polar_dts_info(di);
-    if (ret)
+    ret1 = get_polar_dts_info(di);
+    if (ret1)
         polar_err("get dts info failed\n");
-    return ret;
+    return (ret||ret1);
 }
 
 //lint -esym(429, di)
@@ -2393,6 +2394,7 @@ static int hisi_coul_polar_probe(struct platform_device *pdev)
 {
     struct device_node *node = pdev->dev.of_node;
     int retval = 0, fifo_depth;
+    int retval0, retval1, retval2;
     struct hisi_polar_device *di = NULL;
     ktime_t kt;
     unsigned long fifo_time_ms;
@@ -2416,14 +2418,16 @@ static int hisi_coul_polar_probe(struct platform_device *pdev)
         return -ENOMEM;
     } else
         polar_info("polar_buffer alloc ok:%pK", di->polar_buffer);
-    retval = hisiap_ringbuffer_init(di->polar_buffer,
+    retval0 = hisiap_ringbuffer_init(di->polar_buffer,
                 POLAR_BUFFER_SIZE, sizeof(struct ploarized_info),
                 "coul_polar");
-    retval |= hisiap_ringbuffer_init(di->fifo_buffer,
+    retval1 = hisiap_ringbuffer_init(di->fifo_buffer,
                 FIFO_BUFFER_SIZE, sizeof(struct ploarized_info),
                 "coul_fifo");
-    retval |= polar_info_init(di);
+    retval2 = polar_info_init(di);
+    retval = (retval0||retval1||retval2);
     if (retval) {
+        retval = -ENOMEM;
         polar_err("%s failed to init polar info!!!\n", __FUNCTION__);
         goto out;
     }

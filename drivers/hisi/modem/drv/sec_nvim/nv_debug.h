@@ -67,15 +67,15 @@ extern "C" {
 #define THIS_MODU mod_nv
 
 #define nv_printf(fmt, ...) \
-    bsp_err("<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
+    bsp_err(fmt, ##__VA_ARGS__)
 #define nv_warn_printf(fmt, ...) \
-    bsp_wrn("<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
+    bsp_wrn(fmt, ##__VA_ARGS__)
 #define nv_info_printf(fmt, ...) \
-    bsp_info("<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
+    bsp_info(fmt, ##__VA_ARGS__)
 #define nv_debug_printf(fmt, ...) \
-    bsp_debug("<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
+    bsp_debug(fmt, ##__VA_ARGS__)
 #define nv_error_printf(fmt, ...) \
-    bsp_err("<%s %d> "fmt, __FUNCTION__,__LINE__, ##__VA_ARGS__)
+    bsp_err(fmt, ##__VA_ARGS__)
 #define nv_printf_info(fmt, ...) \
     bsp_info( fmt, ##__VA_ARGS__)
 

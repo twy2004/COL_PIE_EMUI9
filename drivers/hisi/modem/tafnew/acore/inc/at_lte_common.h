@@ -120,10 +120,12 @@ typedef struct
  */
 }AT_ERROR_CODE_TABLE_STRU;
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct{
     VOS_UINT32 ulMsgId;
     PFN_AT_FW_MSG_PROC   pfnCnfMsgProc;
 }AT_FTM_CNF_MSG_PROC_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 
 typedef struct
@@ -144,8 +146,6 @@ extern AT_SEND_DATA_BUFFER_STRU gstLAtSendData;
 extern VOS_UINT8 *pgucLAtSndCodeAddr;
 
 VOS_UINT32 initParaListS16( AT_PARSE_PARA_TYPE_STRU *pPara, VOS_UINT16 ulListLen, VOS_INT16* pausList);
-VOS_UINT32 initParaListU16( AT_PARSE_PARA_TYPE_STRU *pPara, VOS_UINT16 ulListLen, VOS_UINT16* pausList);
-
 
 extern VOS_VOID CmdErrProc(VOS_UINT8 ucClientId, VOS_UINT32 ulErrCode, VOS_UINT16 usBufLen, VOS_UINT8* pucBuf);
 
@@ -192,8 +192,9 @@ extern VOS_UINT32 atSetRadverCnfProc(VOS_VOID *pMsgBlock);
 extern VOS_UINT32 atQryFPllStatusPara(VOS_UINT8 ucClientId);
 extern VOS_UINT32 atQryFPllStatusParaCnfProc(VOS_UINT8 ucClientId, VOS_VOID *pMsgBlock);
 
+#if(FEATURE_OFF == FEATURE_UE_MODE_NR)
 extern VOS_UINT32 At_ProcLteTxCltInfoReport(VOS_VOID *pMsgBlock);
-
+#endif
 
 #ifdef __cplusplus
 }

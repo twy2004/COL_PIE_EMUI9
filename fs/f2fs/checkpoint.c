@@ -1142,6 +1142,8 @@ static int block_operations(struct f2fs_sb_info *sbi)
 
 retry_flush_quotas:
 	if (__need_flush_quota(sbi)) {
+		int locked;
+
 		if (++cnt >= DEFAULT_RETRY_QUOTA_FLUSH_COUNT) {
 			set_sbi_flag(sbi, SBI_QUOTA_SKIP_FLUSH);
 			f2fs_lock_all(sbi);
@@ -1149,7 +1151,11 @@ retry_flush_quotas:
 		}
 		clear_sbi_flag(sbi, SBI_QUOTA_NEED_FLUSH);
 
+		/* only failed during mount/umount/freeze/quotactl */
+		locked = down_read_trylock(&sbi->sb->s_umount);
 		f2fs_quota_sync(sbi->sb, -1);
+		if (locked)
+			up_read(&sbi->sb->s_umount);
 	}
 
 	f2fs_lock_all(sbi);
@@ -1226,6 +1232,9 @@ retry_flush_nodes:
 	 * sbi->node_change is used only for AIO write_begin path which produces
 	 * dirty node blocks and some checkpoint values by block allocation.
 	 */
+#ifdef CONFIG_F2FS_CHECK_FS
+	atomic_set(&sbi->in_cp, 1);
+#endif
 	__prepare_cp_block(sbi);
 	up_write(&sbi->node_change);
 out:
@@ -1235,6 +1244,9 @@ out:
 
 static void unblock_operations(struct f2fs_sb_info *sbi)
 {
+#ifdef CONFIG_F2FS_CHECK_FS
+	atomic_set(&sbi->in_cp, 0);
+#endif
 	up_write(&sbi->node_write);
 	f2fs_unlock_all(sbi);
 }

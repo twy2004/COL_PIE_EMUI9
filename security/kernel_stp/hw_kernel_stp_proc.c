@@ -1,20 +1,17 @@
 /*
- * hw_kernel_stp_proc.c
- *
- * the hw_kernel_stp_proc.c for proc file create and destroy
- *
- * sunhongqing <sunhongqing@huawei.com>
- *
- * Copyright (c) 2001-2021, Huawei Tech. Co., Ltd. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2018-2018. All rights reserved.
+ * Description: the hw_kernel_stp_proc.c for proc file create and destroy
+ * Author: sunhongqing <sunhongqing@huawei.com>
+ * Create: 2018-03-31
  */
 
 #include "hw_kernel_stp_proc.h"
 #ifdef CONFIG_HW_SLUB_DF
-#include "linux/slub_def.h" /* for harden double-free check */
+#include <linux/slub_def.h> /* for harden double-free check */
 #endif
 
 static const char *TAG = "kernel_stp_proc";
-static struct proc_dir_entry *proc_entry;
+static struct proc_dir_entry *g_proc_entry;
 
 static const umode_t FILE_CREAT_RO_MODE = 0220;
 static const kgid_t SYSTEM_GID = KGIDT_INIT((gid_t)1000);
@@ -30,15 +27,17 @@ static inline ssize_t kernel_stp_trigger(unsigned int param)
 	return -EINVAL;
 }
 
-static ssize_t kernel_stp_proc_write(struct file *file,const char __user *buffer,size_t count,loff_t *pos)
+static ssize_t kernel_stp_proc_write(struct file *file, const char __user *buffer,
+				size_t count, loff_t *pos)
 {
-	char str[KERNEL_STP_PROC_MAX_LEN + 1] = {0};
+	char str[KERNEL_STP_PROC_MAX_LEN + 1] = { 0 };
 	int ret = count;
 	STP_PROC_TYPE data = {
 		.val = 0
 	};
 
-	if (count <= 0 || count > KERNEL_STP_PROC_MAX_LEN || copy_from_user(str, buffer, count)) {
+	if ((count <= 0) || (count > KERNEL_STP_PROC_MAX_LEN) ||
+		copy_from_user(str, buffer, count)) {
 		KSTPLogError(TAG, "copy data from user failed");
 		return -EFAULT;
 	}
@@ -46,20 +45,21 @@ static ssize_t kernel_stp_proc_write(struct file *file,const char __user *buffer
 	if (kstrtoull(str, KERNEL_STP_PROC_HEX_BASE, &data.val)) {
 		return -EINVAL;
 	}
-	KSTPLogTrace(TAG, "stp proc feature %u, param %u", data.s.feat, data.s.para);
+	KSTPLogTrace(TAG, "stp proc feature %u, param %u",
+				data.s.feat, data.s.para);
 
 	switch (data.s.feat) {
-		case KERNEL_STP_SCAN:
-			ret = kernel_stp_trigger(data.s.para);
-			break;
-		case HARDEN_DBLFREE_CHECK:
+	case KERNEL_STP_SCAN:
+		ret = kernel_stp_trigger(data.s.para);
+		break;
+	case HARDEN_DBLFREE_CHECK:
 #ifdef CONFIG_HW_SLUB_DF
-			ret = set_harden_double_free_status(data.s.para);
+		ret = set_harden_double_free_status(data.s.para);
 #endif
-			break;
-		default:
-			ret = -EINVAL;
-			break;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
 	}
 
 	if (ret < 0) {
@@ -69,6 +69,10 @@ static ssize_t kernel_stp_proc_write(struct file *file,const char __user *buffer
 	return count;
 }
 
+/*
+ * the function is called by kerenl function
+ * single_open(struct file *, int (*)(struct seq_file *, void *), void *)
+ */
 static int kernel_stp_proc_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "%d", 0);
@@ -81,34 +85,32 @@ static int kernel_stp_proc_open(struct inode *inode, struct file *file)
 }
 
 static const struct file_operations kernel_stp_proc_fops = {
-	.owner		= THIS_MODULE,
-	.open		= kernel_stp_proc_open,
-	.read		= seq_read,
-	.write		= kernel_stp_proc_write,
-	.llseek		= seq_lseek,
+	.owner          = THIS_MODULE,
+	.open           = kernel_stp_proc_open,
+	.read           = seq_read,
+	.write          = kernel_stp_proc_write,
+	.llseek         = seq_lseek,
 };
 
 int kernel_stp_proc_init(void)
 {
-	int ret = 0;
+	g_proc_entry = proc_create("kernel_stp", FILE_CREAT_RO_MODE, NULL,
+				&kernel_stp_proc_fops);
 
-	proc_entry = proc_create("kernel_stp", FILE_CREAT_RO_MODE, NULL,
-							&kernel_stp_proc_fops);
-
-	if (proc_entry == NULL) {
-		KSTPLogError(TAG, "proc_entry create is failed");
+	if (g_proc_entry == NULL) {
+		KSTPLogError(TAG, "g_proc_entry create is failed");
 		return -ENOMEM;
 	}
 
 	/* set proc file gid to system gid */
-	proc_set_user(proc_entry, GLOBAL_ROOT_UID, SYSTEM_GID);
+	proc_set_user(g_proc_entry, GLOBAL_ROOT_UID, SYSTEM_GID);
 
-	KSTPLogTrace(TAG, "proc_entry init success");
-	return ret;
+	KSTPLogTrace(TAG, "g_proc_entry init success");
+	return 0;
 }
 
 void kernel_stp_proc_exit(void)
 {
 	remove_proc_entry("kernel_stp", NULL);
-	KSTPLogTrace(TAG, "proc_entry cleanup success");
+	KSTPLogTrace(TAG, "g_proc_entry cleanup success");
 }

@@ -52,11 +52,14 @@
   1 头文件包含
 *****************************************************************************/
 #include "PcscProc.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID PS_FILE_ID_PCSC_APP_PROC_C
+#define    THIS_MODU    mod_pam_pcsc
 
 /* ACPU上维护卡状态的全局变量*/
 USIMM_CARDAPP_SERVIC_ENUM_UINT32 g_enAcpuCardStatus = USIMM_CARDAPP_SERVIC_BUTT;
@@ -81,7 +84,7 @@ VOS_UINT32 PCSC_AcpuCmdReq(VOS_UINT32 ulCmdType, VOS_UINT8 *pucAPDU, VOS_UINT32 
     {
         /* 打印错误 */
         PS_LOG(ACPU_PID_PCSC, 0, PS_PRINT_WARNING, "PCSC_AcpuCmdReq: VOS_AllocMsg is Failed");
-        (VOS_VOID)vos_printf("[PAM][PCSC] %s: VOS_AllocMsg is Failed.\r\n", __FUNCTION__);
+        mdrv_err("<PCSC_AcpuCmdReq> VOS_AllocMsg is Failed.\n");
 
         return VOS_ERR; /* 返回函数错误信息 */
     }
@@ -105,7 +108,7 @@ VOS_UINT32 PCSC_AcpuCmdReq(VOS_UINT32 ulCmdType, VOS_UINT8 *pucAPDU, VOS_UINT32 
     {
         /*打印错误*/
         PS_LOG(ACPU_PID_PCSC, 0, PS_PRINT_WARNING, "PCSC_AcpuCmdReq: VOS_SendMsg is Failed.");
-        (VOS_VOID)vos_printf("[PAM][PCSC] %s: VOS_SendMsg is Failed.", __FUNCTION__);
+        mdrv_err("<PCSC_AcpuCmdReq> VOS_SendMsg is Failed.");
         return VOS_ERR;
     }
 
@@ -130,13 +133,13 @@ VOS_VOID PCSC_UpdateCardStatus(USIMM_CARDSTATUS_IND_STRU *pstMsg)
 {
     if (USIMM_CARDAPP_SERVIC_BUTT == g_enAcpuCardStatus)
     {
-        (VOS_VOID)vos_printf("[PAM][PCSC] %s: Reg PCSC Func.\r\n", __FUNCTION__);
+        mdrv_debug("<PCSC_UpdateCardStatus> Reg PCSC Func.\n");
     }
 
     /*更新本地卡状态的全局变量*/
     g_enAcpuCardStatus = pstMsg->stUsimSimInfo.enCardAppService;
 
-    (VOS_VOID)vos_printf("[PAM][PCSC] %s: g_enAcpuCardStatus =: %d .\r\n", __FUNCTION__, g_enAcpuCardStatus);
+    mdrv_debug("<PCSC_UpdateCardStatus> g_enAcpuCardStatus=%d .\n", g_enAcpuCardStatus);
 
 
     return;

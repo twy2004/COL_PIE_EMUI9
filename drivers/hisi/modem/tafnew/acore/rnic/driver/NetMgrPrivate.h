@@ -81,32 +81,32 @@ extern "C" {
 #if (VOS_OS_VER == VOS_LINUX)
 /*lint -emacro({717}, NM_CTRL_LOGH)*/
 #define NM_CTRL_LOGH(fmt, ...) \
-			do { \
-				pr_err("[NAS_NETMGR]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_NETMGR]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, NM_CTRL_LOGE)*/
 #define NM_CTRL_LOGE(fmt, ...) \
-			do { \
-				pr_err("[NAS_NETMGR]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_NETMGR]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, NM_CTRL_LOGI)*/
 #define NM_CTRL_LOGI(fmt, ...) \
-			do { \
-				pr_info("[NAS_NETMGR]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_info("[NAS_NETMGR]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, NM_CTRL_LOGD)*/
 #define NM_CTRL_LOGD(fmt, ...) \
-			do { \
-				pr_debug("[NAS_NETMGR]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_debug("[NAS_NETMGR]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 #else
-#define NM_CTRL_LOGH                                  PS_PRINTF
-#define NM_CTRL_LOGE                                  PS_PRINTF
-#define NM_CTRL_LOGI                                  PS_PRINTF
-#define NM_CTRL_LOGD                                  PS_PRINTF
+#define NM_CTRL_LOGH                                  PS_PRINTF_ERR
+#define NM_CTRL_LOGE                                  PS_PRINTF_WARNING
+#define NM_CTRL_LOGI                                  PS_PRINTF_INFO
+#define NM_CTRL_LOGD                                  PS_PRINTF_DEBUG
 #endif
 
 /*****************************************************************************

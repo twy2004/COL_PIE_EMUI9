@@ -1672,7 +1672,7 @@ static int mmc_ocrbitnum_to_vdd(int vdd_bit, int *min_uV, int *max_uV)
  */
 int mmc_regulator_get_ocrmask(struct regulator *supply)
 {
-	int			result = 0;
+	unsigned int		result = 0;
 	int			count;
 	int			i;
 	int			vdd_uV;
@@ -1700,7 +1700,7 @@ int mmc_regulator_get_ocrmask(struct regulator *supply)
 		result = mmc_vddrange_to_ocrmask(vdd_mV, vdd_mV);
 	}
 
-	return result;
+	return (int)result;
 }
 EXPORT_SYMBOL_GPL(mmc_regulator_get_ocrmask);
 
@@ -2039,7 +2039,7 @@ int mmc_select_drive_strength(struct mmc_card *card, unsigned int max_dtr,
 			      int card_drv_type, int *drv_type)
 {
 	struct mmc_host *host = card->host;
-	int host_drv_type = SD_DRIVER_TYPE_B;
+	unsigned int host_drv_type = SD_DRIVER_TYPE_B;
 
 	*drv_type = 0;
 
@@ -2063,7 +2063,7 @@ int mmc_select_drive_strength(struct mmc_card *card, unsigned int max_dtr,
 	 * return what is possible given the options
 	 */
 	return host->ops->select_drive_strength(card, max_dtr,
-						host_drv_type,
+						(int)host_drv_type,
 						card_drv_type,
 						drv_type);
 }
@@ -3018,6 +3018,8 @@ static int mmc_rescan_detect_sd_or_mmc(struct mmc_host *host, unsigned freq)
 
 	mmc_power_up(host, host->ocr_avail);
 
+	config_sdsim_gpio_mode(SDSIM_MODE_SD_NORMAL);
+
 	/*
 	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
 	 * do a hardware reset if possible.
@@ -3040,10 +3042,8 @@ int mmc_detect_sd_or_mmc(struct mmc_host *host)
 	int i = 0;
 	int sd_or_mmc_detected = -1;
 
-	mmc_claim_host(host);
 	if (!mmc_rescan_detect_sd_or_mmc(host, max(freqs[i], host->f_min)))
 		sd_or_mmc_detected = 0;
-	mmc_release_host(host);
 
 	return sd_or_mmc_detected;
 }

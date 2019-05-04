@@ -1,7 +1,7 @@
 #include <linux/dma-mapping.h>
 #include <osl_malloc.h>
 #include "ipf_balong.h"
-#include <hi_ipf.h>
+#include "hi_ipf.h"
 #include <bsp_ddr.h>
 #include <mdrv_ipf_comm.h>
 #include <osl_malloc.h>

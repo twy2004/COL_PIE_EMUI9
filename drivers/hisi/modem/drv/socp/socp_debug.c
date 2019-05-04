@@ -140,8 +140,7 @@ void socp_debug_CountStore(char* p,int len)
     int ret;
 
     memset_s(path,sizeof(path),0,sizeof(path));
-	/*coverity[secure_coding]*/
-    snprintf(path,128,"%s%s%d.bin",SOCP_ROOT_PATH,p,bsp_get_slice_value());/*unsafe_function_ignore: snprintf*/
+    snprintf_s(path, sizeof(path), 128 - 1,"%s%s%d.bin",SOCP_ROOT_PATH,p,bsp_get_slice_value());
 
     /* [false alarm]:alarm */
     fd = bsp_open((s8*)path, RFILE_RDWR|RFILE_CREAT, 0660);
@@ -178,8 +177,7 @@ void socp_debug_RegStore(void)
     int ret;
 
     memset_s(path,sizeof(path),0,sizeof(path));
-    /*coverity[secure_coding]*/
-    snprintf(path,128,"%s%s%d.bin",SOCP_ROOT_PATH,p,bsp_get_slice_value());/*unsafe_function_ignore: snprintf*/
+    snprintf_s(path, sizeof(path), 128 -1,"%s%s%d.bin",SOCP_ROOT_PATH,p,bsp_get_slice_value());
     /* [false alarm]:alarm */
     fd = bsp_open((s8*)path, RFILE_RDWR|RFILE_CREAT, 0660);
     /* [false alarm]:alarm */
@@ -253,10 +251,12 @@ int socp_debug_icc_task(void* para)
     int ret;
     u32 i;
     u32 chanid = ICC_CHN_ACORE_CCORE_MIN <<16 | IFC_RECV_FUNC_SOCP_DEBUG;
-    u8  p[32] = {0};
+    u8  p[32];
     while(1)
     {
         osl_sem_down(&g_stSocpDebugCtrl.task_sem);
+
+        memset_s(p, sizeof(p), 0, sizeof(p));
 
         ret = bsp_icc_read(chanid,p, sizeof(p));
         if(ret< (int)0 || ret >= (int)sizeof(p))

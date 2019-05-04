@@ -1,16 +1,16 @@
 #ifndef DS28EL15_H
 #define DS28EL15_H
 
-#include <huawei_platform/power/batt_info.h>
 #include "maxim_onewire.h"
 #include <linux/random.h>
 #include <linux/wakelock.h>
+#include "../batt_aut_checker.h"
 
 typedef struct {
     struct platform_device *pdev;
     maxim_onewire_ic_des ic_des;
     struct attribute_group *attr_group;
-    struct attribute_group **attr_groups;
+    const struct attribute_group **attr_groups;
     struct wake_lock write_lock;
 } ds28el15_des;
 
@@ -18,8 +18,6 @@ typedef struct {
 #define DS28EL15_CT_MAC_PAGE0                       MAC_RESOURCE_TPYE0
 #define DS28EL15_CT_MAC_PAGE1                       MAC_RESOURCE_TPYE1
 #define DS28EL15_CT_MAC_SIZE                        128
-#define DS28EL15_MAC_RES                            0x00
-#define DS28EL15_SN_VERSION_INDEX                   32
 
 /* IC memory protection mode */
 #define DS28EL15_INFO_BLOCK_NUM                     4
@@ -65,7 +63,7 @@ typedef struct {
 #define DS28EL15_COMMUNICATION_INFO(x,y)    \
     do{ \
         if(x){  \
-            hwlog_info(y" failed(%x) in %s.", x,__func__);  \
+            hwlog_info(y" failed(%x) in %s.\n", x,__func__);  \
         }   \
     }while(0)
 
@@ -73,7 +71,7 @@ typedef struct {
 #define DS28EL15_DTS_READ_ERROR_RETURN(x,y) \
     do{ \
         if(x){  \
-            hwlog_err("DTS do not have "y", needed in %s.",__func__);   \
+            hwlog_err("DTS do not have "y", needed in %s.\n",__func__);   \
             return DS28EL15_FAIL;   \
         }   \
     }while(0)
@@ -82,7 +80,7 @@ typedef struct {
 #define DS28EL15_NULL_POINT_RETURN(x)   \
     do{ \
         if(!x){ \
-            hwlog_err("NULL point: "#x", found in %s.",__func__);   \
+            hwlog_err("NULL point: "#x", found in %s.\n",__func__);   \
             return DS28EL15_FAIL;   \
         }   \
     }while(0)

@@ -13,6 +13,11 @@
 #include <linux/clk.h>
 #include <linux/of.h>
 #include <linux/io.h>
+#include <linux/hisi-iommu.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-iommu.h>
+#include <linux/dma-buf.h>
+#include <linux/iommu.h>
 
 #include "omxvdec.h"
 #include "linux_kernel_osal.h"
@@ -35,8 +40,9 @@ static HI_BOOL       gIsDeviceDetected  = HI_FALSE;
 static struct class *g_OmxVdecClass     = HI_NULL;
 static const HI_CHAR g_OmxVdecDrvName[] = OMXVDEC_NAME;
 static dev_t         g_OmxVdecDevNum;
-static OMXVDEC_ENTRY g_OmxVdecEntry;
 static VDEC_MEM_INFO g_VdecMapInfo[MAX_OPEN_COUNT];
+
+OMXVDEC_ENTRY g_OmxVdecEntry;
 
 //Modified for 64-bit platform
 typedef enum {
@@ -300,13 +306,20 @@ static HI_S32 omxvdec_release(struct inode *inode, struct file *file)
 		ret = -EFAULT;
 		goto exit;
 	}
+
 #ifdef MSG_POOL_ADDR_CHECK
 	if (omxvdec_is_heif_scene(&g_VdecMapInfo[index])) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+		memset(&(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]), 0,  /* unsafe_function_ignore: memset */
+				sizeof(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]));
+#else
 		VCTRL_VDHUnmapMessagePool(&(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]));
 		memset(&(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]), 0,  /* unsafe_function_ignore: memset */
-			sizeof(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]));
+				sizeof(g_VdecMapInfo[index].vdh[VDH_SHAREFD_MESSAGE_POOL]));
+#endif
 	}
 #endif
+
 
 	memset(&g_VdecMapInfo[index], 0, sizeof(g_VdecMapInfo[index])); /* unsafe_function_ignore: memset */
 
@@ -327,8 +340,12 @@ static HI_S32 omxvdec_release(struct inode *inode, struct file *file)
 				g_VdecMapInfo[opened_index].clk_rate);
 		}
 	} else if (0 == omxvdec->open_count) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 #ifdef MSG_POOL_ADDR_CHECK
 		VCTRL_VDHUnmapMessagePool(&(omxvdec->com_msg_pool));
+		memset(&(omxvdec->com_msg_pool), 0, sizeof(omxvdec->com_msg_pool)); /* unsafe_function_ignore: memset */
+#endif
+#else
 		memset(&(omxvdec->com_msg_pool), 0, sizeof(omxvdec->com_msg_pool)); /* unsafe_function_ignore: memset */
 #endif
 		VCTRL_CloseVfmw();
@@ -407,6 +424,9 @@ static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned l
 	HI_S32 ret;
 	HI_BOOL x_scene;
 	OMXVDEC_IOCTL_MSG  vdec_msg;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	VdecBufferRecord   buf_record;
+#endif
 	HI_VOID           *u_arg   = (HI_VOID *)arg;
 	OMXVDEC_ENTRY     *omxvdec = file->private_data;
 
@@ -586,6 +606,41 @@ static long omxvdec_ioctl_common(struct file *file, unsigned int cmd, unsigned l
 		break;
 	/*lint +e454 +e456 +e455*/
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	case VDEC_IOCTL_IOMMU_MAP:
+		CHECK_PARA_SIZE_RETURN(sizeof(buf_record), vdec_msg.in_size, "VDEC_IOCTL_IOMMU_MAP_IN");
+		CHECK_PARA_SIZE_RETURN(sizeof(buf_record), vdec_msg.out_size, "VDEC_IOCTL_IOMMU_MAP_OUT");
+		if (copy_from_user(&buf_record, vdec_msg.in, sizeof(buf_record))) {
+			dprint(PRN_FATAL, "VDEC_IOCTL_IOMMU_MAP : copy_from_user failed\n");
+			return -EFAULT;
+		}
+
+		ret = VDEC_MEM_IommuMap(buf_record.share_fd, buf_record.iova_size, &buf_record.iova);
+		if (ret != HI_SUCCESS) {
+			dprint(PRN_FATAL, "%s:  VDEC_IOCTL_IOMMU_MAP failed \n", __func__);
+			return -EFAULT;
+		}
+
+		if (copy_to_user(vdec_msg.out, &buf_record, sizeof(buf_record))) {
+			dprint(PRN_FATAL, "VDEC_IOCTL_IOMMU_MAP : copy_to_user failed\n");
+			return -EFAULT;
+		}
+		break;
+	case VDEC_IOCTL_IOMMU_UNMAP:
+		CHECK_PARA_SIZE_RETURN(sizeof(buf_record), vdec_msg.in_size, "VDEC_IOCTL_IOMMU_UNMAP_IN");
+		if (copy_from_user(&buf_record, vdec_msg.in, sizeof(buf_record))) {
+			dprint(PRN_FATAL, "VDEC_IOCTL_IOMMU_UNMAP : copy_from_user failed\n");
+			return -EFAULT;
+		}
+
+		ret = VDEC_MEM_IommuUnmap(buf_record.share_fd, buf_record.iova);
+		if (ret != HI_SUCCESS) {
+			dprint(PRN_FATAL, "%s:  VDEC_IOCTL_IOMMU_UNMAP failed \n", __func__);
+			return -EFAULT;
+		}
+		break;
+#endif
+
 	default:
 		/* could not handle ioctl */
 		dprint(PRN_FATAL, "%s %d:  cmd : %d is not supported\n", __func__, __LINE__, _IOC_NR(cmd));
@@ -599,6 +654,7 @@ static long omxvdec_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 {
 	return omxvdec_ioctl_common(file, cmd, arg, T_IOCTL_ARG);
 }
+
 /* Modified for 64-bit platform */
 #ifdef CONFIG_COMPAT
 static long omxvdec_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -749,13 +805,14 @@ static HI_S32 omxvdec_probe(struct platform_device *pltdev)
 		goto cleanup0;
 	}
 
+	g_OmxVdecEntry.device = &pltdev->dev;
+
 	ret = VDEC_Regulator_Probe(&pltdev->dev);
 	if (ret != HI_SUCCESS) {
 		dprint(PRN_FATAL, "%s call Regulator_Initialize failed\n", __func__);
 		goto cleanup1;
 	}
 
-	g_OmxVdecEntry.device = &pltdev->dev;
 	platform_set_drvdata(pltdev, &g_OmxVdecEntry);
 	gIsDeviceDetected = HI_TRUE;
 

@@ -119,12 +119,14 @@ struct sec_boot_modem_info
 {
     struct image_info image_info[SOC_MAX];
     struct dynamic_load dynamic_load;
+    u32 aslr_flag;
 };
 #else
 struct sec_boot_modem_info
 {
     struct dynamic_load dynamic_load;
     struct image_info image_info[MAX_SOC_MODEM];
+    u32 aslr_flag;
 };
 #endif
  /*sec boot end */

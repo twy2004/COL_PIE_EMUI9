@@ -55,6 +55,8 @@
 #include "product_config.h"
 #include "AtOamInterface.h"
 #include "nv_id_sys.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 
@@ -62,6 +64,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID PS_FILE_ID_PIH_API_C
+#define    THIS_MODU    mod_pam_osa
 
 
 
@@ -360,7 +363,7 @@ VOS_UINT32 SI_PIH_CchoSetReq(
 
     /* 参数检测 */
     if ((0 == pstCchoCmd->ulAIDLen)
-        || ((USIMM_AID_LEN_MAX*2) < pstCchoCmd->ulAIDLen))
+        || (USIMM_AID_LEN_MAX < pstCchoCmd->ulAIDLen))
     {
         PIH_ERROR_LOG("SI_PIH_CchoSetReq: AID length is incorrect.");
 
@@ -416,7 +419,7 @@ VOS_UINT32 SI_PIH_CchpSetReq(
 
     /* 参数检测 */
     if ((0 == pstCchpCmd->ulAIDLen)
-      || ((USIMM_AID_LEN_MAX*2) < pstCchpCmd->ulAIDLen))
+      || (USIMM_AID_LEN_MAX < pstCchpCmd->ulAIDLen))
     {
         PIH_ERROR_LOG("SI_PIH_CchpSetReq: AID length is incorrect.");
 
@@ -792,10 +795,10 @@ VOS_VOID SI_PIH_AcpuInit(VOS_VOID)
                                                     SI_PIH_TEETimeOutCB,
                                                     VOS_NULL_PTR))
     {
-        vos_printf("[PAM][OSA] %s: Reg TEE Timeout CB FUN Fail\r\n", __FUNCTION__);
+        mdrv_err("<SI_PIH_AcpuInit> Reg TEE Timeout CB FUN Fail\n");
     }
 
-    vos_printf("[PAM][OSA] %s: Reg TEE Timeout CB FUN\r\n", __FUNCTION__);
+    mdrv_debug("<SI_PIH_AcpuInit> Reg TEE Timeout CB FUN Ok\n");
 
     return;
 }
@@ -1006,6 +1009,19 @@ VOS_UINT32 SI_PIH_CardTypeExQuery(
 }
 
 
+VOS_VOID SI_PIH_ClearPINInfo(VOS_UINT8 *pucMem, VOS_UINT8 ucLen)
+{
+    VOS_UINT32                          i;
+
+    for(i=0; i<ucLen; i++)
+    {
+        pucMem[i] = 0XFF;
+    }
+
+    return;
+}
+
+
 VOS_UINT32 SI_PIH_GetSilentPinInfoReq(
     MN_CLIENT_ID_T                      ClientId,
     MN_OPERATION_ID_T                   OpId,
@@ -1042,12 +1058,34 @@ VOS_UINT32 SI_PIH_GetSilentPinInfoReq(
                   pucPin,
                   USIMM_PINNUMBER_LEN);
 
+    if (VOS_OK != VOS_ReserveMsg(WUEPS_PID_AT, (MsgBlock *)pstMsg))
+    {
+        PIH_WARNING_LOG("SI_PIH_GetSilentPinInfoReq:Reserve Msg FAILED");
+
+        /* 清空跨核消息中含有的敏感信息 */
+        SI_PIH_ClearPINInfo(pstMsg->aucData, USIMM_PINNUMBER_LEN);
+
+        (VOS_VOID)VOS_FreeMsg(WUEPS_PID_AT, pstMsg);
+
+        return TAF_FAILURE;
+    }
+
     if (VOS_OK != VOS_SendMsg(WUEPS_PID_AT, pstMsg))
     {
         PIH_WARNING_LOG("SI_PIH_GetSilentPinInfoReq:WARNING SendMsg FAILED");
 
+        /* 清空跨核消息中含有的敏感信息 */
+        SI_PIH_ClearPINInfo(pstMsg->aucData, USIMM_PINNUMBER_LEN);
+
+        (VOS_VOID)VOS_FreeReservedMsg(WUEPS_PID_AT, pstMsg);
+
         return TAF_FAILURE;
     }
+
+    /* 清空跨核消息中含有的敏感信息 */
+    SI_PIH_ClearPINInfo(pstMsg->aucData, USIMM_PINNUMBER_LEN);
+
+    (VOS_VOID)VOS_FreeReservedMsg(WUEPS_PID_AT, pstMsg);
 
     return TAF_SUCCESS;
 }

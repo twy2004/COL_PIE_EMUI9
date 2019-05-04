@@ -103,7 +103,8 @@
 #else
 
 #if defined(CONFIG_HISI_LB_DEBUG)
-#include <linux/hisi/hisi_lb_debug.h>
+extern void __lb_assert_phys(phys_addr_t phys);
+#define lb_assert_phys __lb_assert_phys
 #endif
 
 #define __phys_to_virt(x) ({\

@@ -91,7 +91,7 @@ EXPORT_SYMBOL(SCM_ChannelInfoShow);
 
 void SCM_CoderSrcCHShow(u32 ulCfgNum)
 {
-    if(SCM_CODER_SRC_LOM_IND == ulCfgNum)
+    if(SOCP_CODER_SRC_PS_IND == ulCfgNum)
     {
         diag_crit("\r\n CH id         is 0x%x", g_astSCMIndCoderSrcCfg.enChannelID);
         diag_crit("\r\n CH init state is   %d", g_astSCMIndCoderSrcCfg.enInitState);
@@ -99,11 +99,6 @@ void SCM_CoderSrcCHShow(u32 ulCfgNum)
         diag_crit("\r\n CH Dst        is 0x%x", g_astSCMIndCoderSrcCfg.enDstCHID);
         diag_crit("\r\n CH data type  is   %d", g_astSCMIndCoderSrcCfg.enDataType);
         diag_crit("\r\n CH Level      is   %d", g_astSCMIndCoderSrcCfg.enCHLevel);
-        diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMIndCoderSrcCfg.pucSrcBuf);
-        diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMIndCoderSrcCfg.pucSrcPHY);
-        diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulSrcBufLen);
-        diag_crit("\r\n CH RD VirtAddris 0x%pK", g_astSCMIndCoderSrcCfg.pucRDBuf);
-        diag_crit("\r\n CH RD PHYAddr is 0x%pK", g_astSCMIndCoderSrcCfg.pucRDPHY);
         diag_crit("\r\n CH RD BufLen  is 0x%x", g_astSCMIndCoderSrcCfg.ulRDBufLen);
 
         diag_crit("\r\n CH SEND data   LENGTH          0x%x", g_astScmIndSrcDebugInfo.ulSendDataLen);
@@ -121,7 +116,7 @@ void SCM_CoderSrcCHShow(u32 ulCfgNum)
         diag_crit("\r\n CH SEND after fill not enough  0x%x", g_astScmIndSrcDebugInfo.ulAfterFillNotEnough);
         diag_crit("\r\n CH SEND fill not enough        0x%x", g_astScmIndSrcDebugInfo.ulFillNotEnough);
     }
-    if(SCM_CODER_SRC_LOM_CNF == ulCfgNum)
+    if(SOCP_CODER_SRC_CNF == ulCfgNum)
     {
         diag_crit("\r\n CH id         is 0x%x", g_astSCMCnfCoderSrcCfg.enChannelID);
         diag_crit("\r\n CH init state is   %d", g_astSCMCnfCoderSrcCfg.enInitState);
@@ -129,11 +124,7 @@ void SCM_CoderSrcCHShow(u32 ulCfgNum)
         diag_crit("\r\n CH Dst        is 0x%x", g_astSCMCnfCoderSrcCfg.enDstCHID);
         diag_crit("\r\n CH data type  is   %d", g_astSCMCnfCoderSrcCfg.enDataType);
         diag_crit("\r\n CH Level      is   %d", g_astSCMCnfCoderSrcCfg.enCHLevel);
-        diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMCnfCoderSrcCfg.pucSrcBuf);
-        diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMCnfCoderSrcCfg.pucSrcPHY);
         diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulSrcBufLen);
-        diag_crit("\r\n CH RD VirtAddris 0x%pK", g_astSCMCnfCoderSrcCfg.pucRDBuf);
-        diag_crit("\r\n CH RD PHYAddr is 0x%pK", g_astSCMCnfCoderSrcCfg.pucRDPHY);
         diag_crit("\r\n CH RD BufLen  is 0x%x", g_astSCMCnfCoderSrcCfg.ulRDBufLen);
 
         diag_crit("\r\n CH SEND data   LENGTH          0x%x", g_astScmCnfSrcDebugInfo.ulSendDataLen);
@@ -161,19 +152,13 @@ void SCM_CoderDstCHShow(u32 ulCfgNum)
 {
     diag_crit("\r\n CH id         is 0x%x", g_astSCMIndCoderDstCfg.enChannelID);
     diag_crit("\r\n CH init state is   %d", g_astSCMIndCoderDstCfg.enInitState);
-    diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMIndCoderDstCfg.pucBuf);
-    diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMIndCoderDstCfg.pucBufPHY);
     diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMIndCoderDstCfg.ulBufLen);
     diag_crit("\r\n CH threshold  is 0x%x", g_astSCMIndCoderDstCfg.ulThreshold);
-    diag_crit("\r\n CH CB func    is 0x%pK", g_astSCMIndCoderDstCfg.pfunc);
 
     diag_crit("\r\n CH id         is 0x%x", g_astSCMCnfCoderDstCfg.enChannelID);
     diag_crit("\r\n CH init state is   %d", g_astSCMCnfCoderDstCfg.enInitState);
-    diag_crit("\r\n CH BD VirtAddris 0x%pK", g_astSCMCnfCoderDstCfg.pucBuf);
-    diag_crit("\r\n CH BD PHYAddr is 0x%pK", g_astSCMCnfCoderDstCfg.pucBufPHY);
     diag_crit("\r\n CH BD BufLen  is 0x%x", g_astSCMCnfCoderDstCfg.ulBufLen);
     diag_crit("\r\n CH threshold  is 0x%x", g_astSCMCnfCoderDstCfg.ulThreshold);
-    diag_crit("\r\n CH CB func    is 0x%pK", g_astSCMCnfCoderDstCfg.pfunc);
 
     return;
 }

@@ -55,4 +55,4 @@ include $(BALONG_TOPDIR)/modem/ps/build/gu/TOOLS_CONFIG/makefile_tools_config_ch
 #include rules. must be droped at the bottom, OBB_BUILD_ACTION values: cc tqe lint fortify
 #***********************************************************
 #注：在此添加需要引用的编译脚本
-include $(BALONG_TOPDIR)/build/scripts/rules/$(OBB_BUILD_ACTION)_rtosck_rules.mk
+include $(BALONG_TOPDIR)/modem/build/scripts/rules/$(OBB_BUILD_ACTION)_rtosck_rules.mk

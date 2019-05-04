@@ -41,7 +41,7 @@ coul_polar:coul_polar{
    spmi: spmi@FFF24000 {
 	 pmic: pmic@0 {
                  hi6421v700_coul: hi6421v700_coul@1 {
-                         compatible = "hisilicon_hi6421v700_coul";
+                         compatible = "hisilicon_hi6xxx_coul";
                          interrupt-parent = <&pmic>;
                          interrupts = <9 0>;
                          interrupt-names = "coulirq";                                            

@@ -98,23 +98,6 @@ typedef int (*print_report_hook)(u32 module_id, u32 level, u32 sel, char* print_
 
 typedef struct
 {
-    spinlock_t trace_lock;
-    spinlock_t trans_lock;
-}hds_lock_ctrl_info;
-
-typedef struct
-{
-    u8 * pucPhyStart;
-    u8 * pucVirtStart;
-    u32 ulBufLen;
-}LOG_SRC_CFG_STRU;
-
-#pragma pack(push)
-
-#pragma pack(4)
-
-typedef struct
-{
     u32 ulModule;
     u32 ulPid;
     u32 ulMsgId;
@@ -122,24 +105,6 @@ typedef struct
     u32 ulLength;
     void *pData;
 }TRANS_IND_STRU;
-
-#pragma pack(pop)
-
-typedef struct
-{
-    diag_socp_head_stru     socp_head;
-    diag_frame_head_stru    diag_head;
-    diag_print_head_stru    print_head;
-    u8  data[PRINTLOG_MAX_HIDS_BUFF_LEN];
-}print_send_buff;
-
-typedef struct
-{
-    diag_socp_head_stru     socp_head;
-    diag_frame_head_stru    diag_head;
-    diag_trans_head_stru    trans_head;
-    u8  data[TRANSLOG_MAX_HIDS_BUFF_LEN];
-}trans_send_buff;
 
 typedef struct
 {
@@ -169,6 +134,6 @@ extern u32 g_printlog_level;
 int bsp_trace_to_hids(u32 module_id, u32 level,u32 sel, char* print_buff);
 int bsp_hds_translog_conn(void);
 int bsp_hds_translog_disconn(void);
-s32 bsp_printreport(char *logdata,u32 level,u32 module_id);
+
 s32 bsp_transreport(TRANS_IND_STRU *pstData);
 

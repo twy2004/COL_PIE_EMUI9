@@ -312,6 +312,8 @@ enum ocv_level {
 #define ISCD_INVALID_SAMPLE_CNT_TO 2
 #define ISCD_STANDBY_SAMPLE_CNT (-1)  //for standby mode
 #define ISCD_CHARGE_CYCLE_MIN  10
+#define ISCD_CHRG_DELAY_CYCLES 0
+#define ISCD_DELAY_CYCLES_ENABLE 0
 
 #define ISCD_WARNING_LEVEL_THREHOLD  10000 //uA
 #define ISCD_ERROR_LEVEL_THREHOLD  30000 //uA
@@ -358,6 +360,7 @@ enum ocv_level {
 #define SPLASH2_MOUNT_INFO              "/splash2"
 #define ISC_DATA_DIRECTORY              "/splash2/isc"
 #define ISC_DATA_FILE                   "/splash2/isc/isc.data"
+#define ISC_CONFIG_DATA_FILE            "/splash2/isc/isc_config.data"
 #define WAIT_FOR_SPLASH2_START          5000
 #define WAIT_FOR_SPLASH2_INTERVAL       1000
 #define ISC_SPLASH2_INIT_RETRY          3
@@ -377,13 +380,14 @@ enum ocv_level {
 #define ISC_TRIGGER_WITH_TIME_LIMIT     1
 #define ISC_APP_READY                   1
 #define FATAL_ISC_OCV_UPDATE_THRESHOLD  20
+#define FATAL_ISC_ACTION_DMD_ONLY       0x01 //enable dmd report only
 
 #define CAPACITY_DENSE_AREA_3200	(3200000)
 #define CAPACITY_DENSE_AREA_3670	(3670000)
-#define CAPACITY_DENSE_AREA_3690	(3690000)
-#define CAPACITY_DENSE_AREA_3730	(3730000)
-#define CAPACITY_DENSE_AREA_3800	(3800000)
-#define CAPACITY_DENSE_AREA_3830	(3830000)
+#define CAPACITY_DENSE_AREA_3700	(3700000)
+#define CAPACITY_DENSE_AREA_3720	(3720000)
+#define CAPACITY_DENSE_AREA_3810	(3810000)
+#define CAPACITY_DENSE_AREA_3900	(3900000)
 #define CAPACITY_INVALID_AREA_4500	(4500000)
 #define CAPACITY_INVALID_AREA_2500	(2500000)
 #define COUL_MINUTES(x) (x*60)
@@ -477,6 +481,7 @@ struct coul_device_ops{
     void  (*set_battery_moved_magic_num)(int);
     void  (*get_fifo_avg_data)(struct vcdata *vc);
     int   (*get_fifo_depth)(void);
+    int   (*get_eco_fifo_depth)(void);
     int   (*get_delta_rc_ignore_flag)(void);
     int   (*get_nv_read_flag)(void);
     void  (*set_nv_save_flag)(int nv_flag);
@@ -500,6 +505,9 @@ struct coul_device_ops{
     int   (*get_battery_current_ua)(void);
     int   (*get_battery_vol_uv_from_fifo)(unsigned int fifo_order);
     int   (*get_battery_cur_ua_from_fifo)(unsigned int fifo_order);
+    int   (*get_eco_vol_uv_from_fifo)(unsigned int fifo_order);
+    int   (*get_eco_cur_ua_from_fifo)(unsigned int fifo_order);
+    int   (*get_eco_temp_from_fifo)(unsigned int fifo_order);
     short (*get_offset_current_mod)(void);
     short (*get_offset_vol_mod)(void);
     void  (*set_offset_vol_mod)(void);
@@ -601,6 +609,13 @@ typedef struct {
 } isc_history;
 
 typedef struct {
+    unsigned int write_flag;
+    unsigned int delay_cycles;
+    unsigned int magic_num;
+    unsigned int has_reported;
+} isc_config;
+
+typedef struct {
     unsigned int valid_num;
     unsigned int deadline;
     unsigned int trigger_num[MAX_TRIGGER_LEVEL_NUM];
@@ -628,10 +643,16 @@ struct iscd_info {
     int size;
     int isc;//internal short current, uA
     int isc_valid_cycles;
+    int isc_valid_delay_cycles;
+    int isc_chrg_delay_cycles;
+    int isc_delay_cycles_enable;
+    int has_reported;
+    int write_flag;
     unsigned int isc_status;
     unsigned int fatal_isc_trigger_type;
     unsigned int fatal_isc_soc_limit[2];
     unsigned int fatal_isc_action;
+    unsigned int fatal_isc_action_dts;
     fatal_isc_dmd dmd_reporter;
     spinlock_t boot_complete;
     unsigned int app_ready;
@@ -639,6 +660,7 @@ struct iscd_info {
     int isc_prompt;
     int isc_splash2_ready;
     isc_history fatal_isc_hist;
+    isc_config fatal_isc_config;
     isc_trigger fatal_isc_trigger;
     s64 full_update_cc;//uAh
     int last_sample_cnt; //last sample counts since charge/recharge done

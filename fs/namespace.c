@@ -1623,8 +1623,13 @@ static int do_umount(struct mount *mnt, int flags)
 
 	namespace_lock();
 	lock_mount_hash();
-	event++;
 
+	/* Recheck MNT_LOCKED with the locks held */
+	retval = -EINVAL;
+	if (mnt->mnt.mnt_flags & MNT_LOCKED)
+		goto out;
+
+	event++;
 	if (flags & MNT_DETACH) {
 		if (!list_empty(&mnt->mnt_list))
 			umount_tree(mnt, UMOUNT_PROPAGATE);
@@ -1638,6 +1643,7 @@ static int do_umount(struct mount *mnt, int flags)
 			retval = 0;
 		}
 	}
+out:
 	unlock_mount_hash();
 	namespace_unlock();
 	umounted_fs_register_pch(sb);
@@ -1710,7 +1716,9 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	struct mount *mnt;
 	int retval;
 	int lookup_flags = 0;
-
+#ifdef CONFIG_HW_BFMR_HISI
+	char bfmr_umount_name[BFMR_MOUNT_NAME_SIZE] = {0};
+#endif
 	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
 		return -EINVAL;
 
@@ -1729,7 +1737,7 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 		goto dput_and_out;
 	if (!check_mnt(mnt))
 		goto dput_and_out;
-	if (mnt->mnt.mnt_flags & MNT_LOCKED)
+	if (mnt->mnt.mnt_flags & MNT_LOCKED) /* Check optimistically */
 		goto dput_and_out;
 	retval = -EPERM;
 	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
@@ -1738,7 +1746,6 @@ SYSCALL_DEFINE2(umount, char __user *, name, int, flags)
 	retval = do_umount(mnt, flags);
 
 #ifdef CONFIG_HW_BFMR_HISI
-	char bfmr_umount_name[BFMR_MOUNT_NAME_SIZE] = {0};
 	if((0 == retval) && (0 == copy_from_user(bfmr_umount_name, name, BFMR_MOUNT_NAME_SIZE-1)))
 	{
 		bfmr_set_mount_state(bfmr_umount_name, false);
@@ -1816,8 +1823,14 @@ struct mount *copy_tree(struct mount *mnt, struct dentry *dentry,
 		for (s = r; s; s = next_mnt(s, r)) {
 			if (!(flag & CL_COPY_UNBINDABLE) &&
 			    IS_MNT_UNBINDABLE(s)) {
-				s = skip_mnt_tree(s);
-				continue;
+				if (s->mnt.mnt_flags & MNT_LOCKED) {
+					/* Both unbindable and locked. */
+					q = ERR_PTR(-EPERM);
+					goto out;
+				} else {
+					s = skip_mnt_tree(s);
+					continue;
+				}
 			}
 			if (!(flag & CL_COPY_MNT_NS_FILE) &&
 			    is_mnt_ns_file(s->mnt.mnt_root)) {
@@ -1870,7 +1883,7 @@ void drop_collected_mounts(struct vfsmount *mnt)
 {
 	namespace_lock();
 	lock_mount_hash();
-	umount_tree(real_mount(mnt), UMOUNT_SYNC);
+	umount_tree(real_mount(mnt), 0);
 	unlock_mount_hash();
 	namespace_unlock();
 }
@@ -2810,6 +2823,9 @@ long do_mount(const char *dev_name, const char __user *dir_name,
 	struct path path;
 	int retval = 0;
 	int mnt_flags = 0;
+#ifdef CONFIG_HW_BFMR_HISI
+	char bfmr_mount_name[BFMR_MOUNT_NAME_SIZE] = {0};
+#endif
 
 	/* Discard magic */
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
@@ -2879,7 +2895,6 @@ long do_mount(const char *dev_name, const char __user *dir_name,
 				      dev_name, data_page);
 
 #ifdef CONFIG_HW_BFMR_HISI
-	char bfmr_mount_name[BFMR_MOUNT_NAME_SIZE] = {0};
 	if((0 == retval) && (0 == copy_from_user(bfmr_mount_name, dir_name, BFMR_MOUNT_NAME_SIZE-1)))
 	{
 		bfmr_set_mount_state(bfmr_mount_name, true);

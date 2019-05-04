@@ -69,7 +69,6 @@ void direct_charge_lvc_get_fault_notifier(struct atomic_notifier_head **notifier
 void direct_charge_lvc_check(void)
 {
 	int local_mode = 0;
-	enum charge_done_type charge_done_status = get_charge_done_type();
 	struct direct_charge_device *di = NULL;
 	if (NULL == g_di)
 	{
@@ -349,7 +348,7 @@ static ssize_t direct_charge_sysfs_show(struct device *dev,
 {
 	struct direct_charge_sysfs_field_info *info = NULL;
 	struct direct_charge_device *di = dev_get_drvdata(dev);
-	enum usb_charger_type type = charge_get_charger_type();
+	enum huawei_usb_charger_type type = charge_get_charger_type();
 	int ret;
 
 	info = direct_charge_sysfs_field_lookup(attr->attr.name);
@@ -368,7 +367,7 @@ static ssize_t direct_charge_sysfs_show(struct device *dev,
 			hwlog_err("(%s)invalid ops\n", __func__);
 			return snprintf(buf, PAGE_SIZE, "%d\n", ret);
 		}
-		if(di->scp_ops->is_support_scp())
+		if(adapter_get_protocol_register_state())
 		{
 			hwlog_err("(%s)not support scp\n", __func__);
 			return snprintf(buf, PAGE_SIZE, "%d\n", ret);

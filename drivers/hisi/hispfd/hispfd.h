@@ -15,10 +15,15 @@
 #include <linux/iommu.h>
 #include <linux/types.h>
 #include <asm/uaccess.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/time.h>
 #include <linux/semaphore.h>
 #include <linux/jiffies.h>
+#include <linux/file.h>
+#include <linux/fs.h>
+#include <linux/statfs.h>
+#include <linux/hisi/hipp.h>
+#include <linux/list.h>
 
 #include <asm/uaccess.h>
 #include <linux/ion.h>
@@ -27,15 +32,22 @@
 
 //#define HIFD_TIME_TEST
 //#define HIFD_REG_DEBUG
-
-
+#ifdef HIFD_V130
+#define HIFD_IPP_SMMU_API
+#endif
 // IPP TOP
+#ifdef HIFD_V130
+#define FD_REG_JPG_TOP_AXI_CFG0     (0x0)
+#define FD_REG_JPG_DMA_CRG_CFG1     (0x4)
+#define FD_REG_JPG_HIFD_CRG_CFG0    (0x0400)
+#define FD_REG_JPG_HIFD_CRG_CFG1    (0x0404)
+#else
 #define FD_REG_JPG_TOP_AXI_CFG0     (0x0040)
 #define FD_REG_JPG_DMA_CRG_CFG1     (0x0054)
 #define FD_REG_JPG_TOP_CFG0         (0x0070)
 #define FD_REG_JPG_HIFD_CRG_CFG0    (0x00a0)
 #define FD_REG_JPG_HIFD_CRG_CFG1    (0x00a4)
-
+#endif
 // SMMU COMMON
 #define FD_REG_SMMU_SCACHEI_ALL     (0x0214)
 
@@ -43,6 +55,7 @@
 #define FD_REG_SMMU_MSTR_SMRX_START_0   (0x0028)
 #define FD_REG_SMMU_MSTR_END_ACK_0      (0x001c)
 
+// HIFD Reg
 #define FD_REG_MEM_DEEP_SLP_OFF     (0x0004)
 #define FD_REG_START_OFFSET         (0x0010)
 #define FD_REG_HIFD_CLK_SEL_OFFSET  (0x0014)
@@ -51,6 +64,9 @@
 #define FD_REG_BASE_ADDR_OFFSET     (0x0028)
 #define FD_REG_INTS_OFFSET          (0x0040)
 #define FD_REG_INT_MASK_OFFSET      (0x0044)
+#define FD_REG_CLEAR_EN_OFFSET      (0x0050)
+#define FD_REG_CAU_ID_PC_OFFSET     (0x0104)
+#define FD_REG_DEBUG_MODE_OFFSET    (0x0C10)
 #define FD_REG_INST_ADDR_OFFSET     (0x1000)
 
 #define ADDR_FDAI_PROP_CFG1         1024    // (0x0400)
@@ -141,8 +157,6 @@
 #define ADDR_FDAI_BLOCK_ALIGN_EN                (0x0A50) 
 #define ADDR_FDAI_X2X_ENABLE_DATA_PACKING_N 2816    // (0x0A3C)
 
-
-
 #define BIT_FDAI_INTS_FRAME_OVER            (0)
 #define BIT_FDAI_INTS_NO_FACE               (1)
 #define BIT_FDAI_INTS_WDMA_ERROR            (2)
@@ -151,6 +165,21 @@
 #define BIT_FDAI_INTS_PC_OVERFLOW           (5)
 #define BIT_FDAI_INTS_STEP_OVER             (6)
 #define BIT_FDAI_INTS_RESERVE               (7)
+
+#define FD_COMM_REG_MAX                     64
+#define FD_INTR_MASK                        (0xd0)
+
+#define FD_OM_NORESET                       (1 << 0)
+#define FD_OM_TIME                          (1 << 1)
+
+#define FD_BURST_NUM                        (4)
+
+
+//     ATL: 0.65V/0.70V/0.80V;     PHX:0.60V/0.65V/0.70V/0.80V
+//           480M/ 554M/ 640M;          384M/ 480M/ 554M/ 640M
+#define HIFD_CLK_LEVEL_LOW                  (0)
+#define HIFD_CLK_MAX_NUM                    (4)
+
 
 typedef enum FDAI_INTS_TYPE {
     FDAI_INTS_FRAME_OVER    = 1 << BIT_FDAI_INTS_FRAME_OVER,
@@ -165,44 +194,15 @@ typedef enum FDAI_INTS_TYPE {
 
 
 typedef enum HISPFD_PIC_TYPE {
-    TYPE_768X576_640X480 = 0,
-    TYPE_576X576_480X480,
-    TYPE_768X432_640X360,
-    TYPE_768X576_320X240,
-    TYPE_576X576_240X240,
-    TYPE_768X432_320X180,
-    TYPE_768X384_480X240,
-    TYPE_768X384_640X320,
-    TYPE_768X768_240X240,
-    TYPE_768X768_480X480, 
+    TYPE_FD_HP = 0,         // HP
+    TYPE_FD_LP,             // LP
+    
     TYPE_PIC_BIG_MAX = 100,
 
     TYPE_SMALL  = 200,
 
     TYPE_186_LANDMARK = 300
 }hispfd_pic_type_en;
-
-typedef enum DATA_TYPE {
-    SINGED_16 = 0,
-    UNSIGNED_8 ,
-    DTYPE_MAX
-}data_type_enum;
-
-typedef enum OUTPUT_SIZE_SCALE { 
-    FDAI_PROP_HEIGHT = 0,
-    FDAI_PROP_WIDTH ,
-    FDAI_PROP_SCALE ,
-    FDAI_OUTPUT_SIZE_SCALE_MAX 
-}output_info;
-
-
-#define NUM_PRE_CFG     64
-
-struct hispfd_pic_type_s {
-    unsigned int value;     // register value 
-    unsigned int reg;       // register addr
-};
-
 
 #define DEBUG_BIT   (1 << 2)
 #define INFO_BIT    (1 << 1)
@@ -237,8 +237,6 @@ enum HISPFD_CLK_TYPE {
 enum HISPFD_IRQ_TYPE {
     HFD_IRQ        = 0,
     SMMU_IRQ       = 1,
-    IRQ2           = 2,
-    IRQ3           = 3,
     MAX_HISPFD_IRQ
 };
 
@@ -250,22 +248,76 @@ enum HISPFD_REG_TYPE {
     MAX_HISPFD_REG
 };
 
-#define FD_PRE_MAX_NUM  32
-
-struct hisp_4baseaddr{
-    u32 base_addr0_yuv;         // yuv pic addr
-    u32 base_addr1_instr_para;  // instruction and para bin
-    u32 base_addr2_middle;      // the middle feature map of NN layers 
-    u32 base_addr3_result;      // the result of NN
+enum HISPFD_BOOT_TYPE {
+    BOOT_TYPE_FD,
+    BOOT_TYPE_ESP,
+    BOOT_TYPE_FFD,
+    BOOT_TYPE_MAX
 };
 
 
-enum HISPFD_CLK_LEVEL {
-    HIFD_CLK_LEVEL_LOW          = 0,
-    HIFD_CLK_LEVEL_MEDIUM       = 1,
-    HIFD_CLK_LEVEL_HIGH         = 2,
-    HIFD_CLK_NUM
+#define HISPFD_BOOT_SIZE    (100 * 8)
+
+struct hispfd_reg_s {
+    unsigned int index;
+    unsigned int offset;
+    unsigned int value;
 };
+
+struct hispfd_fd_reg_s {
+    unsigned int offset;
+    unsigned int value;
+};
+
+#define HIFD_INVALID    0
+#define HIFD_VALID      1
+
+struct hispfd_start_st {
+    unsigned int            flag;      // 0 : invalid(no boot code) ; 1 - valid(no boot code)
+    unsigned int            step;
+    unsigned int            pdata_size;
+    unsigned int            reg_num;
+    unsigned char          *pdata;
+    struct hispfd_fd_reg_s *reg;
+};
+
+struct hispfd_start_burst{
+    // If the following nn type is the same as the first one, only the first start_tbl->ctrl->flag set to 1;
+    struct hispfd_start_st *start_tbl;
+    unsigned int num;
+};
+
+#ifdef HIFD_TIME_TEST
+struct hisp_time_s{
+    u64 time_max;
+    u64 time_min;
+    u64 avrg;
+    u32 num;
+    u32 index;
+    u64 time[100];
+};
+#endif
+
+struct hispfd_common_reg_st {
+    unsigned int reg_num;
+    struct hispfd_fd_reg_s *preg;
+};
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+struct hifd_memory_node{
+    struct dma_buf *dmabuf;
+    int shared_fd;
+    struct list_head nd;
+};
+struct hifd_memory_block_st {
+    int shared_fd;
+    int size;
+    unsigned long prot;
+    unsigned int da;
+    int usage;
+    void *viraddr;
+};
+#endif
 
 struct hispfd_s {
     struct miscdevice miscdev;
@@ -273,7 +325,7 @@ struct hispfd_s {
     wait_queue_head_t wait;
     int hfd_ready;
     int initialized;
-    atomic_t open_refs;
+    int open_refs;
     struct regulator *hfd_supply;
     struct regulator *hfd_media1_supply;
     unsigned int irq_num;
@@ -283,99 +335,62 @@ struct hispfd_s {
     void __iomem *reg[MAX_HISPFD_REG];
     struct clk  *hfdclk;
     struct clk  *jpgclk;
+    
     unsigned int poweroff_clk_rate;
-    unsigned int clk_rate[HIFD_CLK_NUM];
+    unsigned int clk_rate[HIFD_CLK_MAX_NUM];
+    unsigned int clk_num;
+    
     struct iommu_domain *domain;
     unsigned long long pteaddr;
     
-    unsigned int pre_reg[FD_PRE_MAX_NUM];
-    unsigned int pre_val[FD_PRE_MAX_NUM];
+    struct hispfd_start_st start_tbl[FD_BURST_NUM];
+    unsigned int start_num;
+    unsigned int start_idx;
+    
+    struct hispfd_fd_reg_s pre_reg[FD_BURST_NUM][FD_COMM_REG_MAX];
+
+    unsigned int om_flag;
+
     int pwrupflag;
-    unsigned int clk_usrsetrate;
-    unsigned int switchflag;
     
     struct semaphore hifd_sem;
-};
+    struct semaphore open_sem;
 
-
-#define HISPFD_BOOT_SIZE    (100 * 8)
-
-struct hispfd_control_s {
-    unsigned int flag;      // 0 : invalid ; 1 - valid
-    unsigned int step;     // FD(1), ESP(2), ROLL(3), FFD5(4), FFD106_STEP1(5), FFD106_STEP2(5), FFD106_STEP3(5); 
-    unsigned int size;
-    unsigned char data[800];
-};
-
-struct hispfd_reg_s {
-    unsigned int index;
-    unsigned int offset;
-    unsigned int value;
-};
-
-struct hispfd_pre_cfg_s{
-    unsigned int pic_type;  // enum HISPFD_PIC_TYPE
-    data_type_enum dtype;
     
-    unsigned int W;         // 640
-    unsigned int H;         // 480
-    unsigned int w_in;      // 130
-    unsigned int h_in;      // 186
-    unsigned int w_out;     // 60
-    unsigned int h_out;     // 60
-    unsigned int l_pad;     // 0
-    unsigned int r_pad;     // 0
-    unsigned int rgb_pad;   // 0
-    unsigned int X0;        // 0
-    unsigned int Y0;
-    unsigned int prop_h;
-    unsigned int prop_w;
-    unsigned int scale_factor;
+    struct semaphore fd_switch_sem;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+    struct list_head dma_buf_list;
+#endif
+#ifdef HIFD_IPP_SMMU_API
+    struct hipp_common_s *smmu_nsec_drv;
+#endif
 };
 
-struct hisp_time_s{
-    u64 time_max;
-    u64 time_min;
-    u64 avrg;
-    u32 num;
-    u32 index;
-    u64 time[100];
-};
+typedef int (*fn_hifd_ioctl)(struct hispfd_s *dev, unsigned long args);
 
-struct hispfd_start_st {
-    unsigned int reg[4];   // baseaddr0/baseaddr1/reserve1/reserve2
-    struct hispfd_pre_cfg_s stpre;
-    struct hispfd_control_s ctrl;
+struct hisp_ioctl_s{
+    u32             ioctl_id;
+    fn_hifd_ioctl   hifd_ioctl;
 };
 
 
-#define HISPFD_SMMUINIT         _IO(  'F', 0x2001)
-#define HISPFD_REQUEST          _IOWR('F', 0x2002, struct hispfd_control_s)
-#define HISPFD_BASEADDR         _IOW( 'F', 0x2003, unsigned int)
-#ifdef HIFD_REG_DEBUG
 #define HISPFD_WR_REG           _IOW( 'F', 0x2004, struct hispfd_reg_s)
 #define HISPFD_RD_REG           _IOWR('F', 0x2005, struct hispfd_reg_s)
-#endif
-#define HISPFD_SWITCH           _IO(  'F', 0x2006)
-#define HISPFD_PRE_CFG          _IOW( 'F', 0x2007, struct hispfd_pre_cfg_s)
 #define HISPFD_GET_TIME         _IOR( 'F', 0x2008, struct hisp_time_s)
-#ifdef HIFD_REG_DEBUG
+#define HISPFD_GET_IRQ_TIME     _IOR( 'F', 0x2009, struct hisp_time_s)
 #define HISPFD_SEM_P            _IO(  'F', 0x200A)
 #define HISPFD_SEM_V            _IO(  'F', 0x200B)
-#endif
-#define HISPFD_CS_4ADDR         _IOW( 'F', 0x200C, struct hisp_4baseaddr)
 #define HISPFD_CLK_SETRATE      _IOW( 'F', 0x200E, unsigned int)
-#define HISPFD_START            _IOW( 'F', 0x200F, struct hispfd_start_st)
+#define HISPFD_START_BURST      _IOW( 'F', 0x2010, struct hispfd_start_burst)
+#define HISPFD_COMMON_REG       _IOW( 'F', 0x2011, struct hispfd_common_reg_st)
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#define HISPFD_IOMMU_MAP        _IOWR( 'F', 0x2012, struct hifd_memory_block_st)
+#define HISPFD_IOMMU_UNMAP      _IOWR( 'F', 0x2013, struct hifd_memory_block_st)
+#endif
+
 
 #define DTS_NAME_HISPFD "hisilicon,hisp-hfd"
 #define HISP_MIN(a, b) (((a) < (b)) ? (a) : (b))
-
-
-extern int hispfd_atfd_smmuenable(u64 pteaddr);
-extern int hispfd_atfd_hfdpwrup(void);
-extern int hispfd_atfd_hfdpwrdn(void);
-
-extern int hispfp_smmu_enable(void __iomem *smmuaddr, void __iomem *mmumasteraddr, unsigned long long pteaddr);
-
 
 #endif /* __HISPFD_H__ */

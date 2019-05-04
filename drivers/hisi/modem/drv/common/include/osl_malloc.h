@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -97,7 +97,7 @@ static __inline__ void * osl_mem_align (unsigned int align_size,unsigned int nBy
     return memalign(align_size,nBytes);
 }
 
-#elif  defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#elif  defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_mem.h"
 #include <mdrv_malloc.h>
 
@@ -109,17 +109,19 @@ static __inline__ void * osl_mem_align (unsigned int align_size,unsigned int nBy
 #define  __ALIGN_KERNEL(x, a)		  __ALIGN_KERNEL_MASK(x, (typeof(x))(a) - 1)
 #define  __ALIGN_KERNEL_MASK(x, mask) (((x) + (mask)) & ~(mask))
 #endif
-#ifdef __OS_RTOSCK_SMP__
-#define UNCACHE_MEM_ALIGN_BYTE MEM_ADDR_ALIGN_008
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+#define UNCACHE_MEM_ALIGN_BYTE MEM_ADDR_ALIGN_016
 #else
 #define UNCACHE_MEM_ALIGN_BYTE MEM_ADDR_ALIGN_4K
 #endif
 static inline void* osl_malloc(unsigned int nBytes)
 {
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     u32 cookis;
     __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     return SRE_MemAllocDebug(0,0,nBytes,cookis);/*lint !e530*/
+    #elif defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+    return NULL;
     #else
     return SRE_MemCacheAlloc(nBytes,(OS_MEM_ALIGN_E)MEM_ADDR_ALIGN_004);
     #endif
@@ -144,10 +146,12 @@ static inline int osl_cachedma_free( void *ptr )
 }
 static inline void * osl_cachedma_malloc ( unsigned int nBytes )
 {
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     u32 cookis;
     __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     return SRE_MemAllocAlignDebug(0,1,nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE,cookis);/*lint !e530*/
+    #elif defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+    return NULL;
     #else
     return SRE_MemUncacheAlloc(nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE);
     #endif
@@ -155,7 +159,7 @@ static inline void * osl_cachedma_malloc ( unsigned int nBytes )
 
 static inline void * osl_cachedma_malloc_debug( unsigned int nBytes, u32 cookis)
 {
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
     return SRE_MemAllocAlignDebug(0,1,nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE,cookis);
     #else
     return SRE_MemUncacheAlloc(nBytes,(OS_MEM_ALIGN_E)UNCACHE_MEM_ALIGN_BYTE);
@@ -166,7 +170,7 @@ static inline void *osl_cachedma_malloc_align (unsigned int align_size,unsigned 
 {
     int count = 2;
     unsigned int align = align_size >> 2;
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     u32 cookis;
     __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     #endif
@@ -179,8 +183,10 @@ static inline void *osl_cachedma_malloc_align (unsigned int align_size,unsigned 
     {
         return NULL;
     }
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     return SRE_MemAllocAlignDebug(0, 1, nBytes, (OS_MEM_ALIGN_E)count,cookis);/*lint !e530*/
+    #elif defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+    return NULL;
     #else
     return SRE_MemUncacheAlloc(nBytes,(OS_MEM_ALIGN_E)count);
     #endif
@@ -189,7 +195,7 @@ static inline void * osl_mem_align (unsigned int align_size,unsigned int nBytes 
 {
     int count = 2;
     unsigned int align = align_size >> 2;
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     u32 cookis;
     __asm__ __volatile__("mov %0,pc":"=r"(cookis)::"memory");
     #endif
@@ -202,8 +208,10 @@ static inline void * osl_mem_align (unsigned int align_size,unsigned int nBytes 
     {
         return NULL;
     }
-    #ifdef __OS_RTOSCK_SMP__
+    #if defined(__OS_RTOSCK_SMP__)
     return SRE_MemAllocAlignDebug(0, 0, nBytes, (OS_MEM_ALIGN_E)count,cookis);/*lint !e530*/
+    #elif defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+    return NULL;
     #else
     return SRE_MemCacheAlloc(nBytes,(OS_MEM_ALIGN_E)count);
     #endif

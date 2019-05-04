@@ -156,8 +156,6 @@ VOS_UINT32 Calc_CRC32(VOS_UINT8 *Packet, VOS_UINT32 dwLength)
  返 回 值  : 成功返回AT_OK，失败返回AT_ERROR
 *****************************************************************************/
 
-
-
 VOS_UINT32 atSetLTCommCmdPara(VOS_UINT8 ucClientId)
 {
     FTM_SET_LTCOMMCMD_REQ_STRU *pstSetReq = NULL;
@@ -168,6 +166,8 @@ VOS_UINT32 atSetLTCommCmdPara(VOS_UINT8 ucClientId)
     VOS_UINT32 ulRst      = ERR_MSP_SUCCESS;
     VOS_UINT32 i          = 0;
     VOS_UINT32 ulLen      = 0;
+    VOS_UINT32 ulBufInLen = 0;
+    VOS_UINT32 ulStrInLen = 0;
 
     VOS_UINT8  *pdata_aucPara = NULL;
 
@@ -206,7 +206,7 @@ VOS_UINT32 atSetLTCommCmdPara(VOS_UINT8 ucClientId)
                                  );
     if (NULL == pdata_aucPara)
     {
-        PS_PRINTF("[%s]failed to malloc\n",__FUNCTION__);
+        PS_PRINTF_WARNING("[%s]failed to malloc\n",__FUNCTION__);
         return AT_ERROR;
     }
 
@@ -237,24 +237,34 @@ VOS_UINT32 atSetLTCommCmdPara(VOS_UINT8 ucClientId)
     if(ulCRC_Cal != ulCRC)
     {
         VOS_MemFree(WUEPS_PID_AT, pdata_aucPara);
-        PS_PRINTF("[%s]CRC ERROR\n",__FUNCTION__);
+        PS_PRINTF_WARNING("<%s> CRC ERROR\n",__FUNCTION__);
         return AT_CME_INCORRECT_PARAMETERS;
     }
 
-    ulLen = sizeof(FTM_SET_LTCOMMCMD_REQ_STRU) + (VOS_UINT32)(gastAtParaList[1].ulParaValue)/2;
+    ulStrInLen = gastAtParaList[4].usParaLen + gastAtParaList[5].usParaLen + gastAtParaList[6].usParaLen + gastAtParaList[7].usParaLen;
+    ulBufInLen = (gastAtParaList[1].ulParaValue);
+    /* 取小保护 */
+    if (ulBufInLen > ulStrInLen)
+    {
+        ulBufInLen = ulStrInLen;
+    }
+
+    ulLen = sizeof(FTM_SET_LTCOMMCMD_REQ_STRU) + ulBufInLen / 2;
     pstSetReq = (FTM_SET_LTCOMMCMD_REQ_STRU *)VOS_MemAlloc(WUEPS_PID_AT, DYNAMIC_MEM_PT,ulLen);
 
     if (pstSetReq == VOS_NULL){
         VOS_MemFree(WUEPS_PID_AT, pdata_aucPara);
-        PS_PRINTF("[%s]failed to malloc\n",__FUNCTION__);
+        PS_PRINTF_WARNING("<%s> failed to malloc\n",__FUNCTION__);
         return AT_ERROR;
     }
+
     pstSetReq->ulCmdDest = (FTM_LTCOMMCMD_DEST)(gastAtParaList[0].ulParaValue);
-    pstSetReq->ulDataLen = (VOS_UINT32)(gastAtParaList[1].ulParaValue)/2;
+    pstSetReq->ulDataLen = ulBufInLen / 2;
     for(i=0; i<pstSetReq->ulDataLen; i++)
     {
         pstSetReq->cData[i] = Hec2ToVal( pdata_aucPara + (VOS_UINT32)(2 * i));
     }
+
     VOS_MemFree(WUEPS_PID_AT, pdata_aucPara);
 
     ulRst = atSendFtmDataMsg(I0_MSP_SYS_FTM_PID, ID_MSG_FTM_SET_LTCOMMCMD_REQ, ucClientId,
@@ -296,7 +306,7 @@ VOS_UINT32 atSetLTCommCmdParaCnfProc(VOS_UINT8 ucClientId, VOS_VOID *pMsgBlock)
     VOS_UINT32 i                       = 0;
 
     if (!pMsgBlock){
-        PS_PRINTF("[%s]pMsgBlock null\n",__FUNCTION__);
+        PS_PRINTF_WARNING("<%s> pMsgBlock null\n",__FUNCTION__);
         return ERR_MSP_INVALID_PARAMETER;
     }
     pEvent = (OS_MSG_STRU*)(((MsgBlock*)pMsgBlock)->aucValue);
@@ -375,7 +385,7 @@ VOS_UINT32 atQryLTCommCmdParaCnfProc(VOS_UINT8 ucClientId, VOS_VOID *pMsgBlock)
     VOS_UINT16 i                       = 0;
 
     if (!pMsgBlock){
-            PS_PRINTF("[%s]pMsgBlock null\n",__FUNCTION__);
+            PS_PRINTF_WARNING("<%s> pMsgBlock null\n",__FUNCTION__);
             return ERR_MSP_INVALID_PARAMETER;
     }
 

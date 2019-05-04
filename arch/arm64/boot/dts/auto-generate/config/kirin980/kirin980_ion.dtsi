@@ -166,6 +166,7 @@
 			compatible = "hisi-camera-pool";
 			reusable;
 			status = "disable";
+			visible_to_users;
 		};
 
 		hisi_cma: hisi_cma {
@@ -174,6 +175,7 @@
 			sec-attr = <0x0 0x20>;
 			reusable;
 			status = "ok";
+			visible_to_users;
 		};
 
 		hisi_iris_static_cma: hisi_iris_static_cma {
@@ -184,6 +186,7 @@
 			sec-attr = <0x0 0x20>;
 			reusable;
 			status = "disabled";
+			visible_to_users;
 		};
 
 		hisi_algo_static_cma: hisi_algo_static_cma {
@@ -194,6 +197,7 @@
 			sec-attr = <0x0 0x20>;
 			reusable;
 			status = "disabled";
+			visible_to_users;
 		};
 	};
 

@@ -159,15 +159,15 @@ extern "C" {
     ( TAF_SUCCESS == At_PppId2PsRab((usPppId), pucRabId) )
 
 #define PPP_MNTN_LOG(ModulePID, SubMod, Level, String) \
-            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), __FILE__, __LINE__, "\r\n"))
+            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), TTF_FILE_NAME(THIS_FILE_ID), __LINE__, "\r\n"))
 #define PPP_MNTN_LOG1(ModulePID, SubMod, Level, String, Para1) \
-            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), __FILE__, __LINE__, "%d \r\n", Para1))
+            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), TTF_FILE_NAME(THIS_FILE_ID), __LINE__, "%d \r\n", Para1))
 #define PPP_MNTN_LOG2(ModulePID, SubMod, Level, String, Para1, Para2) \
-            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), __FILE__, __LINE__, "%d, %d \r\n", Para1, Para2))
+            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), TTF_FILE_NAME(THIS_FILE_ID), __LINE__, "%d, %d \r\n", Para1, Para2))
 #define PPP_MNTN_LOG3(ModulePID, SubMod, Level, String, Para1, Para2, Para3) \
-            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d \r\n", Para1, Para2, Para3))
+            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), TTF_FILE_NAME(THIS_FILE_ID), __LINE__, "%d, %d, %d \r\n", Para1, Para2, Para3))
 #define PPP_MNTN_LOG4(ModulePID, SubMod, Level, String, Para1, Para2, Para3, Para4) \
-            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), __FILE__, __LINE__, "%d, %d, %d, %d \r\n", Para1, Para2, Para3, Para4))
+            ((VOS_VOID)DIAG_LogReport(DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_COMM, Level), (ModulePID), TTF_FILE_NAME(THIS_FILE_ID), __LINE__, "%d, %d, %d, %d \r\n", Para1, Para2, Para3, Para4))
 
 /* --------------Áã¿½±´²Ù×÷Ïà¹Øºê-------------- */
 typedef IMM_ZC_STRU      PPP_ZC_STRU;

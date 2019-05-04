@@ -30,6 +30,7 @@ void ts_report_pen(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd);
 int ts_power_control(int irq_id, struct ts_cmd_node *in_cmd,
 		     struct ts_cmd_node *out_cmd);
 void ts_palm_report(struct ts_cmd_node* in_cmd, struct ts_cmd_node* out_cmd);
+void ts_report_key_event(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd);
 int ts_fw_update_boot(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd);
 int ts_fw_update_sd(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd);
 void ts_start_wd_timer(struct ts_kit_platform_data *cd);
@@ -75,6 +76,8 @@ void ts_kit_charger_switch(struct ts_cmd_node *in_cmd,
 			   struct ts_cmd_node *out_cmd);
 int ts_chip_detect(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd);
 int ts_oem_info_switch(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd,
+		       struct ts_cmd_sync *sync);
+int ts_gamma_info_switch(struct ts_cmd_node *in_cmd, struct ts_cmd_node *out_cmd,
 		       struct ts_cmd_sync *sync);
 int ts_get_calibration_info(struct ts_cmd_node *in_cmd,
 			    struct ts_cmd_node *out_cmd,

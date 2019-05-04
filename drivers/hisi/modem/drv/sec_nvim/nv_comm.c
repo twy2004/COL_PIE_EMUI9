@@ -76,44 +76,6 @@ struct nv_global_ctrl_info_stru  g_nv_ctrl = {};
 struct nv_global_ctrl_stru * g_flash_emmc_info_ptr = NULL;
 
 /*****************************************************************************
- 函 数 名  : nv_ipc_sem_take
- 功能描述  : take核间互斥信号量的接口
- 输入参数  : 无
- 输出参数  : 无
- 返 回 值  :
-*****************************************************************************/
-u32 nv_ipc_sem_take(u32 sem, u32 timeout)
-{
-    u32 start;
-    u32 end;
-
-    osl_sem_down(&g_nv_ctrl.rw_sem);
-    start = bsp_get_slice_value();
-    if(bsp_ipc_sem_take(sem, (int)timeout))
-    {
-        nv_record("[0x%x] 0x%x take ipc sem fail\n", bsp_get_slice_value(), start);
-        return BSP_ERR_NV_TIME_OUT_ERR;
-    }
-    end = bsp_get_slice_value();
-    nv_debug_record_delta_time(NV_DEBUG_DELTA_GET_IPC, start, end);
-    return NV_OK;
-}
-
-/*****************************************************************************
- 函 数 名  : nv_ipc_sem_take
- 功能描述  : give核间互斥信号量的接口
- 输入参数  : 无
- 输出参数  : 无
- 返 回 值  :
-*****************************************************************************/
-void nv_ipc_sem_give(u32 sem)
-{
-    (void)bsp_ipc_sem_give(sem);
-    osl_sem_up(&g_nv_ctrl.rw_sem);
-    return;
-}
-
-/*****************************************************************************
  函 数 名  : nv_create_flag_file
  功能描述  : 创建文件标志
  输入参数  : 无

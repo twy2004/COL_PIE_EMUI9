@@ -46,18 +46,18 @@
 *
 */
 
-#ifndef __RNIC_DEV_CONFIG_H__
-#define __RNIC_DEV_CONFIG_H__
-
 /*****************************************************************************
  1. Other files included
 *****************************************************************************/
 
 #include <linux/types.h>
 #include <linux/errno.h>
+#include <linux/bitops.h>
+#include <linux/slab.h>
 #include <linux/netdevice.h>
 #include "rnic_dev.h"
 #include "rnic_dev_debug.h"
+#include "rnic_dev_config.h"
 #include "rnic_dev_handle.h"
 
 
@@ -78,13 +78,14 @@
  Output       : None
  Return Value : Return 0 on success, negative on failure.
 *****************************************************************************/
-int rnic_register_device_notifier(struct rnic_deivce_notifier_s *dev_notifier)
+int rnic_register_device_notifier(
+					const struct rnic_deivce_notifier_s *dev_notifier)
 {
 	struct rnic_dev_context_s *dev_ctx = RNIC_DEV_CTX();
 
 	if (dev_ctx->ready)
-	    if (dev_notifier->dev_notifier_func)
-	        dev_notifier->dev_notifier_func();
+		if (dev_notifier->dev_notifier_func)
+			dev_notifier->dev_notifier_func();
 
 	dev_ctx->dev_notifier_func = dev_notifier->dev_notifier_func;
 	RNIC_LOGH("succ.");
@@ -100,13 +101,13 @@ int rnic_register_device_notifier(struct rnic_deivce_notifier_s *dev_notifier)
  Return Value : Return 0 on success, negative on failure.
 *****************************************************************************/
 int rnic_register_ps_iface_drop_notifier(
-					struct rnic_ps_iface_drop_notifier_s *drop_notifier)
+					const struct rnic_ps_iface_drop_notifier_s *drop_notifier)
 {
 	struct rnic_dev_priv_s *priv;
 	struct net_device *dev;
 
 	dev = rnic_get_netdev_by_devid(drop_notifier->devid);
-	if (!dev) {
+	if (unlikely(!dev)) {
 		RNIC_LOGE("device not found: devid is %d.", drop_notifier->devid);
 		return -ENODEV;
 	}
@@ -124,13 +125,13 @@ int rnic_register_ps_iface_drop_notifier(
  Output       : None
  Return Value : Return 0 on success, negative on failure.
 *****************************************************************************/
-int rnic_set_napi_config(struct rnic_napi_config_s *napi_config)
+int rnic_set_napi_config(const struct rnic_napi_config_s *napi_config)
 {
 	struct rnic_dev_priv_s *priv;
 	struct net_device *dev;
 
 	dev = rnic_get_netdev_by_devid(napi_config->devid);
-	if (!dev) {
+	if (unlikely(!dev)) {
 		RNIC_LOGE("device not found: devid is %d.", napi_config->devid);
 		return -ENODEV;
 	}
@@ -158,13 +159,106 @@ int rnic_set_napi_weight(uint8_t devid, uint8_t weight)
 	struct net_device *dev;
 
 	dev = rnic_get_netdev_by_devid(devid);
-	if (!dev) {
+	if (unlikely(!dev)) {
 		RNIC_LOGE("device not found: devid is %d.", devid);
 		return -ENODEV;
 	}
 
 	priv = (struct rnic_dev_priv_s *)netdev_priv(dev);
+	priv->napi_weight = weight;
 	priv->napi.weight = weight;
+
+	return 0;
+}
+
+/*****************************************************************************
+ Prototype    : rnic_set_napi_lb_level
+ Description  : Set napi load balance config.
+ Input        : devid, level
+ Output       : None
+ Return Value : Return 0 on success, negative on failure.
+*****************************************************************************/
+int rnic_set_napi_lb_level(uint8_t devid, uint8_t level)
+{
+	struct rnic_dev_priv_s *priv;
+	struct net_device *dev;
+	unsigned int cpu = 0;
+
+	dev = rnic_get_netdev_by_devid(devid);
+	if (unlikely(!dev)) {
+		RNIC_LOGE("device not found: devid is %d.", devid);
+		return -ENODEV;
+	}
+
+	priv = (struct rnic_dev_priv_s *)netdev_priv(dev);
+	if (!priv->lb_cap_valid) {
+		RNIC_LOGE("load balance cap is false: devid is %d.", devid);
+		return -EPERM;
+	}
+
+	if (!priv->napi_lb_enable) {
+		RNIC_LOGE("load balance is disabled: devid is %d.", devid);
+		return -EFAULT;
+	}
+
+	priv->lb_cur_level = (level >= RNIC_NAPI_LB_MAX_LEVEL) ? 0 : level;
+	memcpy(priv->lb_weight_orig, /* unsafe_function_ignore: memcpy */
+		priv->napi_lb_level_cfg[priv->lb_cur_level].lb_cpu_weight,
+		sizeof(uint8_t) * NR_CPUS);
+	memcpy(priv->lb_weight_remaind, priv->lb_weight_orig, /* unsafe_function_ignore: memcpy */
+		sizeof(uint8_t) * NR_CPUS);
+
+	cpumask_clear(priv->lb_cpumask_orig);
+	for (cpu = 0; cpu < NR_CPUS; cpu++) {
+		if (priv->lb_weight_orig[cpu] &&
+			test_bit((int)cpu, &priv->lb_cpu_bitmask) &&
+			cpumask_test_cpu((int)cpu, priv->lb_cpumask_curr_avail))
+			cpumask_set_cpu(cpu, priv->lb_cpumask_orig);
+	}
+
+	cpumask_copy(priv->lb_cpumask_candidacy, priv->lb_cpumask_orig);
+
+	return 0;
+}
+
+/*****************************************************************************
+ Prototype    : rnic_set_napi_lb_config
+ Description  : Set napi load balance config.
+ Input        : lb_config: load balance parameter
+ Output       : None
+ Return Value : Return 0 on success, negative on failure.
+*****************************************************************************/
+int rnic_set_napi_lb_config(const struct rnic_napi_lb_config_s *lb_config)
+{
+	struct rnic_dev_priv_s *priv;
+	struct net_device *dev;
+	int cpu = 0;
+
+	dev = rnic_get_netdev_by_devid(lb_config->devid);
+	if (unlikely(!dev)) {
+		RNIC_LOGE("device not found: devid is %d.", lb_config->devid);
+		return -ENODEV;
+	}
+
+	priv = (struct rnic_dev_priv_s *)netdev_priv(dev);
+	if (!priv->lb_cap_valid) {
+		RNIC_LOGE("load balance cap is false: devid is %d.", lb_config->devid);
+		return -EFAULT;
+	}
+
+	priv->napi_lb_enable = lb_config->lb_enable;
+	priv->lb_cpu_bitmask = lb_config->lb_cpu_bitmask;
+
+	for (cpu = 0; (cpu < NR_CPUS && cpu < RNIC_NAPI_LB_MAX_CPUS); cpu++) {
+		if (test_bit(cpu, &priv->lb_cpu_bitmask) &&
+			cpumask_test_cpu(cpu, priv->lb_cpumask_curr_avail))
+			cpumask_set_cpu((unsigned int)cpu, priv->lb_cpumask_orig);
+
+		priv->lb_weight_orig[cpu] = lb_config->napi_lb_level_cfg[0].lb_cpu_weight[cpu]; //lint !e661 !e662
+	}
+
+	memcpy(&priv->napi_lb_level_cfg[0], &lb_config->napi_lb_level_cfg[0], /* unsafe_function_ignore: memcpy */
+		sizeof(struct rnic_napi_lb_level_config_s) * RNIC_NAPI_LB_MAX_LEVEL);
 
 	return 0;
 }
@@ -178,14 +272,14 @@ int rnic_set_napi_weight(uint8_t devid, uint8_t weight)
  Output       : None
  Return Value : Return 0 on success, negative on failure.
 *****************************************************************************/
-int rnic_set_ps_iface_up(struct rnic_ps_iface_config_s *iface_config)
+int rnic_set_ps_iface_up(const struct rnic_ps_iface_config_s *iface_config)
 {
 	struct rnic_dev_priv_s *priv;
 	struct net_device *dev;
 
 	dev = rnic_get_netdev_by_devid(iface_config->devid);
-	if (!dev) {
-		RNIC_LOGE("device not found.");
+	if (unlikely(!dev)) {
+		RNIC_LOGE("device not found: devid is %d.", iface_config->devid);
 		return -ENODEV;
 	}
 
@@ -207,6 +301,9 @@ int rnic_set_ps_iface_up(struct rnic_ps_iface_config_s *iface_config)
 		return -EINVAL;
 	}
 
+	set_bit(iface_config->ip_family, &priv->addr_family_mask);
+
+
 
 	return 0;
 }
@@ -218,14 +315,14 @@ int rnic_set_ps_iface_up(struct rnic_ps_iface_config_s *iface_config)
  Output       : None
  Return Value : Return 0 on success, negative on failure.
 *****************************************************************************/
-int rnic_set_ps_iface_down(struct rnic_ps_iface_config_s *iface_config)
+int rnic_set_ps_iface_down(const struct rnic_ps_iface_config_s *iface_config)
 {
 	struct rnic_dev_priv_s *priv;
 	struct net_device *dev;
 
 	dev = rnic_get_netdev_by_devid(iface_config->devid);
-	if (!dev) {
-		RNIC_LOGE("device not found.");
+	if (unlikely(!dev)) {
+		RNIC_LOGE("device not found: devid is %d.", iface_config->devid);
 		return -ENODEV;
 	}
 
@@ -247,6 +344,9 @@ int rnic_set_ps_iface_down(struct rnic_ps_iface_config_s *iface_config)
 		return -EINVAL;
 	}
 
+	clear_bit(iface_config->ip_family, &priv->addr_family_mask);
+
+
 
 	return 0;
 }
@@ -254,4 +354,6 @@ int rnic_set_ps_iface_down(struct rnic_ps_iface_config_s *iface_config)
 
 
 
-#endif /* __RNIC_DEV_CONFIG_H__ */
+
+
+

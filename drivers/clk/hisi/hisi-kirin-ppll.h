@@ -8,6 +8,8 @@
  */
  #include <soc_crgperiph_interface.h>
  #include <soc_pmctrl_interface.h>
+ #include <soc_acpu_baseaddr_interface.h>
+
  enum {
 	PPLL0 = 0,
 	PPLL1,
@@ -17,6 +19,7 @@
 	PPLL5,
 	PPLL6 = 0x6,
 	PPLL7 = 0x7,
+	SCPLL = 0x8,
 	PPLLMAX,
 };
 
@@ -92,6 +95,27 @@
 #define PPLL6_GT						0
 #define PPLL6_GT_ACPU_ADDR(ADDR)		NULL
 #define PPLL6CTRL0(ADDR)				NULL
+#endif
+
+#ifdef  SOC_ACPU_HSDT_CRG_BASE_ADDR
+#include <soc_hsdt_crg_interface.h>
+#define SCPLL_EN				SOC_HSDT_CRG_PCIEPLL_CTRL0_pciepll_en_START
+#define SCPLL_EN_ACPU_ADDR(ADDR)		SOC_HSDT_CRG_PCIEPLL_CTRL0_ADDR(ADDR)
+#define SCPLL_GT				SOC_HSDT_CRG_PCIEPLL_CTRL1_gt_clk_pciepll_START
+#define SCPLL_GT_ACPU_ADDR(ADDR)		SOC_HSDT_CRG_PCIEPLL_CTRL1_ADDR(ADDR)
+#define SCPLL_BP				SOC_HSDT_CRG_PCIEPLL_CTRL0_pciepll_bp_START
+#define SCPLL_BP_ACPU_ADDR(ADDR)		SOC_HSDT_CRG_PCIEPLL_CTRL0_ADDR(ADDR)
+#define SCPLL_LOCK_STAT(ADDR)			SOC_HSDT_CRG_PCIEPLL_STAT_ADDR(ADDR)
+#define SCPLL_LOCK_BIT				SOC_HSDT_CRG_PCIEPLL_STAT_pciepll_sc_lock_START
+#else
+#define SCPLL_EN				0
+#define SCPLL_EN_ACPU_ADDR(ADDR)		NULL
+#define SCPLL_GT				0
+#define SCPLL_GT_ACPU_ADDR(ADDR)		NULL
+#define SCPLL_BP				0
+#define SCPLL_BP_ACPU_ADDR(ADDR)		NULL
+#define SCPLL_LOCK_STAT(ADDR)			NULL
+#define SCPLL_LOCK_BIT				0
 #endif
 
 #define PLL_REG_NUM			2

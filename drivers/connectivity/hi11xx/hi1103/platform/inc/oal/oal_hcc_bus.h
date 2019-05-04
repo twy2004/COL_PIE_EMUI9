@@ -200,7 +200,7 @@ typedef struct _hcc_bus_opt_ops{
 
     oal_int32 (*voltage_bias_init)(hcc_bus *pst_bus);
 
-    oal_void  (*chip_info)(hcc_bus *pst_bus);
+    oal_void  (*chip_info)(hcc_bus *pst_bus, oal_uint32 is_need_wakeup, oal_uint32 is_full_log);
 
     oal_void  (*print_trans_info)(hcc_bus *pst_bus, oal_uint64 print_flag);
     oal_void  (*reset_trans_info)(hcc_bus *pst_bus);
@@ -973,7 +973,7 @@ OAL_STATIC OAL_INLINE oal_int32 hcc_bus_switch_clean_res(hcc_bus *hi_bus)
     return hi_bus->opt_ops->switch_clean_res(hi_bus);
 }
 
-OAL_STATIC OAL_INLINE oal_void hcc_bus_chip_info(hcc_bus *hi_bus)
+OAL_STATIC OAL_INLINE oal_void hcc_bus_chip_info(hcc_bus *hi_bus, oal_uint32 is_need_wakeup, oal_uint32 is_full_log)
 {
     if(OAL_WARN_ON(NULL == hi_bus))
     {
@@ -985,7 +985,7 @@ OAL_STATIC OAL_INLINE oal_void hcc_bus_chip_info(hcc_bus *hi_bus)
         return;
     }
 
-    hi_bus->opt_ops->chip_info(hi_bus);
+    hi_bus->opt_ops->chip_info(hi_bus, is_need_wakeup, is_full_log);
 }
 
 #define HCC_PRINT_TRANS_FLAG_DEVICE_STAT   (1 << 0)

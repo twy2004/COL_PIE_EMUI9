@@ -1,3 +1,21 @@
+/*
+ * bq25882_charger.h
+ *
+ * bq25882 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #ifndef _BQ25882_CHARGER_H_
 #define _BQ25882_CHARGER_H_
 
@@ -40,7 +58,8 @@ struct bq25882_device_info {
 #define BQ25882_REG_CCL_EN_HIZ_SHIFT                (7)
 #define BQ25882_REG_CCL_EN_ILIM_MASK                (BIT(6))
 #define BQ25882_REG_CCL_EN_ILIM_SHIFT               (6)
-#define BQ25882_REG_CCL_ICHG_MASK                   (BIT(5) | BIT(4) | BIT(3) |  BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_CCL_ICHG_MASK                   (BIT(5) | BIT(4) | \
+	BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25882_REG_CCL_ICHG_SHIFT                  (0)
 
 #define ICHG_MAX                                    (2200)
@@ -52,7 +71,8 @@ struct bq25882_device_info {
 
 #define BQ25882_REG_IVL_EN_BAT_DISCHG_MASK          (BIT(6))
 #define BQ25882_REG_IVL_EN_BAT_DISCHG_SHIFT         (6)
-#define BQ25882_REG_IVL_VINDPM_MASK                 (BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_IVL_VINDPM_MASK                 (BIT(4) | BIT(3) | \
+	BIT(2) | BIT(1) | BIT(0))
 #define BQ25882_REG_IVL_VINDPM_SHIFT                (0)
 
 #define VINDPM_MAX                                  (5500)
@@ -68,7 +88,8 @@ struct bq25882_device_info {
 #define BQ25882_REG_ICL_FORCE_INDET_SHIFT           (6)
 #define BQ25882_REG_ICL_EN_ICO_MASK                 (BIT(5))
 #define BQ25882_REG_ICL_EN_ICO_SHIFT                (5)
-#define BQ25882_REG_ICL_IINDPM_MASK                 (BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_ICL_IINDPM_MASK                 (BIT(4) | BIT(3) | \
+	BIT(2) | BIT(1) | BIT(0))
 #define BQ25882_REG_ICL_IINDPM_SHIFT                (0)
 
 #define IINLIM_MAX                                  (3300)
@@ -79,9 +100,11 @@ struct bq25882_device_info {
 /* Precharge and Termination Current Limit */
 #define BQ25882_REG_PTCL                            0x04
 
-#define BQ25882_REG_PTCL_IPRECHG_MASK               (BIT(7) | BIT(6) | BIT(5) | BIT(4))
+#define BQ25882_REG_PTCL_IPRECHG_MASK               (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4))
 #define BQ25882_REG_PTCL_IPRECHG_SHIFT              (4)
-#define BQ25882_REG_PTCL_ITERM_MASK                 (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_PTCL_ITERM_MASK                 (BIT(3) | BIT(2) | \
+	BIT(1) | BIT(0))
 #define BQ25882_REG_PTCL_ITERM_SHIFT                (0)
 
 #define ITERM_MIN                                   (50)
@@ -137,7 +160,8 @@ struct bq25882_device_info {
 #define BQ25882_REG_CC3_WD_RST_SHIFT                (6)
 #define BQ25882_REG_CC3_TOPOFF_TIMER_MASK           (BIT(5) | BIT(4))
 #define BQ25882_REG_CC3_TOPOFF_TIMER_SHIFT          (4)
-#define BQ25882_REG_CC3_SYS_MIN_MASK                (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_CC3_SYS_MIN_MASK                (BIT(3) | BIT(2) | \
+	BIT(1) | BIT(0))
 #define BQ25882_REG_CC3_SYS_MIN_SHIFT               (0)
 
 /* Charger Control 4 */
@@ -157,9 +181,11 @@ struct bq25882_device_info {
 /* OTG Control */
 #define BQ25882_REG_OC                              0x09
 
-#define BQ25882_REG_OC_OTG_ILIM_MASK                (BIT(7) | BIT(6) | BIT(5) | BIT(4))
+#define BQ25882_REG_OC_OTG_ILIM_MASK                (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4))
 #define BQ25882_REG_OC_OTG_ILIM_SHIFT               (4)
-#define BQ25882_REG_OC_OTG_VLIM_MASK                (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_OC_OTG_VLIM_MASK                (BIT(3) | BIT(2) | \
+	BIT(1) | BIT(0))
 #define BQ25882_REG_OC_OTG_VLIM_SHIFT               (0)
 
 #define OTG_ILIM_MIN                                (500)
@@ -170,7 +196,8 @@ struct bq25882_device_info {
 /* ICO Current Limit */
 #define BQ25882_REG_ICOCL                           0x0A
 
-#define BQ25882_REG_ICOCL_ICO_ILIM_MASK             (BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25882_REG_ICOCL_ICO_ILIM_MASK             (BIT(4) | BIT(3) | \
+	BIT(2) | BIT(1) | BIT(0))
 #define BQ25882_REG_ICOCL_ICO_ILIM_SHIFT            (0)
 
 #define BQ25882_REG_ICOCL_ICO_STEP_MV               (100)
@@ -376,7 +403,8 @@ struct bq25882_device_info {
 
 #define BQ25882_REG_PI_REG_RST_MASK                 (BIT(7))
 #define BQ25882_REG_PI_REG_RST_SHIFT                (7)
-#define BQ25882_REG_PI_PN_MASK                      (BIT(6) | BIT(5) | BIT(4) | BIT(3))
+#define BQ25882_REG_PI_PN_MASK                      (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3))
 #define BQ25882_REG_PI_PN_SHIFT                     (3)
 #define BQ25882_REG_PI_DEV_REV_MASK                 (BIT(2) | BIT(1) | BIT(0))
 #define BQ25882_REG_PI_DEV_REV_SHIFT                (0)
@@ -384,4 +412,4 @@ struct bq25882_device_info {
 #define BQ25882                                     (BIT(4))
 #define CHIP_REVISION                               (BIT(0))
 
-#endif /* end of _BQ25882_CHARGER_H_ */
+#endif /* _BQ25882_CHARGER_H_ */

@@ -311,7 +311,7 @@ static int hisi_dma_start_txd(struct hisi_dma_chan *c)
 
 static void hisi_dma_tasklet(unsigned long arg)
 {
-	struct hisi_dma_dev *d = (struct hisi_dma_dev *)arg;
+	struct hisi_dma_dev *d = (struct hisi_dma_dev *)(uintptr_t)arg;
 	struct hisi_dma_phy *p;
 	struct hisi_dma_chan *c, *cn;
 	unsigned pch, pch_alloc = 0;
@@ -580,7 +580,7 @@ static struct dma_async_tx_descriptor *hisi_dma_prep_slave_sg(
 		dev_dbg(chan->device->dev, "vchan %pK: kzalloc fail\n", &c->vc);
 		return NULL;
 	}
-	ds->desc_hw_lli = __virt_to_phys((unsigned long)&ds->desc_hw[0]);/*lint !e648*/
+	ds->desc_hw_lli = __virt_to_phys((uintptr_t)&ds->desc_hw[0]);/*lint !e648*/
 	ds->desc_num = num;
 	num = 0;
 
@@ -1180,7 +1180,7 @@ static int hisi_dma_probe(struct platform_device *op)
 
 	spin_lock_init(&d->lock);
 	INIT_LIST_HEAD(&d->chan_pending);
-	tasklet_init(&d->task, hisi_dma_tasklet, (unsigned long)d);
+	tasklet_init(&d->task, hisi_dma_tasklet, (uintptr_t)d);
 	platform_set_drvdata(op, d);
 	dev_info(&op->dev, "initialized\n");
 

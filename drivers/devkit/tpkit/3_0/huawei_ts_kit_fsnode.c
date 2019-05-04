@@ -1759,7 +1759,7 @@ static ssize_t ts_tui_report_store(struct device *dev,
 	int ret = 0;
 	unsigned long value = 0;
 
-	ret = sscanf(buf, "%d", &value);
+	ret = sscanf(buf, "%lu", &value);
 
 	g_ts_kit_platform_data.chip_data->report_tui_enable = (unsigned int)value;
 
@@ -1926,6 +1926,7 @@ static ssize_t ts_oem_info_store(struct device *dev,
 	char *cur;
 	char *token;
 	int i = 0;
+	struct lcd_kit_ops *lcd_ops = lcd_kit_get_ops();
 	TS_LOG_INFO("%s: called\n", __func__);
 
 	if (dev == NULL) {
@@ -1949,10 +1950,10 @@ static ssize_t ts_oem_info_store(struct device *dev,
 		goto out;
 	}
 
-	if (strlen(buf) > TS_CHIP_TYPE_MAX_SIZE + 1) {
+	if (strlen(buf) > TS_GAMMA_DATA_MAX_SIZE - 1) {
 		TS_LOG_ERR
-		    ("%s: Store TPIC type data size= %d larger than MAX input size=%d \n",
-		     __func__, strlen(buf), TS_CHIP_TYPE_MAX_SIZE);
+		    ("%s: Store TPIC type size= %lu > MAX input size=%d\n",
+				__func__, strlen(buf), TS_CHIP_TYPE_MAX_SIZE);
 		error = -EINVAL;
 		goto out;
 	}
@@ -1977,6 +1978,18 @@ static ssize_t ts_oem_info_store(struct device *dev,
 		TS_LOG_ERR("%s: put cmd error :%d\n", __func__, error);
 		error = -EBUSY;
 		goto free_cmd;
+	}
+	if (info->status != TS_ACTION_SUCCESS) {
+		TS_LOG_ERR("ts_oem_info_store action failed\n");
+		error = -EIO;
+		goto out;
+	}
+	if((lcd_ops) && (lcd_ops->write_otp_gamma) && g_ts_kit_platform_data.chip_data->support_gammadata_in_tp) {
+		error = lcd_ops->write_otp_gamma(info->data);
+		if(error < 0) {
+			TS_LOG_ERR("%s: get pt station status fail\n", __func__);
+			goto out;
+		}
 	}
 
 	error = count;
@@ -2208,7 +2221,7 @@ static ssize_t stylus_wakeup_ctrl_store(struct device *dev,
 	}
 	if ((TS_SLEEP == atomic_read(&g_ts_kit_platform_data.state)) || (TS_WORK_IN_SLEEP == atomic_read(&g_ts_kit_platform_data.state))){
 		if((parameter >= 0) && (parameter < MAX_STATUS)){
-			//save switch status when tp in sleep,and wil²Ål send to ic when tp resume
+			//save switch status when tp in sleep,and send to ic when tp resume
 			gesture_enabel_info->switch_value = parameter;
 		}
 		TS_LOG_ERR("do not echo this node when tp work in sleep or tp is sleep\n");
@@ -2239,7 +2252,7 @@ out:
 
 
 /*lint -restore*/
-static DEVICE_ATTR(touch_chip_info, (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH),
+static DEVICE_ATTR(touch_chip_info, (S_IRUSR | S_IWUSR | S_IRGRP),
 		   ts_chip_info_show, ts_chip_info_store);
 static DEVICE_ATTR(calibrate, (S_IRUSR|S_IRGRP), ts_calibrate_show, NULL);
 static DEVICE_ATTR(calibrate_wakeup_gesture, S_IRUSR,

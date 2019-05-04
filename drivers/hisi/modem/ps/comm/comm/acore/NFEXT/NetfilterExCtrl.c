@@ -56,13 +56,14 @@
 #include "TTFComm.h"
 #include "NetfilterEx.h"
 #include "TTFUtil.h"
-
+#include "gucttf_tag.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 
 #define THIS_FILE_ID PS_FILE_ID_ACPU_NFEX_CTRL_C
+#define THIS_MODU    mod_nfext
 
 
 
@@ -110,6 +111,57 @@ STATIC VOS_INT  NFExt_ReRegHooks(VOS_UINT32 ulMask);
 /******************************************************************************
    5 函数实现
 ******************************************************************************/
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+STATIC VOS_INT  nf_register_hook(struct nf_hook_ops *reg)
+{
+    VOS_INT                             iRet = 0;
+    VOS_UINT32                          ulRollBackFlag = VOS_NO;
+    struct net                         *net;
+    struct net                         *last;
+
+
+    rtnl_lock();
+    for_each_net(net)
+    {
+        iRet = nf_register_net_hook(net, reg);
+        if ((iRet != 0)&& (iRet != -ENOENT))
+        {
+            ulRollBackFlag = VOS_YES;
+            break;
+        }
+    }
+
+    if (VOS_YES == ulRollBackFlag)
+    {
+        last = net;
+        for_each_net(net)
+        {
+            if (net == last)
+            {
+                break;
+            }
+            nf_unregister_net_hook(net, reg);
+        }
+    }
+    rtnl_unlock();
+
+    return iRet;
+}
+
+STATIC VOS_VOID  nf_unregister_hook(struct nf_hook_ops *reg)
+{
+    struct net                         *net;
+
+    rtnl_lock();
+    for_each_net(net)
+    {
+        nf_unregister_net_hook(net, reg);
+    }
+    rtnl_unlock();
+
+    return;
+}
+#endif      /* #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)) */
 
 VOS_VOID  NFExt_UnregHooks(VOS_UINT32 ulMask)
 {
@@ -119,6 +171,7 @@ VOS_VOID  NFExt_UnregHooks(VOS_UINT32 ulMask)
     {
         if ( g_stNfExtMaskOps[i].ulHookMask == (ulMask & g_stNfExtMaskOps[i].ulHookMask) )
         {
+
             /*卸载钩子函数*/
             nf_unregister_hook(&(g_stNfExtMaskOps[i].stNfExtOps));
 
@@ -144,6 +197,7 @@ VOS_INT  NFExt_RegHooks(VOS_UINT32 ulMask)
 
         /*注册相应的钩子函数*/
         iRet = nf_register_hook(&(g_stNfExtMaskOps[i].stNfExtOps));
+
         if ( 0 != iRet )
         {
             TTF_LOG(ACPU_PID_NFEXT, DIAG_MODE_COMM, PS_PRINT_WARNING,"register_hook error!!\n");
@@ -567,39 +621,7 @@ VOS_UINT32 NFExt_GetBrBytesCnt(VOS_VOID)
 
 #if(NF_EXT_DBG == DBG_ON)
 
-VOS_VOID NFExt_StatsShow(VOS_VOID)
-{
-    vos_printf("网桥forward流控丢掉的数据量 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_BR_FC_DROP]);
-    vos_printf("进入网桥forward hook的数据量 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_BR_FC_ENTER]);
-    vos_printf("环形buf满之后导致丢包数量 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_BUF_FULL_DROP]);
-    vos_printf("入环形buf失败次数 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_PUT_BUF_FAIL]);
-    vos_printf("出环形buf失败次数 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_GET_BUF_FAIL]);
-    vos_printf("申请内存失败次数 %u \n", g_stNfExtStats.aulStats[NF_EXT_STATS_ALLOC_MEM_FAIL]);
 
-    vos_printf("当前环形缓存中未处理的数据量 %ld \n", ((VOS_UINT32)OM_RingBufferNBytes(g_stExEntity.pRingBufferId) / sizeof(NF_EXT_DATA_RING_BUF_STRU)));
-    vos_printf("当前的Hook Mask %u \n", g_stExEntity.ulCurHookOnMask);
-    vos_printf("当前的流控状态Mask %u \n", g_stExFlowCtrlEntity.ulFlowCtrlMsk);
-    vos_printf("当前OM WIFI所使用的IP地址 %x \n", g_stExEntity.ulOmIp);
-    vos_printf("当前网桥转发字节数 %x \n", g_stExFlowCtrlEntity.aulTxBytesCnt[NF_EXT_TX_BYTES_CNT_BR]);
-}
-
-
-VOS_VOID NFExt_ResetPri(VOS_UINT32 ulHookNode, VOS_INT32 iPri)
-{
-    VOS_UINT32  ulCurHookMask = 0;
-
-    if (ulHookNode > (ARRAY_SIZE(g_stNfExtMaskOps) - 1))
-    {
-        return;
-    }
-
-    ulCurHookMask = g_stExEntity.ulCurHookOnMask;
-    g_stNfExtMaskOps[ulHookNode].stNfExtOps.priority = iPri;
-
-    NFExt_ReRegHooks(ulCurHookMask);
-
-    vos_printf("Current ulHookNode %d pri = %d\n", ulHookNode, iPri);
-}
 #endif
 
 

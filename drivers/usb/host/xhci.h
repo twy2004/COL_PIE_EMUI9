@@ -1510,7 +1510,7 @@ struct xhci_bus_state {
  * It can take up to 20 ms to transition from RExit to U0 on the
  * Intel Lynx Point LP xHCI host.
  */
-#define	XHCI_MAX_REXIT_TIMEOUT	(20 * 1000)
+#define	XHCI_MAX_REXIT_TIMEOUT_MS	20
 
 static inline unsigned int hcd_index(struct usb_hcd *hcd)
 {
@@ -1675,6 +1675,7 @@ struct xhci_hcd {
 #define XHCI_HCD_LOCAL_MEM	(1ULL << 32)
 #endif
 #define XHCI_WARM_RESET_AFTER_INIT	(1ULL << 33)
+#define XHCI_DELAY_CTRL_DATA_STAGE	(1ULL << 34)
 
 	unsigned int		num_active_eps;
 	unsigned int		limit_active_eps;

@@ -22,6 +22,7 @@ int set_mse(u32 rc_id, int flag);
 int kirin_pcie_noc_power(struct kirin_pcie *pcie, int enable);
 int kirin_pcie_phy_init(struct kirin_pcie *pcie);
 void kirin_pcie_natural_cfg(struct kirin_pcie *pcie);
+int pcie_phy_fw_update(struct kirin_pcie *pcie, u16 *fw_data, u32 fw_size);
 void kirin_pcie_reset_phy(struct kirin_pcie *pcie);
 void kirin_pcie_config_l0sl1(u32 rc_id, enum link_aspm_state aspm_state);
 void kirin_pcie_config_l1ss(u32 rc_id, enum l1ss_ctrl_state enable);

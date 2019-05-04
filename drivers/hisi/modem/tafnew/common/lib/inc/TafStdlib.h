@@ -76,6 +76,8 @@ extern "C" {
 #define TAF_STD_NOSTANDARD_ASCII_CODE                       (0xff)
 #define TAF_STD_GSM_7BIT_EXTENSION_FLAG                     (0xfe)
 
+#define TAF_STD_UINT8_MAX                                   (255)
+
 /* This is the number of days in a leap year set.
    A leap year set includes 1 leap year, and 3 normal years. */
 #define TAF_STD_TIME_ZONE_QUAD_YEAR                         (366+(3*365))
@@ -336,7 +338,8 @@ VOS_UINT32  TAF_STD_ConvertBcdCodeToDtmf(
 VOS_UINT32  TAF_STD_ConvertBcdNumberToDtmf(
     const VOS_UINT8                    *pucBcdNumber,
     VOS_UINT8                           ucBcdLen,
-    VOS_UINT8                          *pucDtmfNumber
+    VOS_UINT8                          *pucDtmfNumber,
+    VOS_UINT8                           ucDtmfLen
 );
 
 extern VOS_UINT32 TAF_STD_ConvertTimeFromSecsToTimeZone

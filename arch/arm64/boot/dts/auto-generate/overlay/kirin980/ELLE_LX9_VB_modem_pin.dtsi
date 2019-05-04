@@ -30,7 +30,6 @@
 					 6         0      0x08C           1        0x090      0          1          0
 					 6         1      0x090           1        0x094      0          1          0
 					 6         2      0x094           1        0x098      0     0xffff     0xffff
-					 6         4      0x09C           1        0x0A0      0     0xffff     0xffff
 					 6         5      0x0A0           1        0x0A4      0     0xffff     0xffff
 					 6         6      0x0A4           1        0x0A8      0     0xffff     0xffff
 					 6         7      0x0A8           1        0x0AC      0     0xffff     0xffff
@@ -74,7 +73,6 @@
 					 6         0      0x08C           1        0x090      0          1          0
 					 6         1      0x090           1        0x094      0          1          0
 					 6         2      0x094           1        0x098      0     0xffff     0xffff
-					 6         4      0x09C           1        0x0A0      0     0xffff     0xffff
 					 6         5      0x0A0           1        0x0A4      0     0xffff     0xffff
 					 6         6      0x0A4           1        0x0A8      0     0xffff     0xffff
 					 6         7      0x0A8           1        0x0AC      0     0xffff     0xffff
@@ -118,7 +116,6 @@
 					 6         0      0x08C           0        0x090      2          0          0
 					 6         1      0x090           0        0x094      2          0          0
 					 6         2      0x094           1        0x098      0     0xffff     0xffff
-					 6         4      0x09C           1        0x0A0      0     0xffff     0xffff
 					 6         5      0x0A0           1        0x0A4      0     0xffff     0xffff
 					 6         6      0x0A4           1        0x0A8      0     0xffff     0xffff
 					 6         7      0x0A8           1        0x0AC      0     0xffff     0xffff
@@ -145,6 +142,6 @@
 					33         1      0x108           0        0x13C      0     0xffff     0xffff
 					33         2      0x10C           0        0x140      2     0xffff     0xffff
 					>;
-			pinctrl-num   = <42 42 42>;
+			pinctrl-num   = <41 41 41>;
 			status = "ok";
 	};

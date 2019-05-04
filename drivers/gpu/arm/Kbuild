@@ -13,7 +13,8 @@
 #
 
 
-obj-$(CONFIG_MALI_T830) += r20p0-01rel0/
+#obj-$(CONFIG_MALI_T830) += r20p0-01rel0/
+obj-$(CONFIG_MALI_T830) += r28p0-01rel0/
 
 #obj-$(CONFIG_MALI_MIMIR) += bifrost-r2p0-02dev0/
 #obj-$(CONFIG_MALI_MIMIR) += bifrost-r5p0-01rel0/
@@ -40,7 +41,8 @@ obj-$(CONFIG_MALI_SIGURD) += bifrost-r14p0-00cet0/
 #obj-$(CONFIG_MALI_NORR) += bifrost-r8p0-00cet0/
 #obj-$(CONFIG_MALI_NORR) += bifrost-r9p0-00cet0/
 #obj-$(CONFIG_MALI_NORR) += bifrost-r11p0-01rel0/
-obj-$(CONFIG_MALI_NORR) += bifrost-r14p0-00cet0/
+#obj-$(CONFIG_MALI_NORR) += bifrost-r14p0-00cet0/
+obj-$(CONFIG_MALI_NORR) += bifrost-r16p0-00cet5/
 
 #obj-$(CONFIG_MALI_TRYM) += bifrost-r11p0-01rel0/
 obj-$(CONFIG_MALI_TRYM) += bifrost-r14p0-00cet0/

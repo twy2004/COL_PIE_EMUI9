@@ -75,7 +75,7 @@ LOCAL TAF_ERROR_CODE_ENUM_UINT32 TAF_STD_DecodeUtf8CharacterFirstByte(
     VOS_UINT16                         *pusUtf8CharacterContent,
     VOS_UINT32                         *pulUtf8CharacterByteNum
 );
- 
+
 /*****************************************************************************
   5 变量定义
 *****************************************************************************/
@@ -477,11 +477,6 @@ VOS_UINT32  TAF_STD_ConvertBcdNumberToAscii(
         return MN_ERR_NULLPTR;
     }
 
-    if (0 == ucBcdLen)
-    {
-        return MN_ERR_INVALIDPARM;
-    }
-
     /*整理号码字符串，去除无效的0XFF数据*/
     while (ucBcdLen > 1)
     {
@@ -493,6 +488,11 @@ VOS_UINT32  TAF_STD_ConvertBcdNumberToAscii(
         {
             break;
         }
+    }
+
+    if (0 == ucBcdLen)
+    {
+        return MN_ERR_INVALIDPARM;
     }
 
     /*判断pucBcdAddress所指向的字符串的最后一个字节的高位是否为1111，
@@ -969,13 +969,15 @@ VOS_UINT32  TAF_STD_ConvertBcdCodeToDtmf(
 VOS_UINT32  TAF_STD_ConvertBcdNumberToDtmf(
     const VOS_UINT8                    *pucBcdNumber,
     VOS_UINT8                           ucBcdLen,
-    VOS_UINT8                          *pucDtmfNumber
+    VOS_UINT8                          *pucDtmfNumber,
+    VOS_UINT8                           ucDtmfLen
 )
 {
-    VOS_UINT8                           ucLoop;
+    VOS_UINT32                          ulLoop;
     VOS_UINT8                           ucLen;
     VOS_UINT8                           ucBcdCode;
     VOS_UINT32                          ulRet;
+    VOS_UINT32                          ulLen;
 
     if ((VOS_NULL_PTR == pucBcdNumber)
      || (VOS_NULL_PTR == pucDtmfNumber))
@@ -996,30 +998,45 @@ VOS_UINT32  TAF_STD_ConvertBcdNumberToDtmf(
         }
     }
 
+    if (0 == ucBcdLen)
+    {
+        return MN_ERR_INVALIDPARM;
+    }
+
     /*判断pucBcdAddress所指向的字符串的最后一个字节的高位是否为1111，
     如果是，说明号码位数为奇数，否则为偶数*/
     if ((pucBcdNumber[ucBcdLen - 1] & 0xF0) == 0xF0)
     {
-        ucLen = (VOS_UINT8)((ucBcdLen * 2) - 1);
+        ulLen = (VOS_UINT32)(ucBcdLen * 2) - 1;
     }
     else
     {
-        ucLen = (VOS_UINT8)(ucBcdLen * 2);
+        ulLen = (VOS_UINT32)(ucBcdLen * 2);
     }
 
+    if (ulLen > TAF_STD_UINT8_MAX)
+    {
+        return MN_ERR_INVALIDPARM;
+
+    }
+    ucLen = (VOS_UINT8)ulLen;
+
+    /* 确保不会超过目标地址数组长度，目前没有风险，增加保护 */
+    ucLen = TAF_MIN(ucLen, ucDtmfLen);
+
     /*解析号码*/
-    for (ucLoop = 0; ucLoop < ucLen; ucLoop++)
+    for (ulLoop = 0; ulLoop < ucLen; ulLoop++)
     {
         /*判断当前解码的是奇数位号码还是偶数位号码，从0开始，是偶数*/
-        if (1 == (ucLoop % 2))
+        if (1 == (ulLoop % 2))
         {
             /*如果是奇数位号码，则取高4位的值*/
-            ucBcdCode = ((pucBcdNumber[(ucLoop / 2)] >> 4) & 0x0F);
+            ucBcdCode = ((pucBcdNumber[(ulLoop / 2)] >> 4) & 0x0F);
         }
         else
         {
             /*如果是偶数位号码，则取低4位的值*/
-            ucBcdCode = (pucBcdNumber[(ucLoop / 2)] & 0x0F);
+            ucBcdCode = (pucBcdNumber[(ulLoop / 2)] & 0x0F);
         }
 
         /*将二进制数字转换成DTMF码形式*/
@@ -1136,6 +1153,14 @@ VOS_VOID  TAF_STD_U64ToStr(
 
     ulProductHigh   = aulTmpNum[1];
     ulProductLow    = aulTmpNum[0];
+
+    /* 如果U64的ullNum为0，需特殊处理 */
+    if (ullNum == 0)
+    {
+        pString[0] = '0';
+        pString[1] = '\0';
+        return;
+    }
 
     while ((0 != ulProductHigh) || (0 != ulProductLow))
     {
@@ -1441,7 +1466,15 @@ VOS_UINT8  TAF_STD_ExtractBitStringToOctet(
     VOS_UINT8                           ucExtractByte;
     VOS_UINT8                           ucRemainLen;
 
+    ucExtractByte = 0;
+
     pucBuffOffset = pucSrcAddr;
+
+    if (TAF_STD_BIT_LEN_8_BIT < ucOffsetPos)
+    {
+        MN_INFO_LOG("TAF_STD_ExtractBitStringToOctet: ucOffsetPos big than 'TAF_STD_BIT_LEN_8_BIT' ");
+        return ucExtractByte;
+    }
 
     iRemainBitLen = (VOS_INT16)(TAF_STD_BIT_LEN_8_BIT - (ucOffsetPos + ucBitLen));
 
@@ -1481,7 +1514,13 @@ VOS_UINT32 TAF_STD_ExtractBitStringToDword(
     VOS_UINT8                           ucIndex;
     VOS_UINT16                          usByteNum;
 
-    pucTmpSrc = pucSrcAddr;
+    pucTmpSrc     = pucSrcAddr;
+    ulExtractWord = 0;
+    if (TAF_STD_BIT_LEN_8_BIT < ucOffsetPos)
+    {
+        MN_INFO_LOG("TAF_STD_ExtractBitStringToDword: ucOffsetPos big than 'TAF_STD_BIT_LEN_8_BIT' ");
+        return ulExtractWord;
+    }
 
     if (ucBitLen > TAF_STD_BIT_LEN_32_BIT)
     {
@@ -1787,12 +1826,18 @@ VOS_UINT32 TAF_STD_ConvertUcs2To8Bit(
 {
     VOS_UINT32                          ulIndex;
     VOS_UINT32                          ul8BitLen;
+    VOS_UINT32                          ul8BitValue;
 
     ul8BitLen = ulUcs2Len > ul8BitBuffLen ? ul8BitBuffLen : ulUcs2Len;
 
     for (ulIndex = 0; ulIndex < ul8BitLen; ulIndex++)
     {
-        *(puc8BitStr + ulIndex) = (VOS_UINT8)*(pusUcs2Str + ulIndex);
+        ul8BitValue = (VOS_UINT32)*(pusUcs2Str + ulIndex);
+        if (ul8BitValue > TAF_STD_UINT8_MAX)
+        {
+             MN_ERR_LOG1("TAF_STD_ConvertUcs2To8Bit: The number is big than '0xff' ", ulIndex);
+        }
+        *(puc8BitStr + ulIndex) = (VOS_UINT8)ul8BitValue;
     }
 
     return ul8BitLen;
@@ -1925,7 +1970,7 @@ MODULE_EXPORTED VOS_VOID TAF_STD_MemSet_s(
     {
         if (VOS_NULL_PTR == VOS_MemSet_s( pDestBuffer, ulMemSetLen, (VOS_CHAR)(ucChar), ulMemSetLen ))
         {
-            MN_ERR_LOG("TAF_STD_MemSet_s ERR!");            
+            MN_ERR_LOG("TAF_STD_MemSet_s ERR!");
         }
     }
     return;
@@ -1948,7 +1993,7 @@ VOS_VOID TAF_STD_MemMove_s(
     {
         if (VOS_NULL_PTR == VOS_MemMove_s( pDestBuffer, ulMemMoveLen, pSrcBuffer, ulMemMoveLen ))
         {
-            MN_ERR_LOG("TAF_STD_MemMove_s ERR!");              
+            MN_ERR_LOG("TAF_STD_MemMove_s ERR!");
         }
     }
     return;

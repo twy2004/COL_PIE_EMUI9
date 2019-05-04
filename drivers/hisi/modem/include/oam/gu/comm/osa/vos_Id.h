@@ -233,9 +233,6 @@ VOS_UINT8 VOS_RegisterSelfTaskPrio( VOS_FID             ulFID ,
                                     VOS_UINT32                ulTaskRealPri,
                                     VOS_UINT32                ulStackSize);
 
-/*VOS_UINT32 VOS_BindPIDToSelfTask( VOS_PID ulPid, VOS_FID ulFid,
-                                  VOS_UINT8 ucIndex );*/
-
 /* for rtosck smp */
 VOS_UINT32 VOS_GetAllCoresMask(VOS_VOID);
 
@@ -284,11 +281,15 @@ VOS_UINT32 VOS_RegisterMsgTaskEntry(VOS_FID ulFID, VOS_VOIDFUNCPTR pfnMsgTask);
 
 VOS_UINT32 VOS_GetQueueIDFromFid(VOS_UINT32 ulFid);
 
+#if (VOS_LINUX != VOS_OS_VER)
 VOS_UINT32 VOS_SuspendFidTask(VOS_FID ulFid);
+#endif
 
 VOS_UINT32 VOS_ResumeFidTask(VOS_FID ulFid);
 
+#if (VOS_LINUX != VOS_OS_VER)
 VOS_UINT32 VOS_SuspendFidsTask(VOS_VOID);
+#endif
 
 VOS_UINT32 VOS_ResumeFidsTask(VOS_VOID);
 

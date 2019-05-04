@@ -106,7 +106,7 @@ VOS_UINT32 DMS_NcmOpen(VOS_VOID)
 
         if (VOS_OK != mdrv_udi_ioctl(lHandle , NCM_IOCTL_REG_NDIS_RESP_STATUS_FUNC, DMS_NcmWrtCB))
         {
-            DMS_LOG_WARNING("DMS_NcmOpen: NCM_IOCTL_REG_NDIS_RESP_STATUS_FUNC fail.\n");
+            DMS_LOG_WARNING("<DMS_NcmOpen> NCM_IOCTL_REG_NDIS_RESP_STATUS_FUNC fail.\n");
         }
     }
 
@@ -126,7 +126,7 @@ VOS_UINT32 DMS_NcmClose(VOS_VOID)
 
     if (UDI_INVALID_HANDLE == pstPhyBearProp->lPortHandle)
     {
-        DMS_LOG_WARNING("DMS_UsbPortClose[%d]: Already close.\n", DMS_PHY_BEAR_USB_NCM);
+        DMS_LOG_WARNING("<DMS_UsbPortClose[%d]> Already close.\n", DMS_PHY_BEAR_USB_NCM);
         return ERR_MSP_SUCCESS;
     }
 

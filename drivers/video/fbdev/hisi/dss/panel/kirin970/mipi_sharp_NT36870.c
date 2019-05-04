@@ -29,12 +29,16 @@
  /*lint -e551 -e551*/
 #include "hisi_fb.h"
 #include "../mipi_lcd_utils.h"
-//#include "../../voltage/tps65132.h"
 #define DTS_COMP_SHARP_NT36870 "hisilicon,mipi_sharp_NT36870"
 static int g_lcd_fpga_flag;
+extern int tps65132_dbg_set_bias_for_hisi(int vpos, int vneg);
+
 #include "lcd_kit_core.h"
 #define CONFIG_TP_ERR_DEBUG
 struct ts_kit_ops *ts_ops = NULL;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 //#define AS_EXT_LCD_ON_ASIC
 
 /*lint -save -e569, -e574, -e527, -e572*/
@@ -1573,7 +1577,7 @@ static int mipi_sharp_NT36870_panel_on(struct platform_device *pdev)
 			gpio_cmds_tx(fpga_lcd_gpio_on_cmds, \
 				ARRAY_SIZE(fpga_lcd_gpio_on_cmds));
 		}
-		//tps65132_dbg_set_bias(TPS65132_VOL_60, TPS65132_VOL_60);
+		tps65132_dbg_set_bias_for_hisi(5800000, 5800000);
 		pinfo->lcd_init_step = LCD_INIT_MIPI_LP_SEND_SEQUENCE;
 
 	} else if (pinfo->lcd_init_step == LCD_INIT_MIPI_LP_SEND_SEQUENCE) {
@@ -2182,27 +2186,21 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 			pinfo->ldi.v_pulse_width = 30;
 			pinfo->mipi.dsi_bit_clk = 648;
 			pinfo->dsi_bit_clk_upt_support = 0;
+			pinfo->mipi.dsi_bit_clk_val1 = 658;
+			pinfo->mipi.dsi_bit_clk_val2 = 645;
+			pinfo->mipi.dsi_bit_clk_val3 = 630;
+			pinfo->mipi.dsi_bit_clk_val4 = 580;
+
 			pinfo->mipi.dsi_bit_clk_upt = pinfo->mipi.dsi_bit_clk;
 			pinfo->pxl_clk_rate = 277 * 1000000UL;
 		} else {
-			int tmp = 4;
-			if (tmp == 3) {
-				pinfo->ldi.h_back_porch = 50;
-				pinfo->ldi.h_front_porch = 240;
-				pinfo->ldi.h_pulse_width = 50;
-				pinfo->ldi.v_back_porch = 32;
-				pinfo->ldi.v_front_porch = 30;
-				pinfo->ldi.v_pulse_width = 18;
-				pinfo->pxl_clk_rate = 332 * 1000000UL;
-			} else if (tmp == 4) {
-				pinfo->ldi.h_back_porch = 40;
-				pinfo->ldi.h_front_porch = 180;
-				pinfo->ldi.h_pulse_width = 40;
-				pinfo->ldi.v_back_porch = 70;
-				pinfo->ldi.v_front_porch = 28;
-				pinfo->ldi.v_pulse_width = 18;
-				pinfo->pxl_clk_rate = 332 * 1000000UL;
-			}
+			pinfo->ldi.h_back_porch = 40;
+			pinfo->ldi.h_front_porch = 180;
+			pinfo->ldi.h_pulse_width = 40;
+			pinfo->ldi.v_back_porch = 70;
+			pinfo->ldi.v_front_porch = 28;
+			pinfo->ldi.v_pulse_width = 18;
+			pinfo->pxl_clk_rate = 332 * 1000000UL;
 			pinfo->mipi.dsi_bit_clk = 750;
 			pinfo->dsi_bit_clk_upt_support = 0;
 			pinfo->mipi.dsi_bit_clk_upt = pinfo->mipi.dsi_bit_clk;
@@ -2238,9 +2236,8 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 	pinfo->mipi.burst_mode = DSI_BURST_SYNC_PULSES_1;
 	pinfo->mipi.phy_mode = CPHY_MODE;
 
-	pinfo->vsync_ctrl_type = 0;//VSYNC_CTRL_ISR_OFF | VSYNC_CTRL_MIPI_ULPS | VSYNC_CTRL_CLK_OFF;
-
 	if (pinfo->type == PANEL_MIPI_CMD) {
+		pinfo->vsync_ctrl_type = VSYNC_CTRL_ISR_OFF | VSYNC_CTRL_MIPI_ULPS | VSYNC_CTRL_CLK_OFF;
 		pinfo->dirty_region_updt_support = 0;
 		pinfo->dirty_region_info.left_align = -1;
 		pinfo->dirty_region_info.right_align = -1;
@@ -2337,4 +2334,4 @@ static int __init mipi_sharp_NT36870_panel_init(void)
 /*lint -restore*/
 module_init(mipi_sharp_NT36870_panel_init);
 /*lint +e551 +e551*/
-
+#pragma GCC diagnostic pop

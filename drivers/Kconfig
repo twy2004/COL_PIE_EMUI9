@@ -255,4 +255,8 @@ source "drivers/mmonitor/Kconfig"
 
 source "drivers/cfi/Kconfig"
 
+source "drivers/storage_rofa/Kconfig"
+
+source "drivers/oases/Kconfig"
+
 endmenu

@@ -152,6 +152,8 @@ extern VOS_UINT32 AT_TestCmutPara(VOS_UINT8 ucIndex);
 
 extern VOS_UINT32 At_TestVtsPara(VOS_UINT8 ucIndex);
 
+extern VOS_UINT32 At_TestChldPara(VOS_UINT8 ucIndex);
+
 extern VOS_UINT32 At_TestCuus1Para(VOS_UINT8 ucIndex);
 
 extern VOS_UINT32 At_TestCcwaPara(VOS_UINT8 ucIndex);

@@ -45,13 +45,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+
 #ifndef _OSL_LIST_H
 #define _OSL_LIST_H
 
 #ifdef __KERNEL__
 #include <linux/list.h>
 
-#elif defined(__OS_VXWORKS__)||defined(__CMSIS_RTOS)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__FASTBOOT__)||defined(__NR_LL1C_)
+#elif defined(__OS_VXWORKS__)||defined(__CMSIS_RTOS)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__FASTBOOT__)||defined(__NR_LL1C_) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 #include "osl_common.h"
 #ifdef __FASTBOOT__

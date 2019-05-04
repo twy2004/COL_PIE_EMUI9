@@ -28,7 +28,6 @@ unsigned int FW_CFG_VER_FLASH_ADDR = 0;
 unsigned int CFG_VER_MAJ_FLASH_ADDR = 0;
 unsigned int CFG_VER_MIN_FLASH_ADDR = 0;
 static bool iref_found = false;
-extern char himax_product_id[];
 extern struct himax_ts_data *g_himax_ts_data;
 static int fw_update_boot_sd_flag = 0;
 enum IREFTABLE_TYPE{
@@ -1118,7 +1117,7 @@ int hx852xf_fts_ctpm_fw_upgrade_with_fs(const unsigned char *fw, int len, bool c
 
 int hx852xes_fts_ctpm_fw_upgrade_with_fs(const unsigned char *fw, int len, bool change_iref)
 {
-	unsigned char* ImageBuffer = fw;
+	const unsigned char *ImageBuffer = fw;
 	int fullFileLength = len;
 	int i = 0;
 	uint8_t cmd[5] = {0};
@@ -1321,6 +1320,7 @@ static int check_firmware_version(const struct firmware *fw)
 			TS_LOG_INFO("SD update way, must upgrade.\n");
 			return FW_NEED_TO_UPDATE;
 	}
+	return FW_NO_NEED_TO_UPDATE;
 }
 
 static int check_need_firmware_upgrade(const struct firmware *fw)
@@ -1595,7 +1595,9 @@ int himax_check_update_firmware_flag(void)
 		goto exit;
 	} else {
 		tmp = tmp + strlen(BOOT_UPDATE_FIRMWARE_FLAG);
-		sscanf(tmp, "%d", &update_flag);
+		retval = sscanf(tmp, "%d", &update_flag);
+		if (retval != 1)
+			TS_LOG_ERR("%s: sscanf error\n", __func__);
 	}
 	if (update_flag == 1) {
 		retval = 0;

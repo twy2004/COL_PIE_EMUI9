@@ -20,7 +20,7 @@
 #include <linux/stacktrace.h>
 #include <chipset_common/hwlogger/hw_logger.h>
 #include <chipset_common/hwfdleak/fdleak.h>
-#include <log/log_usertype/log-usertype.h>
+#include <log/log_usertype.h>
 
 //#define FDLEAK_DEBUG
 #define fdleak_err(format, ...)  do {printk(KERN_ERR "[fdleak]%s %d: " format, __func__, __LINE__, ##__VA_ARGS__);} while (0)
@@ -335,32 +335,7 @@ EXPORT_SYMBOL(fdleak_ioctl);
 /*****the following session are used for save user stack when specific syscall happen*******/
 static void save_stack_trace32(struct task_struct *task, struct stack_trace *trace)
 {
-    const struct pt_regs *regs = task_pt_regs(task);
-    const void __user *fp = NULL;
-    unsigned long addr = 0;
-
-    fp = (const void __user *)regs->regs[11];
-    if (trace->nr_entries < trace->max_entries)
-        trace->entries[trace->nr_entries++] = regs->pc;
-
-    while (trace->nr_entries < trace->max_entries) {
-        struct stack_frame_user32 frame;
-
-        memset(&frame, 0, sizeof(frame));
-        addr = (unsigned long)fp;
-        if (!access_process_vm(task, addr, (void *)&frame, sizeof(frame), 0))
-            break;
-        if ((unsigned long)fp < regs->sp)
-            break;
-        if (frame.lr)
-            trace->entries[trace->nr_entries++] = frame.lr;
-        if ((unsigned long)fp == frame.fp)
-            break;
-        fp = (const void __user *)frame.fp;
-    }
-
-    if (trace->nr_entries < trace->max_entries)
-        trace->entries[trace->nr_entries++] = ULONG_MAX;
+    trace->entries[trace->nr_entries++] = ULONG_MAX;
 }
 
 static void save_stack_trace64(struct task_struct *task, struct stack_trace *trace)

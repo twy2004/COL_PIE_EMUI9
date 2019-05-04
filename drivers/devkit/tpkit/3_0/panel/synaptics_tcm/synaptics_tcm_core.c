@@ -205,7 +205,6 @@ static void syna_tcm_report_dmd_state_report(void)
 	int i = 0;
 	uint16_t buf[2] = {0};
 	unsigned long abnormal_status;
-	int report_dmd_count = 0;
 	int count = 0;
 	static unsigned int report_index = 0;
 
@@ -213,7 +212,8 @@ static void syna_tcm_report_dmd_state_report(void)
 	buf[1] = (uint16_t)tcm_hcd->ab_device_status.data[1];
 	abnormal_status = (unsigned long)((buf[1] << 8) | buf[0]);
 
-	TS_LOG_INFO("%s, input value is %x  buf[0] = %d buf[1] = %d",__func__, abnormal_status, buf[0], buf[1]);
+	TS_LOG_INFO("%s, input value is %lu  buf[0] = %d buf[1] = %d",
+		__func__, abnormal_status, buf[0], buf[1]);
 
 	for(i=0; i < BIT_MAX; i++) {
 		if(0xFF != syna_report_priority[i] && BIT15_RESERVED >= syna_report_priority[i]) {// check same value
@@ -522,7 +522,7 @@ static int syna_tcm_i2c_rmi_read(struct syna_tcm_hcd *tcm_hcd,
 	int retval = NO_ERR;
 	unsigned char address = 0;
 	unsigned int attempt = 0;
-	struct i2c_msg msg[2] = {0};
+	struct i2c_msg msg[2] = { {0}, {0} };
 	struct i2c_client *i2c = tcm_hcd->syna_tcm_chip_data->ts_platform_data->client;
 	//const struct syna_tcm_board_data *bdata = tcm_hcd->hw_if->bdata;
 
@@ -1331,7 +1331,6 @@ int syna_tcm_i2c_read(struct syna_tcm_hcd *tcm_hcd,
 	unsigned int chunk_space = 0;
 	int xfer_length = 0;
 	int remaining_length = 0;
-	int static log_count = 5;
 
 	if (length < 2) {
 		retval = syna_tcm_i2c_read_data(tcm_hcd,
@@ -2573,43 +2572,6 @@ static int syna_tcm_get_dynamic_config(struct syna_tcm_hcd *tcm_hcd,
 
 exit:
 
-	return retval;
-}
-
-static int syna_tcm_set_dynamic_config_no_wait(struct syna_tcm_hcd *tcm_hcd,
-		enum dynamic_config_id id, unsigned short value)
-{
-	int retval = NO_ERR;
-	unsigned char out_buf[3] = {0};
-	unsigned char resp_buf[10] = {0};
-	unsigned int resp_buf_size = 0;
-	unsigned int resp_length = 0;
-
-
-	resp_buf_size = 0;
-
-	out_buf[0] = (unsigned char)id;
-	out_buf[1] = (unsigned char)value;
-	out_buf[2] = (unsigned char)(value >> 8);
-
-
-		retval = syna_tcm_write_hdl_message(tcm_hcd,
-				CMD_SET_DYNAMIC_CONFIG,
-				out_buf,
-				sizeof(out_buf),
-				resp_buf,
-				&resp_buf_size,
-				&resp_length,
-				NULL,
-				0);
-		if (retval < 0) {
-			TS_LOG_ERR("Failed to write command %s\n", STR(CMD_SET_DYNAMIC_CONFIG));
-			goto exit;
-		}
-
-	retval = 0;
-
-exit:
 	return retval;
 }
 
@@ -4094,7 +4056,7 @@ static void synaptics_tcm_chip_touch_switch(void)
 
 	if(tcm_hcd->ud_sleep_status == true) {
 		TS_LOG_INFO("ud enable when chip touch switch return\n");
-		return retval;
+		return;
 	}
 
 	if (NULL == tcm_hcd || NULL == tcm_hcd->syna_tcm_chip_data){

@@ -271,27 +271,19 @@ LOCAL VOS_UINT32 MSG_DecodeTimeStamp(
 
 
 
-VOS_UINT32  MSG_ConvertBcdNumberToAscii(
+VOS_UINT32  MSG_ConvertBcdNumberToAsciiWithCheckParaAvail(
     const VOS_UINT8                    *pucBcdNumber,
     VOS_UINT8                           ucBcdLen,
-    VOS_CHAR                           *pcAsciiNumber
+    VOS_CHAR                           *pcAsciiNumber,
+    VOS_UINT8                          *pucNumberLength
 )
 {
-    VOS_CHAR                            cAsciiNumber;
-    VOS_UINT8                           ucLoop;
-    VOS_UINT8                           ucLen;
-    VOS_UINT8                           ucBcdCode;
-    VOS_UINT32                          ulRet;
+    VOS_UINT32                          ulLen;
 
     if ((VOS_NULL_PTR == pucBcdNumber)
      || (VOS_NULL_PTR == pcAsciiNumber))
     {
         return MN_ERR_NULLPTR;
-    }
-
-    if (0 == ucBcdLen)
-    {
-        return MN_ERR_INVALIDPARM;
     }
 
     /*整理号码字符串，去除无效的0XFF数据*/
@@ -306,16 +298,49 @@ VOS_UINT32  MSG_ConvertBcdNumberToAscii(
             break;
         }
     }
+    if (0 == ucBcdLen)
+    {
+        return MN_ERR_INVALIDPARM;
+    }
 
     /*判断pucBcdAddress所指向的字符串的最后一个字节的高位是否为1111，
     如果是，说明号码位数为奇数，否则为偶数*/
     if ((pucBcdNumber[ucBcdLen - 1] & 0xF0) == 0xF0)
     {
-        ucLen = (VOS_UINT8)((ucBcdLen * 2) - 1);
+        ulLen = (VOS_UINT32)(ucBcdLen * 2) - 1;
     }
     else
     {
-        ucLen = (VOS_UINT8)(ucBcdLen * 2);
+        ulLen = (VOS_UINT32)(ucBcdLen * 2);
+    }
+
+    if (ulLen > MN_MSG_UINT8_MAX)
+    {
+        return MN_ERR_INVALIDPARM;
+    }
+
+    *pucNumberLength =  (VOS_UINT8)ulLen;
+
+    return MN_ERR_NO_ERROR;
+}
+
+
+VOS_UINT32  MSG_ConvertBcdNumberToAscii(
+    const VOS_UINT8                    *pucBcdNumber,
+    VOS_UINT8                           ucBcdLen,
+    VOS_CHAR                           *pcAsciiNumber
+)
+{
+    VOS_CHAR                            cAsciiNumber;
+    VOS_UINT8                           ucLoop;
+    VOS_UINT8                           ucLen;
+    VOS_UINT8                           ucBcdCode;
+    VOS_UINT32                          ulRet;
+
+    ulRet = MSG_ConvertBcdNumberToAsciiWithCheckParaAvail(pucBcdNumber, ucBcdLen, pcAsciiNumber, &ucLen);
+    if (MN_ERR_NO_ERROR != ulRet)
+    {
+        return ulRet;
     }
 
     /*解析号码*/

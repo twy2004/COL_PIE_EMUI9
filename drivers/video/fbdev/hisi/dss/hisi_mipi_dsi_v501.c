@@ -450,7 +450,6 @@ static void mipi_config_cphy_spec1v0_parameter(char __iomem *mipi_dsi_base, stru
 		//Lane Timing Control - TLPX
 		addr = MIPIDSI_PHY_TST_DATA_TLPX + (i << 5);
 		mipi_config_phy_test_code(mipi_dsi_base, addr, DSS_REDUCE(pinfo->dsi_phy_ctrl.t_lpx));
-
 	}
 }
 
@@ -528,6 +527,28 @@ static void mipi_config_dphy_spec1v2_parameter(char __iomem *mipi_dsi_base, stru
 	}
 }
 
+static void inline _mipi_set_overlap_size(struct hisi_fb_data_type *hisifd, const char __iomem * mipi_dsi_base, struct dss_rect *rect)
+{
+	struct hisi_panel_info *pinfo = NULL;
+
+	if (!hisifd) {
+		HISI_FB_ERR("hisifd is NULL!");
+		return;
+	}
+
+	pinfo = &(hisifd->panel_info);
+
+	if (mipi_dsi_base == hisifd->mipi_dsi0_base) {
+		rect->w += pinfo->ldi.dpi0_overlap_size;
+	} else if (mipi_dsi_base == hisifd->mipi_dsi1_base) {
+		rect->w += pinfo->ldi.dpi1_overlap_size;
+	} else {
+		rect->w += pinfo->ldi.dpi0_overlap_size;
+	}
+
+	return;
+}
+
 void mipi_init(struct hisi_fb_data_type *hisifd, char __iomem *mipi_dsi_base)
 {
 	uint32_t hline_time = 0;
@@ -568,6 +589,7 @@ void mipi_init(struct hisi_fb_data_type *hisifd, char __iomem *mipi_dsi_base)
 	rect.h = pinfo->yres;//lint !e713
 
 	mipi_ifbc_get_rect(hisifd, &rect);
+	_mipi_set_overlap_size(hisifd, mipi_dsi_base, &rect);
 
 	/*************************Configure the PHY start*************************/
 
@@ -1409,6 +1431,7 @@ int mipi_dsi_on(struct platform_device *pdev)
 	/* mipi hs video/command mode */
 	panel_next_on(pdev);
 
+
 	HISI_FB_DEBUG("fb%d, -.\n", hisifd->index);
 
 	return 0;
@@ -2030,6 +2053,10 @@ int mipi_dsi_bit_clk_upt_isr_handler(struct hisi_fb_data_type *hisifd)
 	//PERI_CTRL33[0:15]-PHY0, PERI_CTRL30[16:31]-PHY1.
 	set_reg(hisifd->pctrl_base + PERI_CTRL33, 1, 1, 0);
 	set_reg(hisifd->pctrl_base + PERI_CTRL33, stopstate_msk, 5, 3);
+	if (is_dual_mipi_panel(hisifd)) {
+	    set_reg(hisifd->pctrl_base + PERI_CTRL30, 1, 1, 16);
+	    set_reg(hisifd->pctrl_base + PERI_CTRL30, stopstate_msk, 5, 19);
+	}
 
 	while ((!is_ready) && (timediff < vfp_time)) {
 		is_ready = check_pctrl_trstop_flag(hisifd, PCTRL_TRY_TIME);
@@ -2039,6 +2066,9 @@ int mipi_dsi_bit_clk_upt_isr_handler(struct hisi_fb_data_type *hisifd)
 	HISI_FB_INFO("timediff=%d us, vfp_time=%d us.\n", timediff, vfp_time);
 
 	set_reg(hisifd->pctrl_base + PERI_CTRL33, 0, 1, 0);
+	if (is_dual_mipi_panel(hisifd)) {
+	    set_reg(hisifd->pctrl_base + PERI_CTRL30, 0, 1, 16);
+	}
 	if (!is_ready) {
 		if (is_mipi_video_panel(hisifd)) {
 			pinfo->esd_enable = esd_enable;

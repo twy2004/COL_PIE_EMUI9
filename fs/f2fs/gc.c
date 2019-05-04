@@ -189,8 +189,11 @@ static int gc_thread_func(void *data)
 		}
 #endif
 
-		if (!sb_start_write_trylock(sbi->sb))
+		if (!sb_start_write_trylock(sbi->sb)) {
+			if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+				stat_other_skip_bggc_count(sbi);
 			continue;
+		}
 
 		/*lint -save -e454 -e456 -e666*/
 		ret = __gc_thread_wait_timeout(sbi, gc_th,
@@ -201,13 +204,19 @@ static int gc_thread_func(void *data)
 		if (!ret) {
 			if (sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
 				increase_sleep_time(gc_th, &wait_ms);
+				if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+					stat_other_skip_bggc_count(sbi);
 				goto next;
 			}
 
-			if (!mutex_trylock(&sbi->gc_mutex))
+			if (!mutex_trylock(&sbi->gc_mutex)) {
+				if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+					stat_other_skip_bggc_count(sbi);
 				goto next;
-
+			}
 		} else if (try_to_freeze()) {
+			if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+				stat_other_skip_bggc_count(sbi);
 			goto next;
 		} else if (kthread_should_stop()) {
 			sb_end_write(sbi->sb);
@@ -251,7 +260,7 @@ static int gc_thread_func(void *data)
 		 * So, I'd like to wait some time to collect dirty segments.
 		 */
 
-		if (gc_th->gc_urgent) {
+		if (gc_th->gc_urgent && !is_gc_test_set(sbi, GC_TEST_DISABLE_GC_URGENT)) {
 			wait_ms = gc_th->urgent_sleep_time;
 			goto do_gc;
 		}
@@ -262,6 +271,8 @@ static int gc_thread_func(void *data)
 		if (!is_idle(sbi) && !is_gc_test_set(sbi, GC_TEST_DISABLE_IO_AWARE)) {
 #endif
 			increase_sleep_time(gc_th, &wait_ms);
+			if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+				stat_io_skip_bggc_count(sbi);
 			mutex_unlock(&sbi->gc_mutex);
 			goto next;
 		}
@@ -555,10 +566,11 @@ static inline unsigned int get_gc_cost(struct f2fs_sb_info *sbi,
 	/* alloc_mode == LFS */
 	if (p->gc_mode == GC_GREEDY)
 		return get_valid_blocks(sbi, segno, true);
-	else  if (p->gc_mode == GC_CB)
+	else if (p->gc_mode == GC_CB)
 		return get_cb_cost(sbi, segno);
 	else
 		f2fs_bug_on(sbi, 1);
+	return get_cb_cost(sbi, segno); /*lint !e527*/
 }
 
 static unsigned int count_bits(const unsigned long *addr,
@@ -987,7 +999,7 @@ next:
 	}
 
 	if (is_atgc && p.min_segno == NULL_SEGNO &&
-					sm->elapsed_time < p.age_threshold) {
+		sm->dirty_max_mtime - sm->dirty_min_mtime < p.age_threshold) {
 		/* set temp age threshold to get some victims */
 		p.age_threshold = 0;
 		goto retry;
@@ -1832,6 +1844,13 @@ stop:
 				reserved_segments(sbi),
 				prefree_segments(sbi));
 
+	if (unlikely(sbi->gc_loop.segmap)) {
+		kvfree(sbi->gc_loop.segmap);
+		sbi->gc_loop.segmap = NULL;
+	}
+	if (unlikely(sbi->gc_loop.check))
+		init_f2fs_gc_loop(sbi);
+
 	mutex_unlock(&sbi->gc_mutex);
 	if (gc_completed) {
 		bd_mutex_lock(&sbi->bd_mutex);
@@ -1849,12 +1868,6 @@ stop:
 
 	if (sync)
 		ret = sec_freed ? 0 : -EAGAIN;
-	if (unlikely(sbi->gc_loop.segmap)) {
-		kvfree(sbi->gc_loop.segmap);
-		sbi->gc_loop.segmap = NULL;
-	}
-	if (unlikely(sbi->gc_loop.check))
-		init_f2fs_gc_loop(sbi);
 	return ret;
 }
 

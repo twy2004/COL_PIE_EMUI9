@@ -805,11 +805,10 @@ static void pd_pe_state_change(
 
 	uint8_t old_state = pd_port->pe_state_curr;
 	uint8_t new_state = pd_port->pe_state_next;
-	char buf[1024] = { 0 };
 
-	if((old_state >= PD_NR_PE_STATES) || (new_state >= PD_NR_PE_STATES)) {
-		snprintf(buf, sizeof(buf), "the pd nr pe states\n");
-	}
+	if ((old_state >= PD_NR_PE_STATES) || (new_state >= PD_NR_PE_STATES))
+		PD_ERR("the pd nr pe states\n");
+
 	if ((new_state == PE_IDLE1) || (new_state == PE_IDLE2))
 		prev_exit_action = NULL;
 	else

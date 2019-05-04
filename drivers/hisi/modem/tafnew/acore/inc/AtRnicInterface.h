@@ -110,16 +110,14 @@ typedef VOS_UINT8 AT_RNIC_USB_TETHER_CONN_ENUM_UINT8;
 enum AT_RNIC_MSG_ID_ENUM
 {
     /* AT发给RNIC的消息枚举 */
-    /* 0x0001, 0x0003 ~ 0x0006, 0x0008 删除 */
+    /* 0x0001, 0x0003 ~ 0x0008 删除 */
     ID_AT_RNIC_DIAL_MODE_REQ            = 0x0002,   /* 拨号模式查询 */
-    ID_AT_RNIC_DSFLOW_IND               = 0x0007,   /* 流量上报指示 */
     ID_AT_RNIC_PDN_INFO_CFG_IND         = 0x0009,
     ID_AT_RNIC_PDN_INFO_REL_IND         = 0x000A,
     ID_AT_RNIC_USB_TETHER_INFO_IND      = 0x000B,   /* USB Tethering信息指示 */
 
     /* RNIC发给AT的消息枚举 */
-    /* 0x1001 删除 */
-    ID_RNIC_AT_DSFLOW_RSP               = 0x1002,   /* 流量回复 */
+    /* 0x1001 0x1002删除 */
     ID_RNIC_AT_DIAL_MODE_CNF            = 0x1003,   /* 拨号模式查询回复 */
     ID_RNIC_AT_MSG_ID_ENUM_BUTT
 };
@@ -157,44 +155,6 @@ typedef struct
     VOS_UINT32                          ulIdleTime;                 /* 定时器长度 */
     VOS_UINT32                          ulEventReportFlag;          /* 是否给应用上报标识 */
 } RNIC_AT_DIAL_MODE_CNF_STRU;
-
-/*****************************************************************************
- 结构名称: AT_RNIC_DSFLOW_IND_STRU
- 结构说明: AT给RNIC发送流量上报指示
-*****************************************************************************/
-typedef struct
-{
-    VOS_MSG_HEADER
-    VOS_UINT32                          ulMsgId;
-
-    VOS_UINT16                          usClientId;                   /* Client ID */
-    RNIC_DEV_ID_ENUM_UINT8              enRnicRmNetId;              /* RNIC网卡ID */
-    VOS_UINT8                           aucRsv[1];                  /* 保留 */
-} AT_RNIC_DSFLOW_IND_STRU;
-
-/*****************************************************************************
- 结构名称: RNIC_DATA_RATE_STRU
- 结构说明: RNIC统计的流量速率
-*****************************************************************************/
-typedef struct
-{
-    VOS_UINT32                          ulDLDataRate;                           /* 当前下行速率 */
-    VOS_UINT32                          ulULDataRate;                           /* 当前上行速率 */
-} RNIC_DATA_RATE_STRU;
-
-/*****************************************************************************
- 结构名称: RNIC_AT_DSFLOW_RSP_STRU
- 结构说明: RNIC给AT发送流量数据结构
-*****************************************************************************/
-typedef struct
-{
-    VOS_MSG_HEADER
-    VOS_UINT32                          ulMsgId;
-
-    VOS_UINT16                          usClientId;                   /* Client ID */
-    VOS_UINT8                           aucRsv[2];                  /* 保留 */
-    RNIC_DATA_RATE_STRU                 stRnicDataRate;             /* 当前流量速率 */
-} RNIC_AT_DSFLOW_RSP_STRU;
 
 /*****************************************************************************
  结构名称: AT_RNIC_PDN_INFO_CFG_IND_STRU

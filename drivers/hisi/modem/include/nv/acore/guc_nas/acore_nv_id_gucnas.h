@@ -93,6 +93,8 @@ enum GUCNAS_ACORE_NV_ID_ENUM
 
 /*  2478 */     en_NV_Item_IMS_SWITCH_RAT_RELATION_CFG      = 2478,     /* TAF_NV_IMS_SWITCH_RAT_RELATION_CFG_STRU      ^IMSSWITCH命令2/3G开关与4G开关关联配置 */
 
+/*  2550 */     en_NV_Item_Rnic_Napi_Lb_Cfg                 = 2550,     /* TAF_NV_RNIC_NAPI_LB_CFG_STRU                  RNIC NAPI Load Balance配置 */
+
 /*  2600 */     en_NV_Item_COMMDEGBUG_CFG                   = 2600,     /* TAF_AT_NVIM_COMMDEGBUG_CFG_STRU */
 /*  2601 */     en_NV_Item_PID_Enable_Type                  = 2601,     /* nv_pid_enable_type */
 /*  2602 */     en_NV_Item_AT_DISSD_PWD                     = 2602,     /* TAF_AT_NVIM_DISSD_PWD_STRU */

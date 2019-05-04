@@ -61,12 +61,13 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "product_config.h"
-#include  "mdrv.h"
-#include  "vos.h"
-#include  "msp_errno.h"
-#include  "msp_diag_comm.h"
-#include  "diag_service.h"
+#include "product_config.h"
+#include "mdrv.h"
+#include "vos.h"
+#include "msp_errno.h"
+#include "msp_diag_comm.h"
+#include "diag_frame.h"
+#include "diag_cfg_comm.h"
 
 
 #pragma pack(4)
@@ -89,7 +90,6 @@ typedef enum
 
 #define DIAG_DEBUG_SDM_FUN(enType,ulRserved1,ulRserved2,ulRserved3)  \
             diag_CBT(enType,ulRserved1,ulRserved2,ulRserved3)
-
 
 typedef enum
 {
@@ -165,6 +165,10 @@ typedef enum
     EN_DIAG_DEBUG_BBP_AGENT_TIME_OUT_ENTRY,
     /* DIAG AGENT与LDSP邮箱交互 */
     EN_DIAG_AGENT_LDSP_MB_MSG,
+
+    EN_DIAG_CBT_API_DT_ERR,
+    EN_DIAG_CBT_API_DT_OK,
+
     EN_DIAG_DEBUG_INFO_MAX
 } DIAG_CBT_ID_ENUM;
 
@@ -233,34 +237,6 @@ typedef struct
 
 
 extern VOS_VOID diag_LNR(DIAG_LNR_ID_ENUM ulType, VOS_UINT32 ulRserved1, VOS_UINT32 ulRserved2);
-
-
-/* DFR (Data Flow Record，码流录制)*******************************************/
-
-#define     DIAG_DFR_NAME_MAX       (8)
-#define     DIAG_DFR_BUFFER_MAX     (8*1024)
-#define     DIAG_DFR_MAGIC_NUM      (0x44494147)    /* DIAG */
-
-#define     DIAG_DFR_START_NUM      (0xabcd4321)
-
-#define DFR_ALIGN_WITH_4BYTE(len)      (((len) + 3)&(~3))
-
-typedef struct
-{
-    VOS_UINT32  ulMagicNum;                 /* 魔术字 */
-    VOS_SEM     semid;                      /* 存储空间访问的互斥信号量 */
-    VOS_CHAR    name[DIAG_DFR_NAME_MAX];    /* 存储码流的名字 */
-    VOS_UINT32  ulCur;                      /* 存储空间的当前地址 */
-    VOS_UINT32  ulLen;                      /* 存储空间的总长度 */
-    VOS_UINT8   *pData;                     /* 存储空间的首地址 */
-} DIAG_DFR_INFO_STRU;
-
-
-typedef struct
-{
-    VOS_UINT32      ulStart;
-    VOS_UINT32      ulTime;
-}DIAG_DFR_HEADER_STRU;
 
 /* DIAG lost 保留为解析以前的结构保留*******************************************/
 
@@ -333,14 +309,15 @@ typedef struct
 
 #define DIAG_DEBUG_LOST_MINUTE          (60*32768)
 
-#if (VOS_OS_VER == VOS_LINUX)
-#define DIAG_DEBUG_SRC_MNTN_CMDID           (0x4)
-#else
-#define DIAG_DEBUG_SRC_MNTN_CMDID           (0x44)
-#endif
-#define DIAG_DEBUG_DST_MNTN_CMDID           (0x3)
+#define DIAG_SLICE_DELTA(begin,end) (((end)>(begin))?((end)-(begin)):((0xFFFFFFFF-(begin))+(end)))
 
-#define DIAG_SLICE_DELTA(begin,end) (((end)>=(begin))?((end)-(begin)):((0xFFFFFFFF-(begin))+(end)))
+#if defined(__KERNEL__)
+#define DIAG_SRC_NAME   "ap_diag"
+#elif defined(__OS_LRCCPU__)
+#define DIAG_SRC_NAME   "lr_diag"
+#elif defined(__OS_NRCCPU__)
+#define DIAG_SRC_NAME   "nr_diag"
+#endif
 
 typedef struct
 {
@@ -348,44 +325,39 @@ typedef struct
     VOS_UINT32      ulNo;               /* 序号 */
 }DIAG_MNTN_HEAD_STRU;
 
-enum{
-    EN_DIAG_SRC_LOST_ALLOC = 0,         /* 当前时间段内存申请失败次数 */
-
-    EN_DIAG_SRC_LOST_SEND,              /* 当前时间段写源buffer失败次数 */
-
-    EN_DIAG_SRC_LOST_MAX
-};
 typedef struct
 {
-
-    VOS_UINT32      ulChannelId;
-    VOS_CHAR        chanName[16];
-    VOS_UINT32      ulLeftSize;         /*通道剩余大小*/
-    VOS_UINT32      ulDeltaTime;        /*上报时间间隔*/
-
-    VOS_UINT32      ulDeltaLostTimes;   /*上报时间段内的丢次数*/
-    VOS_UINT32      ulDeltaLostLen;     /*上报时间段内丢弃数据长度*/
-
-    VOS_UINT32      aulCurFailNum[EN_DIAG_SRC_LOST_MAX];    /* 当前时间段内丢包的各类次数 */
-    VOS_UINT32      aulCurFailLen[EN_DIAG_SRC_LOST_MAX];    /* 当前时间段内丢包的总数据长度 */
-
+    DIAGLOG_MNTN_SRC_INFO
+     /* acore diag mntn info */
     VOS_UINT32      ulTraceNum;         /* 层间消息成功上报次数 */
+    VOS_UINT32      ulLayerNum;         /* OSA勾包层间消息成功上报次数 */
     VOS_UINT32      ulEventNum;         /* event成功上报次数 */
     VOS_UINT32      ulLogNum;           /* Log成功上报次数 */
     VOS_UINT32      ulAirNum;           /* 空口成功上报次数 */
     VOS_UINT32      ulTransNum;         /* 透传成功上报次数 */
-
-    VOS_UINT32      ulThrputEnc;        /* 编码源吞吐率 */
-
-    VOS_UINT32      aulReserve[12];      /* 预留 */
-
-    VOS_UINT32      aulToolreserve[12]; /* 给工具预留的64个字节，用于在工具上显示工具的维测信息 */
+    VOS_UINT32      ulVolteNum;         /* Volte消息成功上报次数 */
+    VOS_UINT32      ulUserNum;          /* Volte消息成功上报次数 */
+    VOS_UINT32      ulLayerMatchNum;    /* 由于脱敏层间消息被过滤次数 */
 }DIAG_MNTN_SRC_INFO_STRU;
 
 
 typedef struct
 {
-    DIAG_MNTN_HEAD_STRU                 pstMntnHead;
+    VOS_UINT32      ulTraceNum;         /* 层间消息成功上报次数 */
+    VOS_UINT32      ulLayerNum;         /* OSA勾包层间消息成功上报次数 */
+    VOS_UINT32      ulEventNum;         /* event成功上报次数 */
+    VOS_UINT32      ulLogNum;           /* Log成功上报次数 */
+    VOS_UINT32      ulAirNum;           /* 空口成功上报次数 */
+    VOS_UINT32      ulTransNum;         /* 透传成功上报次数 */
+    VOS_UINT32      ulVolteNum;         /* Volte消息成功上报次数 */
+    VOS_UINT32      ulUserNum;          /* Volte消息成功上报次数 */
+    VOS_UINT32      ulLayerMatchNum;    /* 由于脱敏层间消息被过滤次数 */
+}DIAG_MNTN_API_OK_STRU;
+
+
+typedef struct
+{
+    DIAG_TRANS_IND_STRU                 pstMntnHead;
     DIAG_MNTN_SRC_INFO_STRU             pstMntnInfo;
 }DIAG_DEBUG_SRC_MNTN_STRU;
 
@@ -393,7 +365,7 @@ typedef struct
 
 typedef struct
 {
-    DIAG_MNTN_HEAD_STRU         pstMntnHead;
+    DIAG_TRANS_IND_STRU         pstMntnHead;
     DIAG_MNTN_DST_INFO_STRU     pstMntnInfo;
 }DIAG_DEBUG_DST_LOST_STRU;
 #endif
@@ -437,10 +409,6 @@ typedef struct
 
 
 /* 对外函数接口 *******************************************/
-
-VOS_UINT32 diag_CreateDFR(VOS_CHAR *name, VOS_UINT32 ulLen, DIAG_DFR_INFO_STRU *pDfr);
-VOS_VOID diag_SaveDFR(DIAG_DFR_INFO_STRU *pDfr, VOS_UINT8 *pData, VOS_UINT32 ulLen);
-VOS_VOID diag_GetDFR(DIAG_DFR_INFO_STRU *pDfr);
 DIAG_CBT_INFO_TBL_STRU* diag_DebugGetInfo(VOS_VOID);
 VOS_VOID DIAG_ShowLNR(DIAG_LNR_ID_ENUM ulType, VOS_UINT32 n);
 VOS_VOID DIAG_ShowLogCfg(VOS_UINT32 ulModuleId);
@@ -461,14 +429,18 @@ VOS_VOID DIAG_DebugLogReport(VOS_UINT32 ulpid, VOS_UINT32 level);
 VOS_VOID DIAG_DebugTransReport(VOS_UINT32 ulpid);
 VOS_VOID DIAG_DebugLayerCfg(VOS_UINT32 ulModuleId, VOS_UINT8 ucFlag);
 VOS_VOID diag_ReportMntn(VOS_VOID);
-void diag_debug_ind_src_lost(VOS_UINT32 type, VOS_UINT32 len);
+void diag_debug_ind_src_lost(VOS_UINT32 len);
 void diag_reset_src_mntn_info(void);
 VOS_VOID diag_ReportSrcMntn(VOS_VOID);
 VOS_VOID diag_ReportDstMntn(VOS_VOID);
 VOS_UINT32 DIAG_ApiTest(VOS_UINT8* pstReq);
 VOS_UINT32 diag_MntnCfgProc(VOS_UINT8* pstReq);
 VOS_VOID diag_StopMntnTimer(VOS_VOID);
-VOS_VOID diag_StartMntnTimer(VOS_VOID);
+VOS_VOID diag_StartMntnTimer(VOS_UINT32 ulMntnReportTime);
+VOS_VOID diag_DebugPackageRecord(VOS_UINT32 ulPackageLen);
+VOS_VOID diag_DebugOverFlowRecord(VOS_UINT32 ulPackageLen);
+VOS_VOID diag_NotifyOthersMntnInfo(DIAG_CMD_LOG_DIAG_MNTN_REQ_STRU *pstDebugReq);
+VOS_VOID DIAG_DebugDtReport(VOS_UINT32 ulpid);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

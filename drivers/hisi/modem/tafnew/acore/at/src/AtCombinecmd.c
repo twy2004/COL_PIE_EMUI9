@@ -162,7 +162,7 @@ VOS_VOID At_ResetCombinCmdInfo(HI_LIST_S* pstCombList)
         }
         /*lint +e774*/
 
-        msp_list_del(&(pstNode->stCombCmdList));
+        msp_list_del_security(&(pstNode->stCombCmdList),pstCombList);
         AT_FREE(pstNode->pstCombCmd);
         AT_FREE(pstNode);
     }
@@ -234,14 +234,12 @@ VOS_VOID At_PrintCombinCmd(VOS_VOID)
                 continue;
             }
 
-            PS_PRINTF("-%d-:", pstCombCmd->ulLen);
+            PS_PRINTF_INFO("-%d-:", pstCombCmd->ulLen);
 
             for(i = 0; i < pstCombCmd->ulLen; i++)
             {
-                PS_PRINTF("%c", pstCombCmd->ucData[i]);
+                PS_PRINTF_INFO("%c", pstCombCmd->ucData[i]);
             }
-
-            PS_PRINTF("\n");
         }
     }
 
@@ -261,7 +259,7 @@ static VOS_UINT32 At_StoreSubCombCmd(HI_LIST_S* pstCombList, VOS_UINT8 *pDataIn,
     pstCombineCmdInfo = msp_list_entry(pstCombList, AT_FW_COMBINE_CMD_INFO_STRU, stCombineCmdList);
     if(pstCombineCmdInfo->usTotalNum >= AT_MAX_NUM_COMBINE_CMD)
     {
-        PS_PRINTF("usTotalNum %d\n", pstCombineCmdInfo->usTotalNum);
+        PS_PRINTF_WARNING("usTotalNum %d\n", pstCombineCmdInfo->usTotalNum);
         return ERR_MSP_FAILURE;
     }
 

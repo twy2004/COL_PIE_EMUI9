@@ -1,4 +1,4 @@
-/* MD5: 7f1d811732808ef029da251d8ae80518*/
+/* MD5: f83e34538d0423abe5051d7595edb619*/
 #if !defined(__PRODUCT_CONFIG_DRV_H__)
 #define __PRODUCT_CONFIG_DRV_H__
 
@@ -239,6 +239,10 @@
 #define CCPU_DTCM_SIZE_CFG (0x5u<<0x2) 
 #endif 
 
+#ifndef DDR_MCORE_RELOC_SIZE
+#define DDR_MCORE_RELOC_SIZE 0x10000 
+#endif 
+
 #ifndef CONFIG_NVIM
 #define CONFIG_NVIM 
 #endif 
@@ -403,11 +407,8 @@
 #ifndef CONFIG_PDLOCK
 #endif 
 
-#ifndef CONFIG_CORESIGHT
-#define CONFIG_CORESIGHT 
-#endif 
-
 #ifndef CONFIG_WATCHPOINT
+#define CONFIG_WATCHPOINT 
 #endif 
 
 #ifndef CONFIG_DSPDVS
@@ -460,6 +461,10 @@
 #define FEATURE_TCM_RETENTION FEATURE_ON 
 #endif 
 
+#ifndef FEATURE_TCM_PART_RETENTION
+#define FEATURE_TCM_PART_RETENTION FEATURE_ON 
+#endif 
+
 #ifndef FEATURE_MULTI_CHANNEL			
 #define FEATURE_MULTI_CHANNEL			 FEATURE_OFF 
 #endif 
@@ -509,6 +514,9 @@
 
 #ifndef CONFIG_GPIO_PL061
 #define CONFIG_GPIO_PL061 
+#endif 
+
+#ifndef CONFIG_TRNG_SEED
 #endif 
 
 #ifndef CONFIG_RFFE_MIPI
@@ -576,14 +584,24 @@
 #ifndef STACK_CANARY_COMPILE
 #endif 
 
+#ifndef CONFIG_MODEM_ASLR
+#endif 
+
 #else
 #ifndef STACK_CANARY_COMPILE
 #define STACK_CANARY_COMPILE 
 #endif 
 
+#ifndef CONFIG_MODEM_ASLR
+#define CONFIG_MODEM_ASLR 
+#endif 
+
 #endif
 #ifndef CONFIG_COLD_PATCH
 #define CONFIG_COLD_PATCH 
+#endif 
+
+#ifndef CONFIG_RFS_SERVER
 #endif 
 
 #ifndef CONFIG_SYSBUS
@@ -788,6 +806,16 @@
 #define CONFIG_PHONE_DCXO_AP 
 #endif 
 
+#ifdef MODEM_SANITIZER 
+#ifndef CONFIG_NXDEP_MPU
+#endif 
+
+#else
+#ifndef CONFIG_NXDEP_MPU
+#define CONFIG_NXDEP_MPU 
+#endif 
+
+#endif
 #ifndef CONFIG_IPF
 #define CONFIG_IPF 
 #endif 
@@ -833,6 +861,10 @@
 #ifndef CONFIG_DYNAMIC_LOAD
 #endif 
 
+#ifndef CONFIG_SEC_ICC
+#define CONFIG_SEC_ICC 
+#endif 
+
 #ifndef MCORE_TEXT_START_ADDR
 #define MCORE_TEXT_START_ADDR 0x20000000 
 #endif 
@@ -861,6 +893,14 @@
 #define RTX_KERNEL_ENTRY 0x10000000 
 #endif 
 
+#ifndef MPU_ASLR_RESERVE
+#define MPU_ASLR_RESERVE 0x100000 
+#endif 
+
+#ifndef MPU_ALGN_RESERVE
+#define MPU_ALGN_RESERVE 0x400000 
+#endif 
+
 #ifndef DDR_MEM_ADDR
 #define DDR_MEM_ADDR 0x20000000 
 #endif 
@@ -870,7 +910,7 @@
 #endif 
 
 #ifndef DDR_MCORE_SIZE
-#define DDR_MCORE_SIZE 0x8B00000 
+#define DDR_MCORE_SIZE 0x9B00000 
 #endif 
 
 #ifndef DDR_TLPHY_IMAGE_SIZE
@@ -1041,7 +1081,11 @@
 #endif 
 
 #ifndef DDR_SHA_NV_SIZE
-#define DDR_SHA_NV_SIZE 0x980000 
+#define DDR_SHA_NV_SIZE 0x978000 
+#endif 
+
+#ifndef DDR_SHA_SEC_ICC_SIZE
+#define DDR_SHA_SEC_ICC_SIZE 0x8000 
 #endif 
 
 #ifndef DDR_SHA_MEM_SIZE
@@ -1049,7 +1093,7 @@
 #endif 
 
 #ifndef DDR_SHARED_MEM_SIZE
-#define DDR_SHARED_MEM_SIZE ((DDR_SHA_NV_SIZE)+(DDR_SHA_MEM_SIZE)) 
+#define DDR_SHARED_MEM_SIZE ((DDR_SHA_NV_SIZE)+(DDR_SHA_SEC_ICC_SIZE)+(DDR_SHA_MEM_SIZE)) 
 #endif 
 
 #ifndef DDR_MNTN_SIZE
@@ -1085,7 +1129,7 @@
 #endif 
 
 #ifndef DDR_HIFI_MBX_ADDR
-#define DDR_HIFI_MBX_ADDR ((DDR_SHARED_MEM_ADDR) + (DDR_SHA_NV_SIZE)) 
+#define DDR_HIFI_MBX_ADDR ((DDR_SHARED_MEM_ADDR) + (DDR_SHA_NV_SIZE) + (DDR_SHA_SEC_ICC_SIZE)) 
 #endif 
 
 #ifndef DDR_HIFI_MBX_SIZE
@@ -1216,8 +1260,16 @@
 #define SHM_SIZE_SIM_MEMORY (256*1024) 
 #endif 
 
+#ifndef SHM_SIZE_NV_UNSAFE
+#define SHM_SIZE_NV_UNSAFE (0x400) 
+#endif 
+
 #ifndef SHM_SIZE_NV
 #define SHM_SIZE_NV (NV_DDR_SIZE) 
+#endif 
+
+#ifndef SHM_SIZE_SHA_SEC_ICC
+#define SHM_SIZE_SHA_SEC_ICC (DDR_SHA_SEC_ICC_SIZE) 
 #endif 
 
 #ifndef FEATURE_NV_PARTRION_MULTIPLEX

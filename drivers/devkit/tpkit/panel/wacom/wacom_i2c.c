@@ -785,7 +785,8 @@ static int wacom_power_on_gpio_set(void)
 	ts_pdata = wac_data->wacom_chip_data->ts_platform_data;
 
 	wacom_pinctrl_select_normal();
-	gpio_direction_input(ts_pdata->irq_gpio);
+	if (gpio_direction_input(ts_pdata->irq_gpio))
+		TS_LOG_ERR("%s :gpio_direction_input fail\n", __func__);
 	gpio_direction_output(ts_pdata->reset_gpio, GPIO_OUTPUT_HIGH);
 	return NO_ERR;
 }

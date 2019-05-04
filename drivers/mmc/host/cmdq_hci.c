@@ -20,7 +20,7 @@
 #include <linux/scatterlist.h>
 #include <linux/leds.h>
 #include <linux/platform_device.h>
-
+#include <linux/hisi/rdr_hisi_platform.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
@@ -345,6 +345,14 @@ static int cmdq_mmc_invalid(struct mmc_host *mmc)
 	return 0;
 }
 
+static void cmdq_sqscmd_idle_tmr(struct cmdq_host *cq_host, struct mmc_host *mmc)
+{
+	if (cq_host->ops->sqscmd_idle_tmr)
+		cq_host->ops->sqscmd_idle_tmr(mmc);
+	else
+		cmdq_writel(cq_host, 0x10100, CQSSC1);
+}
+
 static int cmdq_enable(struct mmc_host *mmc)
 {
 	int err = 0;
@@ -392,7 +400,7 @@ static int cmdq_enable(struct mmc_host *mmc)
 	cqcfg = ((cq_host->dma64 ? CQ_TASK_DESC_SZ : 0) | (dcmd_enable ? CQ_DCMD : 0));
 
 	cmdq_writel(cq_host, cqcfg, CQCFG);
-	cmdq_writel(cq_host, 0x10100, CQSSC1);
+	cmdq_sqscmd_idle_tmr(cq_host, mmc);
 	cq_host->cqcfg = cqcfg;
 
 	/* want to write this address in any enable scario. */
@@ -817,10 +825,10 @@ static void cmdq_prep_dcmd_desc(struct mmc_host *mmc, struct mmc_request *mrq)
 			resp_type = RES_TYPE_R145;
 	} else {
 		pr_err("%s: weird response: 0x%x\n", mmc_hostname(mmc), mrq->cmd->flags);
-		BUG_ON(1);
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 	}
 
-	pr_debug("%s: DCMD->opcode: %d, arg: 0x%x, resp_type = %d\n", __func__, mrq->cmd->opcode, mrq->cmd->arg, resp_type);
+	pr_debug("%s: DCMD->opcode: %d, arg: 0x%x, resp_type = %d\n", __func__, mrq->cmd->opcode, mrq->cmd->arg, resp_type);/*lint !e644 */
 
 	task_desc = (u64 *)get_desc(cq_host, cq_host->dcmd_slot);
 	memset(task_desc, 0, sizeof(*task_desc));
@@ -940,12 +948,13 @@ static int cmdq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 		cmdq_prep_dcmd_desc(mmc, mrq);
 		if (cq_host->mrq_slot[31])
-			BUG_ON(1);
+			rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 
 		cq_host->mrq_slot[31] = mrq;
 
 		if (true == cq_host->fix_qbr)
-			BUG_ON(cmdq_readl(cq_host, CQTDBR));
+			if (cmdq_readl(cq_host, CQTDBR))
+				rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 
 		mmc->cmdq_task_info[tag].start_dbr_time = ktime_get();
 		cmdq_writel(cq_host, (u32)1 << 31, CQTDBR);
@@ -967,14 +976,15 @@ static int cmdq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	err = cmdq_prep_tran_desc(mrq, cq_host, tag);
 	if (err) {
 		pr_err("%s: %s: failed to setup tx desc: %d\n", mmc_hostname(mmc), __func__, err);
-		BUG_ON(1);
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 	}
 	wmb();
 
-	BUG_ON(cmdq_readl(cq_host, CQTDBR) & (1 << tag));
+	if (cmdq_readl(cq_host, CQTDBR) & (1 << tag))
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 
 	if (cq_host->mrq_slot[tag])
-		BUG_ON(1);
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 
 	if (cq_host->ops->set_tranfer_params)
 		cq_host->ops->set_tranfer_params(mmc);
@@ -1078,7 +1088,7 @@ struct mmc_request* get_mrq_by_tag(struct cmdq_host *cq_host, u32 *tag)
 		mrq = get_first_req(cq_host, tag);
 		if (!mrq) {
 			pr_err("%s: cannot get avalible mrq\n", __func__);
-			BUG_ON(1);
+			rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 		}
 	}
 
@@ -1133,7 +1143,7 @@ int cmdq_interrupt_errors_handle(struct mmc_host *mmc, u32 intmask,
 		tag = CQTERRI_RES_TASK(err_info);
 		pr_err("%s: CMD err tag: %lu\n", __func__, tag);
 
-		mrq = get_mrq_by_tag(cq_host,(u32 *)&tag);
+		mrq = get_mrq_by_tag(cq_host, (u32 *)&tag);
 		/* CMD44/45/46/47 will not have a valid cmd */
 		if (mrq->cmd)
 			mrq->cmd->error = err;
@@ -1142,7 +1152,7 @@ int cmdq_interrupt_errors_handle(struct mmc_host *mmc, u32 intmask,
 	} else if (err_info & CQTERRI_DAT_ERR) {
 		tag = CQTERRI_DAT_TASK(err_info);
 		pr_err("%s: Dat err  tag: %lu\n", __func__, tag);
-		mrq = get_mrq_by_tag(cq_host,(u32 *)&tag);
+		mrq = get_mrq_by_tag(cq_host, (u32 *)&tag);
 		mrq->data->error = err;
 	} else {
 #ifdef CONFIG_EMMC_FAULT_INJECT
@@ -1160,7 +1170,7 @@ int cmdq_interrupt_errors_handle(struct mmc_host *mmc, u32 intmask,
 			return IRQ_HANDLED;
 		}
 		tag = ffs(dbr_set) - 1;
-		mrq = get_mrq_by_tag(cq_host,(u32 *)&tag);
+		mrq = get_mrq_by_tag(cq_host, (u32 *)&tag);
 		if (mrq->data)
 			mrq->data->error = err;
 		else
@@ -1273,7 +1283,7 @@ irqreturn_t cmdq_irq(struct mmc_host *mmc, u32 intmask)
 	if (status & CQIS_TERR) {
 		pr_err("%s: cmd queue task error (invalid task descriptor) %d !!!\n", mmc_hostname(mmc), status);
 		cmdq_dumpregs(cq_host);
-		BUG_ON(1);
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 	}
 
 	if (status & CQIS_TCC) {

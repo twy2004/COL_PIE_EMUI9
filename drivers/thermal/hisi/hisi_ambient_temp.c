@@ -127,7 +127,7 @@ static int hisi_ambient_probe(struct platform_device *pdev)
 	}
 
 	for_each_child_of_node(np, child) {
-			ambient_sensor = (struct hisi_ambient_sensor_t *)((u64)hisi_ambient + sizeof(struct hisi_ambient_t) + (u64)((long)i) * (sizeof(struct hisi_ambient_sensor_t)));
+			ambient_sensor = (struct hisi_ambient_sensor_t *)(uintptr_t)((u64)(uintptr_t)hisi_ambient + sizeof(struct hisi_ambient_t) + (u64)((long)i) * (sizeof(struct hisi_ambient_sensor_t)));
 			ret = of_property_read_string(child, "type", &ptr_type);
 			if (ret) {
 				pr_err("%s type read err\n", __func__);
@@ -289,7 +289,7 @@ int hisi_ambient_resume(struct platform_device *pdev)
 					__func__, delta_time,  hisi_ambient->interval, now_cc, hisi_ambient->start_cc, avg_current);
 
 			for (i = 0; i < hisi_ambient->sensor_count ; i++) {
-				ambient_sensor = (struct hisi_ambient_sensor_t *)((u64)hisi_ambient + sizeof(struct hisi_ambient_t) + (u64)((long)i) * (sizeof(struct hisi_ambient_sensor_t)));
+				ambient_sensor = (struct hisi_ambient_sensor_t *)(uintptr_t)((u64)(uintptr_t)hisi_ambient + sizeof(struct hisi_ambient_t) + (u64)((long)i) * (sizeof(struct hisi_ambient_sensor_t)));
 
 				ret = ipa_get_periph_value(ambient_sensor->id, &ambient_temp);
 				if (ret) {

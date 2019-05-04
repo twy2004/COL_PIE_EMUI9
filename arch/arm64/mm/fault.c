@@ -615,24 +615,6 @@ asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
 	arm64_notify_die("", regs, &info, esr);
 }
 
-unsigned long test_bp_hardening(void)
-{
-	ktime_t before, after;
-	unsigned long consumed_ns = 0;
-	int cpu = smp_processor_id();
-
-	before = ktime_get();
-	/* PC has already been checked in entry.S */
-	arm64_apply_bp_hardening();
-	after = ktime_get();
-
-	consumed_ns = ktime_to_ns(ktime_sub(after, before));
-
-	pr_err("cpu=%d consumed_ns=%lu\n", cpu, consumed_ns);
-
-	return consumed_ns;
-}
-
 asmlinkage void __exception do_el0_irq_bp_hardening(void)
 {
 	/* PC has already been checked in entry.S */
@@ -764,7 +746,7 @@ int cpu_enable_pan(void *__unused)
 	 */
 	WARN_ON_ONCE(in_interrupt());
 
-	config_sctlr_el1(SCTLR_EL1_SPAN, 0);
+	sysreg_clear_set(sctlr_el1, SCTLR_EL1_SPAN, 0);
 	asm(SET_PSTATE_PAN(1));
 	return 0;
 }

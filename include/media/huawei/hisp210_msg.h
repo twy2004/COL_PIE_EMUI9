@@ -623,17 +623,36 @@ typedef struct warp_info
     warp_image_info_t image_info;
 } warp_info_t;
 
+typedef struct warp_output_info
+{
+    unsigned int        isHFBC;
+    stream_info_t       output_info;
+
+} warp_output_info_t;
+
+typedef struct eis_tnr_info
+{
+    unsigned int                ae_gain;
+    unsigned int                chromatix_addr;
+    unsigned int                prev_buffer_addr;
+    unsigned int                curr_buffer_addr;
+    isp_crop_region_info_t      prev_crop_region;
+    isp_crop_region_info_t      curr_crop_region;
+    unsigned int                status;
+} eis_tnr_info_t;
+
 typedef struct _msg_req_warp_request_t
 {
     unsigned int  cam_id;
     unsigned int  frame_number;
     stream_info_t input_stream_info;
-    stream_info_t output_stream_info;
     stream_info_t warp_output_stream_info;
     unsigned int  grid_enable;
     unsigned int  grid_order;
     warp_request_mode_e mode;
     unsigned int cgrid_info_buffer;
+    warp_output_info_t output_stream_info[2];
+    eis_tnr_info_t tnr_info;
 } msg_req_warp_request_t;
 
 typedef struct _msg_ack_warp_request_t

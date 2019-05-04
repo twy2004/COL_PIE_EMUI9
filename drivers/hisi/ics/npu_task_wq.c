@@ -69,7 +69,7 @@ int set_offchip_inst_addr(unsigned int core_id, unsigned long addr)
 	/* write boot inst to instram */
 	for (i = 0; i < task_fifo_ptr->boot_inst_set.boot_inst_size; i += 4) {
 		tmp = *(unsigned int *)&task_fifo_ptr->boot_inst_set.boot_inst_tmp[i];
-		iowrite32(tmp, (void *)((unsigned long)reg_space->inst_ram_virt_addr + i));
+		iowrite32(tmp, (void *)((uintptr_t)reg_space->inst_ram_virt_addr + i));
 	}
 
 	return SUCCESS;
@@ -135,7 +135,7 @@ static int npu_start_wq_task(unsigned int core_id)
 	npu_task_watchdog_start(core_id);
 
 	/* prepare data for npu */
-	if(NPU_TO_START != ioread32((void *)SOC_ICS_START_ADDR((unsigned long)reg_space->config_reg_virt_addr))) {
+	if(NPU_TO_START != ioread32((void *)SOC_ICS_START_ADDR((uintptr_t)reg_space->config_reg_virt_addr))) {
 		if (kfifo_peek(&task_fifo_ptr->FIFO_TaskElements, &head)) {
 			/* update pte */
 			npu_task_smmu_pte_update(core_id);
@@ -152,18 +152,18 @@ static int npu_start_wq_task(unsigned int core_id)
 			change_inst_data(core_id, head.offchipInstAddr, 87);
 
 			set_offchip_inst_addr(core_id, 0);
-			iowrite32(task_fifo_ptr->boot_inst_set.npu_access_ddr_addr, (void *)SOC_ICS_BASE_ADDR_ADDR((unsigned long)reg_space->config_reg_virt_addr));
+			iowrite32(task_fifo_ptr->boot_inst_set.npu_access_ddr_addr, (void *)SOC_ICS_BASE_ADDR_ADDR((uintptr_t)reg_space->config_reg_virt_addr));
 
 			/* start ipu */
-			iowrite32(NPU_TO_STOP, (void *)(void *)SOC_ICS_START_ADDR((unsigned long)reg_space->config_reg_virt_addr));
-			iowrite32(NPU_STATUS_UNFINISH, (void *)SOC_ICS_STATUS_ADDR((unsigned long)reg_space->config_reg_virt_addr));
+			iowrite32(NPU_TO_STOP, (void *)(void *)SOC_ICS_START_ADDR((uintptr_t)reg_space->config_reg_virt_addr));
+			iowrite32(NPU_STATUS_UNFINISH, (void *)SOC_ICS_STATUS_ADDR((uintptr_t)reg_space->config_reg_virt_addr));
 
 			/* whether the function is supported to judge in the core module */
 			npu_task_perf_monitor_open(core_id);
 
-			iowrite32(NPU_TO_START, (void *)SOC_ICS_START_ADDR((unsigned long)reg_space->config_reg_virt_addr));
+			iowrite32(NPU_TO_START, (void *)SOC_ICS_START_ADDR((uintptr_t)reg_space->config_reg_virt_addr));
 
-			NPU_PRINT("core[%u] START COMPUTE, offchipInstAddr=0x%pK", core_id, (void *)head.offchipInstAddr);
+			NPU_PRINT("core[%u] START COMPUTE, offchipInstAddr=0x%pK", core_id, (void *)(uintptr_t)head.offchipInstAddr);
 		} else {
 			NPU_ERR("kfifo_peek empty!");
 		}

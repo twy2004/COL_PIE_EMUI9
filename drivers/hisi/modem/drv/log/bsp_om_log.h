@@ -50,7 +50,6 @@
 #define __BSP_OM_LOG_H__
 
 #include "bsp_trace.h"
-#include "drv_comm.h"
 #include <linux/miscdevice.h>
 #include <linux/wait.h>
 #include <linux/spinlock.h>
@@ -67,9 +66,12 @@
 #define LOG_DROPPED_MESSAGE         "log buffer full, data dropped\n"
 /* ccore log设备名 */
 #define CCORE_LOG_DEV_NAME          "ccorelog"
+/* nrccore log设备名 */
+#define NRCCORE_LOG_DEV_NAME        "nrccorelog"
 /* mcore log设备名 */
 #define MCORE_LOG_DEV_NAME          "mcorelog"
-
+/* l2hac log设备名*/
+#define L2HAC_LOG_DEV_NAME          "l2haclog"
 /*错误码定义*/
 #define BSP_ERR_LOG_BASE                (int)(0x80000000 | (BSP_DEF_ERR(BSP_MODU_LOG, 0)))
 #define BSP_ERR_LOG_INVALID_MODULE      (BSP_ERR_LOG_BASE + 0x1)
@@ -106,26 +108,29 @@ typedef struct
 
 typedef struct
 {
-    struct miscdevice	misc;       /* misc device */
-    wait_queue_head_t	wq;         /* wait queue */
+    struct miscdevice   misc;       /* misc device */
+    wait_queue_head_t   wq;         /* wait queue */
     u32                 in_use;     /* whether device is in use */
     u32                 sleep_flag; /* whether app is sleep */
     spinlock_t          lock;
-  	struct list_head	logs;
+    struct list_head    logs;
     log_mem_stru      * log_mem;
 }logger_info_stru;
 
 #ifdef ENABLE_BUILD_OM
 struct new_om_log
 {
-	struct log_usr_info  ccore_log_info;
-	struct log_usr_info  mcore_log_info;
+    struct log_usr_info  ccore_log_info;
+    struct log_usr_info  nrccore_log_info;
+    struct log_usr_info  mcore_log_info;
+    struct log_usr_info  l2hac_log_info;
 };
 struct new_om_log g_om_log;
 #endif
-
+#if (FEATURE_HDS_PRINTLOG == FEATURE_ON)
 typedef int (*print_report_hook)(u32 module_id, u32 level, u32 sel, char* print_buff);
 extern print_report_hook g_bsp_print_hook;
+#endif
 u32 bsp_log_module_cfg_get(bsp_module_e mod_id);
 
 #endif

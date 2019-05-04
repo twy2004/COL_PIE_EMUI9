@@ -1,4 +1,4 @@
-# MD5: 75f4b5ce6a54a9c9779db67a36bac247
+# MD5: d79eafb16427ce6a91c3bdb66389c6bb
 CFG_TENSILICA_BUILDS_HIFI   :=$(ROOT_XTENSA_PATH_W)/XtDevTools/install/builds/RE-2014.5-linux
 CFG_TENSILICA_TOOLS_HIFI    :=$(ROOT_XTENSA_PATH_W)/XtDevTools/install/tools/RE-2014.5-linux
 CFG_FEATURE_HIFI                                := FEATURE_ON

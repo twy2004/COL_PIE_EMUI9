@@ -289,7 +289,7 @@ enum TAF_ERROR_CODE_ENUM
     TAF_ERR_NV_NOT_SUPPORT_ERR                              = (TAF_ERR_CODE_BASE + 66),     /* 不支持错误*/
     TAF_ERR_WRITE_NV_TIMEOUT                                = (TAF_ERR_CODE_BASE + 67),     /* 写nv超时 */
 
-    TAF_ERR_NETWORK_FAILURE                                 = (TAF_ERR_CODE_BASE + 68),     /* 写nv超时 */
+    TAF_ERR_NETWORK_FAILURE                                 = (TAF_ERR_CODE_BASE + 68),     /* 网络原因失败 */
 
     TAF_ERR_SCI_ERROR                                       = (TAF_ERR_CODE_BASE + 69),     /* PAM 逻辑通道打开失败，AP需要识别，细化新错误类型 */
 
@@ -424,6 +424,7 @@ typedef TAF_UINT8 TAF_PARA_SET_RESULT;
 #define TAF_PARA_EPS_QOS_NOT_DEFINED           23 /* EPS QOS未定义 */
 #define TAF_PARA_INVALID_PLMNID                24
 #define TAF_PARA_DUPLICATE_PLMNINFO            25
+#define TAF_PARA_5G_QOS_NOT_DEFINED            (26) /* 5G QOS未定义 */
 #define TAF_PARA_UNSPECIFIED_ERROR             255 /*其他错误*/
 
 
@@ -521,9 +522,6 @@ typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
 /* 仅供AT^NVSTUB使用 */
 #define TAF_ACORE_NV_READ(modemid, id, item, len)                   mdrv_nv_readex(modemid, id, item, len)
 
-/*  读取出厂区nv配置 */
-#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)           mdrv_nv_readex_factory(modemid, id, item, len)
-
 
 /* 对应mdrv_nv_writeex接口，在C需要对NV项做安全校验 */
 #define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteStru(ulModemId, ulNvItemId, pData, ulNvLength))
@@ -538,6 +536,10 @@ typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
 /* 对应mdrv_nv_write_partex接口，仅供AT^NVWRPART使用，C核无需做安全校验，仅在ENG版本中开启 */
 #define TAF_ACORE_NV_WRITE_PART_NO_CHECK(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWritePartNoCheckStru(ulModemId, ulNvItemId, ulOffset, pData, ulNvLength))
 #endif
+/*  读取出厂区nv配置 */
+#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)           mdrv_nv_readex_factory(modemid, id, item, len)
+/*  读取使用区nv配置 */
+#define TAF_ACORE_NV_READ_IMG(modemid, id, item, len)               mdrv_nv_readex_img(modemid, id, item, len)
 
 
 
@@ -567,8 +569,6 @@ typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
 #ifdef DMT
 #define TAF_ACORE_NV_READ(modemid, id, item, len)                   mdrv_nv_readex(modemid, id, item, len)
 
-#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)           mdrv_nv_readex(modemid, id, item, len)
-
 #define TAF_ACORE_NV_WRITE_OLD(modemid, id, item, len)              mdrv_nv_writeex(modemid, id, item, len)
 
 #define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)  TAF_AGENT_WriteACoreNv(AT_FillACoreNvWriteStru(ulModemId, ulNvItemId, pData, ulNvLength))
@@ -587,6 +587,8 @@ typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
 #else
 #define TAF_ACORE_NV_READ(modemid, id, item, len)                                             mdrv_nv_readex(modemid, id, item, len)
 
+#define TAF_ACORE_NV_READ_FACTORY(modemid, id, item, len)                                     mdrv_nv_readex_factory(modemid, id, item, len)
+
 #define TAF_ACORE_NV_WRITE_OLD(modemid, id, item, len)                                        mdrv_nv_writeex(modemid, id, item, len)
 
 #define TAF_ACORE_NV_WRITE(ulModemId, ulNvItemId, pData, ulNvLength)                          mdrv_nv_writeex(ulModemId, ulNvItemId, pData, ulNvLength)
@@ -603,6 +605,7 @@ typedef VOS_UINT32  TAFAGENT_MTA_PROC_ACORE_NV_TPYE_ENUM_UINT32;
 #define TAF_ACORE_NV_UPGRADE_RESTORE()                              mdrv_nv_restore()
 #define TAF_ACORE_NV_BACKUP_FNV()                                   mdrv_nv_backup_factorynv()
 #define TAF_ACORE_NV_FREVERT_FNV()                                  mdrv_nv_revert_factorynv()
+
 #endif
 #endif
 

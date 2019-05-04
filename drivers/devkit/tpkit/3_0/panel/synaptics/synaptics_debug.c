@@ -4858,7 +4858,8 @@ static int synaptics_read_f34(void)
 	mmi_buf_size =
 	    (f54->rmi4_data->num_of_tx) * (f54->rmi4_data->num_of_rx) * 2;
 	if(rawdata_size <= 0 || mmi_buf_size <= 0) {
-		TS_LOG_INFO("%s error rawdata_size = %d, mmi_buf_size = %d\n" ,rawdata_size, mmi_buf_size);
+		TS_LOG_INFO("%s error rawdata_size = %d, mmi_buf_size = %d\n",
+			__func__, rawdata_size, mmi_buf_size);
 		return -EINVAL;
 	}
 

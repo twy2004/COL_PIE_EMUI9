@@ -56,6 +56,7 @@
 #include "NVIM_Interface.h"
 #include "TTFComm.h"
 #include "TTFUtil.h"
+#include "gucttf_tag.h"
 
 
 
@@ -64,6 +65,7 @@
 *****************************************************************************/
 /*lint -e534*/
 #define    THIS_FILE_ID        PS_FILE_ID_FLOW_CTRL_C
+#define    THIS_MODU           mod_fc 
 
 
 /******************************************************************************

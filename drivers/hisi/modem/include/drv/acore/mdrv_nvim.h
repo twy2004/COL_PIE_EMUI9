@@ -105,6 +105,8 @@ unsigned int mdrv_nv_get_modem_num(void);
 *****************************************************************************/
 unsigned int mdrv_nv_backup(void);
 
+void * mdrv_nv_get_addr(unsigned int modemid, unsigned int itemid);
+
 #ifndef FEATURE_NV_SEC_ON
 /*备份出厂NV项*/
 unsigned int mdrv_nv_backup_factorynv(void);

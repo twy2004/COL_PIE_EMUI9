@@ -45,33 +45,42 @@ struct dsm_dev dsm_fingerprint =
 struct dsm_client *fingerprint_dclient = NULL;
 static DEFINE_MUTEX(ic_name_lock);
 
+#define OPTICAL   1 //optical fingerprint
+#define COMMON    0
 static fp_sensor_info g_fp_sensor_info[] = {
-        {0x021b, "FPC1021B"},
-        {0x021f, "FPC1021F"},
-        {0x0111, "FPC10221"},
-        {0x0121, "FPC10222"},
-        {0x1401, "FPC11401"},
-        {0x140a, "FPC1140A"},
-        {0x140b, "FPC1140B"},
-        {0x140c, "FPC1140C"},
-        {0x0321, "FPC1268X"},
-        {0x0311, "FPC1265X"},
-        {0x0711, "FPC1075S"},
-        {0x0721, "FPC1075T"},
-        {0x0611, "FPC1023SMA"},
-        {0x0612, "FPC1023SMB"},
-        {0x0621, "FPC1023TSC"},
-        {0x0341, "FPC1266Z120"},
-        {0x0074, "SYNA109A0"},
-        {0x3266, "GOODIX3266"},
-        {0x3288, "GOODIX3288"},
-        {0x8206, "GOODIX8206"},
-        {0x5266, "GOODIX5266"},
-        {0x5296, "GOODIX5296"},
-        {0x6185, "SILEAD6185"},
-        {0x6165, "SILEAD6165"},
-        {0x6175, "SILEAD6275"},
-        {0x1500, "QFP1500"},
+		{0x021b, "FPC1021B"},
+		{0x021f, "FPC1021F"},
+		{0x0111, "FPC10221"},
+		{0x0121, "FPC10222"},
+		{0x1401, "FPC11401"},
+		{0x140a, "FPC1140A"},
+		{0x140b, "FPC1140B"},
+		{0x140c, "FPC1140C"},
+		{0x0321, "FPC1268X"},
+		{0x0311, "FPC1265X"},
+		{0x0711, "FPC1075S"},
+		{0x0721, "FPC1075T"},
+		{0x0611, "FPC1023SMA"},
+		{0x0612, "FPC1023SMB"},
+		{0x0621, "FPC1023TSC"},
+		{0x0341, "FPC1266Z120"},
+		{0x1291, "FPC1291"},
+		{0x1023, "FPC1023"},
+		{0x1511, "FPC1511"},
+		{0x0074, "SYNA109A0"},
+		{0x0150, "SYNA150"},
+		{0x3266, "GOODIX3266"},
+		{0x3288, "GOODIX3288"},
+		{0x8206, "GOODIX8206"},
+		{0x5266, "GOODIX5266"},
+		{0x5296, "GOODIX5296"},
+		{0x5288, "GOODIX5288"},
+		{0x1204, "GOODIX1204"},
+		{0x3658, "GOODIX3658"},
+		{0x6185, "SILEAD6185"},
+		{0x6165, "SILEAD6165"},
+		{0x6175, "SILEAD6275"},
+		{0x1500, "QFP1500"},
 };
 #endif
 #define HWLOG_TAG fingerprint
@@ -114,10 +123,11 @@ static ssize_t irq_get(struct device* device,
                        char* buffer)
 {
     struct fp_data* fingerprint = dev_get_drvdata(device);
+	int             irq;
+
     if (NULL == fingerprint)
     {return -EINVAL;}
 
-    int irq;
     printk("tui_flg is %d, fp_ready_flg is %d, fp_fiq_flg is %d\n", tui_flg, fp_ready_flg, fp_fiq_flg);
     mutex_lock(&tui_flg_lock);
     if (tui_flg == 0)
@@ -145,7 +155,6 @@ static ssize_t irq_ack(struct device* device,
                        struct device_attribute* attribute,
                        const char* buffer, size_t count)
 {
-    //hwlog_info("%s\n", __func__);
     return count;
 }
 
@@ -316,9 +325,10 @@ static ssize_t module_id_ud_show(struct device* device,
                        struct device_attribute* attribute,
                        char* buffer)
 {
+	struct fp_data *fingerprint = dev_get_drvdata(device);
+
     if (NULL == buffer)
     {return -EINVAL;}
-    struct fp_data* fingerprint = dev_get_drvdata(device);
     if (NULL == fingerprint)
     {return -EINVAL;}
     return scnprintf(buffer,64, "%s", fingerprint->module_id_ud);
@@ -457,16 +467,16 @@ exit:
 */
 static char* fingerprint_get_sensor_name(unsigned int sensor_id)
 {
-    unsigned int i = 0;
-    for(i = 0; i < sizeof(g_fp_sensor_info)/sizeof(g_fp_sensor_info[0]); i++)
-    {
-        if(sensor_id == g_fp_sensor_info[i].sensor_id)
-        {
-            hwlog_info("sensor_name:%s\n", g_fp_sensor_info[i].sensor_name);
-            return g_fp_sensor_info[i].sensor_name;
-        }
-    }
-    return NULL;
+	unsigned int i = 0;
+
+	for (i = 0; i < sizeof(g_fp_sensor_info)/sizeof(g_fp_sensor_info[0]); i++) {
+		if (sensor_id == g_fp_sensor_info[i].sensor_id) {
+			hwlog_info("sensor_name:%s\n", g_fp_sensor_info[i].sensor_name);
+			return g_fp_sensor_info[i].sensor_name;
+		}
+	}
+	hwlog_err("sensor_name not found, sensor_id = %d\n", sensor_id);
+	return NULL;
 }
 #if defined (CONFIG_HUAWEI_DSM)
 /*
@@ -499,7 +509,8 @@ static void fingerprint_update_vendor_info(struct fp_data* fingerprint)
     if(ic_name)
     {
         dsm_fingerprint.ic_name = ic_name;
-        dsm_update_client_vendor_info(&dsm_fingerprint);
+		if (dsm_update_client_vendor_info(&dsm_fingerprint))
+			hwlog_err("dsm update client_vendor_info is failed\n");
     }
     else
     {
@@ -512,7 +523,8 @@ static void fingerprint_update_vendor_info(struct fp_data* fingerprint)
         }
         snprintf(ic_name, FP_MAX_SENSOR_ID_LEN, "%x", fingerprint->sensor_id);
         dsm_fingerprint.ic_name = ic_name;
-        dsm_update_client_vendor_info(&dsm_fingerprint);
+		if (dsm_update_client_vendor_info(&dsm_fingerprint))
+			hwlog_err("dsm update client_vendor_info is failed\n");
         kfree(ic_name);
         dsm_fingerprint.ic_name = NULL;
     }
@@ -520,71 +532,84 @@ static void fingerprint_update_vendor_info(struct fp_data* fingerprint)
 }
 #endif
 
-static ssize_t fingerprint_chip_info_show(struct device *device, struct device_attribute *attribute, char *buf)
+static ssize_t chip_info_show(struct device *device, unsigned int sensor_type,
+								char *chip_info)
 {
-    int retval = 0;
-    char module[FP_MAX_MODULE_INFO_LEN] = {0};
-    char sensor_id[FP_MAX_SENSOR_ID_LEN]={0};
+	char *ic_name = NULL;
+	unsigned int sensor_id = 0;
+	int rc = 0;
+	char module_name[FP_MAX_MODULE_INFO_LEN] = {0};
+	struct fp_data *fingerprint = NULL;
 
-    if(NULL == device || NULL == buf)
-    {
-        hwlog_err("%s failed,the pointer is null\n", __func__);
-        return -EINVAL;
-    }
+	if (device == NULL || chip_info == NULL) {
+		hwlog_err("%s failed,the pointer is null\n", __func__);
+		return -EINVAL;
+	}
+	fingerprint = dev_get_drvdata(device);
+	if (fingerprint == NULL) {
+		hwlog_err("%s failed,the parameters is null\n", __func__);
+		return -EINVAL;
+	}
 
-    struct fp_data* fingerprint= dev_get_drvdata(device);
-    if (NULL == fingerprint)
-    {
-        hwlog_err("%s failed,the parameters is null\n", __func__);
-        return -EINVAL;
-    }
+	if (sensor_type == COMMON) {
+		sensor_id = fingerprint->sensor_id;
+	} else if (sensor_type == OPTICAL) {
+		sensor_id = fingerprint->sensor_id_ud;
+	} else {
+		hwlog_err("%s: sensor_type = %d, not found\n", __func__,
+					sensor_type);
+		return -EFAULT;
+	}
 
-    retval = fingerprint_get_module_name(fingerprint, module, FP_MAX_MODULE_INFO_LEN);
-    if(retval != FP_RETURN_SUCCESS)
-    {
-        strncpy(module, "NN", FP_DEFAULT_INFO_LEN);
-    }
+	rc = fingerprint_get_module_name(fingerprint, module_name,
+				FP_MAX_MODULE_INFO_LEN);
+	if (rc != FP_RETURN_SUCCESS)
+		strncpy(module_name, "NN", FP_DEFAULT_INFO_LEN);
 
-    snprintf(sensor_id, FP_MAX_SENSOR_ID_LEN, "%x", fingerprint->sensor_id);
-    return scnprintf(buf,FP_MAX_CHIP_INFO_LEN,"%s--%s\n", sensor_id, module);
+	ic_name = fingerprint_get_sensor_name(sensor_id);
+	if (ic_name) {
+		rc = snprintf(chip_info, FP_MAX_SENSOR_ID_LEN, "%s--%s\n",
+					ic_name, module_name);
+		hwlog_info("chip_info:%s, %s\n", chip_info, __func__);
+		if (rc >= FP_MAX_SENSOR_ID_LEN) {
+			hwlog_err("%s: chip_info truncated to '%s'", __func__,
+					chip_info);
+			return -EFAULT;
+		}
+	} else {
+		hwlog_info("hw_debug didn't find fingerprint:%x, %s\n",
+				sensor_id, __func__);
+		rc = snprintf(chip_info, FP_MAX_SENSOR_ID_LEN, "%x--%s\n",
+					sensor_id, module_name);
+		if (rc >= FP_MAX_SENSOR_ID_LEN) {
+			hwlog_err("%s: chip_info truncated to '%s'", __func__,
+					chip_info);
+			return -EFAULT;
+		}
+	}
+
+	return rc;
 }
 
-static ssize_t ud_fingerprint_chip_info_show(struct device *device, struct device_attribute *attribute, char *buf)
+static ssize_t fingerprint_chip_info_show(struct device *device,
+				struct device_attribute *attribute, char *buf)
 {
-    if(NULL == device || NULL == buf)
-    {
-        hwlog_err("%s failed,the pointer is null\n", __func__);
-        return -EINVAL;
-    }
-    struct fp_data* fingerprint = dev_get_drvdata(device);
-    if(NULL == fingerprint)
-    {
-        hwlog_err("%s failed,the pointer is null\n", __func__);
-        return -EINVAL;
-    }
-    return scnprintf(buf,MAX_SENSOR_ID_UD_LENGTH, "%s\n", fingerprint->sensor_id_ud);
+	hwlog_info("fingerprint_chip_info_show\n");
+	return chip_info_show(device, COMMON, buf);
 }
 
-static ssize_t ud_fingerprint_chip_info_store(struct device* device,struct device_attribute* attribute, const char* buffer, size_t count)
+static ssize_t ud_fingerprint_chip_info_show(struct device *device,
+				struct device_attribute *attribute, char *buf)
 {
-    if(NULL == device || NULL == buffer)
-    {
-        hwlog_err("%s failed,the pointer is null\n", __func__);
-        return -EINVAL;
-    }
-    struct fp_data* fingerprint = dev_get_drvdata(device);
-    if(NULL == fingerprint)
-    {
-        hwlog_err("%s failed,the pointer is null\n", __func__);
-        return -EINVAL;
-    }
-    strncpy(fingerprint->sensor_id_ud,buffer ,MAX_SENSOR_ID_UD_LENGTH);
-    fingerprint->sensor_id_ud[MAX_SENSOR_ID_UD_LENGTH-1] = '\0';// write the tail
-    return count;
+	hwlog_info("ud_fingerprint_chip_info_show\n");
+	return chip_info_show(device, OPTICAL, buf);
 }
 
-static DEVICE_ATTR(fingerprint_chip_info, S_IRUSR  | S_IRGRP, fingerprint_chip_info_show, NULL);
-static DEVICE_ATTR(ud_fingerprint_chip_info, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, ud_fingerprint_chip_info_show, ud_fingerprint_chip_info_store);
+static DEVICE_ATTR(fingerprint_chip_info, S_IRUSR  | S_IRGRP,
+				fingerprint_chip_info_show, NULL);
+static DEVICE_ATTR(ud_fingerprint_chip_info, S_IRUSR | S_IRGRP,
+				ud_fingerprint_chip_info_show, NULL);
+
 static struct attribute* attributes[] =
 {
     &dev_attr_irq.attr,
@@ -634,28 +659,31 @@ int tui_fp_notify(void)
 void ud_fp_on_hbm_completed(void)
 {
     struct fp_data* fingerprint = g_fingerprint;
-
+    if (fingerprint == NULL) {
+        return;
+    }
     fingerprint->hbm_status = HBM_ON;
     wake_up(&fingerprint->hbm_queue);
-
     return;
 }
 
 void fp_set_lcd_charge_time(int time)
 {
     struct fp_data* fingerprint = g_fingerprint;
-
+    if (fingerprint == NULL) {
+        return;
+    }
     fingerprint->fingerprint_bigdata.lcd_charge_time = time;
-
     return;
 }
 
 void fp_set_lcd_light_on_time(int time)
 {
     struct fp_data* fingerprint = g_fingerprint;
-
+    if (fingerprint == NULL) {
+        return;
+    }
     fingerprint->fingerprint_bigdata.lcd_on_time = time;
-
     return;
 }
 
@@ -663,11 +691,14 @@ void fp_set_cpu_wake_up_time(int time)
 {
     struct fp_data* fingerprint = g_fingerprint;
 
+    if (fingerprint == NULL) {
+        return;
+    }
+
     fingerprint->fingerprint_bigdata.cpu_wakeup_time = time;
 
     return;
 }
-
 
 /**************** Begin pen fp anti use **********************/
 #define PEN_ANTI_TIME_MS (500)
@@ -728,13 +759,12 @@ static int stylus_pen_notify_fp(struct notifier_block *nb, unsigned long event, 
 {
     int in_range_status = (int)event;
     int lst_in_range_status = atomic_read(&g_pen_in_range_status);
-    //hwlog_info("%s in\n", __func__);
+	struct fp_data *fingerprint         = g_fingerprint;
 
     if (!nb) {
         hwlog_err("%s failed nb is NULL\n", __func__);
         return -EINVAL;
     }
-    struct fp_data* fingerprint = g_fingerprint;
     if (!fingerprint) {
         hwlog_err("%s failed g_fingerprint is NULL\n", __func__);
         return -EINVAL;
@@ -753,7 +783,6 @@ static int stylus_pen_notify_fp(struct notifier_block *nb, unsigned long event, 
     hwlog_info("%s lst_in_range_status = %d, in_range_status = %d\n", __func__, lst_in_range_status, in_range_status);
     last_pen_stamp = jiffies; // record pen status changed time jiffies, for anti touch use.
     atomic_set(&g_pen_in_range_status, in_range_status);
-    //hwlog_info("%s out\n", __func__);
     return 0;
 }
 /**************** End pen fp anti use **********************/
@@ -778,7 +807,6 @@ static irqreturn_t fingerprint_irq_handler(int irq, void* handle)
     }
 
     sysfs_notify(&fingerprint->pf_dev->dev.kobj, NULL, dev_attr_irq.attr.name);
-    //hwlog_info("%s \n", __func__);
     return IRQ_HANDLED;
 }
 
@@ -823,12 +851,12 @@ void fingerprint_get_navigation_adjustvalue(struct device* dev, struct fp_data* 
 
 int fingerprint_get_dts_data(struct device* dev, struct fp_data* fp_data)
 {
-    hwlog_info("%s enter\n", __func__);
     struct device_node* np;
     int ret = 0;
     const char* extern_ldo_info = NULL;
     const char* product = NULL;
 
+	hwlog_info("%s enter\n", __func__);
     if (!dev || !dev->of_node)
     {
         hwlog_err("%s failed dev or dev node is NULL\n", __func__);
@@ -1207,169 +1235,176 @@ static void fingerprint_sensor_abnormal_poweroff(struct fp_data* fingerprint)
 
 static long fingerprint_ioctl(struct file* file, unsigned int cmd, unsigned long arg)
 {
+	int error = 0;
+	struct fp_data* fingerprint;
+	void __user* argp = (void __user*)arg;
+	int key;
+	int status;
+	unsigned int sensor_id;
+	unsigned int sensor_id_ud = 0;
+	unsigned int set_ipc_wakelock;
 
-    int error = 0;
+	fingerprint = (struct fp_data*)file->private_data;
+	if (NULL == fingerprint)
+	{
+		hwlog_err("%s fingerprint is NULL\n", __func__);
+		return -EFAULT;
+	}
 
-    struct fp_data* fingerprint;
-    void __user* argp = (void __user*)arg;
-    int key;
-    int status;
-    unsigned int sensor_id;
-    unsigned int set_ipc_wakelock;
+	if (_IOC_TYPE(cmd) != FP_IOC_MAGIC)
+	{ return -ENOTTY; }
 
-    fingerprint = (struct fp_data*)file->private_data;
-    if (NULL == fingerprint)
-    {
-        hwlog_err("%s fingerprint is NULL\n", __func__);
-        return -EFAULT;
-    }
+	switch (cmd)
+	{
+		case FP_IOC_CMD_ENABLE_IRQ:
+			hwlog_info("%s FP_IOC_CMD_ENABLE_IRQ \n", __func__);
+			fp_ready_flg  = 1;
+			if (wake_lock_active(&fingerprint->ttw_wl))
+			{
+				wake_unlock(&fingerprint->ttw_wl);
+			}
+			if (true == fingerprint->irq_enabled)
+			{
+				hwlog_info("%s fp irq already enable", __func__);
+				break;
+			}
+			enable_irq(gpio_to_irq(fingerprint->irq_gpio ));
+			fingerprint->irq_enabled = true;
+			break;
 
-    if (_IOC_TYPE(cmd) != FP_IOC_MAGIC)
-    { return -ENOTTY; }
+		case FP_IOC_CMD_DISABLE_IRQ:
+			hwlog_info("%s FP_IOC_CMD_DISABLE_IRQ \n", __func__);
+			fp_ready_flg  = 0;
+			if (false == fingerprint->irq_enabled)
+			{
+				hwlog_info("%s fp irq already disable", __func__);
+				break;
+			}
+			disable_irq(gpio_to_irq(fingerprint->irq_gpio ));
+			fingerprint->irq_enabled = false;
+			break;
 
-    switch (cmd)
-    {
-        case FP_IOC_CMD_ENABLE_IRQ:
-            hwlog_info("%s FP_IOC_CMD_ENABLE_IRQ \n", __func__);
-            fp_ready_flg  = 1;
-            if (wake_lock_active(&fingerprint->ttw_wl))
-            {
-                wake_unlock(&fingerprint->ttw_wl);
-            }
-            if (true == fingerprint->irq_enabled)
-            {
-                hwlog_info("%s fp irq already enable", __func__);
-                break;
-            }
-            enable_irq(gpio_to_irq(fingerprint->irq_gpio ));
-            fingerprint->irq_enabled = true;
-            break;
+		case FP_IOC_CMD_SEND_UEVENT:
+			if (copy_from_user(&key, argp, sizeof(key)))
+			{
+				hwlog_err("%s copy_from_user failed.\n", __func__);
+				return -EFAULT;
+			}
+			if (key < FP_KEY_MIN || key > FP_KEY_MAX) {
+				hwlog_err("%s nav key is %d\n", __func__, key);
+				return -EFAULT;
+			}
 
-        case FP_IOC_CMD_DISABLE_IRQ:
-            hwlog_info("%s FP_IOC_CMD_DISABLE_IRQ \n", __func__);
-            fp_ready_flg  = 0;
-            if (false == fingerprint->irq_enabled)
-            {
-                hwlog_info("%s fp irq already disable", __func__);
-                break;
-            }
-            disable_irq(gpio_to_irq(fingerprint->irq_gpio ));
-            fingerprint->irq_enabled = false;
-            break;
+			fingerprint_input_report(fingerprint, key);
+			hwlog_info("%s FP_IOC_CMD_SEND_UEVENT\n", __func__);
+			break;
 
-        case FP_IOC_CMD_SEND_UEVENT:
-            if (copy_from_user(&key, argp, sizeof(key)))
-            {
-                hwlog_err("%s copy_from_user failed.\n", __func__);
-                return -EFAULT;
-            }
-            if(key < KEY_MIN ||key > KEY_MAX)
-            {
-                hwlog_err("%s nav key is %d.\n", __func__ , key);
-                return -EFAULT;
-            }
+		case FP_IOC_CMD_GET_IRQ_STATUS:
+			status = fingerprint_get_irq_status(fingerprint);
+			if(status != 0 && status != 1)
+			{
+				hwlog_err("%s fingerprint irq is %d.\n", __func__ , status);
+				return -EFAULT;
+			}
 
-            fingerprint_input_report(fingerprint, key);
-            hwlog_info("%s FP_IOC_CMD_SEND_UEVENT\n", __func__);
-            break;
+			error = copy_to_user(argp, &status, sizeof(status));
+			if (error)
+			{
+				hwlog_err("%s copy_to_user failed error=%d.\n", __func__, error);
+				return -EFAULT;
+			}
 
-        case FP_IOC_CMD_GET_IRQ_STATUS:
+			hwlog_info("%s FP_IOC_CMD_GET_IRQ_STATUS status=%d\n", __func__, status);
+			break;
 
-            status = fingerprint_get_irq_status(fingerprint);
+		case FP_IOC_CMD_SET_WAKELOCK_STATUS:
+			if (copy_from_user(&key, argp, sizeof(key)))
+			{
+				hwlog_err("%s copy_from_user failed.\n", __func__);
+				return -EFAULT;
+			}
 
-            if(status != 0 && status != 1)
-            {
-                hwlog_err("%s fingerprint irq is %d.\n", __func__ , status);
-                return -EFAULT;
-            }
+			if (key == 1)
+			{ fingerprint->wakeup_enabled = true; }
+			else
+			{ fingerprint->wakeup_enabled = false; }
 
-            error = copy_to_user(argp, &status, sizeof(status));
+			hwlog_info("%s FP_IOC_CMD_SET_WAKELOCK_STATUS key =%d\n", __func__, key);
 
-            if (error)
-            {
-                hwlog_err("%s copy_to_user failed error=%d.\n", __func__, error);
-                return -EFAULT;
-            }
+			break;
+		case FP_IOC_CMD_SEND_SENSORID:
+			if (copy_from_user(&sensor_id, argp, sizeof(sensor_id)))
+			{
+				hwlog_err("%s copy_from_user failed.\n", __func__);
+				return -EFAULT;
+			}
 
-            hwlog_info("%s FP_IOC_CMD_GET_IRQ_STATUS status=%d\n", __func__, status);
-            break;
-
-        case FP_IOC_CMD_SET_WAKELOCK_STATUS:
-            if (copy_from_user(&key, argp, sizeof(key)))
-            {
-                hwlog_err("%s copy_from_user failed.\n", __func__);
-                return -EFAULT;
-            }
-
-            if (key == 1)
-            { fingerprint->wakeup_enabled = true; }
-            else
-            { fingerprint->wakeup_enabled = false; }
-
-            hwlog_info("%s FP_IOC_CMD_SET_WAKELOCK_STATUS key =%d\n", __func__, key);
-
-            break;
-        case FP_IOC_CMD_SEND_SENSORID:
-            if (copy_from_user(&sensor_id, argp, sizeof(sensor_id)))
-            {
-                hwlog_err("%s copy_from_user failed.\n", __func__);
-                return -EFAULT;
-            }
-
-            fingerprint->sensor_id=sensor_id;
+			fingerprint->sensor_id=sensor_id;
 #if defined (CONFIG_HUAWEI_DSM)
-            fingerprint_update_vendor_info(fingerprint);
+			fingerprint_update_vendor_info(fingerprint);
 #endif
-            hwlog_info("%s FP_IOC_CMD_SEND_SENSORID =%x\n", __func__,sensor_id);
-            break;
-        case FP_IOC_CMD_SET_IPC_WAKELOCKS:
-            if (copy_from_user(&set_ipc_wakelock, argp, sizeof(set_ipc_wakelock)))
-            {
-                hwlog_err("%s copy_from_user failed.\n", __func__);
-                return -EFAULT;
-            }
-            error = fingerprint_ipc_wakelock_status(set_ipc_wakelock);
-            if(error < 0)
-            {
-                hwlog_err(" fingerprint set ipc_wakelock failed\n");
-            }
-            hwlog_info("%s FP_IOC_CMD_SET_IPC_WAKELOCKS =%d\n", __func__,set_ipc_wakelock);
-            break;
+			hwlog_info("%s FP_IOC_CMD_SEND_SENSORID =%x\n", __func__,sensor_id);
+			break;
+		case FP_IOC_CMD_SEND_SENSORID_UD:
+			if (copy_from_user(&sensor_id_ud, argp,
+							sizeof(sensor_id_ud))) {
+				hwlog_err("%s copy_from_user failed.\n",
+						__func__);
+				return -EFAULT;
+			}
 
-        case FP_IOC_CMD_CHECK_HBM_STATUS:
-            if(wait_event_timeout(fingerprint->hbm_queue, fingerprint->hbm_status == HBM_ON, HBM_WAIT_TIMEOUT) <= 0)
-            {
-                hwlog_err("fingerprint wait hbm timeout\n");
-                error = -EFAULT;
-            }
-            fingerprint->hbm_status = HBM_NONE;
-            break;
+			fingerprint->sensor_id_ud = sensor_id_ud;
+			hwlog_info("%s FP_IOC_CMD_SEND_SENSORID_UD =%x\n",
+					__func__, fingerprint->sensor_id_ud);
+			break;
+		case FP_IOC_CMD_SET_IPC_WAKELOCKS:
+			if (copy_from_user(&set_ipc_wakelock, argp, sizeof(set_ipc_wakelock)))
+			{
+				hwlog_err("%s copy_from_user failed.\n", __func__);
+				return -EFAULT;
+			}
+			error = fingerprint_ipc_wakelock_status(set_ipc_wakelock);
+			if(error < 0)
+			{
+				hwlog_err(" fingerprint set ipc_wakelock failed\n");
+			}
+			hwlog_info("%s FP_IOC_CMD_SET_IPC_WAKELOCKS =%d\n", __func__,set_ipc_wakelock);
+			break;
 
-        case FP_IOC_CMD_RESET_HBM_STATUS:
-            fingerprint->hbm_status = HBM_NONE;
-            break;
+		case FP_IOC_CMD_CHECK_HBM_STATUS:
+			if(wait_event_timeout(fingerprint->hbm_queue, fingerprint->hbm_status == HBM_ON, HBM_WAIT_TIMEOUT) <= 0)
+			{
+				hwlog_err("fingerprint wait hbm timeout\n");
+				error = -EFAULT;
+			}
+			fingerprint->hbm_status = HBM_NONE;
+			break;
 
-        case FP_IOC_CMD_SET_POWEROFF:
-            hwlog_info("%s FP_IOC_CMD_SET_POWEROFF \n", __func__);
-            fingerprint_sensor_abnormal_poweroff(fingerprint);
-            break;
+		case FP_IOC_CMD_RESET_HBM_STATUS:
+			fingerprint->hbm_status = HBM_NONE;
+			break;
 
-        case FP_IOC_CMD_GET_BIGDATA :
-            error = copy_to_user(argp, &fingerprint->fingerprint_bigdata, sizeof(fingerprint_bigdata_t));
-            if (error)
-            {
-                hwlog_err("xyz %s copy_to_user failed error=%d.\n", __func__, error);
-                return -EFAULT;
-            }
-            break;
+		case FP_IOC_CMD_SET_POWEROFF:
+			hwlog_info("%s FP_IOC_CMD_SET_POWEROFF \n", __func__);
+			fingerprint_sensor_abnormal_poweroff(fingerprint);
+			break;
 
-        default:
-            hwlog_err("%s error = -EFAULT.\n", __func__);
-            error = -EFAULT;
-            break;
-    }
+		case FP_IOC_CMD_GET_BIGDATA :
+			error = copy_to_user(argp, &fingerprint->fingerprint_bigdata, sizeof(fingerprint_bigdata_t));
+			if (error)
+			{
+				hwlog_err("xyz %s copy_to_user failed error=%d.\n", __func__, error);
+				return -EFAULT;
+			}
+			break;
 
-    return error;
+		default:
+			hwlog_err("%s error = -EFAULT.\n", __func__);
+			error = -EFAULT;
+			break;
+	}
+
+	return error;
 }
 
 static int fingerprint_release(struct inode* inode, struct file* file)
@@ -1392,6 +1427,11 @@ static int fingerprint_reset_gpio_init(struct fp_data* fingerprint)
 {
     int error = 0;
 
+#if defined (CONFIG_HISI_PARTITION_KIRIN970)
+#elif defined (CONFIG_HISI_PARTITION_LIBRA)
+#elif defined (CONFIG_HISI_PARTITION_CANCER)
+#elif defined CONFIG_HISI_PARTITION_TAURUS
+#else
     error = gpio_request(fingerprint->rst_gpio, "fingerprint_reset_gpio");
 
     if (error)
@@ -1441,16 +1481,18 @@ static int fingerprint_reset_gpio_init(struct fp_data* fingerprint)
 
 err_pinctrl_put:
     devm_pinctrl_put(fingerprint->pctrl);
+#endif
     return error;
 }
-static int fingerprint_power_en_gpio_init(struct fp_data* fingerprint)
+
+static int fingerprint_power_en_gpio_init(struct fp_data *fingerprint)
 {
     int error = 0;
     error = gpio_request(fingerprint->power_en_gpio, "fingerprint_power_en_gpio");
 
     if (error)
     {
-        hwlog_err(" %s gpio_request (power_en_gpio) failed.\n",__func__);
+        hwlog_err(" %s gpio_request (power_en_gpio) failed, error = %d\n",__func__, error);
         error = -EINVAL;
         return error;
     }
@@ -1543,7 +1585,6 @@ static int fingerprint_extern_power_en(struct fp_data* fingerprint)
         hw_extern_pmic_config(fingerprint->extern_ldo_num,  fingerprint->extern_vol, 1);
         #endif
 
-        //hwlog_info("ldo_num = %d, ldo_vol = %d", fingerprint->extern_ldo_num, fingerprint->extern_vol );
         return 0;
     }
     else
@@ -1858,10 +1899,6 @@ static int fingerprint_probe(struct platform_device* pdev)
 
     fingerprint_get_navigation_adjustvalue(&pdev->dev, fingerprint);
 
-#if defined (CONFIG_HISI_PARTITION_KIRIN970)
-#elif defined (CONFIG_HISI_PARTITION_LIBRA)
-#elif defined (CONFIG_HISI_PARTITION_CANCER)
-#else
     rc = fingerprint_reset_gpio_init(fingerprint);
 
     if (rc)
@@ -1870,7 +1907,6 @@ static int fingerprint_probe(struct platform_device* pdev)
         rc = -EINVAL;
         goto exit;
     }
-#endif
 
     if ((-EINVAL) != fingerprint->power_en_gpio) // Check power_en_gpio exsit.
     {
@@ -2021,10 +2057,8 @@ static int fingerprint_probe(struct platform_device* pdev)
     if (rc)
     {
         hwlog_err("%s failed could not request irq %d.\n", __func__, gpio_to_irq(fingerprint->irq_gpio));
-        goto exit_wakeup;
+        goto exit;
     }
-
-    //dev_dbg(dev, "requested irq %d\n", gpio_to_irq(fingerprint->irq_gpio));
 
     /* Request that the interrupt should be wakeable */
     enable_irq_wake(gpio_to_irq( fingerprint->irq_gpio ) );
@@ -2046,8 +2080,6 @@ static int fingerprint_probe(struct platform_device* pdev)
     g_fingerprint = fingerprint;
     hwlog_info("%s OK.\n", __func__);
 
-exit_wakeup:
-    wake_lock_destroy(&fingerprint->ttw_wl);
 exit:
    #if defined (CONFIG_HUAWEI_DSM)
     if (rc && !dsm_client_ocuppy(fingerprint_dclient))

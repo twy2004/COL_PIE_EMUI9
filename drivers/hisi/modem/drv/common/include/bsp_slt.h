@@ -55,7 +55,6 @@ extern "C" {
 
 #include "product_config.h"
 #include <soc_memmap_comm.h>
-#include "hi_uart.h"
 
 
 #ifdef MBB_SLT

@@ -338,6 +338,13 @@ typedef struct
 }TAF_NVIM_SPM_EMC_CUSTOM_CFG_STRU;
 
 
+typedef struct
+{
+    VOS_UINT8                           ucMultiModeEmcSupportFlag;       /* 全模紧急呼支持标记，目前在有卡时生效 */
+    VOS_UINT8                           ucReserved1;
+    VOS_UINT8                           ucReserved2;
+    VOS_UINT8                           ucReserved3;
+}TAF_NVIM_MULTIMODE_EMC_CFG_STRU;
 
 /* 实际未使用 */
 

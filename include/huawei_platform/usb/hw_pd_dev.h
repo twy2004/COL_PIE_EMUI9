@@ -29,6 +29,29 @@
 #define PD_DPM_CC_DMD_INTERVAL                 (24*60*60) /*s*/
 #define PD_DPM_CC_DMD_BUF_SIZE                 (1024)
 
+#define PD_DPM_INVALID_VAL                     (-1)
+
+/* discover id ack:product vdo type offset */
+#define PD_DPM_PDT_OFFSET                      (12)
+#define PD_DPM_PDT_MASK                        (0x7)
+#define PD_DPM_PDT_VID_OFFSET                  (16)
+
+/* huawei vid */
+#define PD_DPM_HW_VID                          (0x12d1)
+
+/* huawei charger device pid */
+#define PD_DPM_HW_CHARGER_PID                  (0x3b30)
+#define PD_DPM_HW_PDO_MASK                     (0xffff)
+
+/* cc status for data collect */
+#define PD_DPM_CC_OPEN                         (0x00)
+#define PD_DPM_CC_DFT                          (0x01)
+#define PD_DPM_CC_1_5                          (0x02)
+#define PD_DPM_CC_3_0                          (0x03)
+#define PD_DPM_CC2_STATUS_OFFSET               (0x02)
+#define PD_DPM_CC_STATUS_MASK                  (0x03)
+#define PD_DPM_BOTH_CC_STATUS_MASK             (0x0F)
+
 /* type-c inserted plug orientation */
 enum pd_cc_orient{
     PD_DPM_CC_MODE_UFP = 0,
@@ -167,6 +190,7 @@ struct pd_dpm_ops {
 	void (*pd_dpm_set_cc_mode)(int mode);
 	void (*pd_dpm_set_voltage)(void*, int vol);
 	int (*pd_dpm_get_cc_state)(void);
+	int (*pd_dpm_disable_pd)(void *client, bool disable);
 };
 struct pd_dpm_pd_state {
 	uint8_t connected;
@@ -215,6 +239,14 @@ struct abnomal_change_info {
 	struct timespec64 ts64_dmd_last;
 	int change_data[PD_DPM_CC_CHANGE_BUF_SIZE];
 	int dmd_data[PD_DPM_CC_CHANGE_BUF_SIZE];
+};
+
+enum pd_product_type {
+	PD_PDT_PD_ADAPTOR = 0,
+	PD_PDT_PD_POWER_BANK,
+	PD_PDT_WIRELESS_CHARGER,
+	PD_PDT_WIRELESS_COVER,
+	PD_PDT_TOTAL,
 };
 
 #ifdef CONFIG_CONTEXTHUB_PD
@@ -304,8 +336,11 @@ extern void pd_dpm_get_charge_event(unsigned long *event, struct pd_dpm_vbus_sta
 extern bool pd_dpm_get_high_power_charging_status(void);
 extern bool pd_dpm_get_high_voltage_charging_status(void);
 extern bool pd_dpm_get_optional_max_power_status(void);
+extern void pd_dpm_set_optional_max_power_status(bool status);
+extern bool pd_dpm_get_wireless_cover_power_status(void);
+extern void pd_dpm_set_wireless_cover_power_status(bool status);
 extern bool pd_dpm_get_cc_orientation(void);
-extern int pd_dpm_get_cc_state_type(void);
+extern int pd_dpm_get_cc_state_type(unsigned int *cc1, unsigned int *cc2);
 #ifdef CONFIG_CONTEXTHUB_PD
 extern int pd_dpm_handle_combphy_event(struct pd_dpm_combphy_event event);
 #endif
@@ -313,6 +348,8 @@ void pd_dpm_set_cc_voltage(int type);
 enum pd_dpm_cc_voltage_type pd_dpm_get_cc_voltage(void);
 int pd_dpm_ops_register(struct pd_dpm_ops *ops, void*client);
 void pd_dpm_hard_reset(void);
+int pd_dpm_disable_pd(bool disable);
+void pd_dpm_set_pd_finish_flag(bool flag);
 bool pd_dpm_get_hw_dock_svid_exist(void);
 int pd_dpm_get_pd_reset_adapter(void);
 void pd_dpm_set_pd_reset_adapter(int ra);
@@ -345,6 +382,20 @@ extern void pd_dpm_set_combphy_status(TCPC_MUX_CTRL_TYPE mode);
 extern TCPC_MUX_CTRL_TYPE pd_dpm_get_combphy_status(void);
 #endif
 
+extern void pd_dpm_send_event(enum pd_dpm_cable_event_type event);
 extern int pd_dpm_get_cur_usb_event(void);
 extern void pd_dpm_audioacc_sink_vbus(unsigned long event, void *data);
+
+extern int pmic_vbus_irq_is_enabled(void);
+extern enum charger_event_type pd_dpm_get_source_sink_state(void);
+extern bool pd_dpm_set_voltage(int vol);
+extern int pd_dpm_notify_direct_charge_status(bool dc);
+extern void dp_dfp_u_notify_dp_configuration_done(TCPC_MUX_CTRL_TYPE mode_type, int ack);
+
+extern void pd_set_product_type(int type);
+extern int pd_get_product_type(void);
+extern void pd_set_product_id_info(unsigned int vid,
+				   unsigned int pid,
+				   unsigned int type);
+extern bool pd_dpm_check_cc_vbus_short(void);
 #endif

@@ -23,7 +23,6 @@
 #include <linux/mm.h>
 #include <linux/hisi/mntn_dump.h>
 
-
 static int gcov_events_enabled;
 static DEFINE_MUTEX(gcov_lock);
 
@@ -205,7 +204,6 @@ void gcov_get_gcda(void)
 
 	mutex_unlock(&gcov_lock);
 }
-
 
 #ifdef CONFIG_MODULES
 /* Update list and generate events when modules are unloaded. */

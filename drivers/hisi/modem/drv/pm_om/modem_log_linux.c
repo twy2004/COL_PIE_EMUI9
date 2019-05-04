@@ -58,6 +58,7 @@
 #include <linux/poll.h>
 
 #include <osl_generic.h>
+#include <osl_thread.h>
 #include <bsp_ipc.h>
 #include <bsp_slice.h>
 #include <bsp_ring_buffer.h>

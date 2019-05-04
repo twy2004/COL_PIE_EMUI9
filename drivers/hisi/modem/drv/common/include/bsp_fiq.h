@@ -6,7 +6,7 @@
 #include <bsp_shared_ddr.h>
 #include <bsp_slice.h>
 #include <osl_bio.h>
-#if defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <sre_exc.h>
 #endif
 #ifdef CCPU_CORE_NUM
@@ -49,7 +49,7 @@ enum fiq_handler_return_value
 
 typedef int (* FIQ_PROC_FUNC)(void *);
 
-#if defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 /**
  * @brief ´´½¨FIQ
  *

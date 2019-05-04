@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -89,7 +89,7 @@ static __inline__ int osl_cache_invalid( OSL_CACHE_TYPE type,void *address,unsig
     return (int)cacheInvalidate (type,address,bytes);
 }
 
-#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_cache.h"
 #include "osl_types.h"
 #include "osl_generic.h"
@@ -123,7 +123,7 @@ static __inline__ unsigned int osl_cache_flush_all(void)
 {
     return SRE_DCacheFlushAll();
 }
-#ifdef __OS_RTOSCK_SMP__
+#if defined(__OS_RTOSCK_SMP__)
 /*注意
 *此接口里涉及操作L2CACHE寄存器，
 *对于多核系统，使用此接口时用户自己保证多核不重入
@@ -140,7 +140,19 @@ static __inline__ void osl_l2cache_spin_unlock(void)
 {
     SRE_L2CacheSpinUnLock();
 }
-
+#elif defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+static __inline__ unsigned int osl_cache_flush_all_nolock(void)
+{
+    return SRE_DCacheFlushAllNoLock();
+}
+static __inline__ BOOL osl_l2cache_enabled(void)
+{
+    return SRE_L2CacheIsEnable();
+}
+static __inline__ void osl_l2cache_spin_unlock(void)   /* TSP/TVP没有实现SRE_L2CacheSpinUnLock接口，先打桩*/
+{
+    return;
+}
 #else
 static __inline__ unsigned int osl_cache_flush_all_nolock(void)
 {
@@ -148,7 +160,7 @@ static __inline__ unsigned int osl_cache_flush_all_nolock(void)
 }
 #endif
 //lint +esym(528,*)
-/*lint �Crestore */
+/*lint -restore */
 #else
 
 #endif /* __KERNEL__ */

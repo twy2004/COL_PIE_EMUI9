@@ -56,6 +56,7 @@
 #include <bsp_dump.h>
 #include <bsp_slice.h>
 #include <bsp_nvim.h>
+#include <bsp_version.h>
 #include "../../adrv/adrv.h"
 #include <bsp_rfile.h>
 #include "nv_partition_img.h"
@@ -598,9 +599,13 @@ void nv_show_ddr_info(void)
                     tm.tm_hour, tm.tm_min, tm.tm_sec);
 
     nv_printf("global start ddr        :0x%pK\n",(void *)NV_GLOBAL_INFO_ADDR);
+    nv_printf("global end   ddr        :0x%pK\n",(void *)NV_GLOBAL_END_ADDR);
+    nv_printf("global nv ddr size      :0x%x\n",SHM_MEM_NV_SIZE);
     nv_printf("global ctrl file ddr    :0x%pK\n",(void *)NV_GLOBAL_CTRL_INFO_ADDR);
     nv_printf("global file list ddr    :0x%pK\n",file_info);
     nv_printf("global ref info  ddr    :0x%pK\n",ref_info);
+    nv_printf("global mem buf   ddr    :0x%x\n",ddr_info->nminfo.mem_buf_addr);
+    nv_printf("global mem buf   size   :0x%x\n",ddr_info->nminfo.buf_size);
 
     nv_printf("*******************ddr global ctrl************************\n");
     nv_printf("acore init state    : 0x%x\n",ddr_info->acore_init_state);
@@ -609,6 +614,7 @@ void nv_show_ddr_info(void)
     nv_printf("crc status          : 0x%x\n",ctrl_info->crc_mark);
     nv_printf("mid priority        : 0x%x\n",ddr_info->priority);
     nv_printf("mem file type   : 0x%x\n",ddr_info->mem_file_type);
+    nv_printf("total nv size   : 0x%x\n",ddr_info->file_len);
     nv_printf("nv resume mode  : 0x%x\n", g_nv_ctrl.nv_self_ctrl.ulResumeMode);
 
     if(ddr_info->acore_init_state <= NV_INIT_FAIL)
@@ -791,6 +797,11 @@ void nv_record(char* fmt,...)
 
     nv_printf("%s",buffer);
 
+    if(bsp_b5000_is_esl_emu_version())
+    {
+        return;
+    }
+
     if(mdrv_file_access((char*)NV_LOG_PATH,0))
     {
         fp = mdrv_file_open((char*)NV_LOG_PATH,"w+");
@@ -831,8 +842,7 @@ void nv_get_current_sys_time(struct rtc_time *tm)
     struct rtc_device *rtc = rtc_class_open(CONFIG_RTC_HCTOSYS_DEVICE);
 
     if (rtc == NULL){
-        nv_error_printf("%s: unable to open rtc device (%s)\n",
-            __FILE__, CONFIG_RTC_HCTOSYS_DEVICE);
+        nv_error_printf("unable to open rtc device (%s)\n",CONFIG_RTC_HCTOSYS_DEVICE);
         return;
     }
 
@@ -979,7 +989,8 @@ u32 nvm_read_rand(u32 nvid)
     {
         return BSP_ERR_NV_MALLOC_FAIL;
     }
-    (void)memset_s((void*)tempdata, (ref_info->nv_len)+1, 0, (ref_info->nv_len)+1);
+
+    (void)memset_s((void *)tempdata, ((unsigned long)(ref_info->nv_len) +1), 0, ((unsigned long)(ref_info->nv_len) +1));
 
     ret = bsp_nvm_read(nvid,tempdata,ref_info->nv_len);
     if(NV_OK != ret)
@@ -1027,7 +1038,8 @@ u32 nvm_read_randex(u32 nvid,u32 modem_id)
     {
         return BSP_ERR_NV_MALLOC_FAIL;
     }
-    (void)memset_s((void*)tempdata, (ref_info->nv_len) +1, 0, (ref_info->nv_len) +1);
+
+    (void)memset_s((void *)tempdata, ((unsigned long)(ref_info->nv_len) +1), 0, ((unsigned long)(ref_info->nv_len) +1));
 
     ret = bsp_nvm_dcread(modem_id,nvid,tempdata,ref_info->nv_len);
     if(NV_OK != ret)
@@ -1065,6 +1077,10 @@ void nv_show_all_nv(void)
     return;
 }
 
+EXPORT_SYMBOL(g_nv_debug_cfg);
+EXPORT_SYMBOL(nv_debug_is_reset);
+EXPORT_SYMBOL(nv_debug_check_item_len);
+EXPORT_SYMBOL(nv_debug_store_ddr_data);
 EXPORT_SYMBOL(nv_debug_print_dump_queue);
 EXPORT_SYMBOL(nv_debug_print_delta_time);
 EXPORT_SYMBOL(nv_debug_store_file);
@@ -1072,10 +1088,12 @@ EXPORT_SYMBOL(nv_debug_switch);
 EXPORT_SYMBOL(nv_show_ref_info);
 EXPORT_SYMBOL(nv_help);
 EXPORT_SYMBOL(nv_show_fastboot_err);
-//EXPORT_SYMBOL(nv_show_item_info);
+EXPORT_SYMBOL(nv_show_item_info);
 EXPORT_SYMBOL(nv_show_ddr_info);
 EXPORT_SYMBOL(nv_debug_set_reset);
 EXPORT_SYMBOL(nv_debug_is_bak_resume_nv);
 EXPORT_SYMBOL(nv_debug_set_invalid_type);
 EXPORT_SYMBOL(nv_debug_chk_invalid_type);
 EXPORT_SYMBOL(nv_debug_clear_invalid_type);
+EXPORT_SYMBOL(nvm_read_rand);
+EXPORT_SYMBOL(nvm_read_randex);

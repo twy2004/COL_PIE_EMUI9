@@ -99,12 +99,15 @@ static void rt8979_force_restart_accp_det(bool open);
 static int rt8979_sw_open(bool open);
 static int rt8979_adjust_osc(int8_t val);
 
+static void rt8979_regs_dump(void);
+int is_support_fcp(void);
+
 void fsa9685_accp_detect_lock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -117,8 +120,8 @@ void fsa9685_accp_detect_unlock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -131,8 +134,8 @@ void fsa9685_accp_adaptor_reg_lock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -145,8 +148,8 @@ void fsa9685_accp_adaptor_reg_unlock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -159,8 +162,8 @@ void fsa9685_usb_switch_wake_lock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -174,8 +177,8 @@ void fsa9685_usb_switch_wake_unlock(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (!di) {
+		hwlog_err("di is null\n");
 		return;
 	}
 
@@ -185,26 +188,22 @@ void fsa9685_usb_switch_wake_unlock(void)
 	}
 }
 
-static void rt8979_regs_dump(void);
-int is_support_fcp(void);
-
 static int fsa9685_write_reg(int reg, int val)
 {
 	int ret = -1;
 	int i = 0;
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if ((NULL == di) || (NULL == di->client)) {
-		hwlog_err("error: di or client is null!\n");
+	if (!di || !di->client) {
+		hwlog_err("di or client is null\n");
 		return ret;
 	}
 
 	for (i = 0; i < I2C_RETRY && ret < 0; i++) {
 		ret = i2c_smbus_write_byte_data(di->client, reg, val);
-
 		if (ret < 0) {
-			hwlog_err("error: i2c write failed(reg=%02x ret=%d)!\n", reg, ret);
-			msleep(1);
+			hwlog_err("write_reg failed[%x]\n", reg);
+			usleep_range(1000, 1100); /* sleep 1ms */
 		}
 	}
 
@@ -217,16 +216,16 @@ static int fsa9685_read_reg(int reg)
 	int i = 0;
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if ((NULL == di) || (NULL == di->client)) {
-		hwlog_err("error: di or client is null!\n");
+	if (!di || !di->client) {
+		hwlog_err("di or client is null\n");
 		return ret;
 	}
 
 	for (i = 0; i < I2C_RETRY && ret < 0; i++) {
 		ret = i2c_smbus_read_byte_data(di->client, reg);
 		if (ret < 0) {
-			hwlog_err("error: i2c read failed(reg=%02x ret=%d)!\n", reg, ret);
-			msleep(1);
+			hwlog_err("read_reg failed[%x]\n", reg);
+			usleep_range(1000, 1100); /* sleep 1ms */
 		}
 	}
 
@@ -239,9 +238,8 @@ static int fsa9685_write_reg_mask(int reg, int value, int mask)
 	int val = 0;
 
 	val = fsa9685_read_reg(reg);
-	if (val < 0) {
+	if (val < 0)
 		return val;
-	}
 
 	val &= ~mask;
 	val |= value & mask;
@@ -270,64 +268,60 @@ static int fsa9685_get_device_id(void)
 	int id = 0;
 	int vendor_id = 0;
 	int version_id = 0;
+	int device_id = 0;
 
 	id = fsa9685_read_reg(FSA9685_REG_DEVICE_ID);
-	if (id < 0) {
-		hwlog_err("error: get_device_id read fail!\n");
+	if (id < 0)
 		return -1;
-	}
 
-	vendor_id = (id & FSA9685_REG_DEVICE_ID_VENDOR_ID_MASK) >> FSA9685_REG_DEVICE_ID_VENDOR_ID_SHIFT;
-	version_id = (id & FSA9685_REG_DEVICE_ID_VERSION_ID_MASK) >> FSA9685_REG_DEVICE_ID_VERSION_ID_SHIFT;
+	vendor_id = (id & FSA9685_REG_DEVICE_ID_VENDOR_ID_MASK) >>
+		FSA9685_REG_DEVICE_ID_VENDOR_ID_SHIFT;
+	version_id = (id & FSA9685_REG_DEVICE_ID_VERSION_ID_MASK) >>
+		FSA9685_REG_DEVICE_ID_VERSION_ID_SHIFT;
 
-	hwlog_info("get_device_id [%x]=%x,%d,%d\n", FSA9685_REG_DEVICE_ID, id, vendor_id, version_id);
+	hwlog_info("get_device_id [%x]=%x,%d,%d\n", FSA9685_REG_DEVICE_ID,
+		id, vendor_id, version_id);
 
 	if (vendor_id == FSA9685_VENDOR_ID) {
 		if (version_id == FSA9683_VERSION_ID) {
 			hwlog_info("find fsa9683\n");
-			return USBSWITCH_ID_FSA9683;
-		}
-		else if (version_id == FSA9688_VERSION_ID) {
+			device_id = USBSWITCH_ID_FSA9683;
+		} else if (version_id == FSA9688_VERSION_ID) {
 			hwlog_info("find fsa9688\n");
-			return USBSWITCH_ID_FSA9688;
-		}
-		else if (version_id == FSA9688C_VERSION_ID) {
+			device_id = USBSWITCH_ID_FSA9688;
+		} else if (version_id == FSA9688C_VERSION_ID) {
 			hwlog_info("find fsa9688c\n");
-			return USBSWITCH_ID_FSA9688C;
+			device_id = USBSWITCH_ID_FSA9688C;
+		} else {
+			hwlog_err("use default id (fsa9685)\n");
+			device_id = USBSWITCH_ID_FSA9685;
 		}
-		else {
-			hwlog_err("error: use default id (fsa9685)!\n");
-			return USBSWITCH_ID_FSA9685;
-		}
-	}
-	else if (vendor_id == RT8979_VENDOR_ID) {
+	} else if (vendor_id == RT8979_VENDOR_ID) {
 		if (version_id == RT8979_1_VERSION_ID) {
 			hwlog_info("find rt8979 (first revision)\n");
-			return USBSWITCH_ID_RT8979;
-		}
-		else if (version_id == RT8979_2_VERSION_ID) {
+			device_id = USBSWITCH_ID_RT8979;
+		} else if (version_id == RT8979_2_VERSION_ID) {
 			hwlog_info("find rt8979 (second revision)\n");
-			return USBSWITCH_ID_RT8979;
+			device_id = USBSWITCH_ID_RT8979;
+		} else {
+			hwlog_err("use default id (rt8979)\n");
+			device_id = USBSWITCH_ID_RT8979;
 		}
-		else {
-			hwlog_err("error: use default id (rt8979)!\n");
-			return USBSWITCH_ID_RT8979;
-		}
+	} else {
+		hwlog_err("use default id (fsa9685)\n");
+		device_id = USBSWITCH_ID_FSA9685;
 	}
-	else {
-		hwlog_err("error: use default id (fsa9685)!\n");
-		return USBSWITCH_ID_FSA9685;
-	}
+
+	return device_id;
 }
 
-static int fsa9685_device_ops_register(struct fsa9685_device_ops* ops)
+static int fsa9685_device_ops_register(struct fsa9685_device_ops *ops)
 {
 	if (ops != NULL) {
 		g_fsa9685_dev_ops = ops;
 		hwlog_info("fsa9685_device ops register ok\n");
-	}
-	else {
-		hwlog_info("fsa9685_device ops register fail!\n");
+	} else {
+		hwlog_info("fsa9685_device ops register fail\n");
 		return -1;
 	}
 
@@ -337,21 +331,21 @@ static int fsa9685_device_ops_register(struct fsa9685_device_ops* ops)
 static void fsa9685_select_device_ops(int device_id)
 {
 	switch (device_id) {
-		case USBSWITCH_ID_FSA9683:
-		case USBSWITCH_ID_FSA9685:
-		case USBSWITCH_ID_FSA9688:
-		case USBSWITCH_ID_FSA9688C:
-			fsa9685_device_ops_register(usbswitch_fsa9685_get_device_ops());
+	/* fall through: fsa968x serial */
+	case USBSWITCH_ID_FSA9683:
+	case USBSWITCH_ID_FSA9685:
+	case USBSWITCH_ID_FSA9688:
+	case USBSWITCH_ID_FSA9688C:
+		fsa9685_device_ops_register(usbswitch_fsa9685_get_device_ops());
 		break;
 
-		case USBSWITCH_ID_RT8979:
-			fsa9685_device_ops_register(usbswitch_rt8979_get_device_ops());
+	case USBSWITCH_ID_RT8979:
+		fsa9685_device_ops_register(usbswitch_rt8979_get_device_ops());
 		break;
 
-		default:
-			fsa9685_device_ops_register(usbswitch_fsa9685_get_device_ops());
-
-			hwlog_err("error: use default ops (fsa9685)!\n");
+	default:
+		fsa9685_device_ops_register(usbswitch_fsa9685_get_device_ops());
+		hwlog_err("use default ops (fsa9685)\n");
 		break;
 	}
 }
@@ -361,22 +355,22 @@ static int fsa9685_manual_switch(int input_select)
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 	struct fsa9685_device_ops *ops = g_fsa9685_dev_ops;
 
-	if ((NULL == di) || (NULL == di->client)) {
-		hwlog_err("error: di or client is null!\n");
+	if (!di || !di->client) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
-	if ((NULL == ops) || (NULL == ops->manual_switch)) {
-		hwlog_err("error: ops is null or manual_switch is null!\n");
+	if (!ops || !ops->manual_switch) {
+		hwlog_err("ops is null or manual_switch is null\n");
 		return -1;
 	}
 
 	hwlog_info("input_select=%d\n", input_select);
 
-	/* Two switch not support USB2_ID */
-	if (di->two_switch_flag && (FSA9685_USB2_ID_TO_IDBYPASS == input_select)) {
+	/* two switch not support USB2_ID */
+	if (di->two_switch_flag &&
+		(input_select == FSA9685_USB2_ID_TO_IDBYPASS))
 		return 0;
-	}
 
 	return ops->manual_switch(input_select);
 }
@@ -385,11 +379,12 @@ static int fsa9685_manual_detach_work(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
-	if ((NULL == di) || (NULL == di->client)) {
-		hwlog_err("error: di or client is null!\n");
+	if (!di || !di->client) {
+		hwlog_err("di or client is null\n");
 		return -ERR_NO_DEV;
 	}
 
+	/* detach work delay 20ms */
 	schedule_delayed_work(&di->detach_delayed_work, msecs_to_jiffies(20));
 
 	return 0;
@@ -399,13 +394,13 @@ static void fsa9685_detach_work(struct work_struct *work)
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 	struct fsa9685_device_ops *ops = g_fsa9685_dev_ops;
 
-	if ((NULL == di) || (NULL == di->client)) {
-		hwlog_err("error: di or client is null!\n");
+	if (!di || !di->client) {
+		hwlog_err("di or client is null\n");
 		return;
 	}
 
-	if ((NULL == ops) || (NULL == ops->detach_work)) {
-		hwlog_err("error: ops is null or detach_work is null!\n");
+	if (!ops || !ops->detach_work) {
+		hwlog_err("ops is null or detach_work is null\n");
 		return;
 	}
 
@@ -612,8 +607,6 @@ int fsa9685_is_water_intrused(void)
 
 static int rt8979_sw_open(bool open)
 {
-	int ret;
-
 	hwlog_info("%s : %s\n", __func__, open ? "open" : "auto");
 	return fsa9685_write_reg_mask(FSA9685_REG_CONTROL,
 		open ? 0 : FSA9685_SWITCH_OPEN, FSA9685_SWITCH_OPEN);
@@ -621,8 +614,6 @@ static int rt8979_sw_open(bool open)
 
 static int rt8979_accp_enable(bool en)
 {
-	int ret;
-
 	return fsa9685_write_reg_mask(FSA9685_REG_CONTROL2,
             en ? FSA9685_ACCP_AUTO_ENABLE : 0,
             FSA9685_ACCP_AUTO_ENABLE);
@@ -1279,8 +1270,6 @@ int switch_chip_reset(void)
 {
 	//const int rt8979_reset_delay = 300;
     int ret = 0,reg_ctl = 0,gpio_value = 0;
-    int slave_good, accp_status_mask;
-	int reg_val1, reg_val2;
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
 	if ((NULL == di) || (NULL == di->client)) {
@@ -1289,7 +1278,7 @@ int switch_chip_reset(void)
 	}
 
 	hwlog_info("%s++", __func__);
-	printk("caller is %pf/%pf\n", __builtin_return_address(1), __builtin_return_address(0)); // Only for debug
+
 	if (is_rt8979())
 		disable_irq(di->client->irq);
     ret = fsa9685_write_reg(0x19, 0x89);
@@ -1431,7 +1420,6 @@ int rt8979_fcp_cmd_transfer_check(void)
         i++;
     } while(i < MUIC_ACCP_INTREG_MAXREADCOUNT && reg_val1== 0 && reg_val2 == 0);
 
-    hwlog_info("%s : ACCP_INT = 0x%02x, 0x%02x\n", __func__, reg_val1, reg_val2);
     if(reg_val1== 0 && reg_val2 == 0)
     {
         hwlog_info("%s : read accp interrupt time out,total time is %d ms\n",__func__, wait_time);
@@ -1469,7 +1457,6 @@ int rt8979_fcp_cmd_transfer_check(void)
         }
     }
 
-    hwlog_info("%s : RT8979 accp int1,2 = 0x%x, 0x%x\n", __func__, reg_val1, reg_val2);
     if ((reg_val1 & FAS9685_CMDCPL) && (reg_val1 & FAS9685_ACK)
         && !(reg_val1 & FAS9685_CRCPAR)
         && !(reg_val2 & (FAS9685_CRCRX | FAS9685_PARRX)))
@@ -1571,7 +1558,6 @@ int accp_adapter_reg_read(int* val, int reg)
     int i=0,ret =0, adjust_osc_count = 0;
     int fcp_check_ret;
 
-    hwlog_info("%s : reg = 0x%x\n", __func__, reg);
     fsa9685_accp_adaptor_reg_lock();
     for(i=0;i< FCP_RETRY_MAX_TIMES && adjust_osc_count < RT8979_ADJ_OSC_MAX_COUNT;i++)
     {
@@ -1595,7 +1581,6 @@ int accp_adapter_reg_read(int* val, int reg)
         {
             /* recived data from adapter */
             *val = fsa9685_read_reg(FSA9685_REG_ACCP_DATA);
-            hwlog_info("%s-%d: reg = 0x%x, val = 0x%x\n", __func__, __LINE__, reg, *val);
             break;
         } else if (-RT8979_RETRY == fcp_check_ret) {
 			adjust_osc_count++;
@@ -1635,7 +1620,6 @@ int accp_adapter_reg_write(int val, int reg)
     int i = 0,ret = 0, adjust_osc_count = 0;
     int fcp_check_ret;
 
-    hwlog_info("%s : reg = 0x%x, val = 0x%x\n", __func__, reg, val);
     fsa9685_accp_adaptor_reg_lock();
     for(i=0;i< FCP_RETRY_MAX_TIMES && adjust_osc_count < RT8979_ADJ_OSC_MAX_COUNT;i++)
     {
@@ -1647,7 +1631,6 @@ int accp_adapter_reg_write(int val, int reg)
         ret |=fsa9685_write_reg(FSA9685_REG_ACCP_ADDR, reg);
         ret |=fsa9685_write_reg(FSA9685_REG_ACCP_DATA, val);
         ret |=fsa9685_write_reg_mask(FSA9685_REG_ACCP_CNTL, FSA9685_ACCP_IS_ENABLE | FAS9685_ACCP_SENDCMD,FAS9685_ACCP_CNTL_MASK);
-        hwlog_info("accp_adapter_reg_write: 0x%x=0x%x\r\n", reg, val);
         if(ret < 0)
         {
             hwlog_err("%s: write error ret is %d \n",__func__,ret);
@@ -1787,7 +1770,6 @@ static int fsa9865_accp_adapter_detect(void)
     int reg_val2 = 0;
     int i = 0;
     int slave_good, accp_status_mask;
-    bool is_dcp = false;
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
 	if ((NULL == di) || (NULL == di->client)) {
@@ -1864,7 +1846,6 @@ static int rt8979_accp_adapter_detect(void)
     int reg_val2 = 0;
     int i = 0, j = 0;
     int slave_good, accp_status_mask;
-    bool is_dcp = false;
     bool vbus_present;
 	struct fsa9685_device_info *di = g_fsa9685_dev;
 
@@ -2303,127 +2284,6 @@ int fcp_read_adapter_status (void)
     return 0;
 }
 #ifdef CONFIG_DIRECT_CHARGER
-static int fsa9685_scp_adaptor_detect(void)
-{
-    int ret;
-    int val;
-
-    scp_error_flag = 0;
-    ret = accp_adapter_detect();
-    if (ACCP_ADAPTOR_DETECT_OTHER == ret)
-    {
-        hwlog_info("scp adapter other detect\n");
-        return SCP_ADAPTOR_DETECT_OTHER;
-    }
-    if (ACCP_ADAPTOR_DETECT_FAIL == ret)
-    {
-        hwlog_info("scp adapter detect fail\n");
-        return SCP_ADAPTOR_DETECT_FAIL;
-    }
-    ret = scp_adapter_reg_read(&val, SCP_ADP_TYPE);
-    if(ret)
-    {
-        hwlog_err("%s : read SCP_ADP_TYPE fail ,ret = %d \n",__func__,ret);
-        return SCP_ADAPTOR_DETECT_OTHER;
-    }
-    hwlog_info("%s : read SCP_ADP_TYPE val = %d \n",__func__,val);
-    if ((val & SCP_ADP_TYPE_B_MASK) == SCP_ADP_TYPE_B)
-    {
-        hwlog_info("scp type B adapter detect\n ");
-        ret = scp_adapter_reg_read(&val, SCP_B_ADP_TYPE);
-        if (ret)
-        {
-            hwlog_err("%s : read SCP_B_ADP_TYPE fail ,ret = %d \n",__func__,ret);
-            return SCP_ADAPTOR_DETECT_OTHER;/*not scp adapter*/
-        }
-        hwlog_info("%s : read SCP_B_ADP_TYPE val = %d \n",__func__,val);
-        if (SCP_B_DIRECT_ADP == val)
-        {
-                hwlog_info("scp type B direct charge adapter detect\n ");
-                return SCP_ADAPTOR_DETECT_SUCC;
-        }
-    }
-
-    return SCP_ADAPTOR_DETECT_OTHER;
-
-}
-static int fsa9685_scp_output_mode_enable(int enable)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE0);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]val befor is %d \n", __func__, val);
-    val &= ~(SCP_OUTPUT_MODE_MASK);
-    val |= enable ? SCP_OUTPUT_MODE_ENABLE:SCP_OUTPUT_MODE_DISABLE;
-    hwlog_info("[%s]val after is %d \n", __func__, val);
-    ret = scp_adapter_reg_write(val, SCP_CTRL_BYTE0);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-
-static int fsa9685_scp_adaptor_output_enable(int enable)
-{
-    int val;
-    int ret;
-
-    ret = fsa9685_scp_output_mode_enable(1);
-    if(ret)
-    {
-        hwlog_err("%s : scp output mode enable failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE0);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]val befor is %d \n", __func__, val);
-    val &= ~(SCP_OUTPUT_MASK);
-    val |= enable ? SCP_OUTPUT_ENABLE:SCP_OUTPUT_DISABLE;
-    hwlog_info("[%s]val after is %d \n", __func__, val);
-    ret = scp_adapter_reg_write(val, SCP_CTRL_BYTE0);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-static int fsa9685_adaptor_reset(int enable)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE0);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]val befor is %d \n", __func__, val);
-    val &= ~(SCP_ADAPTOR_RESET_MASK);
-    val |= enable ? SCP_ADAPTOR_RESET_ENABLE:SCP_ADAPTOR_RESET_DISABLE;
-    hwlog_info("[%s]val after is %d \n", __func__, val);
-    ret = scp_adapter_reg_write(val, SCP_CTRL_BYTE0);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-
-
 static int  fsa9685_is_support_scp(void)
 {
 	struct fsa9685_device_info *di = g_fsa9685_dev;
@@ -2439,447 +2299,74 @@ static int  fsa9685_is_support_scp(void)
     }
     return 0;
 }
-static int fsa9685_scp_config_iset_boundary(int iboundary)
-{
-    int val;
-    int ret;
 
-    /*high byte store in low address*/
-    val = (iboundary >> 8) & 0xff;
-    ret = scp_adapter_reg_write(val, SCP_ISET_BOUNDARY_L);
-    if (ret)
-        return ret;
-    /*low byte store in high address*/
-    val = iboundary & 0xff;
-    ret |= scp_adapter_reg_write(val, SCP_ISET_BOUNDARY_H);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-    }
-    return ret;
-
-}
-static int fsa9685_scp_config_vset_boundary(int vboundary)
-{
-    int val;
-    int ret;
-
-    /*high byte store in low address*/
-    val = (vboundary >> 8) & 0xff;
-    ret = scp_adapter_reg_write(val, SCP_VSET_BOUNDARY_L);
-    if (ret)
-        return ret;
-    /*low byte store in high address*/
-    val = vboundary & 0xff;
-    ret |= scp_adapter_reg_write(val, SCP_VSET_BOUNDARY_H);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-    }
-    return ret;
-
-}
-static int fsa9685_scp_set_adaptor_voltage(int vol)
-{
-    int val;
-    int ret;
-
-    val = vol - VSSET_OFFSET;
-    val = val / VSSET_STEP;
-    ret = scp_adapter_reg_write(val, SCP_VSSET);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-static int fsa9685_scp_set_watchdog_timer(int second)
-{
-    int val;
-    int ret;
-
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE1);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]val befor is %d \n", __func__, val);
-    val &= ~(SCP_WATCHDOG_MASK);
-    val |= (second * 2) & SCP_WATCHDOG_MASK; /*1 bit means 0.5 second*/
-    hwlog_info("[%s]val after is %d \n", __func__, val);
-    ret = scp_adapter_reg_write(val, SCP_CTRL_BYTE1);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-static int fsa9685_scp_init(struct scp_init_data * sid)
-{
-    /*open 5v boost*/
-    int ret;
-    int val;
-
-    scp_error_flag = 0;
-    ret = fsa9685_scp_output_mode_enable(sid->scp_mode_enable);
-    if(ret)
-        return ret;
-    ret = fsa9685_scp_config_vset_boundary(sid->vset_boundary);
-    if(ret)
-        return ret;
-    ret = fsa9685_scp_config_iset_boundary(sid->iset_boundary);
-    if(ret)
-        return ret;
-    ret = fsa9685_scp_set_adaptor_voltage(sid->init_adaptor_voltage);
-    if(ret)
-        return ret;
-    ret = fsa9685_scp_set_watchdog_timer(sid->watchdog_timer);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE0);
-    if(ret)
-        return ret;
-    hwlog_info("%s : CTRL_BYTE0 = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_CTRL_BYTE1);
-    if(ret)
-        return ret;
-    hwlog_info("%s : CTRL_BYTE1 = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_STATUS_BYTE0);
-    if(ret)
-        return ret;
-    hwlog_info("%s : STATUS_BYTE0 = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_STATUS_BYTE1);
-    if(ret)
-        return ret;
-    hwlog_info("%s : STATUS_BYTE1 = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_VSET_BOUNDARY_H);
-    if(ret)
-        return ret;
-    hwlog_info("%s : VSET_BOUNDARY_H = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_VSET_BOUNDARY_L);
-    if(ret)
-        return ret;
-    hwlog_info("%s : VSET_BOUNDARY_L = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_ISET_BOUNDARY_H);
-    if(ret)
-        return ret;
-    hwlog_info("%s : ISET_BOUNDARY_H = 0x%x \n ",__func__, val);
-    ret = scp_adapter_reg_read(&val, SCP_ISET_BOUNDARY_L);
-    if(ret)
-        return ret;
-    hwlog_info("%s : ISET_BOUNDARY_L = 0x%x \n ",__func__, val);
-    return ret;
-}
 static int fsa9685_scp_chip_reset(void)
 {
-    hwlog_err("%s\n",__func__);
-    return switch_chip_reset();
-}
-static int fsa9685_scp_exit(struct direct_charge_device* di)
-{
-	int ret;
-	ret = fsa9685_scp_output_mode_enable(0);
-	switch(di->adaptor_vendor_id)
-	{
-		case IWATT_ADAPTER:
-			ret  |= fsa9685_adaptor_reset(1);
-			break;
-		default:
-			hwlog_info("%s:not iWatt\n",__func__);
+	struct fsa9685_device_info *di = g_fsa9685_dev;
+
+	if (!di || !di->client) {
+		hwlog_err("error: di or client is null!\n");
+		return -1;
 	}
-	usleep_range(50*1000, 51*1000);
-	hwlog_err("%s\n",__func__);
+
+	hwlog_info("%s\n", __func__);
+
+	if (di->power_by_5v)
+		return 0;
+
+	return switch_chip_reset();
+}
+
+static int fsa9685_scp_exit(void)
+{
+	struct fsa9685_device_info *di = g_fsa9685_dev;
+
+	if (!di || !di->client) {
+		hwlog_err("error: di or client is null!\n");
+		return -1;
+	}
+
+	hwlog_info("%s\n", __func__);
+
+	scp_error_flag = 0;
+
+	if (di->power_by_5v)
+		return 0;
+
 #ifdef CONFIG_BOOST_5V
 	boost_5v_enable(DISABLE, BOOST_CTRL_FCP);
 	direct_charge_set_bst_ctrl(DISABLE);
 #endif
 	hwlog_info("%s:5v boost close!\n", __func__);
-	scp_error_flag = 0;
-	return ret;
-}
-static int fsa9685_scp_get_adaptor_voltage(void)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_SREAD_VOUT);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    val = val*SCP_SREAD_VOUT_STEP + SCP_SREAD_VOUT_OFFSET;
-    hwlog_info("[%s]val is %d \n", __func__, val);
-    return val;
-}
-static int fsa9685_scp_set_adaptor_current(int cur)
-{
-    int val;
-    int ret;
-
-    val = cur / ISSET_STEP;
-    ret = scp_adapter_reg_write(val, SCP_ISSET);
-    if(ret < 0)
-    {
-        hwlog_err("%s : failed \n ",__func__);
-        return -1;
-    }
-    return 0;
-}
-static int fsa9685_scp_get_adaptor_current(void)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_SREAD_IOUT);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    val = val*SCP_SREAD_IOUT_STEP;
-    hwlog_info("[%s]val is %d \n", __func__, val);
-    return val;
-}
-static int fsa9685_scp_get_adaptor_current_set(void)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_ISSET);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    val = val*ISSET_STEP;
-    hwlog_info("[%s]val is %d \n", __func__, val);
-    return val;
+	return 0;
 }
 
-static int fsa9685_scp_get_adaptor_max_current(void)
-{
-    int val;
-    int ret;
-    int A;
-    int B;
-    int rs;
-
-    ret = scp_adapter_reg_read(&val, SCP_MAX_IOUT);
-    if(ret)
-    {
-        hwlog_err("%s : read MAX_IOUT failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]max_iout reg is %d \n", __func__, val);
-    A = (SCP_MAX_IOUT_A_MASK & val) >> SCP_MAX_IOUT_A_SHIFT;
-    B = SCP_MAX_IOUT_B_MASK & val;
-    switch (A){
-        case 0:
-            A = 1;
-	    break;
-	case 1:
-            A = 10;
-	    break;
-	case 2:
-            A = 100;
-	    break;
-	case 3:
-            A = 1000;
-	    break;
-	default:
-	    return -1;
-    }
-    rs = B*A;
-    hwlog_info("[%s]MAX IOUT initial is %d \n", __func__, rs);
-    ret = scp_adapter_reg_read(&val, SCP_SSTS);
-    if(ret)
-    {
-        hwlog_err("%s : read SSTS failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]ssts reg is %d \n", __func__, val);
-    B = (SCP_SSTS_B_MASK & val) >> SCP_SSTS_B_SHIFT;
-    A = SCP_SSTS_A_MASK & val;
-    if (1 == B)
-    {
-        rs = rs * A / 8;
-    }
-    hwlog_info("[%s]MAX IOUT final is %d \n", __func__, rs);
-    return rs;
-}
-
-static int fsa9685_scp_get_adaptor_temp(int* temp)
-{
-    int val = 0;
-    int ret;
-
-    ret = scp_adapter_reg_read(&val, SCP_INSIDE_TMP);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return -1;
-    }
-    hwlog_info("[%s]val is %d \n", __func__, val);
-    *temp = val;
-
-    return 0;
-}
-static int fsa9685_scp_cable_detect(void)
-{
-    int val;
-    int ret;
-    ret = scp_adapter_reg_read(&val, SCP_STATUS_BYTE0);
-    if(ret)
-    {
-        hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-        return SCP_CABLE_DETECT_ERROR;
-    }
-    hwlog_info("[%s]val is %d \n", __func__, val);
-    if (val & SCP_CABLE_STS_MASK)
-    {
-        return SCP_CABLE_DETECT_SUCC;
-    }
-    return SCP_CABLE_DETECT_FAIL;
-}
 static int fsa9685_scp_adaptor_reset(void)
 {
     return fcp_adapter_reset();
 }
-static int fsa9685_stop_charge_config(void)
-{
-    return 0;
-}
-static int fsa9685_is_scp_charger_type(void)
-{
-    return is_fcp_charger_type();
-}
-static int fsa9685_scp_get_adaptor_status(void)
-{
-    return 0;
-}
-static int fsa9685_scp_get_adaptor_info(void* info)
-{
-    int ret;
-    struct adaptor_info* p = (struct adaptor_info*)info;
 
-    ret = scp_adapter_reg_read(&(p->b_adp_type), SCP_B_ADP_TYPE);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->vendor_id_h), SCP_VENDOR_ID_H);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->vendor_id_l), SCP_VENDOR_ID_L);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->module_id_h), SCP_MODULE_ID_H);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->module_id_l), SCP_MODULE_ID_L);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->serrial_no_h), SCP_SERRIAL_NO_H);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->serrial_no_l), SCP_SERRIAL_NO_L);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->pchip_id), SCP_PCHIP_ID);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->hwver), SCP_HWVER);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->fwver_h), SCP_FWVER_H);
-    if(ret)
-        return ret;
-    ret = scp_adapter_reg_read(&(p->fwver_l), SCP_FWVER_L);
-
-    return ret;
-}
-static int fsa9685_get_adapter_vendor_id(void)
-{
-	int val = 0;
-	int ret;
-
-	ret = scp_adapter_reg_read(&val, SCP_PCHIP_ID);
-	if(ret)
-	{
-		hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-		return -1;
-	}
-	hwlog_info("[%s]val is 0x%x \n", __func__, val);
-	switch (val)
-	{
-		case VENDOR_ID_RICHTEK:
-			hwlog_info("[%s]adapter is richtek \n", __func__);
-			return RICHTEK_ADAPTER;
-		case VENDOR_ID_IWATT:
-			hwlog_info("[%s]adapter is iwatt \n", __func__);
-			return IWATT_ADAPTER;
-		default:
-			hwlog_info("[%s]this adaptor vendor id is not found!\n", __func__);
-			return val;
-	}
-}
-static int fsa9685_get_usb_port_leakage_current_info(void)
-{
-	int val = 0;
-	int ret;
-
-	ret = scp_adapter_reg_read(&val, SCP_STATUS_BYTE0);
-	if(ret)
-	{
-		hwlog_err("%s : read failed ,ret = %d \n",__func__,ret);
-		return -1;
-	}
-	hwlog_info("[%s]val is 0x%x \n", __func__, val);
-	val &= SCP_PORT_LEAKAGE_INFO;
-	val = val>>SCP_PORT_LEAKAGE_SHIFT;
-	hwlog_info("[%s]val is 0x%x \n", __func__, val);
-	return val;
-}
-static int fsa9685_scp_get_chip_status(void)
-{
-    return 0;
-}
-static void fsa9685_scp_set_direct_charge_mode(int mode)
-{
-	hwlog_info("[%s]mode is 0x%x \n", __func__, mode);
-	return;
-}
-
-static int fsa9685_scp_get_adaptor_type(void)
-{
-	return LVC_MODE;
-}
-struct smart_charge_ops scp_fsa9685_ops = {
-    .is_support_scp = fsa9685_is_support_scp,
-    .scp_init = fsa9685_scp_init,
-    .scp_exit = fsa9685_scp_exit,
-    .scp_adaptor_detect = fsa9685_scp_adaptor_detect,
-    .scp_set_adaptor_voltage = fsa9685_scp_set_adaptor_voltage,
-    .scp_get_adaptor_voltage = fsa9685_scp_get_adaptor_voltage,
-    .scp_set_adaptor_current = fsa9685_scp_set_adaptor_current,
-    .scp_get_adaptor_current = fsa9685_scp_get_adaptor_current,
-    .scp_get_adaptor_current_set = fsa9685_scp_get_adaptor_current_set,
-    .scp_get_adaptor_max_current = fsa9685_scp_get_adaptor_max_current,
-    .scp_adaptor_reset = fsa9685_scp_adaptor_reset,
-    .scp_adaptor_output_enable = fsa9685_scp_adaptor_output_enable,
-    .scp_chip_reset = fsa9685_scp_chip_reset,
-    .scp_stop_charge_config = fsa9685_stop_charge_config,
-    .is_scp_charger_type = fsa9685_is_scp_charger_type,
-    .scp_get_adaptor_status = fsa9685_scp_get_adaptor_status,
-    .scp_get_adaptor_info = fsa9685_scp_get_adaptor_info,
-    .scp_get_chip_status = fsa9685_scp_get_chip_status,
-    .scp_cable_detect = fsa9685_scp_cable_detect,
-    .scp_get_adaptor_temp = fsa9685_scp_get_adaptor_temp,
-    .scp_get_adapter_vendor_id = fsa9685_get_adapter_vendor_id,
-    .scp_get_usb_port_leakage_current_info = fsa9685_get_usb_port_leakage_current_info,
-    .scp_set_direct_charge_mode = fsa9685_scp_set_direct_charge_mode,
-    .scp_get_adaptor_type = fsa9685_scp_get_adaptor_type,
-};
 #endif
+
+#ifdef CONFIG_BOOST_5V
+static int charge_usb_notifier_call(struct notifier_block *usb_nb,
+	unsigned long event, void *data)
+{
+	enum hisi_charger_type type = ((enum hisi_charger_type)event);
+
+	if (type != CHARGER_TYPE_NONE)
+		return NOTIFY_OK;
+
+	scp_error_flag = 0;
+	boost_5v_enable(DISABLE, BOOST_CTRL_FCP);
+	direct_charge_set_bst_ctrl(DISABLE);
+
+	switch_chip_reset();
+	hwlog_info("%s:5v boost close!\n", __func__);
+	return NOTIFY_OK;
+}
+#endif
+
 struct fcp_adapter_device_ops fcp_fsa9688_ops = {
     .get_adapter_output_current = fcp_get_adapter_output_current,
     .set_adapter_output_vol     = fcp_set_adapter_output_vol,
@@ -2896,6 +2383,53 @@ struct fcp_adapter_device_ops fcp_fsa9688_ops = {
 struct charge_switch_ops chrg_fsa9685_ops = {
 	.get_charger_type = fsa9685_get_charger_type,
 	.is_water_intrused = fsa9685_is_water_intrused,
+};
+
+static int fsa9685_scp_reg_read_block(int reg, int *val, int num)
+{
+	int ret = 0;
+	int i = 0;
+	int data = 0;
+	scp_error_flag = 0;
+
+	for (i = 0; i < num; i++) {
+		ret = scp_adapter_reg_read(&data, reg + i);
+		if (ret) {
+			hwlog_err("error: scp read failed(reg=0x%x)!\n", reg + i);
+			return -1;
+		}
+
+		val[i] = data;
+	}
+
+	return 0;
+}
+
+static int fsa9685_scp_reg_write_block(int reg, int *val, int num)
+{
+	int ret = 0;
+	int i = 0;
+	scp_error_flag = 0;
+
+	for (i = 0; i < num; i++) {
+		ret = scp_adapter_reg_write(val[i], reg + i);
+		if (ret) {
+			hwlog_err("error: scp write failed(reg=0x%x)!\n", reg + i);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+static struct scp_protocol_ops fsa9685_scp_protocol_ops = {
+	.chip_name = "fsa9685",
+	.reg_read = fsa9685_scp_reg_read_block,
+	.reg_write = fsa9685_scp_reg_write_block,
+	.detect_adapter = accp_adapter_detect,
+	.soft_reset_master = fsa9685_scp_chip_reset,
+	.soft_reset_slave = fsa9685_scp_adaptor_reset,
+	.post_exit = fsa9685_scp_exit,
 };
 
 /**********************************************************
@@ -3011,6 +2545,12 @@ static int fsa9685_parse_dts(struct device_node* np, struct fsa9685_device_info 
 		hwlog_err("error: dcd_timeout_force_enable dts read failed!\n");
 	}
 	hwlog_info("dcd_timeout_force_enable=%d\n",di->dcd_timeout_force_enable);
+
+	ret = of_property_read_u32(np, "power_by_5v", &(di->power_by_5v));
+	if (ret)
+		di->power_by_5v = 0;
+
+	hwlog_info("power_by_5v=%d\n", di->power_by_5v);
 
 	return 0;
 }
@@ -3371,11 +2911,10 @@ static int fsa9685_probe(
 #endif
 
 #ifdef CONFIG_DIRECT_CHARGER
-    /* if chip support scp ,register scp adapter ops */
-    if( 0 == fsa9685_is_support_scp() && 0 ==scp_ops_register(&scp_fsa9685_ops))
-    {
-        hwlog_info(" scp adapter ops register success!\n");
-    }
+	/* if chip support scp ,register scp adapter ops */
+	if (0 == fsa9685_is_support_scp()) {
+		scp_protocol_ops_register(&fsa9685_scp_protocol_ops);
+	}
 #endif
 
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
@@ -3392,6 +2931,18 @@ static int fsa9685_probe(
     {
         charge_type_dcp_detected_notify();
     }
+
+#ifdef CONFIG_BOOST_5V
+	if (di->power_by_5v) {
+		di->usb_nb.notifier_call = charge_usb_notifier_call;
+		ret = hisi_charger_type_notifier_register(&di->usb_nb);
+		if (ret) {
+			hwlog_err("charge_usb_notifier register fail\n");
+			goto err_create_link_failed;
+		}
+	}
+#endif
+
     hwlog_info("%s: ------end. ret = %d.\n", __func__, ret);
     return ret;
 err_create_link_failed:
@@ -3424,8 +2975,8 @@ static void fsa9685_shutdown(struct i2c_client *client)
 
     int ret = 0;
 #ifdef CONFIG_BOOST_5V
-    boost_5v_enable(ENABLE, BOOST_CTRL_FCP);
-    direct_charge_set_bst_ctrl(ENABLE);
+	boost_5v_enable(DISABLE, BOOST_CTRL_FCP);
+	direct_charge_set_bst_ctrl(DISABLE);
 #endif
     if (is_rt8979()) {
         ret = fsa9685_read_reg(RT8979_REG_MUIC_CTRL_4);
@@ -3469,7 +3020,7 @@ static __exit void fsa9685_i2c_exit(void)
 	i2c_del_driver(&fsa9685_i2c_driver);
 }
 
-module_init(fsa9685_i2c_init);
+device_initcall_sync(fsa9685_i2c_init);
 module_exit(fsa9685_i2c_exit);
 
 MODULE_AUTHOR("Lixiuna<lixiuna@huawei.com>");

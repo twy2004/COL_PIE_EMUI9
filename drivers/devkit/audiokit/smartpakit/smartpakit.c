@@ -695,6 +695,7 @@ static int smartpakit_ctrl_get_info(smartpakit_priv_t *pakit_priv, void __user *
 	smartpakit_i2c_priv_t *i2c_priv = NULL;
 	smartpakit_info_t info;
 	size_t model_len = 0;
+	size_t special_name_len = 0;
 	char report_tmp[SMARTPAKIT_NAME_MAX] = { 0 };
 
 #ifndef CONFIG_FINAL_RELEASE
@@ -711,7 +712,6 @@ static int smartpakit_ctrl_get_info(smartpakit_priv_t *pakit_priv, void __user *
 	info.algo_in	     = pakit_priv->algo_in;
 	info.out_device      = pakit_priv->out_device;
 	info.algo_delay_time = pakit_priv->algo_delay_time;
-	info.two_in_one      = pakit_priv->two_in_one;
 
 	if ((pakit_priv->algo_in != SMARTPAKIT_ALGO_IN_SIMPLE)
 		&& (pakit_priv->algo_in != SMARTPAKIT_ALGO_IN_WITH_DSP_PLUGIN)) {
@@ -761,8 +761,14 @@ static int smartpakit_ctrl_get_info(smartpakit_priv_t *pakit_priv, void __user *
 		}
 	}
 
-	hwlog_info("%s: soc_platform=%d, algo_in=%d, out_device=0x%08x, pa_num=%d, algo_delay_time=%d, chip_vendor=%d, chip_model=%s, two_in_one=%d.\n", __func__,
-					info.soc_platform, info.algo_in, info.out_device, info.pa_num, info.algo_delay_time, info.chip_vendor, info.chip_model, info.two_in_one );
+	if (pakit_priv->special_name_config != NULL) {
+		special_name_len = strlen(pakit_priv->special_name_config);
+		special_name_len = (special_name_len < SMARTPAKIT_NAME_MAX) ? special_name_len : (SMARTPAKIT_NAME_MAX - 1);
+		strncpy(info.special_name_config, pakit_priv->special_name_config, special_name_len);
+	}
+
+	hwlog_info("%s: soc_platform=%d, algo_in=%d, out_device=0x%08x, pa_num=%d, algo_delay_time=%d, chip_vendor=%d, chip_model=%s, special_name_config=%s.\n", __func__,
+					info.soc_platform, info.algo_in, info.out_device, info.pa_num, info.algo_delay_time, info.chip_vendor, info.chip_model, info.special_name_config);
 	if (info.pa_num != pakit_priv->pa_num) {
 		hwlog_info("%s: <***** NOTICE: I2C Number not equal PA Number,*******>, i2c_num = %d, pa_num = %d.\n", __func__, info.pa_num, pakit_priv->pa_num);
 	}
@@ -794,6 +800,7 @@ static int smartpakit_ctrl_unprepare(smartpakit_priv_t *pakit_priv)
 static int smartpakit_ctrl_set_resume_regs(smartpakit_priv_t *pakit_priv, void __user *arg, int compat_mode)
 {
 	int ret = 0;
+	int i;
 #ifndef CONFIG_FINAL_RELEASE
 	hwlog_info("%s: enter ...\n", __func__);
 #endif
@@ -807,6 +814,10 @@ static int smartpakit_ctrl_set_resume_regs(smartpakit_priv_t *pakit_priv, void _
 		return -EINVAL;
 	}
 	pakit_priv->resume_sequence_permission_enable = false;
+
+	// clear poweron sequence to avoid audio server died
+	for (i = 0; i < SMARTPAKIT_PA_ID_MAX; i++)
+		smartpakit_reset_poweron_regs(&pakit_priv->poweron_sequence[i]);
 
 	memset(&pakit_priv->resume_sequence, 0, sizeof(smartpakit_pa_ctl_sequence_t));
 	ret = smartpakit_parse_params(&pakit_priv->resume_sequence, arg, compat_mode);
@@ -1080,7 +1091,8 @@ static int smartpakit_ctrl_do_ioctl(struct file *file, unsigned int cmd, void __
 			break;
 
 		default:
-			hwlog_err("%s: not support cmd(0x%x)!!!\n", __func__, cmd);
+			hwlog_err("%s: not support cmd 0x%x, compat_mode=%d\n",
+					__func__, cmd, compat_mode);
 			ret = -EIO;
 			break;
 	}
@@ -1252,6 +1264,11 @@ static int smartpakit_parse_dt_switch_ctl(struct platform_device *pdev, smartpak
 
 	for (i = 0; i < (int)pakit_priv->switch_num; i++) {
 		hwlog_info("%s: gpio(%d/%d), state(%d)\n", __func__, i, ctl[i].gpio, ctl[i].state);
+		if (ctl[i].gpio == 0) {
+			hwlog_err("%s: switch_ctl gpio[%d] == 0, just return.\n", __func__, i);
+			ret = 0;
+			goto err_out;
+		}
 		if (gpio_request((unsigned)ctl[i].gpio, ctl[i].name) < 0) {
 			hwlog_err("%s: gpio_request switch_ctl[%d].gpio=%d failed!!!\n", __func__, i, ctl[i].gpio);
 			ctl[i].gpio = 0;
@@ -1323,7 +1340,7 @@ static int smartpakit_parse_dt_info(struct platform_device *pdev, smartpakit_pri
 	const char *out_device_str   = "out_device";
 	const char *chip_vendor_str  = "chip_vendor";
 	const char *chip_model_str   = "chip_model";
-	const char *two_in_one_str   = "two_in_one";
+	const char *special_name_config_str  = "special_name_config";
 
 	struct device *dev = NULL;
 	u32 out_device[SMARTPAKIT_PA_ID_MAX] = { 0 };
@@ -1379,19 +1396,7 @@ static int smartpakit_parse_dt_info(struct platform_device *pdev, smartpakit_pri
 		hwlog_debug("%s: chip_vendor prop not existed, skip!!!\n", __func__);
 	}
 
-	if (of_property_read_bool(dev->of_node, two_in_one_str)) {
-		ret = of_property_read_u32(dev->of_node, two_in_one_str, &pakit_priv->two_in_one);
-		if (ret < 0) {
-			hwlog_err("%s: get pakit_priv->two_in_one from dts failed %d!!!\n", __func__, ret);
-			ret = -EFAULT;
-			goto err_out;
-		}
-	} else {
-		hwlog_debug("%s: two_in_one prop not existed, skip!!!\n", __func__);
-		pakit_priv->two_in_one = 0;
-	}
-
-	// model: for simple pa or smartpa with dsp + plugin
+		// model: for simple pa or smartpa with dsp + plugin
 	if (of_property_read_bool(dev->of_node, chip_model_str)) {
 		ret = of_property_read_string(dev->of_node, chip_model_str, &pakit_priv->chip_model);
 		if (ret < 0) {
@@ -1404,6 +1409,20 @@ static int smartpakit_parse_dt_info(struct platform_device *pdev, smartpakit_pri
 #endif
 	} else {
 		hwlog_debug("%s: chip_model prop not existed, skip!!!\n", __func__);
+	}
+
+	if (of_property_read_bool(dev->of_node, special_name_config_str)) {
+		ret = of_property_read_string(dev->of_node, special_name_config_str, &pakit_priv->special_name_config);
+		if (ret < 0) {
+			hwlog_err("%s: get special_name_config from dts failed %d!!!\n", __func__, ret);
+			ret = -EFAULT;
+			goto err_out;
+		}
+#ifndef CONFIG_FINAL_RELEASE
+		hwlog_info("%s: special_name_config=%s\n", __func__, pakit_priv->special_name_config);
+#endif
+	} else {
+		hwlog_debug("%s: special_name_config prop not existed, skip!!!\n", __func__);
 	}
 
 	// rec or spk device
@@ -1527,6 +1546,7 @@ static int smartpakit_probe(struct platform_device *pdev)
 	pakit_priv->misc_rw_permission_enable = false;
 	pakit_priv->misc_i2c_use_pseudo_addr = false;
 	pakit_priv->current_i2c_client = NULL;
+	pakit_priv->force_refresh_chip = false;
 
 	memset(pakit_priv->i2c_addr_to_pa_index, SMARTPAKIT_INVALID_PA_INDEX,
 		sizeof(unsigned char) * SMARTPAKIT_I2C_ADDR_ARRAY_MAX);

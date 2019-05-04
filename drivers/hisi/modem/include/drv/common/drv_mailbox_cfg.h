@@ -61,7 +61,7 @@ extern "C" {
 *****************************************************************************/
 #include "product_config.h"
 #include "mdrv_ipc_enum.h"
-/*lint --e(488,773,830) */
+/*lint -save -e488 -e773 -e830*/
 /*****************************************************************************
   2 ∫Í∂®“Â
 *****************************************************************************/
@@ -767,6 +767,7 @@ unsigned int DRV_MAILBOX_READMAILDATA(
 
 
 void drv_hifi_fill_mb_info(unsigned int addr);
+/*lint -restore*/
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -64,6 +64,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/vmalloc.h>
+#include <osl_thread.h>
 #include "socp_balong.h"
 #include <linux/clk.h>
 #include "bsp_version.h"
@@ -104,7 +105,8 @@ u32 g_SocpEnableState[SOCP_MAX_ENCDST_CHN] = {0};  /* socp目的端数据上报控制状态
 u32 socp_version = 0;
 u32 g_ulSocpDebugTraceCfg = 0;
 u32 g_strSocpDeflateStatus=0;
-
+u32 g_SocpEncDstThresholdOvf = 0;
+u32 g_SocpEncDstIsrTrfIntCnt = 0;
 #define SOCP_MAX_ENC_DST_COUNT      100
 struct socp_enc_dst_stat_s
 {
@@ -945,7 +947,7 @@ int socp_encsrc_task(void * data)
                 {
                     if (IntHeadState & ((u32)1 << i))
                     {
-                    	socp_crit("EncSrcHeaderError ChanId = %d",i);						
+                    	socp_crit("EncSrcHeaderError ChanId = %d",i);
                         if(g_strSocpStat.sEncSrcChan[i].event_cb)
                         {
                             g_stSocpDebugInfo.sSocpDebugEncSrc.u32SocpEncSrcTskHeadCbOriCnt[i]++;
@@ -1553,6 +1555,7 @@ void socp_handler_encdst(void)
                 if(i == 1)
                 {
                     g_stEncDstStat[g_ulEncDstStatCount].ulIntStartSlice = bsp_get_slice_value();
+					g_SocpEncDstIsrTrfIntCnt++;
                     countFlag = BSP_TRUE;
                 }
                 g_stSocpDebugInfo.sSocpDebugEncDst.u32SocpEncDstIsrTrfIntCnt[i]++;
@@ -1808,6 +1811,34 @@ u32 socp_app_int_handler(void)
     return 1;
 }
 
+struct platform_device *modem_socp_pdev;
+
+static int socp_driver_probe(struct platform_device *pdev)
+{
+    dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));//lint !e598 !e648
+    modem_socp_pdev = pdev;
+
+    return BSP_OK;
+}
+
+static const struct of_device_id socp_dev_of_match[] = {
+       {
+	   	.compatible = "hisilicon,socp_balong_app",
+		.data = NULL,
+	 },
+       {},
+};
+
+static struct platform_driver socp_driver = {
+        .driver = {
+                   .name = "modem_socp",
+
+                   .owner = THIS_MODULE,
+                   .of_match_table = socp_dev_of_match,
+        },
+        .probe = socp_driver_probe,
+};
+
 /*****************************************************************************
 * 函 数 名  : socp_init
 *
@@ -1832,8 +1863,15 @@ s32 socp_init(void)
     }
 
 	socp_crit("[init]start\n");
-	
+
     spin_lock_init(&lock);
+
+    ret = platform_driver_register(&socp_driver);
+    if(ret)
+    {
+        socp_error("driver_register fail,ret=0x%x\n", ret);
+        return ret;
+    }
 
     /*Add dts begin*/
     dev = of_find_compatible_node(NULL,NULL,"hisilicon,socp_balong_app");
@@ -4188,7 +4226,7 @@ s32 socp_decode_read_data_done(u32 u32ChanID, u32 u32ReadSize)
     if(RwBuff.u32Size + RwBuff.u32RbSize < u32ReadSize)
     {
         socp_error("RwBuff is not enough, u32ReadSize=0x%x!\n",u32ReadSize);
-		
+
         spin_lock_irqsave(&lock, lock_flag);
         SOCP_REG_SETBITS(SOCP_REG_DEC_RAWINT0, u32ChanID, 1, 1);
         SOCP_REG_SETBITS(TfMaskReg, u32ChanID, 1, 0);
@@ -4381,8 +4419,8 @@ s32 bsp_socp_read_data_done(u32 u32DestChanID, u32 u32ReadSize)
         return ret;
     }
 
-    /*根据MSP要求去掉该检测，保证可以更新0字节，2011-04-29*/
-    //SOCP_CHECK_PARA(u32ReadSize);
+    /*统计socp目的端上溢次数，上溢判断在接口内部实现*/
+    socp_encdst_overflow_info();
 
     /* 获得实际通道id */
     u32ChanID   = SOCP_REAL_CHAN_ID(u32DestChanID);
@@ -4499,7 +4537,7 @@ s32 bsp_socp_compress_enable(u32 u32DestChanID)
     u32 cnt=500;
     SOCP_CODER_DEST_CHAN_S attr;
     s32 ret;
-    
+
     /* 判断是否已经初始化 */
     if((ret=socp_check_init()) != BSP_OK)
     {
@@ -4619,7 +4657,7 @@ s32 bsp_socp_compress_disable(u32 u32DestChanID)
 
     pChan->struCompress.ops.disable(u32DestChanID);
     pChan->struCompress.ops.clear(u32DestChanID);
-     
+
     bsp_socp_data_send_manager(u32DestChanID,1);
 
 
@@ -4858,6 +4896,58 @@ void show_socp_enc_dst_stat(void)
     }
 }
 
+/*****************************************************************************
+* 函 数 名  : socp_encdst_overflow_info
+*
+* 功能描述  : 统计socp目的端阈值上溢
+*
+* 输入参数  : 无
+* 输出参数  :
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void socp_encdst_overflow_info(void)
+{
+    u32 IntState = 0;
+
+	SOCP_REG_READ(SOCP_REG_ENC_RAWINT2, IntState);
+    if((IntState&0xf0000) == 0x20000)
+    {
+        g_SocpEncDstThresholdOvf++;
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : bsp_SocpEncDstQueryIntInfo
+*
+* 功能描述  : 提供给diag_debug查询socp数据通道目的端中断信息
+*
+* 输入参数  : 无
+* 输出参数  :
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void bsp_SocpEncDstQueryIntInfo(u32 *TrfInfo, u32 *ThrOvfInfo)
+{
+    *TrfInfo = g_SocpEncDstIsrTrfIntCnt;
+    *ThrOvfInfo = g_SocpEncDstThresholdOvf;
+}
+
+/*****************************************************************************
+* 函 数 名  : bsp_clear_socp_encdst_int_info
+*
+* 功能描述  : 清空socp目的端上溢统计值
+*
+* 输入参数  : 无
+* 输出参数  :
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void bsp_clear_socp_encdst_int_info(void)
+{
+    g_SocpEncDstIsrTrfIntCnt = 0;
+    g_SocpEncDstThresholdOvf = 0;
+}
 #define MALLOC_MAX_SIZE     0x100000
 #define MALLOC_MAX_INDEX    8           /*page_size 为4K*/
 #define SOCP_PAGE_SIZE      0x1000

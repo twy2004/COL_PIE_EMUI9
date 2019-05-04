@@ -59,11 +59,9 @@ extern "C" {
 #include "ImmInterface.h"
 #include "AtNdisInterface.h"
 
-#if (FEATURE_ON == FEATURE_DATA_SERVICE_NEW_PLATFORM)
 #include "ads_dev_i.h"
-#else
 #include "AdsDeviceInterface.h"
-#endif
+
 #include "AdsNdisInterface.h"
 #include "PsTypeDef.h"
 #include "TTFComm.h"

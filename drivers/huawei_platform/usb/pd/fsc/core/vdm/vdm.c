@@ -42,6 +42,7 @@
 #include "DisplayPort/dp.h"
 #include "DisplayPort/interface_dp.h"
 #endif // FSC_HAVE_DP
+#include <huawei_platform/usb/hw_pd_dev.h>
 
 // assuming policy state is made elsewhere
 extern	PolicyState_t	PolicyState;
@@ -227,6 +228,9 @@ FSC_S32 processDiscoverIdentity(SopType sop, FSC_U32* arr_in, FSC_U32 length_in)
     FSC_U32				__arr[7] = {0};
     FSC_U32          __length;
     FSC_BOOL            __result;
+	FSC_U32 vid = 0;
+	FSC_U32 pid = 0;
+	FSC_U32 bcd = 0;
 
 
     __vdmh_in.object = arr_in[0];
@@ -360,6 +364,23 @@ FSC_S32 processDiscoverIdentity(SopType sop, FSC_U32* arr_in, FSC_U32 length_in)
 			if (__id.id_header.product_type == AMA) {
 				__id.has_ama_vdo = TRUE;
 				__id.ama_vdo = getAmaVdo(arr_in[4]); // !!! assuming it is after Product VDO
+			}
+
+			if ((__id.id_header.product_type == PERIPHERAL) ||
+			    (__id.id_header.product_type == PASSIVE_CABLE) ||
+			    (__id.id_header.product_type == ACTIVE_CABLE)) {
+
+		                /*
+				 * payload[0]: reserved
+				 * payload[1]: id header vdo
+				 * payload[2]: reserved
+				 * payload[3]: product vdo
+				 */
+				bcd = arr_in[3] & PD_DPM_HW_PDO_MASK;
+				vid = arr_in[1] & PD_DPM_HW_PDO_MASK;
+				pid = arr_in[3] >> PD_DPM_PDT_VID_OFFSET &
+					PD_DPM_HW_PDO_MASK;
+				pd_set_product_id_info(vid, pid, bcd);
 			}
 		}
 

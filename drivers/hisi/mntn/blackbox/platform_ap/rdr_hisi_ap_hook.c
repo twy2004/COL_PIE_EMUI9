@@ -407,7 +407,7 @@ void task_switch_hook(const void *pre_task, void *next_task)
 	info.pid = (u32) task->pid;
 	(void)strncpy(info.comm, task->comm, sizeof(task->comm) - 1);	/* [false alarm]:info.comm last item set 0 at next line,will not overflow */
 	info.comm[TASK_COMM_LEN - 1] = '\0';
-	info.stack = (u64)task->stack;
+	info.stack = (uintptr_t)task->stack;
 
 	g_last_task_ptr[cpu] = task;
 	hisiap_ringbuffer_write((struct hisiap_ringbuffer_s *)
@@ -675,6 +675,7 @@ static struct notifier_block cpuidle_notifier_block = {
 	.notifier_call = cpuidle_notifier,
 };
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 /*******************************************************************************
 Function:       hot_cpu_callback
 Description:    when cpu on/off, the func will be exec.
@@ -691,7 +692,7 @@ static int __cpuinit hot_cpu_callback(struct notifier_block *nfb,
                                            unsigned long action, void *hcpu)
 #endif
 {
-	unsigned int cpu = (unsigned long)hcpu;
+	unsigned int cpu = (uintptr_t)hcpu;
 
 	switch (action) {
 	case CPU_ONLINE:
@@ -716,6 +717,7 @@ static int __cpuinit hot_cpu_callback(struct notifier_block *nfb,
 static struct notifier_block __refdata hot_cpu_notifier = {
 	.notifier_call = hot_cpu_callback,
 };
+#endif
 
 
 static int __init hisi_ap_hook_init(void)
@@ -723,7 +725,9 @@ static int __init hisi_ap_hook_init(void)
 	mutex_init(&hook_switch_mutex);
 
 	cpu_pm_register_notifier(&cpuidle_notifier_block);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	register_hotcpu_notifier(&hot_cpu_notifier);
+#endif
 
 	/* wait for kernel_kobj node ready: */
 	while (kernel_kobj == NULL)

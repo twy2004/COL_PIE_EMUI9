@@ -49,6 +49,7 @@
 
 #include <linux/mtd/hisi_nve_interface.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <stddef.h>
 #include <securec.h>
 #include <bsp_cold_patch.h>
@@ -56,6 +57,15 @@
 #include <bsp_print.h>
 #include "bsp_dump.h"
 #define THIS_MODU mod_loadm
+
+#define COLD_PATCH_DUMP_SIZE (128)
+char* g_cold_patch_dump_base = NULL;
+
+extern struct cold_patch_info_s g_cold_patch_info;
+
+/*lint -save -e651 -e708 -e570 -e64 -e785*/
+static DEFINE_MUTEX(cold_patch_proc_lock);
+/*lint -restore */
 
 int bsp_nvem_cold_patch_read(struct cold_patch_info_s *p_cold_patch_info)
 {
@@ -98,28 +108,26 @@ int bsp_nvem_cold_patch_write(struct cold_patch_info_s *p_cold_patch_info)
 
 void bsp_nvem_cold_patch_read_debug(void)
 {
-    struct cold_patch_info_s cold_patch_info = {0};
-    (void)bsp_nvem_cold_patch_read(&cold_patch_info);
-    bsp_err("cold_patch_status: 0x%x\n",cold_patch_info.cold_patch_status);
-    bsp_err("modem_patch_update_count: 0x%x\n",cold_patch_info.modem_patch_update_count);
-    bsp_err("modem_update_fail_count: 0x%x\n",cold_patch_info.modem_update_fail_count);
-    bsp_err("modem_patch_info[NV_PATCH] patch_exist: 0x%x\n",cold_patch_info.modem_patch_info[NV_PATCH].patch_exist);
-    bsp_err("modem_patch_info[NV_PATCH] patch_status: 0x%x\n",cold_patch_info.modem_patch_info[NV_PATCH].patch_status);
-    bsp_err("modem_patch_info[CCORE_PATCH] patch_exist: 0x%x\n",cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist);
-    bsp_err("modem_patch_info[CCORE_PATCH] patch_status: 0x%x\n",cold_patch_info.modem_patch_info[CCORE_PATCH].patch_status);
-    bsp_err("modem_patch_info[DSP_PATCH] patch_exist: 0x%x\n",cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist);
-    bsp_err("modem_patch_info[DSP_PATCH] patch_status: 0x%x\n",cold_patch_info.modem_patch_info[DSP_PATCH].patch_status);
+    bsp_err("cold_patch_status: 0x%x\n",g_cold_patch_info.cold_patch_status);
+    bsp_err("modem_patch_update_count: 0x%x\n",g_cold_patch_info.modem_patch_update_count);
+    bsp_err("modem_update_fail_count: 0x%x\n",g_cold_patch_info.modem_update_fail_count);
+    bsp_err("modem_patch_info[NV_PATCH] patch_exist: 0x%x\n",g_cold_patch_info.modem_patch_info[NV_PATCH].patch_exist);
+    bsp_err("modem_patch_info[NV_PATCH] patch_status: 0x%x\n",g_cold_patch_info.modem_patch_info[NV_PATCH].patch_status);
+    bsp_err("modem_patch_info[CCORE_PATCH] patch_exist: 0x%x\n",g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist);
+    bsp_err("modem_patch_info[CCORE_PATCH] patch_status: 0x%x\n",g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_status);
+    bsp_err("modem_patch_info[DSP_PATCH] patch_exist: 0x%x\n",g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist);
+    bsp_err("modem_patch_info[DSP_PATCH] patch_status: 0x%x\n",g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_status);
+    bsp_err("patch_ret_value[CCORE_PATCH].load_ret_val: 0x%x\n",g_cold_patch_info.patch_ret_value[CCORE_PATCH].load_ret_val);
+    bsp_err("patch_ret_value[CCORE_PATCH].splice_ret_val: 0x%x\n",g_cold_patch_info.patch_ret_value[CCORE_PATCH].splice_ret_val);
+    bsp_err("patch_ret_value[DSP_PATCH].load_ret_val: 0x%x\n",g_cold_patch_info.patch_ret_value[DSP_PATCH].load_ret_val);
+    bsp_err("patch_ret_value[DSP_PATCH].splice_ret_val: 0x%x\n",g_cold_patch_info.patch_ret_value[DSP_PATCH].splice_ret_val);
 }
 
 bool bsp_modem_cold_patch_is_exist(void)
 {
-    int ret;
     int result;
-    struct cold_patch_info_s cold_patch_info;
-    ret = bsp_nvem_cold_patch_read(&cold_patch_info);
-    if(ret)
-        return 0;
-    result = cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist || cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist || cold_patch_info.modem_patch_info[NV_PATCH].patch_exist;
+
+    result = g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist || g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist || g_cold_patch_info.modem_patch_info[NV_PATCH].patch_exist;
     if( result )
         return 1;
     else 
@@ -129,39 +137,51 @@ bool bsp_modem_cold_patch_is_exist(void)
 void bsp_modem_cold_patch_update_modem_fail_count(void)
 {
     int ret;
+   
+    mutex_lock(&cold_patch_proc_lock);
 
-    struct cold_patch_info_s cold_patch_info;
+    if(g_cold_patch_dump_base != NULL)
+        (void)memcpy_s(g_cold_patch_dump_base ,COLD_PATCH_DUMP_SIZE,&g_cold_patch_info,sizeof(struct cold_patch_info_s));
+
     if(!bsp_modem_cold_patch_is_exist())
+    {
+        mutex_unlock(&cold_patch_proc_lock);
         return;
-    ret = bsp_nvem_cold_patch_read(&cold_patch_info);
-    if(ret)
-        return;
+    }
 
-    if(cold_patch_info.modem_update_fail_count >= 3)
+    if(g_cold_patch_info.modem_update_fail_count >= 3)
+    {
+        mutex_unlock(&cold_patch_proc_lock);
         return;
-    cold_patch_info.modem_update_fail_count++;
-    ret = bsp_nvem_cold_patch_write(&cold_patch_info);
+    }
+    g_cold_patch_info.modem_update_fail_count++;
+    ret = bsp_nvem_cold_patch_write(&g_cold_patch_info);
     if(ret)
         bsp_err("bsp_nvem_cold_patch_write :update nevm failed!\n");
+    mutex_unlock(&cold_patch_proc_lock);
 }
 
 ssize_t modem_imag_patch_status_store(struct device *dev, struct device_attribute *attr,
                                        const char *buf, size_t count)
 {
     int ret;
-    struct cold_patch_info_s nve_cold_patch ;
     ssize_t size = sizeof(struct cold_patch_info_s);
     long modem_cold_patch_clear = 0;
     if ((kstrtol(buf, 10, &modem_cold_patch_clear) < 0) && (modem_cold_patch_clear != 0))
         return 0;
 
-    (void)memset_s(&nve_cold_patch, size, 0, size);
-    ret = bsp_nvem_cold_patch_write(&nve_cold_patch);
+    mutex_lock(&cold_patch_proc_lock);
+
+    (void)memset_s(&g_cold_patch_info, size, 0, size);
+    ret = bsp_nvem_cold_patch_write(&g_cold_patch_info);
     if(ret)
     {
         bsp_err("modem_imag_patch_status_store:write nvem failed!\n");
-		return 0;
+        mutex_unlock(&cold_patch_proc_lock);
+        return 0;
     }
+
+    mutex_unlock(&cold_patch_proc_lock);
 
     return count;
 }
@@ -171,16 +191,13 @@ ssize_t modem_imag_patch_status_show(struct device *dev,
                struct device_attribute *attr, char *buf)
 {
     char data_buf[20] = {0};
-    struct cold_patch_info_s cold_patch_info;
     ssize_t size = 0;
     if(!buf)
         return 0;
-    if(bsp_nvem_cold_patch_read(&cold_patch_info))
-    {
-        bsp_err("modem_imag_patch_status_show:read nvem failed!\n");
-        return 0;
-    }
-    if(cold_patch_info.cold_patch_status)
+
+    mutex_lock(&cold_patch_proc_lock);
+
+    if(g_cold_patch_info.cold_patch_status)
     {
         size = strlen("HOTA_SUCCESS:");
         (void)strcat_s(buf, PAGE_SIZE, "HOTA_SUCCESS:");
@@ -190,36 +207,50 @@ ssize_t modem_imag_patch_status_show(struct device *dev,
         size = strlen("HOTA_ERR_STACK:");
         (void)strcat_s(buf,PAGE_SIZE,"HOTA_ERR_STACK:");
     }
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.cold_patch_status) + 1;
+    size += snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.cold_patch_status) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_update_fail_count) + 1;
+
+    size += snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_update_fail_count) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[NV_PATCH].patch_exist) + 1;
+
+    size += snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[NV_PATCH].patch_exist) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[NV_PATCH].patch_status) + 1;
+  
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[NV_PATCH].patch_status) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist) + 1;
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_exist) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[CCORE_PATCH].patch_status) + 1;
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[CCORE_PATCH].patch_status) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist) + 1;
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_exist) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,",");
-    size += num_to_str(data_buf,sizeof(data_buf),cold_patch_info.modem_patch_info[DSP_PATCH].patch_status) + 1;
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%d,",g_cold_patch_info.modem_patch_info[DSP_PATCH].patch_status) + 1;
     (void)strcat_s(buf,PAGE_SIZE,data_buf);
-    (void)strcat_s(buf,PAGE_SIZE,";");
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%x,",g_cold_patch_info.patch_ret_value[CCORE_PATCH].load_ret_val) + 1;
+    (void)strcat_s(buf,PAGE_SIZE,data_buf);
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%x,",g_cold_patch_info.patch_ret_value[CCORE_PATCH].splice_ret_val) + 1;
+    (void)strcat_s(buf,PAGE_SIZE,data_buf);
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%x,",g_cold_patch_info.patch_ret_value[DSP_PATCH].load_ret_val) + 1;
+    (void)strcat_s(buf,PAGE_SIZE,data_buf);
+
+    size +=snprintf_s(data_buf,sizeof(data_buf),sizeof(data_buf)-1,"%x;",g_cold_patch_info.patch_ret_value[DSP_PATCH].splice_ret_val) + 1;
+    (void)strcat_s(buf,PAGE_SIZE,data_buf);
+
+    mutex_unlock(&cold_patch_proc_lock);
 
     return size;
 }
 
 int bsp_modem_cold_patch_init(void)
 {
+    g_cold_patch_dump_base = (char*)bsp_dump_register_field(DUMP_MODEMAP_COLD_PATCH, "cold_patch", NULL, NULL, COLD_PATCH_DUMP_SIZE, 0);
     (void)bsp_dump_register_hook("modem_cold_patch",bsp_modem_cold_patch_update_modem_fail_count);
     bsp_err("[init]bsp_modem_cold_patch_init ok!\n");
     return 0;

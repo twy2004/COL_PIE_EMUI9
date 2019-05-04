@@ -1188,6 +1188,15 @@ extern void pagefault_out_of_memory(void);
 
 #define offset_in_page(p)	((unsigned long)(p) & ~PAGE_MASK)
 
+#ifdef CONFIG_HUAWEI_SLAB_UNRECLAIMABLE_THRESHOLD
+/*
+ * Can be called by show_mem() to test if slab_unreclaimable exceeds
+ * the threshold and print slab_info when it exceeds.
+ */
+bool is_exceed_slab_unreclaimable_threshold(unsigned int flags);
+void print_all_slabinfo(void);
+#endif
+
 /*
  * Flags passed to show_mem() and show_free_areas() to suppress output in
  * various contexts.
@@ -1348,19 +1357,45 @@ extern int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
 extern int sysctl_speculative_page_fault;
 extern int __handle_speculative_fault(struct mm_struct *mm,
 				      unsigned long address,
-				      unsigned int flags, unsigned long vm_flags);
+				      unsigned int flags, struct vm_area_struct *vma);
+extern struct vm_area_struct *get_vma(struct mm_struct *mm,
+				      unsigned long addr);
+extern void put_vma(struct vm_area_struct *vma);
+
 static inline int handle_speculative_fault(struct mm_struct *mm,
 					   unsigned long address,
 					   unsigned int flags, unsigned long vm_flags)
 {
+	struct vm_area_struct *vma;
+	int seq, ret = VM_FAULT_RETRY;
+
 	if (unlikely(!sysctl_speculative_page_fault))
-		return VM_FAULT_RETRY;
+		return ret;
 	/*
 	 * Try speculative page fault for multithreaded user space task only.
 	 */
 	if (!(flags & FAULT_FLAG_USER) || atomic_read(&mm->mm_users) == 1)
-		return VM_FAULT_RETRY;
-	return __handle_speculative_fault(mm, address, flags, vm_flags);
+		return ret;
+
+	vma = get_vma(mm, address);
+	if (!vma)
+		return ret;
+
+	seq = raw_read_seqcount(&vma->vm_sequence);
+	if (seq & 1)
+		goto out_put;
+
+	if (!vma->anon_vma)
+		goto out_put;
+
+	if (!(READ_ONCE(vma->vm_flags) & vm_flags))
+		goto out_put;
+
+	ret =  __handle_speculative_fault(mm, address, flags, vma);
+
+out_put:
+	put_vma(vma);
+	return ret;
 }
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
 
@@ -2332,6 +2367,12 @@ static inline struct vm_area_struct *find_exact_vma(struct mm_struct *mm,
 		vma = NULL;
 
 	return vma;
+}
+
+static inline bool range_in_vma(struct vm_area_struct *vma,
+				unsigned long start, unsigned long end)
+{
+	return (vma && vma->vm_start <= start && end <= vma->vm_end);
 }
 
 #ifdef CONFIG_MMU

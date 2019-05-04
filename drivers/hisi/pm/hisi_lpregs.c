@@ -88,8 +88,8 @@
 #define IPC_MBXDATA_MIN			0
 #define IPC_MBXDATA_MAX			8
 #define IPC_MBXDATA_TAG			2
-#define MATCH_TAG_SHAREMEM(m)			(((m) & 0xFF) == 0x8E)
-#define DUBAI_UPDATE_TAG(m, value)		(((m) & 0xFF00) | ((value) & 0xFF))
+#define GET_SHAREMEM_DATA(m)			(((m) & 0xFFFF))
+#define GET_SHAREMEM_SOURCE(m)			(((m) & 0xFF))
 #define IPC_MBX_SOURCE_OFFSET(m)		((m) << 6)
 #define IPC_MBX_DSTATUS_OFFSET(m)		(0x0C + ((m) << 6))
 #define IPC_MBXDATA_OFFSET(m, idex)		(0x20 + 4 * (idex) + ((m) << 6))
@@ -553,7 +553,7 @@ unsigned int proc_mask_to_id(unsigned int mask)
 	return i;
 }
 
-void ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mbx)
+void ipc_mbx_irq_show(struct seq_file *s, const void __iomem *base, unsigned int mbx)
 {
 	unsigned int ipc_source = 0;
 	unsigned int ipc_dest = 0;
@@ -561,7 +561,8 @@ void ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mbx)
 	unsigned int src_id = 0;
 	unsigned int dest_id = 0;
 	unsigned int i = 0;
-	unsigned int dubai_data = 0;
+	unsigned int source = 0;
+	unsigned int mem = 0;
 
 	ipc_source = readl(base + IPC_MBX_SOURCE_OFFSET(mbx));
 	src_id = proc_mask_to_id(ipc_source);
@@ -589,12 +590,11 @@ void ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mbx)
 		if ((src_id < IPC_PROCESSOR_MAX) &&
 			(strncmp(processor_name[src_id], "iomcu", PROCESSOR_IOMCU_LENGTH) == 0)) {
 			if (i == IPC_MBXDATA_MIN) {
-				dubai_data = ipc_data;
+				mem = GET_SHAREMEM_DATA(ipc_data);
 			}
 			if (i == IPC_MBXDATA_TAG) {
-				dubai_data = MATCH_TAG_SHAREMEM(dubai_data) ?
-					DUBAI_UPDATE_TAG(dubai_data, ipc_data) : dubai_data;
-				HWDUBAI_LOGE("DUBAI_TAG_SENSORHUB_WAKE", "data=%u", dubai_data);
+				source = GET_SHAREMEM_SOURCE(ipc_data);
+				HWDUBAI_LOGE("DUBAI_TAG_SENSORHUB_WAKEUP", "mem=%u source=%u", mem, source);
 			}
 		}
 		LOWPM_MSG(s, "SR:[MBXDATA%u]:0x%x\n", i, ipc_data); //lint !e666
@@ -637,7 +637,7 @@ unsigned int ao_proc_mask_to_id(unsigned int mask)
 	return i;
 }
 
-void ao_ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mbx)
+void ao_ipc_mbx_irq_show(struct seq_file *s, const void __iomem *base, unsigned int mbx)
 {
 	unsigned int ipc_source = 0;
 	unsigned int ipc_dest = 0;
@@ -645,7 +645,8 @@ void ao_ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mb
 	unsigned int src_id = 0;
 	unsigned int dest_id = 0;
 	unsigned int i = 0;
-	unsigned int dubai_data = 0;
+	unsigned int source = 0;
+	unsigned int mem = 0;
 
 	ipc_source = readl(base + IPC_MBX_SOURCE_OFFSET(mbx));
 	src_id = ao_proc_mask_to_id(ipc_source);
@@ -673,12 +674,11 @@ void ao_ipc_mbx_irq_show(struct seq_file *s, void __iomem *base, unsigned int mb
 		if ((src_id < AO_IPC_PROCESSOR_MAX) &&
 			(strncmp(aoipc_processor_name[src_id], "iomcu", PROCESSOR_IOMCU_LENGTH) == 0)) {
 			if (i == IPC_MBXDATA_MIN) {
-				dubai_data = ipc_data;
+				mem = GET_SHAREMEM_DATA(ipc_data);
 			}
 			if (i == IPC_MBXDATA_TAG) {
-				dubai_data = MATCH_TAG_SHAREMEM(dubai_data) ?
-					DUBAI_UPDATE_TAG(dubai_data, ipc_data) : dubai_data;
-				HWDUBAI_LOGE("DUBAI_TAG_SENSORHUB_WAKE", "data=%u", dubai_data);
+				source = GET_SHAREMEM_SOURCE(ipc_data);
+				HWDUBAI_LOGE("DUBAI_TAG_SENSORHUB_WAKEUP", "mem=%u source=%u", mem, source);
 			}
 		}
 		LOWPM_MSG(s, "SR:[MBXDATA%u]:0x%x\n", i, ipc_data); //lint !e666
@@ -863,7 +863,7 @@ void show_iomg_reg(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
 	if (hisi_iocfg_lookups[i].iomg_offset != -1) {
 	if ((g_mg_sec_reg_num > 0)
 			&&(g_mg_reg != NULL)) {
-		addr = (void __iomem *)(unsigned long)(hisi_iocfg_lookups[i].iomg_base
+		addr = (void __iomem *)(uintptr_t)(hisi_iocfg_lookups[i].iomg_base
 						+ hisi_iocfg_lookups[i].iomg_offset);
 		if(NULL == addr)
 			return;
@@ -917,7 +917,7 @@ void show_iocg_reg(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
 		return;
 	if ((g_cg_sec_reg_num > 0)
 			&&(g_cg_reg != NULL)) {
-		addr = (void __iomem *)(unsigned long)(hisi_iocfg_lookups[i].iocg_base
+		addr = (void __iomem *)(uintptr_t)(hisi_iocfg_lookups[i].iocg_base
 						+ hisi_iocfg_lookups[i].iocg_offset);
 		if(NULL == addr)
 			return;
@@ -937,7 +937,7 @@ void show_iocg_reg(unsigned int i, struct iocfg_lp *hisi_iocfg_lookups)
 	value = readl(addr);
 	iounmap(addr);
 
-	printk("[0x%x]iocg = %s", value, pulltype[value&0x3]);
+	printk("[0x%x]iocg = %s", value, pulltype[((unsigned int)value) & 0x3]);
 
 	if ((value != hisi_iocfg_lookups[i].iocg_val) &&
 			(hisi_iocfg_lookups[i].iocg_val != -1)) {

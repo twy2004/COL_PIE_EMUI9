@@ -122,16 +122,16 @@ VOS_VOID DMS_SetLogLevel(VOS_UINT32 ulLvl)
 
 VOS_VOID DMS_ShowAtServerNvInfo(VOS_VOID)
 {
-    PS_PRINTF("Operation return value is %d.\n", g_dms_debug_atserv_nv_info.lOperatRet);
-    PS_PRINTF("The nv value is %d.\n", g_dms_debug_atserv_nv_info.ulNvValue);
+    PS_PRINTF_INFO("Operation return value is %d.\n", g_dms_debug_atserv_nv_info.lOperatRet);
+    PS_PRINTF_INFO("The nv value is %d.\n", g_dms_debug_atserv_nv_info.ulNvValue);
 }
 
 
 VOS_VOID  DMS_ShowPortCfgInfo(VOS_VOID)
 {
-    PS_PRINTF("ulPortCfgValue: %d\n", g_stDmsMainInfo.ulPortCfgValue);
-    PS_PRINTF("bNveReadFlg: %d\n", g_stDmsMainInfo.bPortCfgFlg);
-    PS_PRINTF("bPortOpenFlg: %d\n", g_stDmsMainInfo.bPortOpenFlg);
+    PS_PRINTF_INFO("ulPortCfgValue: %d\n", g_stDmsMainInfo.ulPortCfgValue);
+    PS_PRINTF_INFO("bNveReadFlg: %d\n", g_stDmsMainInfo.bPortCfgFlg);
+    PS_PRINTF_INFO("bPortOpenFlg: %d\n", g_stDmsMainInfo.bPortOpenFlg);
 
     return;
 }
@@ -145,89 +145,89 @@ VOS_VOID DMS_ShowVcomStats(VOS_VOID)
     pstTable = DMS_GetDebugInfo();
 
 
-    PS_PRINTF("*------------ENABLE-------------------\n");
-    PS_PRINTF("USB ENABLE counts  : %d \n USB ENABLE fail counts  : %d \n USB ENABLE fail branch  : %d \n\n",
+    PS_PRINTF_INFO("ENABLE             \n");
+    PS_PRINTF_INFO("USB ENABLE counts  : %d \n USB ENABLE fail counts  : %d \n USB ENABLE fail branch  : %d \n",
         pstTable[DMS_SDM_USB_ENABLE].ulCalledNum,
         pstTable[DMS_SDM_USB_ENABLE_ERR].ulCalledNum,
         pstTable[DMS_SDM_USB_ENABLE_ERR].ulRserved3);
-    PS_PRINTF("*------------DISABLE-------------------\n");
-    PS_PRINTF("USB DISABLE counts  : %d \n USB DISABLE fail counts  : %d \n USB DISABLE fail branch  : %d \n\n",
+    PS_PRINTF_INFO("DISABLE             \n");
+    PS_PRINTF_INFO("USB DISABLE counts  : %d \n USB DISABLE fail counts  : %d \n USB DISABLE fail branch  : %d \n",
         pstTable[DMS_SDM_USB_DISABLE].ulCalledNum,
         pstTable[DMS_SDM_USB_DISABLE_ERR].ulCalledNum,
         pstTable[DMS_SDM_USB_DISABLE_ERR].ulRserved3);
 
-    PS_PRINTF("*------------OPEN-------------------\n");
-    PS_PRINTF("VCOM_PCUI OPEN counts  : %d \n VCOM_PCUI OPEN fail counts  : %d \n  VCOM_PCUI OPEN fail value : %d\n\n",
+    PS_PRINTF_INFO("OPEN             \n");
+    PS_PRINTF_INFO("VCOM_PCUI OPEN counts  : %d \n VCOM_PCUI OPEN fail counts  : %d \n  VCOM_PCUI OPEN fail value : %d\n",
         pstTable[DMS_SDM_VCOM_OPEN_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_PCUI].ulRserved1);
-    PS_PRINTF("VCOM_CTRL OPEN counts  : %d \n VCOM_CTRL OPEN fail counts  : %d \n  VCOM_CTRL OPEN fail value : %d\n\n",
+    PS_PRINTF_INFO("VCOM_CTRL OPEN counts  : %d \n VCOM_CTRL OPEN fail counts  : %d \n  VCOM_CTRL OPEN fail value : %d\n",
         pstTable[DMS_SDM_VCOM_OPEN_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_CTRL].ulRserved1);
-    PS_PRINTF("VCOM_PCUI2 OPEN counts  : %d \n VCOM_PCUI2 OPEN fail counts  : %d \n  VCOM_PCUI2 OPEN fail value : %d\n\n",
+    PS_PRINTF_INFO("VCOM_PCUI2 OPEN counts  : %d \n VCOM_PCUI2 OPEN fail counts  : %d \n  VCOM_PCUI2 OPEN fail value : %d\n",
         pstTable[DMS_SDM_VCOM_OPEN_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_OPEN_ERR_PCUI2].ulRserved1);
 
-    PS_PRINTF("*------------CLOSE-------------------\n");
-    PS_PRINTF("VCOM_AT CLOSE counts  : %d \n VCOM_AT CLOSE fail counts  : %d \n  VCOM_AT CLOSE fail value : %d\n\n",
+    PS_PRINTF_INFO("CLOSE             \n");
+    PS_PRINTF_INFO("VCOM_AT CLOSE counts  : %d \n VCOM_AT CLOSE fail counts  : %d \n  VCOM_AT CLOSE fail value : %d\n",
         pstTable[DMS_SDM_VCOM_CLOSE_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_PCUI].ulRserved1);
-    PS_PRINTF("VCOM_CTRL CLOSE counts  : %d \n VCOM_CTRL CLOSE fail counts  : %d \n  VCOM_CTRL CLOSE fail value : %d\n\n",
+    PS_PRINTF_INFO("VCOM_CTRL CLOSE counts  : %d \n VCOM_CTRL CLOSE fail counts  : %d \n  VCOM_CTRL CLOSE fail value : %d\n",
         pstTable[DMS_SDM_VCOM_CLOSE_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_CTRL].ulRserved1);
-    PS_PRINTF("VCOM_PCUI2 CLOSE counts  : %d \n VCOM_PCUI2 CLOSE fail counts  : %d \n  VCOM_PCUI2 CLOSE fail value : %d\n\n",
+    PS_PRINTF_INFO("VCOM_PCUI2 CLOSE counts  : %d \n VCOM_PCUI2 CLOSE fail counts  : %d \n  VCOM_PCUI2 CLOSE fail value : %d\n",
         pstTable[DMS_SDM_VCOM_CLOSE_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_CLOSE_ERR_PCUI2].ulRserved1);
 
-    PS_PRINTF("*------------WRITE_异步写-------------------\n");
-    PS_PRINTF("VCOM_AT write counts  : %d \n VCOM_AT write OK counts  : %d \n  VCOM_AT Last write OK len : %d\n\n",
+    PS_PRINTF_INFO("WRITE_ASYNCHRONOUS           \n");
+    PS_PRINTF_INFO("VCOM_AT write counts  : %d \n VCOM_AT write OK counts  : %d \n  VCOM_AT Last write OK len : %d\n",
         pstTable[DMS_SDM_VCOM_WRT_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_PCUI].ulRserved1);
-     PS_PRINTF("VCOM_CTRL write counts  : %d \n VCOM_CTRL write OK counts  : %d \n  VCOM_CTRL Last write OK len : %d\n\n",
+    PS_PRINTF_INFO("VCOM_CTRL write counts  : %d \n VCOM_CTRL write OK counts  : %d \n  VCOM_CTRL Last write OK len : %d\n",
         pstTable[DMS_SDM_VCOM_WRT_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_CTRL].ulRserved1);
-     PS_PRINTF("VCOM_PCUI2 write counts  : %d \n VCOM_PCUI2 write OK counts  : %d \n  VCOM_PCUI2 Last write OK len : %d\n\n",
+    PS_PRINTF_INFO("VCOM_PCUI2 write counts  : %d \n VCOM_PCUI2 write OK counts  : %d \n  VCOM_PCUI2 Last write OK len : %d\n",
         pstTable[DMS_SDM_VCOM_WRT_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_SUSS_PCUI2].ulRserved1);
 
-    PS_PRINTF("*------------WRITE CALL BACK-------------------\n");
-    PS_PRINTF("VCOM_AT WRITE CALL BACK counts  : %d \n VCOM_AT WRITE CALL BACK fail counts  : %d \n  VCOM_AT VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n\n",
+    PS_PRINTF_INFO("WRITE CALL BACK              \n");
+    PS_PRINTF_INFO("VCOM_AT WRITE CALL BACK counts  : %d \n VCOM_AT WRITE CALL BACK fail counts  : %d \n  VCOM_AT VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n",
         pstTable[DMS_SDM_VCOM_WRT_CB_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI].ulRserved1,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI].ulRserved2);
-    PS_PRINTF("VCOM_CTRL WRITE CALL BACK counts  : %d \n VCOM_CTRL WRITE CALL BACK fail counts  : %d \n  VCOM_CTRL VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n\n",
+    PS_PRINTF_INFO("VCOM_CTRL WRITE CALL BACK counts  : %d \n VCOM_CTRL WRITE CALL BACK fail counts  : %d \n  VCOM_CTRL VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n",
         pstTable[DMS_SDM_VCOM_WRT_CB_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_CTRL].ulRserved1,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_CTRL].ulRserved2);
-    PS_PRINTF("VCOM_PCUI2 WRITE CALL BACK counts  : %d \n VCOM_PCUI2 WRITE CALL BACK fail counts  : %d \n  VCOM_PCUI2 VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n\n",
+    PS_PRINTF_INFO("VCOM_PCUI2 WRITE CALL BACK counts  : %d \n VCOM_PCUI2 WRITE CALL BACK fail counts  : %d \n  VCOM_PCUI2 VCOM_AT fail addr : %d\nVCOM2 WRITE fail len :%d\n",
         pstTable[DMS_SDM_VCOM_WRT_CB_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI2].ulRserved1,
         pstTable[DMS_SDM_VCOM_WRT_CB_ERR_PCUI2].ulRserved2);
 
-    PS_PRINTF("*------------EVT CALL BACK-------------------\n");
-    PS_PRINTF("VCOM_PCUI EVT CALL BACK counts  : %d \n VCOM_PCUI EVT  type : %d\n\n",
+    PS_PRINTF_INFO("EVT CALL BACK           \n");
+    PS_PRINTF_INFO("VCOM_PCUI EVT CALL BACK counts  : %d \n VCOM_PCUI EVT  type : %d\n",
         pstTable[DMS_SDM_VCOM_EVT_PCUI].ulCalledNum,
         pstTable[DMS_SDM_VCOM_EVT_PCUI].ulRserved1);
-    PS_PRINTF("VCOM_CTRL EVT CALL BACK counts  : %d \n VCOM_CTRL EVT  type : %d\n\n",
+    PS_PRINTF_INFO("VCOM_CTRL EVT CALL BACK counts  : %d \n VCOM_CTRL EVT  type : %d\n",
         pstTable[DMS_SDM_VCOM_EVT_CTRL].ulCalledNum,
         pstTable[DMS_SDM_VCOM_EVT_CTRL].ulRserved1);
-    PS_PRINTF("VCOM_PCUI2 EVT CALL BACK counts  : %d \n VCOM_PCUI2 EVT  type : %d\n\n",
+    PS_PRINTF_INFO("VCOM_PCUI2 EVT CALL BACK counts  : %d \n VCOM_PCUI2 EVT  type : %d\n",
         pstTable[DMS_SDM_VCOM_EVT_PCUI2].ulCalledNum,
         pstTable[DMS_SDM_VCOM_EVT_PCUI2].ulRserved1);
 
-    PS_PRINTF("*------------NCM SEND TO DRV INFO------------------\n");
-    PS_PRINTF("发送到驱动次数   : %d\n 发送buf: %x\n 发送长度:%d\n 驱动返回成功次数  : %d \n\n",
+    PS_PRINTF_INFO("NCM SEND TO DRV INFO       \n");
+    PS_PRINTF_INFO("times of sending to drv: %d\n send_buf: %x\n send_length:%d\n times of success return: %d \n",
         pstTable[DMS_SDM_VCOM_WRT_NCM].ulCalledNum,
         pstTable[DMS_SDM_VCOM_WRT_NCM].ulRserved1,
         pstTable[DMS_SDM_VCOM_WRT_NCM].ulRserved2,
@@ -240,25 +240,24 @@ VOS_VOID DMS_ShowVcomStats(VOS_VOID)
 
 VOS_VOID DMS_ShowNlkUlStats(VOS_VOID)
 {
-    PS_PRINTF("====================================\n");
-    PS_PRINTF("DMS NLK UL STATS                    \n");
-    PS_PRINTF("====================================\n");
-    PS_PRINTF("Create SOCK Fail NUM:           %u\n", g_stDmsMntnNlkStats.ulCreatSockFailNum);
-    PS_PRINTF("Total Total MSG NUM:            %u\n", g_stDmsMntnNlkStats.ulUlTotalMsgNum);
-    PS_PRINTF("ERR MSG NUM:                    %u\n", g_stDmsMntnNlkStats.ulUlErrMsgNum);
-    PS_PRINTF("UnSupport Input Log Num:        %u\n", g_stDmsMntnNlkStats.ulUlUnSupportInputLogNum);
-    PS_PRINTF("UnSupport Write Log Num:        %u\n", g_stDmsMntnNlkStats.ulUlUnSupportWriteLogNum);
-    PS_PRINTF("UNKNOWN MSG NUM:                %u\n", g_stDmsMntnNlkStats.ulUlUnknownMsgNum);
-    PS_PRINTF("Send LTE CFG MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_CFG]);
-    PS_PRINTF("Send LTE CTRL MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_CTRL]);
-    PS_PRINTF("Send LTE DATA MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_DATA]);
-    PS_PRINTF("Send GU CFG MSG NUM:            %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_GU_CFG]);
-    PS_PRINTF("Send GU DATA MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_GU_DATA]);
-    PS_PRINTF("Free LTE CFG MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_CFG]);
-    PS_PRINTF("Free LTE CTRL MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_CTRL]);
-    PS_PRINTF("Free LTE DATA MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_DATA]);
-    PS_PRINTF("Free GU CFG MSG NUM:            %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_GU_CFG]);
-    PS_PRINTF("Free GU DATA MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_GU_DATA]);
+    PS_PRINTF_INFO("DMS NLK UL STATS START:                   \n");
+    PS_PRINTF_INFO("Create SOCK Fail NUM:           %u\n", g_stDmsMntnNlkStats.ulCreatSockFailNum);
+    PS_PRINTF_INFO("Total Total MSG NUM:            %u\n", g_stDmsMntnNlkStats.ulUlTotalMsgNum);
+    PS_PRINTF_INFO("ERR MSG NUM:                    %u\n", g_stDmsMntnNlkStats.ulUlErrMsgNum);
+    PS_PRINTF_INFO("UnSupport Input Log Num:        %u\n", g_stDmsMntnNlkStats.ulUlUnSupportInputLogNum);
+    PS_PRINTF_INFO("UnSupport Write Log Num:        %u\n", g_stDmsMntnNlkStats.ulUlUnSupportWriteLogNum);
+    PS_PRINTF_INFO("UNKNOWN MSG NUM:                %u\n", g_stDmsMntnNlkStats.ulUlUnknownMsgNum);
+    PS_PRINTF_INFO("Send LTE CFG MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_CFG]);
+    PS_PRINTF_INFO("Send LTE CTRL MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_CTRL]);
+    PS_PRINTF_INFO("Send LTE DATA MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_LTE_DATA]);
+    PS_PRINTF_INFO("Send GU CFG MSG NUM:            %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_GU_CFG]);
+    PS_PRINTF_INFO("Send GU DATA MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlSendMsgNum[DMS_NLK_MSG_TYPE_GU_DATA]);
+    PS_PRINTF_INFO("Free LTE CFG MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_CFG]);
+    PS_PRINTF_INFO("Free LTE CTRL MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_CTRL]);
+    PS_PRINTF_INFO("Free LTE DATA MSG NUM:          %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_LTE_DATA]);
+    PS_PRINTF_INFO("Free GU CFG MSG NUM:            %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_GU_CFG]);
+    PS_PRINTF_INFO("Free GU DATA MSG NUM:           %u\n", g_stDmsMntnNlkStats.aulUlFreeMsgNum[DMS_NLK_MSG_TYPE_GU_DATA]);
+    PS_PRINTF_INFO("DMS NLK UL STATS END.                   \n");
 
     return;
 }
@@ -266,22 +265,21 @@ VOS_VOID DMS_ShowNlkUlStats(VOS_VOID)
 
 VOS_VOID DMS_ShowNlkDlStats(VOS_VOID)
 {
-    PS_PRINTF("====================================\n");
-    PS_PRINTF("DMS NLK DL STATS                    \n");
-    PS_PRINTF("====================================\n");
-    PS_PRINTF("Total PKT NUM:                  %u\n", g_stDmsMntnNlkStats.ulDlTotalPktNum);
-    PS_PRINTF("ERR PARA PKT NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrParaPktNum);
-    PS_PRINTF("ERR CHAN PKT NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrChanPktNum);
-    PS_PRINTF("LTE CTRL PKT NUM:               %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_LTE_CTRL]);
-    PS_PRINTF("LTE DATA PKT NUM:               %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_LTE_DATA]);
-    PS_PRINTF("GU DATA PKT NUM:                %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_GU_DATA]);
-    PS_PRINTF("Total MSG NUM:                  %u\n", g_stDmsMntnNlkStats.ulDlTotalMsgNum);
-    PS_PRINTF("ERR SOCK MSG NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrSockMsgNum);
-    PS_PRINTF("ERR PID MSG NUM:                %u\n", g_stDmsMntnNlkStats.ulDlErrPidMsgNum);
-    PS_PRINTF("Alloc MSG Fail NUM:             %u\n", g_stDmsMntnNlkStats.ulDlAllocMsgFailNum);
-    PS_PRINTF("Put MSG Fail NUM:               %u\n", g_stDmsMntnNlkStats.ulDlPutMsgFailNum);
-    PS_PRINTF("Unicast Fail NUM:               %u\n", g_stDmsMntnNlkStats.ulDlUnicastMsgFailNum);
-    PS_PRINTF("Unicast Succ NUM:               %u\n", g_stDmsMntnNlkStats.ulDlUnicastMsgSuccNum);
+    PS_PRINTF_INFO("DMS NLK DL STATS START:                   \n");
+    PS_PRINTF_INFO("Total PKT NUM:                  %u\n", g_stDmsMntnNlkStats.ulDlTotalPktNum);
+    PS_PRINTF_INFO("ERR PARA PKT NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrParaPktNum);
+    PS_PRINTF_INFO("ERR CHAN PKT NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrChanPktNum);
+    PS_PRINTF_INFO("LTE CTRL PKT NUM:               %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_LTE_CTRL]);
+    PS_PRINTF_INFO("LTE DATA PKT NUM:               %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_LTE_DATA]);
+    PS_PRINTF_INFO("GU DATA PKT NUM:                %u\n", g_stDmsMntnNlkStats.aulDlNormChanPktNum[DMS_OM_CHAN_GU_DATA]);
+    PS_PRINTF_INFO("Total MSG NUM:                  %u\n", g_stDmsMntnNlkStats.ulDlTotalMsgNum);
+    PS_PRINTF_INFO("ERR SOCK MSG NUM:               %u\n", g_stDmsMntnNlkStats.ulDlErrSockMsgNum);
+    PS_PRINTF_INFO("ERR PID MSG NUM:                %u\n", g_stDmsMntnNlkStats.ulDlErrPidMsgNum);
+    PS_PRINTF_INFO("Alloc MSG Fail NUM:             %u\n", g_stDmsMntnNlkStats.ulDlAllocMsgFailNum);
+    PS_PRINTF_INFO("Put MSG Fail NUM:               %u\n", g_stDmsMntnNlkStats.ulDlPutMsgFailNum);
+    PS_PRINTF_INFO("Unicast Fail NUM:               %u\n", g_stDmsMntnNlkStats.ulDlUnicastMsgFailNum);
+    PS_PRINTF_INFO("Unicast Succ NUM:               %u\n", g_stDmsMntnNlkStats.ulDlUnicastMsgSuccNum);
+    PS_PRINTF_INFO("DMS NLK DL STATS END.                   \n");
 
     return;
 }
@@ -289,17 +287,15 @@ VOS_VOID DMS_ShowNlkDlStats(VOS_VOID)
 
 VOS_VOID DMS_Help(VOS_VOID)
 {
-    PS_PRINTF("****************************************************\n");
-    PS_PRINTF("DMS软调信息                                         \n");
-    PS_PRINTF("****************************************************\n");
-    PS_PRINTF("DMS_SetLogLevel                                     \n");
-    PS_PRINTF("DMS_ShowDebugInfo                                   \n");
-    PS_PRINTF("DMS_ShowAtServerNvInfo                              \n");
-    PS_PRINTF("DMS_ShowPortCfgInfo                                 \n");
-    PS_PRINTF("DMS_ShowVcomStats                                   \n");
-    PS_PRINTF("DMS_ShowNlkEntityInfo                               \n");
-    PS_PRINTF("DMS_ShowNlkUlStats                                  \n");
-    PS_PRINTF("DMS_ShowNlkDlStats                                  \n");
+    PS_PRINTF_INFO("Debug Info                                            \n");
+    PS_PRINTF_INFO("<DMS_SetLogLevel>                                     \n");
+    PS_PRINTF_INFO("<DMS_ShowDebugInfo>                                   \n");
+    PS_PRINTF_INFO("<DMS_ShowAtServerNvInfo>                              \n");
+    PS_PRINTF_INFO("<DMS_ShowPortCfgInfo>                                 \n");
+    PS_PRINTF_INFO("<DMS_ShowVcomStats>                                   \n");
+    PS_PRINTF_INFO("<DMS_ShowNlkEntityInfo>                               \n");
+    PS_PRINTF_INFO("<DMS_ShowNlkUlStats>                                  \n");
+    PS_PRINTF_INFO("<DMS_ShowNlkDlStats>                                  \n");
 
     return;
 }

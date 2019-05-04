@@ -41,6 +41,7 @@
 
     &fingerprint {
         fingerprint,power_en_gpio = <53>;
+        fingerprint,poweroff_scheme = <2>; /* 1:close ldo ;2:close loadswitch(gpio) */
     };
 
     &devcheck {

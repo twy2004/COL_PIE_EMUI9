@@ -21,6 +21,9 @@
 		hisi,boardname = "EVER_LX9_VF";
 		hisi,modem_id = <0x37021400>;
 	};
+	&huawei_imx600hybrid {
+		gpios = <&gpio1 4 0 &gpio29 1 0 &gpio4 3 0>;
+	};
 	&amba {
 		i2c@FDF0D000 {
 			smartpa@36{

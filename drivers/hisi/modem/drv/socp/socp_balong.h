@@ -152,8 +152,8 @@ typedef int (*socp_task_entry)(void * data);
 /* 编码源通道buffer寄存器*/
 #define SOCP_REG_ENCSRC_BUFWPTR(m)  (HI_SOCP_ENC_SRC_BUFM_WPTR_0_OFFSET + m*0x40)
 #define SOCP_REG_ENCSRC_BUFRPTR(m)  (HI_SOCP_ENC_SRC_BUFM_RPTR_0_OFFSET + m*0x40)
-#define SOCP_REG_ENCSRC_BUFCFG0(m)  (HI_SOCP_ENC_SRC_BUFM_CFG0_0_OFFSET + m*0x40)
-#define SOCP_REG_ENCSRC_BUFCFG1(m)  (HI_SOCP_ENC_SRC_BUFM_CFG1_0_OFFSET + m*0x40)
+#define SOCP_REG_ENCSRC_BUFCFG0(m)  (HI_SOCP_ENC_SRC_BUFM_DEPTH_0_OFFSET + m*0x40)
+#define SOCP_REG_ENCSRC_BUFCFG1(m)  (HI_SOCP_ENC_SRC_BUFM_CFG_0_OFFSET + m*0x40)
 #define SOCP_REG_ENCSRC_RDQWPTR(m)  (HI_SOCP_ENC_SRC_RDQ_WPTR_0_OFFSET + m*0x40)
 #define SOCP_REG_ENCSRC_RDQRPTR(m)  (HI_SOCP_ENC_SRC_RDQ_RPTR_0_OFFSET + m*0x40)
 #define SOCP_REG_ENCSRC_RDQCFG(m)   (HI_SOCP_ENC_SRC_RDQ_CFG_0_OFFSET + m*0x40)
@@ -169,7 +169,7 @@ typedef int (*socp_task_entry)(void * data);
 /* 编码目的通道buffer寄存器*/
 #define SOCP_REG_ENCDEST_BUFWPTR(n) (HI_SOCP_ENC_DEST_BUFN_WPTR_0_OFFSET + (n)*0x20)
 #define SOCP_REG_ENCDEST_BUFRPTR(n) (HI_SOCP_ENC_DEST_BUFN_RPTR_0_OFFSET + (n)*0x20)
-#define SOCP_REG_ENCDEST_BUFCFG(n)  (HI_SOCP_ENC_DEST_BUFN_CFG_0_OFFSET + n*0x20)
+#define SOCP_REG_ENCDEST_BUFCFG(n)  (HI_SOCP_ENC_DEST_BUFN_DEPTH_0_OFFSET + n*0x20)
 #define SOCP_REG_ENCDEST_BUFTHRH(n) (HI_SOCP_ENC_DEST_BUFN_THRH_0_OFFSET + n*0x20)
 #define SOCP_REG_ENCDEST_BUFTHRESHOLD(n) (HI_SOCP_ENC_INT_THRESHOLD_0_OFFSET + n*0x20)
 
@@ -243,7 +243,7 @@ typedef int (*socp_task_entry)(void * data);
 #define SOCP_201_VERSION            (0x201)
 #define SOCP_203_VERSION            (0x203)   /* v203版本SOCP时钟调整，计数单位调整为3.4ms */
 #define SOCP_204_VERSION            (0x204)   /* v204版本SOCP时钟调整，计数单位调整为3.4ms */
-#define SOCP_205_VERSION            (0x205)   
+#define SOCP_205_VERSION            (0x205)
 #define SOCP_206_VERSION            (0x206)
 #define SOCP_CLK_RATIO(n)           (n*10/34)    /* 时钟调整后，计数单位的换算比 */
 
@@ -461,7 +461,7 @@ enum SOCP_COMPRESS_ENABLE_ENUM
 {
     SOCP_COMPRESS_DISABLE      =0,
     SOCP_COMPRESS_ENBALE,
-    
+
 };
 typedef unsigned int SOCP_COMPRESS_ENABLE_ENUM;
 
@@ -725,6 +725,7 @@ s32 socp_reset_dec_chan(u32 u32ChanID);
 s32 socp_get_index(u32 u32Size,u32 *index);
 s32 socp_can_sleep(void);
 s32 bsp_socp_encdst_set_cycle(u32 chanid, u32 cycle);
+void socp_encdst_overflow_info(void);
 /* log2.0 2014-03-19 Begin:*/
 u32 socp_is_encdst_chan_empty(void);
 /* log2.0 2014-03-19 End:*/

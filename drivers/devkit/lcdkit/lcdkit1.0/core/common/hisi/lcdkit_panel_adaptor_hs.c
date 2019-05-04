@@ -1752,8 +1752,6 @@ static void read_ddic_reg_interface(uint8_t *out, struct lcdkit_dsi_panel_cmds *
             case 3:
                 out[cnt] = (uint8_t)((tmp_value[dlen / 4] >> 24) & 0xFF);
                 break;
-            default:
-                break;
             }
             cnt++;
             if (cnt >= max_out_size)
@@ -1820,8 +1818,6 @@ int hostprocessing_read_ddic(uint8_t *out, struct lcdkit_dsi_panel_cmds *cmds, s
 				} else {
 					out[cnt] = (uint8_t)((tmp_value[dlen / 4] >> 24) & 0xFF);
 				}
-				break;
-			default:
 				break;
 			}
 			cnt++;
@@ -1910,6 +1906,7 @@ static void hostprocessing_read_ddic_2d_barcode_hx83112(struct hisi_fb_data_type
 	char __iomem *mipi_dsi0_base = NULL;
 	uint32_t read_value[2] = {0};
 	int i = 0;
+	int ret = 0;
 	char project_id_reg[] = {0xbb};
 	char project_addr[BARCODE_LENGTH_HIMAX83112] =
 					{ 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4,\
@@ -1982,8 +1979,10 @@ static void hostprocessing_read_ddic_2d_barcode_hx83112(struct hisi_fb_data_type
 		}
 		mipi_dsi_cmds_tx(playload1_enter_cmds, ARRAY_SIZE(playload1_enter_cmds), mipi_dsi0_base);
 		/*Here number "5" means to read five paramaters.*/
-		mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
-
+		ret = mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
+		if(ret < 0){
+			HISI_FB_ERR("Read project_id_cmd fail\n");
+		}
 		out[i] = read_value[1];
 		memset(read_value,0,sizeof(read_value));
 	}
@@ -2266,6 +2265,7 @@ static void hostprocessing_read_brightness_colorpoint_hx83112(struct hisi_fb_dat
 	char __iomem *mipi_dsi0_base = NULL;
 	uint32_t read_value[2] = {0};
 	int i = 0;
+	int ret = 0;
 	char project_id_reg[] = {0xbb};
 	char project_addr[COLORPOINT_LENGTH_HIMAX83112] ={0xDC,0xDD,0xDE,0xDF,0XE0,0XE1};
 
@@ -2332,8 +2332,10 @@ static void hostprocessing_read_brightness_colorpoint_hx83112(struct hisi_fb_dat
 		}
 		mipi_dsi_cmds_tx(playload1_enter_cmds, ARRAY_SIZE(playload1_enter_cmds), mipi_dsi0_base);
 		/*Here number "5" means to read five paramaters.*/
-		mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
-
+		ret = mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
+		if(ret < 0){
+			LCDKIT_ERR("Read project_id_cmd fail\n");
+		}
 		if(read_value[1] == 0)
 			read_value[1]+= '0';
 		out[i] = read_value[1];

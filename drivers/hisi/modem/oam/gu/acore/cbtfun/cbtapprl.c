@@ -57,10 +57,12 @@
 #include "omprivate.h"
 #include "CbtPpm.h"
 #include "msp.h"
-
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 
 #define    THIS_FILE_ID        PS_FILE_ID_APP_CBT_RL_C
+#define    THIS_MODU           mod_pam_cbt
 
 

@@ -1,6 +1,7 @@
 #if !defined(__PRODUCT_CONFIG_H__)
 #define __PRODUCT_CONFIG_H__
 
+#ifndef CONFIG_HISI_BALONG_EXTRA_MODEM
 #include "product_config_drv.h"
 #include "product_config_pam.h"
 #include "product_config_gucas.h"
@@ -19,7 +20,16 @@
 #include "product_config_gucnas_eng.h"
 #endif
 
+#else
+#include "product_config_drv_extra.h"
+#include "product_config_tlps.h"
+#include "product_config_gucnas.h"
+#include "product_config_version.h"
+#ifndef CHOOSE_MODEM_USER
+#include "product_config_drv_extra_eng.h"
+#endif
 
+#endif
 
 #ifdef CHOOSE_MODEM_USER
 #ifdef MODEM_FULL_DUMP_INUSER
@@ -48,5 +58,6 @@
 #include "product_config_modem_pm_om.h"
 #endif
 #endif
+
 
 #endif /*__PRODUCT_CONFIG_H__*/ 

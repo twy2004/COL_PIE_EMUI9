@@ -143,7 +143,7 @@ static ssize_t dsu_pmu_sysfs_event_show(struct device *dev,
 	struct dev_ext_attribute *eattr = container_of(attr,
 					struct dev_ext_attribute, attr);
 	return snprintf(buf, PAGE_SIZE, "event=0x%lx\n",
-					 (unsigned long)eattr->var);
+					 (uintptr_t)eattr->var);
 }
 
 static ssize_t dsu_pmu_sysfs_format_show(struct device *dev,
@@ -163,7 +163,7 @@ static ssize_t dsu_pmu_cpumask_show(struct device *dev,
 	struct dsu_pmu *dsu_pmu = to_dsu_pmu(pmu);
 	struct dev_ext_attribute *eattr = container_of(attr,
 					struct dev_ext_attribute, attr);
-	unsigned long mask_id = (unsigned long)eattr->var;
+	unsigned long mask_id = (uintptr_t)eattr->var;
 	const cpumask_t *cpumask;
 
 	switch (mask_id) {
@@ -211,7 +211,7 @@ dsu_pmu_event_attr_is_visible(struct kobject *kobj, struct attribute *attr,
 	struct dsu_pmu *dsu_pmu = to_dsu_pmu(pmu);
 	struct dev_ext_attribute *eattr = container_of(attr,
 					struct dev_ext_attribute, attr.attr);
-	unsigned long evt = (unsigned long)eattr->var;
+	unsigned long evt = (uintptr_t)eattr->var;
 
 	return test_bit(evt, dsu_pmu->cpmceid_bitmap) ? attr->mode : 0;/* [false alarm]:返回值为mode或者是0，都是无符号值 */
 }
@@ -424,7 +424,7 @@ static void dsu_pmu_start(struct perf_event *event, int pmu_flags)
 	unsigned long flags;
 
 	/* We always reprogram the counter */
-	if (pmu_flags & PERF_EF_RELOAD)
+	if ((unsigned int)pmu_flags & PERF_EF_RELOAD)
 		WARN_ON(!(event->hw.state & PERF_HES_UPTODATE));
 
 	dsu_pmu_set_event_period(event);
@@ -472,7 +472,7 @@ static int dsu_pmu_add(struct perf_event *event, int flags)
 	hw_events->events[idx] = event;
 	hwc->state = PERF_HES_STOPPED | PERF_HES_UPTODATE;
 
-	if (flags & PERF_EF_START)
+	if ((unsigned int)flags & PERF_EF_START)
 		dsu_pmu_start(event, PERF_EF_RELOAD);
 
 	perf_event_update_userpage(event);
@@ -710,7 +710,11 @@ struct cpu_pm_dsu_pmu_args {
 	int		ret;
 };
 
+#ifdef CONFIG_HISI_MULTIDRV_CPUIDLE
 extern bool hisi_fcm_cluster_pwrdn(void);
+#else
+static inline bool hisi_fcm_cluster_pwrdn(void) {return 0;}
+#endif
 
 #ifdef CONFIG_CPU_PM
 static void cpu_pm_dsu_pmu_setup(struct dsu_pmu *dsu_pmu, unsigned long cmd)
@@ -719,7 +723,7 @@ static void cpu_pm_dsu_pmu_setup(struct dsu_pmu *dsu_pmu, unsigned long cmd)
 	struct perf_event *event;
 	int idx;
 
-	for (idx = 0; idx < dsu_pmu->num_counters; idx++) {
+	for (idx = 0; idx < DSU_PMU_MAX_HW_CNTRS; idx++) {
 		/*
 		 * If the counter is not used skip it, there is no
 		 * need of stopping/restarting it.
@@ -774,7 +778,7 @@ static void cpu_pm_dsu_pmu_common(void *info)
 	unsigned long cmd		= data->cmd;
 	int cpu				= data->cpu;
 	struct dsu_hw_events *hw_events = &dsu_pmu->hw_events;
-	int enabled = bitmap_weight(hw_events->used_mask, dsu_pmu->num_counters);
+	bool enabled;
 	bool fcm_pwrdn = 0;
 
 	if (!cpumask_test_cpu(cpu, &dsu_pmu->associated_cpus)) {
@@ -782,6 +786,8 @@ static void cpu_pm_dsu_pmu_common(void *info)
 		return;
 	}
 
+	enabled = test_bit(DSU_PMU_IDX_CYCLE_COUNTER, hw_events->used_mask) > 0 ||
+		 bitmap_weight(hw_events->used_mask, dsu_pmu->num_counters) > 0;
 	if (!enabled) {
 		data->ret = NOTIFY_OK;
 		return;

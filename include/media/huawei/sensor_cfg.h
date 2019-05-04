@@ -56,10 +56,10 @@ typedef enum _tag_hwsensor_position_kind
     HWSENSOR_POSITION_SUBFORE                   =    3,//legacy
     HWSENSOR_POSITION_REAR_THIRD                =    4,
     HWSENSOR_POSITION_REAR_SECOND               =    5,
+    HWSENSOR_POSITION_REAR_FORTH                =    6,
     HWSENSOR_POSITION_FORE_SECOND               =    7,
     HWSENSOR_POSITION_FORE_THIRD                =    8,
     HWSENSOR_POSITION_IR4STRUCTURELIGHT = 10,
-    HWSENSOR_POSITION_IRIS                      =    11,
     HWSENSOR_POSITION_GAZE                      =    12,
 } hwsensor_position_kind_t;
 
@@ -105,6 +105,8 @@ enum sensor_config_type
 	SEN_CONFIG_OIS_WPB_CTRL,
 	SEN_CONFIG_RESET_HOLD,
 	SEN_CONFIG_RESET_RELEASE,
+	SEN_CONFIG_MIPI_SWITCH,
+	SEN_CONFIG_FPC_CHECK,
 	SEN_CONFIG_MAX_INDEX
 };
 

@@ -52,7 +52,15 @@
 	b.hs	Done
 .endm
 
-ENTRY(_lz4_decompress_asm)
+.altmacro
+.macro lz4_decompress_asm_generic	doprfm=1
+LOCAL Lz4_decompress_begin, Decode_token, Get_literal_length
+LOCAL Copy_long_literal_hs_15, Copy_long_literal_loop
+LOCAL Copy_literal_lt_15, Decode_offset_matchlength
+LOCAL Get_long_matchlength, Copy_match_begin
+LOCAL Cond_offset_lt_matchlength, Copy_offset_lt_32
+LOCAL Copy_match_perm, Copy_offset_lt_32_loop
+LOCAL Cond_offset_ge_matchlength, Copy_offset_ge_match_loop
 	stp     x29, x30, [sp, #-16]!
 	mov     x29, sp
 	stp	x3, x0, [sp, #-16]!		/* push src and dst in stack */
@@ -71,10 +79,13 @@ Lz4_decompress_begin:
 
 	check_dst_overflow
 	check_src_overflow
+
+.if \doprfm
 	add tmp, x0, #512
 	cmp x2, tmp
 	b.ls Decode_token
 	prfm pstl2strm,[x0,#512]
+.endif
 
 	/* Decode Token Byte: */
 Decode_token:
@@ -198,6 +209,14 @@ Copy_offset_ge_match_loop:
 	cmp	x0, copy_to_ptr
 	b.hi	Copy_offset_ge_match_loop
 	b	Lz4_decompress_begin
+.endm
+
+.text
+.p2align 4
+
+ENTRY(_lz4_decompress_asm)
+	lz4_decompress_asm_generic
+ENDPROC(_lz4_decompress_asm)
 
 Failed:
 	mov	tmp, #-1
@@ -213,7 +232,7 @@ Exit_here:
 	mov	x0, tmp
 	ldp     x29, x30, [sp], #16
 	ret     x30
-ENDPROC(_lz4_decompress_asm)
+
 
 /*
  * In case of offset <= 31 < matchlength ,expand the pattern and store in
@@ -249,3 +268,10 @@ Permtable:
 Copylength_table:
 .byte 32,32,32,30,32,30,30,28,32,27,30,22,24,26,28,30  // 0  .. 15
 .byte 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31  // 16 .. 31
+
+
+.text
+.p2align 4
+ENTRY(_lz4_decompress_asm_noprfm)
+	lz4_decompress_asm_generic	0
+ENDPROC(_lz4_decompress_asm_noprfm)

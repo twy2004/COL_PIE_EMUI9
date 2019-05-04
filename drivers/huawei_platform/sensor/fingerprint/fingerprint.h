@@ -19,8 +19,8 @@
 #define EVENT_IDENTIFY_END   119
 #define EVENT_FINGER_ENROLL   120
 
-#define KEY_MIN  0
-#define KEY_MAX  255
+#define FP_KEY_MIN  0
+#define FP_KEY_MAX  255
 
 #define FP_MAX_MODULE_INFO_LEN      5
 #define FP_MAX_SENSOR_ID_LEN        16
@@ -55,6 +55,7 @@
 #define  FP_IOC_CMD_RESET_HBM_STATUS      _IO(FP_IOC_MAGIC, 9)
 #define  FP_IOC_CMD_SET_POWEROFF     _IO(FP_IOC_MAGIC,10)
 #define  FP_IOC_CMD_GET_BIGDATA     _IO(FP_IOC_MAGIC,11)
+#define  FP_IOC_CMD_SEND_SENSORID_UD      _IO(FP_IOC_MAGIC, 12)
 //define sensor_id_ud length
 #define MAX_SENSOR_ID_UD_LENGTH (20)
 
@@ -104,54 +105,54 @@ typedef struct {
 
 struct fp_data
 {
-    struct device* dev;
-    struct cdev     cdev;
-    struct class*    class;
-    struct device*   device;
-    dev_t             devno;
-    struct platform_device* pf_dev;
-    unsigned long finger_num;
-    unsigned int nav_stat;
-    struct wake_lock ttw_wl;
-    int irq_gpio;
-    int cs0_gpio;//UG
-    int cs1_gpio;//UD
-    int rst_gpio;//UG
-    int rst1_gpio;//UD
-    int power_en_gpio;
-    int moduleID_gpio;
-    char extern_ldo_name[32];
-    char product_name[20];
-    int extern_ldo_num;
-    int extern_vol;
-    int module_vendor_info;
-    int navigation_adjust1;
-    int navigation_adjust2;
-    struct input_dev* input_dev;
-    int irq_num;
-    int qup_id;
-    char idev_name[32];
-    int event_type;
-    int event_code;
-    struct mutex lock;
-    bool prepared;
-    bool wakeup_enabled;
-    bool read_image_flag;
-    unsigned int sensor_id;
-    char sensor_id_ud[MAX_SENSOR_ID_UD_LENGTH];
-    struct pinctrl* pctrl;
-    struct pinctrl_state* pins_default;
-    struct pinctrl_state* pins_idle;
-    char module_id[64];
-    char module_id_ud[64];
-    bool irq_enabled;
-    bool irq_sensorhub_enabled;
-    unsigned int pen_anti_enable;
-    int hbm_status;
-    wait_queue_head_t hbm_queue;
-    unsigned int irq_custom_scheme;
-    fingerprint_bigdata_t fingerprint_bigdata;
-    int cts_home;
+	struct device* dev;
+	struct cdev     cdev;
+	struct class*    class;
+	struct device*   device;
+	dev_t             devno;
+	struct platform_device* pf_dev;
+	unsigned long finger_num;
+	unsigned int nav_stat;
+	struct wake_lock ttw_wl;
+	int irq_gpio;
+	int cs0_gpio;//UG
+	int cs1_gpio;//UD
+	int rst_gpio;//UG
+	int rst1_gpio;//UD
+	int power_en_gpio;
+	int moduleID_gpio;
+	char extern_ldo_name[32];
+	char product_name[20];
+	int extern_ldo_num;
+	int extern_vol;
+	int module_vendor_info;
+	int navigation_adjust1;
+	int navigation_adjust2;
+	struct input_dev* input_dev;
+	int irq_num;
+	int qup_id;
+	char idev_name[32];
+	int event_type;
+	int event_code;
+	struct mutex lock;
+	bool prepared;
+	bool wakeup_enabled;
+	bool read_image_flag;
+	unsigned int sensor_id;
+	unsigned int sensor_id_ud;
+	struct pinctrl* pctrl;
+	struct pinctrl_state* pins_default;
+	struct pinctrl_state* pins_idle;
+	char module_id[64];
+	char module_id_ud[64];
+	bool irq_enabled;
+	bool irq_sensorhub_enabled;
+	unsigned int pen_anti_enable;
+	int hbm_status;
+	wait_queue_head_t hbm_queue;
+	unsigned int irq_custom_scheme;
+	fingerprint_bigdata_t fingerprint_bigdata;
+	int cts_home;
 };
 
 #ifdef CONFIG_LLT_TEST

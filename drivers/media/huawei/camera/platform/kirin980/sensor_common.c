@@ -23,12 +23,14 @@
 static int is_fpga = 0; //default is no fpga
 static atomic_t volatile s_powered = ATOMIC_INIT(0);
 extern int strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count);
-
-
+extern unsigned int *lpm3;
 typedef struct __power_seq_type_tab {
 	const char* seq_name;
 	enum sensor_power_seq_type_t seq_type;
 } power_seq_type_tab;
+
+#define LPM3_REGISTER_ENABLE (1)
+#define LPM3_REGISTER_DISABLE (0)
 
 static power_seq_type_tab seq_type_tab[] = {
 	{"sensor_suspend", SENSOR_SUSPEND},
@@ -66,7 +68,6 @@ static power_seq_type_tab seq_type_tab[] = {
 	{"sensor_mipi_sw", SENSOR_MIPI_SW},
 	{"laser_xshut", SENSOR_LASER_XSHUT},
 };
-
 
 int hw_sensor_get_thermal(const char *name,int *temp)
 {
@@ -107,12 +108,12 @@ int mclk_config(sensor_t *s_ctrl, unsigned int id, unsigned int clk, int on)
 	}
 	dev = s_ctrl->dev;
 
-	cam_debug("%s enter.id(%u), clk(%u), on(%d)", __func__, id, clk, on);
+	cam_info("%s enter.id(%u), clk(%u), on(%d)", __func__, id, clk, on);
 
 
 
     /* clk_isp_snclk max value is 48000000 */
-    if((id > 4) || (clk > 48000000)) {
+    if(clk > 48000000) {
         cam_err("input(id[%d],clk[%d]) is error!\n", id, clk);
         return -1;
     }
@@ -138,7 +139,7 @@ int mclk_config(sensor_t *s_ctrl, unsigned int id, unsigned int clk, int on)
 				dev_err(dev, "cloud not prepare_enalbe clk_isp_snclk0. \n");
 				return ret;
 			}
-		}else if(1 == id) {
+		}else if(1 == id || 6 == id) {
 			s_ctrl->isp_snclk1 = devm_clk_get(dev, "clk_isp_snclk1");
 
 			if(IS_ERR_OR_NULL(s_ctrl->isp_snclk1)) {
@@ -184,12 +185,12 @@ int mclk_config(sensor_t *s_ctrl, unsigned int id, unsigned int clk, int on)
         if((0 == id) && (NULL != s_ctrl->isp_snclk0)) {
             clk_disable_unprepare(s_ctrl->isp_snclk0);
             cam_debug("clk_disable_unprepare snclk0.\n");
-        }else if((1 == id) && (NULL != s_ctrl->isp_snclk1)) {
+        }else if(((1 == id) || (6 == id)) && (NULL != s_ctrl->isp_snclk1)) {
             clk_disable_unprepare(s_ctrl->isp_snclk1);
-            cam_debug("clk_disable_unprepare snclk1.\n");
+            cam_info("clk_disable_unprepare snclk1.\n");
         }else if((fSnclk2) && (NULL != s_ctrl->isp_snclk2)) {
             clk_disable_unprepare(s_ctrl->isp_snclk2);
-            cam_debug("clk_disable_unprepare snclk2.\n");
+            cam_info("clk_disable_unprepare snclk2.\n");
         }
     }
 
@@ -486,6 +487,18 @@ int hw_sensor_power_up(sensor_t *s_ctrl)
 		cam_debug("%s pimc ctrl is null.", __func__);
 	}
 
+	/* lpm3 buck support, do wrtel enable */
+	if (s_ctrl->board_info->lpm3_gpu_buck == 1) {
+		if (!lpm3) {
+			cam_info("%s lpm3 is null", __func__);
+		}
+		else {
+			cam_info("%s need to set LPM3_GPU_BUCK", __func__);
+			/* do enable */
+			writel(LPM3_REGISTER_ENABLE, lpm3);
+			cam_info("%s read LPM3_GPU_BUCK is %d", __func__, readl(lpm3));
+		}
+	}
 	for (index = 0; index < power_setting_array->size; index++) { /*lint !e574 */
 		power_setting = &power_setting_array->power_setting[index];
 		switch(power_setting->seq_type) {
@@ -684,8 +697,6 @@ int hw_sensor_power_up(sensor_t *s_ctrl)
 		}
 	}
 
-	/* atomic_set(&s_powered, 1); */
-
 	if (s_ctrl->p_atpowercnt){
 		atomic_set(s_ctrl->p_atpowercnt, 1); /*lint !e1058 !e446 */
 		cam_debug("%s (%d): sensor powered up finish", __func__, __LINE__);
@@ -724,11 +735,6 @@ int hw_sensor_power_down(sensor_t *s_ctrl)
 			return 0;
 		}
 	}
-
-	/* if (!atomic_read(&s_powered)) { */
-		/* cam_info("%s: sensor hasn't powered up.", __func__); */
-		/* return 0; */
-	/* } */
 
 	for (index = (power_setting_array->size - 1); index >= 0; index--) {
 		power_setting = &power_setting_array->power_setting[index];
@@ -920,6 +926,19 @@ int hw_sensor_power_down(sensor_t *s_ctrl)
 			break;
 		}
 
+	}
+
+	/* lpm3 buck support, do wrtel disable */
+	if (s_ctrl->board_info->lpm3_gpu_buck == 1) {
+		if (!lpm3) {
+			cam_info("%s lpm3 is null.", __func__);
+		}
+		else {
+			cam_info("%s need to clear LPM3_GPU_BUCK.", __func__);
+			/* do disable */
+			writel(LPM3_REGISTER_DISABLE, lpm3);
+			cam_info("%s read LPM3_GPU_BUCK is %d", __func__, readl(lpm3));
+		}
 	}
 
 	pmic_ctrl = hisi_get_pmic_ctrl();
@@ -1373,7 +1392,6 @@ int hw_sensor_get_dt_data(struct platform_device *pdev,
 		}
 	}
 
-
 	sensor_info->gpio_num = of_gpio_count(of_node);
 	if(sensor_info->gpio_num < 0 ) {
 		cam_err("%s failed %d, ret is %d\n", __func__, __LINE__, sensor_info->gpio_num);
@@ -1437,6 +1455,18 @@ int hw_sensor_get_dt_data(struct platform_device *pdev,
 		sensor_info->need_rpc = 0;
 		cam_warn("%s read need_rpc failed, rc %d, set default value %d\n",
 		__func__, rc, sensor_info->need_rpc);
+		rc = 0;
+	}
+
+	sensor_info->lpm3_gpu_buck = 0;
+	rc = of_property_read_u32(of_node, "lpm3_gpu_buck",
+		&sensor_info->lpm3_gpu_buck); /*lint !e64 */
+	cam_info("%s lpm3_gpu_buck 0x%x, rc %d\n",
+		__func__, sensor_info->lpm3_gpu_buck, rc);
+	if (rc < 0) {
+		sensor_info->lpm3_gpu_buck = 0;
+		cam_warn("%s read lpm3_gpu_buck failed, rc %d\n",
+			__func__, rc);
 		rc = 0;
 	}
 

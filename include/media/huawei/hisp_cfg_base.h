@@ -62,6 +62,7 @@ typedef struct addr_params
     size_t offset_in_pool;
     size_t pool_align_size;
     uint32_t security_isp_mode;
+    uint32_t isApCached;
 }addr_param_t;
 
 // enum hisi_isp_rproc_case_attr {
@@ -93,9 +94,11 @@ enum hisp_config_type {
     HISP_CONFIG_ISP_TURBO,
     HISP_CONFIG_ISP_NORMAL,
     HISP_CONFIG_ISP_LOWPOWER,
+    HISP_CONFIG_ISP_ULTRALOW,
     HISP_CONFIG_R8_TURBO,
     HISP_CONFIG_R8_NORMAL,
     HISP_CONFIG_R8_LOWPOWER,
+    HISP_CONFIG_R8_ULTRALOW,
     HISP_CONFIG_PROC_TIMEOUT,
     HISP_CONFIG_MAX_INDEX
 };

@@ -711,7 +711,6 @@ static int ncp6925_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl, pmic_seq_index
         cam_debug("%s chx_enable 0x%x, voltage_reg 0x%x, voltage_val 0x%x", __func__, chx_enable, voltage_reg, voltage_val);
     } else {
         i2c_func->i2c_write(i2c_client, CHX_EN, chx_enable_tmp & (~chx_enable));
-        //i2c_func->i2c_write(i2c_client, voltage_reg, state);
         if (seq_index >= VOUT_BUCK_1) {
             i2c_func->i2c_read(i2c_client, BUCK_VSEL, &buck12_prog_old);
             buck12_prog = buck12_prog_old & (~(seq_index == VOUT_BUCK_1 ? 0x1 : 0x2));

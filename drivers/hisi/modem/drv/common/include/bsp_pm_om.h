@@ -256,7 +256,8 @@ void pm_om_wakeup_log(void);
 #define CPUIDLE_STAMP_OFFSET           (CDRX_DUMP_ICC_OFFSET+CDRX_DUMP_ICC_SIZE)
 #define CPUIDLE_STAMP_SIZE             (4*CCPU_CORE_NUM*0x6*0x2)/*each stamp 4byte,each cpu record 6 stamp,0x2 means 32K stamp and hrt stamp*/
 
-#define CCPU_WAKEUP_IRQ_NUM_MAX 15
+#define CCPU_WAKEUP_IRQ_NUM_MAX 50
+#define CCPU_WAKEUP_IRQ_NUM_SEND 15
 /* STAMP */
 #define STAMP_START_ADDR            (0)
 #define PM_DPM_FAIL_COUNT           (4+STAMP_START_ADDR)
@@ -361,7 +362,7 @@ struct pm_stat_info
 	u32 gic_suspend_fail_cnt;
 	u32 wakeup_int_cnt;/*ccore wakeup irq number*/
 	char latest_wakeup_int_name[pm_wakeirq_name_len];
-	struct pm_wakeup_irq_info wakeup_int_array[CCPU_WAKEUP_IRQ_NUM_MAX];
+	struct pm_wakeup_irq_info wakeup_int_array[CCPU_WAKEUP_IRQ_NUM_SEND];
 };
 
 #define DRV_PM_INFO_SIZE  (sizeof(struct pm_stat_info))

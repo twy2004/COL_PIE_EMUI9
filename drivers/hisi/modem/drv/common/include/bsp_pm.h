@@ -51,7 +51,7 @@
 #include <product_config.h>
 #include <osl_types.h>
 #include <mdrv_pm.h>
-#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__)
+#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <bsp_notifier.h>
 #endif
 /*
@@ -64,12 +64,15 @@
 #if (defined (CONFIG_CCORE_BALONG_PM)&&defined(__VXWORKS__) ) ||\
 	 (defined (CONFIG_CCORE_BALONG_PM)&&defined(__OS_RTOSCK__) ) ||\
 	  (defined (CONFIG_CCORE_BALONG_PM)&&defined(__OS_RTOSCK_SMP__) ) ||\
-     (defined (CONFIG_BALONG_PM_SUSPEND)&&defined(__KERNEL__) ) \
+	  (defined (CONFIG_CCORE_BALONG_PM)&&defined(__OS_RTOSCK_TVP__) ) ||\
+	  (defined (CONFIG_CCORE_BALONG_PM)&&defined(__OS_RTOSCK_TSP__) ) ||\
+	 (defined (CONFIG_BALONG_PM_SUSPEND)&&defined(__KERNEL__) ) ||\
+	(defined (CONFIG_NRCCPU_PM)&&defined(__OS_NRCCPU__) )
 
 void pm_enable_wake_src(enum pm_wake_src wake_src);
 void pm_disable_wake_src(enum pm_wake_src wake_src);
 u32 pm_get_acore_sleep_times(void);
-#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__)
+#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 int balong_pm_init(void);
 u32 pm_in_waiting_pd(void);
 int pm_register_sleep_ops(unsigned char* pname,PWC_SLEEP_FUNCPTR suspend,PWC_SLEEP_FUNCPTR resume);
@@ -78,12 +81,15 @@ int bsp_cpu_pm_register(struct notifier_block *nb);
 int bsp_cpu_pm_unregister(struct notifier_block *nb);
 void cpu_down(u32 cpu);
 void cpu_pm_notifier_call_chain(unsigned long val);
+void bsp_memretention_set(MEM_RETENTION_CTRL_ID_E value);
+void bsp_memretention_unset(MEM_RETENTION_CTRL_ID_E value);
+
 #endif
 #else
 static inline void pm_enable_wake_src(enum pm_wake_src wake_src){}
 static inline void pm_disable_wake_src(enum pm_wake_src wake_src){}
 static inline u32 pm_get_acore_sleep_times(void){return 0;}
-#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__)
+#if defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TSP__)||defined(__OS_RTOSCK_TVP__)
 static inline void balong_pm_init(void){}
 static inline u32 pm_in_waiting_pd(void){return 0;}
 static inline int pm_register_sleep_ops(unsigned char* pname,PWC_SLEEP_FUNCPTR suspend,PWC_SLEEP_FUNCPTR resume){return 0;}
@@ -92,6 +98,8 @@ static inline int bsp_cpu_pm_register(struct notifier_block *nb){return 0;}
 static inline int bsp_cpu_pm_unregister(struct notifier_block *nb){return 0;}
 static inline void cpu_down(u32 cpu){}
 static inline void cpu_pm_notifier_call_chain(unsigned long val){}
+static inline void bsp_memretention_set(MEM_RETENTION_CTRL_ID_E value){}
+static inline void bsp_memretention_unset(MEM_RETENTION_CTRL_ID_E value){}
 #endif/*defined (__OS_RTOSCK__) || defined(__VXWORKS__)||defined(__OS_RTOSCK_SMP__)*/
 #endif
 enum debug_wake_type{

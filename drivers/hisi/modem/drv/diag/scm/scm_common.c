@@ -65,7 +65,7 @@
 #include <bsp_shared_ddr.h>
 #include "diag_system_debug.h"
 
-u64 g_dma_mask = (u64)(-1);
+extern struct platform_device *modem_socp_pdev;
 /*****************************************************************************
  Function   : VOS_UnCacheMemAlloc
  Description: allocate uncached memory.
@@ -77,9 +77,7 @@ u64 g_dma_mask = (u64)(-1);
 void *scm_UnCacheMemAlloc(u32 ulSize, unsigned long *pulRealAddr)
 {
     void                           *pVirtAdd;
-    dma_addr_t                          ulAddress = 0;
-
-    struct device                       dev;
+    dma_addr_t                      ulAddress = 0;
 
     if ( 0 == ulSize )
     {
@@ -95,26 +93,13 @@ void *scm_UnCacheMemAlloc(u32 ulSize, unsigned long *pulRealAddr)
     *pulRealAddr = 0;
     pVirtAdd     = 0;
 
-    memset_s(&dev, sizeof(dev), 0, sizeof(dev));
-    dma_set_mask_and_coherent(&dev, g_dma_mask);	
-    of_dma_configure(&dev, NULL);
-    pVirtAdd = dma_alloc_coherent(&dev, ulSize, &ulAddress, GFP_KERNEL);
+
+    pVirtAdd = dma_alloc_coherent(&modem_socp_pdev->dev, ulSize, &ulAddress, GFP_KERNEL);
 
     *pulRealAddr = (unsigned long)ulAddress;
 
     return pVirtAdd;
 }
-
-
-
-void scm_FlushCpuWriteBuf(void)
-{
-    __asm(" DSB sy ");
-    __asm(" ISB sy ");
-
-    return ;
-}
-
 
 
 unsigned long scm_UncacheMemPhyToVirt(u8 *pucCurPhyAddr, u8 *pucPhyStart, u8 *pucVirtStart, u32 ulBufLen)
@@ -143,6 +128,12 @@ unsigned long scm_UncacheMemPhyToVirt(u8 *pucCurPhyAddr, u8 *pucPhyStart, u8 *pu
 u32 diag_shared_mem_write(u32 eType, u32 len, char *pData)
 {
     u8 *ptr;
+
+    if((pData == NULL) || (len == 0))
+    {
+        diag_error("diag_shm_ops: para error, len=0x%x.\n", len);
+        return ERR_MSP_FAILURE;
+    }
 
     switch(eType)
     {
@@ -190,16 +181,17 @@ u32 diag_shared_mem_read(u32 eType)
     switch(eType)
     {
         case POWER_ON_LOG_A:
-                ptr = (u8 *)(SHM_BASE_ADDR+SHM_OFFSET_DIAG_POWER_ON_LOG);
+                ptr = (u8 *)(SHM_BASE_ADDR + SHM_OFFSET_DIAG_POWER_ON_LOG);
                 val = ((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cPowerOnlogA;
                 return val;
 
         case DS_DATA_BUFFER_STATE:
-                ptr = (u8 *)(((unsigned long)SHM_BASE_ADDR)+SHM_OFFSET_DIAG_POWER_ON_LOG);
+                ptr = (u8 *)(((unsigned long)SHM_BASE_ADDR) + SHM_OFFSET_DIAG_POWER_ON_LOG);
                 val = (u32)(((SHM_POWER_ON_LOG_FLAG_STRU *)ptr)->cDsSocpBuffer);//lint !e571
-                return val;                
+                return val;
         default:
-            return ERR_MSP_INVALID_ID;
+            diag_error("type is invalid,type:0x%x\n", eType);
+            return ERR_MSP_FAILURE;
     }
 }
 

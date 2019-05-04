@@ -53,6 +53,8 @@
 
 #include "AtSndMsg.h"
 #include "ATCmdProc.h"
+#include "TafCcmApi.h"
+
 
 
 /*****************************************************************************
@@ -1240,6 +1242,7 @@ VOS_UINT32 AT_SetCclprPara(VOS_UINT8 ucIndex)
 VOS_UINT32 AT_SetRejCallPara(VOS_UINT8 ucIndex)
 {
     MN_CALL_SUPS_PARAM_STRU             stCallRejParam;
+    AT_MODEM_CC_CTX_STRU               *pstCcCtx = VOS_NULL_PTR;
 
      /* 指令类型检查 */
     if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
@@ -1273,6 +1276,16 @@ VOS_UINT32 AT_SetRejCallPara(VOS_UINT8 ucIndex)
     {
         AT_WARN_LOG("AT_SetRejCallPara : Send Msg fail!");
         return AT_ERROR;
+    }
+
+    /* 停止自动接听 */
+    pstCcCtx = AT_GetModemCcCtxAddrFromClientId(ucIndex);
+
+    if (VOS_TRUE == pstCcCtx->stS0TimeInfo.bTimerStart)
+    {
+        AT_StopRelTimer(pstCcCtx->stS0TimeInfo.ulTimerName, &(pstCcCtx->stS0TimeInfo.s0Timer));
+        pstCcCtx->stS0TimeInfo.bTimerStart = TAF_FALSE;
+        pstCcCtx->stS0TimeInfo.ulTimerName = 0;
     }
 
     gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_REJCALL_SET;
@@ -1314,15 +1327,19 @@ VOS_UINT32 AT_QryCimsErrPara(VOS_UINT8 ucIndex)
 
 VOS_UINT32 AT_QryCsChannelInfoPara( VOS_UINT8 ucIndex )
 {
+    TAF_CTRL_STRU                       stCtrl;
     VOS_UINT32                          ulRst;
 
-    /* 发送异步应用请求 */
-    ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
-                                   gastAtClientTab[ucIndex].opId,
-                                   ID_TAF_APP_CHANNEL_INFO_QRY_REQ,
-                                   VOS_NULL_PTR,
-                                   0,
-                                   I0_WUEPS_PID_TAF);
+    TAF_MEM_SET_S(&stCtrl, sizeof(stCtrl), 0x00, sizeof(stCtrl));
+
+    stCtrl.ulModuleId                   = WUEPS_PID_AT;
+    stCtrl.usClientId                   = gastAtClientTab[ucIndex].usClientId;
+    stCtrl.ucOpId                       = gastAtClientTab[ucIndex].opId;
+
+    ulRst   = AT_SndCcmReqMsg( &stCtrl,
+                                    VOS_NULL_PTR,
+                                    ID_TAF_CCM_QRY_CHANNEL_INFO_REQ,
+                                    0);
 
     if (VOS_OK != ulRst)
     {
@@ -1336,64 +1353,5 @@ VOS_UINT32 AT_QryCsChannelInfoPara( VOS_UINT8 ucIndex )
     return AT_WAIT_ASYNC_RETURN;
 }
 
-
-VOS_UINT32 AT_RcvTafSpmQryCSChannelInfoCnf(
-    MN_AT_IND_EVT_STRU                 *pstData
-)
-{
-    TAF_APP_CHANNEL_INFO_QRY_CNF_STRU  *pstChannelInfo = VOS_NULL_PTR;
-    VOS_UINT32                          ulResult;
-    VOS_UINT8                           ucIndex;
-
-    ucIndex        = 0;
-
-    /* 根据clientId获取通道索引 */
-    if (AT_FAILURE == At_ClientIdToUserId(pstData->clientId, &ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvTafQryChannelCnf: Get Index Fail!");
-        return VOS_ERR;
-    }
-
-    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvTafSpmQryChannelInfoCnf: WARNING:AT_BROADCAST_INDEX.");
-        return VOS_ERR;
-    }
-
-     /* 当前AT是否在等待该命令返回 */
-    if (AT_CMD_CSCHANNELINFO_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt)
-    {
-        return VOS_ERR;
-    }
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    pstChannelInfo = (TAF_APP_CHANNEL_INFO_QRY_CNF_STRU *)(pstData->aucContent + sizeof(MN_CALL_EVENT_ENUM_U32));
-
-    if (VOS_OK != pstChannelInfo->ulResult)
-    {
-        ulResult = AT_ERROR;
-        gstAtSendData.usBufLen = 0;
-    }
-    else
-    {
-        ulResult = AT_OK;
-
-        /* 输出查询结果 */
-        gstAtSendData.usBufLen = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr,
-                                          "%s: %d,%d",
-                                          g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                          pstChannelInfo->enChannelType,
-                                          pstChannelInfo->enVoiceDomain);
-    }
-
-    /* 调用At_FormatResultData发送命令结果 */
-    At_FormatResultData(ucIndex, ulResult);
-
-    return VOS_OK;
-}
 
 

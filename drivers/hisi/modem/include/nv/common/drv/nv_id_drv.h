@@ -89,6 +89,11 @@ typedef enum
     NV_ID_DRV_IQI                          = 0xd17e,    //DRV_IQI_CFG_STRU
     NV_ID_DRV_CHR                          = 0xd182,    //ST_CHR_REPORT_STRU
     NV_ID_DRV_PMU_SIM_CFG                  = 0xd187,    //DRV_NV_PMU_TYPE
+	NV_ID_DRV_ADC_XO_CONVERT_TABLE         = 0xd18f,    //DRV_ADC_XO_CONVERT_TABLE
+    NV_ID_DRV_NR_PWR                       = 0xd18e,    //ST_PWC_NR_POWERCTRL_STRU
+    NV_ID_DRV_ADC_PA_CONVERT_TABLE         = 0xd190,    //DRV_ADC_PA_CONVERT_TABLE
+    NV_ID_DRV_TSENSOR_TEMP_PROTECT_CONTROL = 0xd194,    //DRV_TSENSOR_TEMP_PROTECT_CONTROL
+     NV_ID_DRV_DDR_TMON_PROTECT = 0xd196, //DRV_DDR_TMON_PROTECT
     NV_ID_DRV_ID_MAX                       = 0xd1ff
 
 }NV_ID_DRV_ENUM;

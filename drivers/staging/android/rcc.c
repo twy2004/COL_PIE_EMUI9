@@ -48,8 +48,12 @@ static bool is_swap_full(int max_percent)
 static bool is_memory_free_enough(int free_pages_min)
 {
 	unsigned long nr_free_pages;
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0))
+               nr_free_pages = global_zone_page_state(NR_FREE_PAGES);
+#else
 	nr_free_pages = global_page_state(NR_FREE_PAGES);
-	if (nr_free_pages > free_pages_min)
+#endif
+    if (nr_free_pages > free_pages_min)
 		return true;
 	return false;
 }
@@ -127,16 +131,16 @@ static cputime64_t get_idle_time(int cpu)
 
 static u64 get_idle_time(int cpu)
 {
-	u64 idle, idle_time = -1ULL;
+	u64 idle, idle_usecs = -1ULL;
 
 	if (cpu_online(cpu))
-		idle_time = get_cpu_idle_time_us(cpu, NULL);
+		idle_usecs = get_cpu_idle_time_us(cpu, NULL);
 
-	if (idle_time == -1ULL)
+	if (idle_usecs == -1ULL)
 		/* !NO_HZ or cpu offline so we can rely on cpustat.idle */
 		idle = kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
 	else
-		idle = usecs_to_cputime64(idle_time);
+		idle = idle_usecs * NSEC_PER_USEC;
 
 	return idle;
 }
@@ -162,7 +166,7 @@ static int _get_cpu_load(clock_t *last_cpu_stat)
 	}
 
 	for (i = 0; i < IDX_CPU_MAX; i++) {
-		tmp = cputime64_to_clock_t(cpustat[i]);
+		tmp = nsec_to_clock_t(cpustat[i]);
 		stat[i] = tmp - last_cpu_stat[i];
 		last_cpu_stat[i] = tmp;
 	}
@@ -584,7 +588,7 @@ static ssize_t full_clean_size_show(struct kobject *kobj,
 }
 
 /* purpose: attr set:  */
-static ssize_t full_clean_size__store(struct kobject *kobj,
+static ssize_t full_clean_size_store(struct kobject *kobj,
 				      struct kobj_attribute *attr,
 				      const char *buf, size_t len)
 {
@@ -594,10 +598,14 @@ static ssize_t full_clean_size__store(struct kobject *kobj,
 	size = memparse(buf, NULL);
 	if (!size)
 		return -EINVAL;
-
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0))
+               nr_file_pages = global_zone_page_state(NR_INACTIVE_FILE);
+               nr_file_pages += global_zone_page_state(NR_ACTIVE_FILE);
+#else
 	nr_file_pages = global_page_state(NR_INACTIVE_FILE);
 	nr_file_pages += global_page_state(NR_ACTIVE_FILE);
-	size = size >> PAGE_SHIFT;
+#endif
+    size = size >> PAGE_SHIFT;
 
 	/* size should not larger than file cache pages. */
 	if(size > nr_file_pages)
@@ -657,7 +665,7 @@ static RCC_ATTR(swap_percent_low, RCC_MODE_RW, swap_percent_low_show,
 static RCC_ATTR(free_size_min, RCC_MODE_RW, free_size_min_show,
 		free_size_min_store);
 static RCC_ATTR(full_clean_size, RCC_MODE_RW, full_clean_size_show,
-		full_clean_size__store);
+		full_clean_size_store);
 static RCC_ATTR(stat, RCC_MODE_RO, rcc_stat_show, NULL);
 static RCC_ATTR(max_anon_clean_size, RCC_MODE_RW, max_anon_clean_size_show, max_anon_clean_size_store);
 

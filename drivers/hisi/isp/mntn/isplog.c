@@ -32,6 +32,7 @@
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
 #include <linux/version.h>
+#include <isp_ddr_map.h>
 
 #define MEM_MAP_MAX_SIZE    (0x40000)
 #define MEM_SHARED_SIZE     (0x1000)
@@ -368,6 +369,11 @@ static int isplog_mmap(struct file *filp, struct vm_area_struct *vma)
         return -ENOMEM;
     }
 
+    if (!vma) {
+        pr_err("%s: vma is NULL \n", __func__);
+        return -EINVAL;
+    }
+
     if (vma->vm_start == 0) {
         pr_err("[%s] Failed : vm_start.0x%lx\n", __func__, vma->vm_start);
         return -EINVAL;
@@ -492,7 +498,7 @@ static ssize_t isplogctrl_show(struct device *pdev,
 
     for (i = 0; i < (int)((int)sizeof(loglevel) / (int)sizeof(struct level_switch_s)); i ++) {
         // cppcheck-suppress *
-        s += sprintf(s, "[%s.%s] : %s\n",
+        s += sprintf(s, "[%s.%s] : %s\n",/* unsafe_function_ignore: sprintf */
                  (param ? ((logx_switch & loglevel[i].level)
                  ? loglevel[i].enable_cmd : loglevel[i].disable_cmd) : "ispoffline"),
                  ((dev->local_loglevel & loglevel[i].

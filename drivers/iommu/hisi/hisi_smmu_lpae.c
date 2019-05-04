@@ -23,7 +23,7 @@
 #include <linux/spinlock.h>
 #include <asm/pgalloc.h>
 #include <linux/debugfs.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/uaccess.h>
 #include <linux/bitops.h>
 #include <linux/hisi/rdr_hisi_ap_hook.h>
@@ -212,6 +212,9 @@ static int hisi_smmu_alloc_init_pte_lpae(struct iommu_domain *domain,
 		smmu_pmd_t *ppmd, unsigned long addr, unsigned long end,
 		unsigned long pfn, u64 prot, unsigned long *flags)
 {
+#ifdef CONFIG_HISI_LB
+	u32 pid;
+#endif
 	smmu_pte_t *pte, *start;
 	pgtable_t table;
 	u64 pteval = SMMU_PTE_TYPE;
@@ -275,10 +278,10 @@ pte_ready:
 	}
 
 #ifdef CONFIG_HISI_LB
-	if (!(prot & IOMMU_NO_LB_MAP))
-		pteval |= lb_pte_attr(__pfn_to_phys(pfn));
-
+	pid = (prot & IOMMU_PORT_MASK) >> IOMMU_PORT_SHIFT;
+	pteval |= !pid  ?  0 : lb_pid_to_gidphys(pid);
 #endif
+
 	do {
 		if (!pte_is_valid_lpae(pte))
 			*pte = (u64)(__pfn_to_phys(pfn)|pteval);
@@ -323,7 +326,7 @@ static int hisi_smmu_alloc_init_pmd_lpae(struct iommu_domain *domain,
 	spin_unlock_irqrestore(&hisi_domain->lock, *flags);
 
 pmd_ready:
-	if (prot & IOMMU_SEC)
+	if ((unsigned int)prot & IOMMU_SEC)
 		*ppgd &= (~SMMU_PGD_NS);
 	start = (smmu_pmd_t *)smmu_pmd_page_vaddr_lpae(ppgd)
 		+ smmu_pmd_index(addr);

@@ -1087,7 +1087,7 @@ static int f54_rawimage_report(void)
 			(int32_t*)kzalloc((rows_size+1)*(columns_size+1)*sizeof(int32_t), GFP_KERNEL);
 		rawdata_from_chip = (int*)kzalloc((rows_size * columns_size)*sizeof(int), GFP_KERNEL);
 		if (!limit_tab.MutualRawMax || !limit_tab.MutualRawMin || !rawdata_from_chip){
-			TS_LOG_ERR("kzalloc error: MutualRawMax:%p, MutualRawMin:%p, rawdata_from_chip:%p\n",
+			TS_LOG_ERR("kzalloc error: MutualRawMax:%pK, MutualRawMin:%pK, rawdata_from_chip:%pK\n",
 				limit_tab.MutualRawMax, limit_tab.MutualRawMin, rawdata_from_chip);
 			goto error_release_mem;
 		}
@@ -2483,7 +2483,6 @@ exit:
 static int synaptics_rmi4_f54_attention_cust(void)
 {
 	int retval;
-	int l;
 	unsigned char report_index[2];
 	int i = 0;
 	unsigned int report_times_max = 0;

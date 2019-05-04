@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -143,7 +143,7 @@ typedef struct
     unsigned int                          ulSocpReadDoneErrLen;
 }OM_SOCP_CHANNEL_DEBUG_INFO;
 
-#define OM_PORT_HANDLE_NUM      (5) /*OM_PORT_HANDLE_NUM = OM_PORT_HANDLE_BUTT*/
+#define OM_PORT_HANDLE_NUM      (7) /*OM_PORT_HANDLE_NUM = OM_PORT_HANDLE_BUTT*/
 /*用于记录当前OM通道的信息*/
 typedef struct
 {
@@ -168,6 +168,15 @@ typedef struct
     unsigned int                          ulVCOMRcvErrNum;
     unsigned int                          ulVCOMRcvErrLen;
 }OM_VCOM_DEBUG_INFO;
+
+typedef struct
+{
+    unsigned int UsbSendTime;
+    unsigned int UsbCallbackDiagTime;
+    unsigned int UsbMaxSendTime;
+    unsigned int UsbMaxCallBackTime;
+    unsigned int UsbCallbackCount;
+}OM_PPM_USB_DEBUG_INFO;
 
 /* mntn info ***********************************************************************/
 typedef enum
@@ -208,20 +217,31 @@ typedef struct
     unsigned int      ulDeltaVcomFailLen;         /* 上报时间间隔内Vcom写入失败的总字节数 */
     unsigned int      ulDeltaVcomSucessLen;       /* 上报时间间隔内Vcom写入成功的总字节数 */
 
+    unsigned int      ulDeltaPcdevLen;              /* 上报时间间隔内发送给PCDEV的总字节数 */
+    unsigned int      ulDeltaPcdevOKLen;            /* 上报时间间隔内发送给PCDEV返回成功的总字节数 */
+    unsigned int      ulDeltaPcdevFreeLen;          /* 上报时间间隔内PCDEV回调释放的总字节数 */
+    unsigned int      ulDeltaPcdevFailLen;          /* 上报时间间写入PCDEV失败的总字节数 */
+
     unsigned int      ulDeltaSocketLen;           /* 上报时间间隔内发送给Socket的总字节数 */
     unsigned int      ulDeltaSocketSucessLen;     /* 上报时间间隔内Socket写入成功的总字节数 */
     unsigned int      ulDeltaSocketFailLen;       /* 上报时间间隔内Socket写入成功的总字节数 */
 
-    unsigned int      ulDeltaSocpIntToPortTime;     /* 上报时间段内从socp上报中断开始到调用各端口发送的时间总和 */
+    unsigned int      ulDeltaSocpIntToPortTime;   /* 上报时间段内从socp上报中断开始到调用各端口发送的时间总和 */
 
     unsigned int      ulDeltaUsbSendTime;         /* 上报时间段内发送给USB占用的时间总和 */
+    unsigned int      ulDeltaPcdevSendTime;        /* 上报时间段内发送给USB/PCDEV占用的时间总和 */
     unsigned int      ulDeltaVcomSendTime;        /* 上报时间段内发送给Vcom占用的时间总和 */
     unsigned int      ulDeltaSockSendTime;        /* 上报时间段内发送给Socket占用的时间总和 */
 
-    unsigned int      ulThrputPhy;               /* 物理通道吞吐率 */
-    unsigned int      ulThrputCb;                /* 回调吞吐率 */
+    unsigned int      ulThrputPhy;                /* 物理通道吞吐率 */
+    unsigned int      ulThrputCb;                 /* 回调吞吐率 */
 
-    unsigned int      aulReserve[12];              /* 预留 */
+    unsigned int      aulSocpTrfInfo;             /* SOCP传输完成次数 */
+    unsigned int      aulSocpThrOvfInfo;          /* SOCP阈值上溢次数 */
+
+    OM_PPM_USB_DEBUG_INFO  aulPpmUsbInfo;         /* PPM USB维测信息 */
+
+    //unsigned int      aulReserve[0];              /* DIAG 维测预留空间*/
 
     unsigned int      aulToolreserve[12];         /* 给工具预留的64个字节，用于在工具上显示工具的维测信息 */
 }DIAG_MNTN_DST_INFO_STRU;
@@ -232,6 +252,7 @@ typedef unsigned int (*PPM_DisconnectTLPortFuc)(void);
 typedef unsigned int (*CPM_RCV_FUNC)(unsigned char *pucData, unsigned int ulLen);
 /* 通道接收数据、数据长度、回卷数据、回卷数据长度 */
 typedef void (*SCM_DECODERDESTFUCN)(SOCP_DECODER_DST_ENUM_U32 enChanID,unsigned char *pucData, unsigned int ulSize, unsigned char *pucRBData, unsigned int ulRBSize);
+typedef unsigned int (*DRV_DIAG_SERVICE_FUNC)(void *pData);
 
 void mdrv_PPM_RegDisconnectCb(PPM_DisconnectTLPortFuc cb);
 void mdrv_scm_reg_ind_coder_dst_send_fuc(void);
@@ -239,16 +260,25 @@ unsigned int mdrv_CPM_ComSend(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, unsigned c
 void mdrv_CPM_LogicRcvReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc);
 unsigned int mdrv_PPM_LogPortSwitch(unsigned int  ulPhyPort, unsigned int ulEffect);
 unsigned int mdrv_PPM_QueryLogPort(unsigned int  *pulLogPort);
-void mdrv_scm_ind_dst_read_cb(void);
 unsigned int mdrv_SCM_RegDecoderDestProc(SOCP_DECODER_DST_ENUM_U32 enChanlID, SCM_DECODERDESTFUCN func);
 void mdrv_diag_get_dst_mntn_info(DIAG_MNTN_DST_INFO_STRU * dst_mntn);
-void mdrv_diag_reset_dst_mntn_info(void);
 void mdrv_scm_set_power_on_log(void);
-
+void mdrv_diag_ServiceProcReg(DRV_DIAG_SERVICE_FUNC pServiceFn);
 int mdrv_socp_set_cfg_ind_mode(SOCP_IND_MODE_ENUM eMode);
 int mdrv_socp_get_cfg_ind_mode(unsigned int *eMode);
 int mdrv_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode);
 int mdrv_socp_get_cps_ind_mode(unsigned int *eMode);
+void mdrv_PPM_QueryUsbInfo(void *PpmUsbInfoStru, unsigned int len);
+void mdrv_PPM_ClearUsbTimeInfo(void);
+void mdrv_ppm_pcdev_ready(void);
+unsigned int mdrv_diag_get_usb_type(void);
+
+/*****************************************************************************
+ 函 数 名  : diag_report_reset_msg
+ 功能描述  :
+ 输入参数  : 上报单独复位消息(CNF通道TRNANS消息)
+*****************************************************************************/
+unsigned int mdrv_diag_report_reset_msg(DRV_DIAG_TRANS_IND_STRU *pstData);
 
 #ifdef __cplusplus
 }

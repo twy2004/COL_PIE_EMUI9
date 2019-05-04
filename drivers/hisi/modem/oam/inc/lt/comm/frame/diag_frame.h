@@ -74,10 +74,12 @@ extern "C" {
 #define SERVICE_HEAD_SID(pData)   ((VOS_UINT32)(((DIAG_SERVICE_HEAD_STRU *)pData)->sid4b))
 #define DIAG_4G_FRAME_HEAD_LEN    (sizeof(DIAG_SERVICE_HEAD_STRU) + sizeof(VOS_UINT32))
 #define DIAG_SERVICE_HEAD_VER(pData) (((DIAG_SERVICE_HEAD_STRU *)pData)->ver4b)
+#define DIAG_SERVICE_GET_CMDID(pData) (((DIAG_FRAME_INFO_STRU *)pData)->ulCmdId)
 #else
 #define SERVICE_HEAD_SID(pData)         ((VOS_UINT32)(((DIAG_SERVICE_HEAD_STRU *)pData)->sid8b))
 #define DIAG_4G_FRAME_HEAD_LEN          (sizeof(DIAG_SERVICE_HEAD_STRU))
 #define DIAG_SERVICE_HEAD_VER(pData)    ((((DIAG_SERVICE_HEAD_STRU *)pData)->sid8b)&0xF0)//sid8b在5G中为sid4b ver4b 取
+#define DIAG_SERVICE_GET_CMDID(pData)   (((DIAG_FRAME_INFO_STRU *)pData)->ulCmdId)
 #endif
 
 /* DIAG_SERVICE_HEAD_STRU:sessionid8b */

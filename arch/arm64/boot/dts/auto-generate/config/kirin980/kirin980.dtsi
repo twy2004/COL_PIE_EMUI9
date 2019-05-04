@@ -15,6 +15,7 @@
 /include/ "kirin980_ion.dtsi"
 /include/ "kirin980_i2c.dtsi"
 /include/ "kirin980_hw_vote.dtsi"
+/include/ "kirin980_smmu.dtsi"
 /include/ "kirin980_memory.dtsi"
 /include/ "kirin980_efuse.dtsi"
 /include/ "kirin980_earlymount.dtsi"

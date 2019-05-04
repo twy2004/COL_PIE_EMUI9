@@ -47,8 +47,8 @@ void slimbus_utils_init(void __iomem * addr, int src_freq);
 void slimbus_utils_deinit(void);
 void slimbus_freq_request(void);
 void slimbus_freq_release(void);
-uint32_t slimbus_port_state_get(void __iomem *slimbus_base_addr);
-uint32_t slimbus_asp_state_get(void __iomem *asppower_base_addr, uint32_t offset);
+uint32_t slimbus_port_state_get(const void __iomem *slimbus_base_addr);
+uint32_t slimbus_asp_state_get(const void __iomem *asppower_base_addr, uint32_t offset);
 void slimbus_module_enable(slimbus_device_info_t *dev, bool enable);
 
 #endif

@@ -791,6 +791,7 @@ VOS_UINT32 ADS_DL_ValidateImmMem(IMM_ZC_STRU *pstImmZc)
 }
 
 
+
 VOS_VOID ADS_DL_Xmit(
     IMM_ZC_STRU                         *pstImmZc,
     VOS_UINT32                           ulInstance,
@@ -1059,60 +1060,62 @@ VOS_VOID ADS_DL_ProcIpfResult(VOS_VOID)
             continue;
         }
 
-        /* 校验IMM内存 */
-        if (VOS_OK != ADS_DL_ValidateImmMem(pstImmZc))
         {
-            IMM_ZcFreeAny(pstImmZc);
-            continue;
-        }
-
-        /* 统计异常数据 */
-        ADS_DL_RecordPacketErrorStats(pstImmZc);
-
-        /* 统计下行周期性收到的数据字节数，用于流量查询 */
-        ADS_RECV_DL_PERIOD_PKT_NUM(pstRdDesc->u16PktLen);
-
-        /* 待实现 */
-        ulRnicNapiPollQueLen = 0;
-
-        ADS_MNTN_RecDLIpPktInfo(pstImmZc,
-                                ADS_DL_GET_IPF_RSLT_USR_FIELD1_FROM_IMM(pstImmZc),
-                                pstRdDesc->u32UsrField2,
-                                pstRdDesc->u32UsrField3,
-                                ulRnicNapiPollQueLen);
-
-        /* 获取IPF RESULT */
-        pstIpfResult = (ADS_DL_IPF_RESULT_STRU *)&(pstRdDesc->u16Result);
-
-        /* BearId 0x3F: 正常下行数据包需要转发给NDIS/PPP/RNIC*/
-        if (CDS_ADS_DL_IPF_BEARER_ID_INVALID == pstIpfResult->usBearedId)
-        {
-            if (pstRdDesc->u16Result & ADS_DL_IPF_RESULT_PKT_ERR_MASK)
-            {
-                ADS_DBG_DL_RDQ_RX_ERR_PKT_NUM(1);
-            }
-
-            ulTxTimeout = ADS_DL_TX_WAKE_LOCK_TMR_LEN;
-
-            if (VOS_TRUE == g_ulAdsDlDiscardPktFlag)
+            /* 校验IMM内存 */
+            if (VOS_OK != ADS_DL_ValidateImmMem(pstImmZc))
             {
                 IMM_ZcFreeAny(pstImmZc);
                 continue;
             }
 
-            ADS_DL_ProcTxData(pstImmZc);
-            ADS_DBG_DL_RDQ_RX_NORM_PKT_NUM(1);
-        }
-        else
-        {
-            if (VOS_FALSE != VOS_CheckInterrupt())
+            /* 统计异常数据 */
+            ADS_DL_RecordPacketErrorStats(pstImmZc);
+
+            /* 统计下行周期性收到的数据字节数，用于流量查询 */
+            ADS_RECV_DL_PERIOD_PKT_NUM(pstRdDesc->u16PktLen);
+
+            /* 待实现 */
+            ulRnicNapiPollQueLen = 0;
+
+            ADS_MNTN_RecDLIpPktInfo(pstImmZc,
+                                    ADS_DL_GET_IPF_RSLT_USR_FIELD1_FROM_IMM(pstImmZc),
+                                    pstRdDesc->u32UsrField2,
+                                    pstRdDesc->u32UsrField3,
+                                    ulRnicNapiPollQueLen);
+
+            /* 获取IPF RESULT */
+            pstIpfResult = (ADS_DL_IPF_RESULT_STRU *)&(pstRdDesc->u16Result);
+
+            /* BearId 0x3F: 正常下行数据包需要转发给NDIS/PPP/RNIC*/
+            if (CDS_ADS_DL_IPF_BEARER_ID_INVALID == pstIpfResult->usBearedId)
             {
-                /* 先入队列缓存 */
-                IMM_ZcQueueTail(ADS_GET_IPF_FILTER_QUE(), pstImmZc);
+                if (pstRdDesc->u16Result & ADS_DL_IPF_RESULT_PKT_ERR_MASK)
+                {
+                    ADS_DBG_DL_RDQ_RX_ERR_PKT_NUM(1);
+                }
+
+                ulTxTimeout = ADS_DL_TX_WAKE_LOCK_TMR_LEN;
+
+                if (VOS_TRUE == g_ulAdsDlDiscardPktFlag)
+                {
+                    IMM_ZcFreeAny(pstImmZc);
+                    continue;
+                }
+
+                ADS_DL_ProcTxData(pstImmZc);
+                ADS_DBG_DL_RDQ_RX_NORM_PKT_NUM(1);
             }
             else
             {
-                ADS_DL_ProcIpfFilterData(pstImmZc);
+                if (VOS_FALSE != VOS_CheckInterrupt())
+                {
+                    /* 先入队列缓存 */
+                    IMM_ZcQueueTail(ADS_GET_IPF_FILTER_QUE(), pstImmZc);
+                }
+                else
+                {
+                    ADS_DL_ProcIpfFilterData(pstImmZc);
+                }
             }
         }
     }
@@ -1129,6 +1132,7 @@ VOS_VOID ADS_DL_ProcIpfResult(VOS_VOID)
     ADS_DL_FeedBackPacketErrorIfNeeded();
 
     ADS_MNTN_ReportDLPktInfo();
+
 
     ADS_DL_EnableTxWakeLockTimeout(ulTxTimeout);
     return;

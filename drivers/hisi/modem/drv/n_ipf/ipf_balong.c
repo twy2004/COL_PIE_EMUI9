@@ -69,6 +69,7 @@
 #include <bsp_vic.h>
 #include <bsp_slice.h>
 #include <securec.h>
+#include "hi_ipf.h"
 
 #define IPF_VIC_LEVEL		5
 #define DELAY_WAIT_CIPHER   2

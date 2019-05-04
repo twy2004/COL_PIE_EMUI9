@@ -18,11 +18,8 @@
 #include <linux/gpio.h>
 #include <asm/page.h>
 
-#define ISPCPU_COREDUMP_ADDR        (0xC4000000)
-#define ISPCPU_COREDUMP_SIZE        (0x01500000) /*should equal DEFAULT_ROTATE_SIZE*/
-#define MEM_RAW2YUV_DA              (0xC8000000) /*  the raw2yuv iova addr */
-#define MEM_RAW2YUV_SIZE            (0x04000000) /*  the raw2yuv size */
-
+#define IOMMU_MASK (~(IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE | IOMMU_NOEXEC | IOMMU_MMIO | IOMMU_DEVICE | IOMMU_EXEC))
+#define ISP_FW_MEM_SHARED_SIZE   (0x1000)
 struct rproc_ops;
 struct platform_device;
 struct rproc;
@@ -214,8 +211,9 @@ enum HISP_CLK_TYPE {
 enum HISP_CLKDOWN_TYPE {
     HISP_CLK_TURBO      = 0,
     HISP_CLK_NORMINAL   = 1,
-    HISP_CLK_SVS        = 2,
-    HISP_CLK_DISDVFS    = 3,
+    HISP_CLK_LOWSVS     = 2,
+    HISP_CLK_SVS        = 3,
+    HISP_CLK_DISDVFS    = 4,
     HISP_CLKDOWN_MAX
 };
 
@@ -362,6 +360,8 @@ int atfisp_isptop_power_down(void);
 int atfisp_disreset_ispcpu(void);
 int use_nonsec_isp(void);
 int ispcpu_qos_cfg(void);
+int hisp_qos_dtget(struct device_node *np);
+void hisp_qos_free(void);
 int use_sec_isp(void);
 u64 get_a7sharedmem_addr(void);
 u64 get_a7remap_addr(void);
@@ -414,6 +414,7 @@ ssize_t atfisp_test_show(struct device *pdev, struct device_attribute *attr, cha
 ssize_t atfisp_test_store(struct device *pdev, struct device_attribute *attr, const char *buf, size_t count);
 ssize_t security_show(struct device *dev, struct device_attribute *attr, char *buf);
 ssize_t security_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+ssize_t ispbinupdate_show(struct device *pdev, struct device_attribute *attr, char *buf);
 #endif
 int hisp_sec_jpeg_powerup(void);
 int hisp_sec_jpeg_powerdn(void);
@@ -469,6 +470,7 @@ static inline void ap_send_fiq2ispcpu(void){return;}
 void virtqueue_sg_init(struct scatterlist *sg, void *va, dma_addr_t dma, int size);
 int rpmsg_vdev_map_resource(struct virtio_device *vdev, dma_addr_t dma, int total_space);
 extern int rproc_add_virtio_devices(struct rproc *rproc);
+int rproc_trigger_auto_boot(struct rproc *rproc);
 extern int rproc_bootware_attach(struct rproc *rproc, const char *bootware);
 extern struct rproc_shared_para *rproc_get_share_para(void);
 extern int rproc_handle_version(struct rproc *rproc, struct fw_rsc_version *rsc, int offset, int avail);
@@ -489,8 +491,10 @@ extern int secisp_device_disable(void);
 extern void rproc_resource_cleanup(struct rproc *rproc);
 extern void hisp_dynamic_mem_pool_clean(void);
 extern void rproc_fw_config_virtio(const struct firmware *fw, void *context);
+void rproc_auto_boot_callback(const struct firmware *fw, void *context);
 extern int hisp_mem_type_pa_init(unsigned int etype, unsigned long paddr);
 extern int sec_rproc_boot(struct rproc *rproc);
+int nonsec_rproc_boot(struct rproc *rproc);
 extern int hisp_rsctable_init(void);
 extern int hisi_firmware_load_func(struct rproc *rproc);
 extern void hisi_secisp_dump(void);
@@ -546,6 +550,9 @@ extern u64 get_mdc_addr_pa(void);
 extern void set_shared_mdc_pa_addr(u64 mdc_pa_addr);
 extern unsigned int dynamic_memory_map(struct scatterlist *sgl,size_t addr,size_t size,unsigned int prot);
 extern int dynamic_memory_unmap(size_t addr, size_t size);
+int hisp_bsp_read_bin(const char *partion_name, unsigned int offset, unsigned int length, char *buffer);
+int hisp_bin_load_segments(struct rproc *rproc);
+void *hisp_get_rsctable(int *tablesz);
 
 #ifdef CONFIG_HISI_REMOTEPROC_DMAALLOC_DEBUG
 void *get_vring_dma_addr(u64 *dma_handle, size_t size, unsigned int index);

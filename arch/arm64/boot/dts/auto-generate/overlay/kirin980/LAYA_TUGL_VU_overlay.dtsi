@@ -20,22 +20,24 @@
 
 	&fastboot_battery {
 		iin_limit_usb = <475>;
+		status = "ok";
 	};
 
 	&fastboot_charger {
 		hw_charger_type = <9>;
+		chip_i2c_num = <6>;
+		status = "ok";
 	};
 
-	&coul_core {
-		ntc_temp_compensation_para =
-			"6000", "50",
-			"4000", "30",
-			"2000", "10";
-		normal_cutoff_vol_mv = <2900>;
-		sleep_cutoff_vol_mv = <3100>;
+	&usb_ana_hs_fsa4476 {
+		swtich_en2 = <&gpio4 0 0>;
 	};
 
 	&wireless_charger {
+		status = "disabled";
+	};
+
+	&wireless_sc {
 		status = "disabled";
 	};
 
@@ -43,12 +45,22 @@
 		status = "disabled";
 	};
 
-	&wireless_otg {
-		status = "disabled";
+	&vbus_channel_boost_gpio {
+		gpio_otg_switch = <&gpio16 7 0>;
+		status = "ok";
 	};
 
 	&wired_channel_switch {
-		status = "disabled";
+		use_ovp_cutoff_wired_channel = <1>;
+		use_super_switch_cutoff_wired_channel = <0>;
+		use_wireless_switch_cutoff_wired_channel = <0>;
+		status = "ok";
+	};
+
+	&ovp_channel_switch {
+		gpio_ovp_chsw_en = <&gpio17 1 0>;
+		gpio_low_by_set_input = <0>;
+		status = "ok";
 	};
 
 	&ncp3902_channel_switch {
@@ -57,13 +69,19 @@
 
 	&direct_charge_ps {
 		boost_5v_support_scp_power = <0>;
+		huawei_charger_support_scp_power = <0>;
 		bst_ctrl_use_common_gpio = <0>;
 		is_need_bst_ctrl = <0>;
+		status = "ok";
+	};
+
+	&direct_charger {
+		need_wired_sw_off = <0>;
 	};
 
 	&direct_charger_sc {
-		use_5A = <0>;
-		use_8A = <1>;
+		need_wired_sw_off = <0>;
+		use_5A = <1>;
 	};
 
 	&water_check {
@@ -71,7 +89,6 @@
 	};
 
 	&huawei_usb {
-		usb_phy_ldo_33v-supply = <&ldo23>;
 		status = "ok";
 	};
 
@@ -91,6 +108,10 @@
 		};
 
 		i2c@FDF0A000 {
+			hi6523_charger_i2c6@6B{
+				status = "disabled";
+			};
+
 			hi6526_charger_i2c6@6B{
 				status = "ok";
 				fcp_support = <1>;

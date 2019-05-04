@@ -29,7 +29,7 @@
 
 #include "hisi_fb.h"
 #include <huawei_platform/touthscreen/huawei_touchscreen.h>
-
+/*lint -e569 -e574*/
 // only for test video vesa3x
 //#define DSI_1_2_VESA3X_VIDEO
 
@@ -234,7 +234,7 @@ static uint32_t gpio_lcd_p5v5_enable;
 static uint32_t gpio_lcd_n5v5_enable;
 static uint32_t gpio_lcd_reset;
 static uint32_t gpio_lcd_bl_enable;
-static uint32_t gpio_lcd_tp2v85;
+static uint32_t gpio_lcd_tp2v85; //lint !e551
 static uint32_t gpio_lcd_tp1v8;
 
 static struct gpio_desc fpga_lcd_gpio_request_cmds[] = {
@@ -504,7 +504,7 @@ static int mipi_jdi_panel_on(struct platform_device *pdev)
 		}
 
 		//if (is_mipi_video_panel(hisifd)) {
-		//	mipi_dsi_cmds_tx(lcd_display_video_cmds, \
+		//	mipi_dsi_cmds_tx(lcd_display_video_cmds,
 		//		ARRAY_SIZE(lcd_display_video_cmds), mipi_dsi1_base);
 		//}
 		// lcd display on sequence
@@ -1073,7 +1073,6 @@ err_return:
 err_probe_defer:
 	return -EPROBE_DEFER;
 
-	return ret;
 }
 
 static const struct of_device_id hisi_panel_match_table[] = {
@@ -1112,3 +1111,4 @@ static int __init mipi_jdi_NT35695_cut3_1_panel_init(void)
 }
 
 module_init(mipi_jdi_NT35695_cut3_1_panel_init);
+/*lint +e569 +e574*/

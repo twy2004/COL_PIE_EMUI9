@@ -208,10 +208,8 @@ int dsm_emmc_get_log(void *card, int code, char *err_msg)
 			if (sizeof(struct mmc_cid) < buff_size) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
-				/*lint -e559*/
 				ret = snprintf(dsm_log_buff, buff_size, "manufacturer_id:%04x Error Num:%lu, %s",
-						card_dev->cid.manfid, code, err_msg);
-				/*lint +e559*/
+						card_dev->cid.manfid, code, err_msg);/*lint !e559 */
 #pragma GCC diagnostic pop
 				if (ret < 0) {
 					pr_err("%s:%d ++\n", __func__, __LINE__);

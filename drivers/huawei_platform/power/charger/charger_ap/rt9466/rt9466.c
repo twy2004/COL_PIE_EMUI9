@@ -46,6 +46,7 @@
 #define VBUS_POST_THRESHOLD     1000
 #define RT9466_BOOST_VOTGBST    5000
 #define AICR_LOWER_BOUND        150
+#define VBUS_FAKE_5V            5000
 
 static int huawei_force_hz = 0; /* for huawei force enable hz */
 static struct i2c_client *g_rt9466_i2c;
@@ -2083,7 +2084,7 @@ static int rt9466_set_ieoc(int ieoc)
 	return (ret < 0 ? ret : 0);
 }
 
-static int rt9466_set_boost_voltage(unsigned int voltage)
+static int rt9466_set_boost_voltage(int voltage)
 {
 	u8 reg_voltage = 0;
 	struct rt9466_info *info = i2c_get_clientdata(g_rt9466_i2c);
@@ -2091,7 +2092,7 @@ static int rt9466_set_boost_voltage(unsigned int voltage)
 	if (voltage < RT9466_BOOST_VOREG_MIN)
 		return -1;
 	reg_voltage = (voltage - RT9466_BOOST_VOREG_MIN) / RT9466_BOOST_VOREG_STEP;
-	dev_info(info->dev, "%s: boost voltage = %d(0x%02X)\n", __func__, reg_voltage);
+	dev_info(info->dev, "%s: boost voltage = %d\n", __func__, reg_voltage);
 
 	return rt9466_i2c_update_bits(info, RT9466_REG_CHG_CTRL5,
 		reg_voltage << RT9466_SHIFT_BOOST_VOREG, RT9466_MASK_BOOST_VOREG);
@@ -2370,6 +2371,7 @@ static int rt9466_get_charge_state(unsigned int *state)
 
 static int rt9466_get_vbus(unsigned int *vbus)
 {
+#if 0
 	int ret = 0, adc_vbus = 0;
 	struct rt9466_info *info = i2c_get_clientdata(g_rt9466_i2c);
 
@@ -2379,6 +2381,9 @@ static int rt9466_get_vbus(unsigned int *vbus)
 		return -1;
 	}
 	*vbus = adc_vbus;
+	return 0;
+#endif
+	*vbus = VBUS_FAKE_5V; /* compatible with 9V adapter */
 	return 0;
 }
 
@@ -2565,16 +2570,16 @@ static int rt9466_5v_chip_init(void)
 static int rt9466_chip_init(struct chip_init_crit* init_crit)
 {
 	int ret = -1;
-	if (!init_crit) {
-		dev_err("%s: init_crit is null\n", __func__);
+	struct rt9466_info *info = i2c_get_clientdata(g_rt9466_i2c);
+
+	if (!info || !init_crit)
 		return -ENOMEM;
-	}
+
 	switch(init_crit->vbus) {
 		case ADAPTER_5V:
 			ret = rt9466_5v_chip_init();
 			break;
 		default:
-			dev_err("%s: init mode err\n", __func__);
 			break;
 	}
 	return ret;

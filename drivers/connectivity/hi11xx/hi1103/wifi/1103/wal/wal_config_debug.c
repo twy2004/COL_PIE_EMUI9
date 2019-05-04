@@ -236,12 +236,6 @@ OAL_STATIC oal_uint32  wal_config_oam_output(mac_vap_stru *pst_mac_vap, oal_uint
     return hmac_config_oam_output_etc(pst_mac_vap, us_len, puc_param);
 }
 
-
-OAL_STATIC oal_uint32  wal_config_ampdu_start(mac_vap_stru *pst_mac_vap, oal_uint16 us_len, oal_uint8 *puc_param)
-{
-    return hmac_config_ampdu_start_etc(pst_mac_vap, us_len, puc_param);
-}
-
 #ifdef _PRE_WLAN_CHIP_FPGA_PCIE_TEST
 
 OAL_STATIC oal_uint32  wal_config_pcie_test(mac_vap_stru *pst_mac_vap, oal_uint16 us_len, oal_uint8 *puc_param)
@@ -2555,7 +2549,6 @@ OAL_CONST wal_wid_op_stru g_ast_board_wid_op_debug_etc[] =
     {WLAN_CFGID_SET_ALL_OTA,            OAL_FALSE,  {0},    OAL_PTR_NULL,            wal_config_set_all_ota},
     {WLAN_CFGID_SET_DHCP_ARP,           OAL_FALSE,  {0},    OAL_PTR_NULL,            wal_config_set_dhcp_arp_switch},
     {WLAN_CFGID_OAM_OUTPUT_TYPE,        OAL_FALSE,  {0},    OAL_PTR_NULL,            wal_config_oam_output},
-    {WLAN_CFGID_AMPDU_START,            OAL_FALSE,  {0},    OAL_PTR_NULL,            wal_config_ampdu_start},
 #ifdef _PRE_WLAN_CHIP_FPGA_PCIE_TEST
     {WLAN_CFGID_PCIE_TEST,              OAL_FALSE,  {0},    OAL_PTR_NULL,            wal_config_pcie_test},
 #endif
@@ -2847,11 +2840,12 @@ OAL_CONST wal_wid_op_stru g_ast_board_wid_op_debug_etc[] =
     {WLAN_CFGID_SET_RX_AMPDU_AMSDU,     OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
     {WLAN_CFGID_SET_SK_PACING_SHIFT,    OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
     {WLAN_CFGID_SET_ADDBA_RSP_BUFFER,   OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
+    {WLAN_CFGID_SET_TRX_STAT_LOG,       OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
 #ifdef _PRE_WLAN_FEATURE_DFS_ENABLE
     {WLAN_CFGID_SET_DFS_MODE,           OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
 #endif
-
-    {WLAN_CFGID_SET_ADC_DAC_FREQ,       OAL_FALSE,  {0},    OAL_PTR_NULL,     wal_config_set_tlv_cmd},
+    {WLAN_CFGID_MIMO_BLACKLIST,         OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
+    {WLAN_CFGID_SET_ADC_DAC_FREQ,       OAL_FALSE,  {0},    OAL_PTR_NULL,       wal_config_set_tlv_cmd},
 
 
 #ifdef _PRE_WLAN_FEATURE_AUTO_FREQ

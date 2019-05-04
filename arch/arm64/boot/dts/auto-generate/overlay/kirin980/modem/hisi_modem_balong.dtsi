@@ -10,6 +10,7 @@
 /include/ "hisi_modem_timer_balong.dtsi"
 /include/ "hisi_modem_ipc.dtsi"
 /include/ "hisi_modem_icc_balong.dtsi"
+/include/ "hisi_modem_pcie_icc_balong.dtsi"
 /include/ "hisi_modem_sysctrl.dtsi"
 /include/ "hisi_modem_hwadp_drv.dtsi"
 /include/ "hisi_modem_hwadp_gups.dtsi"
@@ -23,6 +24,8 @@
 /* peripheral --- bsp2 */
 /include/ "hisi_modem_dsp_balong.dtsi"
 /include/ "hisi_modem_pmic_ocp.dtsi"
+/include/ "hisi_modem_aslr.dtsi"
+/include/ "hisi_modem_mloader.dtsi"
 
 /* debug system --- bsp1 */
 /include/ "hisi_modem_socp_balong.dtsi"
@@ -38,6 +41,9 @@
 /* data transfer --- bsp4 */
 /include/ "hisi_modem_ipf_balong.dtsi"
 /include/ "hisi_modem_psam_balong.dtsi"
+/include/ "hisi_modem_pcdev.dtsi"
+/include/ "hisi_modem_peth.dtsi"
 
 /include/ "hisi_modem_ads.dtsi"
 
+/include/ "hisi_modem_osa.dtsi"

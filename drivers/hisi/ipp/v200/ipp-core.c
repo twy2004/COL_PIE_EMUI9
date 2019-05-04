@@ -25,8 +25,7 @@
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
 #include <linux/genalloc.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/version.h>
 #include <linux/hisi/hipp.h>
 #include "mfnr.h"
@@ -39,6 +38,9 @@
 #include "memory.h"
 #include <media/camera/jpeg/jpeg_base.h>
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include <linux/ion-iommu.h>
+#endif
 
 #define SLAM_BI_SID     (30)
 #define SLAM_STAT_SID   (32)

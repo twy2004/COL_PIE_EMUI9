@@ -1615,6 +1615,12 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 		atomic_set(&newsk->sk_drops, 0);
 		newsk->sk_send_head	= NULL;
 		newsk->sk_userlocks	= sk->sk_userlocks & ~SOCK_BINDPORT_LOCK;
+#ifdef CONFIG_HUAWEI_BASTET
+		if (sk_fullsock(newsk)) {
+			newsk->bastet = NULL;
+			newsk->reconn = NULL;
+		}
+#endif
 
 		sock_reset_flag(newsk, SOCK_DONE);
 #ifdef CONFIG_MPTCP
@@ -2579,6 +2585,10 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 #endif
 #ifdef CONFIG_HW_DPIMARK_MODULE
 	sk->sk_born_stamp = jiffies;
+#endif
+
+#ifdef CONFIG_HW_STRICT_RST
+	sk->is_strict_rst = false;
 #endif
 
 	/*

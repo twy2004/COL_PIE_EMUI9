@@ -41,7 +41,6 @@
 #include "hisi_hisee_upgrade.h"
 #include "hisi_hisee_chip_test.h"
 #include <dsm/dsm_pub.h>
-#include <hitest_slt.h>
 
 /*1:one rpmbkey, 0:error, 2:two rpmbkey*/
 extern u32 get_rpmb_support_key_num(void);
@@ -298,6 +297,17 @@ static int hisee_verify_isd_key(hisee_cos_imgid_type cos_id)
 	return ret;
 }
 
+/****************************************************************************//**
+ * @brief      : is_hisee_chiptest_slt
+ * @param[in]  : NA
+ * @return     : ::bool
+ * @note       : if yes return true, else false.
+********************************************************************************/
+bool is_hisee_chiptest_slt(void)
+{
+	return false;
+}
+
 
 /****************************************************************************//**
  * @brief      : bypass_write_casd_key
@@ -350,7 +360,10 @@ static int hisee_write_casd_key(void)
         return HISEE_OK;
     }
 
-    if (true == get_bypass_casd()) {
+    /* if is slt, bypass write casd in misc upgrade process */
+    if (true == is_hisee_chiptest_slt()) {
+        ret = bypass_write_casd_key();
+    } else if (true == get_bypass_casd()) {
         /* in default, do not write casd key */
         ret = bypass_write_casd_key();
     } else {
@@ -890,6 +903,33 @@ int hisee_parallel_manufacture_func(void *buf, int para)
 /* hisee slt test function end */
 
 /****************************************************************************//**
+ * @brief      : hisee_temp_limit_cfg
+ * @param[in]  : flag, on or off
+ * @return     : void
+ * @note       :
+********************************************************************************/
+static void hisee_temp_limit_cfg(hisee_tmp_cfg_state flag)
+{
+	unsigned int value;
+	static void __iomem *hisee_temp_addr = 0;
+
+	if (!hisee_temp_addr) {
+		hisee_temp_addr = ioremap(HISEE_HIGH_TEMP_PROTECT_ADDR, sizeof(unsigned int));
+		if (!hisee_temp_addr) {
+			pr_err("hisee init temp addr failed!\n");
+			return;
+		}
+	}
+	value = readl(hisee_temp_addr);
+	if (HISEE_TEMP_CFG_OFF == flag) {
+		value |= BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT);
+	} else {
+		value &= (~BIT(HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT));
+	}
+	writel(value, hisee_temp_addr);
+}
+
+/****************************************************************************//**
  * @brief      : hisee_factory_check
  *                  send smc to atf to check factory check values.
  * @param[in]  : NA
@@ -954,6 +994,10 @@ static int hisee_factory_check_body(void *arg)
 	factory_slt_test_para[0] = HISEE_CHAR_SPACE;
 	factory_slt_test_para[2] = '0' + COS_PROCESS_UPGRADE;
 
+	/*To avoid enter into the otp flash process in case the status is PREPARED.*/
+	hisee_chiptest_set_otp1_status(NO_NEED);
+	hisee_temp_limit_cfg(HISEE_TEMP_CFG_OFF);
+
 	for (cos_id = 0; cos_id < cos_image_num; cos_id++) {
 		/* If there is no image for current cos id in hisee_img, bypass upgrading. */
 		if (HISEE_COS_EXIST != g_hisee_data.hisee_img_head.is_cos_exist[cos_id]) {
@@ -987,6 +1031,7 @@ err_process:
 	if (HISEE_OK == ret){
 		ret = ret1;
 	}
+	hisee_temp_limit_cfg(HISEE_TEMP_CFG_ON);;
 	set_errno_and_return(ret);
 }
 

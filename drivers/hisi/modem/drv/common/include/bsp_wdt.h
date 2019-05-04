@@ -51,9 +51,7 @@
 #include <soc_interrupts.h>
 #include <soc_clk.h>
 #include <bsp_memmap.h>
-#include <bsp_hardtimer.h>
 #include <bsp_nvim.h>
-#include <bsp_softtimer.h>
 #include <bsp_print.h>
 
 
@@ -90,7 +88,7 @@
 #define WDT_HI_TIMER_CLK				(32768)
 //4fe1fe00
 #define STOP_WDT_TRACR_RUN_FLAG			(((SRAM_SMALL_SECTIONS * )((unsigned long)SRAM_BASE_ADDR + SRAM_OFFSET_SMALL_SECTIONS))->SRAM_WDT_AM_FLAG)
-#elif defined( __OS_VXWORKS__)||defined( __OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#elif defined( __OS_VXWORKS__)||defined( __OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #define WATCHDOG_TIMEOUT_SEC				(32768 * 30)
 #define WDT_HI_TIMER_CLK									(32768)
 #define STOP_WDT_TRACR_RUN_FLAG			(((SRAM_SMALL_SECTIONS * )((unsigned long)SRAM_BASE_ADDR + SRAM_OFFSET_SMALL_SECTIONS))->SRAM_WDT_CM_FLAG)
@@ -116,10 +114,6 @@ struct wdt_info{
 		u32  task_delay_value;
 		u32  wdt_timeout;
 		u32  wdt_suspend_timeout;
-#if defined(__KERNEL__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
-		struct bsp_hardtimer_control my_timer;
-#endif
-		struct softtimer_list      wdt_timer_list;
 		u32 periphid;
 		u32 mdm_wdt_num;
 };
@@ -129,6 +123,9 @@ typedef enum _WDT_CORE_ID{
 	WDT_ACORE_ID,
 	WDT_SRE_CORE_ID,
 	WDT_MCORE_ID,
+	WDT_NRCCPU_ID,
+	WDT_L2HAC_ID,
+	WDT_HL1C_ID,
 	MAX_WDT_CORE_ID,
 }WDT_CORE_ID;
 
@@ -141,7 +138,7 @@ s32  bsp_wdt_reboot_unregister_hook(void);
 void bsp_wdt_irq_disable(WDT_CORE_ID core_id);
 void bsp_wdt_irq_enable(WDT_CORE_ID core_id);
 s32 bsp_watchdog_init(void);
-#if defined( __OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined( __OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 int bsp_wdt_start(u32 core_id);
 int bsp_wdt_stop(unsigned int cpu_id);
 u32 bsp_wdt_task_suspend(u32 cpu_id);

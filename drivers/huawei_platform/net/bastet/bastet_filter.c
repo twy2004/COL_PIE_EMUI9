@@ -75,14 +75,9 @@ static void get_process_info_by_skb(struct sk_buff *skb,
  *			sk_buff continue to be transfered
 */
 
-static unsigned int hook_local_out_cb(unsigned int hooknum,
-	struct sk_buff *skb,
-	const struct net_device *in,
-	const struct net_device *out,
-	int (*okfn)(struct sk_buff *))
+static unsigned int hook_local_out_cb(void *ops, struct sk_buff *skb,
+		const struct nf_hook_state *state)
 {
-
-
 	struct set_process_info info;
 	struct list_head *pos;
 	struct st_proc_info_node *tmp_node;
@@ -154,7 +149,6 @@ static struct nf_hook_ops ipv6_local_out_ops = {
 	.hooknum	=	NF_INET_LOCAL_OUT,
 	.priority	=	NF_IP6_PRI_FIRST,
 };
-
 
 /**
  * Function: add_proc_info_to_white_list
@@ -290,13 +284,12 @@ static int del_all_proc_info_from_white_list(void)
  */
 int set_proc_info(struct set_process_info *info)
 {
+	int rc = 0;
+
 	if(IS_ERR_OR_NULL(info)) {
 		BASTET_LOGE("invalid parameter");
 		return -EFAULT;
 	}
-
-	int rc = 0;
-
 	switch (info->cmd) {
 	case CMD_ADD_PROC_INFO:
 		rc = add_proc_info_to_white_list(info);
@@ -339,6 +332,7 @@ int set_special_uid(int32_t uid)
  * Date: 2015.12.24
  * Author: Zhang Kaige ID: 00220931
  */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 int set_netfilter(bool state)
 {
 	static bool isRegistered;
@@ -368,6 +362,37 @@ int set_netfilter(bool state)
 	isRegistered = true;
 	return 0;
 }
+#else
+int set_netfilter(bool state)
+{
+	static bool isRegistered;
+
+	BASTET_LOGI("isRegister=%d", state);
+
+	if (!state) {
+		if (isRegistered) {
+			nf_unregister_net_hook(&init_net, &ipv4_local_out_ops);
+			nf_unregister_net_hook(&init_net, &ipv6_local_out_ops);
+			isRegistered = false;
+		}
+		return 0;
+	}
+
+	if (nf_register_net_hook(&init_net, &ipv4_local_out_ops) < 0) {
+		BASTET_LOGE("register ipv4 fail");
+		nf_unregister_net_hook(&init_net, &ipv4_local_out_ops);
+		return -EFAULT;
+	}
+	if (nf_register_net_hook(&init_net, &ipv6_local_out_ops) < 0) {
+		BASTET_LOGE("register ipv6 fail");
+		nf_unregister_net_hook(&init_net, &ipv4_local_out_ops);
+		nf_unregister_net_hook(&init_net, &ipv6_local_out_ops);
+		return -EFAULT;
+	}
+	isRegistered = true;
+	return 0;
+}
+#endif
 
 /**
  * Function: bastet_filter_init

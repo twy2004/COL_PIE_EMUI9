@@ -444,8 +444,7 @@ extern int tcpm_typec_set_rp_level(
 extern int tcpm_typec_role_swap(
 	struct tcpc_device *tcpc_dev);
 
-extern int tcpm_typec_notify_direct_charge(
-	struct tcpc_device *tcpc_dev, bool dc);
+extern int tcpm_typec_notify_direct_charge(void *client, bool dc);
 extern int tcpm_typec_change_role(
 	struct tcpc_device *tcpc_dev, uint8_t typec_role);
 

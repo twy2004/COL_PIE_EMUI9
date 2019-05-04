@@ -54,15 +54,6 @@ struct sk_buff_head g_UdpSkbList;
 struct timer_list   g_UdpSkb_timer;
 uid_t  g_UdpRetranUid;
 bool   g_Emcom_udptimerOn = false;
-#ifdef CONFIG_SMART_MP
-struct Emcom_Xengine_SmartMpInfo {
-	struct list_head list;
-	uint32_t uid;
-	uint32_t mark;
-};
-
-static LIST_HEAD(smartmp_list);
-#endif
 uid_t g_FastSynUid;
 #define FAST_SYN_COUNT (5)
 #define EMCOM_UDPRETRAN_NODELAY
@@ -244,7 +235,6 @@ bool Emcom_Xengine_IsAccUid(uid_t lUid)
 	return false;
 }
 
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
 
 
 bool Emcom_Xengine_Hook_Ul_Stub(struct sock *pstSock)
@@ -276,8 +266,6 @@ bool Emcom_Xengine_Hook_Ul_Stub(struct sock *pstSock)
 
 	return bFound;
 }
-#endif
-
 
 
 int Emcom_Xengine_clear(void)
@@ -599,8 +587,7 @@ int Emcom_Xengine_Config_MPIP(uint8_t *pdata, uint16_t len)
 int Emcom_Xengine_Clear_Mpip_Config(uint8_t *pdata, uint16_t len)
 {
 	uint8_t            uIndex;
-	uint8_t            *ptemp;
-	uint8_t            ulength;
+
 	/*The empty updated list means clear the Mpip App Uid list*/
 	EMCOM_LOGD("The Mpip list will be update to empty.");
 
@@ -716,7 +703,9 @@ void Emcom_Xengine_Mpip_Bind2Device(struct sock *pstSock)
 		rcu_read_unlock();
 		if ((!dev) || (!test_bit(__LINK_STATE_START, &dev->state)))
 		{
+			mutex_lock(&g_Mpip_mutex);
 			g_MpipStart = false;
+			mutex_unlock(&g_Mpip_mutex);
 			emcom_send_msg2daemon(NETLINK_EMCOM_KD_XENIGE_DEV_FAIL, NULL, 0);
 			EMCOM_LOGE(" get dev fail or dev is not up.\n");
 			return;
@@ -1007,192 +996,6 @@ int Emcom_Xengine_StopFastSyn(uint8_t *pdata, uint16_t len)
 	return 0;
 }
 
-#ifdef CONFIG_SMART_MP
-static bool Emcom_Xengine_SmartMpUidInlist(uint32_t uid)
-{
-	struct Emcom_Xengine_SmartMpInfo *node;
-
-	rcu_read_lock();
-	list_for_each_entry_rcu(node, &smartmp_list, list) {
-		if (node->uid == uid) {
-			rcu_read_unlock();
-			return true;
-		}
-	}
-	rcu_read_unlock();
-
-	return false;
-}
-
-static uint32_t Emcom_Xengine_SmartMpGetUidByMark(uint32_t mark)
-{
-	struct Emcom_Xengine_SmartMpInfo *node;
-	uint32_t uid;
-
-	if (!mark)
-		return 0;
-
-	rcu_read_lock();
-	list_for_each_entry_rcu(node, &smartmp_list, list) {
-		if (node->mark == mark) {
-			uid = node->uid;
-			rcu_read_unlock();
-			return uid;
-		}
-	}
-	rcu_read_unlock();
-
-	return 0;
-}
-
-static void Emcom_Xengine_SmartMpAdd(uint32_t uid, uint32_t mark)
-{
-	struct Emcom_Xengine_SmartMpInfo *node;
-
-	if (!uid || !mark) {
-		EMCOM_LOGI("Para wrong: uid=%u mark=%u\n", uid, mark);
-		return;
-	}
-
-	if (Emcom_Xengine_SmartMpUidInlist(uid)) {
-		EMCOM_LOGI("uid=%u is already in the list\n", uid);
-		return;
-	}
-
-	node = kmalloc(sizeof(*node), GFP_ATOMIC);
-	if (!node) {
-		EMCOM_LOGE("kmalloc fail\n");
-		return;
-	}
-
-	node->uid = uid;
-	node->mark = mark;
-	EMCOM_LOGD("add uid=%u mark=%u\n", uid, mark);
-	list_add_rcu(&node->list, &smartmp_list);
-}
-
-static void Emcom_Xengine_SmartMpDel(uint32_t uid)
-{
-	struct Emcom_Xengine_SmartMpInfo *node;
-
-	rcu_read_lock();
-	list_for_each_entry_rcu(node, &smartmp_list, list) {
-		if (node->uid == uid ) {
-			rcu_read_unlock();
-			list_del_rcu(&node->list);
-			EMCOM_LOGD("del uid=%u\n", uid);
-			kfree(node);
-			return;
-		}
-	}
-	rcu_read_unlock();
-}
-
-static void Emcom_Xengine_SmartMpClear(void)
-{
-	struct Emcom_Xengine_SmartMpInfo *node;
-
-	while (node = list_first_or_null_rcu(&smartmp_list, struct Emcom_Xengine_SmartMpInfo, list)) {
-		list_del_rcu(&node->list);
-		EMCOM_LOGD("del uid=%u\n", node->uid);
-		kfree(node);
-	}
-}
-
-static void Emcom_Xengine_StartSmartMp(uint8_t *pdata, uint16_t len)
-{
-	uint32_t *p;
-	uint32_t uid, mark;
-
-	/*input param check*/
-	if( NULL == pdata )
-	{
-		EMCOM_LOGE("Emcom_Xengine_StartSmartMp: pdata is null");
-		return;
-	}
-
-	if (len != 2*sizeof(uint32_t)) {
-		EMCOM_LOGI("Emcom_Xengine_StartSmartMp: len %d is illegal", len);
-		return;
-	}
-
-	p = (uint32_t *)pdata;
-	uid = *p;
-	p++;
-	mark = *p;
-	Emcom_Xengine_SmartMpAdd(uid, mark);
-}
-
-static void Emcom_Xengine_StopSmartMp(uint8_t *pdata, uint16_t len)
-{
-	/*input param check*/
-	if( NULL == pdata )
-	{
-		EMCOM_LOGE("Emcom_Xengine_StopSmartMp: pdata is null");
-		return;
-	}
-
-	if (len != sizeof(uint32_t)) {
-		EMCOM_LOGI("Emcom_Xengine_StopSmartMp: len %d is illegal", len);
-		return;
-	}
-
-	Emcom_Xengine_SmartMpDel(*(uint32_t *)pdata);
-}
-
-bool Emcom_Xengine_CheckUidAccount(const struct sk_buff *skb, uint32_t *uid, const struct sock *alternate_sk, int proto)
-{
-	uint32_t new_uid;
-	const struct sock *full_sk;
-	const struct sock *smart_mp_sk;
-
-	if (!skb || !uid)
-		return false;
-
-	if (proto != IPPROTO_UDP)
-		return true;
-
-	if (Emcom_Xengine_SmartMpUidInlist(*uid)) {
-		return false;
-	} else {
-		full_sk = skb_to_full_sk(skb);
-		smart_mp_sk = full_sk ? full_sk : alternate_sk;
-		new_uid = Emcom_Xengine_SmartMpGetUidByMark(skb->mark);
-		if (!new_uid && smart_mp_sk && sk_fullsock(smart_mp_sk))
-			new_uid = Emcom_Xengine_SmartMpGetUidByMark(smart_mp_sk->sk_mark);
-
-		if (new_uid)
-			*uid = new_uid;
-	}
-	return true;
-}
-EXPORT_SYMBOL(Emcom_Xengine_CheckUidAccount);
-
-bool Emcom_Xengine_CheckIfaceAccount(const struct sock *sk, int proto)
-{
-	if (!sk || proto != IPPROTO_UDP
-	    || !Emcom_Xengine_SmartMpUidInlist(sk->sk_uid.val))
-		return true;
-	else
-		return false;
-}
-EXPORT_SYMBOL(Emcom_Xengine_CheckIfaceAccount);
-
-bool Emcom_Xengine_SmartMpEnable(void)
-{
-	if (list_first_or_null_rcu(&smartmp_list, struct Emcom_Xengine_SmartMpInfo, list))
-		return true;
-	else
-		return false;
-}
-EXPORT_SYMBOL(Emcom_Xengine_SmartMpEnable);
-
-void Emcom_Xengine_SmartMpOnDK_Connect(void)
-{
-	Emcom_Xengine_SmartMpClear();
-}
-EXPORT_SYMBOL(Emcom_Xengine_SmartMpOnDK_Connect);
-#endif
 #ifdef CONFIG_MPTCP
 void Emcom_Xengine_MptcpSocketClosed(void *data, int len)
 {
@@ -1205,6 +1008,12 @@ void Emcom_Xengine_MptcpSocketSwitch(void *data, int len)
 	emcom_send_msg2daemon(NETLINK_EMCOM_KD_MPTCP_SOCKET_SWITCH, data, len);
 }
 EXPORT_SYMBOL(Emcom_Xengine_MptcpSocketSwitch);
+
+void Emcom_Xengine_MptcpProxyFallback(void *data, int len)
+{
+	emcom_send_msg2daemon(NETLINK_EMCOM_KD_MPTCP_PROXY_FALLBACK, data, len);
+}
+EXPORT_SYMBOL(Emcom_Xengine_MptcpProxyFallback);
 #endif
 
 
@@ -1268,20 +1077,6 @@ void Emcom_Xengine_EvtProc(int32_t event, uint8_t *pdata, uint16_t len)
 			EMCOM_LOGD("emcom netlink receive fast syn stop\n");
 			Emcom_Xengine_StopFastSyn(pdata, len);
 			break;
-#ifdef CONFIG_SMART_MP
-		case NETLINK_EMCOM_DK_START_SMARTMP:
-			EMCOM_LOGD("emcom netlink receive smartmp start\n");
-			Emcom_Xengine_StartSmartMp(pdata,len);
-			break;
-		case NETLINK_EMCOM_DK_STOP_SMARTMP:
-			EMCOM_LOGD("emcom netlink receive smartmp stop\n");
-			Emcom_Xengine_StopSmartMp(pdata,len);
-			break;
-		case NETLINK_EMCOM_DK_KNL_INIT_SMARTMP:
-			EMCOM_LOGD("emcom netlink receive smartmp init\n");
-			emcom_send_msg2daemon(NETLINK_EMCOM_KD_SMART_MP_ENABLED, NULL, 0);
-			break;
-#endif
 		default:
 			EMCOM_LOGI("emcom Xengine unsupport packet, the type is %d.\n", event);
 			break;
@@ -1295,7 +1090,7 @@ int Emcom_Xengine_SetProxyUid(struct sock *sk, char __user *optval, int optlen)
     int ret = 0;
 
     ret = -EINVAL;
-    if (optlen < 0)
+    if (optlen != sizeof(uid_t))
         goto out;
 
     ret = -EFAULT;
@@ -1350,7 +1145,7 @@ int Emcom_Xengine_SetSockFlag(struct sock *sk, char __user *optval, int optlen)
     int hicom_flag = 0;
 
     ret = -EINVAL;
-    if (optlen < 0)
+    if (optlen != sizeof(uid_t))
         goto out;
 
     ret = -EFAULT;

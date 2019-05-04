@@ -667,6 +667,8 @@ struct sdhci_ops {
 	void (*select_card_type)(struct sdhci_host *host);
 	void (*dumpregs)(struct sdhci_host *host);
 	void (*delay_measurement)(struct sdhci_host *host, struct mmc_ios *ios);
+	void (*set_clk_emmc_gt)(struct sdhci_host *host, bool enable);
+	void (*sqscmd_idle_tmr)(struct cmdq_host *cq_host);
 };
 
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS

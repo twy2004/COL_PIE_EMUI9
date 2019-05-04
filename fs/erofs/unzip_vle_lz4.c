@@ -142,7 +142,6 @@ int z_erofs_vle_unzip_fast_percpu(struct page **compressed_pages,
 	if (ret < 0)
 		goto fail;
 
-	outlen = ret;
 	ret = 0;
 
 	for (i = 0; i < nr_pages; ++i) {
@@ -202,6 +201,9 @@ int z_erofs_vle_unzip_vmap(struct page **compressed_pages,
 	else {
 		vin = erofs_vmap(compressed_pages, clusterpages);
 	}
+
+	if (!vin)
+		return -ENOMEM;
 
 	ret = z_erofs_unzip_lz4(vin, vout + pageofs,
 		clusterpages * PAGE_SIZE, llen, accel);

@@ -1,6 +1,19 @@
 /*
- * Copyright (C) 2012-2015 HUAWEI
- * Author:  L.JH HW
+ * bq25892_charger.h
+ *
+ * bq25892 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
  */
 
 #ifndef _BQ25892_CHARGER_H_
@@ -33,7 +46,7 @@ struct bq25892_device_info {
 };
 
 /*************************marco define area***************************/
-/* DEFAULT VALUE */
+/* default value */
 #define BQ25892_RILIM_124_OHM                      (124)
 #define BQ25892_ADC_CHANNEL_IIN_10                 (10)
 #define BQ25892_ADC_CHANNEL_VBAT_SYS               (14)
@@ -46,14 +59,15 @@ struct bq25892_device_info {
 #define BQ25892_REG_NONE_NONE_MASK                 (0xFF)
 #define BQ25892_REG_NONE_NONE_SHIFT                (0x00)
 
-/* EN_HIZ / EN_ILIM / IINLIM   Register REG0x00 */
+/* EN_HIZ / EN_ILIM / IINLIM Register REG0x00 */
 #define BQ25892_REG_00                             0x00
 
 #define BQ25892_REG_00_EN_HIZ_MASK                 (BIT(7))
 #define BQ25892_REG_00_EN_HIZ_SHIFT                (7)
 #define BQ25892_REG_00_EN_ILIM_MASK                (BIT(6))
 #define BQ25892_REG_00_EN_ILIM_SHIFT               (6)
-#define BQ25892_REG_00_IINLIM_MASK                 (BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_00_IINLIM_MASK                 (BIT(5) | BIT(4) | \
+	BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_00_IINLIM_SHIFT                (0)
 
 #define IINLIM_MIN_100                             (100)
@@ -61,10 +75,11 @@ struct bq25892_device_info {
 #define IINLIM_MAX_3250                            (3250)
 #define IINLIM_FOR_BQ25892_EXIT_PFM                (400)
 
-/* BHOT / BCOLD / VINDPM_OS  Register REG0x01 */
+/* BHOT / BCOLD / VINDPM_OS Register REG0x01 */
 #define BQ25892_REG_01                             0x01
 
-#define BQ25892_REG_01_VINDPM_OS_MASK              (BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_01_VINDPM_OS_MASK              (BIT(4) | BIT(3) | \
+	BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_01_VINDPM_OS_SHIFT             (0)
 
 #define BHOT_THRESHOLD_37                          (0 << 6)
@@ -75,7 +90,10 @@ struct bq25892_device_info {
 #define VINDPM_OS_STEP_100                         (100)
 #define VINDPM_OS_DEFAULT_600                      (600)
 
-/* CONV_START / CONV_RATE / BOOST_FREQ / ICO_EN / HVDCP_EN / MAXC_EN / FORCE_DPDM / AUTO_DPDM_EN  Register REG0x02 */
+/*
+ * CONV_START / CONV_RATE / BOOST_FREQ / ICO_EN / HVDCP_EN /
+ * MAXC_EN / FORCE_DPDM / AUTO_DPDM_EN Register REG0x02
+ */
 #define BQ25892_REG_02                             0x02
 
 #define BQ25892_REG_02_CONV_START_MASK             (BIT(7))
@@ -111,7 +129,7 @@ struct bq25892_device_info {
 #define FORCE_DPDM_EN                              (1)
 #define FORCE_DPDM_DIS                             (0)
 
-/* BAT_LOADEN / WD_RST / OTG_CONFIG / CHG_CONFIG / SYS_MIN  Register REG0x03 */
+/* BAT_LOADEN / WD_RST / OTG_CONFIG / CHG_CONFIG / SYS_MIN Register REG0x03 */
 #define BQ25892_REG_03                             0x03
 
 #define BQ25892_REG_03_CHG_CONFIG_MASK             (BIT(5) | BIT(4))
@@ -139,10 +157,11 @@ struct bq25892_device_info {
 #define SYS_MIN_MAX_3700                           (3700)
 #define SYS_MIN_STEP_100                           (100)
 
-/* ICHG  Register REG0x04 */
+/* ICHG Register REG0x04 */
 #define BQ25892_REG_04                             0x04
 
-#define BQ25892_REG_04_ICHG_MASK                   (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_04_ICHG_MASK                   (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_04_ICHG_SHIFT                  (0)
 
 #define ICHG_MAX_5056                              (5056)
@@ -155,9 +174,11 @@ struct bq25892_device_info {
 /* IPRECHG / ITERM Register REG0x05 */
 #define BQ25892_REG_05                             0x05
 
-#define BQ25892_REG_05_IPRECHG_MASK                (BIT(7) | BIT(6) | BIT(5) | BIT(4))
+#define BQ25892_REG_05_IPRECHG_MASK                (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4))
 #define BQ25892_REG_05_IPRECHG_SHIFT               (4)
-#define BQ25892_REG_05_ITERM_MASK                  (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_05_ITERM_MASK                  (BIT(3) | BIT(2) | \
+	BIT(1) | BIT(0))
 #define BQ25892_REG_05_ITERM_SHIFT                 (0)
 
 /*#define BQ25892_IPRECHRG_SHIFT  4*/
@@ -173,11 +194,12 @@ struct bq25892_device_info {
 /* Charge Voltage Limit / BATLOWV / VRECHG  Register REG0x06 */
 #define BQ25892_REG_06                             0x06
 
-#define BQ25892_REG_06_VREG_MASK                   (BIT(7) | BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2))
-#define  BQ25892_REG_06_VREG_SHIFT                 (2)
-#define  BQ25892_REG_06_BATLOWV_MASK               (BIT(1))
+#define BQ25892_REG_06_VREG_MASK                   (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4) | BIT(3) | BIT(2))
+#define BQ25892_REG_06_VREG_SHIFT                  (2)
+#define BQ25892_REG_06_BATLOWV_MASK                (BIT(1))
 #define BQ25892_REG_06_BATLOWV_SHIFT               (1)
-#define  BQ25892_REG_06_VRECHG_MASK                (BIT(0))
+#define BQ25892_REG_06_VRECHG_MASK                 (BIT(0))
 #define BQ25892_REG_06_VRECHG_SHIFT                (0)
 
 #define BQ25892_VCHARGE_SHIFT                      (2)
@@ -211,7 +233,10 @@ struct bq25892_device_info {
 #define WATCHDOG_TIMER_80_S                        (80)
 #define WATCHDOG_TIMER_160_S                       (160)
 
-/* IR Compensation Resistor Setting / IR Compensation Voltage Clamp / Thermal Regulation Threshold Register REG0x08 */
+/*
+ * IR Compensation Resistor Setting / IR Compensation Voltage Clamp /
+ * Thermal Regulation Threshold Register REG0x08
+ */
 #define BQ25892_REG_08                             0x08
 
 #define BQ25892_REG_08_BAT_COMP_MASK               (BIT(7) | BIT(6) | BIT(5))
@@ -236,7 +261,10 @@ struct bq25892_device_info {
 #define TREG_80                                    (1)
 #define TREG_60                                    (0)
 
-/* FORCE_ICO / TMR2X_EN / BATFET_DIS / JEITA_VSET / BATFET_RST_EN  Register REG0x09 */
+/*
+ * FORCE_ICO / TMR2X_EN / BATFET_DIS / JEITA_VSET / BATFET_RST_EN
+ * Register REG0x09
+ */
 #define BQ25892_REG_09                             0x09
 
 #define BQ25892_REG_09_FORCE_ICO_MASK              (BIT(7))
@@ -256,7 +284,8 @@ struct bq25892_device_info {
 #define EN_BATFET                                  (0)
 #define DIS_BATFET                                 (1)
 #define BQ25892_JEITA_VSET_VREG_SHIFT              (4)
-#define JEITA_VSET_VREG_150                        (0) /* Set Charge Voltage to VREG-150mV */
+ /* Set Charge Voltage to VREG-150mV */
+#define JEITA_VSET_VREG_150                        (0)
 #define JEITA_VSET_VREG                            (1)
 #define BQ25892_BATFET_RST_EN_SHIFT                (2)
 #define EN_BATFET_RST                              (1)
@@ -265,7 +294,8 @@ struct bq25892_device_info {
 /* Boost Mode Voltage Regulation / Boost Mode Current Limit Register REG0x0A */
 #define BQ25892_REG_0A                             0x0A
 
-#define BQ25892_REG_0A_BOOSTV_MASK                 (BIT(7) | BIT(6) | BIT(5) | BIT(4))
+#define BQ25892_REG_0A_BOOSTV_MASK                 (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4))
 #define BQ25892_REG_0A_BOOSTV_SHIFT                (4)
 #define BQ25892_REG_0A_BOOST_LIM_MASK              (BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_0A_BOOST_LIM_SHIFT             (0)
@@ -284,19 +314,22 @@ struct bq25892_device_info {
 #define BOOST_LIM_2150                             (2150)
 #define BOOST_LIM_MAX_2450                         (2450)
 
-/* Read-only / VBUS_STAT /CHRG_STAT /PG_STAT / SDP_STAT / VSYS_STAT Status Register REG0x0B */
-#define  BQ25892_REG_0B                            0x0B
+/*
+ * Read-only / VBUS_STAT /CHRG_STAT /PG_STAT / SDP_STAT /
+ * VSYS_STAT Status Register REG0x0B
+ */
+#define BQ25892_REG_0B                             0x0B
 
-#define  BQ25892_REG_0B_VBUS_STAT_MASK             (BIT(7) | BIT(6) | BIT(5))
-#define  BQ25892_REG_0B_VBUS_STAT_SHIFT            (5)
-#define  BQ25892_REG_0B_CHRG_STAT_MASK             (BIT(4) | BIT(3))
-#define  BQ25892_REG_0B_CHRG_STAT_SHIFT            (3)
-#define  BQ25892_REG_0B_PG_STAT_MASK               (BIT(2))
-#define  BQ25892_REG_0B_PG_STAT_SHIFT              (2)
-#define  BQ25892_REG_0B_SDP_STAT_MASK              (BIT(1))
-#define  BQ25892_REG_0B_SDP_STAT_SHIFT             (1)
-#define  BQ25892_REG_0B_VSYS_STAT_MASK             (BIT(0))
-#define  BQ25892_REG_0B_VSYS_STAT_SHIFT            (0)
+#define BQ25892_REG_0B_VBUS_STAT_MASK              (BIT(7) | BIT(6) | BIT(5))
+#define BQ25892_REG_0B_VBUS_STAT_SHIFT             (5)
+#define BQ25892_REG_0B_CHRG_STAT_MASK              (BIT(4) | BIT(3))
+#define BQ25892_REG_0B_CHRG_STAT_SHIFT             (3)
+#define BQ25892_REG_0B_PG_STAT_MASK                (BIT(2))
+#define BQ25892_REG_0B_PG_STAT_SHIFT               (2)
+#define BQ25892_REG_0B_SDP_STAT_MASK               (BIT(1))
+#define BQ25892_REG_0B_SDP_STAT_SHIFT              (1)
+#define BQ25892_REG_0B_VSYS_STAT_MASK              (BIT(0))
+#define BQ25892_REG_0B_VSYS_STAT_SHIFT             (0)
 
 #define BQ25892_VBUS_STAT_UNKNOWM                  (0x00)
 #define BQ25892_VBUS_STAT_USB_HOST                 (0x20)
@@ -309,7 +342,10 @@ struct bq25892_device_info {
 #define BQ25892_NOT_PG_STAT                        (0x04)
 #define BQ25892_VSYS_STAT                          (0x01)
 
-/* Read-only / WATCHDOG_FAULT / BOOST_FAULT / CHRG_FAULT / BAT_FAULT / NTC_FAULT  Status Register REG0x0C */
+/*
+ * Read-only / WATCHDOG_FAULT / BOOST_FAULT / CHRG_FAULT / BAT_FAULT /
+ * NTC_FAULT Status Register REG0x0C
+ */
 #define BQ25892_REG_0C                             0x0C
 
 #define BQ25892_REG_0C_WATCHDOG_FAULT_MASK         (BIT(7))
@@ -337,12 +373,13 @@ struct bq25892_device_info {
 #define BQ25892_NTC_FAULT                          (0x7)
 #define BQ25892_REG_0C_BOOST                       (0x40)
 
-/* FORCE_VINDPM /VINDPM Threshold  Register REG0x0D */
+/* FORCE_VINDPM /VINDPM Threshold Register REG0x0D */
 #define BQ25892_REG_0D                             0x0D
 
 #define BQ25892_REG_0D_FORCE_VINDPM_MASK           (BIT(7))
 #define BQ25892_REG_0D_FORCE_VINDPM_SHIFT          (7)
-#define BQ25892_REG_0D_VINDPM_MASK                 (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_0D_VINDPM_MASK                 (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_0D_VINDPM_SHIFT                (0)
 
 #define EN_ABSOLUTE_VINDPM                         (1)
@@ -357,13 +394,15 @@ struct bq25892_device_info {
 
 #define BQ25892_REG_0E_THERM_STAT_MASK             (BIT(7))
 #define BQ25892_REG_0E_THERM_STAT_SHIFT            (7)
-#define BQ25892_REG_0E_BATV_MASK                   (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_0E_BATV_MASK                   (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_0E_BATV_SHIFT                  (0)
 
 /* Read-only /System Voltage (VSYS) Register REG0x0F */
 #define BQ25892_REG_0F                             0x0F
 
-#define BQ25892_REG_0F_SYSV_MASK                   (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_0F_SYSV_MASK                   (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_0F_SYSV_SHIFT                  (0)
 
 /* Read-only / TS Voltage as percentage of REGN Register REG0x10 */
@@ -372,7 +411,8 @@ struct bq25892_device_info {
 /* Read-only / VBUS Good Status /VBUS voltage Register REG0x11 */
 #define BQ25892_REG_11                             0x11
 
-#define BQ25892_REG_11_VBUSV_MASK                  (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_11_VBUSV_MASK                  (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_11_VBUSV_SHIFT                 (0)
 
 #define BQ25892_REG_11_VBUSV_STEP_MV               (100)
@@ -382,7 +422,8 @@ struct bq25892_device_info {
 /* Read-only / ICHGR Current Register REG0x12 */
 #define BQ25892_REG_12                             0x12
 
-#define BQ25892_REG_12_ICHGR_MASK                  (BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_12_ICHGR_MASK                  (BIT(6) | BIT(5) | \
+	BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_12_ICHGR_SHIFT                 (0)
 
 /* Read-only / VDPM_STAT / IDPM_STAT / IDPM_LIM Status Register REG0x13 */
@@ -392,7 +433,8 @@ struct bq25892_device_info {
 #define BQ25892_REG_13_VDPM_STAT_SHIFT             (7)
 #define BQ25892_REG_13_IDPM_STAT_MASK              (BIT(6))
 #define BQ25892_REG_13_IDPM_STAT_SHIFT             (6)
-#define BQ25892_REG_13_IDPM_LIM_MASK               (BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define BQ25892_REG_13_IDPM_LIM_MASK               (BIT(5) | BIT(4) | \
+	BIT(3) | BIT(2) | BIT(1) | BIT(0))
 #define BQ25892_REG_13_IDPM_LIM_SHIFT              (0)
 
 #define BQ25892_REG_13_IDPM_STEP_MV                (50)
@@ -415,4 +457,4 @@ struct bq25892_device_info {
 #define BQ25895                                    (0x30)
 #define CHIP_REVISION                              (0x01)
 
-#endif /* end of _BQ25892_CHARGER_H_ */
+#endif /* _BQ25892_CHARGER_H_ */

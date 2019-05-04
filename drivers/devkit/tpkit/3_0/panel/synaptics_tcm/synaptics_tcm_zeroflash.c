@@ -480,7 +480,6 @@ int zeroflash_get_fw_image(char *file_name)
 	int retval = NO_ERR;
 	char fw_name[MAX_STR_LEN * 4] = {0};
 	struct syna_tcm_hcd *tcm_hcd = NULL;
-	int projectid_lenth = 0;
 
 	if (!zeroflash_hcd || !zeroflash_hcd->tcm_hcd)
 		return -EINVAL;
@@ -489,7 +488,7 @@ int zeroflash_get_fw_image(char *file_name)
 		return 0;
 
 	tcm_hcd = zeroflash_hcd->tcm_hcd;
-	
+
 	snprintf(fw_name, (MAX_STR_LEN * 4), "ts/%s%s.img", file_name,
 		tcm_hcd->tcm_mod_info.project_id_string);
 	TS_LOG_INFO("%s file_name name is :%s\n", __func__, fw_name);
@@ -765,8 +764,8 @@ int zeroflash_download_app_firmware(char *file_name)
 		goto exit;
 	}
 
-	TS_LOG_ERR("Microbootloader data = 0x%02x\n",
-				data);
+	TS_LOG_ERR("Microbootloader error code = 0x%02x\n",
+		data.error_code);
 
 	if (data.error_code != REQUESTING_FIRMWARE) {
 		TS_LOG_ERR("Microbootloader error code = 0x%02x\n",
@@ -822,7 +821,7 @@ int check_report_status(void)
 	unsigned char status_report[10] = {0};
 	int retry = 3;
 
-	while(retry) {	
+	while(retry) {
 		retval = syna_tcm_read(zeroflash_hcd->tcm_hcd,
 				status_report,
 				sizeof(status_report));
@@ -881,7 +880,7 @@ static int zeroflash_download_config(void)
 	return retval;
 }
 
-zeroflash_download(char *file_name,struct syna_tcm_hcd *tcm_hcd)
+int zeroflash_download(char *file_name, struct syna_tcm_hcd *tcm_hcd)
 {
 	int retval = NO_ERR;
 	char retry = 5;

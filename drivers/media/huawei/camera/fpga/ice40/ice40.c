@@ -51,6 +51,7 @@ typedef struct _tag_ice40
 #define INTF2ICE40(i) container_of(i, ice40_t, intf)
 
 static ice40_t s_ice40;
+static struct platform_device *s_pdev = NULL;
 
 void ice40_notify_error(uint32_t id);//stub
 
@@ -160,6 +161,7 @@ ice40_platform_probe(
         struct platform_device* pdev)
 {
     cam_notice("%s enter", __func__);
+    s_pdev = pdev;
     return hwfpga_register(pdev, &s_ice40.intf, &s_ice40.notify);
 }
 
@@ -180,7 +182,10 @@ static void __exit
 ice40_exit_module(void)
 {
     platform_driver_unregister(&s_ice40_driver);
-    hwfpga_unregister(&s_ice40.intf);
+    if (s_pdev) {
+        hwfpga_unregister(s_pdev);
+	s_pdev = NULL;
+    }
 }
 
 module_init(ice40_init_module);

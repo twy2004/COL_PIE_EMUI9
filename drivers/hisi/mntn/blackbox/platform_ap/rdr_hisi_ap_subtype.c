@@ -40,6 +40,9 @@ static u32 g_subtype;
 #undef __LPM3_EXC_SUBTYPE_MAP
 #define __LPM3_EXC_SUBTYPE_MAP(x, y, z) {x, #y, #z, z},
 
+#undef __MEM_REPAIR_EXC_SUBTYPE_MAP
+#define __MEM_REPAIR_EXC_SUBTYPE_MAP(x, y, z) {x, #y, #z, z},
+
 #undef __SCHARGER_EXC_SUBTYPE_MAP
 #define __SCHARGER_EXC_SUBTYPE_MAP(x, y, z) {x, #y, #z, z},
 
@@ -66,6 +69,7 @@ struct exp_subtype exp_subtype_map[] = {
 #undef __APWDT_HWEXC_SUBTYPE_MAP
 #undef __APWDT_EXC_SUBTYPE_MAP
 #undef __LPM3_EXC_SUBTYPE_MAP
+#undef __MEM_REPAIR_EXC_SUBTYPE_MAP
 #undef __SCHARGER_EXC_SUBTYPE_MAP
 #undef __PMU_EXC_SUBTYPE_MAP
 #undef __NPU_EXC_SUBTYPE_MAP
@@ -137,7 +141,7 @@ char *rdr_get_category_name(u32 e_exce_type, u32 subtype)
 void set_subtype_exception(unsigned int subtype, bool save_value)
 {
 	unsigned int value = 0;
-	unsigned long long pmu_reset_reg;
+	uintptr_t pmu_reset_reg;
 
 	if (FPGA == g_bbox_fpga_flag) {
 		pmu_reset_reg = get_pmu_subtype_reg();
@@ -168,7 +172,7 @@ void set_subtype_exception(unsigned int subtype, bool save_value)
 unsigned int get_subtype_exception(void)
 {
 	unsigned int value = 0;
-	unsigned long long pmu_reset_reg;
+	uintptr_t pmu_reset_reg;
 
 	if (FPGA == g_bbox_fpga_flag) {
 		pmu_reset_reg = get_pmu_reset_reg();

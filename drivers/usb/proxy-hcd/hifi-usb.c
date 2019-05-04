@@ -1309,7 +1309,7 @@ static int hifi_usb_init(struct proxy_hcd_client *client)
 	wake_lock_init(&proxy->hifi_usb_wake_lock, WAKE_LOCK_SUSPEND,
 				"hifi_usb_wake_lock");
 	setup_timer(&proxy->confirm_udev_timer, confirm_udev_timer_fn,
-				(unsigned long)proxy);
+				(unsigned long)(uintptr_t)proxy);
 	INIT_WORK(&proxy->msg_work, hifi_usb_msg_work);
 	INIT_LIST_HEAD(&proxy->msg_queue);
 

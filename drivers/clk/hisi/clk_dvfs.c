@@ -195,7 +195,8 @@ static int wait_avs_complete(struct peri_dvfs_clk *dfclk)
 {
 	struct peri_volt_poll *pvp = NULL;
 	int loop = PERI_AVS_LOOP_MAX;
-	int val = 0, ret = 0;
+	unsigned int val = 0;
+	int ret = 0;
 	/*Base AVS IP No need to wait AVS*/
 	if (dfclk->avs_poll_id <= 0)
 		return ret;
@@ -210,7 +211,7 @@ static int wait_avs_complete(struct peri_dvfs_clk *dfclk)
 
 	do {
 		val = readl(dfclk->reg_base + SC_SCBAKDATA24_ADDR);
-		val = (val>>AVS_BITMASK_FLAG) & 0x1;
+		val = (val >> AVS_BITMASK_FLAG) & 0x1;
 		if (!val) {
 			loop--;
 			usleep_range(80, 120);
@@ -293,7 +294,7 @@ static void updata_freq_volt_up_fn(struct work_struct *work)
 	const char *enable_pll_name;
 	struct peri_volt_poll *pvp;
 	struct clk *friend_clk;
-	struct clk *ppll_ap;
+	struct clk *ppll_ap = NULL;
 	mutex_lock(&dvfs_lock);
 	pvp = sw->pvp;
 	friend_clk = sw->linkage;
@@ -789,6 +790,20 @@ static void peri_dvfs_clk_unprepare(struct clk_hw *hw)
 	return;
 }
 
+#ifdef CONFIG_HISI_CLK_DEBUG
+static int peri_dvfs_dump_clk(struct clk_hw *hw, char* buf, struct seq_file *s)
+{
+	unsigned int index = 0;
+	struct peri_dvfs_clk *dfclk = container_of(hw, struct peri_dvfs_clk, hw);
+	if(!buf && s) {
+		seq_printf(s, "    %-15s    %-15s", "NONE", "dvfs-clk");
+		for(index = 0; index < DVFS_MAX_FREQ_NUM; index++)
+			seq_printf(s, "    %11lu", dfclk->sensitive_freq[index] * 1000);
+	}
+	return 0;
+}
+#endif
+
 static struct clk_ops peri_dvfs_clk_ops = {
 	.recalc_rate	= peri_dvfs_clk_recalc_rate,
 	.set_rate	= peri_dvfs_clk_set_rate,
@@ -798,6 +813,9 @@ static struct clk_ops peri_dvfs_clk_ops = {
 	.unprepare	= peri_dvfs_clk_unprepare,
 	.enable		= peri_dvfs_clk_enable,
 	.disable	= peri_dvfs_clk_disable,
+#ifdef CONFIG_HISI_CLK_DEBUG
+	.dump_reg = peri_dvfs_dump_clk,
+#endif
 };
 
 static void __init hisi_peri_dvfs_clk_setup(struct device_node *np)

@@ -1190,23 +1190,22 @@ int tusb422_get_cc_mode(void)
 
 static int pd_dpm_wake_lock_call(struct notifier_block *tusb_nb, unsigned long event, void *data)
 {
-	switch(event)
-	{
-		case PD_WAKE_LOCK:
-			PRINT("%s - wake lock node called\n", __func__);
+	switch (event) {
+	case PD_WAKE_LOCK:
+		PRINT("%s - wake lock node called\n", __func__);
 #ifdef CONFIG_WAKELOCK
-			tusb422_wake_lock_control(true);
+		tusb422_wake_lock_control(true);
 #endif
-			break;
-		case PD_WAKE_UNLOCK:
-			PRINT("%s - wake unlock node called\n", __func__);
+		break;
+	case PD_WAKE_UNLOCK:
+		PRINT("%s - wake unlock node called\n", __func__);
 #ifdef CONFIG_WAKELOCK
-			tusb422_wake_lock_control(false);
+		tusb422_wake_lock_control(false);
 #endif
-			break;
-		default:
-			PRINT("%s - unknown event: %d\n", __func__, event);
-			break;
+		break;
+	default:
+		PRINT("%s - unknown event: %ld\n", __func__, event);
+		break;
 	}
 	return NOTIFY_OK;
 }

@@ -1,5 +1,5 @@
 /{
-	firmware {
+    firmware:firmware {
 		android {
 			compatible = "android,firmware";
 			boot_devices ="ff3c0000.ufs";
@@ -16,16 +16,16 @@
 				vendor {
 					compatible = "android,vendor";
 					dev = "/dev/block/by-name/vendor";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
+					type = "erofs";
+					mnt_flags = "ro";
 					fsmgr_flags = "wait,avb";
 					status = "ok";
 				};
 				odm {
 					compatible = "android,odm";
 					dev = "/dev/block/by-name/odm";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
+					type = "erofs";
+					mnt_flags = "ro";
 					fsmgr_flags = "wait,avb";
 					status = "ok";
 				};

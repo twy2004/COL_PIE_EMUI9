@@ -49,7 +49,6 @@
 #include <linux/of.h>
 #include <linux/delay.h>
 #include <asm/string.h>
-#include "product_config.h"
 #include "osl_types.h"
 #include "bsp_version.h"
 #include "bsp_sram.h"
@@ -65,12 +64,30 @@
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
 
-u32                             g_init_phase = DUMP_INIT_FLAG_CONFIG;
-DUMP_FILE_CFG_STRU              g_dump_file_cfg;
 NV_DUMP_STRU                    g_dump_cfg;
 dump_product_type_t             g_product_type = DUMP_PRODUCT_BUTT;
 enum EDITION_KIND               g_edition = EDITION_MAX;
 dump_access_mdmddr_type_t       g_dump_access_ddr_type = DUMP_ACCESS_MDD_DDR_SEC_BUTT;
+DUMP_FILE_CFG_STRU              g_dump_file_cfg;
+
+/*****************************************************************************
+* 函 数 名  : dump_memcpy
+* 功能描述  : 拷贝寄存器函数
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+bool dump_is_ab_version(void)
+{
+    return false;
+}
+
 /*****************************************************************************
 * 函 数 名  : dump_memcpy
 * 功能描述  : 拷贝寄存器函数
@@ -129,41 +146,6 @@ dump_access_mdmddr_type_t dump_get_access_mdmddr_type(void)
     return g_dump_access_ddr_type;
 }
 
-/*****************************************************************************
-* 函 数 名  : dump_get_init_phase
-* 功能描述  : 获取当前的初始化阶段
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-u32 dump_get_init_phase(void)
-{
-    return g_init_phase;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_set_init_phase
-* 功能描述  : 设置当前的初始化阶段
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_set_init_phase(u32 phase)
-{
-    g_init_phase = phase;
-}
 
 /*****************************************************************************
 * 函 数 名  : dump_product_type_init
@@ -178,22 +160,26 @@ void dump_set_init_phase(u32 phase)
 * 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
 *
 *****************************************************************************/
-void dump_product_type_init(void)
+dump_product_type_t dump_get_product_type(void)
 {
     struct device_node *node = NULL;
     const char * product_type  = NULL;
 
+    if(DUMP_PRODUCT_BUTT != g_product_type)
+    {
+        return g_product_type;
+    }
     node = of_find_compatible_node(NULL, NULL, "hisilicon,smntn_type");
     if (!node)
     {
         dump_error("fail to read dts node mntn type !\n");
-        return;
+        return DUMP_MBB;
     }
 
     if(of_property_read_string(node, "product_type", &product_type))
     {
         dump_error("fail to read product_type !\n");
-        return;
+        return DUMP_MBB;
     }
 
     if(0 == strncmp(product_type, "MBB", strlen("MBB")))
@@ -206,13 +192,16 @@ void dump_product_type_init(void)
     }
     else
     {
-        g_product_type = DUMP_PRODUCT_BUTT;
+
+        dump_fetal("find product type error use mbb default\n");
+        g_product_type = DUMP_MBB;
     }
+    return g_product_type;
 }
 
 /*****************************************************************************
-* 函 数 名  : dump_get_product_type
-* 功能描述  : 获取dump当前工作的产品形态
+* 函 数 名  : dump_get_feature_cfg
+* 功能描述  : 获取当前特性
 *
 * 输入参数  :
 * 输出参数  :
@@ -223,84 +212,7 @@ void dump_product_type_init(void)
 * 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
 *
 *****************************************************************************/
-dump_product_type_t dump_get_product_type(void)
-{
-    if(DUMP_PHONE == g_product_type)
-    {
-        return DUMP_PHONE;
-    }
-    else
-    {
-        return DUMP_MBB;
-    }
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_file_cfg_init
-* 功能描述  : 获取当前需要保存的文件配置表
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-int dump_file_cfg_init(void)
-{
-    if(BSP_OK != bsp_nvm_read(NV_ID_DRV_DUMP_FILE, (u8 *)&g_dump_file_cfg, sizeof(DUMP_FILE_CFG_STRU)))
-    {
-        g_dump_file_cfg.file_cnt = 2;
-        g_dump_file_cfg.file_list.file_bits.mdm_dump = 0x1;
-        g_dump_file_cfg.file_list.file_bits.mdm_share= 0x1;
-        g_dump_file_cfg.file_list.file_bits.mdm_ddr  = 0x1;
-        g_dump_file_cfg.file_list.file_bits.mdm_etb  = 0x1;
-        g_dump_file_cfg.file_list.file_bits.lphy_tcm = 0x1;
-        g_dump_file_cfg.file_list.file_bits.lpm3_tcm = 0x1;
-        g_dump_file_cfg.file_list.file_bits.ap_etb   = 0x1;
-        g_dump_file_cfg.file_list.file_bits.reset_log= 0x1;
-
-        dump_error("fail to read dump nv,nv id = 0x%x\n", NV_ID_DRV_DUMP_FILE);
-        return BSP_ERROR;
-    }
-    return BSP_OK;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_get_file_cfg
-* 功能描述  : 获取当前需要保存的文件配置表
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-DUMP_FILE_CFG_STRU* dump_get_file_cfg(void)
-{
-    return &g_dump_file_cfg;
-}
-
-
-/*****************************************************************************
-* 函 数 名  : dump_feature_init
-* 功能描述  : 获取当前功能配置
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-s32 dump_feature_init(void)
+NV_DUMP_STRU* dump_get_feature_cfg(void)
 {
     s32 ret = BSP_OK;
 
@@ -325,27 +237,8 @@ s32 dump_feature_init(void)
         g_dump_cfg.dump_cfg.Bits.fetal_err       = 0x1;
         g_dump_cfg.dump_cfg.Bits.dumpTextClip    = 0x0;
         dump_error("fail to read dump nv,nv id = 0x%x\n", NVID_DUMP);
-        return ret;
     }
 
-    return BSP_OK;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_get_feature_cfg
-* 功能描述  : 获取当前特性
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-NV_DUMP_STRU* dump_get_feature_cfg(void)
-{
     return &g_dump_cfg;
 }
 
@@ -372,10 +265,9 @@ enum EDITION_KIND dump_get_edition_type(void)
 
     return g_edition;
 }
-
 /*****************************************************************************
-* 函 数 名  : dump_config_init
-* 功能描述  : dump 配置初始化
+* 函 数 名  : dump_file_cfg_init
+* 功能描述  : 判断文件的保存
 *
 * 输入参数  :
 * 输出参数  :
@@ -386,24 +278,44 @@ enum EDITION_KIND dump_get_edition_type(void)
 * 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
 *
 *****************************************************************************/
-void dump_config_init(void)
+
+__init int dump_file_cfg_init(void)
 {
-    s32 ret ;
-
-    dump_product_type_init();
-
-    ret = dump_feature_init();
-    if(BSP_OK != ret)
+    if(BSP_OK != bsp_nvm_read(NV_ID_DRV_DUMP_FILE, (u8 *)&g_dump_file_cfg, sizeof(DUMP_FILE_CFG_STRU)))
     {
+        g_dump_file_cfg.file_cnt = 2;
+        g_dump_file_cfg.file_list.file_bits.mdm_dump = 0x1;
+        g_dump_file_cfg.file_list.file_bits.mdm_share= 0x1;
+        g_dump_file_cfg.file_list.file_bits.mdm_ddr  = 0x1;
+        g_dump_file_cfg.file_list.file_bits.mdm_etb  = 0x1;
+        g_dump_file_cfg.file_list.file_bits.lphy_tcm = 0x1;
+        g_dump_file_cfg.file_list.file_bits.lpm3_tcm = 0x1;
+        g_dump_file_cfg.file_list.file_bits.ap_etb   = 0x1;
+        g_dump_file_cfg.file_list.file_bits.reset_log= 0x1;
+
         dump_error("fail to init dump feature\n");
-    }
 
-    ret = dump_file_cfg_init();
-    if(BSP_OK != ret)
-    {
-        dump_error("fail to init dump config\n");
+        return BSP_ERROR;
     }
-
+    return BSP_OK;
 }
 
+/*****************************************************************************
+* 函 数 名  : dump_get_file_cfg
+* 功能描述  : 查询文件保存
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+
+DUMP_FILE_CFG_STRU* dump_get_file_cfg(void)
+{
+    return &g_dump_file_cfg;
+}
 

@@ -74,11 +74,14 @@
 
 #include "v_IO.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_SPRINTF_C
+#define    THIS_MODU           mod_pam_osa
 
 /*****************************************************************************
  Function   : VOS_vsprintf_s
@@ -160,7 +163,7 @@ MODULE_EXPORTED VOS_VOID vos_assert( VOS_UINT32 ulFileID, VOS_INT LineNo)
 
     (VOS_VOID)VOS_sprintf_s( vos_PrintBuf, LENGTH_OF_PRINT_LINE_BUF, "%s File: %d, Line: %d", String, ulFileID, LineNo );
 
-    vos_printf("\n[PAM][OSA] %s.\r\n",vos_PrintBuf);
+    mdrv_err("<vos_assert> %s\n",vos_PrintBuf);
 
     return;
 }

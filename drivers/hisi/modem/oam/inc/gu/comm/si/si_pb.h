@@ -189,8 +189,8 @@ extern "C" {
 #define PB_MALLOC(LENGTH)               VOS_MemAlloc(MAPS_PB_PID,DYNAMIC_MEM_PT,LENGTH)
 #define PB_FREE(MEMADDR)                VOS_MemFree(MAPS_PB_PID, MEMADDR)
 #else
-#define PB_MALLOC(LENGTH)               mdrv_smalloc((VOS_UINT32)LENGTH, MEM_ICC_DDR_POOL)
-#define PB_FREE(MEMADDR)                mdrv_sfree(MEMADDR)
+#define PB_MALLOC(LENGTH)               VOS_CacheMemAllocDebug((VOS_UINT32)LENGTH, (VOS_UINT32)SI_PB_MEM_ALLOC)
+#define PB_FREE(MEMADDR)                VOS_CacheMemFree(MEMADDR)
 #endif
 
 /*******************************************************************************

@@ -95,10 +95,10 @@ typedef enum tagPWC_CLIENT_ID_E
     PWRCTRL_SLEEP_TLPS1,
     PWRCTRL_SLEEP_DSFLOW,
     PWRCTRL_SLEEP_TEST,
-    PWRCTRL_SLEEP_UART0,
+    PWRCTRL_SLEEP_LR_EASYRF,
     PWRCTRL_SLEEP_TDS,
 
-    PWRCTRL_SLEEP_CDMAUART,         /*drv cdma uart 数传*/
+    PWRCTRL_SLEEP_SI,               /*pam*/
     PWRCTRL_SLEEP_USIM,             /*oam*/
     PWRCTRL_SLEEP_DSPPOWERON,       /*v8r1 ccore 提供给GUTL DSP作为c核上电初始化投票用*/
     PWRCTRL_SLEEP_RESET,
@@ -118,6 +118,19 @@ typedef enum tagPWC_CLIENT_ID_E
     /*NRCCPU WAKELOCK BEGIN*/
     PWRCTRL_NRCCPU_WAKELOCK_L2HAC = PWRCTRL_SLEEP_BEGIN,/*while l2hac wake,nrccpu donot sleep*/
     PWRCTRL_NRCCPU_WAKELOCK_HL1C ,/*lint !e488*//*lint 488warning:,value==PWRCTRL_SLEEP_PS_G0,not an error*//*while hl1c(r8) wake,nrccpu donot sleep*/
+
+    PWRCTRL_NRCCPU_WAKELOCK_NRDSP ,/*lint !e488*//*lint 488warning:,value==PWRCTRL_SLEEP_PS_W0,not an error*//*while hl1c(NXP0) wake,nrccpu donot sleep*/
+    PWRCTRL_NRCCPU_WAKELOCK_NRPHY ,/*lint !e488*//*lint 488warning:,value==PWRCTRL_SLEEP_PS_G1,not an error*//*while NRPHY wake,nrccpu donot sleep*/
+
+    PWRCTRL_SLEEP_NR_EASYRF,/*lint !e488*/
+    PWRCTRL_NRCCPU_WAKELOCK_LRCCPU_PS,/*lint !e488*/
+    /*NRCCPU WAKELOCK END*/
+
+    /*L2HAC WAKELOCK BEGIN*/
+    PWRCTRL_L2HAC_WAKELOCK_NRCCPU_PS = PWRCTRL_SLEEP_BEGIN,/*lint !e488*/
+    PWRCTRL_L2HAC_WAKELOCK_NRPHY,/*lint !e488*/
+    PWRCTRL_L2HAC_WAKELOCK_L2HAC_PS,/*lint !e488*/
+    /*L2HAC WAKELOCK END*/
     PWRCTRL_SLEEP_END =0x120
 }PWC_CLIENT_ID_E;
 

@@ -72,7 +72,7 @@ static int hisi_get_ov_data_from_user(struct hisi_fb_data_type *hisifd,
 	return ret;
 }
 
-/*lint -e776 -e737 -e574*/
+/*lint -e776 -e737 -e574 -e648 -e570 -e565*/
 int hisi_check_vsync_timediff(struct hisi_fb_data_type *hisifd, dss_overlay_t *pov_req)
 {
 	ktime_t prepare_timestamp;
@@ -96,7 +96,7 @@ int hisi_check_vsync_timediff(struct hisi_fb_data_type *hisifd, dss_overlay_t *p
 		timestamp = 2000000;
 	}
 
-	if (is_mipi_video_panel(hisifd)) {
+	if (is_mipi_video_panel(hisifd) || is_dp_panel(hisifd)) {
 		vsync_timediff = (uint64_t)(hisifd->panel_info.xres + hisifd->panel_info.ldi.h_back_porch +
 			hisifd->panel_info.ldi.h_front_porch + hisifd->panel_info.ldi.h_pulse_width) * (hisifd->panel_info.yres +
 			hisifd->panel_info.ldi.v_back_porch + hisifd->panel_info.ldi.v_front_porch + hisifd->panel_info.ldi.v_pulse_width) *
@@ -118,6 +118,7 @@ int hisi_check_vsync_timediff(struct hisi_fb_data_type *hisifd, dss_overlay_t *p
 			}
 		}
 	}
+
 	return 0;
 }
 
@@ -438,6 +439,31 @@ static void wait_pdp_isr_vactive0_end_handle(struct hisi_fb_data_type *hisifd)
 	return;
 }
 
+static bool  hisi_mask_layer_backlight_config_check_parameter_valid(struct hisi_fb_data_type *hisifd, dss_overlay_t *pov_req_prev,	dss_overlay_t *pov_req)
+{
+	if (hisifd == NULL) {
+		HISI_FB_ERR("hisifd is null!\n");
+		return false;
+	}
+
+	if (pov_req == NULL) {
+		HISI_FB_DEBUG("pov_req is null!\n");
+		return false;
+	}
+
+	if (pov_req_prev == NULL) {
+		HISI_FB_DEBUG("pov_req_prev is null!\n");
+		return false;
+	}
+
+	if (PRIMARY_PANEL_IDX != hisifd->index) {
+		HISI_FB_DEBUG("fb%d, not support!\n", hisifd->index);
+		return false;
+	}
+
+	return true;
+}
+
 static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd, dss_overlay_t *pov_req_prev,
 	dss_overlay_t *pov_req, bool *masklayer_maxbacklight_flag)
 {
@@ -446,24 +472,13 @@ static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd,
 	static bool need_min_bl_delay = true;
 	int mask_delay_time_before_fp = 0;
 	int mask_delay_time_after_fp = 0;
+	int delay_threshold = 14000000;
+	int one_te_interval = 16667000;
+	int time_after_last_te = 0;
+	bool parameter_valid = false;
 
-	if (hisifd == NULL) {
-		HISI_FB_ERR("hisifd is null!\n");
-		return;
-	}
-
-	if (pov_req == NULL) {
-		HISI_FB_DEBUG("pov_req is null!\n");
-		return;
-	}
-
-	if (pov_req_prev == NULL) {
-		HISI_FB_DEBUG("pov_req_prev is null!\n");
-		return;
-	}
-
-	if (PRIMARY_PANEL_IDX != hisifd->index) {
-		HISI_FB_DEBUG("fb%d, not support!\n", hisifd->index);
+	parameter_valid = hisi_mask_layer_backlight_config_check_parameter_valid(hisifd, pov_req_prev,pov_req);
+	if (parameter_valid == false) {
 		return;
 	}
 
@@ -475,8 +490,16 @@ static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd,
 
 	mask_delay_time_before_fp = pdata->panel_info->mask_delay_time_before_fp;
 	mask_delay_time_after_fp = pdata->panel_info->mask_delay_time_after_fp;
+
 	if ((pov_req->mask_layer_exist) && !(pov_req_prev->mask_layer_exist) && (pdata->lcd_set_backlight_by_type_func)) {
-		HISI_FB_INFO("max backlight %d %d, need_max_bl_delay=%d.\n", pov_req_prev->mask_layer_exist, pov_req->mask_layer_exist, need_max_bl_delay);
+		HISI_FB_INFO("max backlight %d %d, need_max_bl_delay=%d mask_delay_time_before_fp =%d.\n", pov_req_prev->mask_layer_exist, pov_req->mask_layer_exist, need_max_bl_delay,mask_delay_time_before_fp);
+
+		time_after_last_te = ktime_to_ns(ktime_get()) - ktime_to_ns(hisifd->te_timestamp);
+		if ((time_after_last_te - time_after_last_te /one_te_interval * one_te_interval) > delay_threshold) {
+			HISI_FB_INFO("isr_te_vsync:frame_no = %d, interval = %d us\n", hisifd->ov_req.frame_no, (time_after_last_te - time_after_last_te /one_te_interval * one_te_interval)/1000);
+			usleep_range(6000,6000);
+		}
+
 		pdata->lcd_set_backlight_by_type_func(hisifd->pdev, 1);
 		if (need_max_bl_delay) {
 			usleep_range(mask_delay_time_before_fp, mask_delay_time_before_fp);
@@ -492,7 +515,14 @@ static void hisifb_mask_layer_backlight_config(struct hisi_fb_data_type *hisifd,
 	}
 
 	if ((pov_req_prev->mask_layer_exist) && !(pov_req->mask_layer_exist) && (pdata->lcd_set_backlight_by_type_func)) {
-		HISI_FB_INFO("min backlight %d %d, need_min_bl_delay=%d.\n", pov_req_prev->mask_layer_exist, pov_req->mask_layer_exist, need_min_bl_delay);
+		HISI_FB_INFO("min backlight %d %d, need_min_bl_delay=%d mask_delay_time_after_fp =%d .\n", pov_req_prev->mask_layer_exist, pov_req->mask_layer_exist, need_min_bl_delay,mask_delay_time_after_fp);
+
+		time_after_last_te = ktime_to_ns(ktime_get()) - ktime_to_ns(hisifd->te_timestamp);
+		if ((time_after_last_te - time_after_last_te /one_te_interval * one_te_interval) > delay_threshold) {
+			HISI_FB_INFO("isr_te_vsync:frame_no = %d, interval = %d us\n", hisifd->ov_req.frame_no, (time_after_last_te - time_after_last_te /one_te_interval * one_te_interval)/1000);
+			usleep_range(6000,6000);
+		}
+
 		pdata->lcd_set_backlight_by_type_func(hisifd->pdev, 2);
 		if (need_min_bl_delay) {
 			usleep_range(mask_delay_time_after_fp, mask_delay_time_after_fp);
@@ -511,6 +541,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 	static int dss_free_buffer_refcount = 0;
 	static bool last_frame_is_idle = 0;
 	dss_overlay_t *pov_req = NULL;
+	dss_overlay_t pov_req_temp;
 	dss_overlay_t *pov_req_prev = NULL;
 	dss_overlay_block_t *pov_h_block_infos = NULL;
 	dss_overlay_block_t *pov_h_block = NULL;
@@ -535,6 +566,8 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 	struct timeval tv1;
 	struct timeval tv2;
 	struct timeval tv3;
+	struct timeval returntv0;
+	struct timeval returntv1;
 	struct hisi_fb_data_type *fb1;
 	int need_wait_1vsync = 0;
 
@@ -578,6 +611,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 	if (g_debug_ovl_online_composer_timediff & 0x2) {
 		hisifb_get_timestamp(&tv0);
 	}
+	hisifb_get_timestamp(&returntv0);
 
 	enable_cmdlist = g_enable_ovl_cmdlist_online;
 	if ((hisifd->index == EXTERNAL_PANEL_IDX) && hisifd->panel_info.fake_external) {
@@ -630,6 +664,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 		if (timediff >= g_debug_ovl_online_composer_time_threshold)
 			HISI_FB_ERR("ONLINE_VACTIVE_TIMEDIFF is %u us!\n", timediff);
 	}
+
 	down(&hisifd->blank_sem0);
 
 	if (g_debug_ovl_online_composer == 1) {
@@ -700,7 +735,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 		for (i = 0; i < pov_h_block->layer_nums; i++) {
 			layer = &(pov_h_block->layer_infos[i]);
 			memset(&clip_rect, 0, sizeof(dss_rect_ltrb_t));
-			memset(&aligned_rect, 0, sizeof(dss_rect_ltrb_t));
+			memset(&aligned_rect, 0, sizeof(dss_rect_t));
 			rdma_stretch_enable = false;
 
 			ret = hisi_ov_compose_handler(hisifd, pov_req, pov_h_block, layer, NULL, NULL,
@@ -742,7 +777,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 				HISI_FB_ERR("fb%d, hisi_effect_hiace_config failed! ret = %d\n", hisifd->index, ret);
 			}
 
-			if ((is_mipi_video_panel(hisifd) && (g_dss_version_tag != FB_ACCEL_HI625x))) {
+			if ((is_mipi_video_panel(hisifd) && (g_dss_version_tag != FB_ACCEL_HI625x)) || is_dp_panel(hisifd)) {
 				vsync_time_checked = true;
 				ret = hisi_check_vsync_timediff(hisifd, pov_req);
 				if (ret < 0) {
@@ -757,6 +792,7 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 			goto err_return;
 		}
 	}
+
 	hisi_sec_mctl_set_regs(hisifd);
 
 	if (enable_cmdlist) {
@@ -815,8 +851,15 @@ int hisi_ov_online_play(struct hisi_fb_data_type *hisifd, void __user *argp)
 	single_frame_update(hisifd);
 	hisifb_frame_updated(hisifd);
 
+	memset(&pov_req_temp, 0, sizeof(dss_overlay_t));
+	pov_req_temp.release_fence = pov_req->release_fence;
+	pov_req_temp.retire_fence = pov_req->retire_fence;
+
+	hisifb_get_timestamp(&returntv1);
+	pov_req_temp.online_wait_timediff = hisifb_timestamp_diff(&returntv0, &returntv1);
+
 	if (copy_to_user((struct dss_overlay_t __user *)argp,
-			pov_req, sizeof(dss_overlay_t))) {
+			&pov_req_temp, sizeof(dss_overlay_t))) {
 		HISI_FB_ERR("fb%d, copy_to_user failed.\n", hisifd->index);
 		hisifb_buf_sync_close_fence(pov_req);
 		ret = -EFAULT;
@@ -894,4 +937,4 @@ err_return:
 	return ret;
 }
 
-/*lint +e776 +e737 +e574*/
+/*lint +e776 +e737 +e574 +e648 +e570 +e565*/

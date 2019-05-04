@@ -881,6 +881,9 @@ static void receive_file_work(struct work_struct *data)
 
 	while (count > 0 || write_req) {
 		if (count > 0) {
+			/* use from [1] to [MAX] req because mtp_read use [0] */
+			if (cur_buf == 0)
+				cur_buf = 1;
 			/* queue a request */
 			read_req = dev->rx_req[cur_buf];
 			cur_buf = (cur_buf + 1) % RX_REQ_MAX;

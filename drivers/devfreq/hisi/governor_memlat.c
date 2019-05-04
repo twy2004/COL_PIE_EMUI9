@@ -169,13 +169,13 @@ err:
 static ssize_t show_target_ratios(struct device *dev, struct device_attribute *attr,
 			char *buf)
 {
-	int i;
+	unsigned int i;
 	ssize_t ret = 0;
 	struct devfreq *df = to_devfreq(dev);
 	struct memlat_node *n = df->data;
 
 	mutex_lock(&n->mon_mutex_lock);
-	for (i = 0; i < n->ntarget_ratios; i++)
+	for (i = 0; i < n->ntarget_ratios; i++) /*lint !e574*/
 		ret += sprintf(buf + ret, "%u%s", n->target_ratios[i],
 			       i & 0x1 ? ":" : " "); /*lint !e421*/
 
@@ -517,7 +517,7 @@ static int cpufreq_notifier_trans(struct notifier_block *nb,
 	new_freq = new_freq / 1000;
 
 	mutex_lock(&d->cpufreq_mutex_lock);
-	if (!d->pending_change) {
+	if (!d->pending_change && d->switch_on_cpufreq != 0) {
 		if (new_freq < d->switch_on_cpufreq && d->monitor_paused) {
 			mutex_unlock(&d->cpufreq_mutex_lock);
 			return 0;
@@ -874,7 +874,7 @@ static struct devfreq_governor devfreq_gov_memlat = {
 #define NUM_COLS	2
 /*lint -e429*/
 static struct core_dev_map *init_core_dev_map(struct device *dev,
-		char *prop_name)
+		const char *prop_name)
 {
 	int len, nf, i, j;
 	u32 data;

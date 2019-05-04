@@ -133,6 +133,9 @@ struct __maxim_onewire_ic_des {
 /* Command success response */
 #define MAXIM_ONEWIRE_COMMAND_SUCCESS                       0xAA
 
+#define BATTERY_CELL_FACTORY                                4
+#define BATTERY_PACK_FACTORY                                5
+
 /* 1-wire function operation return signals */
 #define MAXIM_ONEWIRE_SUCCESS                               ONEWIRE_SUCCESS
 #define MAXIM_ERROR_BIT                                     0x80

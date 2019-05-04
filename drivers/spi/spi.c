@@ -1149,13 +1149,10 @@ static void __spi_pump_messages(struct spi_master *master, bool in_kthread)
 		kfree(master->dummy_tx);
 		master->dummy_tx = NULL;
 #if defined CONFIG_HISI_SPI
-		if (master->auto_runtime_pm) {
-			mutex_lock(&master->msg_mutex);
-			disable_spi(master);
-			pm_runtime_mark_last_busy(master->dev.parent);
-			pm_runtime_put_sync(master->dev.parent);
-			mutex_unlock(&master->msg_mutex);
-		}
+		mutex_lock(&master->msg_mutex);
+		disable_spi(master);
+		pl022_runtime_suspend(master->dev.parent);
+		mutex_unlock(&master->msg_mutex);
 		if (master->unprepare_transfer_hardware &&
 		    master->unprepare_transfer_hardware(master))
 			dev_err(&master->dev,
@@ -1202,23 +1199,23 @@ static void __spi_pump_messages(struct spi_master *master, bool in_kthread)
 				"failed to prepare transfer hardware\n");
 
 			mutex_unlock(&master->io_mutex);
-
 			return;
 		}
 	}
 
-	if (!was_busy && master->auto_runtime_pm) {
-		ret = pm_runtime_get_sync(master->dev.parent);
+	if (!was_busy){
+		ret = pl022_runtime_resume(master->dev.parent);
 		if (ret < 0) {
-			dev_err(&master->dev, "Failed to power device: %d\n",
-				ret);
-			if (master->unprepare_transfer_hardware) {
+			dev_err(&master->dev, "Failed to power device: %d\n", ret);
+
+			if (master->unprepare_transfer_hardware)
 				master->unprepare_transfer_hardware(master);
-			}
+
 			mutex_unlock(&master->io_mutex);
 			return;
 		}
 	}
+
 #else
 	if (!was_busy && master->auto_runtime_pm) {
 		ret = pm_runtime_get_sync(master->dev.parent);
@@ -2938,23 +2935,8 @@ static int __spi_sync(struct spi_device *spi, struct spi_message *message)
 						       spi_sync_immediate);
 			__spi_pump_messages(master, false);
 		}
-#if defined CONFIG_HISI_SPI
-		if (spi_use_dma_transmode(message)) {
-			if (!wait_for_completion_timeout(&done, 3*HZ)) {
-				dev_err(&master->dev, "spi transfer message timeout\n");
-				WARN_ON(1);
-				show_spi_register(master);
-				show_dma_register(master, master->tx_chan_no);
-				show_dma_register(master, master->rx_chan_no);
-				pl022_resume_all(master);
-				message->status = -ETIMEDOUT;
-			}
-		} else {
-			wait_for_completion(&done);
-		}
-#else
+
 		wait_for_completion(&done);
-#endif
 		status = message->status;
 	}
 	message->context = NULL;

@@ -236,17 +236,37 @@ const AT_RETURN_TAB_TYPE_STRU gastAtReturnCodeTab[]=
     {AT_FCHAN_SET_CHANNEL_FAIL,                            {(VOS_UINT8*)"2", (VOS_UINT8*)"Channel number set fail"           }  },
     {AT_FCHAN_BAND_CHANNEL_NOT_MATCH,                      {(VOS_UINT8*)"3", (VOS_UINT8*)"Band and Channel not match"        }  },
     {AT_FCHAN_OTHER_ERR,                                   {(VOS_UINT8*)"4", (VOS_UINT8*)"Other error"                       }  },
+    {AT_FCHAN_WIFI_BAND_ERR,                               {(VOS_UINT8*)"5", (VOS_UINT8*)"Wifi Band Error"                   }  },
+    {AT_NOT_SUPPORT_WIFI,                                  {(VOS_UINT8*)"6", (VOS_UINT8*)"Not Support Wifi"                  }  },
+    {AT_WIFI_NOT_ENABLE,                                   {(VOS_UINT8*)"7", (VOS_UINT8*)"Wifi Not Enable"                   }  },
+    {AT_FCHAN_RAT_ERR,                                     {(VOS_UINT8*)"8", (VOS_UINT8*)"Rat Error"                         }  },
+    {AT_FCHAN_BAND_WIDTH_ERR,                              {(VOS_UINT8*)"9", (VOS_UINT8*)"Band Width Err"                    }  },
+    {AT_FCHAN_SCS_ERR,                                     {(VOS_UINT8*)"10", (VOS_UINT8*)"Scs Err"                          }  },
+    {AT_FCHAN_NO_SCS,                                      {(VOS_UINT8*)"13", (VOS_UINT8*)"No Scs PARAMETERS"                }  },
+    {AT_SND_MSG_FAIL,                                      {(VOS_UINT8*)"11", (VOS_UINT8*)"Snd Msg Fail"                     }  },
+    {AT_FCHAN_LOAD_DSP_ERR,                                {(VOS_UINT8*)"12", (VOS_UINT8*)"Load Dsp Fail"                    }  },
+    {AT_NOT_LOAD_DSP,                                      {(VOS_UINT8*)"1", (VOS_UINT8*)"Not Load Dsp"                      }  },
+    {AT_FWAVE_TYPE_ERR,                                    {(VOS_UINT8*)"2", (VOS_UINT8*)"Fave Type Err"                     }  },
+    {AT_TSELRF_PATH_ERR,                                   {(VOS_UINT8*)"1", (VOS_UINT8*)"Path Err"                          }  },
+    {AT_ESELRF_TX_OR_RX_ERR,                               {(VOS_UINT8*)"2", (VOS_UINT8*)"TX Or RX Err"                      }  },
+    {AT_MIMO_PARA_ERR,                                     {(VOS_UINT8*)"3", (VOS_UINT8*)"MIMO TYPE ERR"                     }  },
+    {AT_DPDT_RAT_ERR,                                      {(VOS_UINT8*)"1", (VOS_UINT8*)"Dpdt Rat err"                      }  },
+    
     {AT_FDAC_CHANNEL_NOT_SET,                              {(VOS_UINT8*)"0", (VOS_UINT8*)"channel not set"                   }  },
     {AT_FDAC_SET_FAIL,                                     {(VOS_UINT8*)"2", (VOS_UINT8*)"Set DAC fail"                      }  },
     {AT_CHANNEL_NOT_SET,                                   {(VOS_UINT8*)"1", (VOS_UINT8*)"channel not set"                   }  },
     {AT_FTXON_SET_FAIL,                                    {(VOS_UINT8*)"2", (VOS_UINT8*)"Set FTXON fail"                    }  },
     {AT_FTXON_OTHER_ERR,                                   {(VOS_UINT8*)"3", (VOS_UINT8*)"other FTXON Error"                 }  },
+    {AT_NOT_SET_PATH,                                      {(VOS_UINT8*)"4", (VOS_UINT8*)"Not Set Path(^TSELRF)"             }  },
+    
     {AT_DATA_UNLOCK_ERROR,                                 {(VOS_UINT8*)"0", (VOS_UINT8*)"Data UNLock Error:0"               }  },
     {AT_DPAUPA_ERROR,                                      {(VOS_UINT8*)"1", (VOS_UINT8*)"DPA UPA Error:1"                   }  },
     {AT_SN_LENGTH_ERROR,                                   {(VOS_UINT8*)"0", (VOS_UINT8*)"SN LENGTH Error:1"                 }  },
     {AT_FRXON_OTHER_ERR,                                   {(VOS_UINT8*)"3", (VOS_UINT8*)"other FRXON Error"                 }  },
     {AT_FRXON_SET_FAIL,                                    {(VOS_UINT8*)"2", (VOS_UINT8*)"Set FRXON fail"                    }  },
     {AT_FPA_OTHER_ERR,                                     {(VOS_UINT8*)"3", (VOS_UINT8*)"Other FPA error"                   }  },
+    {AT_FPA_LEVEL_ERR,                                     {(VOS_UINT8*)"2", (VOS_UINT8*)"Fpa Level Error"                   }  },
+    
     {AT_FLNA_OTHER_ERR,                                    {(VOS_UINT8*)"3", (VOS_UINT8*)"Other LNA error"                   }  },
     {AT_FRSSI_OTHER_ERR,                                   {(VOS_UINT8*)"4", (VOS_UINT8*)"Other FRSSI error"                 }  },
     {AT_FRSSI_RX_NOT_OPEN,                                 {(VOS_UINT8*)"2", (VOS_UINT8*)"RX Not Open"                       }  },
@@ -486,9 +506,13 @@ const AT_DISPLAY_RATE_PAIR_STRU         g_ucLTERateDisplay[AT_UE_LTE_CATEGORY_NU
     {" 600000000",  " 100000000"},                                              /* category12上下行理论最大速率 */
     {" 390000000",  " 150000000"},                                              /* category13上下行理论最大速率 */
     {" 3900000000", " 9500000000"},                                             /* category14上下行理论最大速率 */
-    {" 750000000",  " 0"},                                                      /* category15上下行理论最大速率 */
-    {" 980000000",  " 0"},                                                      /* category16上下行理论最大速率 */
-    {" 25000000000"," 0"},                                                      /* category17上下行理论最大速率 */
+    {" 750000000",  " 220000000"},                                              /* category15上下行理论最大速率 */
+    {" 980000000",  " 100000000"},                                              /* category16上下行理论最大速率 */
+    {" 25000000000"," 2100000000"},                                             /* category17上下行理论最大速率 */
+    {" 1200000000", " 210000000"},                                              /* category18上下行理论最大速率 */
+    {" 1600000000", " 13000000000"},                                            /* category19上下行理论最大速率 */
+    {" 1900000000", " 310000000"},                                              /* category20上下行理论最大速率 */
+    {" 1300000000", " 300000000"},                                              /* category21上下行理论最大速率 */
 };
 
 const AT_SUB_SYS_MODE_CONNECT_RATE_PAIR_STRU gastSubSysModeConnectRateArr[] =
@@ -513,12 +537,6 @@ const AT_SUB_SYS_MODE_CONNECT_RATE_PAIR_STRU gastSubSysModeConnectRateArr[] =
 
 TAF_UINT32 At_SendData(TAF_UINT8 ucIndex,TAF_UINT8 ucType,TAF_UINT8* pData,TAF_UINT16 usLen)
 {
-
-    VOS_UINT32                          ulHsicUserFlg;
-    VOS_UINT32                          ulMuxUserFlg;
-    ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-    ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
-
     /* 检查 输入参数，如果失败，返回错误； */
     /* 根据当前用户业务类型，把数据发送到指定的接口 */
     if (AT_MAX_CLIENT_NUM <= ucIndex)
@@ -557,7 +575,7 @@ TAF_UINT32 At_SendData(TAF_UINT8 ucIndex,TAF_UINT8 ucType,TAF_UINT8* pData,TAF_U
         /* 向VCOM口发送数据 */
         else if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
         {
-            APP_VCOM_Send(gastAtClientTab[ucIndex].ucPortNo, pData, usLen);
+            APP_VCOM_SEND(gastAtClientTab[ucIndex].ucPortNo, pData, usLen);
             return AT_SUCCESS;
         }
         else if (AT_SOCK_USER == gastAtClientTab[ucIndex].UserType)
@@ -590,13 +608,6 @@ TAF_UINT32 At_SendData(TAF_UINT8 ucIndex,TAF_UINT8 ucType,TAF_UINT8* pData,TAF_U
             /* NDIS AT口目前实现中暂无数据发送,若从该口发送数据,则3直接返回AT_FAILURE */
             return AT_FAILURE;
         }
-        else if (VOS_TRUE == ulHsicUserFlg)
-        {
-        }
-        else if (VOS_TRUE == ulMuxUserFlg)
-        {
-            return AT_SendMuxResultData(ucIndex, pData, usLen);
-        }
         else
         {
             return AT_FAILURE;
@@ -613,13 +624,6 @@ VOS_VOID  AT_DisplayResultData (
     VOS_UINT16                          usLen
 )
 {
-
-    VOS_UINT32                          ulHsicUserFlg;
-    VOS_UINT32                          ulMuxUserFlg;
-
-    ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-    ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
-
     /*如果是数传状态，直接返回*/
     if (AT_DATA_START_STATE == gastAtClientTab[ucIndex].DataState)
     {
@@ -657,7 +661,7 @@ VOS_VOID  AT_DisplayResultData (
     }
     else if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
     {
-        APP_VCOM_Send(gastAtClientTab[ucIndex].ucPortNo, gstAtSendDataBuffer, usLen);
+        APP_VCOM_SEND(gastAtClientTab[ucIndex].ucPortNo, gstAtSendDataBuffer, usLen);
     }
     else if (AT_SOCK_USER == gastAtClientTab[ucIndex].UserType)
     {
@@ -674,13 +678,6 @@ VOS_VOID  AT_DisplayResultData (
     {
         AT_UART_SendDlData(ucIndex, gstAtSendDataBuffer, usLen);
     }
-    else if(VOS_TRUE == ulHsicUserFlg)
-    {
-    }
-    else if (VOS_TRUE == ulMuxUserFlg)
-    {
-        AT_SendMuxResultData(ucIndex, gstAtSendDataBuffer, usLen);
-    }
     else
     {
         ;
@@ -695,12 +692,6 @@ VOS_VOID AT_DisplaySelResultData(
     VOS_UINT8                           ucIndex
 )
 {
-    VOS_UINT8                           ucLoop;
-    VOS_UINT32                          ulHsicUserFlg;
-    VOS_UINT32                          ulMuxUserFlg;
-    ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-    ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
-
 
     if ( (AT_CMD_MODE == gastAtClientTab[ucIndex].Mode)
       || (AT_ONLINE_CMD_MODE == gastAtClientTab[ucIndex].Mode) )
@@ -740,7 +731,7 @@ VOS_VOID AT_DisplaySelResultData(
         }
         else if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
         {
-            APP_VCOM_Send(gastAtClientTab[ucIndex].ucPortNo, gstAtSendDataBuffer, usLen);
+            APP_VCOM_SEND(gastAtClientTab[ucIndex].ucPortNo, gstAtSendDataBuffer, usLen);
         }
         else if (AT_SOCK_USER == gastAtClientTab[ucIndex].UserType)
         {
@@ -752,17 +743,6 @@ VOS_VOID AT_DisplaySelResultData(
         else if (AT_NDIS_USER == gastAtClientTab[ucIndex].UserType)
         {
             DMS_COM_SEND(AT_NDIS_PORT_NO,gstAtSendDataBuffer, (VOS_UINT32)usLen);
-        }
-        else if (VOS_TRUE == ulHsicUserFlg)
-        {
-            /* 判断是否允许从该HSIC AT端口主动上报AT命令 */
-            for (ucLoop = 0; ucLoop < AT_HSIC_AT_CHANNEL_MAX; ucLoop++)
-            {
-            }
-        }
-        else if (VOS_TRUE == ulMuxUserFlg)
-        {
-            AT_SendMuxSelResultData(ucIndex, gstAtSendDataBuffer, usLen);
         }
         else
         {

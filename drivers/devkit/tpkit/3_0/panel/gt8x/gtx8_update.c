@@ -201,7 +201,7 @@ static int gtx8_parse_firmware(struct firmware_data *fw_data)
 		TS_LOG_DEBUG("Subsystem type:%02X\n", fw_info->subsys[i].type);
 		TS_LOG_DEBUG("Subsystem size:%u\n", fw_info->subsys[i].size);
 		TS_LOG_DEBUG("Subsystem flash_addr:%08X\n", fw_info->subsys[i].flash_addr);
-		TS_LOG_DEBUG("Subsystem Ptr:%p\n", fw_info->subsys[i].data);
+		TS_LOG_DEBUG("Subsystem Ptr:%pK\n", fw_info->subsys[i].data);
 	}
 	TS_LOG_DEBUG("------------------------------------------\n");
 

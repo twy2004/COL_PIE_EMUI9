@@ -235,6 +235,17 @@ extern "C" {
 
 
 /*******************************上行 Begin*******************************/
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+/* 获取上行Pc5队列头结点 */
+#define ADS_UL_GET_PC5_QUEUE_HEAD()                 (&(g_stAdsCtx.stAdsPc5Ctx.stUlQueue))
+
+/* 获取上行Pc5队列最大长度 */
+#define ADS_UL_GET_PC5_MAX_QUEUE_LEN()              (g_stAdsCtx.stAdsPc5Ctx.ulUlQueueMaxLen)
+
+/* 设置上行Pc5队列最大长度 */
+#define ADS_UL_SET_PC5_MAX_QUEUE_LEN(n)             (g_stAdsCtx.stAdsPc5Ctx.ulUlQueueMaxLen = (n))
+#endif
+
 /* 获取ADS上行实体地址 */
 #define ADS_UL_GET_CTX_PTR(i)                       (&(g_stAdsCtx.astAdsSpecCtx[i].stAdsUlCtx))
 
@@ -624,6 +635,16 @@ typedef struct
 
 }ADS_UL_QUEUE_STRU;
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+
+typedef struct
+{
+    IMM_ZC_HEAD_STRU                    stUlQueue;                              /* LTE-V Pc5的上行队列 */
+    VOS_UINT32                          ulUlQueueMaxLen;                        /* LTE-V Pc5上行队列限长 */
+    VOS_UINT32                          ulReserved;
+} ADS_PC5_CTX_STRU;
+#endif
+
 
 typedef struct
 {
@@ -830,6 +851,9 @@ typedef struct
 typedef struct
 {
     ADS_SPEC_CTX_STRU                   astAdsSpecCtx[ADS_INSTANCE_MAX_NUM];    /* 每个实例专有的上下文 */
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+    ADS_PC5_CTX_STRU                    stAdsPc5Ctx;                            /* LTE-V Pc5专有的上下文 */
+#endif
     ADS_STATS_INFO_CTX_STRU             stDsFlowStatsCtx;                       /* 流量统计 */
     ADS_IPF_CTX_STRU                    stAdsIpfCtx;                            /* 与IPF相关的上下文 */
     ADS_TIMER_CTX_STRU                  astAdsTiCtx[ADS_MAX_TIMER_NUM];         /* 定时器上下文 */
@@ -986,6 +1010,13 @@ VOS_INT32 ADS_PlatDevProbe(struct platform_device *pstDev);
 VOS_INT32 ADS_PlatDevRemove(struct platform_device *pstDev);
 VOS_INT32 __init ADS_PlatDevInit(void);
 VOS_VOID __exit ADS_PlatDevExit(void);
+#endif
+
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+VOS_VOID ADS_InitPc5Ctx(VOS_VOID);
+VOS_VOID ADS_UL_ClearPc5Queue(VOS_VOID);
+IMM_ZC_STRU* ADS_UL_GetPc5QueueNode(VOS_VOID);
+VOS_UINT32 ADS_UL_InsertPc5Queue(IMM_ZC_STRU *pstImmZc);
 #endif
 
 #if (VOS_OS_VER == VOS_WIN32)

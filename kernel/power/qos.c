@@ -188,7 +188,7 @@ static struct pm_qos_constraints hisi_npu_freq_dnlimit_constraints = {
 	.target_value = PM_QOS_HISI_NPU_FREQ_DNLIMIT_DEFAULT_VALUE,
 	.default_value = PM_QOS_HISI_NPU_FREQ_DNLIMIT_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_HISI_NPU_FREQ_DNLIMIT_DEFAULT_VALUE,
-	.type = PM_QOS_MIN,
+	.type = PM_QOS_MAX,
 	.notifiers = &hisi_npu_freq_dnlimit_notifier,
 };
 static struct pm_qos_object hisi_npu_freq_dnlimit_pm_qos = {

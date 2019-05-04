@@ -49,7 +49,7 @@
 #ifndef __DRV_COMM_H__
 #define __DRV_COMM_H__
 
-#if !defined( __OS_RTOSCK__) && !defined( __OS_RTOSCK_SMP__)
+#if !defined( __OS_RTOSCK__) && !defined( __OS_RTOSCK_SMP__) && !defined(__OS_RTOSCK_TVP__) && !defined(__OS_RTOSCK_TSP__)
 typedef void                VOID;
 #endif
 /*lint --e(761) */
@@ -161,7 +161,7 @@ typedef int (*PWRCTRLFUNCPTRVOID)(void);
 #ifndef inline
 #define inline              __inline__
 #endif
-#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 #elif defined(__KERNEL__)|| defined(__CMSIS_RTOS)
 #ifndef INLINE
@@ -173,7 +173,7 @@ typedef int (*PWRCTRLFUNCPTRVOID)(void);
 #if defined(BSP_CORE_MODEM) || defined(PRODUCT_CFG_CORE_TYPE_MODEM)
 #else
 
-typedef BSP_VOID (*VOIDFUNCPTR)(BSP_U32);
+typedef BSP_VOID (*VOIDFUNCPTR)(BSP_U32);/*lint !e761*/
 #ifndef SEM_FULL
 #define SEM_FULL            (1)
 #endif

@@ -67,7 +67,6 @@ extern "C" {
 #include <osl_sem.h>
 #include <osl_thread.h>
 #include <osl_spinlock.h>
-#include <osl_wait.h>
 #include <osl_list.h>
 #include <osl_malloc.h>
 #include <bsp_sram.h>
@@ -78,8 +77,11 @@ extern "C" {
 #include <mdrv_sysboot_commmon.h>
 #include <bsp_icc.h>
 #include <bsp_print.h>
+#include <bsp_pcie.h>
+#include <linux/dma-mapping.h>
 
 #define ICC_CHANNEL_INIT_COMPITABLE  "hisilicon,icc_balong_app"
+#define PCIE_ICC_CHANNEL_INIT_COMPITABLE  "hisilicon,pcie_icc_balong_app"
 
 
 #define  ICC_THIS_CPU                 (ICC_CPU_APP)
@@ -99,7 +101,7 @@ extern "C" {
 #endif
 
 #define  icc_print_error(fmt, ...)    (bsp_err(fmt, ##__VA_ARGS__))
-#define  icc_print_info(fmt, ...)     (bsp_debug(fmt, ##__VA_ARGS__))
+#define  icc_print_info(fmt, ...)     (bsp_info(fmt, ##__VA_ARGS__))
 #define  icc_print_notice(fmt, ...)   (bsp_info(fmt, ##__VA_ARGS__))
 #define  icc_print_debug(fmt, ...) \
 do {                               \
@@ -162,7 +164,10 @@ void icc_debug_after_send(struct icc_channel *channel, struct icc_channel_packet
 void icc_debug_before_recv(struct icc_channel_packet *pkg_header);
 void icc_debug_in_read_cb(u32 channel_id, u8 *buf, u32 buf_len, u32 read_ptr, u32 write_ptr);
 void icc_debug_after_recv(struct icc_channel_packet *pkg_header);
-
+#ifdef CONFIG_APLUSB_PCIE_ICC
+int pcie_send_icc_msi(void);
+void pcie_icc_msi_int(irq_handler_t handler, const char *name, void *data );
+#endif
 #ifdef __cplusplus
 }
 #endif

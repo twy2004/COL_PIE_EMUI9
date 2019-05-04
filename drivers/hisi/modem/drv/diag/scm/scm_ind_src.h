@@ -61,6 +61,8 @@
 #include <asm/io.h>
 #include <linux/gfp.h>
 #include <linux/mm.h>
+#include <soc_socp_adapter.h>
+#include <bsp_diag.h>
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -76,8 +78,7 @@ extern "C"{
 
 #define SCM_HISI_HEADER_MAGIC               (0x48495349) /*HISI*/
 
-#define DIAG_CODER_SRC_IND_BUF_A_SIZE               (1024*1024)
-#define SCM_CODER_SRC_IND_BUFFER_SIZE               (DIAG_CODER_SRC_IND_BUF_A_SIZE)
+#define SCM_CODER_SRC_IND_BUFFER_SIZE               (1024*1024)
 
 #define SCM_CODER_SRC_MAX_LEN       (4*1024)        /* 编码通道最大发送数据长度  */
 
@@ -90,10 +91,12 @@ extern "C"{
 #endif
 #endif
 
-/*4字节对齐*/
-#define ALIGN_DDR_WITH_4BYTE(len)       (((len) + 3)&(~3))
-/*8字节对齐*/
-#define ALIGN_DDR_WITH_8BYTE(len)       (((len) + 7)&(~7))
+#ifdef DIAG_SYSTEM_5G
+#define SOCP_CODER_SRC_PS_IND    SOCP_CODER_SRC_ACPU_IND
+#else
+#define SOCP_CODER_SRC_PS_IND    SOCP_CODER_SRC_LOM_IND1
+#endif
+
 
 typedef u32 SCM_CHANNEL_INIT_ENUM_U32;
 

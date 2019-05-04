@@ -192,6 +192,7 @@ enum
     ACPU_PCV_OM_USB_ADDR,                           /* 0xE1000005 */
     ACPU_PCV_OM_PHY_ADDR,                           /* 0xE1000006 */
     ACPU_PCV_PHY_OM_ADDR,                           /* 0xE1000007 */
+    SI_PB_MEM_ALLOC,                                /* 0xE1000008 */
     PAM_ALLOC_COOKIE_ID_BUTT = 0xE1FFFFFF
 };
 

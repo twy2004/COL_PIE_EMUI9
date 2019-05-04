@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -59,19 +59,24 @@ static __inline__  void cache_sync(void)
 }
 #endif
 
-#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) || defined(__OS_RTOSCK_TSP__)&& !defined(__ASSEMBLY__)
+#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) || defined(__OS_RTOSCK_TSP__)|| defined(__OS_RTOSCK_TVP__)&& !defined(__ASSEMBLY__)
 #include <sre_cache.h>
 
-#if defined(__OS_RTOSCK_TSP__)
-#define isb() 
+#if defined(__OS_RTOSCK_TSP__)|| defined(__OS_RTOSCK_TVP__)
+#define isb()
 #define dsb()
 #define dmb()
+#define mb()
 #else
 #define isb() __asm__ __volatile__ ("isb" : : : "memory")
 #define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
 #define dmb() __asm__ __volatile__ ("dmb" : : : "memory")
-#endif
+#ifdef CONFIG_BALONG_L2CACHE
 #define mb()	do { dsb(); SRE_L2CacheWait(); } while (0)
+#else
+#define mb()	do { dsb(); } while (0)
+#endif
+#endif
 #define rmb()	dmb()
 #define wmb()	mb()
 static inline void WFI(void)
@@ -92,9 +97,10 @@ static inline void WFI(void)
 static __inline__  void cache_sync(void)
 {
     dsb();
+#ifdef CONFIG_BALONG_L2CACHE
     SRE_L2CacheWait();
+ #endif
 }
- 
 static __inline__ void writel_relaxed(unsigned val, void* addr)
 {
     (*(volatile unsigned *) (addr)) = (val);
@@ -120,7 +126,7 @@ static inline void writew(unsigned val, void* addr)
     mb();
     writew_relaxed(val, addr);
 }
- 
+
 static __inline__ void writeb(unsigned val, void* addr)
 {
     mb();
@@ -155,8 +161,8 @@ static __inline__ unsigned readb(const void* addr)
 {
     return (*(volatile unsigned char*)(addr));
 }
-//lint +esym(528,*) 
-/*lint –restore */
+//lint +esym(528,*)
+/*lint -restore */
 #endif/*__KERNEL__*/
 
 
@@ -253,7 +259,8 @@ static __inline__  void cache_sync(void)
 #include <product_config.h>
 enum MMU_MAP_E
 {
-	MMU_MAP_CCORE = 0,
+	MMU_MAP_CCORE_TEXT = 0,
+	MMU_MAP_CCORE_DATA,
 	MMU_MAP_CCORE_DTS,
 	MMU_MAP_GIC,
 	MMU_MAP_UART,
@@ -271,7 +278,7 @@ enum MMU_MAP_E
 #endif/*__ASSEMBLY__*/
 
 #endif	/* __OS_RTOSCK__ */
-#if defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #ifndef MMU_VA_T
 #define MMU_VA_T void*
 #endif
@@ -291,6 +298,10 @@ static inline void *ioremap_wc(void* phy_addr, unsigned int len)
 {
 	return (void *)phy_addr;
 }
+static inline void *ioremap_wcx(void* phy_addr, unsigned int len)
+{
+	return (void *)phy_addr;
+}
 static inline void *ioremap_memory(void* phy_addr, unsigned int len)
 {
 	return (void *)phy_addr;
@@ -303,12 +314,15 @@ static inline unsigned int io_unmap(void* pVStart, unsigned int uwLen)
 #else
 
 
-#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK__)
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__) ||defined(__OS_RTOSCK__)
 /* device: strongly-ordered 寄存器都要使用该接口 */
 void *ioremap(MMU_PA_T phy_addr, unsigned int len);
 
 /* device: non-cacheable normal */
 void *ioremap_wc(MMU_PA_T phy_addr, unsigned int len);
+
+/* device: non-cacheable normal exe */
+void *ioremap_wcx(MMU_VA_T phy_addr, unsigned int len);
 
 /* memory: normal */
 void *ioremap_memory(MMU_PA_T phy_addr, unsigned int len);
@@ -318,7 +332,7 @@ int ioremap_memory_smp(void* phy_addr, unsigned int len,void* virt_addr);
 int iounmap_smp(unsigned int region_id,void* virt_addr, unsigned int len);
 #endif
 
-#endif 
+#endif
 
 #if defined (__KERNEL__)||defined(__CMSIS_RTOS)
 static __inline__ unsigned osl_reg_get_bit(void *reg, unsigned bit_start, unsigned bit_end)
@@ -336,8 +350,8 @@ static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned b
 	tmp |= (reg_val << bit_start);
 	writel(tmp, reg);
 }
-#elif defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
-//lint -esym(528,*) 
+#elif defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+//lint -esym(528,*)
 /*lint -save -e528*/
  static __inline__ unsigned osl_reg_get_bit(void *reg, unsigned bit_start, unsigned bit_end)
 {
@@ -346,7 +360,7 @@ static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned b
 	return ((tmp >> bit_start)&((1U << (bit_end - bit_start + 1))-1));
 }
 
-static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned bit_end, unsigned reg_val) 
+static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned bit_end, unsigned reg_val)
 {
 	unsigned tmp;
 	tmp = readl(reg);
@@ -355,7 +369,7 @@ static __inline__ void osl_reg_set_bit(void *reg, unsigned bit_start, unsigned b
 	writel(tmp, reg);
 }
 //lint +esym(528,*)
-/*lint –restore */
+/*lint -restore */
 #endif
 
 #endif	/* __OSL_BIO_H */

@@ -168,9 +168,6 @@ typedef RNIC_COMM_MSG_STRU RNIC_CCPU_RESET_IND_STRU;
 /*****************************************************************************
   10 º¯ÊýÉùÃ÷
 *****************************************************************************/
-VOS_UINT32 RNIC_RcvAtDsflowInd(
-    MsgBlock                           *pstMsg
-);
 VOS_UINT32  RNIC_RcvTiDsflowStatsExpired(
     MsgBlock                           *pstMsg
 );
@@ -213,21 +210,6 @@ VOS_UINT32 RNIC_ProcImsaPdnDeactInd_Wifi(
 VOS_UINT32 RNIC_ProcImsaPdnDeactInd_Lte(
     MODEM_ID_ENUM_UINT16                enModemId,
     IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8    enEmcInd
-);
-VOS_UINT8 RNIC_GetImsRmnetId(
-    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType,
-    MODEM_ID_ENUM_UINT16                enModemId,
-    IMSA_RNIC_PDN_EMC_IND_ENUM_UINT8    enEmcInd
-);
-
-VOS_UINT8 RNIC_GetImsEmcBearRmnetId(
-    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType,
-    MODEM_ID_ENUM_UINT16                enModemId
-);
-
-VOS_UINT8 RNIC_GetImsNormalBearRmnetId(
-    IMSA_RNIC_IMS_RAT_TYPE_ENUM_UINT8   enRatType,
-    MODEM_ID_ENUM_UINT16                enModemId
 );
 
 VOS_UINT32 RNIC_RcvImsaReservedPortsCfgInd(

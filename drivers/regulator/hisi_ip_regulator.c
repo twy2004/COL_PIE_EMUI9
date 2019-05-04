@@ -246,11 +246,6 @@ int hisi_regulator_freq_autodown_clk(int regulator_id, u32 flag)
 		ret = hisi_freq_autodown_clk_set("ics2bus", flag);
 		break;
 #endif
-#if defined(CONFIG_IP_PLATFORM_COMMON)
-	case NPU_ID:
-		ret = hisi_freq_autodown_clk_set("npubus", flag);
-		break;
-#endif
 #if defined(CONFIG_PHOE_IP_PLATFORM)
 	case VENC2_ID:
 		ret = hisi_freq_autodown_clk_set("venc2bus", flag);
@@ -270,7 +265,7 @@ static int aod_set_and_get_poweron_state(struct hisi_regulator_ip *sreg, u32 con
 {
 	int ret = 0;
 	int bit_mask = 0;
-	int val = 0;
+	unsigned int val = 0;
 	/*sctrl 0x438 : power state vote
 	*bit[0]:AP			media1 vote
 	*bit[1]:Sensorhub	media1 vote
@@ -359,7 +354,7 @@ static int hisi_clock_state_check(struct hisi_regulator_ip *sreg)
 static int get_softreset_state(struct hisi_regulator_ip_core *pmic, struct hisi_regulator_ip *sreg, unsigned int value)
 {
 	int ret = 0;
-	int val = 0;
+	unsigned int val = 0;
 	/*First boot and AOD to camera need check DSS poweron status*/
 	if (sreg->hwlock_seq > 0) {
 		if (NULL == regulator_hwlock_29) {

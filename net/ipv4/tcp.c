@@ -423,12 +423,17 @@ const struct tcp_sock_ops tcp_specific = {
 static bool tcp_is_foreground(void)
 {
 #ifdef CONFIG_BLK_DEV_THROTTLING
-	struct blkcg *blkcg = task_blkcg(current);
+	struct blkcg *blkcg;
 
-	if (blkcg && blkcg->type <= BLK_THROTL_KBG)
+	rcu_read_lock();
+	blkcg = task_blkcg(current);
+
+	if (blkcg && blkcg->type <= BLK_THROTL_KBG) {
+		rcu_read_unlock();
 		return true;
+	}
+	rcu_read_unlock();
 #endif
-
 	return false;
 }
 
@@ -1088,7 +1093,9 @@ new_segment:
 			if (!skb)
 				goto wait_for_memory;
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-			delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+			if(DELAY_STATISTIC_SWITCH_ON) {
+				delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+			}
 #endif
 			skb_entail(sk, skb);
 			copy = size_goal;
@@ -1310,15 +1317,15 @@ int tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 #ifdef CONFIG_TCP_NODELAY
 	int nonagle = 0;
 #endif
+#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
+#ifdef CONFIG_HUAWEI_XENGINE
+	bool bAccelerate = false;
+#endif
+#endif
 #ifdef CONFIG_HW_NETWORK_AWARE
 	tcp_network_aware(false);
 	stat_bg_network_flow(false, size);
 #endif
-	#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
-	#ifdef CONFIG_HUAWEI_XENGINE
-	bool bAccelerate = false;
-	#endif
-	#endif
 	lock_sock(sk);
 
 	flags = msg->msg_flags;
@@ -1463,7 +1470,9 @@ new_segment:
 			if (!skb)
 				goto wait_for_memory;
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-			delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+			if(DELAY_STATISTIC_SWITCH_ON) {
+				delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+			}
 #endif
 			process_backlog = true;
 #ifdef CONFIG_MPTCP
@@ -2017,7 +2026,7 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 			 * shouldn't happen.
 			 */
 			if (WARN(before(*seq, TCP_SKB_CB(skb)->seq),
-				 "recvmsg bug: copied %X seq %X rcvnxt %X fl %X\n",
+				 "TCP recvmsg seq # bug: copied %X, seq %X, rcvnxt %X, fl %X\n",
 				 *seq, TCP_SKB_CB(skb)->seq, tp->rcv_nxt,
 				 flags))
 				break;
@@ -2036,10 +2045,12 @@ int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 			if (TCP_SKB_CB(skb)->tcp_flags & TCPHDR_FIN)
 				goto found_fin_ok;
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-			delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_TCP);
+			if(DELAY_STATISTIC_SWITCH_ON) {
+				delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_TCP);
+			}
 #endif
 			WARN(!(flags & MSG_PEEK),
-			     "recvmsg bug 2: copied %X seq %X rcvnxt %X fl %X\n",
+			     "TCP recvmsg seq # bug 2: copied %X, seq %X, rcvnxt %X, fl %X\n",
 			     *seq, TCP_SKB_CB(skb)->seq, tp->rcv_nxt, flags);
 		}
 

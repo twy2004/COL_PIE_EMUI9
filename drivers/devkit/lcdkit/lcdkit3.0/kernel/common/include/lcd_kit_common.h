@@ -43,7 +43,15 @@
 #include "lcd_kit_core.h"
 #include "lcd_kit_bl.h"
 
+#if defined (CONFIG_HUAWEI_DSM)
+#include <dsm/dsm_pub.h>
+#endif
+
 extern int lcd_kit_msg_level;
+#ifdef LV_GET_LCDBK_ON
+extern u32 mipi_level;
+#endif
+
 /*log level*/
 #define MSG_LEVEL_ERROR	1
 #define MSG_LEVEL_WARNING	2
@@ -72,10 +80,13 @@ extern int lcd_kit_msg_level;
 /*check thead period*/
 #define CHECK_THREAD_TIME_PERIOD	(5000)
 #define BITS(x)     (1<<x)
-#define BL_MIN (0)
-#define BL_MAX (256)
+#define BL_MIN 0
 #define BL_NIT (400)
 #define BL_REG_NOUSE_VALUE (128)
+#define LCD_KIT_ENABLE_ELVSSDIM_MASK  0x80
+#define LCD_KIT_DISABLE_ELVSSDIM_MASK 0x7F
+#define LCD_KIT_SHIFT_FOUR_BIT 4
+#define LCD_KIT_HIGH_12BIT_CTL_HBM_SUPPORT 1
 
 struct lcd_kit_common_ops *lcd_kit_get_common_ops(void);
 #define common_ops	lcd_kit_get_common_ops()
@@ -85,16 +96,6 @@ struct lcd_kit_power_desc *lcd_kit_get_power_handle(void);
 #define power_hdl	lcd_kit_get_power_handle()
 struct lcd_kit_power_seq *lcd_kit_get_power_seq(void);
 #define power_seq	lcd_kit_get_power_seq()
-
-#define LCD_KIT_DELAY(n) \
-	do { \
-		if (n > 10) { \
-			msleep(n); \
-		} else { \
-			if (n > 0) \
-				mdelay(n); \
-		} \
-	} while (0)
 
 /*parse dirtyregion info node*/
 #define OF_PROPERTY_READ_DIRTYREGION_INFO_RETURN(np, propname, ptr_out_value) \
@@ -196,6 +197,7 @@ enum lcd_kit_power_type {
 	LCD_KIT_RST,
 	LCD_KIT_BL,
 	LCD_KIT_VDD,
+	LCD_KIT_AOD,
 };
 
 enum lcd_kit_event {
@@ -209,6 +211,7 @@ enum lcd_kit_event {
 	EVENT_EARLY_TS,
 	EVENT_LATER_TS,
 	EVENT_VDD,
+	EVENT_AOD,
 };
 
 enum bl_order {
@@ -272,6 +275,11 @@ enum esd_judge_type {
 	ESD_UNEQUAL,
 	ESD_EQUAL,
 	ESD_BIT_VALID,
+};
+
+enum {
+	LCD_KIT_WAIT_US = 0,
+	LCD_KIT_WAIT_MS,
 };
 
 /***********************************************************
@@ -349,11 +357,19 @@ struct lcd_kit_cabc {
 
 struct lcd_kit_hbm {
 	u32 support;
+	//for UD printfinger start
+	uint8_t ori_elvss_val;
 	u32 hbm_fp_support;
 	u32 hbm_level_max;
 	u32 hbm_level_current;
-	u32 hbm_level_before_fp_capture;
+	u32 hbm_if_fp_is_using;
+	u32 hbm_fp_elvss_support;
+	u32 hbm_set_elvss_dim_lp;
+	u32 hbm_fp_elvss_cmd_delay;
+	u32 hbm_special_bit_ctrl;
+	//for UD printfinger end
 	struct lcd_kit_dsi_panel_cmds enter_cmds;
+	struct lcd_kit_dsi_panel_cmds enter_no_dim_cmds;
 	struct lcd_kit_dsi_panel_cmds fp_enter_cmds;
 	struct lcd_kit_dsi_panel_cmds hbm_prepare_cmds;
 	struct lcd_kit_dsi_panel_cmds prepare_cmds_fir;
@@ -370,6 +386,10 @@ struct lcd_kit_hbm {
 	struct lcd_kit_dsi_panel_cmds exit_cmds_fou;
 	struct lcd_kit_dsi_panel_cmds enter_dim_cmds;
 	struct lcd_kit_dsi_panel_cmds exit_dim_cmds;
+	struct lcd_kit_dsi_panel_cmds elvss_prepare_cmds;
+	struct lcd_kit_dsi_panel_cmds elvss_read_cmds;
+	struct lcd_kit_dsi_panel_cmds elvss_write_cmds;
+	struct lcd_kit_dsi_panel_cmds elvss_post_cmds;
 	struct mutex hbm_lock;
 };
 
@@ -472,7 +492,12 @@ struct lcd_kit_effect_on {
 	u32 support;
 	struct lcd_kit_dsi_panel_cmds cmds;
 };
-
+struct lcd_kit_dsi1{
+	u32 support;
+	u32 state;
+	struct lcd_kit_dsi_panel_cmds on_cmds;
+	struct lcd_kit_dsi_panel_cmds off_cmds;
+};
 struct lcd_kit_pt_test {
 	u32 support;
 	u32 panel_ulps_support;
@@ -486,6 +511,7 @@ struct lcd_kit_effect_color {
 
 struct lcd_kit_adapt_ops {
 	int (*mipi_tx)(void *hld, struct lcd_kit_dsi_panel_cmds *cmds);
+	int (*daul_mipi_diff_cmd_tx)(void *hld, struct lcd_kit_dsi_panel_cmds *dsi0_cmds, struct lcd_kit_dsi_panel_cmds *dsi1_cmds);
 	int (*mipi_rx)(void *hld, u8 *out, struct lcd_kit_dsi_panel_cmds *cmds);
 	int (*gpio_enable)(u32 type);
 	int (*gpio_disable)(u32 type);
@@ -590,6 +616,8 @@ struct lcd_kit_common_info {
 	struct lcd_kit_ce ce;
 	/*effect on after panel on*/
 	struct lcd_kit_effect_on effect_on;
+	/*dsi1 cmd*/
+	struct lcd_kit_dsi1 dsi1_cmd;
 	/**********************end******************/
 	/**********************normal******************/
 	/*panel name*/
@@ -625,6 +653,7 @@ struct lcd_kit_power_desc {
 	struct lcd_kit_array_data lcd_te0;
 	struct lcd_kit_array_data tp_rst;
 	struct lcd_kit_array_data lcd_vdd;
+	struct lcd_kit_array_data lcd_aod;
 };
 
 struct lcd_kit_power_seq {
@@ -639,4 +668,7 @@ struct lcd_kit_power_seq {
 /*function declare*/
 int lcd_kit_adapt_register(struct lcd_kit_adapt_ops* ops);
 struct lcd_kit_adapt_ops* lcd_kit_get_adapt_ops(void);
+void lcd_kit_delay(int wait, int waittype, bool allow_sleep);
+int lcd_dsm_client_record(struct dsm_client *lcd_dclient, char *record_buf,
+	int lcd_dsm_error_no, int rec_num_limit, int *cur_rec_time);
 #endif

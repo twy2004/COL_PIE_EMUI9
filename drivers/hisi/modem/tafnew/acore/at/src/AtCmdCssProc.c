@@ -90,10 +90,9 @@ const AT_CSS_MSG_PRO_FUNC_STRU g_astAtCssMsgTab[] =
   3 函数实现
 *****************************************************************************/
 
-VOS_VOID AT_ProcCssMsg(
-    CssAtInterface_MSG                 *pstMsg
-)
+VOS_VOID AT_ProcCssMsg(VOS_VOID *pMsg)
 {
+    CssAtInterface_MSG                 *pstMsg = VOS_NULL_PTR;
     VOS_UINT32                          i;
     VOS_UINT32                          ulMsgCnt;
     VOS_UINT32                          ulMsgId;
@@ -101,6 +100,7 @@ VOS_VOID AT_ProcCssMsg(
 
     /*从g_astAtProcMsgFromImsaTab中获取消息个数*/
     ulMsgCnt = sizeof(g_astAtCssMsgTab)/sizeof(AT_CSS_MSG_PRO_FUNC_STRU);
+    pstMsg   = (CssAtInterface_MSG *)pMsg;
 
     /*从消息包中获取MSG ID*/
     ulMsgId  = pstMsg->stMsgData.ulMsgId;

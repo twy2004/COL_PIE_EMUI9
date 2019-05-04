@@ -135,7 +135,7 @@ do {							\
 {
 	raw_spin_unlock(&lock->rlock);
 }
-
+/*lint -e683*/
 /*
 *参数类型
 *spinlock_t *  __specific_lock,
@@ -144,11 +144,10 @@ do {							\
 #define spin_lock_irqsave(__specific_lock, __specific_flags)				\
 do { \
 		local_irq_save(__specific_flags); \
-		if(!osl_int_context()&&!(__specific_flags&I_BIT)) \
-			osl_task_lock(); \
+		if(!osl_int_context_disirq()&&!(__specific_flags&I_BIT)) \
+			osl_task_lock_disirq(); \
 		spin_lock(__specific_lock); \
 	} while (0)
-
 /*
 *参数类型
 *spinlock_t *  __specific_lock,
@@ -161,7 +160,8 @@ do { \
     if(!osl_int_context()&&!(__specific_flags&I_BIT)) \
 		osl_task_unlock(); \
     } while (0)
-#elif defined(__OS_RTOSCK_SMP__)
+/*lint +e683*/
+#elif defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <osl_cpu.h>
 #include "osl_irq.h"
 #include "osl_thread.h"
@@ -180,7 +180,7 @@ do { \
 
 
 //lint -esym(607,*)
-#define ALT_SMP(smp, up)					      \
+#define MODEM_SMP(smp, up)					      \
 	"9998:	" smp "\n"					          \
 	"	.pushsection \".alt.smp.init\", \"a\"\n"  /*lint !e607*/\
 	"	.long	9998b\n"				\
@@ -189,8 +189,8 @@ do { \
 
 //lint +esym(607,*)
 
-#define SEV		ALT_SMP("sev", "nop")
-#define WFE(cond)	ALT_SMP("wfe" cond, "nop")
+#define SEV		MODEM_SMP("sev", "nop")
+#define WFE(cond)	MODEM_SMP("wfe" cond, "nop")
 
 static inline void dsb_sev(void)
 {
@@ -212,7 +212,6 @@ typedef struct spinlock {
 #ifndef ACCESS_ONCE
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 #endif
-#define TICKET_SHIFT	16
 #define wfe()	__asm__ __volatile__ ("wfe" : : : "memory")
 
 
@@ -229,7 +228,7 @@ static inline void raw_smp_spin_lock(spinlock_t *p_lock)
 	"	teq	%2, #0\n"
 	"	bne	1b"
 	: "=&r" (lock_val), "=&r" (newval), "=&r" (tmp)
-	: "r" (&p_lock->slock), "I" (1 << TICKET_SHIFT)
+	: "r" (&p_lock->slock), "I" (1 << 16)
 	: "cc");
 
 	while ( lock_val.tickets.owner != lock_val.tickets.next) {/*lint !e530*/
@@ -254,7 +253,7 @@ do {							\
 
 static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 {
-	volatile unsigned long contended, res;
+	volatile unsigned long flag, resource;
 	u32 slock;
 
 	do {
@@ -264,12 +263,12 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 		"	subs	%1, %0, %0, ror #16\n"
 		"	addeq	%0, %0, %4\n"
 		"	strexeq	%2, %0, [%3]"
-		: "=&r" (slock), "=&r" (contended), "=&r" (res)
-		: "r" (&p_lock->slock), "I" (1 << TICKET_SHIFT)
+		: "=&r" (slock), "=&r" (flag), "=&r" (resource)
+		: "r" (&p_lock->slock), "I" (1 << 16)
 		: "cc");
-	} while (res);/*lint !e530*/
+	} while (resource);/*lint !e530*/
 
-	if (!contended) {/*lint !e530*/
+	if (!flag) {/*lint !e530*/
 		smp_mb();
 		return 1;
 	} else {
@@ -277,6 +276,7 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 	}
 }/*lint !e529*/
 
+ /*lint -save -e553*/
  static inline void spin_lock(spinlock_t *p_lock)
 {
 #if (NR_CPUS > 1)
@@ -289,6 +289,7 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 	raw_smp_spin_unlock(p_lock);
 #endif
 }
+ /*lint -restore +e553*/
 
  static inline int spin_trylock(spinlock_t *p_lock)
 {
@@ -305,8 +306,8 @@ static inline int raw_smp_spin_trylock(spinlock_t *p_lock)
 #define spin_lock_irqsave(__specific_lock, __specific_flags)				\
 do { \
 		local_irq_save(__specific_flags); \
-		if(!osl_int_context()&&!(__specific_flags&I_BIT)) \
-		{osl_task_lock();}\
+		if(!osl_int_context_disirq()&&!(__specific_flags&I_BIT)) \
+		{osl_task_lock_disirq();}\
 		spin_lock(__specific_lock); \
 	} while (0)/*lint !e683*/
 

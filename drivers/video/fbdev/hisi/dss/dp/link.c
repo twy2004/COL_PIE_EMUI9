@@ -20,6 +20,8 @@
 #include "../hisi_fb_def.h"
 #include "hdcp22/hdcp13.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
 
 extern u16 usb31phy_cr_read(u32 addr);
 extern u16 usb31phy_cr_write(u32 addr, u16 value);
@@ -29,9 +31,9 @@ void dptx_combophy_set_preemphasis_swing(struct dp_ctrl *dptx,
 			 uint32_t sw_level,
 			 uint32_t pe_level)
 {
-	u16 u161n02_addr = 0;
-	u16 u161n03_addr = 0;
-	u8 phylane = 0;
+	uint16_t u161n02_addr = 0;
+	uint16_t u161n03_addr = 0;
+	uint8_t phylane = 0;
 
 	if (dptx == NULL) {
 		HISI_FB_ERR("[DP] NULL Pointer\n");
@@ -492,7 +494,7 @@ int dptx_link_adjust_drive_settings(struct dp_ctrl *dptx, int *out_changed)
 	}
 
 	lanes = dptx->link.lanes;
-	HISI_FB_INFO("[DP] Lane: %d",lanes);
+	HISI_FB_INFO("[DP] Lane: %d \n",lanes);
 
 	switch (lanes) {
 	case 4:
@@ -609,6 +611,7 @@ int dptx_link_training_pattern_set(struct dp_ctrl *dptx, uint8_t pattern)
 	return 0;
 }
 
+
 static int dptx_link_training_start(struct dp_ctrl *dptx)
 {
 	int retval;
@@ -629,11 +632,11 @@ static int dptx_link_training_start(struct dp_ctrl *dptx)
 		return retval;
 	}
 
+
 	/* Initialize PHY */
 	dptx_phy_set_lanes(dptx, dptx->link.lanes);
 	dptx_phy_set_rate(dptx, dptx->link.rate);
 
-	/* Set SSC_DIS = 1? */
 	dptx_link_set_ssc(dptx, false);
 
 	/* Wait for PHY busy */
@@ -642,6 +645,7 @@ static int dptx_link_training_start(struct dp_ctrl *dptx)
 		HISI_FB_ERR("[DP] Timed out 2 waiting for PHY BUSY\n");
 		return retval;
 	}
+
 
 	dptx_phy_set_lanes_status(dptx, true);
 
@@ -687,6 +691,7 @@ static int dptx_link_training_start(struct dp_ctrl *dptx)
 	retval = dptx_write_dpcd(dptx, DP_LANE_COUNT_SET, byte);
 	if (retval)
 		return retval;
+
 
 	byte = DP_SPREAD_AMP_0_5;
 	retval = dptx_write_dpcd(dptx, DP_DOWNSPREAD_CTRL, byte);
@@ -812,10 +817,11 @@ int dptx_link_ch_eq(struct dp_ctrl *dptx)
 	dptx_phy_set_pattern(dptx, pattern);
 
 	/* TODO this needs to be different for other versions of
-	 * DPRX
-	 */
+	* DPRX
+	*/
 	retval = dptx_link_training_pattern_set(dptx,
-						dp_pattern | 0x20);
+				dp_pattern | 0x20);
+
 	if (retval)
 		return retval;
 
@@ -827,8 +833,12 @@ int dptx_link_ch_eq(struct dp_ctrl *dptx)
 		if (retval)
 			return retval;
 
-		if (!cr_done)
+		dptx->cr_fail = false;
+
+		if (!cr_done) {
+			dptx->cr_fail = true;
 			return -EPROTO;
+		}
 
 		if (ch_eq_done)
 			return 0;
@@ -844,12 +854,15 @@ int dptx_link_ch_eq(struct dp_ctrl *dptx)
 
 int dptx_link_reduce_rate(struct dp_ctrl *dptx)
 {
-	uint32_t rate = dptx->link.rate;
+	uint32_t rate = 0;
 
 	if (dptx == NULL) {
 		HISI_FB_ERR("[DP] NULL Pointer\n");
 		return -EINVAL;
 	}
+	rate = dptx->link.rate;
+
+	rate = dptx->link.rate;
 
 	switch (rate) {
 	case DPTX_PHYIF_CTRL_RATE_RBR:
@@ -895,6 +908,7 @@ int dptx_link_reduce_lanes(struct dp_ctrl *dptx)
 	HISI_FB_INFO("[DP] Reducing lanes from %d to %d\n",
 					dptx->link.lanes, lanes);
 	dptx->link.lanes = lanes;
+	dptx->link.rate  = dptx->max_rate;
 	return 0;
 }
 
@@ -920,6 +934,7 @@ again:
 	if (retval)
 		goto fail;
 
+#if CONFIG_DP_ENABLE
 	retval = dptx_link_cr(dptx);
 	if (retval) {
 		if (retval == -EPROTO) {
@@ -930,7 +945,6 @@ again:
 				retval = -ECONNREFUSED;
 				goto fail;
 			}
-
 			HISI_FB_INFO("[DP] Reduce rate by CR verify\n");
 			if (dptx_link_reduce_rate(dptx)) {
 				/* TODO If CR_DONE bits for some lanes
@@ -963,11 +977,23 @@ again:
 				goto fail;
 			}
 
-			HISI_FB_INFO("[DP] Reduce rate by EQ verify\n");
-			if (dptx_link_reduce_rate(dptx)) {
-				if (dptx_link_reduce_lanes(dptx)) {
-					retval = -EPROTO;
-					goto fail;
+			if (!dptx->cr_fail) {
+				if(dptx->link.lanes == 1) {
+					if(dptx_link_reduce_rate(dptx)) {
+						retval = -EPROTO;
+						goto fail;
+					}
+					dptx->link.lanes = dptx->max_lanes;
+				} else {
+					dptx_link_reduce_lanes(dptx);
+				}
+			} else {
+				HISI_FB_INFO("[DP] Reduce rate by EQ verify\n");
+				if (dptx_link_reduce_rate(dptx)) {
+					if (dptx_link_reduce_lanes(dptx)) {
+						retval = -EPROTO;
+						goto fail;
+					}
 				}
 			}
 
@@ -979,6 +1005,7 @@ again:
 			goto fail;
 		}
 	}
+#endif
 
 	dptx_phy_set_pattern(dptx, DPTX_PHYIF_CTRL_TPS_NONE);
 
@@ -987,7 +1014,7 @@ again:
 	if (retval)
 		goto fail;
 
-	//dptx_enable_default_video_stream(dptx);
+	//dptx_enable_default_video_stream(dptx, 0);
 	dptx_phy_enable_xmit(dptx, dptx->link.lanes, true);
 	dptx->link.trained = true;
 
@@ -996,7 +1023,7 @@ again:
 	if (retval)
 		return retval;
 	HDCP_Read_TEInfo(dptx);
-	dptx_video_ts_change(dptx);
+	dptx_video_ts_change(dptx, 0);
 	HISI_FB_INFO("[DP] Link training succeeded rate=%d lanes=%d\n",
 		 dptx->link.rate, dptx->link.lanes);
 
@@ -1041,6 +1068,7 @@ int dptx_link_check_status(struct dp_ctrl *dptx)
 	if (dptx->link.trained &&
 	    (!drm_dp_channel_eq_ok(dptx->link.status, dptx->link.lanes) ||
 	     !drm_dp_clock_recovery_ok(dptx->link.status, dptx->link.lanes))) {
+
 		HISI_FB_INFO("[DP] Retraining link\n");
 		dp_imonitor_set_param(DP_PARAM_LINK_RETRAINING, NULL);
 
@@ -1064,7 +1092,7 @@ int dptx_link_check_status(struct dp_ctrl *dptx)
 *
 * Returns 0 on success otherwise negative errno.
 */
-int dptx_link_retraining(struct dp_ctrl *dptx, u8 rate, u8 lanes)
+int dptx_link_retraining(struct dp_ctrl *dptx, uint8_t rate, uint8_t lanes)
 {
 	u32 hpdsts;
 	struct video_params *vparams;
@@ -1122,3 +1150,4 @@ int dptx_link_retraining(struct dp_ctrl *dptx, u8 rate, u8 lanes)
 	return retval;
 }
 /*lint -restore*/
+#pragma GCC diagnostic pop

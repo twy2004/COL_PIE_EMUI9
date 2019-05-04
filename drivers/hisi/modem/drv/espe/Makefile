@@ -2,9 +2,9 @@
 subdir-ccflags-y := -Werror
 
 obj-$(CONFIG_BALONG_ESPE) 		+= espe_objs.o
-obj-$(CONFIG_BALONG_ESPE)			+= nic/
+#obj-$(CONFIG_BALONG_ESPE)			+= func/
 
-espe_objs-y				:= spe_core.o spe_platform_balong.o spe_desc.o spe_entry.o spe_port.o spe_dbg.o 
-espe_objs-$(CONFIG_DEBUG_FS)		+= spe_debugfs.o
-espe_objs-$(CONFIG_BALONG_ESPE_XFRM)	+= spe_xfrm.o
+espe_objs-y				:= espe_core.o espe_platform_balong.o espe_desc.o espe_ip_entry.o espe_mac_entry.o espe_port.o espe_dbg.o 
+espe_objs-$(CONFIG_DEBUG_FS)		+= espe_debugfs.o
+#espe_objs-$(CONFIG_BALONG_ESPE_XFRM)	+= espe_xfrm.o
 

@@ -57,8 +57,12 @@
 #include "AtMtaInterface.h"
 #include "TafDrvAgent.h"
 #include "AtXpdsInterface.h"
-
 #include "MnMsgApi.h"
+#include "TafCcmApi.h"
+#include "RnicCdsInterface.h"
+#include "TafPsApi.h"
+#include "TafPsTypeDef.h"
+#include "AtImsaInterface.h"
 
 
 #define    THIS_FILE_ID        PS_FILE_ID_TAF_LOG_PRIVACY_MATCH_C
@@ -311,6 +315,11 @@ VOS_VOID* AT_PrivacyMatchProcessUssMsg(
                   0,
                   sizeof(TAF_SS_USSD_STRING_STRU));
 
+    TAF_MEM_SET_S(pstSsReq->aucMsisdn,
+                  TAF_SS_MAX_MSISDN_LEN + 1,
+                  0,
+                  TAF_SS_MAX_MSISDN_LEN + 1);
+
     return (VOS_VOID *)pstProcessUss;
 }
 
@@ -392,6 +401,136 @@ VOS_VOID* AT_PrivacyMatchErasessMsg(
                   TAF_SS_MAX_PASSWORD_LEN);
 
     return (VOS_VOID *)pstErasess;
+}
+
+
+VOS_VOID* AT_PrivacyMatchActivatessMsg(
+    MsgBlock                           *pstMsg
+)
+{
+
+    MN_APP_REQ_MSG_STRU                *pstActivatess   = VOS_NULL_PTR;
+    TAF_SS_ACTIVATESS_REQ_STRU         *pstSsReq        = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstActivatess = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                      DYNAMIC_MEM_PT,
+                                                      ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstActivatess)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstActivatess,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSsReq = (TAF_SS_ACTIVATESS_REQ_STRU *)pstActivatess->aucContent;
+
+    TAF_MEM_SET_S(pstSsReq->aucPassword,
+                  sizeof(pstSsReq->aucPassword),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN);
+
+    return (VOS_VOID *)pstActivatess;
+}
+
+
+VOS_VOID* AT_PrivacyMatchDeactivatessMsg(
+    MsgBlock                           *pstMsg
+)
+{
+
+    MN_APP_REQ_MSG_STRU                *pstDeactivatess   = VOS_NULL_PTR;
+    TAF_SS_DEACTIVATESS_REQ_STRU       *pstSsReq          = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstDeactivatess = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                      DYNAMIC_MEM_PT,
+                                                      ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstDeactivatess)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstDeactivatess,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSsReq = (TAF_SS_DEACTIVATESS_REQ_STRU *)pstDeactivatess->aucContent;
+
+    TAF_MEM_SET_S(pstSsReq->aucPassword,
+                  sizeof(pstSsReq->aucPassword),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN);
+
+    return (VOS_VOID *)pstDeactivatess;
+}
+
+
+VOS_VOID* AT_PrivacyMatchRegPwdMsg(
+    MsgBlock                           *pstMsg
+)
+{
+
+    MN_APP_REQ_MSG_STRU                *pstRegpwdss   = VOS_NULL_PTR;
+    TAF_SS_REGPWD_REQ_STRU             *pstSsReq      = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstRegpwdss = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                      DYNAMIC_MEM_PT,
+                                                      ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstRegpwdss)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstRegpwdss,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSsReq = (TAF_SS_REGPWD_REQ_STRU *)pstRegpwdss->aucContent;
+
+    TAF_MEM_SET_S(pstSsReq->aucOldPwdStr,
+                  sizeof(pstSsReq->aucOldPwdStr),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN + 1);
+
+    TAF_MEM_SET_S(pstSsReq->aucNewPwdStr,
+                  sizeof(pstSsReq->aucNewPwdStr),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN + 1);
+
+    TAF_MEM_SET_S(pstSsReq->aucNewPwdStrCnf,
+                  sizeof(pstSsReq->aucNewPwdStrCnf),
+                  0,
+                  TAF_SS_MAX_PASSWORD_LEN + 1);
+
+    return (VOS_VOID *)pstRegpwdss;
 }
 
 VOS_VOID* AT_PrivacyMatchCallAppOrigReq(
@@ -584,6 +723,42 @@ VOS_VOID* AT_PrivacyMatchCallAppCustomEccNumReq(
 }
 
 
+VOS_VOID* AT_PrivacyMatchCallAppSetUusinfoReq(
+    MsgBlock                           *pstMsg
+)
+{
+    MN_CALL_APP_REQ_MSG_STRU           *pstCustomSetuusinfoReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstCustomSetuusinfoReq = (MN_CALL_APP_REQ_MSG_STRU *)VOS_MemAlloc(WUEPS_PID_AT,
+                                                                      DYNAMIC_MEM_PT,
+                                                                      ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstCustomSetuusinfoReq)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstCustomSetuusinfoReq,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstCustomSetuusinfoReq->unParm.stUus1Info.stUus1Info,
+                  sizeof(MN_CALL_UUS1_INFO_STRU) * MN_CALL_MAX_UUS1_MSG_NUM,
+                  0,
+                  sizeof(MN_CALL_UUS1_INFO_STRU) * MN_CALL_MAX_UUS1_MSG_NUM);
+
+    return (VOS_VOID *)pstCustomSetuusinfoReq;
+}
+
+
 VOS_VOID* TAF_PrivacyMatchMnCallBackSsLcsEvt(
     MsgBlock                           *pstMsg
 )
@@ -644,6 +819,7 @@ VOS_VOID* TAF_PrivacyMatchMnCallBackSsAtIndEvt(
     MN_AT_IND_EVT_STRU                 *pstPrivacyAtIndEvt    = VOS_NULL_PTR;
     TAF_SS_CALL_INDEPENDENT_EVENT_STRU *pSsCallIndependentEvt = VOS_NULL_PTR;
     VOS_UINT32                          ulLength;
+    VOS_UINT32                          i;
 
     pstAtIndEvt = (MN_AT_IND_EVT_STRU *)pstMsg;
     ulLength    = pstAtIndEvt->ulLength + VOS_MSG_HEAD_LENGTH;
@@ -691,6 +867,19 @@ VOS_VOID* TAF_PrivacyMatchMnCallBackSsAtIndEvt(
                   TAF_SS_MAX_MSISDN_LEN + 1,
                   0,
                   TAF_SS_MAX_MSISDN_LEN + 1);
+
+    for (i = 0; i < TAF_SS_MAX_NUM_OF_CCBS_FEATURE; i++)
+    {
+        TAF_MEM_SET_S(pSsCallIndependentEvt->GenericServiceInfo.CcbsFeatureList.astCcBsFeature[i].aucBSubscriberNum,
+                      TAF_SS_MAX_NUM_OF_BSUBSCRIBER_NUMBER + 1,
+                      0,
+                      TAF_SS_MAX_NUM_OF_BSUBSCRIBER_NUMBER + 1);
+
+        TAF_MEM_SET_S(pSsCallIndependentEvt->GenericServiceInfo.CcbsFeatureList.astCcBsFeature[i].aucBSubscriberSubAddr,
+                      TAF_SS_MAX_NUM_OF_BSUBSCRIBER_SUBADDRESS + 1,
+                      0,
+                      TAF_SS_MAX_NUM_OF_BSUBSCRIBER_SUBADDRESS + 1);
+    }
 
     return (VOS_VOID *)pstPrivacyAtIndEvt;
 }
@@ -1002,7 +1191,7 @@ VOS_VOID*  AT_PrivacyMatchAppMsgTypeSendReq(
     TAF_MEM_SET_S(pstMatchTafXsmsSendMsgReq->st1XSms.aucBearerData,
                   sizeof(pstMatchTafXsmsSendMsgReq->st1XSms.aucBearerData),
                   0,
-                  pstMatchTafXsmsSendMsgReq->st1XSms.ulBearerDataLen);
+                  sizeof(pstMatchTafXsmsSendMsgReq->st1XSms.aucBearerData));
 
     pstMatchTafXsmsSendMsgReq->st1XSms.ulBearerDataLen = 0;
 
@@ -1091,6 +1280,78 @@ VOS_VOID*  AT_PrivacyMatchSimLockWriteExSetReq(
 }
 
 
+VOS_VOID* AT_PrivacyMatchImsaImsCtrlMsg(
+    MsgBlock                                               *pstMsg
+)
+{
+    AT_IMSA_IMS_CTRL_MSG_STRU          *pstImsCtrlMsg = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 分配消息,申请内存后续统一由底层释放 */
+    pstImsCtrlMsg = (AT_IMSA_IMS_CTRL_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                              DYNAMIC_MEM_PT,
+                                                              ulLength);
+
+    if (VOS_NULL_PTR == pstImsCtrlMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstImsCtrlMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstImsCtrlMsg->aucWifiMsg,
+                  pstImsCtrlMsg->ulWifiMsgLen,
+                  0,
+                  pstImsCtrlMsg->ulWifiMsgLen);
+
+    return (VOS_VOID *)pstImsCtrlMsg;
+}
+
+
+VOS_VOID* AT_PrivacyMatchImsaNickNameSetReq(
+    MsgBlock                                               *pstMsg
+)
+{
+    /* 记录申请的内存 */
+    MN_APP_REQ_MSG_STRU                *pstMatchAppMsgNickNameSetReq = VOS_NULL_PTR;
+    IMSA_AT_NICKNAME_INFO_STRU         *pstNickNameInfo;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 分配消息,申请内存后续统一由底层释放 */
+    pstMatchAppMsgNickNameSetReq = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                       DYNAMIC_MEM_PT,
+                                                                       ulLength);
+
+    if (VOS_NULL_PTR == pstMatchAppMsgNickNameSetReq)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    pstNickNameInfo = (IMSA_AT_NICKNAME_INFO_STRU *)pstMatchAppMsgNickNameSetReq->aucContent;
+
+    TAF_MEM_CPY_S(pstMatchAppMsgNickNameSetReq,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstNickNameInfo->acNickName,
+                  MN_CALL_DISPLAY_NAME_STRING_SZ,
+                  0,
+                  MN_CALL_DISPLAY_NAME_STRING_SZ);
+
+    return (VOS_VOID *)pstMatchAppMsgNickNameSetReq;
+}
+
+
 VOS_VOID*  AT_PrivacyMatchMeidSetReq(
     MsgBlock                           *pstMsg
 )
@@ -1171,7 +1432,7 @@ VOS_VOID*  AT_PrivacyMatchAppMsgTypeWriteReq(
     TAF_MEM_SET_S(pstMatchTafXsmsWriteMsgReq->st1XSms.aucBearerData,
                   sizeof(pstMatchTafXsmsWriteMsgReq->st1XSms.aucBearerData),
                   0,
-                  pstMatchTafXsmsWriteMsgReq->st1XSms.ulBearerDataLen);
+                  sizeof(pstMatchTafXsmsWriteMsgReq->st1XSms.aucBearerData));
 
     pstMatchTafXsmsWriteMsgReq->st1XSms.ulBearerDataLen = 0;
 
@@ -1239,7 +1500,7 @@ VOS_VOID* AT_PrivacyMatchCallAppSendFlashReq(
     TAF_MEM_SET_S(pstFlashReq->stFlashPara.aucDigit,
                   sizeof(pstFlashReq->stFlashPara.aucDigit),
                   0,
-                  pstFlashReq->stFlashPara.ucDigitNum);
+                  sizeof(pstFlashReq->stFlashPara.aucDigit));
 
     pstFlashReq->stFlashPara.ucDigitNum = 0;
 
@@ -1273,7 +1534,7 @@ VOS_VOID* AT_PrivacyMatchCallAppSendBurstReq(
     TAF_MEM_SET_S(pstBurstDtmfReq->stBurstDTMFPara.aucDigit,
                   sizeof(pstBurstDtmfReq->stBurstDTMFPara.aucDigit),
                   0,
-                  pstBurstDtmfReq->stBurstDTMFPara.ucDigitNum);
+                  sizeof(pstBurstDtmfReq->stBurstDTMFPara.aucDigit));
 
     pstBurstDtmfReq->stBurstDTMFPara.ucDigitNum  = 0;
     pstBurstDtmfReq->stBurstDTMFPara.ulOnLength  = 0;
@@ -1351,7 +1612,6 @@ VOS_VOID* AT_PrivacyMatchCagpsPrmInfoRsp(
     AT_XPDS_GPS_PRM_INFO_RSP_STRU      *pstPrivacyMatchMsg  = VOS_NULL_PTR;
     VOS_UINT32                          ulMsgLength;
     VOS_UINT32                          ulMaxPrmDataLen;
-    VOS_UINT32                          ulSvPrmDataLen;
 
     ulMsgLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
 
@@ -1370,12 +1630,11 @@ VOS_VOID* AT_PrivacyMatchCagpsPrmInfoRsp(
                   ulMsgLength);
 
     ulMaxPrmDataLen = sizeof(AT_XPDS_GPS_MODEM_PRMDATA_STRU) * TAF_MSG_CDMA_MAX_SV_NUM;
-    ulSvPrmDataLen  = sizeof(AT_XPDS_GPS_MODEM_PRMDATA_STRU) * (pstPrivacyMatchMsg->ucMeasNum);
 
     TAF_MEM_SET_S(pstPrivacyMatchMsg->astMseasData,
                   ulMaxPrmDataLen,
                   0,
-                  ulSvPrmDataLen);
+                  sizeof(pstPrivacyMatchMsg->astMseasData));
 
     pstPrivacyMatchMsg->ucMeasNum = 0;
 
@@ -1495,7 +1754,6 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsEphInfoInd(
     XPDS_AT_GPS_EPH_INFO_IND_STRU      *pstPrivacyMatchEphInfo  = VOS_NULL_PTR;
     VOS_UINT32                          ulMsgLength;
     VOS_UINT32                          ulMaxEphDataLen;
-    VOS_UINT32                          ulSvEphDataLen;
 
     ulMsgLength             = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
 
@@ -1514,13 +1772,12 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsEphInfoInd(
                   ulMsgLength);
 
     ulMaxEphDataLen = sizeof(XPDS_AT_EPH_DATA_STRU) * TAF_MSG_CDMA_MAX_EPH_PRN_NUM;
-    ulSvEphDataLen  = sizeof(XPDS_AT_EPH_DATA_STRU) * (pstPrivacyMatchEphInfo->ucSvNum);
 
     /* 替换星历信息敏感数据 */
     TAF_MEM_SET_S(pstPrivacyMatchEphInfo->astEphData,
                   ulMaxEphDataLen,
                   0,
-                  ulSvEphDataLen);
+                  sizeof(pstPrivacyMatchEphInfo->astEphData));
 
     pstPrivacyMatchEphInfo->ucSvNum = 0;
 
@@ -1535,7 +1792,6 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsAlmInfoInd(
     XPDS_AT_GPS_ALM_INFO_IND_STRU      *pstPrivacyMatchAlmInfo  = VOS_NULL_PTR;
     VOS_UINT32                          ulMsgLength;
     VOS_UINT32                          ulMaxAlmDataLen;
-    VOS_UINT32                          ulSvAlmDataLen;
 
     ulMsgLength             = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
 
@@ -1554,12 +1810,11 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsAlmInfoInd(
                   ulMsgLength);
 
     ulMaxAlmDataLen = sizeof(XPDS_AT_ALM_DATA_STRU) * TAF_MSG_CDMA_MAX_ALM_PRN_NUM;
-    ulSvAlmDataLen  = sizeof(XPDS_AT_ALM_DATA_STRU) * (pstPrivacyMatchAlmInfo->ucSvNum);
 
     TAF_MEM_SET_S(pstPrivacyMatchAlmInfo->astAlmData,
                   ulMaxAlmDataLen,
                   0,
-                  ulSvAlmDataLen);
+                  sizeof(pstPrivacyMatchAlmInfo->astAlmData));
 
     pstPrivacyMatchAlmInfo->ucWeekNum = 0;
     pstPrivacyMatchAlmInfo->ucToa     = 0;
@@ -1620,7 +1875,6 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsAcqAssistDataInd(
     XPDS_AT_GPS_ACQ_ASSIST_DATA_IND_STRU                   *pstPrivacyMatchAssistData   = VOS_NULL_PTR;
     VOS_UINT32                                              ulMsgLength;
     VOS_UINT32                                              ulMaxAssistDataLen;
-    VOS_UINT32                                              ulSvAssistDataLen;
 
     ulMsgLength                 = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
 
@@ -1639,12 +1893,11 @@ VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsAcqAssistDataInd(
                   ulMsgLength);
 
     ulMaxAssistDataLen = sizeof(TAF_MSG_CDMA_ACQASSIST_DATA_STRU) * TAF_MSG_CDMA_MAX_SV_NUM;
-    ulSvAssistDataLen  = sizeof(TAF_MSG_CDMA_ACQASSIST_DATA_STRU) * (pstPrivacyMatchAssistData->ucSvNum);
 
     TAF_MEM_SET_S(pstPrivacyMatchAssistData->astAaData,
                   ulMaxAssistDataLen,
                   0,
-                  ulSvAssistDataLen);
+                  sizeof(pstPrivacyMatchAssistData->astAaData));
 
     pstPrivacyMatchAssistData->ucSvNum  = 0;
     pstPrivacyMatchAssistData->ulRefTow = 0;
@@ -1925,6 +2178,1239 @@ VOS_VOID* TAF_MMA_PrivacyMatchAtHomePlmnQryCnf(
 }
 
 
+VOS_VOID* TAF_MMA_PrivacyMatchAtLocationInfoQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_LOCATION_INFO_QRY_CNF_STRU *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_LOCATION_INFO_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                   DYNAMIC_MEM_PT,
+                                                                   ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_LOCATION_INFO_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->ulLac    = 0;
+    pstSndMsg->ucRac    = 0;
+    pstSndMsg->ulCellid = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRegStatusInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_REG_STATUS_IND_STRU        *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_REG_STATUS_IND_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                            DYNAMIC_MEM_PT,
+                                                            ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_REG_STATUS_IND_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSndMsg->stRegStatus.CellId.aulCellId,
+                  sizeof(pstSndMsg->stRegStatus.CellId.aulCellId),
+                  0,
+                  sizeof(pstSndMsg->stRegStatus.CellId.aulCellId));
+
+    pstSndMsg->stRegStatus.ulLac = 0;
+    pstSndMsg->stRegStatus.ucRac = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtSrchedPlmnInfoInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_SRCHED_PLMN_INFO_IND_STRU  *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          i;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_SRCHED_PLMN_INFO_IND_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                  DYNAMIC_MEM_PT,
+                                                                  ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_SRCHED_PLMN_INFO_IND_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < TAF_MMA_MAX_SRCHED_LAI_NUM; i++)
+    {
+        pstSndMsg->astLai[i].ulLac = 0;
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtCdmaLocInfoQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_CDMA_LOCINFO_QRY_CNF_STRU  *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_CDMA_LOCINFO_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                  DYNAMIC_MEM_PT,
+                                                                  ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_CDMA_LOCINFO_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stClocinfoPara.ulBaseId = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtNetScanCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_NET_SCAN_CNF_STRU          *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          i;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_NET_SCAN_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                          DYNAMIC_MEM_PT,
+                                                          ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_NET_SCAN_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < TAF_MMA_NET_SCAN_MAX_FREQ_NUM; i++)
+    {
+        pstSndMsg->astNetScanInfo[i].ulCellId = 0;
+        pstSndMsg->astNetScanInfo[i].usLac    = 0;
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRegStateQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_REG_STATE_QRY_CNF_STRU     *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_REG_STATE_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                               DYNAMIC_MEM_PT,
+                                                               ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_REG_STATE_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stRegInfo.ulLac = 0;
+    pstSndMsg->stRegInfo.ucRac = 0;
+
+    TAF_MEM_SET_S(pstSndMsg->stRegInfo.CellId.aulCellId,
+                  sizeof(pstSndMsg->stRegInfo.CellId.aulCellId),
+                  0,
+                  sizeof(pstSndMsg->stRegInfo.CellId.aulCellId));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtClocInfoInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_CLOCINFO_IND_STRU          *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_CLOCINFO_IND_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                          DYNAMIC_MEM_PT,
+                                                          ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_CLOCINFO_IND_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stClocinfoPara.ulBaseId = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRejInfoQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_REJINFO_QRY_CNF_STRU       *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_REJINFO_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                             DYNAMIC_MEM_PT,
+                                                             ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_REJINFO_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stPhoneRejInfo.ucRac    = 0;
+    pstSndMsg->stPhoneRejInfo.ulLac    = 0;
+    pstSndMsg->stPhoneRejInfo.ulCellId = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+
+VOS_VOID* RNIC_PrivacyMatchCdsImsDataReq(
+    MsgBlock                           *pstMsg
+)
+{
+    RNIC_CDS_IMS_DATA_REQ_STRU         *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (RNIC_CDS_IMS_DATA_REQ_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                           DYNAMIC_MEM_PT,
+                                                           ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSndMsg->aucData,
+                  pstSndMsg->usDataLen,
+                  0,
+                  pstSndMsg->usDataLen);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_PrivacyMatchDsmPsCallOrigReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                    *pstSndMsg      = VOS_NULL_PTR;
+    TAF_PS_CALL_ORIG_REQ_STRU          *pstCallOrigReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_ORIG_REQ_STRU) + sizeof(MSG_HEADER_STRU),
+                  pstMsg,
+                  ulLength);
+
+    pstCallOrigReq = (TAF_PS_CALL_ORIG_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstCallOrigReq->stDialParaInfo.stPdpAddr.aucIpv4Addr,
+                  sizeof(pstCallOrigReq->stDialParaInfo.stPdpAddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstCallOrigReq->stDialParaInfo.stPdpAddr.aucIpv6Addr,
+                  sizeof(pstCallOrigReq->stDialParaInfo.stPdpAddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstCallOrigReq->stDialParaInfo.aucPassWord,
+                  sizeof(pstCallOrigReq->stDialParaInfo.aucPassWord),
+                  0,
+                  TAF_MAX_AUTHDATA_PASSWORD_LEN + 1);
+
+    TAF_MEM_SET_S(pstCallOrigReq->stDialParaInfo.aucUserName,
+                  sizeof(pstCallOrigReq->stDialParaInfo.aucUserName),
+                  0,
+                  TAF_MAX_AUTHDATA_USERNAME_LEN + 1);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_PrivacyMatchDsmPsPppDialOrigReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                    *pstSndMsg      = VOS_NULL_PTR;
+    TAF_PS_PPP_DIAL_ORIG_REQ_STRU      *pstDialOrigReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_PPP_DIAL_ORIG_REQ_STRU) + sizeof(MSG_HEADER_STRU),
+                  pstMsg,
+                  ulLength);
+
+    pstDialOrigReq = (TAF_PS_PPP_DIAL_ORIG_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(&(pstDialOrigReq->stPppDialParaInfo.stPppReqConfigInfo.stAuth.enAuthContent),
+                  sizeof(pstDialOrigReq->stPppDialParaInfo.stPppReqConfigInfo.stAuth.enAuthContent),
+                  0,
+                  sizeof(pstDialOrigReq->stPppDialParaInfo.stPppReqConfigInfo.stAuth.enAuthContent));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_PrivacyMatchDsmPsSetPrimPdpCtxInfoReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                                *pstSndMsg        = VOS_NULL_PTR;
+    TAF_PS_SET_PRIM_PDP_CONTEXT_INFO_REQ_STRU      *pstSetPdpCtxReq  = VOS_NULL_PTR;
+    VOS_UINT32                                      ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_SET_PRIM_PDP_CONTEXT_INFO_REQ_STRU) + sizeof(MSG_HEADER_STRU),
+                  pstMsg,
+                  ulLength);
+
+    pstSetPdpCtxReq = (TAF_PS_SET_PRIM_PDP_CONTEXT_INFO_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSetPdpCtxReq->stPdpContextInfo.stPdpAddr.aucIpv4Addr,
+                  sizeof(pstSetPdpCtxReq->stPdpContextInfo.stPdpAddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstSetPdpCtxReq->stPdpContextInfo.stPdpAddr.aucIpv6Addr,
+                  sizeof(pstSetPdpCtxReq->stPdpContextInfo.stPdpAddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_PrivacyMatchDsmPsSetTftInfoReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                    *pstSndMsg        = VOS_NULL_PTR;
+    TAF_PS_SET_TFT_INFO_REQ_STRU       *pstSetTftInfoReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_SET_TFT_INFO_REQ_STRU) + sizeof(MSG_HEADER_STRU),
+                  pstMsg,
+                  ulLength);
+
+    pstSetTftInfoReq = (TAF_PS_SET_TFT_INFO_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSetTftInfoReq->stTftInfo.aucLocalIpv4Addr,
+                  sizeof(pstSetTftInfoReq->stTftInfo.aucLocalIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstSetTftInfoReq->stTftInfo.aucLocalIpv6Addr,
+                  sizeof(pstSetTftInfoReq->stTftInfo.aucLocalIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstSetTftInfoReq->stTftInfo.stSourceIpaddr.aucIpv4Addr,
+                  sizeof(pstSetTftInfoReq->stTftInfo.stSourceIpaddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    TAF_MEM_SET_S(pstSetTftInfoReq->stTftInfo.stSourceIpaddr.aucIpv6Addr,
+                  sizeof(pstSetTftInfoReq->stTftInfo.stSourceIpaddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    pstSetTftInfoReq->stTftInfo.ucLocalIpv6Prefix = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpActCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU  *pstPdpActCnf  = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpActCnf = (TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV4 地址 */
+    TAF_MEM_SET_S(pstPdpActCnf->stPdpAddr.aucIpv4Addr,
+                  sizeof(pstPdpActCnf->stPdpAddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    /* IPV6 地址 */
+    TAF_MEM_SET_S(pstPdpActCnf->stPdpAddr.aucIpv6Addr,
+                  sizeof(pstPdpActCnf->stPdpAddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    /* IPV4 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpActCnf->stIpv4PcscfList.astIpv4PcscfAddrList,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* IPV6 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpActCnf->stIpv6PcscfList.astIpv6PcscfAddrList,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpActCnf->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    /* EPDG 地址 */
+    TAF_MEM_SET_S(pstPdpActCnf->stEpdgInfo.astIpv4EpdgList,
+                  sizeof(TAF_IPV4_EPDG_STRU) * TAF_MAX_IPV4_EPDG_NUM,
+                  0,
+                  sizeof(TAF_IPV4_EPDG_STRU) * TAF_MAX_IPV4_EPDG_NUM);
+
+    TAF_MEM_SET_S(pstPdpActCnf->stEpdgInfo.astIpv6EpdgList,
+                  sizeof(TAF_IPV6_EPDG_STRU) * TAF_MAX_IPV6_EPDG_NUM,
+                  0,
+                  sizeof(TAF_IPV6_EPDG_STRU) * TAF_MAX_IPV6_EPDG_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpActInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_ACTIVATE_IND_STRU  *pstPdpActInd  = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_ACTIVATE_IND_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpActInd = (TAF_PS_CALL_PDP_ACTIVATE_IND_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV4 地址 */
+    TAF_MEM_SET_S(pstPdpActInd->stPdpAddr.aucIpv4Addr,
+                  sizeof(pstPdpActInd->stPdpAddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    /* IPV6 地址 */
+    TAF_MEM_SET_S(pstPdpActInd->stPdpAddr.aucIpv6Addr,
+                  sizeof(pstPdpActInd->stPdpAddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    /* IPV4 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpActInd->stIpv4PcscfList.astIpv4PcscfAddrList,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* IPV6 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpActInd->stIpv6PcscfList.astIpv6PcscfAddrList,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpActInd->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    /* EPDG 地址 */
+    TAF_MEM_SET_S(pstPdpActInd->stEpdgInfo.astIpv4EpdgList,
+                  sizeof(TAF_IPV4_EPDG_STRU) * TAF_MAX_IPV4_EPDG_NUM,
+                  0,
+                  sizeof(TAF_IPV4_EPDG_STRU) * TAF_MAX_IPV4_EPDG_NUM);
+
+    TAF_MEM_SET_S(pstPdpActInd->stEpdgInfo.astIpv6EpdgList,
+                  sizeof(TAF_IPV6_EPDG_STRU) * TAF_MAX_IPV6_EPDG_NUM,
+                  0,
+                  sizeof(TAF_IPV6_EPDG_STRU) * TAF_MAX_IPV6_EPDG_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpManageInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg       = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_MANAGE_IND_STRU    *pstPdpManageInd = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_MANAGE_IND_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpManageInd = (TAF_PS_CALL_PDP_MANAGE_IND_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV4 地址 */
+    TAF_MEM_SET_S(pstPdpManageInd->stPdpAddr.aucIpv4Addr,
+                  sizeof(pstPdpManageInd->stPdpAddr.aucIpv4Addr),
+                  0,
+                  TAF_IPV4_ADDR_LEN);
+
+    /* IPV6 地址 */
+    TAF_MEM_SET_S(pstPdpManageInd->stPdpAddr.aucIpv6Addr,
+                  sizeof(pstPdpManageInd->stPdpAddr.aucIpv6Addr),
+                  0,
+                  TAF_IPV6_ADDR_LEN);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpModCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg    = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_MODIFY_CNF_STRU    *pstPdpModCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_MODIFY_CNF_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpModCnf = (TAF_PS_CALL_PDP_MODIFY_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV4 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpModCnf->stIpv4PcscfList.astIpv4PcscfAddrList,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* IPV6 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpModCnf->stIpv6PcscfList.astIpv6PcscfAddrList,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpModCnf->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpModInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg    = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_MODIFY_IND_STRU    *pstPdpModInd = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_MODIFY_CNF_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpModInd = (TAF_PS_CALL_PDP_MODIFY_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV4 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpModInd->stIpv4PcscfList.astIpv4PcscfAddrList,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV4_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* IPV6 PCSCF 地址 */
+    TAF_MEM_SET_S(pstPdpModInd->stIpv6PcscfList.astIpv6PcscfAddrList,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM,
+                  0,
+                  sizeof(TAF_PDP_IPV6_PCSCF_STRU) * TAF_PCSCF_ADDR_MAX_NUM);
+
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpModInd->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpDeactCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                                        *pstSndMsg      = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU                    *pstPdpDeactCnf = VOS_NULL_PTR;
+    VOS_UINT32                                              ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpDeactCnf = (TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpDeactCnf->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpDeactInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                                        *pstSndMsg      = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_DEACTIVATE_IND_STRU                    *pstPdpDeactInd = VOS_NULL_PTR;
+    VOS_UINT32                                              ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_CALL_PDP_DEACTIVATE_IND_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpDeactInd = (TAF_PS_CALL_PDP_DEACTIVATE_IND_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* PCO */
+    TAF_MEM_SET_S(pstPdpDeactInd->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpIpv6InfoInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg         = VOS_NULL_PTR;
+    TAF_PS_IPV6_INFO_IND_STRU          *pstPdpIpv6InfoInd = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_IPV6_INFO_IND_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPdpIpv6InfoInd = (TAF_PS_IPV6_INFO_IND_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    /* IPV6 地址 */
+    TAF_MEM_SET_S(pstPdpIpv6InfoInd->stIpv6RaInfo.astPrefixList,
+                  sizeof(TAF_PDP_IPV6_PREFIX_STRU) * TAF_MAX_PREFIX_NUM_IN_RA,
+                  0,
+                  sizeof(TAF_PDP_IPV6_PREFIX_STRU) * TAF_MAX_PREFIX_NUM_IN_RA);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetPrimPdpCtxInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                                        *pstSndMsg        = VOS_NULL_PTR;
+    TAF_PS_GET_PRIM_PDP_CONTEXT_INFO_CNF_STRU              *pstPdpCtxInfoCnf = VOS_NULL_PTR;
+    VOS_UINT32                                              ulLength;
+    VOS_UINT32                                              i;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstPdpCtxInfoCnf = (TAF_PS_GET_PRIM_PDP_CONTEXT_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < pstPdpCtxInfoCnf->ulCidNum; i++)
+    {
+        /* IPV4 地址 */
+        TAF_MEM_SET_S(pstPdpCtxInfoCnf->astPdpContextQueryInfo[i].stPriPdpInfo.stPdpAddr.aucIpv4Addr,
+                      sizeof(pstPdpCtxInfoCnf->astPdpContextQueryInfo[i].stPriPdpInfo.stPdpAddr.aucIpv4Addr),
+                      0,
+                      TAF_IPV4_ADDR_LEN);
+        /* IPV6 地址 */
+        TAF_MEM_SET_S(pstPdpCtxInfoCnf->astPdpContextQueryInfo[i].stPriPdpInfo.stPdpAddr.aucIpv6Addr,
+                      sizeof(pstPdpCtxInfoCnf->astPdpContextQueryInfo[i].stPriPdpInfo.stPdpAddr.aucIpv6Addr),
+                      0,
+                      TAF_IPV6_ADDR_LEN);
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetTftInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    TAF_PS_GET_TFT_INFO_CNF_STRU       *pstGetTftInfoCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          i;
+    VOS_UINT32                          j;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstGetTftInfoCnf = (TAF_PS_GET_TFT_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < pstGetTftInfoCnf->ulCidNum; i++)
+    {
+        for (j = 0; j < TAF_MAX_SDF_PF_NUM; j++)
+        {
+            /* IPV4 地址 */
+            TAF_MEM_SET_S(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucLocalIpv4Addr,
+                          sizeof(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucLocalIpv4Addr),
+                          0,
+                          TAF_IPV4_ADDR_LEN);
+
+            TAF_MEM_SET_S(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucRmtIpv4Address,
+                          sizeof(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucRmtIpv4Address),
+                          0,
+                          TAF_IPV4_ADDR_LEN);
+
+            /* IPV6 地址 */
+            TAF_MEM_SET_S(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucLocalIpv6Addr,
+                          sizeof(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucLocalIpv6Addr),
+                          0,
+                          TAF_IPV6_ADDR_LEN);
+
+            TAF_MEM_SET_S(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucRmtIpv6Address,
+                          sizeof(pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].aucRmtIpv6Address),
+                          0,
+                          TAF_IPV6_ADDR_LEN);
+            pstGetTftInfoCnf->astTftQueryInfo[i].astPfInfo[j].ucLocalIpv6Prefix = 0;
+        }
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetPdpIpAddrInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                                        *pstSndMsg     = VOS_NULL_PTR;
+    TAF_PS_GET_PDP_IP_ADDR_INFO_CNF_STRU                   *pstIpAddrInfo = VOS_NULL_PTR;
+    VOS_UINT32                                              ulLength;
+    VOS_UINT32                                              i;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstIpAddrInfo = (TAF_PS_GET_PDP_IP_ADDR_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i <= TAF_MAX_CID; i++)
+    {
+        /* IPV4 地址 */
+        TAF_MEM_SET_S(pstIpAddrInfo->astPdpAddrQueryInfo[i].stPdpAddr.aucIpv4Addr,
+                      sizeof(pstIpAddrInfo->astPdpAddrQueryInfo[i].stPdpAddr.aucIpv4Addr),
+                      0,
+                      TAF_IPV4_ADDR_LEN);
+
+        /* IPV6 地址 */
+        TAF_MEM_SET_S(pstIpAddrInfo->astPdpAddrQueryInfo[i].stPdpAddr.aucIpv6Addr,
+                      sizeof(pstIpAddrInfo->astPdpAddrQueryInfo[i].stPdpAddr.aucIpv6Addr),
+                      0,
+                      TAF_IPV6_ADDR_LEN);
+    }
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetDynamicTftInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                                        *pstSndMsg  = VOS_NULL_PTR;
+    TAF_PS_GET_DYNAMIC_TFT_INFO_CNF_STRU                   *pstTftInfo = VOS_NULL_PTR;
+    VOS_UINT32                                              ulLength;
+    VOS_UINT32                                              i;
+    VOS_UINT32                                              j;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstTftInfo = (TAF_PS_GET_DYNAMIC_TFT_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < pstTftInfo->ulCidNum; i++)
+    {
+        for (j = 0; j < TAF_MAX_SDF_PF_NUM; j++)
+        {
+            /* IPV4 地址 */
+            TAF_MEM_SET_S(pstTftInfo->astPfTftInfo[i].astTftInfo[j].aucLocalIpv4Addr,
+                          sizeof(pstTftInfo->astPfTftInfo[i].astTftInfo[j].aucLocalIpv4Addr),
+                          0,
+                          TAF_IPV4_ADDR_LEN);
+
+            TAF_MEM_SET_S(pstTftInfo->astPfTftInfo[i].astTftInfo[j].stSourceIpaddr.aucIpv4Addr,
+                          sizeof(pstTftInfo->astPfTftInfo[i].astTftInfo[j].stSourceIpaddr.aucIpv4Addr),
+                          0,
+                          TAF_IPV4_ADDR_LEN);
+
+            /* IPV6 地址 */
+            TAF_MEM_SET_S(pstTftInfo->astPfTftInfo[i].astTftInfo[j].aucLocalIpv6Addr,
+                          sizeof(pstTftInfo->astPfTftInfo[i].astTftInfo[j].aucLocalIpv6Addr),
+                          0,
+                          TAF_IPV6_ADDR_LEN);
+
+            TAF_MEM_SET_S(pstTftInfo->astPfTftInfo[i].astTftInfo[j].stSourceIpaddr.aucIpv6Addr,
+                          sizeof(pstTftInfo->astPfTftInfo[i].astTftInfo[j].stSourceIpaddr.aucIpv6Addr),
+                          0,
+                          TAF_IPV6_ADDR_LEN);
+            pstTftInfo->astPfTftInfo[i].astTftInfo[j].ucLocalIpv6Prefix = 0;
+        }
+    }
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetAuthdataInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg       = VOS_NULL_PTR;
+    TAF_PS_GET_AUTHDATA_INFO_CNF_STRU  *pstAuthdataInfo = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          i;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstAuthdataInfo = (TAF_PS_GET_AUTHDATA_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    for (i = 0; i < pstAuthdataInfo->ulCidNum; i++)
+    {
+         TAF_MEM_SET_S(pstAuthdataInfo->astAuthDataQueryInfo[i].stAuthDataInfo.aucPassword,
+                      sizeof(pstAuthdataInfo->astAuthDataQueryInfo[i].stAuthDataInfo.aucPassword),
+                      0,
+                      TAF_MAX_AUTHDATA_PASSWORD_LEN + 1);
+
+         TAF_MEM_SET_S(pstAuthdataInfo->astAuthDataQueryInfo[i].stAuthDataInfo.aucUsername,
+                      sizeof(pstAuthdataInfo->astAuthDataQueryInfo[i].stAuthDataInfo.aucUsername),
+                      0,
+                      TAF_MAX_AUTHDATA_USERNAME_LEN + 1);
+    }
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsReportPcoInfoInd(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    TAF_PS_REPORT_PCO_INFO_IND_STRU    *pstPcoInfoInd = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    ulLength  = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_PS_REPORT_PCO_INFO_IND_STRU) + sizeof(MSG_HEADER_STRU) + sizeof(VOS_UINT32),
+                  pstMsg,
+                  ulLength);
+
+    pstPcoInfoInd = (TAF_PS_REPORT_PCO_INFO_IND_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstPcoInfoInd->stCustomPcoInfo.astContainerList,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM,
+                  0,
+                  sizeof(TAF_PS_CUSTOM_PCO_CONTAINER_STRU) * TAF_PS_MAX_CUSTOM_PCO_CONTAINER_NUM);
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+
 VOS_VOID* TAF_DRVAGENT_PrivacyMatchAtMsidQryCnf(
     MsgBlock                           *pstMsg
 )
@@ -1961,6 +3447,47 @@ VOS_VOID* TAF_DRVAGENT_PrivacyMatchAtMsidQryCnf(
 }
 
 
+VOS_VOID* AT_PrivacyMatchSmsAppMsgReq(
+    MsgBlock                           *pstMsg
+)
+{
+    VOS_UINT8                          *pucAppReq       = VOS_NULL_PTR;
+    MN_APP_REQ_MSG_STRU                *pstInputAppReq  = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          ulCopyLength;
+
+    pstInputAppReq  = (MN_APP_REQ_MSG_STRU *)pstMsg;
+
+    /* 计算消息长度和待输出脱敏后消息有效字段长度 */
+    ulLength        = VOS_MSG_HEAD_LENGTH + pstInputAppReq->ulLength;
+    ulCopyLength    = (sizeof(MN_APP_REQ_MSG_STRU) - sizeof(pstInputAppReq->aucContent));
+
+    /* 消息长度小于消息结构的头部长度，认为消息异常输出原始消息，不脱敏 */
+    if (ulLength < ulCopyLength)
+    {
+        return pstInputAppReq;
+    }
+
+    /* 申请消息长度大小的内存，用于脱敏后消息输出 */
+    pucAppReq = (VOS_UINT8 *)VOS_MemAlloc(pstInputAppReq->ulSenderPid,
+                                          DYNAMIC_MEM_PT,
+                                          ulLength);
+
+    if (VOS_NULL_PTR == pucAppReq)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    /* 仅拷贝消息头部到脱敏后消息指针 */
+    TAF_MEM_SET_S(pucAppReq, ulLength, 0, ulLength);
+
+    TAF_MEM_CPY_S(pucAppReq, ulLength, pstInputAppReq, ulCopyLength);
+
+    return (VOS_VOID *)pucAppReq;
+
+}
+
+
 
 VOS_UINT32 TAF_MSG_IsNeedPrivacyEventToApp(
     VOS_UINT32                          ulEvent
@@ -1977,6 +3504,543 @@ VOS_UINT32 TAF_MSG_IsNeedPrivacyEventToApp(
     }
 
     return VOS_FALSE;
+}
+
+
+VOS_VOID* TAF_PrivacyMatchAtCallBackSmsProc(
+    MsgBlock                           *pstMsg
+)
+{
+    MN_MSG_EVENT_INFO_STRU             *pstEvent        = VOS_NULL_PTR;
+    MN_AT_IND_EVT_STRU                 *pstSrcMsg       = VOS_NULL_PTR;
+    MN_AT_IND_EVT_STRU                 *pstSendAtMsg    = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    MN_MSG_EVENT_ENUM_U32               enEvent;
+    TAF_UINT32                          ulEventLen;
+
+    pstSrcMsg = (MN_AT_IND_EVT_STRU *)pstMsg;
+
+    ulEventLen = sizeof(MN_MSG_EVENT_ENUM_U32);
+    TAF_MEM_CPY_S(&enEvent,  sizeof(enEvent), pstSrcMsg->aucContent, ulEventLen);
+
+    /* 不要求脱敏的事件直接返回源消息地址 */
+    if (VOS_FALSE == TAF_MSG_IsNeedPrivacyEventToApp(enEvent))
+    {
+        return pstMsg;
+    }
+
+    ulLength     = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+    pstSendAtMsg = (MN_AT_IND_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                      DYNAMIC_MEM_PT,
+                                                      ulLength);
+
+    if (VOS_NULL_PTR == pstSendAtMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSendAtMsg, ulLength, pstMsg, ulLength);
+
+    pstEvent = (MN_MSG_EVENT_INFO_STRU *)&pstSendAtMsg->aucContent[ulEventLen];
+
+    TAF_MEM_SET_S(&pstEvent->u, sizeof(pstEvent->u), 0, sizeof(pstEvent->u));
+
+    return (VOS_VOID *)pstSendAtMsg;
+}
+
+
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtEcidSetCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    AT_MTA_MSG_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    MTA_AT_ECID_SET_CNF_STRU           *pstMtaAtEcidSetCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          ulContentLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (AT_MTA_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstMtaAtEcidSetCnf = (MTA_AT_ECID_SET_CNF_STRU *)(pstSndMsg->aucContent);
+
+    /* 将敏感信息设置为全0,清空字符串,不清楚log打印机制，这里把字符串全部清0 */
+    if (pstMsg->ulLength > (sizeof(AT_APPCTRL_STRU) + sizeof(pstSndMsg->ulMsgId)))
+    {
+        ulContentLength = pstMsg->ulLength - (sizeof(AT_APPCTRL_STRU) + sizeof(pstSndMsg->ulMsgId) + sizeof(MTA_AT_RESULT_ENUM_UINT32));
+        TAF_MEM_SET_S(pstMtaAtEcidSetCnf->aucCellInfoStr,
+                      ulContentLength,
+                      0x00,
+                      ulContentLength);
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfClocInfoSetReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_EFLOCIINFO_SET_REQ_STRU    *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_EFLOCIINFO_SET_REQ_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                DYNAMIC_MEM_PT,
+                                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_EFLOCIINFO_SET_REQ_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stEflociInfo.ulTmsi = 0;
+    pstSndMsg->stEflociInfo.usLac  = 0;
+    pstSndMsg->stEflociInfo.ucRfu  = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfClocInfoQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_EFLOCIINFO_QRY_CNF_STRU    *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_EFLOCIINFO_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                DYNAMIC_MEM_PT,
+                                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_EFLOCIINFO_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stEflociInfo.ulTmsi = 0;
+    pstSndMsg->stEflociInfo.usLac  = 0;
+    pstSndMsg->stEflociInfo.ucRfu  = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfPsClocInfoSetReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_EFPSLOCIINFO_SET_REQ_STRU  *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_EFPSLOCIINFO_SET_REQ_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                  DYNAMIC_MEM_PT,
+                                                                  ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_EFPSLOCIINFO_SET_REQ_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stPsEflociInfo.ulPTmsi = 0;
+    pstSndMsg->stPsEflociInfo.usLac   = 0;
+    pstSndMsg->stPsEflociInfo.ucRac   = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfPsClocInfoQryCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_MMA_EFPSLOCIINFO_QRY_CNF_STRU  *pstSndMsg     = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_MMA_EFPSLOCIINFO_QRY_CNF_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                                  DYNAMIC_MEM_PT,
+                                                                  ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  sizeof(TAF_MMA_EFPSLOCIINFO_QRY_CNF_STRU),
+                  pstMsg,
+                  ulLength);
+
+    /* 将敏感信息设置为全0 */
+    pstSndMsg->stPsEflociInfo.ulPTmsi = 0;
+    pstSndMsg->stPsEflociInfo.usLac   = 0;
+    pstSndMsg->stPsEflociInfo.ucRac   = 0;
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetAuthDataReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                    *pstSndMsg         = VOS_NULL_PTR;
+    TAF_PS_SET_AUTHDATA_INFO_REQ_STRU  *pstSetAuthDataReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstSetAuthDataReq = (TAF_PS_SET_AUTHDATA_INFO_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSetAuthDataReq->stAuthDataInfo.aucPassWord,
+                  sizeof(pstSetAuthDataReq->stAuthDataInfo.aucPassWord),
+                  0x00,
+                  sizeof(pstSetAuthDataReq->stAuthDataInfo.aucPassWord));
+
+    TAF_MEM_SET_S(pstSetAuthDataReq->stAuthDataInfo.aucUserName,
+                  sizeof(pstSetAuthDataReq->stAuthDataInfo.aucUserName),
+                  0x00,
+                  sizeof(pstSetAuthDataReq->stAuthDataInfo.aucUserName));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetSetPdpDnsInfoReq(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_MSG_STRU                    *pstSndMsg              = VOS_NULL_PTR;
+    TAF_PS_SET_PDP_DNS_INFO_REQ_STRU   *pstSetSetPdpDnsInfoReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstSetSetPdpDnsInfoReq = (TAF_PS_SET_PDP_DNS_INFO_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucPrimDnsAddr,
+                  sizeof(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucPrimDnsAddr),
+                  0x00,
+                  sizeof(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucPrimDnsAddr));
+
+    TAF_MEM_SET_S(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucSecDnsAddr,
+                  sizeof(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucSecDnsAddr),
+                  0x00,
+                  sizeof(pstSetSetPdpDnsInfoReq->stPdpDnsInfo.aucSecDnsAddr));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetGetPdpDnsInfoCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                    *pstSndMsg              = VOS_NULL_PTR;
+    TAF_PS_GET_PDP_DNS_INFO_CNF_STRU   *pstSetGetPdpDnsInfoCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+    VOS_UINT32                          ulIndex;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstSetGetPdpDnsInfoCnf = (TAF_PS_GET_PDP_DNS_INFO_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+
+    for (ulIndex = 0; ulIndex < TAF_MIN(pstSetGetPdpDnsInfoCnf->ulCidNum, TAF_MAX_CID); ulIndex++)
+    {
+        TAF_MEM_SET_S(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucPrimDnsAddr,
+                      sizeof(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucPrimDnsAddr),
+                      0x00,
+                      sizeof(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucPrimDnsAddr));
+
+        TAF_MEM_SET_S(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucSecDnsAddr,
+                      sizeof(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucSecDnsAddr),
+                      0x00,
+                      sizeof(pstSetGetPdpDnsInfoCnf->astPdpDnsQueryInfo[ulIndex].stDnsInfo.aucSecDnsAddr));
+    }
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafGetNegotiationDnsCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    TAF_PS_EVT_STRU                       *pstSndMsg               = VOS_NULL_PTR;
+    TAF_PS_GET_NEGOTIATION_DNS_CNF_STRU   *pstGetNegotiationDnsCnf = VOS_NULL_PTR;
+    VOS_UINT32                             ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (TAF_PS_EVT_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstGetNegotiationDnsCnf = (TAF_PS_GET_NEGOTIATION_DNS_CNF_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucPrimDnsAddr,
+                  sizeof(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucPrimDnsAddr),
+                  0x00,
+                  sizeof(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucPrimDnsAddr));
+
+    TAF_MEM_SET_S(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucSecDnsAddr,
+                  sizeof(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucSecDnsAddr),
+                  0x00,
+                  sizeof(pstGetNegotiationDnsCnf->stNegotiationDns.stDnsInfo.aucSecDnsAddr));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtSetNetMonScellCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    AT_MTA_MSG_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    MTA_AT_NETMON_CELL_INFO_STRU       *pstMtaAtSetNetMonScellCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (AT_MTA_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstMtaAtSetNetMonScellCnf = (MTA_AT_NETMON_CELL_INFO_STRU *)(pstSndMsg->aucContent);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(&(pstMtaAtSetNetMonScellCnf->stNCellInfo),
+                  sizeof(pstMtaAtSetNetMonScellCnf->stNCellInfo),
+                  0x00,
+                  sizeof(pstMtaAtSetNetMonScellCnf->stNCellInfo));
+
+    TAF_MEM_SET_S(&(pstMtaAtSetNetMonScellCnf->unSCellInfo),
+                  sizeof(pstMtaAtSetNetMonScellCnf->unSCellInfo),
+                  0x00,
+                  sizeof(pstMtaAtSetNetMonScellCnf->unSCellInfo));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtSetNetMonNcellCnf(
+    MsgBlock                           *pstMsg
+)
+{
+    AT_MTA_MSG_STRU                    *pstSndMsg     = VOS_NULL_PTR;
+    MTA_AT_NETMON_CELL_INFO_STRU       *pstMtaAtSetNetMonScellCnf = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (AT_MTA_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                DYNAMIC_MEM_PT,
+                                                ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstMtaAtSetNetMonScellCnf = (MTA_AT_NETMON_CELL_INFO_STRU *)(pstSndMsg->aucContent);
+
+    /* 将敏感信息设置为全0 */
+    TAF_MEM_SET_S(&(pstMtaAtSetNetMonScellCnf->stNCellInfo),
+                  sizeof(pstMtaAtSetNetMonScellCnf->stNCellInfo),
+                  0x00,
+                  sizeof(pstMtaAtSetNetMonScellCnf->stNCellInfo));
+
+    TAF_MEM_SET_S(&(pstMtaAtSetNetMonScellCnf->unSCellInfo),
+                  sizeof(pstMtaAtSetNetMonScellCnf->unSCellInfo),
+                  0x00,
+                  sizeof(pstMtaAtSetNetMonScellCnf->unSCellInfo));
+
+    return (VOS_VOID *)pstSndMsg;
+}
+
+
+VOS_VOID* AT_PrivacyMatchPseucellInfoSetReq(
+    MsgBlock                           *pstMsg
+)
+{
+    MN_APP_REQ_MSG_STRU                *pstSndMsg             = VOS_NULL_PTR;
+    AT_MTA_PSEUCELL_INFO_SET_REQ_STRU  *pstPseucellInfoSetReq = VOS_NULL_PTR;
+    VOS_UINT32                          ulLength;
+
+    /* 计算消息长度 */
+    ulLength = pstMsg->ulLength + VOS_MSG_HEAD_LENGTH;
+
+
+    /* 申请内存，后续统一由底层释放 */
+    pstSndMsg = (MN_APP_REQ_MSG_STRU *)VOS_MemAlloc(pstMsg->ulSenderPid,
+                                                    DYNAMIC_MEM_PT,
+                                                    ulLength);
+
+    /* 如果没有申请到内存，则返回空指针 */
+    if (VOS_NULL_PTR == pstSndMsg)
+    {
+        return VOS_NULL_PTR;
+    }
+
+    TAF_MEM_CPY_S(pstSndMsg,
+                  ulLength,
+                  pstMsg,
+                  ulLength);
+
+    pstPseucellInfoSetReq = (AT_MTA_PSEUCELL_INFO_SET_REQ_STRU *)pstSndMsg->aucContent;
+
+    /* 将敏感信息设置为全0 */
+    pstPseucellInfoSetReq->ulLac = 0;
+
+    return (VOS_VOID *)pstSndMsg;
 }
 
 

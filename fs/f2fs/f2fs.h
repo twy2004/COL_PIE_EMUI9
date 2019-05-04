@@ -339,6 +339,8 @@ struct discard_entry {
 #define DISCARD_GRAN_BG		512
 #define DISCARD_GRAN_FORCE	1
 
+#define DISCARD_MAX_TIME	(50 * 1000 * 1000UL)
+
 /* max discard pend list number */
 #define MAX_PLIST_NUM		512
 #define plist_idx(blk_num)	((blk_num) >= MAX_PLIST_NUM ?		\
@@ -375,9 +377,7 @@ struct discard_cmd {
 	unsigned short ref;		/* reference count */
 	unsigned char state;		/* state */
 	int error;			/* bio error */
-#ifdef CONFIG_F2FS_STAT_FS
 	u64 discard_time;
-#endif
 };
 
 enum {
@@ -1337,6 +1337,8 @@ enum gc_test_type {
 	GC_TEST_DISABLE_IO_AWARE,
 	GC_TEST_DISABLE_SYNCFS,
 	GC_TEST_DISABLE_FRAG_URGENT,
+	GC_TEST_DISABLE_GC_URGENT,
+	GC_TEST_ENABLE_GC_STAT,
 };
 #define is_gc_test_set(sbi, type) ((sbi)->gc_test_cond & (1 << (type)))
 
@@ -1493,6 +1495,10 @@ struct f2fs_sb_info {
 	atomic_t max_aw_cnt;			/* max # of atomic writes */
 	atomic_t max_vw_cnt;			/* max # of volatile writes */
 	int bg_gc;				/* background gc calls */
+	unsigned int io_skip_bggc;              /* skip background gc for in-flight IO */
+	unsigned int other_skip_bggc;           /* skip background gc for other reasons */
+	int assr_lfs_segs, assr_ssr_segs, assr_lfs_blks, assr_ssr_blks;
+	int bggc_node_lfs_blks, bggc_node_ssr_blks;
 	unsigned int ndirty_inode[NR_INODE_TYPE];	/* # of dirty inodes */
 
 	struct mutex bd_mutex;
@@ -1559,6 +1565,10 @@ struct f2fs_sb_info {
 #endif
 	bool is_frag;				/* urgent gc flag */
 	unsigned long last_urgent_check;	/* last urgent check jiffies */
+
+#ifdef CONFIG_F2FS_CHECK_FS
+	atomic_t in_cp;
+#endif
 };
 
 #ifdef CONFIG_F2FS_FAULT_INJECTION
@@ -1946,13 +1956,13 @@ static inline void f2fs_lock_all(struct f2fs_sb_info *sbi)
 
 static inline void f2fs_unlock_all(struct f2fs_sb_info *sbi)
 {
-	up_write(&sbi->cp_rwsem);
 #if 1
 	spin_lock(&sbi->cp_rwsem_lock);
 	sbi->cp_rwsem_owner = NULL;
 	sbi->cp_rwsem_owner_j = 0;
 	spin_unlock(&sbi->cp_rwsem_lock);
 #endif
+	up_write(&sbi->cp_rwsem);
 }
 
 static inline int __get_cp_reason(struct f2fs_sb_info *sbi)
@@ -3151,8 +3161,8 @@ int f2fs_fill_dentries(struct dir_context *ctx, struct f2fs_dentry_ptr *d,
 			unsigned int start_pos, struct fscrypt_str *fstr);
 void do_make_empty_dir(struct inode *inode, struct inode *parent,
 			struct f2fs_dentry_ptr *d);
-struct page *init_inode_metadata(struct inode *inode, struct inode *dir,
-			const struct qstr *new_name,
+struct page *init_inode_metadata(struct inode *inode, struct dentry *dentry,
+			struct inode *dir, const struct qstr *new_name,
 			const struct qstr *orig_name, struct page *dpage);
 void update_parent_metadata(struct inode *dir, struct inode *inode,
 			unsigned int current_depth);
@@ -3171,20 +3181,20 @@ void f2fs_update_dentry(nid_t ino, umode_t mode, struct f2fs_dentry_ptr *d,
 			const struct qstr *name, f2fs_hash_t name_hash,
 			unsigned int bit_pos);
 int f2fs_add_regular_entry(struct inode *dir, const struct qstr *new_name,
-			const struct qstr *orig_name,
+			const struct qstr *orig_name, struct dentry *dentry,
 			struct inode *inode, nid_t ino, umode_t mode);
-int __f2fs_do_add_link(struct inode *dir, struct fscrypt_name *fname,
+int __f2fs_do_add_link(struct inode *dir, struct fscrypt_name *fname, struct dentry *dentry,
 			struct inode *inode, nid_t ino, umode_t mode);
-int __f2fs_add_link(struct inode *dir, const struct qstr *name,
+int __f2fs_add_link(struct inode *dir, struct dentry *dentry, const struct qstr *name,
 			struct inode *inode, nid_t ino, umode_t mode);
 void f2fs_delete_entry(struct f2fs_dir_entry *dentry, struct page *page,
 			struct inode *dir, struct inode *inode);
-int f2fs_do_tmpfile(struct inode *inode, struct inode *dir);
+int f2fs_do_tmpfile(struct inode *inode, struct dentry *dentry, struct inode *dir);
 bool f2fs_empty_dir(struct inode *dir);
 
 static inline int f2fs_add_link(struct dentry *dentry, struct inode *inode)
 {
-	return __f2fs_add_link(d_inode(dentry->d_parent), &dentry->d_name,
+	return __f2fs_add_link(d_inode(dentry->d_parent), dentry, &dentry->d_name,
 				inode, inode->i_ino, inode->i_mode);
 }
 
@@ -3404,7 +3414,7 @@ struct page *get_lock_data_page(struct inode *inode, pgoff_t index,
 struct page *get_new_data_page(struct inode *inode,
 			struct page *ipage, pgoff_t index, bool new_i_size);
 int do_write_data_page(struct f2fs_io_info *fio);
-void __do_map_lock(struct f2fs_sb_info *sbi, int flag, bool lock);
+bool __do_map_lock(struct f2fs_sb_info *sbi, int flag, bool lock, bool lock2);
 int f2fs_map_blocks(struct inode *inode, struct f2fs_map_blocks *map,
 			int create, int flag);
 int f2fs_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
@@ -3459,6 +3469,7 @@ struct f2fs_stat_info {
 	int free_nids, avail_nids, alloc_nids;
 	int total_count, utilization;
 	int bg_gc, nr_wb_cp_data, nr_wb_data;
+	unsigned int io_skip_bggc, other_skip_bggc;
 	int nr_flushing, nr_flushed, flush_list_empty;
 	int nr_discarding, nr_discarded;
 	int nr_discard_cmd;
@@ -3469,12 +3480,15 @@ struct f2fs_stat_info {
 	unsigned int bimodal, avg_vblocks;
 	int util_free, util_valid, util_invalid;
 	int rsvd_segs, overp_segs;
-	int dirty_count, node_pages, meta_pages;
+	int dirty_count, dirty_node_count, dirty_data_count, node_pages, meta_pages;
 	int prefree_count, call_count, cp_count, bg_cp_count;
 	int tot_segs, node_segs, data_segs, free_segs, free_secs;
 	int bg_node_segs, bg_data_segs;
 	int tot_blks, data_blks, node_blks;
 	int bg_data_blks, bg_node_blks;
+	int assr_lfs_blks, assr_ssr_blks;
+	int assr_lfs_segs, assr_ssr_segs;
+	int bggc_node_lfs_blks, bggc_node_ssr_blks;
 	int curseg[NR_INMEM_CURSEG_TYPE];
 	int cursec[NR_INMEM_CURSEG_TYPE];
 	int curzone[NR_INMEM_CURSEG_TYPE];
@@ -3497,6 +3511,14 @@ static inline struct f2fs_stat_info *F2FS_STAT(struct f2fs_sb_info *sbi)
 #define stat_inc_bg_cp_count(si)	((si)->bg_cp_count++)
 #define stat_inc_call_count(si)		((si)->call_count++)
 #define stat_inc_bggc_count(sbi)	((sbi)->bg_gc++)
+#define stat_inc_assr_lfs_blks(sbi)		((sbi)->assr_lfs_blks++)
+#define stat_inc_assr_ssr_blks(sbi)		((sbi)->assr_ssr_blks++)
+#define stat_inc_bggc_node_lfs_blks(sbi)	((sbi)->bggc_node_lfs_blks++)
+#define stat_inc_bggc_node_ssr_blks(sbi)	((sbi)->bggc_node_ssr_blks++)
+#define stat_inc_assr_lfs_segs(sbi)		((sbi)->assr_lfs_segs++)
+#define stat_inc_assr_ssr_segs(sbi)		((sbi)->assr_ssr_segs++)
+#define stat_io_skip_bggc_count(sbi)		((sbi)->io_skip_bggc++)
+#define stat_other_skip_bggc_count(sbi)        ((sbi)->other_skip_bggc++)
 #define stat_inc_dirty_inode(sbi, type)	((sbi)->ndirty_inode[type]++)
 #define stat_dec_dirty_inode(sbi, type)	((sbi)->ndirty_inode[type]--)
 #define stat_inc_total_hit(sbi)		(atomic64_inc(&(sbi)->total_hit_ext))
@@ -3786,7 +3808,7 @@ struct f2fs_dir_entry *find_in_inline_dir(struct inode *dir,
 int make_empty_inline_dir(struct inode *inode, struct inode *parent,
 			struct page *ipage);
 int f2fs_add_inline_entry(struct inode *dir, const struct qstr *new_name,
-			const struct qstr *orig_name,
+			const struct qstr *orig_name, struct dentry *dentry,
 			struct inode *inode, nid_t ino, umode_t mode);
 void f2fs_delete_inline_entry(struct f2fs_dir_entry *dentry, struct page *page,
 			struct inode *dir, struct inode *inode);
@@ -3901,22 +3923,7 @@ static inline void f2fs_set_inline_encrypted_inode(struct inode *inode)
 static inline void f2fs_set_encrypted_corrupt_inode(struct inode *inode)
 {
 #ifdef CONFIG_F2FS_FS_ENCRYPTION
-#if 0
-	if (!file_is_encrypt_corrupt(inode)) {
-		file_set_encrypt_corrupt(inode);
-		f2fs_msg(inode->i_sb, KERN_ALERT, "inode %lu set CORRUPT_BIT\n",
-			 inode->i_ino);
-		f2fs_mark_inode_dirty_sync(inode, true);
-		/*
-		 * only the first time the inode is set with CORRUPT_BIT,
-		 * flag SBI_NEED_FSCK will be set. Otherwise, NEED_FSCK
-		 * will not be set
-		 */
-		set_sbi_flag(F2FS_I_SB(inode), SBI_NEED_FSCK);
-	}
-#else
 	pr_err("%s: do not set CORRUPT_BIT\n", __func__);
-#endif
 #endif
 }
 

@@ -27,7 +27,7 @@ struct sourcesink {
 };
 
 /* return 1 sucess, 0 failed */
-static int parse_test_arg(char *buf, int buf_len, char *arg_name, int *arg_value)
+static int parse_test_arg(const char *buf, int buf_len, const char *arg_name, int *arg_value)
 {
 	char *p;
 	int val;
@@ -223,7 +223,7 @@ static int submit_bulk_test(struct usb_device *udev,
 #define MAX_BULK_RX_LEN (4096)
 #define MAX_BULT_TEST_PATTERN (2)
 
-static int parse_bulk_tx_len(char *cmd, int cmd_len)
+static int parse_bulk_tx_len(const char *cmd, int cmd_len)
 {
 	int ret, value, tx_len;
 
@@ -235,7 +235,7 @@ static int parse_bulk_tx_len(char *cmd, int cmd_len)
 
 	return tx_len;
 }
-static int parse_bulk_tx_pattern(char *cmd, int cmd_len)
+static int parse_bulk_tx_pattern(const char *cmd, int cmd_len)
 {
 	int ret, value;
 	int tx_pattern = 0;
@@ -248,7 +248,7 @@ static int parse_bulk_tx_pattern(char *cmd, int cmd_len)
 
 	return tx_pattern;
 }
-static int parse_bulk_rx_len(char *cmd, int cmd_len)
+static int parse_bulk_rx_len(const char *cmd, int cmd_len)
 {
 	int ret, value, rx_len;
 
@@ -260,7 +260,7 @@ static int parse_bulk_rx_len(char *cmd, int cmd_len)
 
 	return rx_len;
 }
-static int parse_bulk_rx_pattern(char *cmd, int cmd_len)
+static int parse_bulk_rx_pattern(const char *cmd, int cmd_len)
 {
 	int ret, value;
 	int rx_pattern = 0;
@@ -483,7 +483,7 @@ static int submit_isoc_test(struct sourcesink *ss, struct isoc_test_case *test, 
 #define MAX_RX_URB_NUM 65535
 
 static void parse_isoc_rx_test_args(struct isoc_test_case *rx_test,
-					char *buf, int buf_len)
+					const char *buf, int buf_len)
 {
 	int value;
 	int ret;
@@ -502,7 +502,7 @@ static void parse_isoc_rx_test_args(struct isoc_test_case *rx_test,
 }
 
 static void parse_isoc_tx_test_args(struct isoc_test_case *tx_test,
-					char *buf, int buf_len)
+					const char *buf, int buf_len)
 {
 	int value;
 	int ret;
@@ -719,7 +719,7 @@ static void __auto_isoc_test(struct sourcesink *ss, bool is_in)
 	}
 }
 
-static int auto_isoc_test(struct sourcesink *ss, char *buf, int buf_len)
+static int auto_isoc_test(struct sourcesink *ss, const char *buf, int buf_len)
 {
 	int value;
 	int ret;

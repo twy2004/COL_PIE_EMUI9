@@ -3120,11 +3120,14 @@ VOS_UINT32 TAF_MMA_QryCerssiReq(
     pstMsg->stCtrl.usClientId           = usClientId;
     pstMsg->stCtrl.ucOpId               = ucOpId;
 
+
     /* ·¢ËÍÏûÏ¢ */
     (VOS_VOID)PS_SEND_MSG(ulSenderPid, pstMsg);
 
     return VOS_TRUE;
 }
+
+
 
 
 

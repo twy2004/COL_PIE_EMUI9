@@ -86,6 +86,7 @@ enum CPU_ID
 	ICC_CPU_TLDSP = IPC_CORE_LDSP,
 	ICC_CPU_HIFI = IPC_CORE_HiFi,
 	ICC_CPU_NRCCPU = IPC_CORE_NRCCPU,
+	ICC_CPU_APLUSB = IPC_CORE_NRCCPU,   /*for a+b dummy coreid*/
 	ICC_CPU_MAX
 };
 
@@ -110,10 +111,16 @@ enum ICC_ERR_NO
 	ICC_INIT_ADDR_TOO_BIG,
 	ICC_INIT_SKIP,
 	ICC_REGISTER_DYNAMIC_CB_FAIL,
+#ifdef CONFIG_APLUSB_PCIE_ICC
+	ICC_REGISTER_PCIE_MSI_CB_FAIL,
+	ICC_PCIE_MSI_SEND_FAIL,
+	ICC_ENABLE_PCIE_MSI_FAIL,
+#endif
 #ifdef ICC_DFC_CHN_ENABLED
 	ICC_DFC_CHN_STARTUP_FAIL,
 #endif
-	ICC_DYNAMIC_SEND_FAIL
+	ICC_DYNAMIC_SEND_FAIL,
+	ICC_CHA_FIFO_SIZE_FAIL
 
 };
 
@@ -147,6 +154,9 @@ enum ICC_CHN_ID
 	ICC_CHN_NRIFC,
 	ICC_CHN_NRCCPU_APCPU_OSA,
 	ICC_CHN_NRCCPU_LRCCPU_OSA,
+	ICC_CHN_APLUSB_IFC,
+	ICC_CHN_APLUSB_PCIE,
+	ICC_CHN_MCORE_NRCCPU,
 #ifdef ICC_DFC_CHN_ENABLED
 	ICC_CHN_CCORE_TPHY_PS,
 	ICC_CHN_CCORE_TPHY_OM,
@@ -265,6 +275,7 @@ enum ICC_RECV_FUNC_ID{
 	/* 若要在ICC_CHN_MCORE_ACORE物理通道上定义子通道,请在该注释行之前定义 */
 	MCORE_ACORE_FUNC_ID_MAX,
 
+
 	/* BBE16  和 HIFI 之间的消息GU通道功能号  */
 	HIFI_TPHY_MSG_NRM = 0,
 	HIFI_TPHY_MSG_URG,
@@ -280,7 +291,8 @@ enum ICC_RECV_FUNC_ID{
 	VT_VOIP_FUNC_ID_MAX,
 
 	SEC_IFC_RECV_FUNC_MODULE_VERIFY = 0,
-
+	SEC_IFC_RECV_FUNK_TRNG_SEED_GET = 1,
+	SEC_IFC_RECV_FUNK_EFUSE = 2,
 	/* 若要在物理通道上定义子通道,请在该注释行之前定义 */
 	SEC_IFC_RECV_FUNC_ID_MAX,
 
@@ -311,6 +323,8 @@ enum ICC_RECV_FUNC_ID{
 
 	NRIFC_RECV_FUNC_PERFSTAT = 0,
 	NRIFC_RECV_FUNC_ECDC = 1,
+	NRIFC_RECV_FUNC_5G_MPERF = 2,
+	NRIFC_RECV_FUNC_MLOADER = 3,
 	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
 	NRIFC_ICC_FUNC_ID_MAX,
 
@@ -321,6 +335,22 @@ enum ICC_RECV_FUNC_ID{
 	NRCCPU_LRCCPU_OSA_FUNC_TEST = 0,
 	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
 	NRCCPU_LRCCPU_OSA_FUNC_ID_MAX,
+
+	APLUSB_IFC_FUNC_TEST = 0,
+	APLUSB_IFC_FUNC_PPM = 1,
+	/* 若要在动态通道上定义子通道,请在该注释行之前定义 */
+	ACORE_ACORE_FUNC_HKADC,
+	APLUSB_IFC_FUNC_FUNC_ID_MAX,
+
+	APLUSB_PCIE_FUNC_TEST = 0,
+	/* 该通道为A+B 方案上的专有通道，所有子通道在PCIE_ICC 中直接定义，请勿在此单独定义子通道 */
+	APLUSB_PCIE_FUNC_FUNC_ID_MAX,
+	
+	MCORE_NRCCPU_FUNC_TEST = 0,
+	MCORE_NRCCPU_TEMPERATURE_PROTECT,
+	MCORE_NRCCPU_DDRFREQ,
+	/* 该通道为A+B 方案上的专有通道，所有子通道在PCIE_ICC 中直接定义，请勿在此单独定义子通道 */
+	MCORE_NRCCPU_FUNC_FUNC_ID_MAX,
 };
 
 
@@ -381,10 +411,13 @@ struct icc_dynamic_para
 #define ICC_DFC_CHANNEL_ID_MAKEUP(channel_id, func_id, chn_type) ((channel_id << 16) | (func_id) | (chn_type << 30))
 #endif
 #define SHM_ADDR_ICC                               (char *) ((unsigned long)SHM_BASE_ADDR + SHM_OFFSET_ICC)
+#define SHM_ADDR_SHA_SEC_ICC                       (char *) ((unsigned long)SHM_BASE_ADDR + SHM_OFFSET_SHA_SEC_ICC)
 #define SRAM_ADDR_ICC                              (char *) ((unsigned long)SRAM_BASE_ADDR + SRAM_OFFSET_ICC)
 
 typedef s32 (*read_cb_func)(u32 channel_id , u32 len, void* context); /*lint !e761 */
 typedef s32 (*write_cb_func)(u32 channel_id , void* context);
+typedef void (*notify)(void);
+
 /* 对外接口声明start */
 /*****************************************************************************
 * 函 数 名  : bsp_icc_get_idle_space
@@ -542,13 +575,25 @@ s32 bsp_icc_dynamic_event_register(u32 destcore, struct icc_dynamic_para *parame
 *             5) bsp_icc_send_sync()
 *****************************************************************************/
 s32 bsp_icc_debug_register(u32 channel_id, FUNCPTR_1 debug_routine, int param);
+/*****************************************************************************
+* 函 数 名  : pcie_icc_valid_register
+* 功能描述  : a+b 上提供的icc 通道注册接口
+* 输入参数  :
+* 输出参数  : 无
+* 返 回 值  : 无
+* 说    明  : 
+*****************************************************************************/
+void pcie_icc_valid_register(notify func);
 
 
+#if defined(__CMSIS_RTOS) && !defined(CONFIG_ICC)
+static inline s32 bsp_icc_init(void){return 0;}
+#else
 s32 bsp_icc_init(void);
+#endif
 void bsp_icc_release(void);
 s32 bsp_icc_suspend(void);
 char * icc_dump_addr_get(void);
-
 /* ICC通道配置，模块内部引用，非对外提供，其他模块不要引用 */
 
 #define STRU_SIZE             (sizeof(struct icc_channel_fifo))
@@ -615,6 +660,37 @@ char * icc_dump_addr_get(void);
 #define ICC_DBG_MSG_LEN_IN_DDR_S  (0x20)
 #define ICC_DBG_MSG_ADDR_IN_DDR_S (char *) (((unsigned long)(SHM_S_ADDR_ICC) + 3) & ~3)
 
+
+
+#ifdef CONFIG_SEC_ICC /*安全ICC*/
+/* 安全ICC通道地址定义, start */
+#define ICC_DBG_MSG_LEN_IN_DDR_SEC  (0x20)
+#define ICC_DBG_MSG_ADDR_IN_DDR_SEC (char *) (((unsigned long)(SHM_ADDR_SHA_SEC_ICC) + 3) & ~3)
+
+#define ADDR_MCCORE_SEND      (ICC_DBG_MSG_ADDR_IN_DDR_SEC + ICC_DBG_MSG_LEN_IN_DDR_SEC) /* M核发送，C核接收 Austin上使用SDDR*/
+#define ADDR_MCCORE_RECV      (ADDR_MCCORE_SEND + STRU_SIZE + ICC_MCCORE_SIZE) /* M核接收，C核发送 */
+#define ADDR_HIFI_VOS_MSG_SEND      (ADDR_MCCORE_RECV + STRU_SIZE + ICC_MCCORE_SIZE)
+#define ADDR_HIFI_VOS_MSG_RECV      (ADDR_HIFI_VOS_MSG_SEND + STRU_SIZE + ICC_HIFI_VOS_SIZE)
+#define ADDR_HIFI_TPHY_MSG_SEND      (ADDR_HIFI_VOS_MSG_RECV + STRU_SIZE + ICC_HIFI_VOS_SIZE)
+#define ADDR_HIFI_TPHY_MSG_RECV      (ADDR_HIFI_TPHY_MSG_SEND + STRU_SIZE + ICC_HIFI_TPHY_SIZE)
+
+#ifndef BSP_ICC_MCHANNEL_USE_LPM3TCM /* BALONGV7R2 */
+/* SRAM(AXI)通道地址定义, mcore和ccore; mcore和acore */
+#define ADDR_MACORE_SEND      (SRAM_ADDR_ICC)  /* M核发送，C核接收 */
+#else                          /* K3V3 */
+#define ADDR_MACORE_SEND      (ADDR_PANRPC_RECV + STRU_SIZE + ICC_PANRPC_SIZE) /* M核发送，C核接收 Austin上使用SDDR*/
+#endif
+#define ADDR_MACORE_RECV      (ADDR_MACORE_SEND + STRU_SIZE + ICC_MACORE_SIZE) /* M核接收，A核发送 */
+
+#ifndef BSP_ICC_MCHANNEL_USE_LPM3TCM
+#define ADDR_VT_VOIP_CCORE_RECV_ACORE_SEND      (ADDR_PANRPC_RECV + STRU_SIZE + ICC_PANRPC_SIZE)
+#else
+#define ADDR_VT_VOIP_CCORE_RECV_ACORE_SEND      (ADDR_MACORE_RECV + STRU_SIZE + ICC_MACORE_SIZE)
+#endif
+#define ADDR_VT_VOIP_CCORE_SEND_ACORE_RECV       (ADDR_VT_VOIP_CCORE_RECV_ACORE_SEND + STRU_SIZE + ICC_VT_VOIP_SIZE)
+/* 安全ICC通道地址定义, end */
+#else 
+
 #ifndef BSP_ICC_MCHANNEL_USE_LPM3TCM /* BALONGV7R2 */
 /* SRAM(AXI)通道地址定义, mcore和ccore; mcore和acore */
 #define ADDR_MCCORE_SEND      (SRAM_ADDR_ICC)  /* M核发送，C核接收 */
@@ -636,6 +712,8 @@ char * icc_dump_addr_get(void);
 
 #define ADDR_VT_VOIP_CCORE_RECV_ACORE_SEND       (ADDR_HIFI_TPHY_MSG_RECV + STRU_SIZE + ICC_HIFI_TPHY_SIZE)
 #define ADDR_VT_VOIP_CCORE_SEND_ACORE_RECV       (ADDR_VT_VOIP_CCORE_RECV_ACORE_SEND + STRU_SIZE + ICC_VT_VOIP_SIZE)
+
+#endif
 
 #define ADDR_IPC_EXTEND_SEND       (ADDR_VT_VOIP_CCORE_SEND_ACORE_RECV + STRU_SIZE + ICC_VT_VOIP_SIZE)
 #define ADDR_IPC_EXTEND_RECV       (ADDR_IPC_EXTEND_SEND + STRU_SIZE + ICC_IPC_EXTEND_SIZE)

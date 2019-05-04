@@ -190,4 +190,9 @@
 	&bcm_wifi {
 		status = "disabled";
 	};
+
+	&kirin_pcie_rc {
+		/* connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
+		ep_device_type = <0x4>;
+	};
 	/* display end */

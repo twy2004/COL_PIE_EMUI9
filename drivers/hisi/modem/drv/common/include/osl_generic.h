@@ -45,7 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
+ 
 #ifndef _OSL_GENERIC_H
 #define _OSL_GENERIC_H
 
@@ -61,7 +61,7 @@ extern "C"
 #ifdef __KERNEL__
 #include <linux/kernel.h>
 
-#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)|| defined(__CMSIS_RTOS) || defined(__FASTBOOT__) 
+#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)|| defined(__CMSIS_RTOS) || defined(__FASTBOOT__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 #ifndef typeof
 #define typeof __typeof__
@@ -91,28 +91,16 @@ extern "C"
         (void) (&_min1 == &_min2);      \
         _min1 < _min2 ? _min1 : _min2; }) /*lint !e547*/
 
-#define __constant_swab32(a) ((u32)(				\
-	(((u32)(a) & (u32)0x000000ffUL) << 24) |		\
-	(((u32)(a) & (u32)0x0000ff00UL) <<  8) |		\
-	(((u32)(a) & (u32)0x00ff0000UL) >>  8) |		\
-	(((u32)(a) & (u32)0xff000000UL) >> 24)))
-    
-#define __constant_swab16(a) ((u16)(				\
-        (((u16)(a) & (u16)0x00ffU) << 8) |          \
-        (((u16)(a) & (u16)0xff00U) >> 8)))
+#define osl_swap_b_32(x) ((u32)(				\
+	(((u32)0x00ff0000UL & (u32)(x)) >>  8)|		\
+	(((u32)0x0000ff00UL & (u32)(x)) <<  8) |		\
+	(((u32)0x000000ffUL & (u32)(x)) << 24)|		\
+	(((u32)0xff000000UL & (u32)(x)) >> 24)))
 
-#define be32_to_cpu __constant_swab32
-#define cpu_to_be32 __constant_swab32
-
-
-static inline u32 be32_to_cpup(const __be32 *p)
+	
+static inline u32 osl_swap_b_32_p(const __be32 *p)
 {
-	return __constant_swab32(*p);
-}
-
-static inline u16 be16_to_cpup(const __be16 *p)
-{
-	return __constant_swab16(*p);
+	return osl_swap_b_32(*p);
 }
 
 #endif /* __KERNEL__ */

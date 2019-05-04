@@ -1509,6 +1509,8 @@ VOS_UINT32 TAF_AGENT_WriteACoreNv(
 
     ulResult = NV_WRITE_UNABLE;
 
+    AT_PR_LOGH("TAF_AGENT_WriteACoreNv Enter");
+
     if (4 > pstWriteAcoreNv->ulNvLength)
     {
         ulMsglen = sizeof(TAFAGENT_MTA_WRITE_ACORE_NV_REQ_STRU);
@@ -1630,6 +1632,8 @@ VOS_UINT32 TAF_AGENT_WriteACoreNv(
     VOS_SmV(TAF_AGENT_GetTafAcpuSyncSem());
 
     TAFAGENT_NORMAL_LOG(ACPU_PID_TAFAGENT, "EXIT TAF_AGENT_WriteACoreNv!");
+
+    AT_PR_LOGH("TAF_AGENT_WriteACoreNv Exit");
 
     return ulResult;
 }

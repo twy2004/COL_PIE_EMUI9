@@ -661,6 +661,7 @@ const struct noc_busid_initflow hisi_filter_initflow_PHOE[] = {
 	{0, 24, RDR_CP},	/*socp*/
 	{0, 8, RDR_IOM3},  /* iomcu core */
 	{0, 9, RDR_IOM3},  /* iomcu dma */
+	{0, 1, RDR_HIFI},  /* hifi */
 	{ARRAY_END_FLAG, 0, RDR_AP},	/*end*/
 };
 

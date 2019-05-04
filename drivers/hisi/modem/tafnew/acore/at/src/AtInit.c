@@ -67,6 +67,8 @@
 #include "AdsDeviceInterface.h"
 
 
+#include "ATCmdProc.h"
+
 
 
 
@@ -79,7 +81,7 @@
 /*****************************************************************************
   2 全局变量定义
 *****************************************************************************/
-
+extern AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl;
 
 /*****************************************************************************
   3 函数实现
@@ -111,6 +113,7 @@ VOS_VOID AT_ReadPlatformNV(VOS_VOID)
             pstAtSptRatList->ucPlatformSptUtralTDD   = VOS_FALSE;
 
 
+            stPlatFormRat.usRatNum = AT_MIN(stPlatFormRat.usRatNum, PLATFORM_MAX_RAT_NUM);
             for (ucRatIndex = 0; ucRatIndex < stPlatFormRat.usRatNum; ucRatIndex++)
             {
                 /* 平台支持LTE */
@@ -1473,7 +1476,7 @@ VOS_VOID AT_ReadLTENV(VOS_VOID)
 
     if(NV_OK != ulResult)
     {
-        PS_PRINTF("read RSRP NV fail!\n");
+        PS_PRINTF_WARNING("read RSRP NV fail!\n");
         return ;
     }
 
@@ -1482,7 +1485,7 @@ VOS_VOID AT_ReadLTENV(VOS_VOID)
 
     if(NV_OK != ulResult)
     {
-        PS_PRINTF("read RSCP NV fail!\n");
+        PS_PRINTF_WARNING("read RSCP NV fail!\n");
         return ;
     }
 
@@ -1491,7 +1494,7 @@ VOS_VOID AT_ReadLTENV(VOS_VOID)
 
     if(NV_OK != ulResult)
     {
-        PS_PRINTF("read ECIO NV fail!\n");
+        PS_PRINTF_WARNING("read ECIO NV fail!\n");
         return ;
     }
 
@@ -1629,7 +1632,9 @@ VOS_UINT32  AT_ReadPhyNV(VOS_VOID)
 
 VOS_VOID AT_InitDeviceCmd(VOS_VOID)
 {
+
     TAF_MEM_SET_S(&g_stAtDevCmdCtrl, sizeof(g_stAtDevCmdCtrl), 0x00, sizeof(AT_DEVICE_CMD_CTRL_STRU));
+
 
     if (VOS_OK != AT_ReadPhyNV())
     {
@@ -1745,66 +1750,20 @@ VOS_VOID AT_InitPara(VOS_VOID)
 
 VOS_VOID AT_UsbSwitchGwMode(VOS_VOID)
 {
-    AT_PDP_ENTITY_STRU                 *pstAppPdpEntity;
-    VOS_UINT32                          ulResult;
-    VOS_UINT8                           aucCid[TAF_MAX_CID+1];
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity;
+    VOS_UINT8                          *pucSystemAppConfig;
+    VOS_UINT32                          ulCallId;
 
-    pstAppPdpEntity                     = AT_APP_GetPdpEntInfoAddr();
+    g_enHiLinkMode          = AT_HILINK_GATEWAY_MODE;
+    pucSystemAppConfig      = AT_GetSystemAppConfigAddr();
 
-    g_enHiLinkMode                      = AT_HILINK_GATEWAY_MODE;
-
-    /* 初始化CID列表 */
-    TAF_MEM_SET_S(aucCid, sizeof(aucCid), 0x00, sizeof(aucCid));
-
-    /* 如果所有的PDP都处于IDLE, 返回; 如果有一个处于DEACTING, 返回 */
-    ulResult = AT_AppCheckPdpIdleState();
-    if (VOS_TRUE == ulResult)
+    if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
     {
-        AT_NORM_LOG("AT_UsbSwitchGwMode: The state is already IDLE.");
-        return;
-    }
-
-    if ( (AT_PDP_STATE_ACTING == pstAppPdpEntity->enIpv4v6State)
-      || (AT_PDP_STATE_ACTED  == pstAppPdpEntity->enIpv4v6State) )
-    {
-        if (VOS_OK != TAF_PS_CallEnd(WUEPS_PID_AT,
-                                     AT_PS_BuildExClientId(gastAtClientTab[AT_CLIENT_TAB_APP_INDEX].usClientId),
-                                     0,
-                                     g_stAtAppPdpEntity.ucIpv4v6Cid))
+        for (ulCallId = AT_PS_APP_CALL_ID_BEGIN; ulCallId <= AT_PS_APP_CALL_ID_END; ulCallId++)
         {
-            AT_WARN_LOG("AT_UsbSwitchGwMode(): Disconnect IPv4v6 fail");
-        }
+            pstCallEntity   = AT_PS_GetCallEntity(gastAtClientTab[AT_CLIENT_TAB_APP_INDEX].usClientId, (VOS_UINT8)ulCallId);
 
-        AT_AppSetPdpState(TAF_PDP_IPV4V6, AT_PDP_STATE_DEACTING);
-    }
-    else
-    {
-        if ( (AT_PDP_STATE_ACTING == pstAppPdpEntity->enIpv4State)
-          || (AT_PDP_STATE_ACTED  == pstAppPdpEntity->enIpv4State) )
-        {
-            if (VOS_OK != TAF_PS_CallEnd(WUEPS_PID_AT,
-                                         AT_PS_BuildExClientId(gastAtClientTab[AT_CLIENT_TAB_APP_INDEX].usClientId),
-                                         0,
-                                         pstAppPdpEntity->ucIpv4Cid))
-            {
-                AT_WARN_LOG("AT_UsbSwitchGwMode():TAF_PS_CallEnd fail");
-            }
-
-            AT_AppSetPdpState(TAF_PDP_IPV4, AT_PDP_STATE_DEACTING);
-        }
-
-        if ( (AT_PDP_STATE_ACTING == pstAppPdpEntity->enIpv6State)
-          || (AT_PDP_STATE_ACTED  == pstAppPdpEntity->enIpv6State) )
-        {
-            if (VOS_OK != TAF_PS_CallEnd(WUEPS_PID_AT,
-                                         AT_PS_BuildExClientId(gastAtClientTab[AT_CLIENT_TAB_APP_INDEX].usClientId),
-                                         0,
-                                         pstAppPdpEntity->ucIpv6Cid))
-            {
-                AT_WARN_LOG("AT_UsbSwitchGwMode():TAF_PS_CallEnd fail");
-            }
-
-            AT_AppSetPdpState(TAF_PDP_IPV6, AT_PDP_STATE_DEACTING);
+            (VOS_VOID)AT_PS_HangupCall(pstCallEntity->stUserInfo.enUserIndex, (VOS_UINT8)ulCallId, TAF_PS_CALL_END_CAUSE_NORMAL);
         }
     }
 
@@ -1824,7 +1783,7 @@ VOS_VOID AT_UsbEnableCB(VOS_VOID)
 
 VOS_VOID AT_UsbDisableCB(VOS_VOID)
 {
-    PS_PRINTF("AT_UsbDisableCB\r\n");
+    PS_PRINTF_INFO("<AT_UsbDisableCB>\n");
     /* USB MODEM口链路的建立 */
     AT_UsbModemClose();
 
@@ -1838,7 +1797,6 @@ VOS_VOID AT_UsbDisableCB(VOS_VOID)
     AT_RmUsedClientIdFromTab(AT_CLIENT_ID_MODEM);
     AT_RmUsedClientIdFromTab(AT_CLIENT_ID_PCUI2);
 }
-
 
 
 VOS_VOID AT_InitPort(VOS_VOID)
@@ -1883,7 +1841,6 @@ VOS_VOID AT_InitPort(VOS_VOID)
     AT_SockComEst(AT_SOCK_PORT_NO);
 
     AT_AppSockComEst(AT_APP_SOCK_PORT_NO);
-
 
 
     return;

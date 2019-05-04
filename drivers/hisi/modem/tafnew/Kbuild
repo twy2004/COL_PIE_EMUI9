@@ -1,6 +1,5 @@
 MODEM_DIR := $(srctree)/drivers/hisi/modem
--include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
-
+-include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 
 ifeq ($(TARGET_ARM_TYPE), arm64)
@@ -10,7 +9,14 @@ EXTRA_CFLAGS += -Iarch/arm/include/asm
 endif
 EXTRA_CFLAGS += -Iinclude/linux
 EXTRA_CFLAGS += -Iinclude/generated
+
+ifeq ($(CFG_EXTRA_MODEM_MODE), FEATURE_ON)
+EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/inc/
+
+#$(CFG_EXTRA_MODEM_MODE)
+else
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/med
+EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tools
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/gu/comm/osa
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/comm/om/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/gu/nvim/
@@ -37,6 +43,7 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/include/nv/common/sys
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/nv/common/tl_as
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/acore/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/common/
+EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tag/apss/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/tlps/acore/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/tlps/common/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/nrps/ccore/
@@ -52,7 +59,6 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/comm/comm/ppm
 EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/gu/comm/om
 EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/gu/acore/om
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/comm/inc/
-EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/appvcom/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/at/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/log/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/csd/inc/
@@ -63,6 +69,10 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/tafagent/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/tafapi/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/common/lib/inc/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/common/LOGFILTER/Inc/
+
+ifneq ($(CFG_EXTRA_MODEM_MODE_MBB), FEATURE_ON)
+EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/appvcom/inc/
+endif
 
 ifeq ($(CFG_FEATURE_DATA_SERVICE_NEW_PLATFORM), FEATURE_ON)
 EXTRA_CFLAGS += -I$(MODEM_DIR)/tafnew/acore/ads_v2/driver/
@@ -83,7 +93,8 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/lt/comm/sdm
 EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/lt/comm/sda
 EXTRA_CFLAGS += -I$(MODEM_DIR)/oam/inc/lt/comm/diag
 
-
+#$(CFG_EXTRA_MODEM_MODE)
+endif
 
 
 ifneq ($(TARGET_ARM_TYPE), arm64)
@@ -102,9 +113,19 @@ EXTRA_CFLAGS += -DHAL_DIAG_SDM_USE
 #编译器相关的宏定义
 EXTRA_CFLAGS += -fsigned-char 
 
+ifeq ($(CFG_EXTRA_MODEM_MODE), FEATURE_ON)
+
+taf-objs := acore/rnic/driver/rnic_dev_config.o
+taf-objs += acore/rnic/driver/rnic_dev_handle.o
+taf-objs += acore/rnic/driver/rnic_dev_main.o
+
+#$(CFG_EXTRA_MODEM_MODE)
+else
+
 ifeq ($(CFG_FEATURE_DATA_SERVICE_NEW_PLATFORM), FEATURE_ON)
 taf-objs := acore/ads_v2/driver/ads_iface.o
 taf-objs += acore/ads_v2/driver/ads_iface_handle.o
+taf-objs += acore/ads_v2/driver/ads_iface_dpl.o
 taf-objs += acore/ads_v2/manager/src/AdsIfaceMgmt.o
 taf-objs += acore/ads_v2/manager/src/AdsMain.o
 taf-objs += acore/ads_v2/manager/src/AdsMntn.o
@@ -121,13 +142,17 @@ taf-objs += acore/ads/src/AdsFilter.o
 taf-objs += acore/ads/src/AdsMntn.o
 endif
 
+
+ifneq ($(CFG_EXTRA_MODEM_MODE_MBB), FEATURE_ON)
 taf-objs += acore/appvcom/src/AppVcomDev.o
+taf-objs += acore/rnic/driver/NetMgrCtrlVcom.o
+endif
+
 taf-objs += acore/csd/src/CsdCtx.o
 taf-objs += acore/csd/src/CsdDebug.o
 taf-objs += acore/csd/src/CsdDownLink.o
 taf-objs += acore/csd/src/CsdUpLink.o
 taf-objs += acore/csd/src/CsdInit.o
-taf-objs += acore/rnic/driver/NetMgrCtrlVcom.o
 taf-objs += acore/rnic/driver/rnic_dev_config.o
 taf-objs += acore/rnic/driver/rnic_dev_handle.o
 taf-objs += acore/rnic/driver/rnic_dev_main.o
@@ -188,6 +213,8 @@ taf-objs += acore/at/src/AtParsePara.o
 taf-objs += acore/at/src/AtParseSCmd.o
 taf-objs += acore/at/src/AtQueryParaCmd.o
 taf-objs += acore/at/src/AtSetParaCmd.o
+taf-objs += acore/at/src/AtMtCommFun.o
+taf-objs += acore/at/src/AtMtMsgProc.o
 taf-objs += acore/at/src/AtTestParaCmd.o
 taf-objs += acore/at/src/AtTimer.o
 taf-objs += acore/at/src/ATSndMsg.o
@@ -226,6 +253,9 @@ taf-objs += acore/at/src/at_lte_st_proc.o
 taf-objs += acore/at/src/at_lte_upgrade_proc.o 
 taf-objs += acore/at/src/AtDeviceCmdTL.o 
 taf-objs += acore/at/src/at_comm_cmd.o 
+
+#$(CFG_EXTRA_MODEM_MODE)
+endif
 
 ifneq ($(strip $(CONFIG_HISI_BALONG_MODEM)),m)
 obj-y  := taf.o

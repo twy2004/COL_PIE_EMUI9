@@ -46,7 +46,6 @@
  *
  */
 
-
 #ifndef __APPL2INTERFACE_H__
 #define __APPL2INTERFACE_H__
 
@@ -162,7 +161,9 @@ enum APP_L2_MSG_TYPE_ENUM
 
     ID_OM_L2_DCM_BSR_RPT_CMD_REQ            = (APP_L2_MSG_HDR + 0x0B),  /*0xe1B*/
     ID_L2_OM_DCM_BSR_RPT_CMD_CNF            = (L2_APP_MSG_HDR + 0x0F),  /*0xe0F*/
+    /*DCM OM add  20140428 begin*/
     ID_L2_OM_DCM_CA_CTRL_ELEMENT_IND        = (L2_APP_MSG_HDR + 0x04),  /*0xe04*/
+    /*DCM OM add  20140428 end */
     /*end DCM logger*/
     ID_APP_MAC_TRANSPARENT_CMD_REQ          = (APP_MAC_MSG_HDR + 0x01),
     ID_APP_MAC_TRANSPARENT_CMD_CNF          = (MAC_APP_MSG_HDR + 0x02),
@@ -173,6 +174,7 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_MAC_APP_CA_CELL_CMD_CNF              = (MAC_APP_MSG_HDR + 0x04),
     ID_MAC_APP_CA_CELL_CMD_IND              = (MAC_APP_MSG_HDR + 0x05),
 
+    /* L2增加随机接入过程统计可维可测调测信息 2014/12/09 BEGIN*/
     ID_PS_OM_MAC_RA_MSG1_INFO_IND             = (MAC_APP_MSG_HDR + 0x06),
     ID_PS_OM_MAC_RA_MSG2_INFO_IND             = (MAC_APP_MSG_HDR + 0x07),
     ID_PS_OM_MAC_RA_MSG3_INFO_IND             = (MAC_APP_MSG_HDR + 0x08),
@@ -180,6 +182,7 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_PS_OM_MAC_RAMSG4_CCCH_INFO_IND         = (MAC_APP_MSG_HDR + 0x0A),
     ID_PS_OM_MAC_RAMSG4_CRNTI_INFO_IND        = (MAC_APP_MSG_HDR + 0x0B),
     ID_PS_OM_MAC_RAMSG4_PDCCH_INFO_IND        = (MAC_APP_MSG_HDR + 0x0C),
+    /* L2增加随机接入过程统计可维可测调测信息 2014/12/09 END*/
 
     ID_APP_RLC_TRANSPARENT_CMD_REQ          = (APP_RLC_MSG_HDR + 0x01),
     ID_APP_RLC_TRANSPARENT_CMD_CNF          = (RLC_APP_MSG_HDR + 0x02),
@@ -192,6 +195,7 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_OM_L2_SWITCH_CONTROL_CMD_REQ         = (APP_PDCP_MSG_HDR + 0x02),  /*0xee2*/
     ID_L2_OM_SWITCH_CONTROL_CMD_CNF         = (PDCP_APP_MSG_HDR + 0x04),  /*0xec4*/
 
+    /*新增VOLTE路测 2017/5/9 start*/
     ID_OM_L2_DT_UL_VOLTE_SCHE_RATE_REQ      = (APP_PDCP_MSG_HDR + 0x03),  /*0xee3*/
     ID_L2_OM_DT_UL_VOLTE_SCHE_RATE_CNF      = (PDCP_APP_MSG_HDR + 0x0B),  /*0xecb*/
 
@@ -205,12 +209,16 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_OM_L2_DT_DL_VOLTE_IP_ROHC_PROP_REQ   = (APP_PDCP_MSG_HDR + 0x06),  /*0xee6*/
     ID_L2_OM_DT_DL_VOLTE_IP_ROHC_PROP_CNF   = (PDCP_APP_MSG_HDR + 0x0E),  /*0xece*/
 
+    /*新增VOLTE路测 2017/5/9 end*/
+
     /*测试部新增控制命令需求*/
     ID_OM_L2_STUB_CMD_FORBID_UL_DATA_REQ    = (APP_PDCP_MSG_HDR + 0x07),  /*0xee7*/
     ID_OM_L2_STUB_CMD_CLR_PDCP_STAT_REQ     = (APP_PDCP_MSG_HDR + 0x08),  /*0xee8*/
     ID_OM_L2_STUB_CMD_TRIG_RLC_ERR_IND_REQ  = (APP_PDCP_MSG_HDR + 0x09),  /*0xee9*/
     ID_OM_L2_STUB_CMD_CLR_MAC_STAT_REQ      = (APP_PDCP_MSG_HDR + 0x0a),  /*0xeea*/
     ID_L2_OM_STUB_CMD_CNF                   = (PDCP_APP_MSG_HDR + 0x0F),  /*0xecf*/
+
+    /* L2定位信令相关问题增加调测 2014/08/07 */
 
     ID_PS_OM_PDCP_UL_SRB_INFO_IND           = (PDCP_APP_MSG_HDR + 0x05),
     ID_PS_OM_PDCP_UL_RRC_CNF_INFO_IND       = (PDCP_APP_MSG_HDR + 0x06),
@@ -220,6 +228,7 @@ enum APP_L2_MSG_TYPE_ENUM
     ID_PS_OM_RLC_DL_SRB_PDU_INFO_IND        = (PDCP_APP_MSG_HDR + 0x0A),
     ID_PS_OM_DLHO_VOICE_RTP_DELAY_INFO_IND  = (PDCP_APP_MSG_HDR + 0x0F)
 
+    /* L2定位信令相关问题增加调测 2014/08/07 */
 };
 typedef         VOS_UINT32          APP_L2_MSG_TYPE_ENUM_UINT32;
 

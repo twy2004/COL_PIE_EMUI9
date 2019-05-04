@@ -71,6 +71,8 @@
 #include <linux/platform_device.h>
 #endif
 
+#include <hwmanufac/runmode_type.h>
+
 #if defined (CONFIG_HUAWEI_DSM)
 #include <dsm/dsm_pub.h>
 static struct dsm_dev dsm_lcd = {
@@ -146,6 +148,11 @@ static void lcm_get_esd_config(struct LCM_PARAMS *params)
 
 	params->dsi.customization_esd_check_enable = common_info->esd.support;
 	params->dsi.esd_check_enable = common_info->esd.support;
+	if (get_runmode_type()) {
+		params->dsi.customization_esd_check_enable = 0;
+		params->dsi.esd_check_enable = 0;
+		LCD_KIT_INFO("factory version close lcd esd function!\n");
+	}
 	if (common_info->esd.cmds.cmds) {
 		esd_cmds = common_info->esd.cmds.cmds;
 		for (i = 0; i < common_info->esd.cmds.cmd_cnt; i++) {
@@ -169,7 +176,7 @@ static void lcm_get_esd_config(struct LCM_PARAMS *params)
 
 static void lcm_get_params(struct LCM_PARAMS *params)
 {
-	struct mtk_panel_info *pinfo = &lcd_kit_pinfo;
+    struct mtk_panel_info *pinfo = &lcd_kit_pinfo;
 	memset(params, 0, sizeof(struct LCM_PARAMS));
 
 	LCD_KIT_INFO(" +!\n");
@@ -186,7 +193,7 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.mode = pinfo->panel_dsi_mode;
 	params->dsi.switch_mode = pinfo->panel_dsi_switch_mode;
 	params->dsi.switch_mode_enable = 0;
-	params->density = pinfo->panel_density;
+    params->density = pinfo->panel_density;
 
 	/* DSI */
 	/* Command mode setting */
@@ -222,7 +229,7 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.clk_lp_per_line_enable = pinfo->mipi.lp11_flag;
 	/*esd config*/
 	lcm_get_esd_config(params);
-	if(0 == pinfo->mipi.non_continue_en)
+    if(0 == pinfo->mipi.non_continue_en)
 	{
 		params->dsi.cont_clock = 1;
 	}
@@ -265,14 +272,14 @@ static void lcm_resume(void)
 
 static void lcd_kit_set_backlight(void *handle, unsigned int level)
 {
-	int ret = 0;
+    int ret = 0;
 
 	LCD_KIT_INFO("%s, backlight: level = %d\n", __func__, level);
 
 	ret = common_ops->set_mipi_backlight(NULL, level);
-	if (ret < 0){
-		return;
-	}
+    if (ret < 0){
+        return;
+    }
 }
 
 struct LCM_DRIVER lcdkit_mtk_common_panel = {

@@ -907,6 +907,7 @@ static int tid_smaps_open(struct inode *inode, struct file *file)
 
 static int proc_pid_smaps_simple_show(struct seq_file *m, void *v)
 {
+	unsigned long totalUss = 0;
 	struct vm_area_struct *vma = v;
 	struct mem_size_stats mss;
 	struct mem_size_stats mss_total;
@@ -918,8 +919,6 @@ static int proc_pid_smaps_simple_show(struct seq_file *m, void *v)
 	};
 
 	memset(&mss_total, 0, sizeof mss_total);
-
-	unsigned long totalUss = 0;
 
 	while (vma) {
 		if (vma->vm_mm && !is_vm_hugetlb_page(vma)) {
@@ -1616,11 +1615,9 @@ const struct file_operations proc_pagemap_operations = {
 static int swapin_pte_range(pmd_t *pmd, unsigned long addr,
 			    unsigned long end, struct mm_walk *walk)
 {
-	struct mm_struct *mm = walk->mm;
 	struct reclaim_param *rp = walk->private;
 	struct vm_area_struct *vma = rp->vma;
 	pte_t *pte, entry;
-	struct page *page;
 	struct fault_env fe = {
 		.vma = vma,
 		.address = addr,
@@ -1699,7 +1696,7 @@ cont:
 	pte_unmap_unlock(pte - 1, ptl);
 
 #ifdef CONFIG_HISI_SWAP_ZDATA
-	reclaimed = reclaim_pages_from_list(&page_list, vma,
+	reclaimed = (int)reclaim_pages_from_list(&page_list, vma,
 				rp->hiber, &rp->nr_writedblock);
 #else
 	reclaimed = reclaim_pages_from_list(&page_list, vma);

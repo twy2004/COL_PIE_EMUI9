@@ -1,6 +1,10 @@
 #include "ds28el15.h"
+#include <huawei_platform/power/batt_info_pub.h>
 
-#define HWLOG_TAG HW_ONEWIRE_DS28EL15
+#ifdef HWLOG_TAG
+#undef HWLOG_TAG
+#endif
+#define HWLOG_TAG ds28el15
 HWLOG_REGIST();
 
 enum debug_com_t {
@@ -38,11 +42,15 @@ static battery_constraint batt_cons = {
     .id_chk             = NULL,
 };
 
-static char sn_printable[PRINTABLE_SN_SIZE];
+static char sn_printable[SN_CHAR_PRINT_SIZE + SN_HEX_PRINT_SIZE + 1];
 
+static char batt_type[BATTERY_TYPE_BUFF_SIZE] = {0};
+
+#ifdef ONEWIRE_STABILITY_DEBUG
 static unsigned int com_err[DEBUG_MAX_NUM] = {0};
 
 static unsigned int total_com[DEBUG_MAX_NUM] = {0};
+#endif
 
 static void set_sched_affinity_to_current(void)
 {
@@ -74,55 +82,15 @@ static void set_sched_affinity_to_all(void)
     }
 }
 
-static int ds28el15_get_id(const unsigned char **id, unsigned int *id_len)
-{
-    int ret;
-    int i;
-
-    if(id_len) {
-        *id_len = ds28el15.ic_des.memory.rom_id_length;
-    }
-
-    if(id) {
-        set_sched_affinity_to_current();
-        for(i = 0; i < GET_ROM_ID_RETRY; i++) {
-            if( !(ds28el15.ic_des.memory.validity_rom_id) ) {
-                hwlog_info("ds28el15 read rom id communication start...\n");
-                ret = ds28el15.ic_des.mem_ops.get_rom_id(&ds28el15.ic_des);
-                DS28EL15_COMMUNICATION_INFO(ret, "get_rom_id");
-            }
-            if(ds28el15.ic_des.memory.validity_rom_id) {
-                *id = ds28el15.ic_des.memory.rom_id;
-                set_sched_affinity_to_all();
-                return DS28EL15_SUCCESS;
-            }else{
-                err_num[GET_ROM_ID_INDEX]++;
-            }
-        }
-        set_sched_affinity_to_all();
-        return DS28EL15_FAIL;
-    }
-
-    return DS28EL15_SUCCESS;
-}
-
-static int ds28el15_check_ic_status(enum IC_CR *result)
+static int ds28el15_check_ic_status(struct platform_device* pdev)
 {
     int ret;
     int i;
     maxim_onewire_mem *mom = &ds28el15.ic_des.memory;
     char submem_cr[DS28EL15_INFO_BLOCK_NUM] = {0};
 
-    if(!result) {
-        hwlog_err("NULL point(result) found in %s.\n", __func__);
-        return DS28EL15_FAIL;
-    }
-
     i = 0;
     while(!(mom->validity_rom_id)) {
-        if(!i) {
-            set_sched_affinity_to_current();
-        }
         hwlog_info("ds28el15 read rom id communication start...\n");
         ret = ds28el15.ic_des.mem_ops.get_rom_id(&ds28el15.ic_des);
         DS28EL15_COMMUNICATION_INFO(ret, "get_rom_id");
@@ -134,13 +102,9 @@ static int ds28el15_check_ic_status(enum IC_CR *result)
             break;
         }
     }
-    if(i) {
-        set_sched_affinity_to_all();
-    }
     if(!(mom->validity_rom_id)) {
         hwlog_err("get rom id failed.\n");
-        *result = IC_FAIL_UNKOWN;
-        return DS28EL15_SUCCESS;
+        return DS28EL15_FAIL;
     }
 
     for(i = 0; i < mom->rom_id_length; i++) {
@@ -151,17 +115,13 @@ static int ds28el15_check_ic_status(enum IC_CR *result)
     }
     for(i = 0; i < mom->rom_id_length; i++) {
         if(batt_cons.id_chk[i]) {
-            *result = IC_FAIL_UNMATCH;
             hwlog_err("IC id was unmatched at %dth byte.\n", i);
-            return DS28EL15_SUCCESS;
+            return DS28EL15_FAIL;
         }
     }
 
     for(i = 0; i < GET_BLOCK_STATUS_RETRY; ) {
         if(!(mom->validity_status)) {
-            if(!i) {
-                set_sched_affinity_to_current();
-            }
             hwlog_info("ds28el15 read block status communication start...\n");
             i++;
             ret = ds28el15.ic_des.mem_ops.get_status(&ds28el15.ic_des);
@@ -173,12 +133,8 @@ static int ds28el15_check_ic_status(enum IC_CR *result)
             err_num[GET_BLOCK_STATUS_INDEX]++;
         }
     }
-    if(i) {
-        set_sched_affinity_to_all();
-    }
     if(!(mom->validity_status)) {
-        *result = IC_FAIL_UNKOWN;
-        return DS28EL15_SUCCESS;
+        return DS28EL15_FAIL;
     }
 
     mom->block_status[DS28EL15_INFO_BLOCK0] &= DS28EL15_PROTECTION_MASK;
@@ -186,7 +142,6 @@ static int ds28el15_check_ic_status(enum IC_CR *result)
     mom->block_status[DS28EL15_BATTERY_VENDOR_BLOCK] &= DS28EL15_PROTECTION_MASK;
     mom->block_status[DS28EL15_PCB_VENDOR_BLOCK] &= DS28EL15_PROTECTION_MASK;
 
-    *result = IC_FAIL_MEM_STATUS;
     if(mom->block_status[DS28EL15_INFO_BLOCK0] != DS28EL15_AUTHENTICATION_PROTECTION &&
        mom->block_status[DS28EL15_INFO_BLOCK0] != DS28EL15_EMPTY_PROTECTION) {
         hwlog_err("Information block0 status was wrong(%02X).\n",
@@ -228,48 +183,32 @@ static int ds28el15_check_ic_status(enum IC_CR *result)
 
     for(i = 0; i < DS28EL15_INFO_BLOCK_NUM; i++) {
         if(submem_cr[i] == DS28EL15_FAIL) {
-            *result = IC_FAIL_MEM_STATUS;
-            return DS28EL15_SUCCESS;
+            return DS28EL15_FAIL;
         }
     }
-    *result = IC_PASS;
     return DS28EL15_SUCCESS;
 }
 
-static int ds28el15_certification(void *data, int data_len, enum KEY_CR *result, int type)
+static int ds28el15_certification(struct platform_device* pdev, resource *res, enum KEY_CR *result)
 {
     int ret;
     int i;
     int j;
-    char mac_prt[65] = {0};
-    int page;
+    int page = MAXIM_PAGE1;
+    const unsigned char* data = res->data;
+    unsigned int data_len = res->len;
 
     if(!result) {
         hwlog_err("NULL point(result) found in %s.\n", __func__);
         return DS28EL15_FAIL;
     }
-
     if(!data) {
         hwlog_err("NULL point(data) found in %s.\n", __func__);
         return DS28EL15_FAIL;
     }
-
     if(data_len != ds28el15.ic_des.memory.mac_length) {
         hwlog_err("certification data length(%d) not correct.\n", data_len);
         return DS28EL15_FAIL;
-    }
-
-    switch (type) {
-    case DS28EL15_CT_MAC_PAGE0:
-        page = MAXIM_PAGE0;
-        break;
-    case DS28EL15_CT_MAC_PAGE1:
-        page = MAXIM_PAGE1;
-        break;
-    default:
-        page = MAXIM_PAGE1;
-        hwlog_err("illegal certification type, use page1 default.\n");
-        break;
     }
 
     set_sched_affinity_to_current();
@@ -290,7 +229,7 @@ static int ds28el15_certification(void *data, int data_len, enum KEY_CR *result,
             if(!(ds28el15.ic_des.memory.validity_sram)) {
                 hwlog_info("Set random bytes for mac failed(%d@%d) in %s.",
                            j, GET_MAC_RETRY, __func__);
-			    msleep(200);
+                msleep(200);
                 continue;
             }
 
@@ -299,16 +238,9 @@ static int ds28el15_certification(void *data, int data_len, enum KEY_CR *result,
         }
 
         if(ds28el15.ic_des.memory.validity_mac) {
-            for(i = 0; i < data_len; i++) {
-                snprintf(mac_prt + 2*i, 3, "%02x", ds28el15.ic_des.memory.mac[i]);
-            }
-            hwlog_info("remote mac is %s.\n", mac_prt);
-            for(i = 0; i < data_len; i++){
-                snprintf(mac_prt + 2*i, 3, "%02x", ((char *)data)[i]);
-            }
-            hwlog_info("local mac is %s.\n", mac_prt);
             if(memcmp(ds28el15.ic_des.memory.mac, data, data_len)) {
                 *result = KEY_FAIL_UNMATCH;
+                hwlog_err("mac unmatch\n");
             } else {
                 *result = KEY_PASS;
             }
@@ -319,19 +251,19 @@ static int ds28el15_certification(void *data, int data_len, enum KEY_CR *result,
         }
     }
     set_sched_affinity_to_all();
-    *result = KEY_FAIL_TIMEOUT;
+    *result = KEY_FAIL_IC;
     return DS28EL15_SUCCESS;
 }
 
-static int ds28el15_get_sn(const unsigned char **sn, unsigned int *sn_size,
-                                  unsigned char *sn_version)
+static int ds28el15_get_sn(struct platform_device* pdev, resource *res, const unsigned char **sn, unsigned int *sn_size)
 {
     int ret;
     int i;
     char hex_print;
-    char * sn_to_print;
+    char* sn_to_print;
+    static char sn_change_done = 0;
 
-    if(sn || sn_version) {
+    if(sn) {
         if(ds28el15.ic_des.memory.sn_page >= ds28el15.ic_des.memory.page_number) {
             return DS28EL15_FAIL;
         }
@@ -354,10 +286,8 @@ static int ds28el15_get_sn(const unsigned char **sn, unsigned int *sn_size,
             goto get_sn_err;
         }
         set_sched_affinity_to_all();
-        if(sn_version) {
-            *sn_version = ds28el15.ic_des.memory.user_memory[DS28EL15_SN_VERSION_INDEX];
-        }
-        if(sn) {
+
+        if(!sn_change_done) {
             sn_to_print = ds28el15.ic_des.memory.user_memory;
             sn_to_print += ds28el15.ic_des.memory.sn_offset_bits/BYTEBITS;
             sn_to_print += ds28el15.ic_des.memory.sn_page * MAXIM_PAGE_SIZE;
@@ -373,11 +303,12 @@ static int ds28el15_get_sn(const unsigned char **sn, unsigned int *sn_size,
                 }
                 sprintf(sn_printable+i+SN_CHAR_PRINT_SIZE,"%X",hex_print);
             }
-            *sn = sn_printable;
+            sn_change_done = !sn_change_done;
         }
+        *sn = sn_printable;
     }
     if(sn_size) {
-        *sn_size = PRINTABLE_SN_SIZE - 1;
+        *sn_size = SN_CHAR_PRINT_SIZE + SN_HEX_PRINT_SIZE;
     }
     return DS28EL15_SUCCESS;
 
@@ -385,8 +316,28 @@ get_sn_err:
     set_sched_affinity_to_all();
     return DS28EL15_FAIL;
 }
+static int ds28el15_get_batt_type(struct platform_device* pdev, const unsigned char **type,
+                                  unsigned int *type_len)
+{
+    const unsigned char *sn;
+    unsigned int sn_size;
 
-static int ds28el15_get_ct_src(mac_resource *res, unsigned int type)
+    if(!type || !type_len) {
+        hwlog_err("type & type_len should not be NULL in %s.\n", __func__);
+        return DS28EL15_FAIL;
+    }
+
+    if(ds28el15_get_sn(pdev, NULL, &sn, &sn_size)) {
+        hwlog_err("get battery type failed because of getting battery sn failed.\n");
+        return DS28EL15_FAIL;
+    }
+    batt_type[0] = sn_printable[BATTERY_PACK_FACTORY];
+    batt_type[1] = sn_printable[BATTERY_CELL_FACTORY];
+    *type = batt_type;
+    *type_len = 2;
+    return DS28EL15_SUCCESS;
+}
+static int ds28el15_prepare(struct platform_device* pdev, enum RES_TYPE type, resource *res)
 {
     int ret;
     int i;
@@ -395,14 +346,13 @@ static int ds28el15_get_ct_src(mac_resource *res, unsigned int type)
 
     if(!res) {
         hwlog_err("Mac resource should not be NULL found in %s.\n", __func__);
-	return DS28EL15_FAIL;
+        return DS28EL15_FAIL;
     }
 
     switch (type) {
-    case DS28EL15_CT_MAC_PAGE0:
-    case DS28EL15_CT_MAC_PAGE1:
-        page = (type == DS28EL15_CT_MAC_PAGE0) ? MAXIM_PAGE0 : MAXIM_PAGE1;
-        page_offset = (type == DS28EL15_CT_MAC_PAGE0) ? 0 : ds28el15.ic_des.memory.page_size;
+    case RES_CT:
+        page = MAXIM_PAGE1;
+        page_offset = page * ds28el15.ic_des.memory.page_size;
         set_sched_affinity_to_current();
         for(i = 0; i < GET_ROM_ID_RETRY; i++) {
             if( !(ds28el15.ic_des.memory.validity_rom_id) ) {
@@ -464,9 +414,12 @@ static int ds28el15_get_ct_src(mac_resource *res, unsigned int type)
         mac_datum[AUTH_MAC_PAGE_NUM_OFFSET] = page;
         memcpy(mac_datum + AUTH_MAC_MAN_ID_OFFSET,
                ds28el15.ic_des.memory.personality + MAXIM_MAN_ID_OFFSET, MAXIM_MAN_ID_SIZE);
-        res->datum = mac_datum;
+        res->data = mac_datum;
         res->len = DS28EL15_CT_MAC_SIZE;
-        res->ic_type = DS28EL15_MAC_RES;
+        return DS28EL15_SUCCESS;
+    case RES_SN:
+        res->data = NULL;
+        res->len = 0;
         return DS28EL15_SUCCESS;
     default:
         hwlog_err("Wrong mac resource type(%ud) requred in %s.", type, __func__);
@@ -480,7 +433,7 @@ get_ct_src_fatal_err:
     return DS28EL15_FAIL;
 }
 
-static int ds28el15_set_batt_safe_info(batt_safe_info_type type, void *value)
+static int ds28el15_set_batt_safe_info(struct platform_device* pdev, batt_safe_info_type type, void *value)
 {
     int i;
     maxim_onewire_mem *mom = &ds28el15.ic_des.memory;
@@ -528,7 +481,7 @@ static int ds28el15_set_batt_safe_info(batt_safe_info_type type, void *value)
     return ret_val;
 }
 
-static int ds28el15_get_batt_safe_info(batt_safe_info_type type, void *value)
+static int ds28el15_get_batt_safe_info(struct platform_device* pdev, batt_safe_info_type type, void *value)
 {
     maxim_onewire_mem *mom = &ds28el15.ic_des.memory;
     int retval = DS28EL15_FAIL;
@@ -575,7 +528,7 @@ static int ds28el15_get_batt_safe_info(batt_safe_info_type type, void *value)
 
 static batt_ic_type ds28el15_get_ic_type(void)
 {
-    return MAXIM_SHA256_TYPE;
+    return MAXIM_DS28EL15_TYPE;
 }
 
 #ifdef ONEWIRE_STABILITY_DEBUG
@@ -692,7 +645,7 @@ static ssize_t err_num_show(struct device *dev, struct device_attribute *attr, c
 
 static DEVICE_ATTR_RO(err_num);
 
-static const struct attribute *ds28el15_attrs[] = {
+static struct attribute *ds28el15_attrs[] = {
 #ifdef ONEWIRE_STABILITY_DEBUG
     &dev_attr_get_rom_id.attr,
     &dev_attr_get_personality.attr,
@@ -709,26 +662,28 @@ static const struct attribute *ds28el15_attrs[] = {
 
 int ds28el15_ct_ops_register(batt_ct_ops *bco)
 {
-    int ret = DS28EL15_FAIL;
-
-    if(ds28el15.ic_des.mem_ops.valid_mem_ops) {
-        ret = ds28el15.ic_des.mem_ops.valid_mem_ops(&ds28el15.ic_des, ds28el15.pdev);
-    } else {
-        hwlog_err("ds28el15 is not valid for certification!\n");
+    if(!ds28el15.ic_des.mem_ops.valid_mem_ops) {
+        hwlog_err("%s can't find ops.\n", ds28el15.pdev->name);
+        return DS28EL15_FAIL;
     }
-    if(!ret) {
-        get_random_bytes(random_bytes, ds28el15.ic_des.memory.sram_length);
-        bco->get_ic_type        = ds28el15_get_ic_type;
-        bco->get_ic_id          = ds28el15_get_id;
-        bco->get_batt_sn        = ds28el15_get_sn;
-        bco->check_ic_status    = ds28el15_check_ic_status;
-        bco->certification      = ds28el15_certification;
-        bco->get_ct_src         = ds28el15_get_ct_src;
-        bco->set_batt_safe_info = ds28el15_set_batt_safe_info;
-        bco->get_batt_safe_info = ds28el15_get_batt_safe_info;
+    if(ds28el15.ic_des.mem_ops.valid_mem_ops(&ds28el15.ic_des, ds28el15.pdev)) {
+        hwlog_err("%s can't find phy ctl for ic.\n", ds28el15.pdev->name);
+        return DS28EL15_FAIL;
     }
+    if(ds28el15_check_ic_status(ds28el15.pdev)) {
+        hwlog_err("%s ic status was not fine.\n", ds28el15.pdev->name);
+        return DS28EL15_FAIL;
+    }
+    get_random_bytes(random_bytes, ds28el15.ic_des.memory.sram_length);
+    bco->get_ic_type        = ds28el15_get_ic_type;
+    bco->get_batt_type      = ds28el15_get_batt_type;
+    bco->get_batt_sn        = ds28el15_get_sn;
+    bco->certification      = ds28el15_certification;
+    bco->prepare            = ds28el15_prepare;
+    bco->set_batt_safe_info = ds28el15_set_batt_safe_info;
+    bco->get_batt_safe_info = ds28el15_get_batt_safe_info;
 
-    return ret;
+    return DS28EL15_SUCCESS;
 }
 
 /* Battery constraints initialization */
@@ -757,8 +712,6 @@ static int batt_cons_init(struct platform_device *pdev)
 
 static int dev_sys_node_init(struct platform_device *pdev)
 {
-    int ret;
-
     ds28el15.attr_group = devm_kzalloc(&pdev->dev, sizeof(struct attribute_group), GFP_KERNEL);
     DS28EL15_NULL_POINT_RETURN(ds28el15.attr_group);
     ds28el15.attr_groups = devm_kzalloc(&pdev->dev, 2*sizeof(struct attribute_group *), GFP_KERNEL);
@@ -766,7 +719,7 @@ static int dev_sys_node_init(struct platform_device *pdev)
 
     //ret = of_property_read_string(pdev->dev.of_node, "name", &ds28el15.attr_group->name);
     //DS28EL15_DTS_READ_ERROR_RETURN(ret, "name");
-    ds28el15.attr_group->attrs = ds28el15_attrs;
+    ds28el15.attr_group->attrs = &ds28el15_attrs[0];
 
     ds28el15.attr_groups[0] = ds28el15.attr_group;
     ds28el15.attr_groups[1] = NULL;
@@ -803,10 +756,10 @@ static int ds28el15_driver_probe(struct platform_device *pdev)
         return DS28EL15_FAIL;
     }
 
-	if(dev_sys_node_init(pdev)){
-		hwlog_err("dev_sys_node_init failed in %s.\n", __func__);
+    if(dev_sys_node_init(pdev)){
+        hwlog_err("dev_sys_node_init failed in %s.\n", __func__);
         return DS28EL15_FAIL;
-	}
+    }
 
 
     /* get random 32 bytes */
@@ -840,10 +793,10 @@ static int ds28el15_driver_probe(struct platform_device *pdev)
     /* add ds28el15_ct_ops_register to ct_ops_reg_list */
     ds28el15_ct_node.ic_memory_release = NULL;
     ds28el15_ct_node.ct_ops_register = ds28el15_ct_ops_register;
-    list_add_tail(&ds28el15_ct_node.node, &batt_ct_head);
+    ds28el15_ct_node.ic_dev = pdev;
+    add_to_aut_ic_list(&ds28el15_ct_node);
 
     hwlog_info("ds28el15: probing success.\n");
-
     return DS28EL15_SUCCESS;
 }
 
@@ -855,17 +808,16 @@ static int  ds28el15_driver_remove(struct platform_device *pdev)
 
 static struct of_device_id ds28el15_match_table[] = {
     {
-        .name = "ds28el15",
         .compatible = "maxim,onewire-sha",
     },
     { /*end*/},
 };
 
 static struct platform_driver ds28el15_driver = {
-    .probe		= ds28el15_driver_probe,
-    .remove		= ds28el15_driver_remove,
-    .driver		= {
-        .name = "ds28el15",
+    .probe  = ds28el15_driver_probe,
+    .remove = ds28el15_driver_remove,
+    .driver = {
+        .name = "Ds28el15",
         .owner = THIS_MODULE,
         .of_match_table = ds28el15_match_table,
     },

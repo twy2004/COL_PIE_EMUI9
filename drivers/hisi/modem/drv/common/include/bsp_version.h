@@ -53,7 +53,7 @@
 extern "C" {
 #endif
 
-#if (defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__KERNEL__)) ||defined(__OS_RTOSCK_SMP__)
+#if (defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__KERNEL__)) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <mdrv_version.h>
 #endif
 #include "product_config.h"
@@ -83,6 +83,7 @@ extern "C" {
 #define HW_VER_V722_UDP             (BSP_U32)0X72000000 /*V722 UDP*/
 #define HW_VER_V765_UDP             (BSP_U32)0X76000000 /*V722 UDP*/
 #define HW_VER_V5000_UDP            (BSP_U32)0X77000000 /*V5000 UDP*/
+#define HW_VER_V5000_EMDM_UDP       (BSP_U32)0X37000000 /*V5000 extra modem UDP*/
 #define HW_VER_P532                 (BSP_U32)0XFF000000 /*P532*/
 #define HW_VER_P533                 (BSP_U32)0XFE000000 /*P533*/
 #define HW_VER_P535                 (BSP_U32)0XFD000000 /*P535*/
@@ -138,7 +139,21 @@ typedef struct
 	u32 udp_flag;               /* udp or phone,if udp = 0x13245768 */
 }BSP_VERSION_INFO_S;
 
+#define BOARD_ID_UDP_MASK 0x0000FC00
+#define BOARD_ID_MASK 0xFFFFFFF0
 
+enum
+{
+    BOARDID_MSG_INIT = 0,
+    BOARDID_MSG_REQUEST,
+    BOARDID_MSG_UPDATE
+};
+
+struct boardid_pcie_msg
+{
+    u32 boardid;
+    u32 msg_type;
+};
 
 /*****************************************************************************
 *                                                                            *

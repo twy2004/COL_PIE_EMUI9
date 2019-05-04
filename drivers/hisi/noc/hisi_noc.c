@@ -81,7 +81,7 @@ void noc_record_log_pstorememory(void __iomem *base, int ptype)
 	unsigned int *reg;
 	unsigned int size = SZ_128;
 
-	pr_err("[base is 0x%llx]\n ", (u64) base);
+	pr_err("[base is 0x%lx]\n ",(uintptr_t)base);
 
 	if (ptype == NOC_PTYPE_PSTORE) {
 		mntn_print_to_ramconsole("Error logger dump:\n");
@@ -392,7 +392,7 @@ input: void __iomem *pctrl_base: pctrl virtual base address
 output: none
 return: irq status
 */
-unsigned long long noc_get_irq_status(void __iomem *pctrl_base)
+unsigned long long noc_get_irq_status(const void __iomem *pctrl_base)
 {
 	unsigned long long ret = 0;
 
@@ -634,7 +634,7 @@ static void get_noc_node_clock(struct device_node *np, struct noc_node *node)
 			continue;
 		} else {
 			if (clk_reg_u32[1] > 32) {	/* 32 bit register */
-				pr_err("[%s]:NOC node[%s] %s  invalid mask_bit=%d\n",
+				 pr_err("[%s]:NOC node[%s] %s  invalid mask_bit=%d\n",
 				     __func__, node->name, clock_name,
 				     node->crg_clk[i].mask_bit);
 				continue;
@@ -642,7 +642,7 @@ static void get_noc_node_clock(struct device_node *np, struct noc_node *node)
 			node->crg_clk[i].offset = clk_reg_u32[0];
 			node->crg_clk[i].mask_bit = clk_reg_u32[1];
 			if (noc_property_dt.noc_debug)
-				pr_info("[%s]:NOC node[%s] %s  offset=0x%x, mask_bit=%d\n",
+				 pr_info("[%s]:NOC node[%s] %s  offset=0x%x, mask_bit=%d\n",
 				     __func__, node->name, clock_name,
 				     node->crg_clk[i].offset,
 				     node->crg_clk[i].mask_bit);
@@ -930,8 +930,8 @@ void noc_get_bus_nod_info(void **node_array_pptr, unsigned int *idx_ptr)
 	*node_array_pptr = &noc_nodes_array;
 	*idx_ptr = nodes_array_idx;
 
-	pr_err("[%s]: nodes_array addr: %llx.\n", __func__,
-		(unsigned long long)&noc_nodes_array);
+	pr_err("[%s]: nodes_array addr: %lx.\n", __func__,
+		(uintptr_t)&noc_nodes_array);
 }
 
 void enable_errprobe(struct device *dev)

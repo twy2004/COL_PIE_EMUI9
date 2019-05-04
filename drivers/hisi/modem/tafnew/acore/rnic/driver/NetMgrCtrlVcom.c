@@ -52,6 +52,7 @@
 #include "NetMgrCtrlVcom.h"
 #include "NetMgrCtrlInterface.h"
 #include "mdrv.h"
+#include "ps_tag.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义

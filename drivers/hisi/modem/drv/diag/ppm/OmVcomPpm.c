@@ -53,9 +53,11 @@
 #include <product_config.h>
 #include <mdrv_diag_system.h>
 #include <securec.h>
+#include <bsp_slice.h>
 #include "diag_system_debug.h"
 #include "diag_port_manager.h"
 #include "dms.h"
+#include "OmPortSwitch.h"
 #include "OmVcomPpm.h"
 
 
@@ -66,7 +68,7 @@
 **************************************************************************** */
 
 /* 用于记录 VCOM 通道发送的统计信息 */
-OM_VCOM_DEBUG_INFO                      g_stVComDebugInfo[3];
+OM_VCOM_DEBUG_INFO                      g_stVComDebugInfo[3] = {};
 
 /*****************************************************************************
   3 外部引用声明
@@ -91,7 +93,7 @@ u32 PPM_VComCfgSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
     {
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrNum++;
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_CNF].ulVCOMSendErrLen += ulDataLen;
-        
+
         diag_error("vcom cnf cmd failed, ind sum len 0x%x, ind err len 0x%x.\n", \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen, \
             g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrLen);
@@ -113,7 +115,7 @@ void PPM_VComEvtCB(u32 ulChan, u32 ulEvent)
     OM_LOGIC_CHANNEL_ENUM_UINT32        enChannel;
     bool                            ulSndMsg;
 
-    diag_crit("PPM_VComEvtCB Chan:%s Event:%s.\n", 
+    diag_crit("PPM_VComEvtCB Chan:%s Event:%s.\n",
                      (ulChan  == PPM_VCOM_CHAN_CTRL) ? "cnf"  : "ind",
                      (ulEvent == PPM_VCOM_EVT_CHAN_OPEN)     ? "open" : "close");
 
@@ -208,18 +210,18 @@ u32 PPM_VComIndSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
 
     g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendNum++;
     g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendLen += ulDataLen;
-    
+
     ucMode = (COMPRESS_ENABLE_STATE == mdrv_socp_compress_status()) ?
                 PPM_VCOM_DATA_MODE_COMPRESSED : PPM_VCOM_DATA_MODE_TRANSPARENT;
-      
-    ulInSlice = mdrv_timer_get_normal_timestamp();
+
+    ulInSlice = bsp_get_slice_value();
 
     lRet = PPM_VOM_SEND_DATA(PPM_VCOM_CHAN_DATA, pucVirAddr, ulDataLen, ucMode);
- 
+
     diag_system_debug_vcom_len(ulDataLen);
     diag_system_debug_send_data_end();
 
-    ulOutSlice = mdrv_timer_get_normal_timestamp();
+    ulOutSlice = bsp_get_slice_value();
 
     ulWriteSlice = (ulInSlice > ulOutSlice) ? (0xffffffff - ulInSlice + ulOutSlice) : (ulOutSlice - ulInSlice);
 
@@ -227,7 +229,7 @@ u32 PPM_VComIndSendData(u8 *pucVirAddr, u8 *pucPhyAddr, u32 ulDataLen)
     {
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulMaxTimeLen = ulWriteSlice;
     }
-    
+
     if (0 != lRet)
     {
         g_stVComDebugInfo[OM_LOGIC_CHANNEL_IND].ulVCOMSendErrNum++;

@@ -358,7 +358,11 @@ static void track_regulator_dump(u32 modid, u32 etype, u64 coreid,
 
 STATIC int track_regulator_rdr_register(struct rdr_register_module_result *result)
 {
-	struct rdr_module_ops_pub s_module_ops = {0};
+	struct rdr_module_ops_pub s_module_ops = {
+		.ops_dump = NULL,
+		.ops_reset = NULL
+	};
+
 	int ret = -1;
 	if (!result) {
 		pr_err("%s para null!\n", __func__);

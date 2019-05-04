@@ -61,7 +61,8 @@
 #include <linux/ctype.h>
 #include "bsp_llt.h"
 #include <securec.h>
-
+#include "mdrv_vcom.h"
+#include <bsp_icc.h>
 #include <bsp_print.h>
 #define THIS_MODU mod_onoff
 struct balong_power_plat_data {
@@ -104,7 +105,6 @@ int mdrv_set_modem_state(unsigned int state)
     } else {
         bsp_err("Balong_power  set state %d\n", state);
     }
-
     return 0;
 }
 

@@ -53,6 +53,7 @@
   1 其他头文件包含
 *****************************************************************************/
 #include "vos.h"
+#include "PsCommonDef.h"
 #include "TafDiagComm.h"
 #include "RnicIntraMsg.h"
 #include "rnic_dev_i.h"
@@ -141,9 +142,10 @@ typedef struct
     RNIC_MNTN_COMM_HEADER_STRU          stCommHeader;
 
     VOS_UINT8                           ucRmNetId;
-    VOS_UINT8                           ucNapiEnable;
-    VOS_UINT8                           ucGroEnable;
-    VOS_UINT8                           ucDlNapiWeight;
+    VOS_UINT8                           ucReserved0;
+    VOS_UINT8                           ucReserved1;
+    VOS_UINT8                           ucReserved2;
+    struct rnic_napi_stats_s            stNapiStats;
 
 } RNIC_MNTN_NAIP_INFO_STRU;
 
@@ -207,8 +209,16 @@ VOS_VOID RNIC_MNTN_TraceDialDisconnEvt(
     VOS_UINT32                          ulPktNum,
     VOS_UINT32                          ulUsrExistFlg
 );
-
-
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+VOS_VOID RNIC_MNTN_ReportRcPktStats(
+    VOS_UINT8                           ucRmNetId,
+    CONST struct rnic_data_stats_s     *pstDataStats
+);
+VOS_VOID RNIC_MNTN_ReportRcNapiStats(
+    VOS_UINT8                           ucRmNetId,
+    CONST struct rnic_napi_stats_s     *pstNapiStats
+);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB */
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

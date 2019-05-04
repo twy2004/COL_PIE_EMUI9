@@ -3,6 +3,7 @@ ccflags-y += -Idrivers/media/huawei/camera
 ccflags-y += -Idrivers/media/huawei/camera/csi
 ccflags-y += -Idrivers/media/huawei/camera/platform
 ccflags-y += -Idrivers/media/huawei/camera/fpga
+ccflags-y += -Idrivers/media/huawei/camera/io
 
 obj-$(CONFIG_HUAWEI_CAMERA_USE_IMX600HYBRID) += imx600hybrid.o
 obj-$(CONFIG_HUAWEI_CAMERA_USE_OV9282) += ov9282.o

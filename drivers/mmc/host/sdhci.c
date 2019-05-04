@@ -1477,9 +1477,6 @@ clock_set:
 	clk |= SDHCI_PLL_ENABLE;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
 	mdelay(1);
-
-	sdhci_sctrl_writel(host, GT_CLK_EMMC, SCTRL_PEREN1);
-	mdelay(1);
 #else
 	clk |= SDHCI_CLOCK_INT_EN;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
@@ -1495,7 +1492,9 @@ void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 
 	host->mmc->actual_clock = 0;
 #ifdef CONFIG_MMC_SDHCI_DWC_MSHC
-	sdhci_sctrl_writel(host, GT_CLK_EMMC, SCTRL_PERDIS1);
+	/*before write sdhci_clock contorl ,close emmc gate */
+	if (host->ops->set_clk_emmc_gt)
+		host->ops->set_clk_emmc_gt(host, 0);
 	mdelay(1);
 #else
 	sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -1504,6 +1503,12 @@ void sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 		return;
 
 	clk = sdhci_calc_clk(host, clock, &host->mmc->actual_clock);
+#ifdef CONFIG_MMC_SDHCI_DWC_MSHC
+	/*after write sdhci_clock contorl ,open emmc gate */
+	if (host->ops->set_clk_emmc_gt)
+		host->ops->set_clk_emmc_gt(host, 1);
+	mdelay(1);
+#endif
 
 	clk |= SDHCI_CLOCK_INT_EN;
 
@@ -1542,7 +1547,9 @@ EXPORT_SYMBOL_GPL(sdhci_set_clock);
 static void sdhci_set_power_reg(struct sdhci_host *host, unsigned char mode,
 				unsigned short vdd)
 {
+#ifndef CONFIG_HISI_MMC
 	struct mmc_host *mmc = host->mmc;
+#endif
 
 	spin_unlock_irq(&host->lock);
 #ifdef CONFIG_HISI_MMC
@@ -3695,14 +3702,21 @@ int sdhci_setup_host(struct sdhci_host *host)
 	    mmc_gpio_get_cd(host->mmc) < 0)
 		mmc->caps |= MMC_CAP_NEEDS_POLL;
 
-	/* If vqmmc regulator and no 1.8V signalling, then there's no UHS */
 	if (!IS_ERR(mmc->supply.vqmmc)) {
 		ret = regulator_enable(mmc->supply.vqmmc);
+
+		/* If vqmmc provides no 1.8V signalling, then there's no UHS */
 		if (!regulator_is_supported_voltage(mmc->supply.vqmmc, 1700000,
 						    1950000))
 			host->caps1 &= ~(SDHCI_SUPPORT_SDR104 |
 					 SDHCI_SUPPORT_SDR50 |
 					 SDHCI_SUPPORT_DDR50);
+
+		/* In eMMC case vqmmc might be a fixed 1.8V regulator */
+		if (!regulator_is_supported_voltage(mmc->supply.vqmmc, 2700000,
+						    3600000))
+			host->flags &= ~SDHCI_SIGNALING_330;
+
 		if (ret) {
 			pr_warn("%s: Failed to enable vqmmc regulator: %d\n",
 				mmc_hostname(mmc), ret);

@@ -1,11 +1,11 @@
 #
 # Makefile for the modem drivers.
 #
--include $(srctree)/drivers/hisi/modem/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
+-include $(srctree)/drivers/hisi/modem/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 
 MODEM_DIR := $(srctree)/drivers/hisi/modem/
--include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
+-include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 ifeq ($(TARGET_ARM_TYPE), arm64)
 subdir-ccflags-y  += -Iarch/arm64/include/asm
@@ -17,7 +17,7 @@ subdir-ccflags-y  += -Iinclude/linux
 subdir-ccflags-y  += -Iinclude/generated
 subdir-ccflags-y  += -I$(MODEM_DIR)/config/osa/
 subdir-ccflags-y  += -I$(MODEM_DIR)/config/errlog/
-subdir-ccflags-y  += -I$(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/
+subdir-ccflags-y  += -I$(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/
 subdir-ccflags-y  += -I$(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/include/
 subdir-ccflags-y  += -I$(MODEM_DIR)/include/adrv
 subdir-ccflags-y  += -I$(MODEM_DIR)/include/drv/common/
@@ -72,15 +72,12 @@ subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/gu/acore/cbtfun/
 #lt only INC
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/acore/diag/
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/acore/chr/
-subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/acore/service/
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/comm/list/
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/comm/diag/
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/comm/debug/
 subdir-ccflags-y  += -I$(MODEM_DIR)/oam/inc/lt/comm/frame/
 
-$(warning fuxin start)
 $(warning $(subdir-ccflags))
-$(warning fuxin end)
 #taf
 ifeq ($(CFG_NAS_NEW_ARCH), YES)
 subdir-ccflags-y  += -I$(MODEM_DIR)/tafnew/acore/at/inc/
@@ -119,7 +116,6 @@ tlmsp-y				+= diag/diag_msgmsp.o
 tlmsp-y				+= diag/diag_msg_easyrf.o
 tlmsp-y				+= diag/diag_msgphy.o
 tlmsp-y				+= diag/diag_msgps.o
-tlmsp-y				+= diag/diag_service.o
 tlmsp-y				+= diag/diag_connect.o
 tlmsp-y				+= diag/diag_msglrm.o
 ifeq ($(strip $(CFG_DIAG_SYSTEM_5G)),YES)
@@ -136,15 +132,12 @@ else
 tlmsp-y				+= diag/diag_msgbbp.o
 endif
 
-tlmsp-y				+= service/msp_service.o
-
 else
 
 obj-y				+= chr/
 obj-y				+= debug/
 obj-y				+= list/
 obj-y				+= diag/
-obj-y				+= service/
 endif
 
 subdir-ccflags-y += -Werror

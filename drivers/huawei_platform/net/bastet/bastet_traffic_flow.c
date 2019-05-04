@@ -14,11 +14,10 @@
  * GNU General Public License for more details.
  *
  */
-
+#include <net/sock.h>
 #include <linux/file.h>
 #include <linux/netfilter/xt_qtaguid.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
-#include <net/sock.h>
 #include <huawei_platform/net/bastet/bastet.h>
 #include <huawei_platform/net/bastet/bastet_utils.h>
 
@@ -29,6 +28,7 @@
 /* traffic flow wait timeout */
 #define BST_FLOW_WAIT_TIMEOUT			(50)
 
+#ifdef CONFIG_NETFILTER_XT_MATCH_QTAGUID
 /* declare these functions to call the system update flow function */
 extern void bastet_update_if_tag_stat(const char *ifname,
 			uid_t uid, const struct sock *sk,
@@ -36,6 +36,20 @@ extern void bastet_update_if_tag_stat(const char *ifname,
 extern int bastet_update_total_bytes(const char *dev_name,
 			int proto, unsigned long tx_bytes,
 			unsigned long rx_bytes);
+#else
+void bastet_update_if_tag_stat(const char *ifname,
+			uid_t uid, const struct sock *sk,
+			enum ifs_tx_rx direction, int proto, int bytes)
+{
+}
+
+int bastet_update_total_bytes(const char *dev_name,
+			int proto, unsigned long tx_bytes,
+			unsigned long rx_bytes)
+{
+	return 0;
+}
+#endif
 
 /* declare and define traffic flow parameter */
 static wait_queue_head_t bastet_flow_queue;
@@ -281,7 +295,7 @@ static void bastet_search_entry(struct xt_table_info *newinfo)
 	if (IS_ERR_OR_NULL(newinfo))
 		return;
 
-	loc_cpu_entry = newinfo->entries[raw_smp_processor_id()];
+	loc_cpu_entry = newinfo->entries;
 	xt_entry_foreach(ipt_e, loc_cpu_entry, newinfo->size) {
 		e_t = ipt_get_target(ipt_e);
 		/*target must be REJECT*/

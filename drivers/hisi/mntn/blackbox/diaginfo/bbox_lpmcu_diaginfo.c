@@ -182,7 +182,9 @@ repeat: 	/* check if ipc buffer has msg again */
 		spin_lock_irqsave(&lpmcu_ipc_lock, flags);
 		for (i = 0; i < MAX_IPC_NUM; i++) {
 			if (0 != diaginfo_buf[i].ts ) {
-				(void)memcpy_s((void *)&pmsg, len, &diaginfo_buf[i], sizeof(struct lpmcu_diaginfo));
+				if (EOK !=memcpy_s((void *)&pmsg, len, &diaginfo_buf[i], sizeof(struct lpmcu_diaginfo))){
+					BB_PRINT_ERR("Memcpy diaginfo_buf[%d] fail\n", i);
+				}
 				diaginfo_buf[i].ts = 0;
 				break;
 			}

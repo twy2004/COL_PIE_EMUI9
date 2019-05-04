@@ -61,6 +61,8 @@
 #define LOAD_MAX    0xFFFFFFFF
 #define WDTVALUE        SOC_RTCTIMERWDT_WDVALUE_ADDR(0)
 #define WDTCONTROL      SOC_RTCTIMERWDT_WDCONTROL_ADDR(0)
+#define WDT_TIMEOUT_KICK (32768*3)
+
     /* control register masks */
 #define INT_ENABLE  (1 << SOC_RTCTIMERWDT_WDCONTROL_inten_START)
 #define RESET_ENABLE    (1 << SOC_RTCTIMERWDT_WDCONTROL_resen_START)
@@ -70,6 +72,10 @@
 #define WDTLOCK         SOC_RTCTIMERWDT_WDLOCK_ADDR(0)
 #define UNLOCK      0x1ACCE551
 #define LOCK        0x00000001
+
+#ifndef SOC_RTCTIMERWDT_WDLOAD_B_ADDR
+#define SOC_RTCTIMERWDT_WDLOAD_B_ADDR(base)     ((base) + (0x0018UL))
+#endif
 
 /* wdt aging test, default 120s to be reset */
 #define AGING_WDT_TIMEOUT 240
@@ -197,6 +203,8 @@ static int wdt_config(struct watchdog_device *wdd, bool ping)
 	if (!ping) {
 		writel_relaxed(INT_MASK, wdt->base + WDTINTCLR);
 		writel_relaxed(INT_ENABLE | RESET_ENABLE, wdt->base + WDTCONTROL);
+		writel_relaxed(WDT_TIMEOUT_KICK, wdt->base + SOC_RTCTIMERWDT_WDLOAD_B_ADDR(0));
+
 		wdt->active = true;
 	}
 

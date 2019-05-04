@@ -66,6 +66,17 @@
 #define  hardtimer_print_error(fmt, ...)    (bsp_err("<%s> "fmt"", __FUNCTION__, ##__VA_ARGS__))
 #define  hardtimer_print_debug    bsp_debug
 
+#define    HI_TIMER_LOADCOUNT_OFFSET                         (0x0) /* 定时器n的低32位初始值寄存器。 */
+#define    HI_TIMER_LOADCOUNT_H_OFFSET                       (0xB0) /* 定时器n的高32位初始值寄存器。 */
+#define    HI_TIMER_CURRENTVALUE_OFFSET                      (0x4) /* 定时器n的低32位当前值寄存器。 */
+#define    HI_TIMER_CURRENTVALUE_H_OFFSET                    (0xB4) /* 定时器n的高32位当前值寄存器。 */
+#define    HI_TIMER_CONTROLREG_OFFSET                        (0x8) /* 定时器n的控制寄存器。 */
+#define    HI_TIMER_EOI_OFFSET                               (0xC) /* 定时器n的清中断寄存器。 */
+#define    HI_TIMER_INTSTATUS_OFFSET                         (0x10) /* 定时器n的中断状态寄存器。 */
+#define    HI_TIMERS_INTSTATUS_OFFSET                        (0xA0) /* 定时器中断状态寄存器。 */
+#define    HI_TIMERS_EOI_OFFSET                              (0xA4) /* 定时器清中断寄存器。 */
+#define    HI_TIMERS_RAWINTSTATUS_OFFSET                     (0xA8) /* 原始中断状态寄存器。 */
+
 
 struct bsp_hardtimer_control
 {

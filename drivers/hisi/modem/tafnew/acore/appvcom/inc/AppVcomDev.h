@@ -55,6 +55,8 @@
 *****************************************************************************/
 #include "v_typdef.h"
 #include "PsTypeDef.h"
+#include "mdrv.h"
+#include "ps_tag.h"
 #include "AtAppVcomInterface.h"
 #include "product_config.h"
 #include "AppVcomPrivate.h"
@@ -278,7 +280,7 @@ extern "C" {
             {\
                 va_list pArgList;\
                 va_start(pArgList, pcFmt);\
-                ulPrintLength += vsnprintf(pcBuf + ulPrintLength,\
+                ulPrintLength += vsnprintf(pcBuf + ulPrintLength, /* unsafe_function_ignore: vsnprintf */\
                                     ulBufSize - ulPrintLength, pcFmt, pArgList);\
                 va_end(pArgList);\
                 if (ulPrintLength > (ulBufSize - 1))\

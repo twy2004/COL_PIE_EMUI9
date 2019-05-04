@@ -9,6 +9,9 @@ obj-$(CONFIG_DIRECT_CHARGER) += direct_charger/
 obj-$(CONFIG_WIRELESS_CHARGER) += wireless_charger/
 obj-$(CONFIG_WIRED_CHANNEL_SWITCH) += wired_channel_switch/
 obj-$(CONFIG_BQ25882_CHARGER) += bq25882/
+obj-$(CONFIG_VBUS_CHANNEL) += vbus_channel/
+obj-$(CONFIG_SERIES_BATT) += series_batt_charger.o
+obj-$(CONFIG_BATTERY_BALANCE) += battery_balance.o
 
 ifeq ($(HLTHERM_RUNTEST), true)
     CFLAGS_KERNEL += -DCONFIG_HLTHERM_RUNTEST

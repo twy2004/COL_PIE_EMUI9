@@ -163,7 +163,7 @@ static inline int psam_reinit_regs(void)
 }
 #endif
 	
-#elif defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 /*psam cipher interface structure tagPSAM_DL_S*/
 typedef struct tagpsam_cipher_reg

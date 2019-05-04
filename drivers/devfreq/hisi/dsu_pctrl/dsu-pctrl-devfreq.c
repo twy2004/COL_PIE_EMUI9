@@ -757,7 +757,7 @@ static unsigned long dsu_pctrl_get_cnt(struct perf_hwmon *hw)
 		hw->total_access += devstats->l3d_cnt;
 	}
 
-	trace_dsu_pctrl_get_cnt(hw->total_refill, hw->total_access);
+	//trace_dsu_pctrl_get_cnt(hw->total_refill, hw->total_access);
 
 	return 0;
 }
@@ -801,7 +801,11 @@ static void dsu_pctrl_stop_hwmon(struct perf_hwmon *hw)
 
 	put_online_cpus();
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	unregister_cpu_notifier(&cpu_grp->perf_cpu_notif);
+#else
+	cpuhp_remove_state_nocalls(CPUHP_AP_HISI_DSU_PCTRL_DEVFREQ_NOTIFY_PREPARE);
+#endif
 }
 
 
@@ -860,11 +864,11 @@ err_out:
 }
 
 
-
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 static int dsu_pctrl_perf_cpu_callback(struct notifier_block *nb,
 		unsigned long action, void *hcpu)
 {
-	unsigned long cpu = (unsigned long)hcpu;
+	unsigned long cpu = (uintptr_t)hcpu;
 	struct cpu_grp_info *cpu_grp, *tmp;
 
 	if (action != CPU_ONLINE)
@@ -889,6 +893,30 @@ static int dsu_pctrl_perf_cpu_callback(struct notifier_block *nb,
 
 	return NOTIFY_OK;
 }
+#else
+static int __ref dsu_pctrl_perf_cpu_online(unsigned int cpu)
+{
+	struct cpu_grp_info *cpu_grp, *tmp;
+
+	mutex_lock(&list_lock);
+	list_for_each_entry_safe(cpu_grp, tmp, &perf_mon_list, mon_list) {
+		if (!cpumask_test_cpu(cpu, &cpu_grp->cpus) ||
+			cpumask_test_cpu(cpu, &cpu_grp->inited_cpus))
+			continue;
+
+		if (set_events(cpu_grp, cpu))
+			pr_warn("Failed to create perf ev for CPU%lu\n", cpu);
+		else
+			cpumask_set_cpu(cpu, &cpu_grp->inited_cpus);
+
+		if (cpumask_equal(&cpu_grp->cpus, &cpu_grp->inited_cpus)){
+			list_del(&cpu_grp->mon_list);
+			}
+	}
+	mutex_unlock(&list_lock);
+	return 0;
+}
+#endif
 
 
 static int dsu_pctrl_start_hwmon(struct perf_hwmon *hw)
@@ -896,7 +924,12 @@ static int dsu_pctrl_start_hwmon(struct perf_hwmon *hw)
 	int cpu, ret = 0;
 	struct cpu_grp_info *cpu_grp = hw->cpu_grp;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	register_cpu_notifier(&cpu_grp->perf_cpu_notif);
+#else
+	cpuhp_setup_state_nocalls(CPUHP_AP_HISI_DSU_PCTRL_DEVFREQ_NOTIFY_PREPARE, "dsu-pctrl-devfreq:online",
+				  dsu_pctrl_perf_cpu_online, NULL);
+#endif
 
 	get_online_cpus();
 	for_each_cpu(cpu, &cpu_grp->cpus) {
@@ -941,7 +974,9 @@ static int dsu_pctrl_hwmon_setup(struct platform_device *pdev)
 		return -ENOMEM;
 	hw->cpu_grp = cpu_grp;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	cpu_grp->perf_cpu_notif.notifier_call = dsu_pctrl_perf_cpu_callback;
+#endif
 
 	cpumask_copy(&cpu_grp->cpus, cpu_online_mask);
 	cpumask_copy(&hw->cpus, &cpu_grp->cpus);
@@ -1419,6 +1454,27 @@ static int dsu_pctrl_create_configuration(struct platform_device *pdev)
 	return 0;
 }
 
+static inline void dsu_pctrl_rcu_read_lock(void)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+	rcu_read_lock();
+#endif
+}
+
+static inline void dsu_pctrl_rcu_read_unlock(void)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+	rcu_read_unlock();
+#endif
+}
+
+static inline void dsu_pctrl_opp_put(struct dev_pm_opp *opp)
+{
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	dev_pm_opp_put(opp);
+#endif
+}
+
 static void dsu_pctrl_remove_opps(struct platform_device *pdev)
 {
 	struct dev_pm_opp *opp;
@@ -1429,13 +1485,14 @@ static void dsu_pctrl_remove_opps(struct platform_device *pdev)
 	if (count <= 0)
 		return;
 
-	rcu_read_lock();
+	dsu_pctrl_rcu_read_lock();
 	for (i = 0, freq = 0; i < count; i++, freq++) {
 		opp = dev_pm_opp_find_freq_ceil(&pdev->dev, &freq);
 		if (!IS_ERR(opp))
 			dev_pm_opp_remove(&pdev->dev, freq);
 	}
-	rcu_read_unlock();
+	dsu_pctrl_opp_put(opp);
+	dsu_pctrl_rcu_read_unlock();
 }
 
 static int dsu_pctrl_enable_opps(struct platform_device *pdev)
@@ -1592,13 +1649,13 @@ static int l3c_acp_callback(struct notifier_block *nb,
 	l3share = (struct l3_cache_request_params *) data;
 
 	switch (mode) {
-		case L3C_ACP_PENDING:
+		case L3SHARE_MON_START:
 			dsu->l3share_id = l3share->id;
 			dsu->l3share_size = l3share->request_size;
 			devfreq_monitor_start(dsu->devfreq);
 			pr_debug("%s start devfreq monitor\n", __func__);
 			break;
-		case L3C_ACP_RELEASE:
+		case L3SHARE_MON_STOP:
 			devfreq_monitor_stop(dsu->devfreq);
 			portions = dsu->dsu_data->portion_max;
 			portion_active = (1UL << portions) - 1;
@@ -1607,7 +1664,7 @@ static int l3c_acp_callback(struct notifier_block *nb,
 			pr_debug("%s stop devfreq monitor, portion_active = 0x%lx\n", __func__, portion_active);
 			break;
 		default:
-			pr_err("%s error case %lu\n", __func__, mode);
+			//pr_err("%s error case %lu\n", __func__, mode);
 			break;
 	}
 
@@ -1660,7 +1717,7 @@ static int dsu_pctrl_devfreq_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_HISI_L3CACHE_SHARE_PERF
 	dsu->l3c_acp_notify.notifier_call = l3c_acp_callback;
-	ret = register_l3c_acp_notifier(&dsu->l3c_acp_notify);
+	ret = register_l3share_acp_notifier(&dsu->l3c_acp_notify);
 	if (ret) {
 		dev_err(&pdev->dev, "register l3c acp notifier failed!\n");
 		goto unsetup;
@@ -1679,9 +1736,11 @@ static int dsu_pctrl_devfreq_probe(struct platform_device *pdev)
 
 	return 0;
 
+#ifdef CONFIG_HISI_DSU_PCTRL_DEBUG
 unreg_acp:
+#endif
 #ifdef CONFIG_HISI_L3CACHE_SHARE_PERF
-	unregister_l3c_acp_notifier(&dsu->l3c_acp_notify);
+	unregister_l3share_acp_notifier(&dsu->l3c_acp_notify);
 #endif
 unsetup:
 	dsu_pctrl_unsetup(pdev);
@@ -1719,7 +1778,7 @@ static int dsu_pctrl_devfreq_remove(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_HISI_L3CACHE_SHARE_PERF
-	unregister_l3c_acp_notifier(&dsu->l3c_acp_notify);
+	unregister_l3share_acp_notifier(&dsu->l3c_acp_notify);
 #endif
 
 	devm_devfreq_remove_device(&pdev->dev, dsu->devfreq);

@@ -50,12 +50,14 @@
 #include "PPP/Inc/link.h"
 #include "PPP/Inc/ppp_init.h"
 #include "PPP/Inc/ppp_input.h"
-
+#include "TTFComm.h"
+#include "gucttf_tag.h"
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
-/*lint -e767  原因简述: 打点日志文件宏ID定义 */
+/*lint -e767   原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_PPP_INPUT_C
+#define    THIS_MODU           mod_ppp
 /*lint +e767  */
 
 /******************************************************************************
@@ -154,40 +156,6 @@ VOS_UINT32 PPP_INPUT_GetDataCnt(VOS_VOID)
     return ulUlDataQCnt;
 }
 
-
-VOS_VOID    PPP_INPUT_ShowStatInfo(VOS_VOID)
-{
-    PS_PRINTF("\n================PPP STAT INFO Begin==========================\n");
-
-    PS_PRINTF("队列中当前结点个数         = %d\n", PPP_ZC_GET_QUEUE_LEN(&g_PppDataQCtrl.stDataQ));
-
-    PS_PRINTF("ulNotifyMsg                = %d\n", g_PppDataQCtrl.ulNotifyMsg);
-    PS_PRINTF("DataNotify消息发送次数     = %d\n", g_PppDataQCtrl.stStat.ulSndMsgCnt);
-    PS_PRINTF("DataNotify消息处理次数     = %d\n", g_PppDataQCtrl.stStat.ulProcMsgCnt);
-    PS_PRINTF("队列中出现过的最大节点个数 = %d\n", g_PppDataQCtrl.stStat.ulQMaxCnt);
-    PS_PRINTF("一次最多允许处理的节点个数 = %d\n", PPP_ONCE_DEAL_MAX_CNT);
-
-    PS_PRINTF("上行内存申请成功次数       = %d\n", g_PppDataQCtrl.stStat.ulMemAllocUplinkCnt);
-    PS_PRINTF("上行内存申请失败次数       = %d\n", g_PppDataQCtrl.stStat.ulMemAllocUplinkFailCnt);
-
-    PS_PRINTF("下行内存申请成功次数       = %d\n", g_PppDataQCtrl.stStat.ulMemAllocDownlinkCnt);
-    PS_PRINTF("下行内存申请失败次数       = %d\n", g_PppDataQCtrl.stStat.ulMemAllocDownlinkFailCnt);
-    PS_PRINTF("内存释放次数               = %d\n", g_PppDataQCtrl.stStat.ulMemFreeCnt);
-
-    PS_PRINTF("上行数据包总个数           = %d\n", g_PppDataQCtrl.stStat.ulUplinkCnt);
-    PS_PRINTF("上行丢包数                 = %d\n", g_PppDataQCtrl.stStat.ulUplinkDropCnt);
-    PS_PRINTF("上行发包数                 = %d\n", g_PppDataQCtrl.stStat.ulUplinkSndDataCnt);
-
-    PS_PRINTF("下行数据包总个数           = %d\n", g_PppDataQCtrl.stStat.ulDownlinkCnt);
-    PS_PRINTF("下行丢包数                 = %d\n", g_PppDataQCtrl.stStat.ulDownlinkDropCnt);
-    PS_PRINTF("下行发包数                 = %d\n", g_PppDataQCtrl.stStat.ulDownlinkSndDataCnt);
-
-    PS_PRINTF("队列满丢包数               = %d\n", g_PppDataQCtrl.stStat.ulDropCnt);
-
-    PS_PRINTF("================PPP STAT INFO End==========================\n");
-
-    return;
-}
 
 
 VOS_UINT32  PPP_Snd1stDataNotify(VOS_VOID)

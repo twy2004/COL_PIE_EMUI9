@@ -54,6 +54,8 @@
 #include "vos.h"
 
 #include "PsCommonDef.h"
+#include "mdrv.h"
+#include "ps_tag.h"
 #include "AtMntn.h"
 
 #ifdef __cplusplus

@@ -57,7 +57,6 @@
 #include "vos.h"
 #include "IpIpmGlobal.h"
 #include "TTFComm.h"
-
 /*****************************************************************************
   1.1 Cplusplus Announce
 *****************************************************************************/
@@ -319,32 +318,18 @@ extern "C" {
         return (ret); \
     }
 #else
-/*
+
 #define IP_ASSERT(exp) \
     if(!(exp))\
     {\
-        vos_assert(__FILE__, __LINE__);\
+        PS_PRINTF_INFO("Assert, File: %s, Line:%d\n", __FILE__,__LINE__);\
         return;\
     }
 
 #define IP_ASSERT_RTN(exp,ret) \
     if (!(exp)) \
     {\
-        vos_assert(__FILE__,__LINE__); \
-        return (ret); \
-    }
-*/
-#define IP_ASSERT(exp) \
-    if(!(exp))\
-    {\
-        vos_printf("Assert, File: %s, Line:%d\n", __FILE__,__LINE__);\
-        return;\
-    }
-
-#define IP_ASSERT_RTN(exp,ret) \
-    if (!(exp)) \
-    {\
-        vos_printf("Assert, File: %s, Line:%d\n", __FILE__,__LINE__); \
+        PS_PRINTF_INFO("Assert, File: %s, Line:%d\n", __FILE__,__LINE__); \
         return (ret); \
     }
 

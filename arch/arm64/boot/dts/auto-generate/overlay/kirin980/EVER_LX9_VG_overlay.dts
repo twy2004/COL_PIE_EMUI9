@@ -20,3 +20,7 @@
 		hisi,boardname = "EVER_LX9_VG";
 		hisi,modem_id = <0x37021400>;
 	};
+	&huawei_lcd_panel {
+		compatible = "huawei,lcd_panel_type";
+		board_version = <1000>;
+	};

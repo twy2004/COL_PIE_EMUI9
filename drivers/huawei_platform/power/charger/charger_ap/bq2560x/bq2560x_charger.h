@@ -1,6 +1,19 @@
 /*
- * Copyright (C) 2012-2015 HUAWEI
- * Author:  L.JH HW
+ * bq2560x_charger.h
+ *
+ * bq2560x driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
  */
 
 #ifndef _BQ2560X_CHARGER_H_
@@ -27,7 +40,7 @@ struct bq2560x_device_info {
 };
 
 /*************************marco define area***************************/
-/* DEFAULT VALUE */
+/* default value */
 #define BQ2560X_RILIM_220_OHM                        (220)
 #define BQ2560X_ADC_CHANNEL_IIN_10                   (10)
 
@@ -38,8 +51,8 @@ struct bq2560x_device_info {
 #define BQ2560X_REG_NONE_MASK                        (0xFF)
 #define BQ2560X_REG_NONE_SHIFT                       (0x00)
 
-/* REG MASK & SHITF info */
-#define BQ2560X_REG_ISC                              0x00    /* Register 00h */
+/* Register 00h */
+#define BQ2560X_REG_ISC                              0x00
 
 #define BQ2560X_REG_ISC_EN_HIZ_MASK                  (0x80)
 #define BQ2560X_REG_ISC_EN_HIZ_SHIFT                 (7)
@@ -58,7 +71,8 @@ struct bq2560x_device_info {
 #define REG00_IINLIM_LSB                             (100)
 #define REG00_IINLIM_BASE                            (100)
 
-#define BQ2560X_REG_POC                              0x01    /* Register 01h */
+/* Register 01h */
+#define BQ2560X_REG_POC                              0x01
 
 #define BQ2560X_REG_POC_PFM_DIS_MASK                 (0x80)
 #define BQ2560X_REG_POC_PFM_DIS_SHIFT                (7)
@@ -87,7 +101,8 @@ struct bq2560x_device_info {
 #define REG01_MIN_VBAT_2P8V                          (0)
 #define REG01_MIN_VBAT_2P5V                          (1)
 
-#define BQ2560X_REG_CCC                              0x02     /* Register 02h */
+/* Register 02h */
+#define BQ2560X_REG_CCC                              0x02
 
 #define BQ2560X_REG_CCC_BOOST_LIM_MASK               (0x80)
 #define BQ2560X_REG_CCC_BOOST_LIM_SHIFT              (7)
@@ -105,7 +120,8 @@ struct bq2560x_device_info {
 #define REG02_ICHG_BASE                              (0)
 #define REG02_ICHG_LSB                               (60)
 
-#define BQ2560X_REG_PCTCC                            0x03    /* Register 03h */
+/* Register 03h */
+#define BQ2560X_REG_PCTCC                            0x03
 
 #define BQ2560X_REG_PCTCC_IPRECHG_MASK               (0xF0)
 #define BQ2560X_REG_PCTCC_IPRECHG_SHIFT              (4)
@@ -117,7 +133,8 @@ struct bq2560x_device_info {
 #define REG03_ITERM_BASE                             (60)
 #define REG03_ITERM_LSB                              (60)
 
-#define BQ2560X_REG_CVC                              0x04    /* Register 04h */
+/* Register 04h */
+#define BQ2560X_REG_CVC                              0x04
 
 #define BQ2560X_REG_CVC_VREG_MASK                    (0xF8)
 #define BQ2560X_REG_CVC_VREG_SHIFT                   (3)
@@ -136,7 +153,8 @@ struct bq2560x_device_info {
 #define REG04_VRECHG_100MV                           (0)
 #define REG04_VRECHG_200MV                           (1)
 
-#define BQ2560X_REG_CTTC                             0x05    /* Register 05h */
+/* Register 05h */
+#define BQ2560X_REG_CTTC                             0x05
 
 #define BQ2560X_REG_CTTC_EN_TERM_MASK                (0x80)
 #define BQ2560X_REG_CTTC_EN_TERM_SHIFT               (7)
@@ -173,7 +191,8 @@ struct bq2560x_device_info {
 #define REG05_JEITA_ISET_50PCT                       (0)
 #define REG05_JEITA_ISET_20PCT                       (1)
 
-#define BQ2560X_REG_REG_BVTRC                        0x06    /* Register 06h */
+/* Register 06h */
+#define BQ2560X_REG_REG_BVTRC                        0x06
 
 #define BQ2560X_REG_REG_BVTRC_OVP_MASK               (0xC0)
 #define BQ2560X_REG_REG_BVTRC_OVP_SHIFT              (0x6)
@@ -201,7 +220,8 @@ struct bq2560x_device_info {
 #define REG06_VINDPM_LSB                             (100)
 #define REG06_VINDPM_4P2V                            (3)
 
-#define BQ2560X_REG_MOC                              0x07    /* Register 07h */
+/* Register 07h */
+#define BQ2560X_REG_MOC                              0x07
 
 #define BQ2560X_REG_MOC_DPDM_EN_MASK                 (0x80)
 #define BQ2560X_REG_MOC_DPDM_EN_SHIFT                (7)
@@ -239,7 +259,8 @@ struct bq2560x_device_info {
 #define REG07_VDPM_BAT_TRACK_250MV                   (2)
 #define REG07_VDPM_BAT_TRACK_300MV                   (3)
 
-#define BQ2560X_REG_SS                               0x08    /* Register 08h */
+/* Register 08h */
+#define BQ2560X_REG_SS                               0x08
 
 #define BQ2560X_REG_SS_VBUS_STAT_MASK                (0xE0)
 #define BQ2560X_REG_SS_VBUS_STAT_SHIFT               (5)
@@ -266,7 +287,8 @@ struct bq2560x_device_info {
 #define BQ2560X_REG_SS_VSYS_STAT_SHIFT               (0)
 #define REG08_IN_VSYS_STAT                           (1)
 
-#define BQ2560X_REG_F                                0x09    /* Register 09h */
+/* Register 09h */
+#define BQ2560X_REG_F                                0x09
 
 #define BQ2560X_REG_F_FAULT_WDT_MASK                 (0x80)
 #define BQ2560X_REG_F_FAULT_WDT_SHIFT                (7)
@@ -294,7 +316,8 @@ struct bq2560x_device_info {
 #define REG09_FAULT_NTC_COLD                         (5)
 #define REG09_FAULT_NTC_HOT                          (6)
 
-#define BQ2560X_REG_VINS                             0x0A    /* Register 0Ah */
+/* Register 0Ah */
+#define BQ2560X_REG_VINS                             0x0A
 
 #define BQ2560X_REG_VINS_VBUS_GD_MASK                (0x80)
 #define BQ2560X_REG_VINS_VBUS_GD_SHIFT               (7)
@@ -329,7 +352,8 @@ struct bq2560x_device_info {
 #define BQ2560X_REG_VINS_INT_MASK_MASK               (0x03)
 #define BQ2560X_REG_VINS_INT_MASK_SHIFT              (0)
 
-#define BQ2560X_REG_VPRS                             0x0B    /* Register 0Bh */
+/* Register 0Bh */
+#define BQ2560X_REG_VPRS                             0x0B
 
 #define BQ2560X_REG_VPRS_REG_RESET_MASK              (0x80)
 #define BQ2560X_REG_VPRS_REG_RESET_SHIFT             (7)

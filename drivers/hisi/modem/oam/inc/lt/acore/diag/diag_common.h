@@ -66,7 +66,6 @@ extern "C" {
 #include "diag_message.h"
 #include "diag_msg_def.h"
 #include "diag_cmdid_def.h"
-#include "diag_service.h"
 #include "diag_common_comm.h"
 
 /*****************************************************************************
@@ -134,7 +133,33 @@ do {    \
         }   \
     }while(0)
 #else
-#define DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret)
+#define DIAG_MSG_SEND_CFG_TO_NRM(ulLen, pstDiagHead, pstInfo, ret) \
+    do {    \
+        ulLen = (sizeof(DIAG_MSG_A_TRANS_C_STRU) - VOS_MSG_HEAD_LENGTH) + pstDiagHead->ulMsgLen;  \
+        pstInfo = (DIAG_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);  \
+        if(VOS_NULL == pstInfo) \
+        {   \
+            ret = ERR_MSP_MALLOC_FAILUE;    \
+            goto DIAG_ERROR;    \
+        }   \
+        pstInfo->ulReceiverPid = MSP_PID_DIAG_NRM_AGENT;    \
+        pstInfo->ulSenderPid   = MSP_PID_DIAG_APP_AGENT;    \
+        pstInfo->ulMsgId       = DIAG_MSG_MSP_A_TRANS_C_REQ;    \
+        ulLen = sizeof(DIAG_FRAME_INFO_STRU)+pstDiagHead->ulMsgLen; \
+        VOS_MemCpy_s(&pstInfo->stInfo, ulLen, pstDiagHead, ulLen);   \
+        ret = VOS_FreeMsg(MSP_PID_DIAG_APP_AGENT, pstInfo); \
+        if(ret) \
+        {   \
+            ret = ERR_MSP_DIAG_SEND_MSG_FAIL; \
+            goto DIAG_ERROR;    \
+        }   \
+    }while(0)
+#endif
+
+#ifdef DIAG_SYSTEM_5G
+#define SOCP_CODER_SRC_PS_IND    SOCP_CODER_SRC_ACPU_IND
+#else
+#define SOCP_CODER_SRC_PS_IND    SOCP_CODER_SRC_LOM_IND1
 #endif
 
 #define     DIAG_HIGH_TS_PUSH_TIMER_LEN     (10)    /* 10 min */

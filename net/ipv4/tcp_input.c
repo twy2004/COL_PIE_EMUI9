@@ -760,7 +760,7 @@ void tcp_rcv_space_adjust(struct sock *sk)
 #ifdef CONFIG_TCP_AUTOTUNING
 	if (sysctl_tcp_autotuning > 1) {
 		arrived = (segs - tp->rcvq_space.segs) * tp->advmss;
-		copied = max(copied, arrived);
+		copied = max_t(u64, copied, arrived);
 		copied <<= !!tp->rcv_rate.loss;
 		tcp_update_arriving_rate(sk, copied, time);
 	}
@@ -3895,7 +3895,9 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 	if (after(ack, tp->snd_nxt))
 		goto invalid_ack;
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_TCP);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_TCP);
+	}
 #endif
 	skb_mstamp_get(&now);
 
@@ -4150,6 +4152,10 @@ void tcp_parse_options(const struct sk_buff *skb,
 #ifdef CONFIG_MPTCP
 			case TCPOPT_MPTCP:
 				mptcp_parse_options(ptr - 2, opsize, mopt, skb, tp);
+				break;
+			case TCPOPT_PROXY_STATUS:
+				if (opsize == TCPOLEN_MPTCP_PROXY_STATUS && mopt)
+					mopt->proxy_status = *(__u8 *)ptr;
 				break;
 #endif
 			case TCPOPT_FASTOPEN:
@@ -4682,6 +4688,23 @@ bool tcp_try_coalesce(struct sock *sk,
 	return true;
 }
 
+static bool tcp_ooo_try_coalesce(struct sock *sk,
+			     struct sk_buff *to,
+			     struct sk_buff *from,
+			     bool *fragstolen)
+{
+	bool res = tcp_try_coalesce(sk, to, from, fragstolen);
+
+	/* In case tcp_drop() is called later, update to->gso_segs */
+	if (res) {
+		u32 gso_segs = max_t(u16, 1, skb_shinfo(to)->gso_segs) +
+			       max_t(u16, 1, skb_shinfo(from)->gso_segs);
+
+		skb_shinfo(to)->gso_segs = min_t(u32, gso_segs, 0xFFFF);
+	}
+	return res;
+}
+
 static void tcp_drop(struct sock *sk, struct sk_buff *skb)
 {
 	sk_drops_add(sk, skb);
@@ -4825,7 +4848,8 @@ void tcp_data_queue_ofo(struct sock *sk, struct sk_buff *skb)
 	/* In the typical case, we are adding an skb to the end of the list.
 	 * Use of ooo_last_skb avoids the O(Log(N)) rbtree lookup.
 	 */
-	if (tcp_try_coalesce(sk, tp->ooo_last_skb, skb, &fragstolen)) {
+	if (tcp_ooo_try_coalesce(sk, tp->ooo_last_skb,
+				 skb, &fragstolen)) {
 coalesce_done:
 		tcp_grow_window(sk, skb);
 		kfree_skb_partial(skb, fragstolen);
@@ -4880,7 +4904,8 @@ coalesce_done:
 				tcp_drop(sk, skb1);
 				goto merge_right;
 			}
-		} else if (tcp_try_coalesce(sk, skb1, skb, &fragstolen)) {
+		} else if (tcp_ooo_try_coalesce(sk, skb1,
+						skb, &fragstolen)) {
 			goto coalesce_done;
 		}
 		p = &parent->rb_right;
@@ -6326,7 +6351,7 @@ static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 		if (th->rst) {
 			tcp_reset(sk);
 #ifdef CONFIG_MPTCP
-			(void)mptcp_hw_ext_reset_rules_by_sk_fallback(sk);
+			(void)mptcp_proxy_fallback(sk, MPTCP_FALLBACK_PROXY_SYN_RESET, true);
 #endif
 			goto discard;
 		}
@@ -6470,6 +6495,9 @@ discard:
 			return 0;
 		} else {
 			tcp_send_ack(sk);
+#ifdef CONFIG_MPTCP
+			mptcp_hw_socks4_send(sk);
+#endif
 		}
 		return -1;
 	}

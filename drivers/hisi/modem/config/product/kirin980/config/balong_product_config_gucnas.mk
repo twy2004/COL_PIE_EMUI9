@@ -1,4 +1,6 @@
-# MD5: 26baaddacac8484b71f5ccb8fd96414f
+# MD5: 4d37b99013f989b940900f92cb75dfb0
+CFG_FEATURE_ON                                  := 1
+CFG_FEATURE_OFF                                 := 0
 CFG_NAS_NEW_ARCH                                := YES
 CFG_FEATURE_DATA_SERVICE_NEW_PLATFORM           := FEATURE_OFF
 CFG_FEATURE_UE_MODE_G                           := FEATURE_ON
@@ -11,9 +13,11 @@ CFG_FEATURE_GCBS                                := FEATURE_ON
 CFG_FEATURE_WCBS                                := FEATURE_ON
 CFG_FEATURE_ETWS                                := FEATURE_ON
 CFG_FEATURE_AGPS                                := FEATURE_ON
+CFG_FEATURE_XPDS                                := FEATURE_ON
+CFG_FEATURE_TC                                  := FEATURE_ON
+CFG_FEATURE_RSTRIGGER_SMS                       := FEATURE_OFF
 CFG_FEATURE_AGPS_GPIO                           := FEATURE_ON
 CFG_FEATRUE_XML_PARSER                          := FEATURE_ON
-CFG_NAS_FEATURE_SMS_NVIM_SMSEXIST               := FEATURE_ON
 CFG_NAS_FEATURE_SMS_FLASH_SMSEXIST              := FEATURE_ON
 CFG_FEATURE_IPV6                                := FEATURE_ON
 CFG_FEATURE_RMNET_CUSTOM                        := FEATURE_OFF
@@ -46,6 +50,7 @@ CFG_FEATURE_DX_SECBOOT                          := FEATURE_OFF
 CFG_FEATURE_EDA_SUPPORT                         := FEATURE_ON
 CFG_FEATURE_RNIC_NAPI_GRO                       := FEATURE_ON
 CFG_FEATURE_LOGCAT_SINGLE_CHANNEL               := FEATURE_OFF
+CFG_FEATURE_DCXO_HI1102_SAMPLE_SHARE            := FEATURE_OFF
 CFG_MODEM_LTO                                   := YES
 CFG_FEATURE_NRNAS_SHARE_MEM                     := FEATURE_OFF
 ifeq ($(CFG_EMU_TYPE_ESL),FEATURE_ON)
@@ -53,3 +58,4 @@ CFG_FEATURE_NRNAS_ESL                           := FEATURE_ON
 else
 CFG_FEATURE_NRNAS_ESL                           := FEATURE_OFF
 endif
+CFG_FEATURE_PC5_DATA_CHANNEL                    := FEATURE_OFF

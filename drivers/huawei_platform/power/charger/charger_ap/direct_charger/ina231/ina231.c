@@ -1,3 +1,21 @@
+/*
+ * ina231.c
+ *
+ * ina231 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -20,26 +38,38 @@
 
 #include <huawei_platform/log/hw_log.h>
 #include <huawei_platform/power/direct_charger.h>
-#include "ina231.h"
+#include <huawei_platform/power/battery_voltage.h>
 #ifdef CONFIG_WIRELESS_CHARGER
 #include <huawei_platform/power/wireless_direct_charger.h>
+#endif
+#ifdef CONFIG_HISI_COUL
+#include <linux/power/hisi/coul/hisi_coul_drv.h>
+#endif
+#include "ina231.h"
+
+#ifdef HWLOG_TAG
+#undef HWLOG_TAG
 #endif
 
 #define HWLOG_TAG ina231_for_charge
 HWLOG_REGIST();
 
 struct ina231_device_info *g_ina231_dev;
+
 static int ina231_init_finish_flag = INA231_NOT_INIT;
-static int ina231_interrupt_notify_enable_flag = INA231_DISABLE_INTERRUPT_NOTIFY;
+static int ina231_int_notify_enable_flag = INA231_DISABLE_INT_NOTIFY;
 
 /*
-	current_lsb = (maximum expected current) / 2^15
-	callibration = 0.00512 / (current_lsb * Rshunt)
-	current = (shunt_voltage * calibration) / 2048
-	power = (current * bus_voltage) / 20000
-*/
+ * current_lsb = (maximum expected current) / 2^15
+ * callibration = 0.00512 / (current_lsb * Rshunt)
+ * current = (shunt_voltage * calibration) / 2048
+ * power = (current * bus_voltage) / 20000
+ */
 static struct ina231_config_data ina231_config = {
-	 /* INA231_CONFIG_REG [0x4124]: number of averages:1, Vbus ct:1.1ms, Vsh ct:1.1ms, powerdown mode */
+	/* INA231_CONFIG_REG [0x4124]:
+	 * number of averages:1, Vbus ct:1.1ms,
+	 * Vsh ct:1.1ms, powerdown mode
+	 */
 	.config_sleep_in =
 		((INA231_CONFIG_MODE_PD1 << INA231_CONFIG_MODE_SHIFT) |
 		(INA231_CONFIG_CT_1100US << INA231_CONFIG_VSHUNTCT_SHIFT) |
@@ -49,7 +79,10 @@ static struct ina231_config_data ina231_config = {
 	/* INA231_CONFIG_REG [0x8000]: reset the whole chip */
 	.config_reset = (INA231_CONFIG_RST_ENABLE << INA231_CONFIG_RST_SHIFT),
 
-	/* INA231_CONFIG_REG [0x4377]: number of averages:4, Vbus ct:2.116ms, Vsh ct:4.156ms, shunt and bus continous mode */
+	/* INA231_CONFIG_REG [0x4377]:
+	 * number of averages:4, Vbus ct:2.116ms,
+	 * Vsh ct:4.156ms, shunt and bus continous mode
+	 */
 	.config_work =
 		 ((INA231_CONFIG_MODE_SB_CONS << INA231_CONFIG_MODE_SHIFT) |
 		 (INA231_CONFIG_CT_4156US << INA231_CONFIG_VSHUNTCT_SHIFT) |
@@ -74,11 +107,12 @@ static struct ina231_config_data ina231_config = {
 #ifdef CONFIG_HUAWEI_POWER_DEBUG
 static ssize_t ina231_dbg_show(void *dev_data, char *buf, size_t size)
 {
-	struct ina231_device_info *dev_p = (struct ina231_device_info *)dev_data;
+	struct ina231_device_info *dev_p;
 
-	if (!dev_p) {
-		hwlog_err("error: i2c_get_clientdata return null!\n");
-		return scnprintf(buf, size, "i2c_get_clientdata return null!\n");
+	dev_p = (struct ina231_device_info *)dev_data;
+	if (dev_p == NULL) {
+		hwlog_err("dev_p is null\n");
+		return scnprintf(buf, size, "dev_p is null\n");
 	}
 
 	return scnprintf(buf, size,
@@ -88,16 +122,17 @@ static ssize_t ina231_dbg_show(void *dev_data, char *buf, size_t size)
 
 static ssize_t ina231_dbg_store(void *dev_data, const char *buf, size_t size)
 {
-	struct ina231_device_info *dev_p = (struct ina231_device_info *)dev_data;
-	unsigned int calibrate_content = 0;
+	struct ina231_device_info *dev_p;
+	u16 calibrate_content = 0;
 
-	if (!dev_p) {
-		hwlog_err("error: i2c_get_clientdata return null!\n");
+	dev_p = (struct ina231_device_info *)dev_data;
+	if (dev_p == NULL) {
+		hwlog_err("dev_p is null\n");
 		return -EINVAL;
 	}
 
-	if (sscanf(buf, "%d", &calibrate_content) != 1) {
-		hwlog_err("error: unable to parse input:%s\n", buf);
+	if (kstrtou16(buf, 0, &calibrate_content) < 0) {
+		hwlog_err("get kstrtou16 failed:%s\n", buf);
 		return -EINVAL;
 	}
 
@@ -108,7 +143,7 @@ static ssize_t ina231_dbg_store(void *dev_data, const char *buf, size_t size)
 
 	return size;
 }
-#endif
+#endif /* CONFIG_HUAWEI_POWER_DEBUG */
 
 static int ina231_get_shunt_voltage_mv(int *val)
 {
@@ -118,8 +153,8 @@ static int ina231_get_shunt_voltage_mv(int *val)
 	int lsb_value = 0;
 	int ret = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
@@ -128,7 +163,7 @@ static int ina231_get_shunt_voltage_mv(int *val)
 
 	ret = i2c_smbus_read_word_swapped(client, INA231_SHUNT_VOLTAGE_REG);
 	if (ret < 0) {
-		hwlog_err("error: shunt_voltage_reg read fail!\n");
+		hwlog_err("shunt_voltage_reg read fail\n");
 		return -1;
 	}
 
@@ -147,8 +182,8 @@ static int ina231_get_bus_voltage_mv(int *val)
 	int lsb_value = 0;
 	int ret = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
@@ -157,7 +192,7 @@ static int ina231_get_bus_voltage_mv(int *val)
 
 	ret = i2c_smbus_read_word_swapped(client, INA231_BUS_VOLTAGE_REG);
 	if (ret < 0) {
-		hwlog_err("error: bus_voltage_reg read fail!\n");
+		hwlog_err("bus_voltage_reg read fail\n");
 		return -1;
 	}
 
@@ -168,7 +203,7 @@ static int ina231_get_bus_voltage_mv(int *val)
 	return 0;
 }
 
-static int ina231_get_current_ma(int* val)
+static int ina231_get_current_ma(int *val)
 {
 	struct ina231_device_info *di = g_ina231_dev;
 	struct i2c_client *client = NULL;
@@ -176,17 +211,17 @@ static int ina231_get_current_ma(int* val)
 	int lsb_value = 0;
 	int ret = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
 	client = di->client;
 	lsb_value = di->config->current_lsb;
 
-	ret= i2c_smbus_read_word_swapped(client, INA231_CURRENT_REG);
+	ret = i2c_smbus_read_word_swapped(client, INA231_CURRENT_REG);
 	if (ret < 0) {
-		hwlog_err("error: current_reg read fail!\n");
+		hwlog_err("current_reg read fail\n");
 		return -1;
 	}
 
@@ -199,14 +234,12 @@ static int ina231_get_current_ma(int* val)
 
 static int ina231_get_vbat_mv(void)
 {
-	/* to be doing */
-	return 0;
+	return hw_battery_voltage(BAT_ID_MAX);
 }
 
-static int ina231_get_ibat_ma(int* val)
+static int ina231_get_ibat_ma(int *val)
 {
-	/* to be doing */
-	*val = 0;
+	*val =  -hisi_battery_current();
 
 	return 0;
 }
@@ -227,22 +260,25 @@ static int ina231_dump_register(void)
 	int bus_volt = 0;
 	int cur = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
 	client = di->client;
 
 	for (i = 0; i < INA231_MAX_REGS; ++i) {
-		hwlog_info("reg [%d]=0x%x\n", i, i2c_smbus_read_word_swapped(client, i));
+		hwlog_info("reg [%d]=0x%x\n",
+			i, i2c_smbus_read_word_swapped(client, i));
 	}
 
 	ina231_get_shunt_voltage_mv(&shunt_volt);
 	ina231_get_bus_voltage_mv(&bus_volt);
 	ina231_get_current_ma(&cur);
 
-	hwlog_info("shunt_voltage=%d, bus_voltage=%d, current=%d\n", shunt_volt, bus_volt, cur);
+	hwlog_info("shunt_voltage=%d, bus_voltage=%d, current=%d\n",
+		shunt_volt, bus_volt, cur);
+
 	return 0;
 }
 
@@ -252,26 +288,28 @@ static int ina231_device_reset(void)
 	struct i2c_client *client = NULL;
 	int ret = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
 	client = di->client;
 
 	/* communication check and reset device */
-	ret = i2c_smbus_write_word_swapped(client, INA231_CONFIG_REG, di->config->config_reset);
+	ret = i2c_smbus_write_word_swapped(client,
+		INA231_CONFIG_REG, di->config->config_reset);
 	if (ret < 0) {
-		hwlog_err("error: device_reset fail!\n");
+		hwlog_err("device_reset fail\n");
 		return -1;
 	}
 
 	mdelay(20);
 
 	/* device goto sleep */
-	i2c_smbus_write_word_swapped(client, INA231_CONFIG_REG, di->config->config_sleep_in);
+	i2c_smbus_write_word_swapped(client,
+		INA231_CONFIG_REG, di->config->config_sleep_in);
 	if (ret < 0) {
-		hwlog_err("error: device_reset fail!\n");
+		hwlog_err("device_reset fail\n");
 		return -1;
 	}
 
@@ -284,19 +322,23 @@ static int ina231_reg_init(void)
 	struct i2c_client *client = NULL;
 	int ret = 0;
 
-	if (NULL == di || NULL == di->client) {
-		hwlog_err("error: di or client is null!\n");
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
 		return -1;
 	}
 
 	client = di->client;
 
-	ret = i2c_smbus_write_word_swapped(client, INA231_CONFIG_REG, di->config->config_work);
-	ret |= i2c_smbus_write_word_swapped(client, INA231_CALIBRATION_REG, di->config->calibrate_content);
-	ret |= i2c_smbus_write_word_swapped(client, INA231_MASK_ENABLE_REG, di->config->mask_enable_content);
-	ret |= i2c_smbus_write_word_swapped(client, INA231_ALERT_LIMIT_REG, di->config->alert_limit_content);
+	ret = i2c_smbus_write_word_swapped(client,
+		INA231_CONFIG_REG, di->config->config_work);
+	ret |= i2c_smbus_write_word_swapped(client,
+		INA231_CALIBRATION_REG, di->config->calibrate_content);
+	ret |= i2c_smbus_write_word_swapped(client,
+		INA231_MASK_ENABLE_REG, di->config->mask_enable_content);
+	ret |= i2c_smbus_write_word_swapped(client,
+		INA231_ALERT_LIMIT_REG, di->config->alert_limit_content);
 	if (ret) {
-		hwlog_err("error: reg_init fail!\n");
+		hwlog_err("reg_init fail\n");
 		return -1;
 	}
 
@@ -314,19 +356,24 @@ static int ina231_batinfo_exit(void)
 
 static void ina231_interrupt_work(struct work_struct *work)
 {
-	struct ina231_device_info *di = container_of(work, struct ina231_device_info, irq_work);
+	struct ina231_device_info *di;
 	u16 mask_enable;
 	u16 alert_limit;
 
-	mask_enable = i2c_smbus_read_word_swapped(di->client, INA231_MASK_ENABLE_REG);
-	alert_limit = i2c_smbus_read_word_swapped(di->client, INA231_ALERT_LIMIT_REG);
+	di = container_of(work, struct ina231_device_info, irq_work);
 
-	if (INA231_ENABLE_INTERRUPT_NOTIFY == ina231_interrupt_notify_enable_flag) {
+	mask_enable = i2c_smbus_read_word_swapped(di->client,
+		INA231_MASK_ENABLE_REG);
+	alert_limit = i2c_smbus_read_word_swapped(di->client,
+		INA231_ALERT_LIMIT_REG);
+
+	if (ina231_int_notify_enable_flag == INA231_ENABLE_INT_NOTIFY)
 		ina231_dump_register();
-	}
 
-	hwlog_err("mask_enable_reg [%x]=0x%x\n", INA231_MASK_ENABLE_REG, mask_enable);
-	hwlog_err("alert_limit_reg [%x]=0x%x\n", INA231_ALERT_LIMIT_REG, alert_limit);
+	hwlog_info("mask_enable_reg [%x]=0x%x\n",
+		INA231_MASK_ENABLE_REG, mask_enable);
+	hwlog_info("alert_limit_reg [%x]=0x%x\n",
+		INA231_ALERT_LIMIT_REG, alert_limit);
 
 	/* clear irq */
 	enable_irq(di->irq_int);
@@ -336,20 +383,18 @@ static irqreturn_t ina231_interrupt(int irq, void *_di)
 {
 	struct ina231_device_info *di = _di;
 
-	if (NULL == di) {
-		hwlog_err("error: di is null!\n");
+	if (di == NULL) {
+		hwlog_err("di is null\n");
 		return -1;
 	}
 
-	if (0 == di->chip_already_init) {
-		hwlog_err("error: chip not init!\n");
-	}
+	if (di->chip_already_init == 0)
+		hwlog_err("chip not init\n");
 
-	if (INA231_INIT_FINISH == ina231_init_finish_flag) {
-		ina231_interrupt_notify_enable_flag = INA231_ENABLE_INTERRUPT_NOTIFY;
-	}
+	if (ina231_init_finish_flag == INA231_INIT_FINISH)
+		ina231_int_notify_enable_flag = INA231_ENABLE_INT_NOTIFY;
 
-	hwlog_info("ina231 interrupt happened(%d)!\n", ina231_init_finish_flag);
+	hwlog_info("ina231 int happened(%d)\n", ina231_init_finish_flag);
 
 	disable_irq_nosync(di->irq_int);
 	schedule_work(&di->irq_work);
@@ -368,7 +413,8 @@ static struct batinfo_ops ina231_batinfo_ops = {
 	.get_ls_temp = ina231_get_device_temp,
 };
 
-static int ina231_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int ina231_probe(struct i2c_client *client,
+	const struct i2c_device_id *id)
 {
 	int ret = 0;
 	struct ina231_device_info *di = NULL;
@@ -377,21 +423,21 @@ static int ina231_probe(struct i2c_client *client, const struct i2c_device_id *i
 
 	hwlog_info("probe begin\n");
 
-	if (NULL == client || NULL == id) {
-		hwlog_err("error: client is null or id is null!\n");
+	if (client == NULL || id == NULL) {
+		hwlog_err("client or id is null\n");
 		return -ENOMEM;
 	}
 
-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_WORD_DATA)) {
-		hwlog_err("error: i2c_check failed!\n");
+	if (!i2c_check_functionality(client->adapter,
+		I2C_FUNC_SMBUS_WORD_DATA)) {
+		hwlog_err("i2c_check failed\n");
 		return -ENODEV;
 	}
 
 	di = devm_kzalloc(&client->dev, sizeof(*di), GFP_KERNEL);
-	if (!di) {
-		hwlog_err("error: kzalloc failed!\n");
+	if (di == NULL)
 		return -ENOMEM;
-	}
+
 	g_ina231_dev = di;
 
 	di->config = &ina231_config;
@@ -404,86 +450,87 @@ static int ina231_probe(struct i2c_client *client, const struct i2c_device_id *i
 	ret = of_property_read_u32(np, "calibrate_content", &calibrate_content);
 	if (ret == 0) {
 		ina231_config.calibrate_content = (u16)calibrate_content;
-		hwlog_info("calibrate_content=0x%x (use dts value)\n", ina231_config.calibrate_content);
-	}
-	else {
-		hwlog_info("calibrate_content=0x%x (use default value)\n", ina231_config.calibrate_content);
+		hwlog_info("calibrate_content=0x%x (use dts value)\n",
+			ina231_config.calibrate_content);
+	} else {
+		hwlog_info("calibrate_content=0x%x (use default value)\n",
+			ina231_config.calibrate_content);
 	}
 
 	di->gpio_int = of_get_named_gpio(np, "gpio_int", 0);
 	hwlog_info("gpio_int=%d\n", di->gpio_int);
 
 	if (!gpio_is_valid(di->gpio_int)) {
-		hwlog_err("error: gpio(gpio_int) is not valid!\n");
+		hwlog_err("gpio(gpio_int) is not valid\n");
 		ret = -EINVAL;
 		goto ina231_fail_0;
 	}
 
 	ret = gpio_request(di->gpio_int, "ina231_gpio_int");
 	if (ret) {
-		hwlog_err("error: gpio(gpio_int) request fail!\n");
-		ret = -EINVAL;
+		hwlog_err("gpio(gpio_int) request fail\n");
 		goto ina231_fail_0;
 	}
 
 	ret = gpio_direction_input(di->gpio_int);
 	if (ret) {
-		hwlog_err("error: gpio(gpio_int) set input fail!\n");
+		hwlog_err("gpio(gpio_int) set input fail\n");
 		goto ina231_fail_1;
 	}
 
 	di->irq_int = gpio_to_irq(di->gpio_int);
 	if (di->irq_int < 0) {
-		hwlog_err("error: gpio(gpio_int) map to irq fail!\n");
+		hwlog_err("gpio(gpio_int) map to irq fail\n");
 		ret = -EINVAL;
 		goto ina231_fail_1;
 	}
 
-	ret = request_irq(di->irq_int, ina231_interrupt, IRQF_TRIGGER_FALLING, "ina231_int_irq", di);
+	ret = request_irq(di->irq_int, ina231_interrupt, IRQF_TRIGGER_FALLING,
+		"ina231_int_irq", di);
 	if (ret) {
-		hwlog_err("error: gpio(gpio_int) irq request fail!\n");
-		ret = -EINVAL;
+		hwlog_err("gpio(gpio_int) irq request fail\n");
 		di->irq_int = -1;
 		goto ina231_fail_1;
 	}
 
 	ret = batinfo_lvc_ops_register(&ina231_batinfo_ops);
 	if (ret) {
-		hwlog_err("error: ina231 batinfo ops register fail!\n");
+		hwlog_err("ina231 batinfo ops register fail\n");
 		goto ina231_fail_2;
 	}
 
 	ret = batinfo_sc_ops_register(&ina231_batinfo_ops);
 	if (ret) {
-		hwlog_err("error: ina231 batinfo ops register fail!\n");
+		hwlog_err("ina231 batinfo ops register fail\n");
 		goto ina231_fail_2;
 	}
 
 #ifdef CONFIG_WIRELESS_CHARGER
 	ret = wireless_sc_batinfo_ops_register(&ina231_batinfo_ops);
 	if (ret) {
-		hwlog_err("error: ina231 wireless_sc batinfo ops register fail!\n");
+		hwlog_err("ina231 wireless_sc batinfo ops register fail\n");
 		goto ina231_fail_2;
 	}
 #endif
 
 #ifdef CONFIG_HUAWEI_POWER_DEBUG
 	power_dbg_ops_register("ina231_para", i2c_get_clientdata(client),
-		(power_dgb_show)ina231_dbg_show, (power_dgb_store)ina231_dbg_store);
+		(power_dgb_show)ina231_dbg_show,
+		(power_dgb_store)ina231_dbg_store);
 #endif
 
 	di->chip_already_init = 1;
 
 	ret = ina231_device_reset();
 	if (ret) {
-		hwlog_err("error: ina231 reg reset fail!\n");
+		hwlog_err("ina231 reg reset fail\n");
 		di->chip_already_init = 0;
 		goto ina231_fail_2;
 	}
 
 	ret = ina231_reg_init();
 	if (ret) {
-		hwlog_err("error: ina231 reg init fail!\n");
+		hwlog_err("ina231 reg init fail\n");
 		di->chip_already_init = 0;
 		goto ina231_fail_2;
 	}
@@ -509,13 +556,11 @@ static int ina231_remove(struct i2c_client *client)
 
 	hwlog_info("remove begin\n");
 
-	if (di->irq_int) {
+	if (di->irq_int)
 		free_irq(di->irq_int, di);
-	}
 
-	if (di->gpio_int) {
+	if (di->gpio_int)
 		gpio_free(di->gpio_int);
-	}
 
 	hwlog_info("remove end\n");
 	return 0;
@@ -527,17 +572,16 @@ static void ina231_shutdown(struct i2c_client *client)
 }
 
 MODULE_DEVICE_TABLE(i2c, ina231);
-
-static struct of_device_id ina231_of_match[] = {
+static const struct of_device_id ina231_of_match[] = {
 	{
 		.compatible = "huawei,ina231_for_charge",
 		.data = NULL,
 	},
-	{ },
+	{},
 };
 
 static const struct i2c_device_id ina231_i2c_id[] = {
-	{"ina231_for_charge", 0}, { }
+	{"ina231_for_charge", 0}, {}
 };
 
 static struct i2c_driver ina231_driver = {
@@ -557,9 +601,8 @@ static int __init ina231_init(void)
 	int ret = 0;
 
 	ret = i2c_add_driver(&ina231_driver);
-	if (ret) {
-		hwlog_err("error: ina231 i2c_add_driver error!\n");
-	}
+	if (ret)
+		hwlog_err("i2c_add_driver error\n");
 
 	return ret;
 }
@@ -572,6 +615,6 @@ static void __exit ina231_exit(void)
 module_init(ina231_init);
 module_exit(ina231_exit);
 
+MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("ina231 module driver");
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("HW Inc");
+MODULE_AUTHOR("Huawei Technologies Co., Ltd.");

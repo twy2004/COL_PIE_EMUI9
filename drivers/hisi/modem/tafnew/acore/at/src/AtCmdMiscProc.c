@@ -71,6 +71,7 @@ extern TAF_MMA_USER_SET_PRIO_RAT_ENUM_U8 AT_GetSysCfgPrioRat(
 /*****************************************************************************
   2 全局变量定义
 *****************************************************************************/
+extern AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl;
 
 
 /*****************************************************************************
@@ -649,7 +650,7 @@ VOS_UINT32 AT_ProLCaCfgPara(
             return AT_ERROR;
         }
 
-        if ((AT_MTA_BAND_INFO_LEN / 2) != gastAtParaList[ulParaIndex].usParaLen)
+        if (sizeof(AT_MTA_BAND_INFO_STRU) != gastAtParaList[ulParaIndex].usParaLen)
         {
             AT_WARN_LOG("AT_ProLCaCfgPara: para len is error.");
             return AT_ERROR;
@@ -1149,20 +1150,40 @@ VOS_UINT32 AT_SetFineTimeReqPara(VOS_UINT8 ucIndex)
     {
         return AT_CME_INCORRECT_PARAMETERS;
     }
-
     /* 参数个数检查 */
-    if (1 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    if (0 == gastAtParaList[0].usParaLen)
+    if ((1 != gucAtParaIndex) && (2 != gucAtParaIndex))
     {
         return AT_CME_INCORRECT_PARAMETERS;
     }
 
     stFineTimeType.ucFineTimeType = (VOS_UINT8)gastAtParaList[0].ulParaValue;
 
+    if(gucAtParaIndex == 1)
+    {
+        stFineTimeType.usNum = AT_FINE_TIME_DEFAULT_NUM;//参数不下发默认取默认值
+        if (0 == gastAtParaList[0].usParaLen)
+        {
+            return AT_CME_INCORRECT_PARAMETERS;
+        }
+    }
+    else
+    {
+        /* 参数为空 */
+        if((0 == gastAtParaList[0].usParaLen) || (0 == gastAtParaList[1].usParaLen))
+        {
+            return AT_CME_INCORRECT_PARAMETERS;
+        }
+        stFineTimeType.usNum = (VOS_UINT16)gastAtParaList[1].ulParaValue;
+    }
+
+    if(stFineTimeType.ucFineTimeType == AT_MTA_FINETIME_PARA_0)
+    {
+        stFineTimeType.ucForceFlag = VOS_TRUE;
+    }
+    else
+    {
+        stFineTimeType.ucForceFlag = VOS_FALSE;
+    }
     /* 发送跨核消息到C核 */
     ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
                                    gastAtClientTab[ucIndex].opId,
@@ -1386,6 +1407,238 @@ VOS_UINT32 AT_RcvMtaLppFineTimeNtf(
 
     return VOS_OK;
 
+}
+
+
+VOS_UINT32 AT_CheckL2ComCfgPara(VOS_VOID)
+{
+    /* 参数个数最少2个，最多4个，其他范围不正确 */
+    if ((gucAtParaIndex < 2)
+     || (gucAtParaIndex > 4))
+    {
+        AT_WARN_LOG("AT_CheckL2ComCfgPara: At Para Num Error.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 第一个参数设置为空，返回错误 */
+    if (0 == gastAtParaList[0].usParaLen)
+    {
+        AT_WARN_LOG("AT_CheckL2ComCfgPara: First para length is 0");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    return AT_SUCCESS;
+}
+
+
+VOS_UINT32 AT_SetLL2ComCfgPara(VOS_UINT8 ucIndex)
+{
+    AT_MTA_L2_COM_CFG_SET_REQ_STRU      stSetLmacComCfg;
+    VOS_UINT32                          ulResult;
+
+    TAF_MEM_SET_S(&stSetLmacComCfg, sizeof(stSetLmacComCfg), 0x00, sizeof(AT_MTA_L2_COM_CFG_SET_REQ_STRU));
+
+    /* 不是设置命令返回错误 */
+    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
+    {
+        AT_WARN_LOG("AT_SetLL2ComCfgPara: At Cmd Opt Set Para Error.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数有效性检查 */
+    ulResult = AT_CheckL2ComCfgPara();
+
+    if (AT_SUCCESS != ulResult)
+    {
+        return ulResult;
+    }
+
+    /* 填充内容 */
+    stSetLmacComCfg.ulCmdType   = gastAtParaList[0].ulParaValue;
+    stSetLmacComCfg.ulPara1     = gastAtParaList[1].ulParaValue;
+    stSetLmacComCfg.ulPara2     = gastAtParaList[2].ulParaValue;
+    stSetLmacComCfg.ulPara3     = gastAtParaList[3].ulParaValue;
+
+    ulResult = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
+                                      gastAtClientTab[ucIndex].opId,
+                                      ID_AT_MTA_LL2_COM_CFG_SET_REQ,
+                                      (VOS_VOID*)&stSetLmacComCfg,
+                                      sizeof(AT_MTA_L2_COM_CFG_SET_REQ_STRU),
+                                      I0_UEPS_PID_MTA);
+
+    if (TAF_SUCCESS == ulResult)
+    {
+        gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_LL2COMCFG_SET;
+        return AT_WAIT_ASYNC_RETURN;
+    }
+
+    AT_WARN_LOG("AT_SetLL2ComCfgPara: AT_FillAndSndAppReqMsg Failed!");
+    return AT_ERROR;
+}
+
+
+VOS_UINT32 AT_SetLL2ComQryPara(VOS_UINT8 ucIndex)
+{
+    AT_MTA_L2_COM_CFG_QRY_REQ_STRU      stL2ComQryReq;
+    VOS_UINT32                          ulResult;
+
+    /* 局部变量初始化 */
+    TAF_MEM_SET_S(&stL2ComQryReq, sizeof(stL2ComQryReq), 0x00, sizeof(AT_MTA_L2_COM_CFG_QRY_REQ_STRU));
+
+    /* 参数个数和合法性检查,不合法直接返回失败 */
+    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
+    {
+        AT_WARN_LOG("AT_SetLL2ComQryPara: At Cmd Opt Set Para Error.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数个数应为1个，否则返回AT_CME_INCORRECT_PARAMETERS */
+    if (1 != gucAtParaIndex)
+    {
+        AT_WARN_LOG("AT_SetLL2ComQryPara: At Para Num Error.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 第一个参数长度不能为0，否则返回AT_CME_INCORRECT_PARAMETERS */
+    if (0 == gastAtParaList[0].usParaLen)
+    {
+        AT_WARN_LOG("AT_SetLL2ComQryPara: FIrst para length is 0.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 填充结构体 */
+    stL2ComQryReq.ulCmdType = gastAtParaList[0].ulParaValue;
+
+    ulResult = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
+                                      gastAtClientTab[ucIndex].opId,
+                                      ID_AT_MTA_LL2_COM_CFG_QRY_REQ,
+                                      (VOS_VOID*)&stL2ComQryReq,
+                                      sizeof(AT_MTA_L2_COM_CFG_QRY_REQ_STRU),
+                                      I0_UEPS_PID_MTA);
+
+    if (TAF_SUCCESS == ulResult)
+    {
+        gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_LL2COMCFG_QRY;
+        return AT_WAIT_ASYNC_RETURN;
+    }
+
+    AT_WARN_LOG("AT_SetLL2ComQryPara: AT_FillAndSndAppReqMsg Failed!");
+    return AT_ERROR;
+}
+
+
+VOS_UINT32 AT_RcvMtaLL2ComCfgSetCnf(
+    VOS_VOID                           *pMsg
+)
+{
+    AT_MTA_MSG_STRU                    *pRcvMsg     = VOS_NULL_PTR;
+    MTA_AT_L2_COM_CFG_SET_CNF_STRU     *pstMtaCnf   = VOS_NULL_PTR;
+    VOS_UINT32                          ulResult;
+    VOS_UINT8                           ucIndex;
+
+    /* 初始化 */
+    pRcvMsg             = (AT_MTA_MSG_STRU *)pMsg;
+    pstMtaCnf           = (MTA_AT_L2_COM_CFG_SET_CNF_STRU *)pRcvMsg->aucContent;
+    ulResult            = AT_OK;
+    ucIndex             = 0;
+
+    /* 通过clientid获取index */
+    if (AT_FAILURE == At_ClientIdToUserId(pRcvMsg->stAppCtrl.usClientId, &ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgSetCnf : WARNING:AT INDEX NOT FOUND!");
+        return VOS_ERR;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgSetCnf : AT_BROADCAST_INDEX.");
+        return VOS_ERR;
+    }
+
+    /* 当前AT是否在等待该命令返回 */
+    if (AT_CMD_LL2COMCFG_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgSetCnf : Current Option is not AT_CMD_LL2COMCFG_SET.");
+        return VOS_ERR;
+    }
+
+    /* 复位AT状态 */
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+
+    gstAtSendData.usBufLen = 0;
+
+    ulResult = AT_ConvertMtaResult(pstMtaCnf->enResult);
+
+    /* 输出结果 */
+    At_FormatResultData(ucIndex, ulResult);
+
+    return VOS_OK;
+}
+
+
+VOS_UINT32 AT_RcvMtaLL2ComCfgQryCnf(
+    VOS_VOID                           *pMsg
+)
+{
+    AT_MTA_MSG_STRU                    *pstRcvMsg           = VOS_NULL_PTR;
+    MTA_AT_L2_COM_CFG_QRY_CNF_STRU     *pstLl2ComQryCnf     = VOS_NULL_PTR;
+    VOS_UINT32                          ulResult;
+    VOS_UINT8                           ucIndex;
+
+    /* 初始化 */
+    pstRcvMsg           = (AT_MTA_MSG_STRU *)pMsg;
+    pstLl2ComQryCnf     = (MTA_AT_L2_COM_CFG_QRY_CNF_STRU *)pstRcvMsg->aucContent;
+    ucIndex             = 0;
+    ulResult            = AT_ERROR;
+
+    /* 通过clientid获取index */
+    if (AT_FAILURE == At_ClientIdToUserId(pstRcvMsg->stAppCtrl.usClientId, &ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgQryCnf : WARNING:AT INDEX NOT FOUND!");
+        return VOS_ERR;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgQryCnf : AT_BROADCAST_INDEX.");
+        return VOS_ERR;
+    }
+
+    /* 当前AT是否在等待^LL2COMQRY命令返回 */
+    if (AT_CMD_LL2COMCFG_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt)
+    {
+        AT_WARN_LOG("AT_RcvMtaLL2ComCfgQryCnf : Current Option is not AT_CMD_LL2COMCFG_QRY.");
+        return VOS_ERR;
+    }
+
+    /* 复位AT状态 */
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+
+    gstAtSendData.usBufLen = 0;
+
+    if (MTA_AT_RESULT_NO_ERROR == pstLl2ComQryCnf->enResult)
+    {
+        /* ^LL2COMQRY:<cmd_type>,[<para1>,<para2>,<para3>]  */
+        gstAtSendData.usBufLen += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                         (VOS_CHAR *)pgucAtSndCodeAddr,
+                                                         (VOS_CHAR *)pgucAtSndCodeAddr + gstAtSendData.usBufLen,
+                                                         "%s: %u,%u,%u,%u",
+                                                         g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                         pstLl2ComQryCnf->ulCmdType,
+                                                         pstLl2ComQryCnf->ulPara1,
+                                                         pstLl2ComQryCnf->ulPara2,
+                                                         pstLl2ComQryCnf->ulPara3);
+        ulResult = AT_OK;
+    }
+    else
+    {
+        ulResult = AT_ConvertMtaResult(pstLl2ComQryCnf->enResult);
+    }
+
+    /* 输出结果 */
+    At_FormatResultData(ucIndex, ulResult);
+
+    return VOS_OK;
 }
 
 
@@ -1786,7 +2039,8 @@ VOS_UINT32  AT_ProcSimlockWriteExData(
         }
 
         TAF_MEM_CPY_S(pTempData, usTotalLen, pstSimlockWriteExCtx->pucData, pstSimlockWriteExCtx->usSimlockDataLen);
-        TAF_MEM_CPY_S((pTempData + pstSimlockWriteExCtx->usSimlockDataLen), usTotalLen, pucSimLockData, usParaLen);
+        TAF_MEM_CPY_S((pTempData + pstSimlockWriteExCtx->usSimlockDataLen), (usTotalLen - pstSimlockWriteExCtx->usSimlockDataLen),
+                      pucSimLockData, usParaLen);
         /*lint -save -e830*/
         PS_MEM_FREE(WUEPS_PID_AT, pstSimlockWriteExCtx->pucData);
         /*lint -restore */
@@ -2008,6 +2262,11 @@ VOS_UINT32 AT_SetSimlockDataWriteExPara(
             AT_StopSimlockDataWriteTimer(ucIndex);
         }
 
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    if (pstSimlockWriteExCtx->ucTotalNum > AT_SIM_LOCK_DATA_WRITEEX_MAX_TOTAL)
+    {
         return AT_CME_INCORRECT_PARAMETERS;
     }
 
@@ -2775,11 +3034,10 @@ VOS_UINT32 AT_QrySocidPara(VOS_UINT8 ucIndex)
 
 
     /* 调用底软提供的借口查询 */
-
     iResult = mdrv_efuse_ioctl(MDRV_EFUSE_IOCTL_CMD_GET_SOCID,
                                0,
                                aucSocid,
-                               AT_DRV_SOCID_LEN);
+                               AT_DRV_SOCID_LEN/4);
 
     /* 处理异常查询结果 */
     if (AT_EFUSE_OK != iResult)
@@ -2808,66 +3066,6 @@ VOS_UINT32 AT_QrySocidPara(VOS_UINT8 ucIndex)
     return AT_OK;
 }
 
-
-
-VOS_UINT32 AT_SetPdmCtrlPara(VOS_UINT8 ucIndex)
-{
-    AT_HPA_PDM_CTRL_REQ_STRU                *pstMsg;
-
-    /* 参数检查 */
-    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    /* 参数过多 */
-    if ( 4 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    if ( (0 == gastAtParaList[0].usParaLen)
-      || (0 == gastAtParaList[1].usParaLen)
-      || (0 == gastAtParaList[2].usParaLen)
-      || (0 == gastAtParaList[3].usParaLen) )
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-    /*lint -save -e516 */
-    pstMsg   = (AT_HPA_PDM_CTRL_REQ_STRU *)AT_ALLOC_MSG_WITH_HDR( sizeof(AT_HPA_PDM_CTRL_REQ_STRU) );
-    /*lint -restore */
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        AT_WARN_LOG("AT_SetPdmCtrlPara: alloc msg fail!");
-        return AT_ERROR;
-    }
-
-    /* 填写消息头 */
-    AT_CFG_MSG_HDR( pstMsg, DSP_PID_WPHY, ID_AT_HPA_PDM_CTRL_REQ );
-
-    pstMsg->usMsgID                             = ID_AT_HPA_PDM_CTRL_REQ;
-    pstMsg->usRsv                               = 0;
-    pstMsg->usPdmRegValue                       = ( VOS_UINT16 )gastAtParaList[0].ulParaValue;
-    pstMsg->usPaVbias                           = ( VOS_UINT16 )gastAtParaList[1].ulParaValue;
-    pstMsg->usPaVbias2                          = ( VOS_UINT16 )gastAtParaList[2].ulParaValue;
-    pstMsg->usPaVbias3                          = ( VOS_UINT16 )gastAtParaList[3].ulParaValue;
-
-    if (VOS_OK != PS_SEND_MSG(WUEPS_PID_AT, pstMsg))
-    {
-        AT_WARN_LOG("AT_SetPdmCtrlPara: Send msg fail!");
-        return AT_ERROR;
-    }
-
-    gastAtClientTab[ucIndex].CmdCurrentOpt      = AT_CMD_PDM_CTRL;                /*设置当前操作模式 */
-    g_stAtDevCmdCtrl.ucIndex                    = ucIndex;
-
-    return AT_WAIT_ASYNC_RETURN;                                                /* 等待异步事件返回 */
-}
 
 
 VOS_UINT32 AT_SetCtzuPara(VOS_UINT8 ucIndex)
@@ -4427,7 +4625,6 @@ VOS_UINT32 AT_SetPhyComCfgPara(VOS_UINT8 ucIndex)
 
     /* 发送成功，设置当前操作模式 */
     gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_PHY_COM_CFG_SET;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
 
     /* 等待异步处理时间返回 */
     return AT_WAIT_ASYNC_RETURN;
@@ -4865,7 +5062,6 @@ VOS_UINT32 AT_SetMipiWrParaEx(VOS_UINT8 ucIndex)
 
     /* 发送成功，设置当前操作模式 */
     gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_MIPI_WREX;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
 
     /* 等待异步处理时间返回 */
     return AT_WAIT_ASYNC_RETURN;
@@ -5006,7 +5202,6 @@ VOS_UINT32 AT_SetMipiRdParaEx(VOS_UINT8 ucIndex)
 
     /* 发送成功，设置当前操作模式 */
     gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_MIPI_RDEX;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
 
     /* 等待异步处理时间返回 */
     return AT_WAIT_ASYNC_RETURN;
@@ -5524,6 +5719,7 @@ VOS_UINT32 AT_SetEccCfgPara(VOS_UINT8 ucIndex)
 
     return AT_ERROR;
 }
+
 
 
 VOS_UINT32 AT_ProcCclkTimeParaYMDAuxMode(
@@ -7751,5 +7947,152 @@ VOS_UINT32 AT_RcvMmaPsSceneQryCnf(VOS_VOID *pstMsg)
 
     return VOS_OK;
 }
+
+
+VOS_UINT32 AT_SetForceSyncPara(VOS_UINT8 ucIndex)
+{
+    AT_MTA_SET_FORCESYNC_REQ_STRU       stAtCmd;
+    VOS_UINT32                          ulRet;
+
+    TAF_MEM_SET_S(&stAtCmd, sizeof(stAtCmd), 0x00, sizeof(AT_MTA_SET_FORCESYNC_REQ_STRU));
+
+    /* 该命令需在非信令模式下使用 */
+    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
+    {
+        return AT_ERROR;
+    }
+
+     /* 参数检查 */
+    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数个数不等于1个，返回AT_CME_INCORRECT_PARAMETERS */
+    if ((1 != gucAtParaIndex)
+        || (0 == gastAtParaList[0].usParaLen))
+    {
+        AT_WARN_LOG("AT_SetForceSyncPara: At Para Num Error.");
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    stAtCmd.usNum = (VOS_UINT16)gastAtParaList[0].ulParaValue;
+
+    ulRet = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
+                                  0,
+                                  ID_AT_MTA_FORCESYNC_SET_REQ,
+                                  &stAtCmd,
+                                  sizeof(AT_MTA_SET_FORCESYNC_REQ_STRU),
+                                  I0_UEPS_PID_MTA);
+
+    if (AT_SUCCESS != ulRet)
+    {
+        AT_WARN_LOG("AT_SetForceSyncPara: AT_FillAndSndAppReqMsg Failed!");
+        return AT_ERROR;
+    }
+
+    gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_FORCESYNC_SET;
+
+    return AT_WAIT_ASYNC_RETURN;
+
+}
+
+
+VOS_UINT32 AT_RcvMtaForceSyncSetCnf (VOS_VOID *pMsg)
+{
+    AT_MTA_MSG_STRU                         *pRcvMsg;
+    MTA_AT_SET_FORCESYNC_CNF_STRU           *pstSetForceSyncCnf;
+    VOS_UINT8                                ucIndex;
+    VOS_UINT32                               ulResult;
+
+    ucIndex                 = 0;
+    ulResult                = 0;
+    pRcvMsg                 = (AT_MTA_MSG_STRU *)pMsg;
+    pstSetForceSyncCnf      = (MTA_AT_SET_FORCESYNC_CNF_STRU *)(pRcvMsg->aucContent);
+
+     /* 通过clientid获取index */
+    if (AT_FAILURE == At_ClientIdToUserId(pRcvMsg->stAppCtrl.usClientId, &ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaForceSyncSetCnf:WARNING:AT INDEX NOT FOUND!");
+        return VOS_ERR;
+    }
+
+    /* 判断是否为广播 */
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaForceSyncSetCnf : AT_BROADCAST_INDEX.");
+        return VOS_ERR;
+    }
+
+    /* 当前AT是否在等待该命令返回 */
+    if (AT_CMD_FORCESYNC_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
+    {
+        return VOS_ERR;
+    }
+
+    /* 复位AT状态 */
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+
+    if (MTA_AT_RESULT_NO_ERROR == pstSetForceSyncCnf->ulResult)
+    {
+        ulResult = AT_OK;
+    }
+    else
+    {
+        ulResult = AT_ERROR;
+    }
+    gstAtSendData.usBufLen = 0;
+
+    /* 发送命令结果 */
+    At_FormatResultData(ucIndex, ulResult);
+
+    return VOS_OK;
+}
+
+
+
+VOS_UINT32 At_SetGnssNtyPara(VOS_UINT8 ucIndex)
+{
+    AT_MTA_GNSSNTY_STRU                 stAtMtaGnssnty;
+    VOS_UINT32                          ulRst;
+
+    /* 参数检查 */
+    if ( AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType )
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数过多 */
+    if(1 != gucAtParaIndex)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数长度检查 */
+    if((0 == gastAtParaList[0].usParaLen))
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+    /*Hi110X芯片在GNSS场景下给MODEM发AT^GNSSNTY=1,退出GNSSNTY场景后发AT^GNSSNTY=0*/
+    stAtMtaGnssnty.ulValue = gastAtParaList[0].ulParaValue;
+
+
+    /* 发送消息 ID_AT_MTA_GNSS_NTY 给MTA处理，该消息带参数 stAtMtaGnssnty */
+    ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
+                                   0,
+                                   ID_AT_MTA_GNSS_NTY,
+                                   (VOS_VOID *)&stAtMtaGnssnty,
+                                   (VOS_SIZE_T)sizeof(stAtMtaGnssnty),
+                                   I0_UEPS_PID_MTA);
+
+    if (TAF_SUCCESS != ulRst)
+    {
+        AT_WARN_LOG("At_SetGnssNtyPara: send ReqMsg fail");
+        return AT_ERROR;
+    }
+
+    return AT_OK;
+}
+
 
 

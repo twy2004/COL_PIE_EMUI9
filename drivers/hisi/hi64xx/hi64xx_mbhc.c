@@ -41,7 +41,8 @@
 /*lint -e750 -e838 -e732 -e655 -e64*/
 #define HI64xx_BTN_MASK	(SND_JACK_BTN_0 | SND_JACK_BTN_1 | SND_JACK_BTN_2 | SND_JACK_BTN_3)
 
-#define HI64xx_HANDLE_DELAY_800_MS	(800)
+#define HI64xx_HANDLE_DELAY_600_MS	(600)
+#define HI64xx_HANDLE_DELAY_300_MS	(300)
 #define HI64xx_HANDLE_DELAY_30_MS	(30)
 #define HI64XX_CLR_IRQ_COMHL_ECO_STATUS  (0x3F)
 #define EXTERN_CABLE_MBHC_VREF_DAFULT_VALUE  (0x9E)
@@ -165,6 +166,7 @@ static void hi64xx_hs_micbias_enable(struct hi64xx_mbhc_priv *priv, bool enable)
 			&priv->micbias_delay_work,
 			msecs_to_jiffies(3000));
 		if (ret != 0) {
+			pr_err("%s: micbias enable error\n", __FUNCTION__);
 			hi64xx_resmgr_release_micbias(priv->resmgr);
 		}
 	}
@@ -544,7 +546,7 @@ void hi64xx_btn_down(struct hi64xx_mbhc_priv *priv)
 			pr_info("key voice_assistant , saradc value is %d\n", voltage_value);
 			goto VOICE_ASSISTANT_KEY;
 		} else {
-			msleep(30);
+			msleep(HI64xx_HANDLE_DELAY_600_MS);
 			hi64xx_plug_in_detect(priv);
 			goto end;
 		}
@@ -573,9 +575,9 @@ static irqreturn_t hi64xx_plugin_handler(int irq, void *data)
 	struct hi64xx_mbhc_priv *priv =
 			(struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
-	msleep(800);
+	msleep(HI64xx_HANDLE_DELAY_300_MS);
 
 	hi64xx_plug_in_detect(priv);
 
@@ -584,7 +586,7 @@ static irqreturn_t hi64xx_plugin_handler(int irq, void *data)
 
 void hi64xx_plug_out_detect(struct hi64xx_mbhc_priv *priv)
 {
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!priv->hs_cfg.mbhc_func->hs_mbhc_off) {
 		pr_err("%s : mbhc off func is not exit\n", __FUNCTION__);
@@ -632,7 +634,7 @@ static irqreturn_t hi64xx_plugout_handler(int irq, void *data)
 
 	priv = (struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	hi64xx_plug_out_detect(priv);
 
@@ -644,7 +646,7 @@ static irqreturn_t hi64xx_btnup_handler(int irq, void *data)
 	struct hi64xx_mbhc_priv *priv =
 			(struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!check_headset_pluged_in(priv))
 		return IRQ_HANDLED;
@@ -658,10 +660,12 @@ static irqreturn_t hi64xx_btnup_handler(int irq, void *data)
 	if (HISI_JACK_INVERT == priv->hs_status) {
 		pr_info("%s: further detect\n", __FUNCTION__);
 		/* further detect */
+		msleep(HI64xx_HANDLE_DELAY_600_MS);
 		hi64xx_plug_in_detect(priv);
 	} else if (0 == priv->btn_report) {
 		if (HISI_JACK_HEADSET != priv->hs_status) {
 			/* further detect */
+			msleep(HI64xx_HANDLE_DELAY_600_MS);
 			hi64xx_plug_in_detect(priv);
 		}
 		return IRQ_HANDLED;
@@ -681,7 +685,7 @@ static irqreturn_t hi64xx_btndown_handler(int irq, void *data)
 	struct hi64xx_mbhc_priv *priv =
 			(struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	pr_err("%s: btn down \n", __FUNCTION__);
 
@@ -697,18 +701,16 @@ static irqreturn_t hi64xx_btnup_comp2_handler(int irq, void *data)
 			(struct hi64xx_mbhc_priv *)data;
 	struct snd_soc_codec *codec = NULL;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	codec = priv->codec;
-	BUG_ON(NULL == codec);
+	WARN_ON(NULL == codec);
 
 	pr_info("%s: btn up comp2 \n", __FUNCTION__);
 
 	if(priv->hs_status == HISI_JACK_HEADSET) {
-		msleep(HI64xx_HANDLE_DELAY_30_MS);
 		hi64xx_plug_in_detect(priv);
 	} else if(priv->mbhc_config.hs_detect_extern_cable) {
-		msleep(HI64xx_HANDLE_DELAY_800_MS);
 		hi64xx_irq_mask_btn_irqs(&priv->mbhc_pub);
 		hi64xx_plug_in_detect(priv);
 		hi64xx_irq_unmask_btn_irqs(&priv->mbhc_pub);
@@ -729,18 +731,16 @@ static irqreturn_t hi64xx_btndown_comp2_handler(int irq, void *data)
 			(struct hi64xx_mbhc_priv *)data;
 	struct snd_soc_codec *codec = NULL;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	codec = priv->codec;
-	BUG_ON(NULL == codec);
+	WARN_ON(NULL == codec);
 
 	pr_info("%s: btn down comp2 \n", __FUNCTION__);
 
 	if(priv->hs_status == HISI_JACK_INVERT) {
-		msleep(HI64xx_HANDLE_DELAY_30_MS);
 		hi64xx_plug_in_detect(priv);
 	} else if(priv->mbhc_config.hs_detect_extern_cable) {
-		msleep(HI64xx_HANDLE_DELAY_800_MS);
 		hi64xx_irq_mask_btn_irqs(&priv->mbhc_pub);
 		hi64xx_plug_in_detect(priv);
 		hi64xx_irq_unmask_btn_irqs(&priv->mbhc_pub);
@@ -761,7 +761,7 @@ static irqreturn_t hi64xx_btnup_eco_handler(int irq, void *data)
 	struct hi64xx_mbhc_priv *priv =
 			(struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!check_headset_pluged_in(priv))
 		return IRQ_HANDLED;
@@ -777,10 +777,12 @@ static irqreturn_t hi64xx_btnup_eco_handler(int irq, void *data)
 	if (HISI_JACK_INVERT == priv->hs_status) {
 		pr_err("%s: further detect\n", __FUNCTION__);
 		/* further detect */
+		msleep(HI64xx_HANDLE_DELAY_600_MS);
 		hi64xx_plug_in_detect(priv);
 	} else if (0 == priv->btn_report){
 		if (HISI_JACK_HEADSET != priv->hs_status) {
 			/* further detect */
+			msleep(HI64xx_HANDLE_DELAY_600_MS);
 			hi64xx_plug_in_detect(priv);
 		}
 		return IRQ_HANDLED;
@@ -800,7 +802,7 @@ static irqreturn_t hi64xx_btndown_eco_handler(int irq, void *data)
 	struct hi64xx_mbhc_priv *priv =
 			(struct hi64xx_mbhc_priv *)data;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	pr_err("%s: btn down \n", __FUNCTION__);
 
@@ -824,7 +826,7 @@ void hi64xx_check_axi_bus_reg_value(struct snd_soc_codec *codec, unsigned int re
 
 void hi64xx_check_bus_status(struct hi64xx_mbhc_priv *priv)
 {
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	/* check the write register's status */
 	hi64xx_check_axi_bus_reg_value(priv->codec, HI64XX_REG_WRITE_DSP_STATUS,HI64xx_WRITE_DSP_STATUS_BIT_MUSK, 0);

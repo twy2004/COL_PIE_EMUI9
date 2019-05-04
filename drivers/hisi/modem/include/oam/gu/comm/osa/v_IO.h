@@ -46,6 +46,7 @@
  *
  */
 
+
 /*****************************************************************************/
 /*                                                                           */
 /*                Copyright 1999 - 2003, Huawei Tech. Co., Ltd.              */
@@ -411,21 +412,8 @@ extern VOS_INT logMsg(VOS_CHAR * fmt, VOS_INT arg1, VOS_INT arg2,
 
 #endif
 
-#if ((VOS_DEBUG == VOS_DOPRA_VER)||(VOS_DEBUG == VOS_DOPRA_VER))
-#define VOS_ASSERT(exp) \
-    if(!(exp))\
-    {\
-        vos_assert(VOS_NULL, __LINE__);\
-        return; }
-#define VOS_ASSERT_RTN(exp, ret) \
-    if(!(exp))\
-    {\
-        vos_assert(VOS_NULL, __LINE__);\
-        return ret; }
-#else
 #define VOS_ASSERT( exp ) ( (VOS_VOID)0 )
 #define VOS_ASSERT_RTN(exp, ret) ( (VOS_VOID)0 )
-#endif
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -133,7 +133,7 @@
 			"sensor_iovdd",
 			"sensor_mclk", "sensor_mclk",
 			"sensor_rst", "sensor_rst2";
-		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1100000 1800000 0 0 0 0>;
+		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1145000 1800000 0 0 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 1 0xFF 0xFF>;
 		huawei,cam-power-seq-delay = <1 0 0 0 0 0 1 0 0 0 0>;
 
@@ -145,7 +145,7 @@
 			"sensor_avdd2_en", "sensor_avdd1_en",
 			"sensor_mipi_sw",
 			"sensor_vcm_avdd";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1100000 1100000 0 0 0 2950000>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1145000 1100000 0 0 0 2950000>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 1 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 0 0 0 1 0 0 0 0 1 0>;
 
@@ -193,7 +193,7 @@
 			"sensor_iovdd",
 			"sensor_mclk", "sensor_mclk",
 			"sensor_rst", "sensor_rst2";
-		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1100000 1800000 0 0 0 0>;
+		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1145000 1800000 0 0 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 1 0xFF 0xFF>;
 		huawei,cam-power-seq-delay = <1 0 0 0 0 0 1 0 0 0 0>;
 
@@ -205,7 +205,7 @@
 			"sensor_avdd2_en", "sensor_avdd1_en",
 			"sensor_mipi_sw",
 			"sensor_vcm_avdd";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1100000 1100000 0 0 0 2950000>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1145000 1100000 0 0 0 2950000>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 1 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 0 0 0 1 0 0 0 0 1 0>;
 

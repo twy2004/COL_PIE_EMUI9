@@ -21,6 +21,9 @@
 #define MAX_CAP_PROX_CALIBRATE_DATA_LENGTH     16
 #define MAX_MAG_AKM_CALIBRATE_DATA_LENGTH    28
 #define MAX_TOF_CALIBRATE_DATA_LENGTH     47
+#define MAX_PS_CALIBRATE_DATA_LENGTH        24
+#define MAX_ALS_CALIBRATE_DATA_LENGTH        24
+
 //data flag consts
 #define DATA_FLAG_FLUSH_OFFSET (0)
 #define DATA_FLAG_VALID_TIMESTAMP_OFFSET (1)
@@ -28,8 +31,13 @@
 #define DATA_FLAG_VALID_TIMESTAMP (1<<DATA_FLAG_VALID_TIMESTAMP_OFFSET)
 #define ACC_CALIBRATE_DATA_LENGTH  (15)
 #define GYRO_CALIBRATE_DATA_LENGTH  (18)
-#define PS_CALIBRATE_DATA_LENGTH  (3)
+#define PS_CALIBRATE_DATA_LENGTH  (6)
 #define ALS_CALIBRATE_DATA_LENGTH  (6)
+#define ACC1_CALIBRATE_DATA_LENGTH  (60)
+#define ACC1_OFFSET_DATA_LENGTH  (15)
+#define GYRO1_CALIBRATE_DATA_LENGTH  (18)
+#define MAX_GYRO1_CALIBRATE_DATA_LENGTH   (72)
+
 
 /*tag----------------------------------------------------*/
 typedef enum {
@@ -68,8 +76,19 @@ typedef enum {
     TAG_ACCEL_UNCALIBRATED,/*0x1e = 30*/
     TAG_TOF,
     TAG_DROP,
+	TAG_POSTURE,
     TAG_EXT_HALL,
-    TAG_SENSOR_END,//sensor end should < 45
+    TAG_ACC1 = 35,/*0x23 = 35*/
+    TAG_GYRO1,
+    TAG_ACC2,
+    TAG_GYRO2,
+    TAG_MAG1,
+    TAG_ALS1,/*0x28 = 40*/
+    TAG_PS1,
+    TAG_PRESSURE1,
+    TAG_CAP_PROX1,
+    TAG_AUX_END,
+    TAG_SENSOR_END = TAG_AUX_END,//sensor end should < 45
     TAG_HW_PRIVATE_APP_START = 45,/*0x2d=45*/
     TAG_AR = TAG_HW_PRIVATE_APP_START,
     TAG_MOTION,
@@ -91,18 +110,18 @@ typedef enum {
     TAG_I2C,
     TAG_UART,
     TAG_RGBLIGHT,
-    TAG_BUTTONLIGHT,/*0x86=135*/
-    TAG_BACKLIGHT,
+    TAG_BUTTONLIGHT,
+    TAG_BACKLIGHT,/*0x86=135*/
     TAG_VIBRATOR,
     TAG_SYS,
     TAG_LOG,
-    TAG_LOG_BUFF,/*0x8b=140*/
-    TAG_RAMDUMP,
+    TAG_LOG_BUFF,
+    TAG_RAMDUMP,/*0x8b=140*/
     TAG_FAULT,
     TAG_SHAREMEM,
     TAG_SHELL_DBG,
-    TAG_PD,/*0x90=145*/
-    TAG_I3C,
+    TAG_PD,
+    TAG_I3C,/*0x90=145*/
     TAG_DATA_PLAYBACK,
     TAG_CHRE,
     TAG_SENSOR_CALI,
@@ -110,6 +129,7 @@ typedef enum {
     TAG_BIG_DATA,
     TAG_SWING,
     TAG_SWING_DBG,
+    TAG_KB,
     TAG_END = 0xFF
 }obj_tag_t;
 
@@ -202,6 +222,22 @@ typedef enum {
 	CMD_BIG_DATA_SEND_TO_AP,   //0x51
 	CMD_BIG_DATA_SEND_TO_AP_RESP,  //0x52
 
+	/* tag sys for hall status*/
+	CMD_SYS_HALL_STATUS_REQ = 0x53,//0x53
+	CMD_SYS_HALL_STATUS_RESP = 0x54,//0x54
+
+	/* tag modem for phonecall status*/
+	CMD_MODEM_PHONECALL_INFO_REQ = 0x55,//0x55
+	CMD_MODEM_PHONECALL_INFO_RESP = 0x56,//0x56
+
+	/*I3C*/
+	CMD_I3C_TRANS_REQ = 0x57,
+	CMD_I3C_TRANS_RESP,
+
+	/* tag als for ud*/
+	CMD_ALS_RUN_STOP_PARA_REQ = 0x59,
+	CMD_ALS_RUN_STOP_PARA_REsp = 0x5a,
+
 	/*log buff*/
 	CMD_LOG_SER_REQ = 0xf1,
 	CMD_LOG_USEBUF_REQ,
@@ -231,6 +267,13 @@ typedef enum{
 	SUB_CMD_SET_DATA_TYPE_REQ,//12
 	SUB_CMD_SET_DATA_MODE = 0x0d,//13
 	SUB_CMD_SET_TP_COORDINATE,//14
+	SUB_CMD_SET_WRITE_NV_ATTER_SALE = SUB_CMD_SET_TP_COORDINATE,
+
+	/*als*/
+	SUB_CMD_SET_ALS_PA = 0x20,
+	SUB_CMD_UPDATE_BL_LEVEL,
+	SUB_CMD_UPDATE_RGB_DATA,
+	SUB_CMD_GET_FACTORY_PARA,
 
 	/*motion*/
 	SUB_CMD_MOTION_ATTR_ENABLE_REQ = 0x20,
@@ -385,6 +428,21 @@ typedef enum{
 	SUB_CMD_SWING_DBG_MODEL,
 	SUB_CMD_SWING_DBG_LIST_TASKS,
 	SUB_CMD_SWING_DBG_RUN_BLAS,
+	SUB_CMD_SWING_DBG_PROFILE_CONFIG,
+	SUB_CMD_SWING_DBG_PROFILE_START,
+	SUB_CMD_SWING_DBG_PROFILE_STOP,
+	/* KB */
+	SUB_CMD_KB_OPEN_REQ = 0x20,
+	SUB_CMD_KB_OPEN_RESP,
+	SUB_CMD_KB_CLOSE_REQ,
+	SUB_CMD_KB_CLOSE_RESP,
+	SUB_CMD_KB_REPORT_REQ,
+	SUB_CMD_KB_REPORT_RESP,
+	SUB_CMD_KB_EVENT_REQ ,
+	SUB_CMD_KB_EVENT_RESP,
+	SUB_CMD_KB_PARAMET_REQ ,
+	SUB_CMD_KB_PARAMET_RESP ,
+
 	SUB_CMD_MAX = 0xff,
 }obj_sub_cmd_t;
 
@@ -480,7 +538,8 @@ typedef enum {
 typedef enum {
 	BIG_DATA_EVENT_MOTION_TYPE = 936005001,
 	BIG_DATA_EVENT_DDR_INFO,
-	BIG_DATA_EVENT_TOF_PHONECALL
+	BIG_DATA_EVENT_TOF_PHONECALL,
+	BIG_DATA_EVENT_PHONECALL_SCREEN_STATUS
 } big_data_event_id_t;
 
 typedef enum {
@@ -762,10 +821,12 @@ typedef struct {
 
 typedef struct {
 	pkt_header_t hd;
-	/*(MAX_PKT_LENGTH-sizeof(PKT_HEADER)-sizeof(End))/sizeof(uint16_t)*/
-	uint8_t end;
-	uint8_t file_count;
-	uint16_t file_list[];
+	//1表示副sensorlist，0则是filelist，2表示开始加载
+	uint8_t file_flg;
+	//每次总数量不能大于
+	//(MAX_PKT_LENGTH-sizeof(PKT_HEADER)-sizeof(End))/sizeof(UINT16)
+	uint8_t file_count;//file或者副sensor的数量
+	uint16_t file_list[];//fileid或副sensor的tag
 } pkt_sys_dynload_req_t;
 
 typedef struct {
@@ -787,6 +848,12 @@ typedef struct {
 typedef struct {
 	pkt_header_t hd;
 	uint32_t subcmd;
+	char calibrate_data[MAX_MAG_CALIBRATE_DATA_LENGTH];
+} pkt_mag1_calibrate_data_req_t;
+
+typedef struct {
+	pkt_header_t hd;
+	uint32_t subcmd;
 	char calibrate_data[MAX_MAG_AKM_CALIBRATE_DATA_LENGTH];
 } pkt_akm_mag_calibrate_data_req_t;
 
@@ -799,6 +866,12 @@ typedef struct {
 typedef struct {
 	pkt_header_t hd;
 	uint32_t subcmd;
+	char calibrate_data[MAX_GYRO1_CALIBRATE_DATA_LENGTH];
+} pkt_gyro1_calibrate_data_req_t;
+
+typedef struct {
+	pkt_header_t hd;
+	uint32_t subcmd;
 	char calibrate_data[MAX_GYRO_TEMP_OFFSET_LENGTH];
 } pkt_gyro_temp_offset_req_t;
 
@@ -807,6 +880,18 @@ typedef struct {
 	uint32_t subcmd;
 	char calibrate_data[MAX_TOF_CALIBRATE_DATA_LENGTH];
 } pkt_tof_calibrate_data_req_t;
+
+typedef struct {
+	pkt_header_t hd;
+	uint32_t subcmd;
+	char calibrate_data[MAX_PS_CALIBRATE_DATA_LENGTH];
+} pkt_ps_calibrate_data_req_t;
+
+typedef struct {
+	pkt_header_t hd;
+	uint32_t subcmd;
+	char calibrate_data[MAX_ALS_CALIBRATE_DATA_LENGTH];
+} pkt_als_calibrate_data_req_t;
 
 typedef struct {
 	pkt_common_data_t fhd;
@@ -832,6 +917,12 @@ typedef struct {
 	uint8_t cmd;
 	uint8_t data[];
 } swing_req_t;
+
+typedef struct{
+	uint32_t sample_start_time;
+	uint32_t sample_interval;
+	uint32_t integ_time;
+}als_run_stop_para_t;
 
 typedef enum additional_info_type {
     //
@@ -1020,7 +1111,23 @@ enum {
 	FILE_TCS3701_PS,//118
 	FILE_GOODIX_UD_G2_FP,//119
 	FILE_SOLOMON_TP_UD,//120
-	FILE_ID_MAX = 121,                       // MAX VALID FILE ID
+	FILE_BMI260_ACC,  // 121
+	FILE_BMI260_GYRO, // 122
+	FILE_GOODIX3206_FP, //123
+	FILE_SX9335_CAP_PROX,//124
+	FILE_MMC5603_MAG,//125
+	FILE_POSTURE,//126
+	FILE_LTR2568_ALS,//127
+	FILE_BH1749_ALS,//128
+	FILE_STK3338_PS,//129
+	FILE_STK3338_ALS, //130
+	FILE_VCNL36832_PS,//131
+	FILE_VCNL36832_ALS,//132
+	FILE_KB, // 133
+	FILE_LTR2568_PS,//134
+	FILE_GOODIX3216_FP, // 135
+	FILE_ET525_FP, // 136
+	FILE_ID_MAX = 137, // MAX VALID FILE ID
 };
 
 #endif

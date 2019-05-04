@@ -41,7 +41,6 @@
 */
 
     /* field number supported by area */
-#define DUMP_FIELD_MAX_NUM  64
 #define DUMP_AREA_MAGICNUM  0x4e656464
 
 
@@ -70,7 +69,7 @@ struct dump_global_area_ctrl_s{
 struct dump_nr_area_ctrl_s{
     u32                                       init_state;
     u32                                       length;
-    struct dump_nr_level2_global_struct_s*    virt_addr;
+    struct dump_level2_global_struct_s*       virt_addr;
     unsigned long                             phy_addr;
 };
 
@@ -97,13 +96,11 @@ s32 dump_area_init(void);
 s32 dump_get_global_info(struct dump_global_area_ctrl_s * global_area);
 void* dump_get_global_baseinfo(void);
 s32 dump_get_level2_area_info(DUMP_LEVLE2_AREA_ID level2_area_id,struct dump_area_mntn_addr_info_s* area_info);
-#ifdef MNTN_AREA_CBOOT_ADDR
+u32 dump_get_mdm_voice_status(void);
 void dump_clear_cpboot_area(void);
-#else
-static inline void dump_clear_cpboot_area(void){}
-#endif
 void* dump_get_mntn_base_addr(void);
 void* dump_get_rdr_top_head(void);
-
+struct dump_level2_base_info_s* dump_get_nrrdr_baseinfo(void);
 
 #endif
+

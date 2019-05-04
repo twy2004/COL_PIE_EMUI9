@@ -97,6 +97,8 @@ unsigned int mdrv_nv_readex(unsigned int modemid, unsigned int itemid, void *pda
 
 extern unsigned int mdrv_nv_readex_factory(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
 
+extern unsigned int mdrv_nv_readex_img(unsigned int modemid, unsigned int itemid, void *pdata, unsigned int ulLength);
+
 /* 写不同Modem NV项数据 */
 unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pdata, unsigned int ulLength);
 

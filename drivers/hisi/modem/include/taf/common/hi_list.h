@@ -49,6 +49,8 @@
 #ifndef _HI_LIST_H
 #define _HI_LIST_H
 
+#include "v_msg.h"
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -158,6 +160,14 @@ extern void msp_list_del(struct msp_list_header *entry);
 /*lint -esym(752,msp_list_empty)*/
 extern int msp_list_empty(const struct msp_list_header *head);
 
+
+/*lint -esym(752,__list_del_msp_security)*/
+extern void __list_del_msp_security(struct msp_list_header * prev,
+        struct msp_list_header * next,
+        struct msp_list_header * head);
+
+/*lint -esym(752,msp_list_del_security)*/
+extern void msp_list_del_security(struct msp_list_header *entry, struct msp_list_header *head);
 
 #ifdef __cplusplus
 #if __cplusplus

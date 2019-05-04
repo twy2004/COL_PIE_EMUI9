@@ -57,7 +57,9 @@
 #include  "IpIpmGlobal.h"
 //#include  "msp_at.h"
 #include  "msp_diag.h"
-
+#include "mdrv.h"
+#include "ps_tag.h"
+#define THIS_MODU ps_nd
 /*lint -e767*/
 #define    THIS_FILE_ID        PS_FILE_ID_IPCOMM_C    /*´ýÐÞ¸Ä*/
 /*lint +e767*/
@@ -384,9 +386,9 @@ IP_BOOL_ENUM_UINT8 IP_IsIcmpv6Packet
     {
         if(1 == g_ulCnNd)
         {
-            PS_PRINTF("\n***********IP_IsIcmpv6Packet: %d %d***********\n", usPayLoad + IP_IPV6_HEAD_LEN, ulIpMsgLen);
+            PS_PRINTF_INFO("\n***********IP_IsIcmpv6Packet: %d %d***********\n", usPayLoad + IP_IPV6_HEAD_LEN, ulIpMsgLen);
 
-            PS_PRINTF("\n**********************\n\n");
+            PS_PRINTF_INFO("\n**********************\n\n");
 
         }
         IPND_WARNING_LOG2(ND_TASK_PID, "IP_IsIcmpv6Packet: PayLoad beyond the msg::!", (usPayLoad + IP_IPV6_HEAD_LEN), ulIpMsgLen);
@@ -399,9 +401,9 @@ IP_BOOL_ENUM_UINT8 IP_IsIcmpv6Packet
     {
         if(1 == g_ulCnNd)
         {
-            PS_PRINTF("\n***********IP_IsIcmpv6Packet: %d %d***********\n", usPayLoad + IP_IPV6_HEAD_LEN, ulIpMsgLen);
+            PS_PRINTF_INFO("\n***********IP_IsIcmpv6Packet: %d %d***********\n", usPayLoad + IP_IPV6_HEAD_LEN, ulIpMsgLen);
 
-            PS_PRINTF("\n**********************\n\n");
+            PS_PRINTF_INFO("\n**********************\n\n");
 
         }
         IPND_WARNING_LOG(ND_TASK_PID, "IP_IsIcmpv6Packet: Fail to get upper-layer protocol!");
@@ -642,7 +644,6 @@ IP_ERR_ENUM_UINT32 IP_BuildIcmpv6Checksum
     usCheckSum = IPv6_Checksum(&stPseduoHeader, pucIpMsg + ulTypeOffset, ulLen);
 
     /*lint -e679 -esym(679,*)*/
-    /*IP_SetUint16Data(&pucIpMsg[ulTypeOffset + IP_ICMPV6_CHECKSUM_OFFSET], usCheckSum);*/
     *(VOS_UINT16 *)(VOS_VOID*)(&pucIpMsg[ulTypeOffset + IP_ICMPV6_CHECKSUM_OFFSET]) = usCheckSum;
     /*lint -e679 +esym(679,*)*/
 

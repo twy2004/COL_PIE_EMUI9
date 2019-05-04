@@ -8,6 +8,7 @@
 //ISP_LINT
 /*lint -e750
  -esym(750,*)*/
+#include <linux/version.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/regulator/consumer.h>
@@ -31,8 +32,10 @@
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
 #include <linux/genalloc.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include <linux/ion-iommu.h>
+#endif
 #include <linux/mutex.h>
 #include <linux/iommu.h>
 #include <linux/compiler.h>
@@ -54,7 +57,7 @@
 #include <linux/delay.h>
 #include "hisp_internel.h"
 
-#define MAX_SIZE    64
+#define SEC_MAX_SIZE    64
 #define ISP_ATF_CPU 1
 #define DEVICE_PATH  "/dev/block/bootdevice/by-name/"
 
@@ -431,7 +434,7 @@ err_a7up:
     return ret;
 }
 
-static int bsp_read_bin(const char *partion_name, unsigned int offset,
+int hisp_bsp_read_bin(const char *partion_name, unsigned int offset,
                 unsigned int length, char *buffer)
 {
     int ret          = -1;
@@ -1110,6 +1113,7 @@ static int hisi_truset_mem_getdts(struct device_node *np, struct hisi_atfisp_s *
         for(offset_index = 0; offset_index < offset_num;offset_index++)
             pr_info("[%s] trusted-smem-offset %d offest = 0x%x\n",__func__,offset_index, dev->tsmem_offset[offset_index]);
     }
+
     return 0;
 }
 
@@ -1475,7 +1479,7 @@ static unsigned int mem_pool_setup(struct scatterlist *sgl, unsigned int iova, \
         mutex_unlock(&dev->mem_pool_mutex);
         return 0;
     }
-    memset(pool_info,0,sizeof(struct mem_pool_info_s));/*lint !e838 */
+    memset(pool_info,0,sizeof(struct mem_pool_info_s));/* unsafe_function_ignore: memset *//*lint !e838 */
     map_size = PAGE_ALIGN(size);/*lint !e50 */
 
     pool = gen_pool_create((int)(order_base_2(ISP_MEM_POOL_ALIGN)), -1);/*lint !e666 !e835 !e747 !e516 !e866 !e712 !e778*/
@@ -1765,7 +1769,7 @@ void hisp_mem_pool_init(void)
 {
     struct hisi_mem_pool_s *dev = (struct hisi_mem_pool_s *)&hisi_mem_pool_info;
 
-    memset(dev,0x0,sizeof(hisi_mem_pool_info));/*lint !e838 */
+    memset(dev,0x0,sizeof(hisi_mem_pool_info));/* unsafe_function_ignore: memset *//*lint !e838 */
     mutex_init(&dev->mem_pool_mutex);
 }
 /* MDC reserved memory, iova: 0xc3000000 */
@@ -2151,8 +2155,8 @@ static int secisp_work_fn(void *data)
         pr_err("[%s] Failed : set_share_pararms.%d\n", __func__, ret);
     }
 
-    if ((ret = bsp_read_bin("isp_firmware", dev->rsctable_offset, dev->rsctable_size, dev->rsctable_vaddr_const)) < 0) {
-        pr_err("[%s] bsp_read_bin.%d\n", __func__, ret);
+    if ((ret = hisp_bsp_read_bin("isp_firmware", dev->rsctable_offset, dev->rsctable_size, dev->rsctable_vaddr_const)) < 0) {
+        pr_err("[%s] hisp_bsp_read_bin.%d\n", __func__, ret);
         return ret;
     }
 
@@ -2196,8 +2200,6 @@ static int secisp_work_fn(void *data)
         }
         dev->secisp_wake = 0;
 
-        if ((ret = hisp_mntn_dumpregs()) < 0)
-                pr_err("Failed : get_ispcpu_cfg_info.%d\n", ret);
         mutex_unlock(&dev->pwrlock);
     }
     pr_info("[%s] -\n", __func__);
@@ -2310,6 +2312,9 @@ int hisi_atfisp_probe(struct platform_device *pdev)
     dev->wq = create_singlethread_workqueue("secispmemfree");
     if (!dev->wq) {
         pr_err("%s: create_singlethread_workqueue failed.\n", __func__);
+        ret = -1;
+        isp_iova_pool_destroy(dev->isp_iova_pool);
+        dev->isp_iova_pool = NULL;
         goto out;
     }
 
@@ -2327,7 +2332,13 @@ out:
 int hisi_atfisp_remove(struct platform_device *pdev)
 {
     struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
+
     dev->domain = NULL;
+    if (dev->isp_iova_pool) {
+        isp_iova_pool_destroy(dev->isp_iova_pool);
+        dev->isp_iova_pool = NULL;
+    }
+
     if (dev->sec_client) {
         ion_client_destroy(dev->sec_client);
         dev->sec_client = NULL;
@@ -2336,6 +2347,13 @@ int hisi_atfisp_remove(struct platform_device *pdev)
         destroy_workqueue(dev->wq);
         dev->wq = NULL;
     }
+    if(dev->secisp_kthread) {
+        kthread_stop(dev->secisp_kthread);
+        dev->secisp_kthread = NULL;
+    }
+
+    mutex_destroy(&dev->isp_iova_pool_mutex);
+
     return 0;
 }
 

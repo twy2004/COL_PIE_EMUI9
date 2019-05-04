@@ -11,6 +11,4 @@ EXTRA_CFLAGS += -Idrivers/devkit/audiokit/headset_debug/
 endif
 snd-soc-hi6xxx_mbhc-objs := hi6xxx_mbhc.o
 
-obj-$(CONFIG_SND_SOC_CODEC_HI6555V2) += snd-soc-hi6xxx_mbhc.o
-
-
+obj-$(CONFIG_SND_SOC_HI6XXX_MBHC) += snd-soc-hi6xxx_mbhc.o

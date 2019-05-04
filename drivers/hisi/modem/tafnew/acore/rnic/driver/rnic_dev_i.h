@@ -68,6 +68,50 @@ extern "C" {
   2. Macro definitions
 *****************************************************************************/
 
+#define RNIC_NS_ETH_TYPE_IP			0x0008
+#define RNIC_NS_ETH_TYPE_IPV6		0xDD86
+#define RNIC_NAPI_LB_MAX_LEVEL		16
+#define RNIC_NAPI_LB_MAX_CPUS		16
+#define RNIC_NAPI_STATS_MAX_CPUS	8
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+#define rnic_set_dev_napi_config(base_config) \
+	rnic_ep_set_napi_base_config(base_config)
+#define rnic_set_dev_napi_weight(devid, weight) \
+	rnic_ep_set_napi_weight(devid, weight)
+#define rnic_set_dev_napi_lb_config(lb_config) \
+	rnic_ep_set_napi_lb_config(lb_config)
+#define rnic_set_dev_napi_lb_level(devid, level) \
+	rnic_ep_set_napi_lb_level(devid, level)
+/*lint -emacro({717}, rnic_set_dev_ps_iface_up)*/
+#define rnic_set_dev_ps_iface_up(iface_config) \
+	do { \
+		rnic_ep_set_ps_iface_up(iface_config); \
+		rnic_set_ps_iface_up(iface_config); \
+	} while (0)
+
+/*lint -emacro({717}, rnic_set_dev_ps_iface_down)*/
+#define rnic_set_dev_ps_iface_down(iface_config) \
+	do { \
+		rnic_ep_set_ps_iface_down(iface_config); \
+		rnic_set_ps_iface_down(iface_config); \
+	} while (0)
+#else
+#define rnic_set_dev_napi_config(base_config) \
+	rnic_set_napi_config(base_config)
+#define rnic_set_dev_napi_weight(devid, weight) \
+	rnic_set_napi_weight(devid, weight)
+#define rnic_set_dev_napi_lb_config(lb_config) \
+	rnic_set_napi_lb_config(lb_config)
+#define rnic_set_dev_napi_lb_level(devid, level) \
+	rnic_set_napi_lb_level(devid, level)
+#define rnic_set_dev_ps_iface_up(iface_config) \
+	rnic_set_ps_iface_up(iface_config)
+#define rnic_set_dev_ps_iface_down(iface_config) \
+	rnic_set_ps_iface_down(iface_config)
+#endif
+
+
 /*****************************************************************************
   3. Enumerations declatations
 *****************************************************************************/
@@ -104,12 +148,36 @@ struct rnic_ps_iface_drop_notifier_s {
 	rnic_ps_iface_drop_notifier_func drop_notifier_func;
 };
 
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+typedef void (*rnic_ep_data_stats_hook)(uint8_t devid,
+					const struct rnic_data_stats_s *data_stats);
+typedef void (*rnic_ep_napi_stats_hook)(uint8_t devid,
+					const struct rnic_napi_stats_s *napi_stats);
+
+struct rnic_ep_ops_s {
+	rnic_ep_data_stats_hook data_stats_hook;
+	rnic_ep_napi_stats_hook napi_stats_hook;
+};
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB */
+
 struct rnic_napi_config_s {
 	uint8_t devid;
 	uint8_t napi_enable;
 	uint8_t gro_enable;
 	uint8_t napi_weight;
 	uint32_t napi_queue_length;
+};
+
+struct rnic_napi_lb_level_config_s {
+	uint32_t pps;
+	uint8_t lb_cpu_weight[RNIC_NAPI_LB_MAX_CPUS];
+};
+
+struct rnic_napi_lb_config_s {
+	uint8_t devid;
+	uint8_t lb_enable;
+	uint32_t lb_cpu_bitmask;
+	struct rnic_napi_lb_level_config_s napi_lb_level_cfg[RNIC_NAPI_LB_MAX_LEVEL];
 };
 
 struct rnic_ps_iface_info_s {
@@ -151,7 +219,7 @@ struct rnic_data_stats_s {
 	/* detailed rx_errors: */
 	uint32_t rx_length_errors;
 	uint32_t rx_proto_errors;
-	uint32_t rx_phys_errors;
+	uint32_t rx_link_errors;
 	uint32_t rx_trans_errors;
 	uint32_t rx_enqueue_errors;
 
@@ -170,25 +238,74 @@ struct rnic_dsflow_stats_s {
 	uint32_t tx_bytes;
 };
 
+struct rnic_lb_stats_s{
+	uint32_t select_cpu_num;
+	uint32_t schedul_on_cpu_num;
+	uint32_t poll_on_cpu_num;
+	uint32_t smp_on_cpu_num;
+	uint32_t dispatch_fail_num;
+	uint32_t smp_fail_num;
+	uint32_t schedule_fail_num;
+	uint32_t hotplug_online_num;
+	uint32_t hotplug_down_num;
+};
+
+struct rnic_napi_stats_s {
+	uint8_t napi_enable;
+	uint8_t gro_enable;
+	uint8_t napi_lb_enable;
+	uint8_t lb_level;
+	uint8_t napi_weight;
+	uint8_t act_cpu_nums;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	struct rnic_lb_stats_s lb_stats[RNIC_NAPI_STATS_MAX_CPUS];
+};
 
 /*******************************************************************************
   5. Function declarations
 *******************************************************************************/
 
 /*lint -esym(752,rnic_set_napi_config)*/
-int rnic_set_napi_config(struct rnic_napi_config_s *napi_config);
+int rnic_set_napi_config(const struct rnic_napi_config_s *napi_config);
 /*lint -esym(752,rnic_set_napi_weight)*/
 int rnic_set_napi_weight(uint8_t devid, uint8_t weight);
+/*lint -esym(752,rnic_set_napi_lb_config)*/
+int rnic_set_napi_lb_config(const struct rnic_napi_lb_config_s *lb_config);
+/*lint -esym(752,rnic_set_napi_lb_level)*/
+int rnic_set_napi_lb_level(uint8_t devid, uint8_t level);
 /*lint -esym(752,rnic_set_ps_iface_up)*/
-int rnic_set_ps_iface_up(struct rnic_ps_iface_config_s *iface_config);
+int rnic_set_ps_iface_up(const struct rnic_ps_iface_config_s *iface_config);
 /*lint -esym(752,rnic_set_ps_iface_down)*/
-int rnic_set_ps_iface_down(struct rnic_ps_iface_config_s *iface_config);
+int rnic_set_ps_iface_down(const struct rnic_ps_iface_config_s *iface_config);
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+/*lint -esym(752,rnic_register_ep_ops)*/
+void rnic_register_ep_ops(struct rnic_ep_ops_s *ep_ops);
+/*lint -esym(752,rnic_ep_set_napi_base_config)*/
+int rnic_ep_set_napi_base_config(const struct rnic_napi_config_s *base_config);
+/*lint -esym(752,rnic_ep_set_napi_weight)*/
+int rnic_ep_set_napi_weight(uint8_t devid, uint8_t weight);
+/*lint -esym(752,rnic_ep_set_napi_lb_config)*/
+int rnic_ep_set_napi_lb_config(const struct rnic_napi_lb_config_s *lb_config);
+/*lint -esym(752,rnic_ep_set_napi_lb_level)*/
+int rnic_ep_set_napi_lb_level(uint8_t devid, uint8_t level);
+/*lint -esym(752,rnic_ep_set_ps_iface_up)*/
+int rnic_ep_set_ps_iface_up(const struct rnic_ps_iface_config_s *iface_config);
+/*lint -esym(752,rnic_ep_set_ps_iface_down)*/
+int rnic_ep_set_ps_iface_down(const struct rnic_ps_iface_config_s *iface_config);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB */
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB) || defined(CONFIG_HISI_BALONG_EXTRA_MODEM))
+/*lint -esym(752,rnic_ctrl_chan_init)*/
+int rnic_ctrl_chan_init(void);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB || CONFIG_HISI_BALONG_EXTRA_MODEM */
 
 #if (defined(CONFIG_BALONG_SPE))
 /*lint -esym(752,rnic_get_spe_port)*/
 int rnic_get_spe_port(void);
 /*lint -esym(752,rnic_set_spe_port_config)*/
-int rnic_set_spe_port_config(struct rnic_spe_port_config_s *port_config);
+int rnic_set_spe_port_config(const struct rnic_spe_port_config_s *port_config);
 #if (defined(CONFIG_BALONG_SPE_WAN))
 /*lint -esym(752,rnic_associate_spe_netdev)*/
 int rnic_associate_spe_netdev(uint8_t devid);
@@ -197,22 +314,31 @@ int rnic_associate_spe_netdev(uint8_t devid);
 
 #if (defined(CONFIG_BALONG_ESPE))
 /*lint -esym(752,rnic_set_espe_port_config)*/
-int rnic_set_espe_port_config(struct rnic_espe_port_config_s *port_config);
+int rnic_set_espe_port_config(const struct rnic_espe_port_config_s *port_config);
 #endif /* CONFIG_BALONG_ESPE */
 
 /*lint -esym(752,rnic_register_device_notifier)*/
-int rnic_register_device_notifier(struct rnic_deivce_notifier_s *dev_notifer);
+int rnic_register_device_notifier(
+					const struct rnic_deivce_notifier_s *dev_notifer);
 /*lint -esym(752,rnic_register_ps_iface_drop_notifier)*/
-int rnic_register_ps_iface_drop_notifier(struct rnic_ps_iface_drop_notifier_s *drop_notifer);
+int rnic_register_ps_iface_drop_notifier(
+					const struct rnic_ps_iface_drop_notifier_s *drop_notifer);
 /*lint -esym(752,rnic_get_devid_by_name)*/
 int rnic_get_devid_by_name(char *name, uint8_t *devid);
 /*lint -esym(752,rnic_create_netdev)*/
 int rnic_create_netdev(void);
 
 /*lint -esym(752,rnic_rx_handle)*/
-int rnic_rx_handle(uint8_t devid, struct sk_buff *skb, uint8_t ip_family);
+int rnic_rx_handle(uint8_t devid, struct sk_buff *skb);
 /*lint -esym(752,rnic_rx_complete)*/
-void rnic_rx_complete(uint8_t devid);
+int rnic_rx_complete(uint8_t devid);
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+/*lint -esym(752,rnic_peth_ep_rx_handle)*/
+int rnic_peth_ep_rx_handle(uint8_t devid, struct sk_buff *skb);
+/*lint -esym(752,rnic_peth_ep_rx_complete)*/
+int rnic_peth_ep_rx_complete(uint8_t devid);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB */
 
 /*lint -esym(752,rnic_get_data_stats)*/
 struct rnic_data_stats_s *rnic_get_data_stats(uint8_t devid);
@@ -220,6 +346,8 @@ struct rnic_data_stats_s *rnic_get_data_stats(uint8_t devid);
 struct rnic_dsflow_stats_s *rnic_get_dsflow_stats(uint8_t devid);
 /*lint -esym(752,rnic_clear_dsflow_stats)*/
 int rnic_clear_dsflow_stats(uint8_t devid);
+/*lint -esym(752,rnic_get_napi_stats)*/
+int rnic_get_napi_stats(uint8_t devid, struct rnic_napi_stats_s *rnic_napi_stats);
 
 
 #ifdef __cplusplus

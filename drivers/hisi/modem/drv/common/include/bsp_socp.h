@@ -51,6 +51,10 @@
 
 #include "osl_common.h"
 #include "mdrv_socp_common.h"
+#ifdef __KERNEL__
+#include "acore_nv_id_drv.h"
+#include "acore_nv_stru_drv.h"
+#endif
 #include "bsp_trace.h"
 
 #ifdef __cplusplus
@@ -635,8 +639,62 @@ void bsp_socp_update_bbp_ptr(u32 u32SrcChanId);
 
 
 u32 bsp_get_socp_ind_dst_int_slice(void);
-
+/*****************************************************************************
+ 函 数 名      : bsp_clear_socp_buff
+ 功能描述  : 该此接口用于清空SOCP源buff
+ 输入参数  : u32SrcChanID:通道id
+ 输出参数  : 无。
+ 返 回 值     : 无
+*****************************************************************************/
 s32 bsp_clear_socp_buff(u32 u32SrcChanID);
+
+/*****************************************************************************
+* 函 数 名  : bsp_socp_soft_free_encdst_chan
+*
+* 功能描述  : 软释放编码目的通道
+*
+* 输入参数  : u32EncDstChanId       编码通道号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 释放成功与否的标识码
+*****************************************************************************/
+s32 bsp_socp_soft_free_encdst_chan(u32 u32EncDstChanId);
+
+/*****************************************************************************
+* 函 数 名  : bsp_SocpEncDstQueryIntInfo
+*
+* 功能描述  : 提供给diag_debug查询socp数据通道目的端中断信息
+*
+* 输入参数  : 无
+* 输出参数  :
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void bsp_SocpEncDstQueryIntInfo(u32 *TrfInfo, u32 *ThrOvfInfo);
+
+/*****************************************************************************
+* 函 数 名  : bsp_clear_socp_encdst_int_info
+*
+* 功能描述  : 清空socp目的端上溢统计值
+*
+* 输入参数  : 无
+* 输出参数  :
+*
+* 返 回 值  : 无
+*****************************************************************************/
+void bsp_clear_socp_encdst_int_info(void);
+
+#ifdef __KERNEL__
+/*****************************************************************************
+ 函 数 名      : bsp_socp_set_rate_ctrl
+ 功能描述  : 该此接口用于设置SOCP流控配置
+ 输入参数  : pRateCtrl:流控配置
+ 输出参数  : 无。
+ 返 回 值     : 无
+*****************************************************************************/
+s32 bsp_socp_set_rate_ctrl(DRV_DIAG_RATE_STRU *pRateCtrl);
+#endif
 
 #else
 
@@ -669,7 +727,10 @@ static inline s32 bsp_socp_write_done(u32 u32SrcChanID, u32 u32WrtSize)
 {
     return 0;
 }
-
+static inline s32 bsp_socp_coder_set_dest_chan_attr(u32 u32DestChanID, SOCP_CODER_DEST_CHAN_S *pDestAttr)
+{
+    return 0;
+}
 static inline s32 bsp_socp_coder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_SRC_CHAN_S *pSrcAttr)
 {
     return 0;
@@ -716,7 +777,33 @@ static inline s32 bsp_clear_socp_buff(u32 u32SrcChanID)
 {
     return 0;
 }
+static inline s32 bsp_socp_soft_free_encdst_chan(u32 u32EncDstChanId)
+{
+    return 0;
+}
+static inline void socp_m3_init(void)
+{
+    return;
+}
 
+static inline void bsp_SocpEncDstQueryIntInfo(u32 *TrfInfo, u32 *ThrOvfInfo)
+{
+    return;
+}
+
+static inline void bsp_clear_socp_encdst_int_info(void)
+{
+    return;
+}
+
+
+
+#ifdef __KERNEL__
+static inline s32 bsp_socp_set_rate_ctrl(DRV_DIAG_RATE_STRU *pRateCtrl)
+{
+    return 0;
+}
+#endif
 #endif
 
 /*****************************************************************************

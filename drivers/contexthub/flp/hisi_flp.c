@@ -199,7 +199,7 @@ static int flp_genlink_checkin(flp_port_t *flp_port, unsigned int count, unsigne
 
 }
 /*lint -e826 -e834 -e776*/
-static int flp_generate_netlink_packet(flp_port_t *flp_port, char *buf,
+static int flp_generate_netlink_packet(flp_port_t *flp_port, const char *buf,
         unsigned int count, unsigned char cmd_type)
 {
     flp_data_buf_t *pdata = NULL ;
@@ -251,20 +251,20 @@ static int flp_generate_netlink_packet(flp_port_t *flp_port, char *buf,
 
         /*copy data to user buffer*/
         if ((pdata->read_index + count) >  pdata->buf_size) {
-            memcpy_s(data, (size_t)count, pdata->data_buf + pdata->read_index, (size_t)(pdata->buf_size - pdata->read_index));
-            memcpy_s(data + pdata->buf_size - pdata->read_index,
+            (void)memcpy_s(data, (size_t)count, pdata->data_buf + pdata->read_index, (size_t)(pdata->buf_size - pdata->read_index));
+            (void)memcpy_s(data + pdata->buf_size - pdata->read_index,
                         (size_t)count - (size_t)(pdata->buf_size - pdata->read_index),
                         pdata->data_buf,
                         (size_t)(count + pdata->read_index - pdata->buf_size));
         } else {
-            memcpy_s(data, (size_t)count, pdata->data_buf + pdata->read_index, (size_t)count);
+            (void)memcpy_s(data, (size_t)count, pdata->data_buf + pdata->read_index, (size_t)count);
         }
         pdata->read_index = (pdata->read_index + count)%pdata->buf_size;
         pdata->data_count -= count;
         break ;
     default:
         if (buf && count) {
-            memcpy_s(data, (size_t)count, buf, (size_t)count);
+            (void)memcpy_s(data, (size_t)count, buf, (size_t)count);
         }
     break ;
     };
@@ -288,6 +288,7 @@ static int  flp_pdr_stop_cmd(flp_port_t *flp_port, unsigned long arg)
     struct list_head    *pos;
     flp_port_t      *port;
     unsigned int delay = 0;
+    int ret;
 
     printk(HISI_FLP_DEBUG "flp_stop_cmd pdr count[%d]--dalay[%d]\n", g_flp_dev.pdr_start_count, delay);
     if (!flp_port->pdr_buf.data_buf) {
@@ -320,7 +321,10 @@ static int  flp_pdr_stop_cmd(flp_port_t *flp_port, unsigned long arg)
         list_for_each(pos, &g_flp_dev.list) {
             port = container_of(pos, flp_port_t, list);
             if ((port != flp_port) && (port->channel_type & FLP_PDR_DATA)) {
-                memcpy_s((void *)&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &port->pdr_config, sizeof(pdr_start_config_t));
+                ret = memcpy_s((void *)&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &port->pdr_config, sizeof(pdr_start_config_t));
+                if (ret) {
+                    printk(KERN_ERR "%s memcpy_s error\n", __func__);
+                }
                 break;
             }
         }
@@ -434,8 +438,14 @@ static int  flp_pdr_start_cmd(flp_port_t *flp_port, const char __user *buf, size
     #endif
     } else {
         struct read_info rd;
-        memset_s((void*)&rd, sizeof(rd), 0, sizeof(struct read_info));
-        memcpy_s(&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &flp_port->pdr_config, sizeof(pdr_start_config_t));
+        ret = memset_s((void*)&rd, sizeof(rd), 0, sizeof(struct read_info));
+        if (ret) {
+            pr_err("[%s]memset_s fail[%d]\n", __func__, ret);
+        }
+        ret = memcpy_s(&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &flp_port->pdr_config, sizeof(pdr_start_config_t));
+        if (ret) {
+            pr_err("[%s]memset_s fail[%d]\n", __func__, ret);
+        }
         g_flp_dev.pdr_cycle = g_flp_dev.pdr_config.report_precise;
         g_flp_dev.pdr_config.report_times = 0;
         flp_port->rate = 1 ;
@@ -476,7 +486,7 @@ static int  flp_pdr_update_cmd(flp_port_t *flp_port, const char __user *buf, siz
         return -EINVAL;
     }
 
-    ret = get_pdr_cfg(&flp_port->pdr_config, buf, len);
+    ret = get_pdr_cfg(&flp_port->pdr_update_config, buf, len);
     if (ret)
         return ret;
 
@@ -488,7 +498,10 @@ static int  flp_pdr_update_cmd(flp_port_t *flp_port, const char __user *buf, siz
         g_flp_dev.pdr_config.report_count = PDR_DATA_MIX_COUNT;
         g_flp_dev.pdr_config.report_times = 0;
     }   else {
-        memcpy_s(&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &flp_port->pdr_update_config, sizeof(pdr_start_config_t));
+        ret = memcpy_s(&g_flp_dev.pdr_config, sizeof(g_flp_dev.pdr_config), &flp_port->pdr_update_config, sizeof(pdr_start_config_t));
+        if (ret) {
+            pr_err("[%s]memset_s fail[%d]\n", __func__, ret);
+        }
         g_flp_dev.pdr_config.report_times = 0;
     }
     flp_port->pdr_flush_config = TRUE ;
@@ -510,10 +523,11 @@ static int  flp_pdr_update_cmd(flp_port_t *flp_port, const char __user *buf, siz
 /*lint +e845*/
 
 /*lint -e834 -e776*/
-static void copy_data_to_buf(flp_data_buf_t *pdata, char *data,
+static void copy_data_to_buf(flp_data_buf_t *pdata, const char *data,
         unsigned int len, unsigned int align)
 {
     unsigned int deta;
+    int ret;
     /*no enough space , just overwrite*/
     if ((pdata->data_count + len) > pdata->buf_size) {
         deta = pdata->data_count + len - pdata->buf_size;
@@ -525,17 +539,26 @@ static void copy_data_to_buf(flp_data_buf_t *pdata, char *data,
     }
     /*copy data to flp pdr driver buffer*/
     if ((pdata->write_index + len) >  pdata->buf_size) {
-        memcpy_s(pdata->data_buf + pdata->write_index ,
+        ret = memcpy_s(pdata->data_buf + pdata->write_index ,
             (size_t)pdata->buf_size - (size_t)pdata->write_index,
             data, (size_t)(pdata->buf_size - pdata->write_index));
-        memcpy_s(pdata->data_buf,
+        if (ret) {
+            pr_err("[%s]memset_s fail[%d]\n", __func__, ret);
+        }
+        ret = memcpy_s(pdata->data_buf,
             (size_t)pdata->buf_size,
             data + pdata->buf_size - pdata->write_index,
             (size_t)(len + pdata->write_index - pdata->buf_size));
+        if (ret) {
+            pr_err("[%s]memset_s fail[%d]\n", __func__, ret);
+        }
     } else {
-        memcpy_s(pdata->data_buf + pdata->write_index,
+        ret = memcpy_s(pdata->data_buf + pdata->write_index,
             (size_t)pdata->buf_size - (size_t)pdata->write_index,
             data , (size_t)len);
+        if (ret) {
+            printk(KERN_ERR "[%s] memcpy_s fail\n", __func__);
+        }
     }
     pdata->write_index = (pdata->write_index + len)%pdata->buf_size;
     pdata->data_count = (pdata->write_index - pdata->read_index + pdata->buf_size)%pdata->buf_size;
@@ -550,7 +573,7 @@ static int get_pdr_notify_from_mcu(const pkt_header_t *head)
     flp_port_t *flp_port ;
     struct list_head    *pos;
     int *data = (int *) (head + 1);
-    int ret = 0;
+    unsigned ret = 0;
 
 #ifdef CONFIG_INPUTHUB_20
     if (SUB_CMD_FLP_PDR_UNRELIABLE_REQ == ((pkt_header_t *)head)->cmd) {
@@ -565,10 +588,10 @@ static int get_pdr_notify_from_mcu(const pkt_header_t *head)
             }
 
             if (*data < 2) {
-                ret |= flp_generate_netlink_packet(flp_port, (char *)data,
+                ret += flp_generate_netlink_packet(flp_port, (char *)data,
                         (unsigned int)sizeof(int), FLP_GENL_CMD_PDR_UNRELIABLE);
             } else if ((2 == *data) && (flp_port->need_report)) {
-                ret |= flp_generate_netlink_packet(flp_port, (char *)data,
+                ret += flp_generate_netlink_packet(flp_port, (char *)data,
                         (unsigned int)sizeof(int), FLP_GENL_CMD_PDR_UNRELIABLE);
             }
         }
@@ -604,7 +627,7 @@ static void __get_pdr_data_from_mcu(flp_pdr_data_t *data, unsigned int count)
             (flp_port->pdr_flush_config)) {
             if (count < PDR_SINGLE_SEND_COUNT) {
                 flp_port->pdr_flush_config = 0;
-                memcpy_s(&flp_port->pdr_compensate, sizeof(flp_port->pdr_compensate), &g_flp_dev.pdr_compensate,
+                (void)memcpy_s(&flp_port->pdr_compensate, sizeof(flp_port->pdr_compensate), &g_flp_dev.pdr_compensate,
                     sizeof(compensate_data_t));
             }
             continue ;
@@ -650,7 +673,7 @@ static void __get_pdr_data_from_mcu(flp_pdr_data_t *data, unsigned int count)
         /*check if need update pickup parameter or not*/
         if ((g_flp_dev.pdr_flush_config) && (count < PDR_SINGLE_SEND_COUNT)) {
             if ((FLP_IOCTL_PDR_UPDATE(0) == g_flp_dev.pdr_flush_config) && (flp_port->pdr_flush_config)) {
-                memcpy_s(&flp_port->pdr_config, sizeof(flp_port->pdr_config), &flp_port->pdr_update_config,
+                (void)memcpy_s(&flp_port->pdr_config, sizeof(flp_port->pdr_config), &flp_port->pdr_update_config,
                     sizeof(pdr_start_config_t));
                 flp_port->nextid = 0;
                 flp_port->aquiredid = 0;
@@ -749,6 +772,7 @@ static void flp_resort_cellbatching_data(char * data, unsigned int len)
     cell_batching_data_t * temp2 = (cell_batching_data_t *)data;
 
     int index = 0;
+    int ret;
     unsigned long time1 = 0, time2 = 0;
     bool is_resort = false;
     unsigned int temp_len = len;
@@ -779,9 +803,18 @@ static void flp_resort_cellbatching_data(char * data, unsigned int len)
             return;
         }
 
-        memcpy_s(buff, len, begin_index, len -index * sizeof(cell_batching_data_t));
-        memcpy_s(buff + len - index * sizeof(cell_batching_data_t), index * sizeof(cell_batching_data_t), data, index * sizeof(cell_batching_data_t));
-        memcpy_s(data, len, buff,len);
+        ret = memcpy_s(buff, len, begin_index, len -index * sizeof(cell_batching_data_t));
+        if (ret) {
+            printk(KERN_ERR "%s memcpy_s error\n", __func__);
+        }
+        ret = memcpy_s(buff + len - index * sizeof(cell_batching_data_t), index * sizeof(cell_batching_data_t), data, index * sizeof(cell_batching_data_t));
+        if (ret) {
+            printk(KERN_ERR "%s memcpy_s error\n", __func__);
+        }
+        ret = memcpy_s(data, len, buff,len);
+        if (ret) {
+            printk(KERN_ERR "%s memcpy_s error\n", __func__);
+        }
         kfree(buff);
         printk(HISI_FLP_DEBUG "flp: %s done\n", __func__);
     }
@@ -1804,7 +1837,10 @@ static int cellfence_add(flp_port_t *flp_port, unsigned long arg, unsigned short
         shmem_block->tag = FLP_IOMCU_SHMEM_TAG;
         shmem_block->cmd = cmd;
         shmem_block->data_len = shmem_capacity;
-        memcpy_s((void*)shmem_block->data, (unsigned long)shmem_capacity, cptr, (unsigned long)shmem_block->data_len);
+        ret = memcpy_s((void*)shmem_block->data, (unsigned long)shmem_capacity, cptr, (unsigned long)shmem_block->data_len);
+        if (ret) {
+            printk(KERN_ERR "%s memcpy_s error\n", __func__);
+        }
         ret = shmem_send(TAG_FLP, (const void *)shmem_block, (unsigned int)(shmem_block->data_len+sizeof(FLP_IOMCU_SHMEM_TYPE)));
         if(ret) {
             pr_err("%s shmem_send error \n", __func__);
@@ -1820,7 +1856,10 @@ static int cellfence_add(flp_port_t *flp_port, unsigned long arg, unsigned short
         shmem_block->tag = FLP_IOMCU_SHMEM_TAG;
         shmem_block->cmd = cmd;
         shmem_block->data_len = usr_len;
-        memcpy_s((void*)shmem_block->data, (unsigned long)usr_len, cptr, (unsigned long)shmem_block->data_len);
+        ret = memcpy_s((void*)shmem_block->data, (unsigned long)usr_len, cptr, (unsigned long)shmem_block->data_len);
+        if (ret) {
+            printk(KERN_ERR "%s memcpy_s error\n", __func__);
+        }
         ret = shmem_send(TAG_FLP, shmem_block, (unsigned int)(shmem_block->data_len+sizeof(FLP_IOMCU_SHMEM_TYPE)));
         if(ret) {
             pr_err("%s shmem_send error \n", __func__);

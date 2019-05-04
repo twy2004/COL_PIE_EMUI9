@@ -33,6 +33,9 @@
 #endif
 #include <huawei_platform/net/bastet/bastet.h>
 #include <huawei_platform/net/bastet/bastet_utils.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/task.h>
+#endif
 
 #define BASTET_NAME						"bastet"
 
@@ -844,20 +847,31 @@ static ssize_t bastet_read(struct file *filp,
 static ssize_t bastet_write(struct file *filp,
 	const char __user *buf, size_t count, loff_t *ppos)
 {
-	u8 msg[BST_MAX_WRITE_PAYLOAD];
+	uint8_t *msg;
+	int32_t ret = count;
+	msg = kmalloc(BST_MAX_WRITE_PAYLOAD, GFP_KERNEL);
 
-	if (count > BST_MAX_WRITE_PAYLOAD) {
+	if (NULL == msg) {
+		return -ENOMEM;
+	}
+
+	if ((count > BST_MAX_WRITE_PAYLOAD) || (count <= 0)) {
 		BASTET_LOGE("write length over BST_MAX_WRITE_PAYLOAD!");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto write_end;
 	}
 
 	if (copy_from_user(msg, buf, count)) {
 		BASTET_LOGE("copy_from_user error");
-		return -EFAULT;
+		ret = -EFAULT;
+		goto write_end;
 	}
+
 	bastet_comm_write(msg, count, BST_ACORE_CORE_MSG_TYPE_DSPP);
 
-	return count;
+write_end:
+	kfree(msg);
+	return ret;
 }
 #endif
 

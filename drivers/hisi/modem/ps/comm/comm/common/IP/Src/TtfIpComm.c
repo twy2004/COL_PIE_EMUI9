@@ -169,6 +169,122 @@
     return PS_SUCC;
 }
 
+
+IP_DATA_TYPE_ENUM_UINT8 TTF_GetTcpType
+(
+    VOS_UINT16                          usIpTotalLen,
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    IP_DATA_TYPE_ENUM_UINT8   enDataType   = IP_DATA_TYPE_TCP;
+    VOS_UINT16                usTcpHeadLen;
+    VOS_UINT8                 usTcpFlags;
+    VOS_UINT16               *pusPort;
+
+
+    usTcpHeadLen = (pData[usIpHeadLen + TCP_LEN_POS] & TCP_LEN_MASK) >> 2;
+
+    /* SDU数据长度等于IP包头长度和TCP包头部长度之和，并且TCP包FLAG标志中含有ACK */
+    if ( usIpTotalLen == (usTcpHeadLen + usIpHeadLen) )
+    {
+        usTcpFlags = pData[usIpHeadLen + TCP_FLAG_POS] & 0x3F;
+
+        if (TCP_SYN_MASK == (TCP_SYN_MASK & usTcpFlags))
+        {
+            enDataType = IP_DATA_TYPE_TCP_SYN;
+            return enDataType;
+        }
+
+        if (TCP_ACK_MASK == (TCP_ACK_MASK & usTcpFlags))
+        {
+            enDataType = IP_DATA_TYPE_TCP_ACK;
+        }
+    }
+    else
+    {
+        pusPort = (VOS_UINT16 *)&pData[usIpHeadLen + TCP_DST_PORT_POS];
+        if (FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusPort))
+        {
+            enDataType = IP_DATA_TYPE_FTP_SIGNALLING;
+        }
+    }
+
+    return enDataType;
+}
+
+
+IP_DATA_TYPE_ENUM_UINT8 TTF_GetUdpType
+(
+    VOS_UINT16                          usIpTotalLen,
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    IP_DATA_TYPE_ENUM_UINT8   enDataType   = IP_DATA_TYPE_UDP;
+    VOS_UINT16               *pusPort;
+
+    pusPort = (VOS_UINT16 *)&pData[usIpHeadLen + UDP_DST_PORT_POS];
+
+    if (DNS_DEF_SERVER_PORT == ntohs(*pusPort))
+    {
+        enDataType = IP_DATA_TYPE_UDP_DNS;
+    }
+
+    if (MIP_AGENT_PORT == ntohs(*pusPort))
+    {
+        enDataType = IP_DATA_TYPE_UDP_MIP;
+    }
+
+    return enDataType;
+}
+
+
+IP_DATA_TYPE_ENUM_UINT8 TTF_GetIcmpV4Type
+(
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    IP_DATA_TYPE_ENUM_UINT8   enDataType   = IP_DATA_TYPE_NULL;
+    VOS_UINT16                usFragmentOffset;
+
+    usFragmentOffset = IP_GET_VAL_NTOH_U16(pData, IPV4_HEAD_FRAGMENT_OFFSET_POS) & IPV4_HEAD_FRAGMENT_OFFSET_MASK;
+
+    /* 分段 */
+    if (0 != usFragmentOffset)
+    {
+        return IP_DATA_TYPE_NULL;
+    }
+
+    /* 获取ICMP报文的类型 */
+    if ((ICMP_TYPE_REQUEST == pData[usIpHeadLen]) || (ICMP_TYPE_REPLY == pData[usIpHeadLen]))
+    {
+        enDataType = IP_DATA_TYPE_ICMP;
+    }
+
+    return enDataType;
+}
+
+
+IP_DATA_TYPE_ENUM_UINT8 TTF_GetIcmpV6Type
+(
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    IP_DATA_TYPE_ENUM_UINT8   enDataType   = IP_DATA_TYPE_NULL;
+
+    /* 获取ICMPV6报文的类型 */
+    if ((ICMPV6_TYPE_REQUEST == pData[usIpHeadLen]) || (ICMPV6_TYPE_REPLY == pData[usIpHeadLen]))
+    {
+        enDataType = IP_DATA_TYPE_ICMP;
+    }
+
+    return enDataType;
+}
+
+
 MODULE_EXPORTED IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
 (
     VOS_UINT32                          ulPid,
@@ -179,12 +295,10 @@ MODULE_EXPORTED IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
 {
     VOS_UINT16                                  usIpHeadLen;
     VOS_UINT16                                  usIpTotalLen;
-    VOS_UINT16                                  usTcpHeadLen;
     IP_DATA_TYPE_ENUM_UINT8                     enDataType;
     IP_DATA_PROTOCOL_ENUM_UINT8                 enDataProtocalType;
-    VOS_UINT16                                 *pusPort;
-    VOS_UINT16                                 *pusFragmentOffset;
-    VOS_UINT8                                   usTcpFlags;
+
+
 
     /* 初始化设置为Null */
     enDataType = IP_DATA_TYPE_NULL;
@@ -230,82 +344,19 @@ MODULE_EXPORTED IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
     switch (enDataProtocalType)
     {
         case IP_DATA_PROTOCOL_TCP:
-            {
-                enDataType   = IP_DATA_TYPE_TCP;
-
-                usTcpHeadLen = (pData[usIpHeadLen + TCP_LEN_POS] & TCP_LEN_MASK) >> 2;
-
-                /* SDU数据长度等于IP包头长度和TCP包头部长度之和，并且TCP包FLAG标志中含有ACK */
-                if ( usIpTotalLen == (usTcpHeadLen + usIpHeadLen) )
-                {
-                    usTcpFlags = pData[usIpHeadLen + TCP_FLAG_POS] & 0x3F;
-
-                    if (TCP_SYN_MASK == (TCP_SYN_MASK & usTcpFlags))
-                    {
-                        enDataType = IP_DATA_TYPE_TCP_SYN;
-                        break;
-                    }
-
-                    if (TCP_ACK_MASK == (TCP_ACK_MASK & usTcpFlags))
-                    {
-                        enDataType = IP_DATA_TYPE_TCP_ACK;
-                    }
-                }
-                else
-                {
-                    pusPort = (VOS_UINT16 *)&pData[usIpHeadLen + TCP_DST_PORT_POS];
-                    if (FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusPort))
-                    {
-                        enDataType = IP_DATA_TYPE_FTP_SIGNALLING;
-                    }
-                }
-            }
+            enDataType = TTF_GetTcpType(usIpTotalLen, usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_UDP:
-            {
-                enDataType = IP_DATA_TYPE_UDP;
-
-                pusPort = (VOS_UINT16 *)&pData[usIpHeadLen + UDP_DST_PORT_POS];
-
-                if (DNS_DEF_SERVER_PORT == ntohs(*pusPort))
-                {
-                    enDataType = IP_DATA_TYPE_UDP_DNS;
-                }
-
-                if (MIP_AGENT_PORT == ntohs(*pusPort))
-                {
-                    enDataType = IP_DATA_TYPE_UDP_MIP;
-                }
-            }
+            enDataType = TTF_GetUdpType(usIpTotalLen, usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_ICMPV4:
-            {
-                pusFragmentOffset = (VOS_UINT16 *)&pData[IPV4_HEAD_FRAGMENT_OFFSET_POS];
-
-                /* 分段 */
-                if (ntohs(*pusFragmentOffset) & IPV4_HEAD_FRAGMENT_OFFSET_MASK)
-                {
-                    break;
-                }
-
-                /* 获取ICMP报文的类型 */
-                if ((ICMP_TYPE_REQUEST == pData[usIpHeadLen]) || (ICMP_TYPE_REPLY == pData[usIpHeadLen]))
-                {
-                    enDataType = IP_DATA_TYPE_ICMP;
-                }
-            }
+            enDataType = TTF_GetIcmpV4Type(usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_ICMPV6:
-            {
-                /* 获取ICMPV6报文的类型 */
-                if ((ICMPV6_TYPE_REQUEST == pData[usIpHeadLen]) || (ICMPV6_TYPE_REPLY == pData[usIpHeadLen]))
-                {
-                    enDataType = IP_DATA_TYPE_ICMP;
-                }
-            }
+            enDataType = TTF_GetIcmpV6Type(usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_IPV6_FRAGMENT:
@@ -319,6 +370,74 @@ MODULE_EXPORTED IP_DATA_TYPE_ENUM_UINT8 TTF_ParseIpDataType
 } /* TTF_ParseIpDataType */
 
 
+VOS_UINT16 TTF_GetTcpTraceLen
+(
+    VOS_UINT16                          usIpTotalLen,
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    VOS_UINT16                usTcpHeadLen;
+    VOS_UINT16               *pusSourcePort;
+    VOS_UINT16               *pusDestPort;
+    VOS_UINT16                usIpDataTraceLen;
+
+
+    usTcpHeadLen    = (pData[usIpHeadLen + TCP_LEN_POS] & TCP_LEN_MASK) >> 2;
+
+    /* SDU数据长度等于IP包头长度和TCP包头部长度之和，并且TCP包FLAG标志中含有ACK */
+    if ( usIpTotalLen == (usTcpHeadLen + usIpHeadLen) )
+    {
+        usIpDataTraceLen = usIpTotalLen;
+    }
+    else
+    {
+        pusSourcePort   = (VOS_UINT16 *)&pData[usIpHeadLen];
+        pusDestPort     = (VOS_UINT16 *)&pData[usIpHeadLen + TCP_DST_PORT_POS];
+
+        /* FTP命令全部勾取，其它勾TCP头 */
+        if ((FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusSourcePort)) || (FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusDestPort)))
+        {
+            usIpDataTraceLen = usIpTotalLen;
+        }
+        else
+        {
+            usIpDataTraceLen = usIpHeadLen + usTcpHeadLen;
+        }
+    }
+
+    return usIpDataTraceLen;
+}
+
+
+VOS_UINT16 TTF_GetUdpTraceLen
+(
+    VOS_UINT16                          usIpTotalLen,
+    VOS_UINT16                          usIpHeadLen,
+    VOS_UINT8                          *pData
+)
+{
+    VOS_UINT16               *pusSourcePort;
+    VOS_UINT16               *pusDestPort;
+    VOS_UINT16                usIpDataTraceLen;
+
+    pusSourcePort   = (VOS_UINT16 *)&pData[usIpHeadLen];
+    pusDestPort     = (VOS_UINT16 *)&pData[usIpHeadLen + UDP_DST_PORT_POS];
+
+    /* DNS全部勾取，其它勾UDP头 */
+    if ((DNS_DEF_SERVER_PORT == ntohs(*pusSourcePort)) || (DNS_DEF_SERVER_PORT == ntohs(*pusDestPort)))
+    {
+        usIpDataTraceLen = usIpTotalLen;
+    }
+    else
+    {
+        usIpDataTraceLen = usIpHeadLen + UDP_HEAD_LEN;
+    }
+
+    return usIpDataTraceLen;
+}
+
+
 MODULE_EXPORTED VOS_UINT16 TTF_GetIpDataTraceLen
 (
     VOS_UINT32                          ulPid,
@@ -328,10 +447,7 @@ MODULE_EXPORTED VOS_UINT16 TTF_GetIpDataTraceLen
 {
     VOS_UINT16                                  usIpHeadLen;
     VOS_UINT16                                  usIpTotalLen;
-    VOS_UINT16                                  usTcpHeadLen;
     IP_DATA_PROTOCOL_ENUM_UINT8                 enDataProtocalType;
-    VOS_UINT16                                 *pusSourcePort;
-    VOS_UINT16                                 *pusDestPort;
     VOS_UINT16                                  usIpDataTraceLen;
 
     /* 内存至少有20字节，才能解析IP头的协议字段 ROTOCOL_POS(9), PROTOCOL_POS(6)*/
@@ -371,55 +487,14 @@ MODULE_EXPORTED VOS_UINT16 TTF_GetIpDataTraceLen
     switch (enDataProtocalType)
     {
         case IP_DATA_PROTOCOL_TCP:
-            {
-                usTcpHeadLen    = (pData[usIpHeadLen + TCP_LEN_POS] & TCP_LEN_MASK) >> 2;
-
-                /* SDU数据长度等于IP包头长度和TCP包头部长度之和，并且TCP包FLAG标志中含有ACK */
-                if ( usIpTotalLen == (usTcpHeadLen + usIpHeadLen) )
-                {
-                    usIpDataTraceLen = usIpTotalLen;
-                }
-                else
-                {
-                    pusSourcePort   = (VOS_UINT16 *)&pData[usIpHeadLen];
-                    pusDestPort     = (VOS_UINT16 *)&pData[usIpHeadLen + TCP_DST_PORT_POS];
-
-                    /* FTP命令全部勾取，其它勾TCP头 */
-                    if ((FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusSourcePort)) || (FTP_DEF_SERVER_SIGNALLING_PORT == ntohs(*pusDestPort)))
-                    {
-                        usIpDataTraceLen = usIpTotalLen;
-                    }
-                    else
-                    {
-                        usIpDataTraceLen = usIpHeadLen + usTcpHeadLen;
-                    }
-                }
-            }
+            usIpDataTraceLen = TTF_GetTcpTraceLen(usIpTotalLen, usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_UDP:
-            {
-                pusSourcePort   = (VOS_UINT16 *)&pData[usIpHeadLen];
-                pusDestPort     = (VOS_UINT16 *)&pData[usIpHeadLen + UDP_DST_PORT_POS];
-
-                /* DNS全部勾取，其它勾UDP头 */
-                if ((DNS_DEF_SERVER_PORT == ntohs(*pusSourcePort)) || (DNS_DEF_SERVER_PORT == ntohs(*pusDestPort)))
-                {
-                    usIpDataTraceLen = usIpTotalLen;
-                }
-                else
-                {
-                    usIpDataTraceLen = usIpHeadLen + UDP_HEAD_LEN;
-                }
-            }
+            usIpDataTraceLen = TTF_GetUdpTraceLen(usIpTotalLen, usIpHeadLen, pData);
             break;
 
         case IP_DATA_PROTOCOL_ICMPV4:
-            {
-                usIpDataTraceLen = usIpHeadLen + ICMP_HEADER_LEN;
-            }
-            break;
-
         case IP_DATA_PROTOCOL_ICMPV6:
             {
                 usIpDataTraceLen = usIpHeadLen + ICMP_HEADER_LEN;
@@ -431,6 +506,76 @@ MODULE_EXPORTED VOS_UINT16 TTF_GetIpDataTraceLen
     }
 
     return usIpDataTraceLen;
+}
+
+MODULE_EXPORTED VOS_VOID TTF_FilterIpv4AddrSensitiveInfo
+(
+    VOS_UINT8                          *pucIpAddr
+)
+{
+    PS_MEM_SET_S(pucIpAddr + TTF_IPV4_MASK_IP_ADDR_SENSITIVE_POS, TTF_IPV4_MASK_IP_ADDR_SENSITIVE_BYTE_NUM,
+            0, TTF_IPV4_MASK_IP_ADDR_SENSITIVE_BYTE_NUM);
+    return;
+}
+
+
+MODULE_EXPORTED VOS_VOID TTF_FilterIpv6AddrSensitiveInfo
+(
+    VOS_UINT8                          *pucIpAddr
+)
+{
+    PS_MEM_SET_S(pucIpAddr + TTF_IPV6_MASK_IP_ADDR_SENSITIVE_POS, TTF_IPV6_MASK_IP_ADDR_SENSITIVE_BYTE_NUM,
+            0, TTF_IPV6_MASK_IP_ADDR_SENSITIVE_BYTE_NUM);
+    return;
+}
+
+
+
+MODULE_EXPORTED VOS_VOID TTF_TraceMaskIpAddr
+(
+    VOS_UINT32                          ulPid,
+    VOS_UINT8                          *pucData,
+    VOS_UINT16                          usDataLen
+)
+{
+    VOS_UINT8                          *pucIpSourceAddr;
+    VOS_UINT8                          *pucIpDestAddr;
+
+
+    if ( IPV4_VER_VAL == (pucData[0] & IP_VER_MASK) )
+    {
+        /* IPV4头长至少20字节 */
+        if (usDataLen < IPV4_HEAD_NORMAL_LEN)
+        {
+            TTF_LOG(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_TraceMaskIpAddr IPHeadLen is exception.");
+            return;
+        }
+        /*IPv4掩掉后8bit */
+        pucIpSourceAddr  = &(pucData[IPV4_SRC_IP_ADDR_OFFSET_POS]);
+        TTF_FilterIpv4AddrSensitiveInfo(pucIpSourceAddr);
+        pucIpDestAddr    = &(pucData[IPV4_DST_IP_ADDR_OFFSET_POS]);
+        TTF_FilterIpv4AddrSensitiveInfo(pucIpDestAddr);
+    }
+    else if( IPV6_VER_VAL == (pucData[0] & IP_VER_MASK) )
+    {
+        /* IPV6头长 至少40字节 */
+        if (usDataLen < IPV6_HEAD_NORMAL_LEN)
+        {
+            TTF_LOG(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_TraceMaskIpAddr IPHeadLen is exception.");
+            return;
+        }
+        /*IPv6掩掉后88bit */
+        pucIpSourceAddr  = &(pucData[IPV6_SRC_IP_ADDR_OFFSET_POS]);
+        TTF_FilterIpv6AddrSensitiveInfo(pucIpSourceAddr);
+        pucIpDestAddr    = &(pucData[IPV6_DST_IP_ADDR_OFFSET_POS]);
+        TTF_FilterIpv6AddrSensitiveInfo(pucIpDestAddr);
+    }
+    else
+    {
+        TTF_LOG(ulPid, DIAG_MODE_COMM, PS_PRINT_WARNING, "TTF_TraceMaskIpAddr Protocol is Null.");
+    }
+
+    return;
 }
 
 

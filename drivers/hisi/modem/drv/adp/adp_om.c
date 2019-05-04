@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -50,6 +50,7 @@
 #include "bsp_trace.h"
 #include "osl_irq.h"
 #include "securec.h"
+
 
 
 void mdrv_om_system_error(int mod_id, int arg1, int arg2, char * arg3, int arg3_len)
@@ -83,12 +84,14 @@ s32  mdrv_om_unregister_callback(dump_handle handle)
 
 }
 
+
 EXPORT_SYMBOL_GPL(mdrv_om_register_field);
 EXPORT_SYMBOL_GPL(mdrv_om_get_field_addr);
 EXPORT_SYMBOL_GPL(mdrv_om_get_field_phy_addr);
 EXPORT_SYMBOL_GPL(mdrv_om_register_callback);
 EXPORT_SYMBOL_GPL(mdrv_om_system_error);
 EXPORT_SYMBOL_GPL(mdrv_om_unregister_callback);
+
 
 
 

@@ -115,6 +115,15 @@ extern "C" {
 #define ADS_DBG_UL_PKT_ENQUE_SUCC_NUM(n)            (g_stAdsStats.stUlComStatsInfo.ulULPktEnQueSuccNum += (n))
 #define ADS_DBG_UL_PKT_ENQUE_FAIL_NUM(n)            (g_stAdsStats.stUlComStatsInfo.ulULPktEnQueFailNum += (n))
 
+/* 上行PC5数据统计 */
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+#define ADS_DBG_UL_PC5_QUE_NON_EMPTY_TRIG_EVENT(n)  (g_stAdsStats.stUlComStatsInfo.ulULPc5QueNonEmptyTrigEvent += (n))
+#define ADS_DBG_UL_PC5_RX_PKT_NUM(n)                (g_stAdsStats.stUlComStatsInfo.ulUlRxPc5PktNum += (n))
+#define ADS_DBG_UL_PC5_PKT_ENQUE_SUCC_NUM(n)        (g_stAdsStats.stUlComStatsInfo.ulUlPc5PktEnQueSuccNum += (n))
+#define ADS_DBG_UL_PC5_PKT_ENQUE_FAIL_NUM(n)        (g_stAdsStats.stUlComStatsInfo.ulUlPc5PktEnQueFailNum += (n))
+#define ADS_DBG_UL_PC5_BDQ_CFG_BD_SUCC_NUM(n)       (g_stAdsStats.stUlComStatsInfo.ulULPc5BdqCfgBdSuccNum += (n))
+#endif
+
 /* 上行BD统计 */
 #define ADS_DBG_UL_BDQ_CFG_IPF_HAVE_NO_BD_NUM(n)    (g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfHaveNoBd += (n))
 #define ADS_DBG_UL_BDQ_CFG_BD_SUCC_NUM(n)           (g_stAdsStats.stUlComStatsInfo.ulULBdqCfgBdSuccNum += (n))
@@ -153,6 +162,9 @@ extern "C" {
 #define ADS_DBG_DL_RDQ_RX_DHCP_PKT_NUM(n)           (g_stAdsStats.stDlComStatsInfo.ulDLRdqRxDhcpPktNum += (n))
 #define ADS_DBG_DL_RDQ_RX_ERR_PKT_NUM(n)            (g_stAdsStats.stDlComStatsInfo.ulDLRdqRxErrPktNum += (n))
 #define ADS_DBG_DL_RDQ_FILTER_ERR_PKT_NUM(n)        (g_stAdsStats.stDlComStatsInfo.ulDLRdqFilterErrNum += (n))
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+#define ADS_DBG_DL_RDQ_RX_PC5_PKT_NUM(n)            (g_stAdsStats.stDlComStatsInfo.ulDLRdqRxPc5PktNum += (n))
+#endif
 
 /* 下行数据统计*/
 #define ADS_DBG_DL_RMNET_TX_PKT_NUM(n)              (g_stAdsStats.stDlComStatsInfo.ulDLRmnetTxPktNum += (n))
@@ -288,6 +300,14 @@ typedef struct
     VOS_UINT32                          ulULStartSlice;
     VOS_UINT32                          ulULEndSlice;
 
+    /* PC5 上行处理统计 */
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+    VOS_UINT32                          ulULPc5QueNonEmptyTrigEvent;
+    VOS_UINT32                          ulUlRxPc5PktNum;
+    VOS_UINT32                          ulUlPc5PktEnQueSuccNum;
+    VOS_UINT32                          ulUlPc5PktEnQueFailNum;
+    VOS_UINT32                          ulULPc5BdqCfgBdSuccNum;
+#endif
 }ADS_UL_COM_STATS_INFO_STRU;
 
 
@@ -310,6 +330,9 @@ typedef struct
     VOS_UINT32                          ulDLRdqRxDhcpPktNum;
     VOS_UINT32                          ulDLRdqRxErrPktNum;
     VOS_UINT32                          ulDLRdqFilterErrNum;
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+    VOS_UINT32                          ulDLRdqRxPc5PktNum;
+#endif
 
     /* 下行数据统计 */
     VOS_UINT32                          ulDLRmnetTxPktNum;
@@ -411,6 +434,10 @@ VOS_VOID ADS_SetDlDiscardPktFlag(VOS_UINT32 ulValue);
 VOS_VOID ADS_ShowDLInfoStats(VOS_VOID);
 VOS_VOID ADS_Help(VOS_VOID);
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+VOS_VOID ADS_ShowPc5PktProcStats(VOS_VOID);
+VOS_VOID ADS_SetPc5MaxQueueLen(VOS_UINT32 ulLength);
+#endif
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

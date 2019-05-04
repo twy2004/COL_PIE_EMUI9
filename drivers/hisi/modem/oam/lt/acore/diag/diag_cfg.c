@@ -102,9 +102,6 @@ HTIMER          g_DebugTimer;
 
 VOS_VOID diag_CfgResetAllSwt(VOS_VOID)
 {
-    VOS_ULONG    ulLockLevel;
-
-
     /*清空层间开关状态*/
     (VOS_VOID)VOS_MemSet_s(g_ALayerSrcModuleCfg, (VOS_UINT32)sizeof(g_ALayerSrcModuleCfg), 0, (VOS_UINT32)sizeof(g_ALayerSrcModuleCfg));
     (VOS_VOID)VOS_MemSet_s(g_CLayerSrcModuleCfg, (VOS_UINT32)sizeof(g_CLayerSrcModuleCfg), 0, (VOS_UINT32)sizeof(g_CLayerSrcModuleCfg));
@@ -125,34 +122,7 @@ VOS_VOID diag_CfgResetAllSwt(VOS_VOID)
     /*清空消息过滤开关状态*/
     (VOS_VOID)VOS_MemSet_s(&g_stMsgCfg, (VOS_UINT32)sizeof(g_stMsgCfg), 0, (VOS_UINT32)sizeof(g_stMsgCfg));
 
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulPrintLock, ulLockLevel);
-    g_DiagLogPktNum.ulPrintNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulPrintLock, ulLockLevel);
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulTransLock, ulLockLevel);
-    g_DiagLogPktNum.ulTransNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulTransLock, ulLockLevel);
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulEventLock, ulLockLevel);
-    g_DiagLogPktNum.ulEventNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulEventLock, ulLockLevel);
-
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulAirLock, ulLockLevel);
-    g_DiagLogPktNum.ulAirNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulAirLock, ulLockLevel);
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulVoLTELock, ulLockLevel);
-    g_DiagLogPktNum.ulVoLTENum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulVoLTELock, ulLockLevel);
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
-    g_DiagLogPktNum.ulTraceNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulTraceLock, ulLockLevel);
-
-    VOS_SpinLockIntLock(&g_DiagLogPktNum.ulUserLock, ulLockLevel);
-    g_DiagLogPktNum.ulUserNum = 0;
-    VOS_SpinUnlockIntUnlock(&g_DiagLogPktNum.ulUserLock, ulLockLevel);
+    mdrv_diag_report_reset();
 
     return;
 }

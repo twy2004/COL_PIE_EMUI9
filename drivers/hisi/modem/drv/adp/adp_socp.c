@@ -534,9 +534,9 @@ int mdrv_socp_compress_disable(unsigned int u32DestChanID)
     return bsp_socp_compress_disable(u32DestChanID);
 }
 
-int mdrv_socp_compress_status(void)		
-{		
-    return bsp_socp_compress_status();		
+int mdrv_socp_compress_status(void)
+{
+    return bsp_socp_compress_status();
 }
 
 
@@ -582,7 +582,7 @@ EXPORT_SYMBOL(mdrv_socp_set_cfg_ind_mode);
 int mdrv_socp_get_cfg_ind_mode(unsigned int *eMode)
 {
     return bsp_socp_get_cfg_ind_mode(eMode);
-    
+
 }
 int mdrv_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode)
 {
@@ -596,6 +596,16 @@ int mdrv_socp_get_cps_ind_mode(unsigned int *eMode)
 int mdrv_clear_socp_buff(unsigned int u32SrcChanID)
 {
     return bsp_clear_socp_buff(u32SrcChanID);
+}
+
+void mdrv_SocpEncDstQueryIntInfo(unsigned int *TrfInfo, unsigned int *ThrOvfInfo)
+{
+    bsp_SocpEncDstQueryIntInfo(TrfInfo, ThrOvfInfo);
+}
+
+void mdrv_clear_socp_encdst_int_info(void)
+{
+    bsp_clear_socp_encdst_int_info();
 }
 
 

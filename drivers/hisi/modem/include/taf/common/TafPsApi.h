@@ -53,10 +53,15 @@
   1 其他头文件包含
 *****************************************************************************/
 #include "vos.h"
+#include "mdrv.h"
+#include "ps_tag.h"
 #include "TafTypeDef.h"
 #include "PsTypeDef.h"
 #include "TafApi.h"
 #include "TafPsTypeDef.h"
+#include "NasCommPacketSer.h"
+
+
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -182,6 +187,8 @@ extern "C" {
 
 #define TAF_PS_APN_DATA_SYS_PROTECT_IN_CELLULAR_MIN_TIME    (10)
 #define TAF_PS_APN_DATA_SYS_PROTECT_IN_WLAN_MIN_TIME        (2)
+
+#define TAF_PS_MSG_CONTENT_NUM                              (4)
 
 /*****************************************************************************
   3 枚举定义
@@ -375,10 +382,19 @@ enum TAF_PS_MSG_ID_ENUM
 
     ID_MSG_TAF_PS_SET_APN_THROT_INFO_REQ                    = TAF_PS_APP_PROFILE_ID_BASE + 0X0028,   /* _H2ASN_MsgChoice TAF_PS_SET_APN_THROT_INFO_REQ_STRU */
 
+    ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_REQ                   = TAF_PS_APP_PROFILE_ID_BASE + 0X0029,  /* _H2ASN_MsgChoice TAF_PS_GET_LTE_ATTACH_INFO_REQ_STRU */
+
+    ID_MSG_TAF_PS_SET_5G_QOS_INFO_REQ                       = TAF_PS_APP_PROFILE_ID_BASE + 0x002A,  /* _H2ASN_MsgChoice TAF_PS_SET_5G_QOS_INFO_REQ_STRU */
+    ID_MSG_TAF_PS_GET_5G_QOS_INFO_REQ                       = TAF_PS_APP_PROFILE_ID_BASE + 0x002B,  /* _H2ASN_MsgChoice TAF_PS_GET_5G_QOS_INFO_REQ_STRU */
+
+    /* +C5GQOSRDP */
+    ID_MSG_TAF_PS_GET_DYNAMIC_5G_QOS_INFO_REQ               = TAF_PS_APP_PROFILE_ID_BASE + 0x002C,   /* _H2ASN_MsgChoice TAF_PS_GET_DYNAMIC_5G_QOS_INFO_REQ_STRU */
+
     ID_MSG_TAF_PS_BUTT
 
 };
 typedef VOS_UINT32 TAF_PS_MSG_ID_ENUM_UINT32;
+
 
 
 enum TAF_PS_EVT_ID_ENUM
@@ -561,6 +577,14 @@ enum TAF_PS_EVT_ID_ENUM
 
     ID_EVT_TAF_PS_DATA_SYSTEM_CHG_NTF                         = TAF_PS_EVT_ID_BASE + 0x014B,
     ID_EVT_TAF_PS_APN_DATA_SYS_POLICY_IND                     = TAF_PS_EVT_ID_BASE + 0x014C,
+
+    ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_CNF                     = TAF_PS_EVT_ID_BASE + 0x014D,
+
+    ID_EVT_TAF_PS_SET_5G_QOS_INFO_CNF                         = TAF_PS_EVT_ID_BASE + 0x014E,           /* _H2ASN_MsgChoice TAF_PS_SET_5G_QOS_INFO_CNF_STRU            */
+    ID_EVT_TAF_PS_GET_5G_QOS_INFO_CNF                         = TAF_PS_EVT_ID_BASE + 0x014F,           /* _H2ASN_MsgChoice TAF_PS_GET_5G_QOS_INFO_CNF_STRU            */
+
+    /* +C5GQOSRDP */
+    ID_EVT_TAF_PS_GET_DYNAMIC_5G_QOS_INFO_CNF                 = TAF_PS_EVT_ID_BASE + 0x0150,           /* _H2ASN_MsgChoice TAF_PS_GET_DYNAMIC_5G_QOS_INFO_CNF_STRU */
 
     /* 其它事件 */
     /* APS->IMSA通知SRVCC CANCEL */
@@ -966,7 +990,9 @@ typedef struct
     VOS_UINT32                          bitOpEpdgInfo       : 1; /* 用于R1定制需求中,把EPDG地址上报给APS时,指示EPDG地址信息是否存在。 1:存在 0:不存在 */
     VOS_UINT32                          bitOpLinkedQfi      : 1;
     VOS_UINT32                          bitOpNrQos          : 1;
-    VOS_UINT32                          bitOpSpare          : 18;
+    VOS_UINT32                          bitOpRabId          : 1;
+    VOS_UINT32                          bitOpQfi            : 1;
+    VOS_UINT32                          bitOpSpare          : 16;
 
     VOS_UINT8                           ucCid;
     VOS_UINT8                           ucRabId;
@@ -978,12 +1004,13 @@ typedef struct
     VOS_UINT8                           ucQfi;
     VOS_UINT8                           ucLinkedQfi;
     TAF_PS_CAUSE_ENUM_UINT32            enCause;
+    TAF_PS_RAT_TYPE_ENUM_UINT32         enCnRatType;                            /* 核心网制式LTE/NR/G/W/1X/HRPD */
 
     TAF_PDP_ADDR_STRU                   stPdpAddr;
     TAF_PDP_APN_STRU                    stApn;
     TAF_UMTS_QOS_STRU                   stUmtsQos;
     TAF_EPS_QOS_STRU                    stEpsQos;
-    TAF_PS_NR_QOS_STRU                  stNrQos;
+    PS_NR_QOS_STRU                      stNrQos;
 
     TAF_PDP_DNS_STRU                    stDns;
     TAF_PDP_NBNS_STRU                   stNbns;
@@ -998,12 +1025,20 @@ typedef struct
     TAF_PDP_TFT_STRU                    stTft;
 
     VOS_UINT16                          usIpv4Mtu;
-    VOS_UINT8                           aucReserved1[2];
+    PS_SSC_MODE_ENUM_UINT8              enSscMode;
+    VOS_UINT8                           ucQosRuleNum;
 
     TAF_PS_CUSTOM_PCO_INFO_STRU         stCustomPcoInfo;
 
     TAF_EPDG_INFO_STRU                  stEpdgInfo;
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    /* TODO:为了减少非NR版本中消息大小，暂时用宏控制 */
+    PS_NR_QOS_RULE_INFO_STRU            astQosRule[PS_MAX_QOS_RULE_NUM_IN_QOS_FLOW];    /* QoS Rule List*/
+
+    PS_EPS_MAP_QOS_FLOW_LIST_STRU       stMapQosFlowList;
+    PS_EPS_MAP_QOS_RULE_LIST_STRU       stMapQosRuleList;
+#endif
 } TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU;
 
 
@@ -1077,27 +1112,25 @@ typedef struct
 {
     TAF_CTRL_STRU                       stCtrl;
 
-    VOS_UINT32                          bitOpLinkdRabId     : 1;
-    VOS_UINT32                          bitOpLinkedQfi      : 1;
     VOS_UINT32                          bitOpUmtsQos        : 1;
     VOS_UINT32                          bitOpEpsQos         : 1;
     VOS_UINT32                          bitOpNrQos          : 1;
     VOS_UINT32                          bitOpTft            : 1;
     VOS_UINT32                          bitOpIpv4Mtu        : 1;
     VOS_UINT32                          bitOpCustomPco      : 1; /* 用于VERRIZON定制需求中,指示FF00H是否可用。 1:可用 0:不可用 */
+    VOS_UINT32                          bitOpRabId          : 1;
+    VOS_UINT32                          bitOpQfi            : 1;
     VOS_UINT32                          bitOpSpare          : 24;
 
     VOS_UINT8                           ucCid;
     VOS_UINT8                           ucRabId;
-    VOS_UINT8                           ucLinkdRabId;
-    VOS_UINT8                           ucPduSessionId;
     VOS_UINT8                           ucQfi;
-    VOS_UINT8                           ucLinkedQfi;
-    VOS_UINT8                           aucReserved[2];
+    VOS_UINT8                           ucPduSessionId;
+    TAF_PS_RAT_TYPE_ENUM_UINT32         enCnRatType;                            /* 核心网制式LTE/NR/G/W/1X/HRPD */
 
     TAF_UMTS_QOS_STRU                   stUmtsQos;
     TAF_EPS_QOS_STRU                    stEpsQos;
-    TAF_PS_NR_QOS_STRU                  stNrQos;
+    PS_NR_QOS_STRU                      stNrQos;
 
     TAF_PDP_DNS_STRU                    stDns;
     TAF_PDP_NBNS_STRU                   stNbns;
@@ -1111,9 +1144,19 @@ typedef struct
     TAF_PDP_TFT_STRU                    stTft;
 
     VOS_UINT16                          usIpv4Mtu;
-    VOS_UINT8                           aucReserved1[2];
+    VOS_UINT8                           ucQosRuleNum;
+    VOS_UINT8                           aucReserved1[1];
 
     TAF_PS_CUSTOM_PCO_INFO_STRU         stCustomPcoInfo;
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    /* TODO:为了减少非NR版本中消息大小，暂时用宏控制 */
+    PS_NR_QOS_RULE_INFO_STRU            astQosRule[PS_MAX_QOS_RULE_NUM_IN_QOS_FLOW];    /* QoS Rule List*/
+
+    PS_EPS_MAP_QOS_FLOW_LIST_STRU       stMapQosFlowList;
+    PS_EPS_MAP_QOS_RULE_LIST_STRU       stMapQosRuleList;
+#endif
+
 } TAF_PS_CALL_PDP_MODIFY_CNF_STRU;
 
 
@@ -1201,7 +1244,13 @@ typedef struct
     VOS_UINT32                          bitOpPcscfDiscovery : 1;                /* P-CSCF discovery */
     VOS_UINT32                          bitOpImCnSignalFlg  : 1;                /* IM CN Signalling Flag */
     VOS_UINT32                          bitOpNasSigPrioInd  : 1;                /* Nas Signaling Low pri Ind */
-    VOS_UINT32                          bitOpSpare          : 22;
+    VOS_UINT32                          bitOpSscMode        : 1;
+    VOS_UINT32                          bitOpSNssai         : 1;
+    VOS_UINT32                          bitOpPrefAccessType : 1;
+    VOS_UINT32                          bitOpRQosInd        : 1;
+    VOS_UINT32                          bitOpMh6Pdu         : 1;
+    VOS_UINT32                          bitOpAlwaysOnInd    : 1;
+    VOS_UINT32                          bitOpSpare          : 16;
 
     VOS_UINT8                           ucDefined;                              /* 0:undefined, 1:defined */
 
@@ -1211,8 +1260,8 @@ typedef struct
     /* 2 IPV6 Internet Protocol, version 6 (IETF RFC 2460) */
     /* 3 IPV4V6 Virtual <PDP_type> introduced to handle dual IP stack UE capability. (See 3GPP TS 24.301 [83]) */
     TAF_PDP_TYPE_ENUM_UINT8             enPdpType;
+    TAF_PS_ALWAYS_ON_IND_ENUM_UINT8     enAlwaysOnInd;
 
-    VOS_UINT8                           aucReserved[1];
 
     /* Access Point Name*/
     VOS_UINT8                           aucApn[TAF_MAX_APN_LEN + 1];
@@ -1256,7 +1305,13 @@ typedef struct
            set to "MS is not configured for NAS signalling low priority". */
     TAF_PDP_NAS_SIG_PRIO_IND_ENUM_UINT8 enNasSigPrioInd;
 
-    VOS_UINT8                           aucReserved2[1];
+    TAF_PS_SSC_MODE_ENUM_UINT8                              enSscMode;
+    TAF_PS_PREF_ACCESS_TYPE_ENUM_UINT8                      enPrefAccessType;
+    TAF_PS_REFLECT_QOS_IND_ENUM_UINT8                       enRQosInd;
+    TAF_PS_IPV6_MULTI_HOMING_IND_ENUM_UINT8                 enMh6Pdu;
+    VOS_UINT8                                               ucResv;
+    /* S-NSSAI */
+    PS_S_NSSAI_STRU                                         stSNssai;
 
 }TAF_PDP_PRIM_CONTEXT_EXT_STRU;
 
@@ -1484,7 +1539,8 @@ typedef struct
     VOS_UINT32                          bitOpNwPktFilterId  : 1;    /* NWPacketFltId*/
     VOS_UINT32                          bitOpLocalIpv4AddrAndMask      : 1;
     VOS_UINT32                          bitOpLocalIpv6AddrAndMask      : 1;
-    VOS_UINT32                          bitOpSpare          : 19;
+    VOS_UINT32                          bitOpQri            : 1;
+    VOS_UINT32                          bitOpSpare          : 18;
 
     VOS_UINT8                           ucCid;
 
@@ -1534,7 +1590,8 @@ typedef struct
     VOS_UINT8                           aucLocalIpv4Mask[TAF_IPV4_ADDR_LEN];
     VOS_UINT8                           aucLocalIpv6Addr[TAF_IPV6_ADDR_LEN];
     VOS_UINT8                           ucLocalIpv6Prefix;
-    VOS_UINT8                           aucReserved2[3];
+    VOS_UINT8                           ucQri;
+    VOS_UINT8                           aucReserved2[2];
 } TAF_TFT_EXT_STRU;
 
 typedef struct
@@ -1926,15 +1983,26 @@ typedef struct
     VOS_UINT32                          bitOpPCSCFPrimAddr  : 1;                /* aucPCSCFPrimAddr*/
     VOS_UINT32                          bitOpPCSCFSecAddr   : 1;                /* aucPCSCFSecAddr*/
     VOS_UINT32                          bitOpImCnSignalFlg  : 1;
-    VOS_UINT32                          bitOpSpare          : 22;
+    VOS_UINT32                          bitOpIpv4Mtu        : 1;                /* usIpv4Mtu*/
+    VOS_UINT32                          bitOpQfi            : 1;                /* ucQfi*/
+    VOS_UINT32                          bitOpSNssai         : 1;                /* aucSNssai*/
+    VOS_UINT32                          bitOpRqTimer        : 1;                /* ulRqTimer */
+    VOS_UINT32                          bitOpSpare          : 18;
 
     VOS_UINT8                           ucPrimayCid;                            /* default EPS bearer context*/
     VOS_UINT8                           ucBearerId;                             /* a numeric parameter which identifies the bearer*/
 
     /* the IM CN subsystem-related signalling flag */
     TAF_PDP_IM_CN_SIG_FLAG_ENUM_UINT8   enImCnSignalFlg;
-
+    VOS_UINT8                           ucPduSessionId;
+    VOS_UINT8                           ucQfi;
+    TAF_PS_SSC_MODE_ENUM_UINT8          enSscMode;
+    PS_PDU_SESSION_ALWAYS_ON_IND_ENUM_UINT8   enAlwaysOnInd;
     VOS_UINT8                           aucReserved[1];
+    TAF_PS_ACCESS_TYPE_ENUM_UINT16      enAccessType;
+    VOS_UINT16                          usIpv4Mtu;
+    VOS_UINT32                          ulRqTimer;
+
 
     /* Access Pointer Name*/
     VOS_UINT8                           aucApn[TAF_MAX_APN_LEN + 1];
@@ -1959,6 +2027,9 @@ typedef struct
 
     /* the IP Address of the secondary P-CSCF Server*/
     TAF_PDP_ADDR_STRU                   stPCSCFSecAddr;
+
+    /* S-NSSAI */
+    PS_S_NSSAI_STRU                     stSNssai;
 
 } TAF_PDP_DYNAMIC_PRIM_EXT_STRU;
 
@@ -1992,6 +2063,9 @@ typedef struct
 *****************************************************************************/
 typedef struct
 {
+    VOS_UINT32                          bitOpQfi   : 1;
+    VOS_UINT32                          bitOpSpare : 31;
+
     VOS_UINT8                           ucCid;
 
     /* default EPS bearer context */
@@ -2000,7 +2074,9 @@ typedef struct
     /* a numeric parameter which identifies the bearer */
     VOS_UINT8                           ucBearerId;
 
-    VOS_UINT8                           ucReserved[1];
+    VOS_UINT8                           ucPduSessionId;                         /* 这个参数是全局分配的PDU Session ID */
+    VOS_UINT8                           ucQfi;
+    VOS_UINT8                           ucReserved[3];
 } TAF_PDP_DYNAMIC_SEC_EXT_STRU;
 
 typedef struct
@@ -2047,6 +2123,7 @@ typedef struct
     TAF_PS_CAUSE_ENUM_UINT32            enCause;
     VOS_UINT32                          ulCidNum;
     TAF_PF_TFT_STRU                     astPfTftInfo[0]; //lint !e43
+
 } TAF_PS_GET_DYNAMIC_TFT_INFO_CNF_STRU;
 
 
@@ -3039,7 +3116,8 @@ typedef struct
     VOS_UINT8                           ucPfNum;
     VOS_UINT8                           ucImsSuppFlg;
     VOS_UINT8                           ucNasSigPrioInd;
-    VOS_UINT8                           aucReserved[2];
+    TAF_PS_BEARER_TYPE_ENUM_UINT8       ucBearType;
+    VOS_UINT8                           aucReserved[1];
 
     TAF_UMTS_QOS_STRU                   stUmtsQosInfo;
     TAF_EPS_QOS_STRU                    stEpsQosInfo;
@@ -3528,6 +3606,170 @@ typedef struct
     TAF_CTRL_STRU                               stCtrl;
     TAF_PS_APN_DATA_SYS_POLICY_CONFIG_STRU      stApnDataSysCfgList;
 } TAF_PS_APN_DATA_SYS_POLICY_CFG_IND_STRU;
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+} TAF_PS_GET_LTE_ATTACH_INFO_REQ_STRU;
+
+
+typedef struct
+{
+    /* IPV4:1, IPV6:2, IPV4V6:3, PPP:4 */
+    TAF_PDP_TYPE_ENUM_UINT8             enPdpType;         /* IP TYPE*/
+    VOS_UINT8                           aucReserved[3];    /* 保留 */
+    TAF_PDP_APN_STRU                    stApn;             /* APN 信息*/
+} TAF_LTE_ATTACH_QUERY_INFO_STRU;
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+    TAF_PS_CAUSE_ENUM_UINT32            enCause;                /* 错误码存储*/
+    TAF_LTE_ATTACH_QUERY_INFO_STRU      stLteAttQueryInfo;      /* LTEAttEsm查询信息*/
+} TAF_PS_GET_LTE_ATTACH_INFO_CNF_STRU;
+
+
+typedef struct
+{
+    /* 0 5QI is selected by network */
+    /* [1 - 4]value range for guranteed bit rate Qos Flows */
+    /* 65,66,75  value for guranteed bit rate Qos Flows */
+    /* [5 - 9]value range for non-guarenteed bit rate Qos Flows */
+    /* 69,70,79,80 value for non-guarenteed bit rate Qos Flows */
+    VOS_UINT8                           uc5QI;
+
+    VOS_UINT8                           aucReserved[3];
+
+    /* DL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLGFBR;
+
+    /* UL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULGFBR;
+
+    /* DL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLMFBR;
+
+    /* UL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULMFBR;
+}TAF_PS_5G_QOS_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                         bitOp5QI    : 1;
+    VOS_UINT32                         bitOpDLGFBR : 1;
+    VOS_UINT32                         bitOpULGFBR : 1;
+    VOS_UINT32                         bitOpDLMFBR : 1;
+    VOS_UINT32                         bitOpULMFBR : 1;
+    VOS_UINT32                         bitOpSpare  : 27;
+
+    VOS_UINT8                          ucCid;
+    VOS_UINT8                          ucDefined;
+    VOS_UINT8                          aucRsv[1];
+
+    /* 0 5QI is selected by network */
+    /* [1 - 4]value range for guranteed bit rate Qos Flows */
+    /* 65,66,75  value for guranteed bit rate Qos Flows */
+    /* [5 - 9]value range for non-guarenteed bit rate Qos Flows */
+    /* 69,70,79,80 value for non-guarenteed bit rate Qos Flows */
+    VOS_UINT8                           uc5QI;
+
+    /* DL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLGFBR;
+
+    /* UL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULGFBR;
+
+    /* DL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLMFBR;
+
+    /* UL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULMFBR;
+}TAF_5G_QOS_EXT_STRU;
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+
+    TAF_5G_QOS_EXT_STRU                 st5QosInfo;
+} TAF_PS_SET_5G_QOS_INFO_REQ_STRU;
+
+typedef TAF_PS_COMMON_CNF_STRU TAF_PS_SET_5G_QOS_INFO_CNF_STRU;
+
+
+typedef TAF_PS_COMMON_REQ_STRU TAF_PS_GET_5G_QOS_INFO_REQ_STRU;
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+
+    TAF_PS_CAUSE_ENUM_UINT32            enCause;
+    VOS_UINT32                          ulCidNum;
+    TAF_5G_QOS_EXT_STRU                 ast5gQosInfo[0]; //lint !e43
+} TAF_PS_GET_5G_QOS_INFO_CNF_STRU;
+
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+
+    /* 0xff-if the parameter <cid> is omitted */
+    VOS_UINT8                           ucCid;
+    VOS_UINT8                           aucReserved[3];
+} TAF_PS_GET_DYNAMIC_5G_QOS_INFO_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          bitOpDLGFBR : 1;
+    VOS_UINT32                          bitOpULGFBR : 1;
+    VOS_UINT32                          bitOpDLMFBR : 1;
+    VOS_UINT32                          bitOpULMFBR : 1;
+    VOS_UINT32                          bitOpAveragWindow : 1;
+    VOS_UINT32                          bitOpSAMBR  : 1;
+    VOS_UINT32                          bitOpSpare  : 26;
+
+    VOS_UINT8                           ucCid;
+
+    /* 0 5QI is selected by network */
+    /* [1 - 4]value range for guranteed bit rate Qos Flows */
+    /* 65,66,75  value for guranteed bit rate Qos Flows */
+    /* [5 - 9]value range for non-guarenteed bit rate Qos Flows */
+    /* 69,70,79,80 value for non-guarenteed bit rate Qos Flows */
+    VOS_UINT8                           uc5QI;
+
+    VOS_UINT16                          usAveragWindow;     /* Averaging Window */
+
+    /* DL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLGFBR;
+
+    /* UL GFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULGFBR;
+
+    /* DL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulDLMFBR;
+
+    /* UL MFBR in case of GBR 5QI, The value is in kbit/s */
+    VOS_UINT32                          ulULMFBR;
+
+
+    PS_PDU_SESSION_AMBR_STRU            stAmbr;             /* Session AMBR */
+} TAF_PS_5G_DYNAMIC_QOS_EXT_STRU;
+
+
+typedef struct
+{
+    TAF_CTRL_STRU                       stCtrl;
+
+    TAF_PS_CAUSE_ENUM_UINT32            enCause;
+    VOS_UINT32                          ulCidNum;
+    TAF_PS_5G_DYNAMIC_QOS_EXT_STRU      ast5gQosInfo[0]; //lint !e43
+} TAF_PS_GET_DYNAMIC_5G_QOS_INFO_CNF_STRU;
 
 /*****************************************************************************
   8 UNION定义
@@ -4650,6 +4892,44 @@ VOS_UINT32 TAF_PS_Get_DataRoamSwitchStatus(
     VOS_UINT16                          usExClientId,
     VOS_UINT8                           ucOpId
 );
+
+/*****************************************************************************
+ 函 数 名  : TAF_PS_GetLteAttchInfo
+ 功能描述  : 获取LTE 注册承载的PDN上下文信息
+ 输入参数  : ulModuleId                 - 填写PID
+             usExClientId               - 扩展客户端ID
+                                          A核 : ModemID(高四bit) + 客户端ID
+                                          C核 : 客户端ID
+             ucOpId                     - 操作码ID
+ 输出参数  : 无
+ 返 回 值  : VOS_OK                     - 成功
+             VOS_ERR                    - 失败
+*****************************************************************************/
+VOS_UINT32 TAF_PS_GetLteAttchInfo(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usExClientId,
+    VOS_UINT8                           ucOpId
+);
+
+VOS_UINT32 TAF_PS_Set5QosInfo(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usExClientId,
+    VOS_UINT8                           ucOpId,
+    TAF_5G_QOS_EXT_STRU                *pst5gQosInfo
+);
+VOS_UINT32 TAF_PS_Get5gQosInfo(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usExClientId,
+    VOS_UINT8                           ucOpId
+);
+
+VOS_UINT32 TAF_PS_GetDynamic5gQosInfo(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usExClientId,
+    VOS_UINT8                           ucOpId,
+    VOS_UINT8                           ucCid
+);
+
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

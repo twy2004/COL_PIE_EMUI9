@@ -65,10 +65,11 @@
 
 #include "AtCmdMiscProc.h"
 
-
 #include <linux/random.h>
 
 #include "mdrv_slt.h"
+
+#include "AtMtCommFun.h"
 
 
 /*****************************************************************************
@@ -88,6 +89,8 @@
 #define CMD_TBL_CLAC_IS_INVISIBLE   (0x00000008)     +CLAC命令中不输出显示的命令
 */
 
+extern AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl;
+
 VOS_UINT32                 g_ulNVRD = 0;
 VOS_UINT32                 g_ulNVWR = 0;
 
@@ -103,6 +106,8 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
     AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
     (VOS_UINT8*)"^RSIM",     VOS_NULL_PTR},
+
+
 
     {AT_CMD_PHYNUM,
     AT_SetPhyNumPara,    AT_NOT_SET_TIME,    AT_QryPhyNumPara,      AT_NOT_SET_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
@@ -137,8 +142,8 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     {AT_CMD_FCHAN,
     At_SetFChanPara,     AT_SET_PARA_TIME,   At_QryFChanPara,       AT_QRY_PARA_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_FCHAN_OTHER_ERR  ,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FCHAN",    (VOS_UINT8*)"(0-7),(0-255),(0-4294967295),(0-1)"},
+    AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
+    (VOS_UINT8*)"^FCHAN",    (VOS_UINT8*)FCHAN_CMD_PARA_STRING},
 
     {AT_CMD_CLT,
     At_SetCltPara,     AT_SET_PARA_TIME,   VOS_NULL_PTR,       AT_NOT_SET_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
@@ -146,17 +151,12 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     AT_CME_INCORRECT_PARAMETERS  ,    CMD_TBL_PIN_IS_LOCKED,
     (VOS_UINT8*)"^CLT",    (VOS_UINT8*)"(0,1)"},
 
-    {AT_CMD_DCXOTEMPCOMP,
-    AT_SetDcxotempcompPara,  AT_SET_PARA_TIME,   AT_QryDcxotempcompPara,   AT_QRY_PARA_TIME,    VOS_NULL_PTR, AT_NOT_SET_TIME,
-    VOS_NULL_PTR,   AT_NOT_SET_TIME,
-    AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8 *)"^DCXOTEMPCOMP",    (VOS_UINT8 *)"(0,1)"},
-	
+
     {AT_CMD_FTXON,
     At_SetFTxonPara,     AT_SET_PARA_TIME,   At_QryFTxonPara,       AT_QRY_PARA_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
     AT_FTXON_OTHER_ERR  ,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FTXON",    (VOS_UINT8*)"(0,1,2)"},
+    (VOS_UINT8*)"^FTXON",    (VOS_UINT8*)FTXON_CMD_PARA_STRING},
 
     {AT_CMD_CLTINFO,
     VOS_NULL_PTR,       AT_NOT_SET_TIME,   At_QryCltInfo,       AT_NOT_SET_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
@@ -169,31 +169,6 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
     AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
     (VOS_UINT8*)"^FDAC",     (VOS_UINT8*)"(0-65536)"},
-
-    {AT_CMD_FRXON,
-    At_SetFRxonPara,     AT_SET_PARA_TIME,   At_QryFRxonPara,       AT_QRY_PARA_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_FRXON_OTHER_ERR  ,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FRXON",    (VOS_UINT8*)"(0-1)"},
-
-    {AT_CMD_FPA,
-    At_SetFpaPara,       AT_SET_PARA_TIME,   At_QryFpaPara,         AT_NOT_SET_TIME,    VOS_NULL_PTR ,    AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_FPA_OTHER_ERR  ,      CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FPA",      (VOS_UINT8*)"(0-255)"},
-
-
-    {AT_CMD_FLNA,
-    At_SetFlnaPara,      AT_SET_PARA_TIME,   At_QryFlnaPara,        AT_QRY_PARA_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_FLNA_OTHER_ERR  ,     CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FLNA",     (VOS_UINT8*)"(0-255)"},
-
-    {AT_CMD_FRSSI,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,    At_QryFrssiPara,       AT_QRY_PARA_TIME,  VOS_NULL_PTR ,    AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FRSSI",    VOS_NULL_PTR},
 
     {AT_CMD_MDATE,
     AT_SetMDatePara,     AT_NOT_SET_TIME,    AT_QryMDatePara,       AT_NOT_SET_TIME,   VOS_NULL_PTR ,    AT_NOT_SET_TIME,
@@ -337,7 +312,7 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     AT_SetFwavePara,     AT_SET_PARA_TIME,   VOS_NULL_PTR,          AT_NOT_SET_TIME,   At_CmdTestProcERROR, AT_NOT_SET_TIME,
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
     AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FWAVE",  (VOS_UINT8*)"(0-7),(0-65535)"},
+    (VOS_UINT8*)"^FWAVE",  (VOS_UINT8*)FWAVE_CMD_PARA_STRING},
 
     {AT_CMD_EQVER,
     VOS_NULL_PTR,        AT_NOT_SET_TIME,    AT_QryEqverPara,       AT_NOT_SET_TIME,   VOS_NULL_PTR,     AT_NOT_SET_TIME,
@@ -528,29 +503,12 @@ AT_PAR_CMD_ELEMENT_STRU g_astAtDeviceCmdTbl[] = {
     AT_CME_INCORRECT_PARAMETERS, CMD_TBL_PIN_IS_LOCKED,
     (VOS_UINT8*)"^PHONEPHYNUM",         (VOS_UINT8 *)"(@type),(@Phynum),(@Hmac)"},
 
-    {AT_CMD_PORTCTRLTMP,
-    AT_SetPortCtrlTmpPara,          AT_SET_PARA_TIME,   AT_QryPortCtrlTmpPara,  AT_NOT_SET_TIME,  AT_TestHsicCmdPara,  AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_CME_INCORRECT_PARAMETERS, CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^PORTCTRLTMP",    (VOS_UINT8 *)"(@password)"},
-
-    {AT_CMD_PORTATTRIBSET,
-    AT_SetPortAttribSetPara,          AT_SET_PARA_TIME,   AT_QryPortAttribSetPara,  AT_QRY_PARA_TIME,  AT_TestHsicCmdPara,  AT_NOT_SET_TIME,
-    VOS_NULL_PTR,        AT_NOT_SET_TIME,
-    AT_CME_INCORRECT_PARAMETERS, CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^PORTATTRIBSET",    (VOS_UINT8 *)"(0,1),(@password)"},
-
     {AT_CMD_SIMLOCKUNLOCK,
     AT_SetSimlockUnlockPara, AT_SET_PARA_TIME,  VOS_NULL_PTR,   AT_NOT_SET_TIME,    AT_TestSimlockUnlockPara, AT_NOT_SET_TIME,
     VOS_NULL_PTR,        AT_NOT_SET_TIME,
     AT_CME_INCORRECT_PARAMETERS,    CMD_TBL_PIN_IS_LOCKED,
     (VOS_UINT8*)"^SIMLOCKUNLOCK",    (VOS_UINT8 *)"(\"NET\",\"NETSUB\",\"SP\"),(pwd)"},
 
-    {AT_CMD_FPLLSTATUS,
-    VOS_NULL_PTR,   AT_NOT_SET_TIME,    AT_QryFPllStatusPara,  AT_QRY_PARA_TIME,  VOS_NULL_PTR,  AT_NOT_SET_TIME,
-    VOS_NULL_PTR,   AT_NOT_SET_TIME,
-    AT_CME_INCORRECT_PARAMETERS, CMD_TBL_PIN_IS_LOCKED,
-    (VOS_UINT8*)"^FPLLSTATUS",     (VOS_UINT8 *)"(0,1),(0,1)"},
 
     {AT_CMD_FPOWDET,
     VOS_NULL_PTR,   AT_NOT_SET_TIME,    AT_QryFpowdetTPara,  AT_QRY_PARA_TIME,  VOS_NULL_PTR,  AT_NOT_SET_TIME,
@@ -837,40 +795,10 @@ VOS_UINT32 At_TestTmodePara(VOS_UINT8 ucIndex)
                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
                                   g_stAtDevCmdCtrl.ucCurrentTMode);
 
+
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
-
-}
-
-
-VOS_UINT32 At_TestFdacPara(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                          usLength;
-
-    usLength  = 0;
-
-    if ((AT_RAT_MODE_WCDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-     || (AT_RAT_MODE_AWS == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                          "%s: (0-2047)",
-                                          g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    }
-    else
-    {
-        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr,
-                                          (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                          "%s: (0-1023)",
-                                          g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    }
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
 }
 
 
@@ -1420,56 +1348,6 @@ VOS_UINT32 AT_TestWifiPaRangePara (VOS_UINT8 ucIndex)
 
     return AT_OK;
 }
-
-
-VOS_VOID AT_GetTseLrfLoadDspInfo(
-    AT_TSELRF_PATH_ENUM_UINT32          enPath,
-    VOS_BOOL                           *pbLoadDsp,
-    DRV_AGENT_TSELRF_SET_REQ_STRU      *pstTseLrf
-)
-{
-    /* ^TSELRF命令设置的射频通路编号为GSM且当前已经LOAD了该通路，无需LOAD */
-    if (AT_TSELRF_PATH_GSM == enPath)
-    {
-        if ((AT_RAT_MODE_GSM == g_stAtDevCmdCtrl.ucDeviceRatMode)
-         && (VOS_TRUE == g_stAtDevCmdCtrl.bDspLoadFlag))
-        {
-            *pbLoadDsp = VOS_FALSE;
-        }
-        else
-        {
-            pstTseLrf->ucLoadDspMode     = VOS_RATMODE_GSM;
-            pstTseLrf->ucDeviceRatMode   = AT_RAT_MODE_GSM;
-            *pbLoadDsp                   = VOS_TRUE;
-        }
-        return;
-    }
-
-    /* ^TSELRF命令设置的射频通路编号为WCDMA主集且当前已经LOAD了该通路，无需LOAD */
-    if (AT_TSELRF_PATH_WCDMA_PRI == enPath)
-    {
-        if (((AT_RAT_MODE_WCDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-          || (AT_RAT_MODE_AWS == g_stAtDevCmdCtrl.ucDeviceRatMode))
-         && (VOS_TRUE == g_stAtDevCmdCtrl.bDspLoadFlag))
-        {
-            *pbLoadDsp = VOS_FALSE;
-        }
-        else
-        {
-            pstTseLrf->ucLoadDspMode     = VOS_RATMODE_WCDMA;
-            pstTseLrf->ucDeviceRatMode   = AT_RAT_MODE_WCDMA;
-            *pbLoadDsp                   = VOS_TRUE;
-        }
-        return;
-    }
-
-    *pbLoadDsp = VOS_FALSE;
-
-    AT_WARN_LOG("AT_GetTseLrfLoadDspInfo: enPath only support GSM or WCDMA primary.");
-
-    return;
-}
-
 
 
 VOS_UINT32 AT_SetCmdlenPara(VOS_UINT8 ucIndex)
@@ -2199,257 +2077,8 @@ VOS_UINT32 AT_SetNVReadPara(VOS_UINT8 ucIndex)
 
 VOS_VOID AT_GetNvRdDebug(VOS_VOID)
 {
-    PS_PRINTF("\n g_ulNVRD=0x%x \n",g_ulNVRD);
-    PS_PRINTF("\n g_ulNVWR=0x%x \n",g_ulNVWR);
-}
-
-
-VOS_UINT32 AT_QryFPllStatusPara(VOS_UINT8 ucIndex)
-{
-    VOS_UINT32                          ulReceiverPid;
-    AT_PHY_RF_PLL_STATUS_REQ_STRU      *pstMsg;
-    VOS_UINT32                          ulLength;
-    VOS_UINT16                          usMsgId;
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-            ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFPllStatusPara(ucIndex);
-    }
-    /*判断当前接入模式，只支持G/W*/
-    if (AT_RAT_MODE_WCDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-    {
-        ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_WPHY);
-        usMsgId       = ID_AT_WPHY_RF_PLL_STATUS_REQ;
-    }
-    else if ( (AT_RAT_MODE_GSM == g_stAtDevCmdCtrl.ucDeviceRatMode)
-            ||(AT_RAT_MODE_EDGE == g_stAtDevCmdCtrl.ucDeviceRatMode) )
-    {
-        ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_GPHY);
-        usMsgId       = ID_AT_GPHY_RF_PLL_STATUS_REQ;
-    }
-
-    else
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 申请AT_PHY_RF_PLL_STATUS_REQ_STRU消息 */
-    ulLength = sizeof(AT_PHY_RF_PLL_STATUS_REQ_STRU) - VOS_MSG_HEAD_LENGTH;
-    /*lint -save -e516 */
-    pstMsg   = (AT_PHY_RF_PLL_STATUS_REQ_STRU *)PS_ALLOC_MSG(WUEPS_PID_AT, ulLength);
-    /*lint -restore */
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        AT_WARN_LOG("AT_QryFPllStatusPara: Alloc msg fail!");
-        return AT_ERROR;
-    }
-
-    /* 填充消息 */
-    pstMsg->ulReceiverPid = ulReceiverPid;
-    pstMsg->usMsgID       = usMsgId;
-    pstMsg->usRsv1        = 0;
-    pstMsg->usDspBand     = g_stAtDevCmdCtrl.stDspBandArfcn.usDspBand;
-    pstMsg->usRsv2        = 0;
-
-    /* 向对应PHY发送消息 */
-    if (VOS_OK != PS_SEND_MSG(WUEPS_PID_AT, pstMsg))
-    {
-        AT_WARN_LOG("AT_QryFPllStatusPara: Send msg fail!");
-        return AT_ERROR;
-    }
-
-    /* 设置当前操作类型 */
-    gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_FPLLSTATUS_QRY;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
-
-    /* 返回命令处理挂起状态 */
-    return AT_WAIT_ASYNC_RETURN;
-}
-
-
-VOS_VOID At_RfPllStatusCnfProc(PHY_AT_RF_PLL_STATUS_CNF_STRU *pstMsg)
-{
-    VOS_UINT8                           ucIndex;
-    VOS_UINT16                          usLength;
-
-    /* 获取本地保存的用户索引 */
-    ucIndex = g_stAtDevCmdCtrl.ucIndex;
-
-    if (AT_CMD_FPLLSTATUS_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt)
-    {
-        AT_WARN_LOG("At_RfPllStatusCnfProc: CmdCurrentOpt is not AT_CMD_FPLLSTATUS_QRY!");
-        return;
-    }
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    usLength = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                       (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       "%s: %d,%d",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                       pstMsg->usTxStatus,
-                                       pstMsg->usRxStatus);
-
-    gstAtSendData.usBufLen = usLength;
-
-    At_FormatResultData(ucIndex, AT_OK);
-
-    return;
-}
-
-
-VOS_UINT32 AT_QryFpowdetTPara(VOS_UINT8 ucIndex)
-{
-    AT_PHY_POWER_DET_REQ_STRU          *pstMsg;
-    VOS_UINT32                          ulLength;
-    VOS_UINT32                          ulResult;
-    VOS_UINT8                           ucIsLteFlg;
-
-    ucIsLteFlg = VOS_FALSE;
-
-    /*判断当前接入模式，只支持W*/
-    if ( (AT_RAT_MODE_WCDMA != g_stAtDevCmdCtrl.ucDeviceRatMode)
-      && (AT_RAT_MODE_CDMA != g_stAtDevCmdCtrl.ucDeviceRatMode)
-      && (AT_RAT_MODE_GSM != g_stAtDevCmdCtrl.ucDeviceRatMode)
-      && (AT_RAT_MODE_FDD_LTE != g_stAtDevCmdCtrl.ucDeviceRatMode)
-      && (AT_RAT_MODE_TDD_LTE != g_stAtDevCmdCtrl.ucDeviceRatMode) )
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 申请AT_PHY_POWER_DET_REQ_STRU消息 */
-    ulLength = sizeof(AT_PHY_POWER_DET_REQ_STRU) - VOS_MSG_HEAD_LENGTH;
-    /*lint -save -e516 */
-    pstMsg   = (AT_PHY_POWER_DET_REQ_STRU *)PS_ALLOC_MSG(WUEPS_PID_AT, ulLength);
-    /*lint -restore */
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        AT_WARN_LOG("AT_QryFpowdetTPara: Alloc msg fail!");
-        return AT_ERROR;
-    }
-
-    /* CDMA的话，发送给UPHY_PID_CSDR_1X_CM */
-    if (AT_RAT_MODE_CDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-    {
-        pstMsg->ulReceiverPid = UPHY_PID_CSDR_1X_CM;
-    }
-    else
-    if (AT_RAT_MODE_GSM == g_stAtDevCmdCtrl.ucDeviceRatMode)
-    {
-        pstMsg->ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_GPHY);
-    }
-    else if (AT_RAT_MODE_WCDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-    {
-        pstMsg->ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_WPHY);
-    }
-    else
-    {
-        ucIsLteFlg = VOS_TRUE;
-    }
-
-    if (VOS_FALSE == ucIsLteFlg)
-    {
-        pstMsg->usMsgID       = ID_AT_PHY_POWER_DET_REQ;
-        pstMsg->usRsv         = 0;
-
-        /* 向对应PHY发送消息 */
-        ulResult = PS_SEND_MSG(WUEPS_PID_AT, pstMsg);
-    }
-    else
-    {
-        /*lint --e{516,830} */
-        PS_FREE_MSG(WUEPS_PID_AT, pstMsg);
-        ulResult = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
-                                          gastAtClientTab[ucIndex].opId,
-                                          ID_AT_MTA_POWER_DET_QRY_REQ,
-                                          VOS_NULL_PTR,
-                                          0,
-                                          I0_UEPS_PID_MTA);
-    }
-
-    if (VOS_OK != ulResult)
-    {
-        AT_WARN_LOG("AT_QryFpowdetTPara: Send msg fail!");
-        return AT_ERROR;
-    }
-
-    /* 设置当前操作类型 */
-    gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_FPOWDET_QRY;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
-
-    /* 返回命令处理挂起状态 */
-    return AT_WAIT_ASYNC_RETURN;
-}
-
-
-VOS_VOID At_RfFpowdetTCnfProc(PHY_AT_POWER_DET_CNF_STRU *pstMsg)
-{
-    VOS_UINT8                           ucIndex;
-    VOS_UINT16                          usLength;
-
-    /* 获取本地保存的用户索引 */
-    ucIndex = g_stAtDevCmdCtrl.ucIndex;
-
-    if (AT_CMD_FPOWDET_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt)
-    {
-        AT_WARN_LOG("At_RfFPOWDETCnfProc: CmdCurrentOpt is not AT_CMD_FPOWDET_QRY!");
-        return;
-    }
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    /* 应物理层要求，如果返回值为0x7FFF则为无效值，项查询者返回ERROR */
-    if(0x7FFF == pstMsg->sPowerDet)
-    {
-        gstAtSendData.usBufLen = 0;
-        At_FormatResultData(ucIndex, AT_ERROR);
-    }
-    else
-    {
-        usLength = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                           (VOS_CHAR *)pgucAtSndCodeAddr,
-                                           (VOS_CHAR *)pgucAtSndCodeAddr,
-                                           "%s: %d",
-                                           g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                           pstMsg->sPowerDet);
-
-        gstAtSendData.usBufLen = usLength;
-
-        At_FormatResultData(ucIndex, AT_OK);
-    }
-
-    return;
-}
-
-
-VOS_UINT32 AT_RcvMtaPowerDetQryCnf(VOS_VOID *pMsg)
-{
-    /* 定义局部变量 */
-    AT_MTA_MSG_STRU                    *pstMtaMsg;
-    MTA_AT_POWER_DET_QRY_CNF_STRU      *pstPowerDetQryCnf;
-    PHY_AT_POWER_DET_CNF_STRU           stPowerNetMsg;
-
-    /* 初始化消息变量 */
-    pstMtaMsg           = (AT_MTA_MSG_STRU *)pMsg;
-    pstPowerDetQryCnf   = (MTA_AT_POWER_DET_QRY_CNF_STRU *)pstMtaMsg->aucContent;
-
-    TAF_MEM_SET_S(&stPowerNetMsg, sizeof(stPowerNetMsg), 0x00, sizeof(PHY_AT_POWER_DET_CNF_STRU));
-
-    if (MTA_AT_RESULT_NO_ERROR == pstPowerDetQryCnf->enResult)
-    {
-        stPowerNetMsg.sPowerDet = pstPowerDetQryCnf->sPowerDet;
-    }
-    else
-    {
-        stPowerNetMsg.sPowerDet = 0x7FFF;
-    }
-
-    At_RfFpowdetTCnfProc(&stPowerNetMsg);
-
-    return VOS_OK;
+    PS_PRINTF_INFO("g_ulNVRD=0x%x \n",g_ulNVRD);
+    PS_PRINTF_INFO("g_ulNVWR=0x%x \n",g_ulNVWR);
 }
 
 
@@ -3256,6 +2885,58 @@ VOS_UINT16 AT_TasTestOut(
 }
 
 
+VOS_UINT32 AT_RcvMtaSetPhyMipiWriteCnf(VOS_VOID *pstMsg)
+{
+    AT_MTA_MSG_STRU                    *pRcvMsg             = VOS_NULL_PTR;
+    MTA_AT_PHY_MIPI_WRITE_CNF_STRU          *pstSetPhyMipiWriteCnf   = VOS_NULL_PTR;
+    VOS_UINT8                           ucIndex;
+
+    /* 初始化 */
+    pRcvMsg             = (AT_MTA_MSG_STRU *)pstMsg;
+    pstSetPhyMipiWriteCnf   = (MTA_AT_PHY_MIPI_WRITE_CNF_STRU *)pRcvMsg->aucContent;
+    ucIndex             = 0;
+
+    /* 通过clientid获取index */
+    if (AT_FAILURE == At_ClientIdToUserId(pRcvMsg->stAppCtrl.usClientId, &ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaSetPhyMipiWriteCnf: WARNING:AT INDEX NOT FOUND!");
+        return VOS_ERR;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaSetPhyMipiWriteCnf: AT_BROADCAST_INDEX.");
+        return VOS_ERR;
+    }
+
+    /* 当前AT是否在等待该命令返回 */
+    if (AT_CMD_PHYMIPIWRITE_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
+    {
+        AT_WARN_LOG("AT_RcvMtaSetPhyMipiWriteCnf: NOT AT_CMD_MIPIREAD_SET.");
+        return VOS_ERR;
+    }
+
+    /* 复位AT状态 */
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+
+    /* 判断回复消息中的错误码 */
+    if (MTA_AT_RESULT_NO_ERROR == pstSetPhyMipiWriteCnf->enResult)
+    {
+        /* 命令结果 *AT_OK */
+        gstAtSendData.usBufLen = 0;
+        At_FormatResultData(ucIndex, AT_OK);
+    }
+    else
+    {
+        /* 命令结果 *AT_ERROR */
+        gstAtSendData.usBufLen = 0;
+        At_FormatResultData(ucIndex, AT_ERROR);
+    }
+
+    return VOS_OK;
+}
+
+
 VOS_UINT32 AT_RcvMtaSetMipiReadCnf(VOS_VOID *pstMsg)
 {
     AT_MTA_MSG_STRU                    *pRcvMsg             = VOS_NULL_PTR;
@@ -3316,96 +2997,5 @@ VOS_UINT32 AT_RcvMtaSetMipiReadCnf(VOS_VOID *pstMsg)
 }
 
 
-
-VOS_UINT32  At_SetCltPara(VOS_UINT8 ucIndex)
-{
-    /* 状态检查 */
-    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-    
-    /* 参数个数不符合要求 */
-    if (1 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    /*  不是非信令模式下发返回错误 */
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    g_stAtDevCmdCtrl.enCltEnableFlg = (AT_DSP_CLT_ENABLE_ENUM_UINT8) gastAtParaList[0].ulParaValue;
-
-    return AT_OK;    /* 返回命令处理处理成功 */
-
-}
-
-/*****************************************************************************
- 函 数 名  : AT_SetDcxotempcompPara
- 功能描述  : ^DCXOTEMPCOMP设置命令处理函数
- 输入参数  : VOS_UINT8 ucIndex
- 输出参数  : 无
- 返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
-*****************************************************************************/
-VOS_UINT32 AT_SetDcxotempcompPara(VOS_UINT8 ucIndex)
-{
-    /* 参数检查 */
-    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    /* 参数个数检查 */
-    if (1 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-    /*  不是非信令模式下发返回错误 */
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    g_stAtDevCmdCtrl.enDcxoTempCompEnableFlg = (AT_DCXOTEMPCOMP_ENABLE_ENUM_UINT8) gastAtParaList[0].ulParaValue;
-
-    return AT_OK;
-}
-
-/*****************************************************************************
- 函 数 名  : AT_QryDcxotempcompPara
- 功能描述  : ^DCXOTEMPCOMP的查询命令处理函数
- 输入参数  : TAF_UINT8 ucIndex
- 输出参数  : 无
- 返 回 值  : TAF_UINT32
- 调用函数  :
- 被调函数  :
-*****************************************************************************/
-VOS_UINT32  AT_QryDcxotempcompPara(VOS_UINT8 ucIndex )
-{
-
-    /* 参数检查 */
-    if (AT_CMD_OPT_READ_CMD != g_stATParseCmd.ucCmdOptType)
-    {
-        return AT_ERROR;
-    }
-    /*  不是非信令模式下发返回错误 */
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-    gstAtSendData.usBufLen = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                    "%s: %d",
-                                                    g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                                    g_stAtDevCmdCtrl.enDcxoTempCompEnableFlg);
-
-    return AT_OK;
-}
 
 

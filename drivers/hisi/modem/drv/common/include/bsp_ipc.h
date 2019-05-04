@@ -93,7 +93,7 @@ extern spinlock_t ipcm_lock[IPC_SEM_BUTTOM];
 *
 * 返 回 值     : 
 *
-* 修改记录  : 2013年1月9日   lixiaojie     
+* 修改记录  :    
                           
 *****************************************************************************/
 int bsp_ipc_init(void);
@@ -108,7 +108,7 @@ int bsp_ipc_init(void);
 *
 * 返 回 值     : OK&ERROR
 *
-* 修改记录  : 2013年1月9日 lixiaojie 
+* 修改记录  : 
 *****************************************************************************/
 s32 bsp_ipc_sem_create(u32 u32SignalNum);
 /*****************************************************************************
@@ -122,7 +122,7 @@ s32 bsp_ipc_sem_create(u32 u32SignalNum);
 *
 * 返 回 值     : OK&ERROR
 *
-* 修改记录  : 2013年1月9日 lixiaojie 
+* 修改记录  : 
 *****************************************************************************/
 
 s32 bsp_ipc_sem_delete(u32 u32SignalNum);
@@ -136,7 +136,7 @@ s32 bsp_ipc_sem_delete(u32 u32SignalNum);
 *
 * 返 回 值     : OK&ERROR
 *
-* 修改记录  : 2013年1月8日    lixiaojie 
+* 修改记录  : 
 *****************************************************************************/
 
 s32 bsp_ipc_int_enable(IPC_INT_LEV_E ulLvl);
@@ -150,7 +150,7 @@ s32 bsp_ipc_int_enable(IPC_INT_LEV_E ulLvl);
  *
  * 返 回 值      : OK&ERROR
  *
- * 修改记录  :  2013年1月8日 lixiaojie  
+ * 修改记录  :  
  *****************************************************************************/
 
 s32 bsp_ipc_int_disable(IPC_INT_LEV_E ulLvl);
@@ -166,7 +166,7 @@ s32 bsp_ipc_int_disable(IPC_INT_LEV_E ulLvl);
  *
  * 返 回 值      : OK&ERROR
  *
- * 修改记录  : 2013年1月9日 lixiaojie
+ * 修改记录  : 
  *****************************************************************************/
 
 s32 bsp_ipc_int_connect(IPC_INT_LEV_E ulLvl, voidfuncptr routine, u32 parameter);
@@ -176,16 +176,15 @@ s32 bsp_ipc_int_connect(IPC_INT_LEV_E ulLvl, voidfuncptr routine, u32 parameter)
  * 功能描述  : 取消注册某个中断
  *
  * 输入参数  : u32 ulLvl 要使能的中断号，取值范围0～31 
- *                           voidfuncptr routine 中断服务程序
- *                           u32 parameter      中断服务程序参数
+ *                           
  * 输出参数  : 无
  *
  * 返 回 值      : OK&ERROR
  *
- * 修改记录  : 2013年1月9日 lixiaojie 
+ * 修改记录  : 
  *****************************************************************************/   
 
-s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl,voidfuncptr routine, u32 parameter);
+s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl);
 /*****************************************************************************
 * 函 数 名      : bsp_ipc_int_send
 *
@@ -197,7 +196,7 @@ s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl,voidfuncptr routine, u32 paramete
 *
 * 返 回 值      :  OK&ERROR
 *
-* 修改记录  :  2013年1月9日 lixiaojie 
+* 修改记录  :  
 *****************************************************************************/
 
 s32 bsp_ipc_int_send(IPC_INT_CORE_E enDstCore, IPC_INT_LEV_E ulLvl);
@@ -212,7 +211,7 @@ s32 bsp_ipc_int_send(IPC_INT_CORE_E enDstCore, IPC_INT_LEV_E ulLvl);
  *
  * 返 回 值      : OK&ERROR
  *
- * 修改记录  : 2013年1月9日 lixiaojie 
+ * 修改记录  : 
  *****************************************************************************/
 
 s32 bsp_ipc_sem_take(u32 u32SignalNum,s32 s32timeout);
@@ -227,7 +226,7 @@ s32 bsp_ipc_sem_take(u32 u32SignalNum,s32 s32timeout);
  *
  * 返 回 值      :OK&&ERROR
  *
- * 修改记录  : 2013年1月9日 lixiaojie 
+ * 修改记录  : 
  *****************************************************************************/
 
 s32 bsp_ipc_sem_give(u32 u32SignalNum);
@@ -242,7 +241,7 @@ s32 bsp_ipc_sem_give(u32 u32SignalNum);
 *
 * 返 回 值      :ERROR&OK
 *
-* 修改记录  :  2013年1月8日 lixiaojie 
+* 修改记录  :  
 *****************************************************************************/
 
 s32 bsp_ipc_spin_lock (u32 u32SignalNum);
@@ -257,7 +256,7 @@ s32 bsp_ipc_spin_lock (u32 u32SignalNum);
 *
 * 返 回 值      :ERROR&OK
 *
-* 修改记录  :  2014年11月11日 huangxianke 
+* 修改记录  :  
 *****************************************************************************/
 s32 bsp_ipc_spin_trylock (u32 u32SignalNum);
 
@@ -272,7 +271,7 @@ s32 bsp_ipc_spin_trylock (u32 u32SignalNum);
 *
 * 返 回 值      : OK&ERROR
 *
-* 修改记录  :  2013年1月9日 lixiaojie
+* 修改记录  :  
 *****************************************************************************/
 s32 bsp_ipc_spin_unlock (u32 u32SignalNum);
 
@@ -288,7 +287,7 @@ s32 bsp_ipc_spin_unlock (u32 u32SignalNum);
 *
 * 返 回 值  : MDRV_ERROR&MDRV_OK
 *
-* 修改记录  : 2016年2月26日 nieluhua 
+* 修改记录  : 
 *****************************************************************************/
 s32 bsp_ipc_spin_lock_timeout(u32 u32SignalNum, u32 TimeoutMs);
 
@@ -307,7 +306,7 @@ s32 bsp_ipc_spin_lock_timeout(u32 u32SignalNum, u32 TimeoutMs);
 *
 * 返 回 值  : MDRV_ERROR&MDRV_OK
 *
-* 修改记录  : 2016年2月26日 nieluhua 
+* 修改记录  :
 *****************************************************************************/
 s32 bsp_ipc_spin_lock_timeout_irqsave(unsigned int u32SignalNum, unsigned int TimeoutMs, unsigned long *flags);
 
@@ -324,7 +323,7 @@ s32 bsp_ipc_spin_lock_timeout_irqsave(unsigned int u32SignalNum, unsigned int Ti
 *
 * 返 回 值      :ERROR&OK
 *
-* 修改记录  :  2013年5月8日 lixiaojie 
+* 修改记录  : 
 *****************************************************************************/
 
 #define bsp_ipc_spin_lock_irqsave(u32SignalNum,flags)  \
@@ -342,7 +341,7 @@ s32 bsp_ipc_spin_lock_timeout_irqsave(unsigned int u32SignalNum, unsigned int Ti
 *
 * 返 回 值      :ERROR&OK
 *
-* 修改记录  :  2013年5月8日 lixiaojie 
+* 修改记录  : 
 *****************************************************************************/
 
 #define bsp_ipc_spin_unlock_irqrestore(u32SignalNum,flags) \
@@ -354,7 +353,7 @@ static inline s32 bsp_ipc_sem_delete(u32 u32SignalNum) {return 0;}
 static inline s32 bsp_ipc_int_enable(IPC_INT_LEV_E ulLvl) {return 0;}
 static inline s32 bsp_ipc_int_disable(IPC_INT_LEV_E ulLvl) {return 0;}
 static inline s32 bsp_ipc_int_connect(IPC_INT_LEV_E ulLvl, voidfuncptr routine, u32 parameter) {return 0;}
-static inline s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl,voidfuncptr routine, u32 parameter) {return 0;}
+static inline s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl) {return 0;}
 static inline s32 bsp_ipc_int_send(IPC_INT_CORE_E enDstCore, IPC_INT_LEV_E ulLvl) {return 0;}
 static inline s32 bsp_ipc_sem_take(u32 u32SignalNum,s32 s32timeout) {return 0;}
 static inline s32 bsp_ipc_sem_give(u32 u32SignalNum) {return 0;}
@@ -374,13 +373,49 @@ static inline void bsp_ipc_resume(void){return ;}
  
 typedef s32 (*read_cb_func)(u32 channel_id , u32 len, void* context);
 #ifdef CONFIG_IPC_MSG
-
+/*****************************************************************************
+* 函 数 名  : bsp_ipc_msg_register
+*
+* 功能描述  : 带消息IPC注册读取回调
+*
+* 输入参数  : 读回调
+*
+* 输出参数  : 无
+*
+* 返 回 值  :
+*
+* 修改记录  : 
+*****************************************************************************/
 int bsp_ipc_msg_register(read_cb_func read_cb, void *read_context);
 
-
+/*****************************************************************************
+* 函 数 名  : bsp_ipc_msg_read
+*
+* 功能描述  : 带消息IPC读取内容
+*
+* 输入参数  : 读buf
+*
+* 输出参数  : 无
+*
+* 返 回 值  :
+*
+* 修改记录  : 
+*****************************************************************************/
 int bsp_ipc_msg_read(u8 *buf, u32 buf_len);
 
-
+/*****************************************************************************
+* 函 数 名  : bsp_ipc_msg_write
+*
+* 功能描述  : 带消息IPC发送数据包，最长支持255个字节
+*
+* 输入参数  : 发送buf
+*
+* 输出参数  : 无
+*
+* 返 回 值  :
+*
+* 修改记录  : 
+*****************************************************************************/
 int bsp_ipc_msg_write(u8 *buf, u32 buf_len);
 
 #else
@@ -388,22 +423,22 @@ int bsp_ipc_msg_write(u8 *buf, u32 buf_len);
 #define UNUSED(a) (a=a)
 #endif
 /*lint --e{438}*/
-static inline int __attribute__ ((unused))bsp_ipc_msg_register(read_cb_func read_cb, void *read_context)
+static inline int __attribute__ ((unused))bsp_ipc_msg_register(__attribute__ ((unused))read_cb_func read_cb, void __attribute__ ((unused))*read_context)
 {
-	UNUSED(read_cb);
-	UNUSED(read_context);
+	//UNUSED(read_cb);
+	//UNUSED(read_context);
 	return -1;
 }
-static inline int __attribute__ ((unused))bsp_ipc_msg_read(u8 *buf, u32 buf_len)
+static inline int __attribute__ ((unused))bsp_ipc_msg_read(u8 __attribute__ ((unused))*buf, u32 __attribute__ ((unused))buf_len)
 {
-	UNUSED(buf);
-	UNUSED(buf_len);
+	//UNUSED(buf);
+	//UNUSED(buf_len);
 	return -1;
 }
-static inline int __attribute__ ((unused))bsp_ipc_msg_write(u8 *buf, u32 buf_len)
+static inline int __attribute__ ((unused))bsp_ipc_msg_write(u8 __attribute__ ((unused))*buf, u32 __attribute__ ((unused))buf_len)
 {
-	UNUSED(buf);
-	UNUSED(buf_len);
+	//UNUSED(buf);
+	//UNUSED(buf_len);
 	return -1;
 }
 #endif

@@ -81,8 +81,14 @@ extern "C" {
 #define AT_IPV6_CAPABILITY_IPV4V6_OVER_TWO_PDP  (8)
 
 /* PS域呼叫最大个数 */
-#define AT_PS_MAX_CALL_NUM              (3)
+#define AT_PS_MAX_CALL_NUM              (4)
 
+/* APP和NDIS呼叫索引范围 */
+#define AT_PS_APP_CALL_ID_BEGIN         (0)
+#define AT_PS_APP_CALL_ID_END           (2)
+
+#define AT_PS_NDIS_CALL_ID_BEGIN        (3)
+#define AT_PS_NDIS_CALL_ID_END          (3)
 
 #define AT_PS_RABID_OFFSET              (5)                 /* RABID偏移 */
 #define AT_PS_RABID_MAX_NUM             (11)                /* RABID数量 */
@@ -111,6 +117,18 @@ enum AT_PDP_STATE_ENUM
     AT_PDP_STATE_BUTT
 };
 typedef VOS_UINT8 AT_PDP_STATE_ENUM_U8;
+
+/*****************************************************************************
+ 结构名称   : AT_PS_CALL_TYPE_ENUM_U8
+ 结构说明   : PS CALL类型
+*****************************************************************************/
+enum AT_PS_CALL_TYPE_ENUM
+{
+    AT_PS_WAN_TYPE_APP               = 0,
+    AT_PS_WAN_TYPE_NDIS              = 1,
+    AT_PS_WAN_TYPE_BUTT
+};
+typedef VOS_UINT8 AT_PS_CALL_TYPE_ENUM_U8;
 
 /* ID需要和IMSA给MAPCON消息ID一致 */
 typedef WIFI_IMSA_MSG_ID_ENUM_INT32 WLAN_AT_MSG_ID_ENUM_INT32;
@@ -305,30 +323,32 @@ typedef struct
 
 /*消息处理函数指针*/
 typedef VOS_VOID (*AT_PS_RPT_CONN_RSLT_FUNC)(\
-    VOS_UINT8                           ucCid, \
-    VOS_UINT8                           ucPortIndex, \
+    AT_PS_USER_INFO_STRU               *pstUsrInfo, \
     TAF_PDP_TYPE_ENUM_UINT8             enPdpType);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_RPT_CONN_RSLT_FUNC            pRptConnRsltFunc;
 }AT_PS_REPORT_CONN_RESULT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*消息处理函数指针*/
 typedef VOS_VOID (*AT_PS_RPT_END_RSLT_FUNC)(\
-    VOS_UINT8                           ucCid, \
-    VOS_UINT8                           ucPortIndex, \
+    AT_PS_USER_INFO_STRU               *pstUsrInfo, \
     TAF_PDP_TYPE_ENUM_UINT8             enPdpType, \
     TAF_PS_CAUSE_ENUM_UINT32            enCause);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_RPT_END_RSLT_FUNC             pRptEndRsltFunc;
 }AT_PS_REPORT_END_RESULT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*消息处理函数指针*/
 typedef VOS_VOID (*AT_PS_REG_FC_POINT_FUNC)(\
@@ -336,11 +356,13 @@ typedef VOS_VOID (*AT_PS_REG_FC_POINT_FUNC)(\
     TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU  *pstEvent);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_REG_FC_POINT_FUNC             pRegFcPoint;
 }AT_PS_REG_FC_POINT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*消息处理函数指针*/
 typedef VOS_VOID (*AT_PS_DEREG_FC_POINT_FUNC)(\
@@ -348,21 +370,22 @@ typedef VOS_VOID (*AT_PS_DEREG_FC_POINT_FUNC)(\
     TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU *pstEvent);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_DEREG_FC_POINT_FUNC           pDeRegFcPoint;
 }AT_PS_DEREG_FC_POINT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 
 typedef struct
 {
     VOS_UINT32                          ulUsed;                                 /* 指定CID是否已经通过CHDATA配置了数传通道，VOS_TRUE:已经配置；VOS_FALSE:未配置 */
     VOS_UINT32                          ulRmNetId;                              /* 数据通道ID
-                                                                                   HSIC通道 :UDI_ACM_HSIC_ACM1_ID，UDI_ACM_HSIC_ACM3_ID和UDI_ACM_HSIC_ACM5_ID，如果未配置则为无效值UDI_INVAL_DEV_ID
                                                                                    VCOM通道 :RNIC_DEV_ID_RMNET0 ~ RNIC_DEV_ID_RMNET4
                                                                                    */
-    VOS_UINT32                          ulIfaceld;
+    VOS_UINT32                          ulIfaceId;
     VOS_UINT32                          ulRmNetActFlg;                          /* 指定CID是否已经PDP激活，VOS_TRUE:已经激活；VOS_FALSE:未激活 */
 }AT_PS_DATA_CHANL_CFG_STRU;
 
@@ -398,38 +421,53 @@ typedef struct
 
 typedef struct
 {
-    VOS_UINT32                          ulUsedFlg;          /* 呼叫实体分配标志 */
+    TAF_PDP_TYPE_ENUM_UINT8             enCurrPdpType;      /* Cellular下当前呼叫类型 */
+    TAF_PDP_TYPE_ENUM_UINT8             enWlanPdpType;      /* Wlan下当前呼叫类型 */
+    TAF_PDP_TYPE_ENUM_UINT8             enHoPdpType;        /* Handover呼叫类型 */
+    VOS_UINT8                           aucRsv[5];          /* 保留位 */
+} AT_PS_CALL_DIAL_PDP_TYPE_STRU;
 
-    VOS_UINT8                           ucRmNetId;
-    VOS_UINT8                           ucIfaceId;
 
-    TAF_PDP_TYPE_ENUM_UINT8             enCurrPdpType;      /* 当前呼叫类型 */
-    TAF_PDP_TYPE_ENUM_UINT8             enWlanPdpType;      /* Wlan呼叫类型 */
-    TAF_PDP_TYPE_ENUM_UINT8             enHoPdpType;        /* handover呼叫类型 */
-    VOS_UINT8                           aucRsv1[7];         /* 保留位 */
-    AT_PS_USER_INFO_STRU                stUserInfo;         /* 呼叫实体用户信息 */
-    AT_DIAL_PARAM_STRU                  stUsrDialParam;     /* 呼叫实体拨号参数 */
-
+typedef struct
+{
     VOS_UINT8                           ucIpv4Cid;          /* IPv4 CID */
     AT_PDP_STATE_ENUM_U8                enIpv4State;        /* IPv4 状态 */
     AT_PDP_STATE_ENUM_U8                enWlanIpv4State;    /* Wlan IPv4 状态 */
     VOS_UINT8                           ucIpv4DendRptFlg;   /* IPV4 DEND是否已经上报过 */
-    VOS_UINT8                           aucRsv2[2];         /* 保留位 */
+    VOS_UINT8                           aucRsv[2];          /* 保留位 */
     VOS_UINT16                          usIpv4Mtu;          /* IPv4 MTU */
     AT_IPV4_DHCP_PARAM_STRU             stIpv4DhcpInfo;     /* IPv4 DHCP信息 */
+} AT_PS_CALL_IPV4_INFO_STRU;
 
-#if (FEATURE_ON == FEATURE_IPV6)
+
+typedef struct
+{
     VOS_UINT8                           ucIpv6Cid;          /* IPv6 CID */
     AT_PDP_STATE_ENUM_U8                enIpv6State;        /* IPv6 状态 */
     AT_PDP_STATE_ENUM_U8                enWlanIpv6State;    /* Wlan IPv6 状态 */
     VOS_UINT8                           ucIpv6DendRptFlg;   /* IPV6 DEND是否已经上报过 */
-    VOS_UINT8                           aucRsv3[4];         /* 保留位 */
+    VOS_UINT8                           aucRsv[4];          /* 保留位 */
     AT_IPV6_RA_INFO_STRU                stIpv6RaInfo;       /* IPv6 路由公告信息 */
     AT_IPV6_DHCP_PARAM_STRU             stIpv6DhcpInfo;     /* IPv6 DHCP信息 */
-#endif
+} AT_PS_CALL_IPV6_INFO_STRU;
 
-    AT_PS_APN_DATA_SYS_INFO_STRU        stApnDataSysInfo;                       /* 该APN域选信息 */
-    AT_PS_CALL_TIMER_INFO_STRU          stPsCallTimerInfo;                      /* PS CALL相关的定时器信息 */
+
+typedef struct
+{
+    VOS_UINT32                          ulUsedFlg;          /* 呼叫实体分配标志 */
+    VOS_UINT8                           ucRmNetId;
+    VOS_UINT8                           ucIfaceId;
+    AT_PS_CALL_TYPE_ENUM_U8             enPsCallType;       /* PS CALL呼叫类型 */
+    VOS_UINT8                           aucRsv[1];          /* 保留位 */
+
+    AT_PS_USER_INFO_STRU                stUserInfo;         /* 呼叫实体用户信息 */
+    AT_DIAL_PARAM_STRU                  stUsrDialParam;     /* 呼叫实体拨号参数 */
+    AT_PS_CALL_DIAL_PDP_TYPE_STRU       stDialPdpType;      /* 呼叫流程发起PDP类型 */
+    AT_PS_CALL_IPV4_INFO_STRU           stIpv4Info;         /* 呼叫IPV4相关信息记录 */
+    AT_PS_CALL_IPV6_INFO_STRU           stIpv6Info;         /* 呼叫IPV6相关信息记录 */
+
+    AT_PS_APN_DATA_SYS_INFO_STRU        stApnDataSysInfo;   /* 该APN域选信息 */
+    AT_PS_CALL_TIMER_INFO_STRU          stPsCallTimerInfo;  /* PS CALL相关的定时器信息 */
 } AT_PS_CALL_ENTITY_STRU;
 
 /*消息处理函数指针*/
@@ -439,11 +477,13 @@ typedef VOS_VOID (*AT_PS_SND_PDP_ACT_IND_FUNC)(\
     TAF_PDP_TYPE_ENUM_UINT8             enPdpType);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_SND_PDP_ACT_IND_FUNC          pSndPdpActInd;
 }AT_PS_SND_PDP_ACT_IND_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*消息处理函数指针*/
 typedef VOS_VOID (*AT_PS_SND_PDP_DEACT_IND_FUNC)(\
@@ -452,11 +492,13 @@ typedef VOS_VOID (*AT_PS_SND_PDP_DEACT_IND_FUNC)(\
     TAF_PDP_TYPE_ENUM_UINT8             enPdpType);
 
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_USER_TYPE                        ucUsrType;
     AT_PS_SND_PDP_DEACT_IND_FUNC        pSndPdpDeActInd;
 }AT_PS_SND_PDP_DEACT_IND_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
  结构名称  : AT_IMS_EMC_IPV4_PDN_INFO_STRU
@@ -596,7 +638,7 @@ typedef struct
     /* 保存和CID关联的PS域呼叫实体的索引 */
     VOS_UINT8                           aucCidToIndexTbl[TAF_MAX_CID + 1];
 
-    /* PS域呼叫实体 */
+    /* PS域呼叫实体(包含APP和NDIS实体) */
     AT_PS_CALL_ENTITY_STRU              astCallEntity[AT_PS_MAX_CALL_NUM];
 
     /* CID与数传通道的对应关系 */

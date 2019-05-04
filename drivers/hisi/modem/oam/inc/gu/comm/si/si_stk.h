@@ -128,6 +128,8 @@ typedef VOS_UINT32 (*DS2TLV)(VOS_UINT8 Tag,VOS_UINT8 *pDes,VOS_UINT8 *pSrc,VOS_U
 #define STK_WARNING_LOG1(string, para1) (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s,%d", string, para1)
 #define STK_ERROR_LOG1(string, para1)   (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_ERROR),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
 
+#define STK_WARNING_NOSLOTID_LOG(string)  (VOS_VOID)DIAG_LogReport(STK_GEN_LOG_MODULE(PS_LOG_LEVEL_WARNING),I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
+
 #elif  (OSA_CPU_CCPU == VOS_OSA_CPU)
 
 #define STK_KEY_WARNING_LOG(string)         USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "WARNING:%s", string)
@@ -139,6 +141,9 @@ typedef VOS_UINT32 (*DS2TLV)(VOS_UINT8 Tag,VOS_UINT8 *pDes,VOS_UINT8 *pSrc,VOS_U
 #define STK_KEY_ERROR_LOG1(string, para1)       USIMM_LogPrint1(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "ERROR:%s,%d", string, para1)
 
 #define STK_INFO_LOG(string)                USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_INFO, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
+
+#define STK_WARNING_NOSLOTID_LOG(string)    USIMM_LogPrint(USIMM_GetCurrInstanceSlotId(), PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "Warning:%s", string)
+
 #define STK_NORMAL_LOG(string)              USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_NORMAL, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__,"%s", (VOS_CHAR*)__FUNCTION__)
 #define STK_WARNING_LOG(string)             USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_WARNING, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
 #define STK_ERROR_LOG(string)               USIMM_LogPrint(enSlotId, PS_LOG_LEVEL_ERROR, I0_MAPS_STK_PID, VOS_NULL_PTR, __LINE__, "%s", (VOS_CHAR*)__FUNCTION__)
@@ -735,7 +740,7 @@ typedef struct
     VOS_UINT8                          *pucCmd;
 }SI_STK_CBP_SETUP_EVENT_LIST_STRU;
 
-typedef VOS_UINT32 (*pfSATCmdDecode)(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8  *pucCmd, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU* pstResult);
+typedef VOS_UINT32 (*pfSATCmdDecode)(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8  *pucCmd, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU* pstResult);
 
 typedef VOS_UINT32 (*pfSATCmdPro)(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pEvent);
 
@@ -1006,9 +1011,9 @@ typedef struct
 /* STKComm.c */
 extern VOS_UINT32 SI_STK_StrStr(VOS_UINT8 *pucStr1, VOS_UINT8 *pucStr2 , VOS_UINT32 ulStrlen1, VOS_UINT32 ulStrlen2);
 
-extern VOS_UINT32 SI_STKFindTag(VOS_UINT8 ucTag, VOS_UINT8 *pucData, VOS_UINT32 ulDataLen,VOS_UINT32 ulFindNum);
+extern VOS_UINT32 SI_STKFindTag(VOS_UINT8 ucTag, VOS_UINT8* pucData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulDataLen,VOS_UINT32 ulFindNum);
 
-extern VOS_VOID SI_STKDecodeTagList(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 *pucCmdData,VOS_UINT8 *pucTagList,VOS_UINT32 ulListLen, SI_SAT_COMMDATA_STRU *pstDec);
+extern VOS_VOID SI_STKDecodeTagList(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 *pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT8 *pucTagList,VOS_UINT32 ulListLen, SI_SAT_COMMDATA_STRU *pstDec);
 
 extern VOS_VOID SI_STK_InitEnvelope(VOS_UINT8 *pCmdData, SI_STK_DEVICE_IDENTITIES_STRU *pstDiInfo, VOS_UINT8 ucCmdType);
 
@@ -1016,7 +1021,7 @@ extern VOS_UINT32 SI_STKCommCodeData(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_
 
 extern VOS_UINT32 SI_STKTagDataFree(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 ucTag, VOS_VOID *pData);
 
-extern VOS_UINT32 SI_STKCommDecodeData(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 *pucCmdData,VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstDec);
+extern VOS_UINT32 SI_STKCommDecodeData(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 *pucCmdData, VOS_UINT32 ulSpareBuffSize,VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstDec);
 
 extern VOS_UINT32 SI_STK_SendTerminalResponseReqMsg(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8 ucLen,VOS_UINT8 *pucRsp, USIMM_TR_PARA_ENUM_32 ulPara);
 
@@ -1096,6 +1101,8 @@ extern VOS_VOID STK_UpdateSearchMode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_
 
 extern VOS_VOID SI_STK_InitNVConfig(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
+extern VOS_BOOL SI_STK_CheckDualSimCtrlNvDataValid(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_IMSICHG_MATCH_STRU *pstIMSIMatch);
+
 extern VOS_VOID STK_InitGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
 extern VOS_VOID STK_ClearPauseCharGobal(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
@@ -1105,7 +1112,7 @@ extern VOS_VOID STK_CallStateMachineSet(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, S
 /* STKPro.c */
 extern VOS_UINT32 SI_STK_RefreshProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
-extern VOS_UINT32 SI_STKNoNeedDecode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
+extern VOS_UINT32 SI_STKNoNeedDecode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
 
 extern VOS_UINT32 SI_STK_MoreTimeProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
@@ -1115,7 +1122,7 @@ extern VOS_UINT32 SI_STK_PollingOFFProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, S
 
 extern VOS_UINT32 SI_STK_SetUpEeventListSpecialProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
-extern VOS_UINT32 SI_STKSetUpCall_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU*pstResult);
+extern VOS_UINT32 SI_STKSetUpCall_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU*pstResult);
 
 extern VOS_UINT32 SI_STK_SetCallSpecialProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
@@ -1127,17 +1134,17 @@ extern VOS_UINT32 SI_STK_SendSMSProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_S
 
 extern VOS_UINT32 SI_STK_SendDTMFProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
-extern VOS_UINT32 SI_STK_LaunchBrowser_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
+extern VOS_UINT32 SI_STK_LaunchBrowser_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
 
 extern VOS_UINT32 SI_STKDataIndCallback(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
 extern VOS_UINT32 SI_STK_DisplayTextProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
-extern VOS_UINT32 SI_STK_SelectItem_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
+extern VOS_UINT32 SI_STK_SelectItem_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU *pstResult);
 
 extern VOS_BOOL SI_STK_CheckSupportAP(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
-extern VOS_UINT32 SI_STK_SetUpMenu_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU*pstResult);
+extern VOS_UINT32 SI_STK_SetUpMenu_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType, SI_SAT_COMMDATA_STRU*pstResult);
 
 extern VOS_UINT32 SI_STK_SetUpMenuProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
@@ -1147,9 +1154,9 @@ extern VOS_UINT32 SI_STK_TimerManageProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, 
 
 extern VOS_UINT32 SI_STK_SetUpIdleTextProc(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, SI_STK_DATA_INFO_STRU *pCmdData);
 
-extern VOS_UINT32 SI_STKSetFrame_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType,SI_SAT_COMMDATA_STRU*pstResult);
+extern VOS_UINT32 SI_STKSetFrame_Decode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType,SI_SAT_COMMDATA_STRU*pstResult);
 
-extern VOS_UINT32 SI_STKCommDecode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulCmdType,SI_SAT_COMMDATA_STRU *pstResult);
+extern VOS_UINT32 SI_STKCommDecode(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId, VOS_UINT8* pucCmdData, VOS_UINT32 ulSpareBuffSize, VOS_UINT32 ulCmdType,SI_SAT_COMMDATA_STRU *pstResult);
 
 extern VOS_BOOL SI_STK_CheckCardStatus(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
@@ -1281,7 +1288,6 @@ extern SI_STK_REQ_UINT_STRU* SI_STK_GetSTKCtrlAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 
 extern SI_SAT_SetUpMenu_DATA_STRU* SI_STK_GetSetUpMenuDataAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
 
 extern SI_STK_IMSICHG_CTRL_STRU* SI_STK_GetIMSIChgCtrlAddr(SI_PIH_CARD_SLOT_ENUM_UINT32 enSlotId);
-
 
 extern VOS_UINT32 SI_STK_IMSCodeData(
     VOS_UINT8                                     *pCmdData,

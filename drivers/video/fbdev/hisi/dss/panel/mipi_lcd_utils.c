@@ -172,7 +172,7 @@ void get_vesa_dsc_para(struct hisi_panel_info *pinfo, uint8_t panel_mode)
 		} else if (panel_mode == MODE_10BIT_VIDEO_3X) {
 			init_dsc_para(vesa_dsc, basic_para_10bpc_10bpp, rc_buf_thresh_10bpc_10bpp, rc_minqp_10bpc_10bpp, rc_maxqp_10bpc_10bpp, rc_offset_10bpc_10bpp);
 		}
-	} else if ((pinfo->ifbc_type == IFBC_TYPE_VESA3_75X_DUAL)) {
+	} else if (pinfo->ifbc_type == IFBC_TYPE_VESA3_75X_DUAL) {
 		init_dsc_para(vesa_dsc, basic_para_10bpc_8bpp, rc_buf_thresh_10bpc_8bpp, rc_minqp_10bpc_8bpp, rc_maxqp_10bpc_8bpp, rc_offset_10bpc_8bpp);
 	}
 

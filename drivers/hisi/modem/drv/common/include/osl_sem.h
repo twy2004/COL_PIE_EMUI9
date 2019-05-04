@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -195,13 +195,13 @@ static __inline__ int osl_sem_ccreate (osl_sem_id *mutex,int count, int options)
     return OK;
 }
 
-#elif defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_sem.h"
 #include "sre_shell.h"
 #include "sre_symbol_api.h"
 #include "sre_callstack.h"
 #include "osl_complier.h"
-
+#include "sre_buildef.h"
 #ifndef SEM_FULL
 #define SEM_FULL       OS_SEM_FULL
 #endif
@@ -218,10 +218,10 @@ static __inline__ int osl_sem_ccreate (osl_sem_id *mutex,int count, int options)
 #define OSL_SEM_DELETE_SAFE     0x0    /* owner delete safe (mutex opt.) RTOSCK no this*/
 
 typedef  SEM_HANDLE_T osl_sem_id;
-
+/*lint -e732*/
 //lint -esym(732,*)
 
-#if (OS_HARDWARE_PLATFORM != OS_CORTEX_RX)
+#if (OS_HARDWARE_PLATFORM != OS_CORTEX_RX)//lint !e553
 static inline unsigned int osl_sem_init(u32 val, osl_sem_id* mutex)
 {
     osl_sem_id semId = 0;
@@ -285,7 +285,7 @@ static inline int osl_sem_bcreate (osl_sem_id *mutex,int count, int options)
     osl_sem_id semId = 0;
     UINT32 ret = OK;
 
-    ret = SRE_SemBCreate(count, &semId, (OS_SEM_MODE_E)options);
+    ret = (unsigned) SRE_SemBCreate(count, &semId, (OS_SEM_MODE_E)options);
     if(ret)
     {
         (void)SRE_Printf("SRE_SemBCreate fail!,ret=0x%x\n",ret);
@@ -476,7 +476,7 @@ static inline unsigned int  osl_sem_delete(struct semaphore *sem)
 }
 
 //lint +esym(732,*)
-
+/*lint +e732*/
 #else
 
 #endif /* __KERNEL__ */

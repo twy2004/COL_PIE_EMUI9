@@ -63,6 +63,7 @@
 
 
 
+
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -182,7 +183,6 @@ VOS_VOID DMS_Init(VOS_VOID)
 
     /* 初始化AT通道使用的静态内存 */
     Dms_StaticBufInit();
-
 
     DMS_ReadPortDebugCfgNV();
 
@@ -398,7 +398,7 @@ VOS_INT __init DMS_InitPorCfgFile(VOS_VOID)
 
     if (VOS_NULL_PTR == proc_create("portcfg", DMS_VFILE_CRT_LEVEL, VOS_NULL_PTR, &g_stPortCfgOps))
     {
-        DMS_LOG_ERROR("DMS_InitPorCfgFile: proc_create return NULL.\n");
+        DMS_LOG_ERROR("<DMS_InitPorCfgFile> proc_create return NULL.\n");
         return -ENOMEM;
     }
 
@@ -495,6 +495,7 @@ ssize_t DMS_WritePortCfgFile(
 
     return (ssize_t)len;
 }
+
 
 
 
@@ -989,10 +990,9 @@ VOS_INT __init DMS_InitGetSliceFile(VOS_VOID)
 {
     if (VOS_NULL_PTR == proc_create("getslice", DMS_VFILE_CRT_LEVEL, VOS_NULL_PTR, &g_stGetSliceOps))
     {
-        DMS_LOG_ERROR("DMS_InitGetSliceFile: proc_create return NULL.\n");
+        DMS_LOG_ERROR("<DMS_InitGetSliceFile> proc_create return NULL.\n");
         return VOS_ERR;
     }
-
     return VOS_OK;
 }
 
@@ -1047,23 +1047,23 @@ ssize_t DMS_ReadGetSliceFile(
     {
         return -EPERM;
     }
-
 }
+
 
 
 VOS_INT __init DMS_InitModemStatusFile(VOS_VOID)
 {
-    DMS_LOG_INFO("DMS_InitModemStatusFile,entry,%u \n",VOS_GetSlice());
+    DMS_LOG_INFO("<DMS_InitModemStatusFile> entry,%u \n",VOS_GetSlice());
 
     DMS_InitModemStatus();
 
     if (VOS_NULL_PTR == proc_create("modemstatus", DMS_VFILE_CRT_LEVEL, VOS_NULL_PTR, &g_stModemStatus))
     {
-        DMS_LOG_ERROR("DMS_InitModemStatusFile: proc_create return NULL.\n");
+        DMS_LOG_ERROR("<DMS_InitModemStatusFile> proc_create return NULL.\n");
         return -ENOMEM;
     }
 
-    DMS_LOG_INFO("DMS_InitModemStatusFile,exit,%u \n",VOS_GetSlice());
+    DMS_LOG_INFO("<DMS_InitModemStatusFile> exit,%u \n",VOS_GetSlice());
 
     return 0;
 }
@@ -1086,7 +1086,7 @@ ssize_t DMS_ReadModemStatusFile(
 
     TAF_MEM_SET_S(acStatus, sizeof(acStatus), 0x00, DMS_MODEM_STATUS_FILE_LEN + 1);
 
-    DMS_LOG_INFO("DMS_ReadModemStatusFile entry,time: %u, status: %d, %d, %d\n",
+    DMS_LOG_INFO("<DMS_ReadModemStatusFile> entry,time: %u, status: %d, %d, %d\n",
                  VOS_GetSlice(),
                  g_stDmsMainInfo.aucModemStatus[0],
                  g_stDmsMainInfo.aucModemStatus[1],
@@ -1108,7 +1108,7 @@ ssize_t DMS_ReadModemStatusFile(
     }
     else
     {
-        DMS_LOG_ERROR("DMS_ReadModemStatusFile copy to user fail %u \n",VOS_GetSlice());
+        DMS_LOG_ERROR("<DMS_ReadModemStatusFile> copy to user fail %u \n",VOS_GetSlice());
         return -EPERM;
     }
 }
@@ -1118,7 +1118,7 @@ VOS_VOID DMS_SetModemStatus(MODEM_ID_ENUM_UINT16 enModemId)
 {
     if (enModemId >= MODEM_ID_BUTT)
     {
-        DMS_LOG_ERROR("DMS_SetModemStatus ModemId error %d \n",enModemId);
+        DMS_LOG_ERROR("<DMS_SetModemStatus> ModemId error %d \n",enModemId);
         return;
     }
 
@@ -1130,7 +1130,7 @@ VOS_UINT8 DMS_GetModemStatus(MODEM_ID_ENUM_UINT16 enModemId)
 {
     if (enModemId >= MODEM_ID_BUTT)
     {
-        DMS_LOG_ERROR("DMS_GetModemStatus ModemId error %d \n",enModemId);
+        DMS_LOG_ERROR("<DMS_GetModemStatus> ModemId error %d \n",enModemId);
         return g_stDmsMainInfo.aucModemStatus[0];
     }
 

@@ -8,12 +8,11 @@
 #include "ivp_atf_subsys.h"
 #include "ivp_sec.h"
 
-
 #define REMAP_ADD                        (0xe8d00000)
 #define DEAD_FLAG                        (0xdeadbeef)
 #define SIZE_16K                         (16 * 1024)
 
-
+extern void ivp_hw_runstall(struct ivp_device *devp,int mode);
 extern void ivp_reg_write(unsigned int off, u32 val);
 extern u32 ivp_reg_read(unsigned int off);
 extern struct ivp_sec_device ivp_sec_dev;
@@ -217,19 +216,18 @@ ERR_REGULATOR_ENABLE_IVP:
     clk_disable_unprepare(ivp_devp->clk);
 
 ERR_CLK_PREPARE_ENABLE:
-    ret |= clk_set_rate(ivp_devp->clk, (unsigned long)ivp_devp->lowtemp_clk_rate);
+    ret = clk_set_rate(ivp_devp->clk, (unsigned long)ivp_devp->lowtemp_clk_rate);
     if (ret != 0) {
         ivp_err("err set lowfrq rate %#x fail(%d)",
                 ivp_devp->lowtemp_clk_rate, ret);
     }
-
 ERR_CLK_SET_RATE:
-    ret |= regulator_disable(ivp_devp->ivp_media1_regulator);
+    ret = regulator_disable(ivp_devp->ivp_media1_regulator);
     if (ret) {
         ivp_err("err regularot disable failed [%d]!", ret);
     }
 
-    return ret;
+    return -1;
 }
 
 
@@ -269,6 +267,8 @@ int ivp_poweron_remap(struct ivp_device *ivp_devp)
 int ivp_poweroff_pri(struct ivp_device *ivp_devp)
 {
     int ret = 0;
+
+    ivp_hw_runstall(ivp_devp,IVP_RUNSTALL_STALL);
 
     ivp_hw_enable_reset(ivp_devp);
     if (SECURE_MODE == ivp_devp->ivp_secmode)

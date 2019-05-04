@@ -107,12 +107,12 @@ extern VOS_UINT32                       g_ulCbtAcpuDbgFlag;
     if(VOS_FALSE != (g_ulCbtAcpuDbgFlag&ulSwitch)) \
     { \
         VOS_UINT32 ulOmDbgIndex; \
-        (VOS_VOID)vos_printf("\n%s, Data Len: = %d\n", __FUNCTION__, ulDataLen); \
-        for (ulOmDbgIndex = 0 ; ulOmDbgIndex < ulDataLen; ulOmDbgIndex++) \
+        mdrv_debug("<%s> Data Len=%d\n", __FUNCTION__, ulDataLen); \
+        for (ulOmDbgIndex = 0 ;(ulOmDbgIndex < ulDataLen) && (ulOmDbgIndex < 5000); ulOmDbgIndex ++) \
         { \
-            (VOS_VOID)vos_printf("%02x ", *((VOS_UINT8*)pucData + ulOmDbgIndex)); \
+            mdrv_debug("%02x \n", *((VOS_UINT8*)pucData + ulOmDbgIndex));\
         } \
-        (VOS_VOID)vos_printf("\r\n"); \
+        mdrv_debug("<%s>\n", __FUNCTION__); \
     } \
 
 

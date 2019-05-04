@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -57,7 +57,7 @@ extern struct icc_control g_icc_ctrl;
 #define ICC_DEFAULT_SUB_CHANNEL   (0)
 
 
-struct bsp_icc_cb_info 
+struct bsp_icc_cb_info
 {
         icc_read_cb         read_cb;
 		unsigned int        channel;
@@ -175,11 +175,11 @@ int BSP_ICC_Open(unsigned int u32ChanId, ICC_CHAN_ATTR_S *pChanAttr)
     pICC_cb_info->channel = u32ChanId;
     /* coverity[leaked_storage] */
     ret =  (BSP_S32)bsp_icc_event_register(channel_id, icc_read_cb_wraper, pICC_cb_info, icc_write_cb_wraper, (void*)pChanAttr->write_cb); /*lint !e611 */
-    if(ret == ICC_OK)  
+    if(ret == ICC_OK)
     {
     	return ret; /*lint !e429 */
     }
-    else  
+    else
     {
     	icc_print_error(" failed to  bsp_icc_event_register ret=%d\n", ret);
 	osl_free((void*)pICC_cb_info);
@@ -201,7 +201,7 @@ int BSP_ICC_Read(unsigned int u32ChanId, unsigned char* pData, int s32Size)
     }
 
     channel_index = channel_id >> 16;
-	
+
 	if(!pData || channel_index >= ICC_CHN_ID_MAX)
 	{
 		icc_print_error("invalid param[%d], pData[0x%p]\n", channel_index, pData);
@@ -231,11 +231,11 @@ int BSP_ICC_Write(unsigned int u32ChanId, unsigned char* pData, int s32Size)
         icc_print_error("invalid param[%d], pData[0x%p]\n", channel_index, pData);
         return ICC_INVALID_PARA;
     }
-	
+
     if(u32ChanId == MDRV_ICC_NRCCPU_APCPU_OSA)
     {
         dst_core = ICC_CPU_NRCCPU;
-    } 
+    }
     else
     {
         dst_core = ICC_SEND_CPU;

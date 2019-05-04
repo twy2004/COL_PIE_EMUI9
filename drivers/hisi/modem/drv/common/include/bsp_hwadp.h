@@ -70,7 +70,7 @@ extern int hwadp_init(void);
 extern int bsp_hwadp_register_base_addr(BSP_IP_TYPE_E type, const char * name, void *base_addr);
 extern int bsp_hwadp_register_irq_num(BSP_INT_TYPE_E type, const char * name,  unsigned int irq_num);
 extern int bsp_hwadp_register_ddr(BSP_DDR_SECT_TYPE_E type, BSP_DDR_SECT_ATTR_E attr, void *ddr_virt, void *ddr_phy, unsigned int size);
-#if defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 extern int bsp_hwadp_register_mem_info(BSP_DDR_TYPE_E type, void *addr, unsigned int size);
 extern int bsp_hwadp_register_sram(BSP_AXI_SECT_TYPE_E type, void *sram_virt, void *sram_phy, unsigned int size);
 extern void* mdrv_misc_get_ip_baseaddr(BSP_IP_TYPE_E enIPType);
@@ -87,7 +87,7 @@ static inline int bsp_hwadp_register_irq_num(BSP_INT_TYPE_E type, const char * n
 static inline int bsp_hwadp_register_ddr(BSP_DDR_SECT_TYPE_E type, BSP_DDR_SECT_ATTR_E attr, void *ddr_virt, void *ddr_phy, unsigned int size) {
 	return 0;
 }
-#if defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 static inline int bsp_hwadp_register_mem_info(BSP_DDR_TYPE_E type, void *addr, unsigned int size) {
 	return 0;
 }

@@ -321,7 +321,7 @@ VOS_UINT32   MN_MSG_Send(
     }
 
 
-    if (MN_MSG_MEM_STORE_NV < pstSendParm->enMemStore)
+    if (MN_MSG_MEM_STORE_ME < pstSendParm->enMemStore)
     {
         AT_WARN_LOG("MN_MSG_Send:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -403,7 +403,7 @@ VOS_UINT32   MN_MSG_SendFromMem(
 
 
     if ((MN_MSG_MEM_STORE_SIM != pstSendFromMemParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstSendFromMemParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstSendFromMemParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_SendFromMem:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -488,7 +488,7 @@ VOS_UINT32   MN_MSG_Write(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstWriteParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstWriteParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstWriteParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_Write:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -544,7 +544,7 @@ VOS_UINT32   MN_MSG_Read(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstReadParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstReadParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstReadParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_Read:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -575,7 +575,7 @@ VOS_UINT32   MN_MSG_List(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstListParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstListParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstListParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_List:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -611,7 +611,7 @@ VOS_UINT32   MN_MSG_Delete(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstDeleteParam->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstDeleteParam->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstDeleteParam->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_Delete:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -641,7 +641,7 @@ VOS_UINT32   MN_MSG_Delete_Test(
     VOS_UINT32                          ulRet;
 
     if ((MN_MSG_MEM_STORE_SIM != pstListPara->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstListPara->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstListPara->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_Delete:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -677,7 +677,7 @@ VOS_UINT32   MN_MSG_DeleteStaRpt(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstDeleteParam->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstDeleteParam->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstDeleteParam->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_DeleteStaRpt:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -728,13 +728,13 @@ VOS_UINT32   MN_MSG_WriteSrvParam(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstSrvParam->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstSrvParam->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstSrvParam->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_WriteSrvParam:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
     }
 
-    if ((MN_MSG_MEM_STORE_NV == pstSrvParam->enMemStore)
+    if ((MN_MSG_MEM_STORE_ME == pstSrvParam->enMemStore)
      && (0 != pstSrvParam->ulIndex))
     {
         AT_WARN_LOG("MN_MSG_WriteSrvParam:Only one record supported in NV.");
@@ -793,13 +793,13 @@ VOS_UINT32   MN_MSG_ReadSrvParam(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstReadParam->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstReadParam->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstReadParam->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_ReadSrvParam:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
     }
 
-    if ((MN_MSG_MEM_STORE_NV == pstReadParam->enMemStore)
+    if ((MN_MSG_MEM_STORE_ME == pstReadParam->enMemStore)
      && (0 != pstReadParam->ulIndex))
     {
         AT_WARN_LOG("MN_MSG_ReadSrvParam: Only one record supported in NV.");
@@ -831,7 +831,7 @@ VOS_UINT32   MN_MSG_DeleteSrvParam(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstDeleteParam->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstDeleteParam->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstDeleteParam->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_DeleteSrvParam:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -844,7 +844,7 @@ VOS_UINT32   MN_MSG_DeleteSrvParam(
         return MN_ERR_INVALIDPARM;
     }
 
-    if (MN_MSG_MEM_STORE_NV == pstDeleteParam->enMemStore)
+    if (MN_MSG_MEM_STORE_ME == pstDeleteParam->enMemStore)
     {
         if ((MN_MSG_DELETE_SINGLE != pstDeleteParam->enDeleteType)
          && (0 != pstDeleteParam->ulIndex))
@@ -878,7 +878,7 @@ VOS_UINT32   MN_MSG_ModifyStatus(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstModifyParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstModifyParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstModifyParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_ModifyStatus:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -921,8 +921,8 @@ VOS_UINT32 MN_MSG_SetRcvMsgPath(
         return MN_ERR_INVALIDPARM;
     }
 
-    if ((MN_MSG_MEM_STORE_NV < pstSetRcvPathParm->enSmMemStore)
-     || (MN_MSG_MEM_STORE_NV < pstSetRcvPathParm->enStaRptMemStore))
+    if ((MN_MSG_MEM_STORE_ME < pstSetRcvPathParm->enSmMemStore)
+     || (MN_MSG_MEM_STORE_ME < pstSetRcvPathParm->enStaRptMemStore))
     {
         AT_WARN_LOG("MN_MSG_SetRcvMsgPath:Invalid enSmMemStore");
         return MN_ERR_INVALIDPARM;
@@ -930,7 +930,7 @@ VOS_UINT32 MN_MSG_SetRcvMsgPath(
 
     if (MN_MSG_RCVMSG_ACT_STORE == pstSetRcvPathParm->enRcvSmAct)
     {
-        if ((MN_MSG_MEM_STORE_NV  != pstSetRcvPathParm->enSmMemStore)
+        if ((MN_MSG_MEM_STORE_ME  != pstSetRcvPathParm->enSmMemStore)
          && (MN_MSG_MEM_STORE_SIM != pstSetRcvPathParm->enSmMemStore))
         {
             AT_WARN_LOG("MN_MSG_SetRcvMsgPath:Invalid Parm");
@@ -940,7 +940,7 @@ VOS_UINT32 MN_MSG_SetRcvMsgPath(
 
     if (MN_MSG_RCVMSG_ACT_STORE == pstSetRcvPathParm->enRcvStaRptAct)
     {
-        if ((MN_MSG_MEM_STORE_NV  != pstSetRcvPathParm->enStaRptMemStore)
+        if ((MN_MSG_MEM_STORE_ME  != pstSetRcvPathParm->enStaRptMemStore)
          && (MN_MSG_MEM_STORE_SIM != pstSetRcvPathParm->enStaRptMemStore))
         {
             AT_WARN_LOG("MN_MSG_SetRcvMsgPath:Invalid Parm");
@@ -996,7 +996,7 @@ VOS_UINT32  MN_MSG_GetStorageStatus(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstStorageParm->enMem1Store)
-     && (MN_MSG_MEM_STORE_NV != pstStorageParm->enMem1Store)
+     && (MN_MSG_MEM_STORE_ME != pstStorageParm->enMem1Store)
      && (MN_MSG_MEM_STORE_NONE != pstStorageParm->enMem1Store))
     {
         AT_WARN_LOG("MN_MSG_GetStorageStatus:Invalid enMemStore:mem1");
@@ -1033,7 +1033,7 @@ VOS_UINT32   MN_MSG_GetStaRptIndex(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstMoMsgParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstMoMsgParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstMoMsgParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_GetStaRptFromMoMsg:Invalid enMemStore");
         return MN_ERR_INVALIDPARM;
@@ -1064,7 +1064,7 @@ VOS_UINT32   MN_MSG_GetMoMsgIndex(
     }
 
     if ((MN_MSG_MEM_STORE_SIM != pstStaRptParm->enMemStore)
-     && (MN_MSG_MEM_STORE_NV != pstStaRptParm->enMemStore))
+     && (MN_MSG_MEM_STORE_ME != pstStaRptParm->enMemStore))
     {
         AT_WARN_LOG("MN_MSG_GetMoMsgFromStaRpt:Invalid enMemStore1");
         return MN_ERR_INVALIDPARM;

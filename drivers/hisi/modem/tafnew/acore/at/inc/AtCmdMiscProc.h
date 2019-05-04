@@ -125,11 +125,36 @@ extern "C" {
 
 #define AT_GMT_TIME_DEFAULT                         (70)                        /* 判断标准时间是1900还是1970 */
 
+#define AT_SIM_LOCK_DATA_WRITEEX_MAX_TOTAL          (42)                        /* 对total进行限制，不能超过42，防止超过OSA规格60k */
+
+
+#define AT_FINE_TIME_DEFAULT_NUM                    (2)
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define AT_NRPWRCTRL_MAX_DELETE_CA_NUM                     (-8)
+#define AT_NRPWRCTRL_MAX_ADD_CA_NUM                        (8)
+
+#define AT_NRPWRCTRL_DISABLE_REDUCE_RI                     (0)
+#define AT_NRPWRCTRL_ENABLE_REDUCE_RI                      (1)
+
+#define AT_NRPWRCTRL_MIN_SUPPORT_BSR_NUM                   (0)
+#define AT_NRPWRCTRL_MAX_SUPPORT_BSR_NUM                   (63)
+#endif
 
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+enum AT_NRPWRCTRL_MODE_TYPE_ENUM
+{
+    AT_NRPWRCTRL_MODE_CC_NUM_CTR      = 0,
+    AT_NRPWRCTRL_MODE_RI_NUM_CTR      = 1,
+    AT_NRPWRCTRL_MODE_BSR_NUM_CTR     = 2,
+    AT_NRPWRCTRL_MODE_BUTT            = 3,
+};
+typedef  VOS_UINT32  AT_NRPWRCTRL_MODE_TYPE_ENUM_UINT32;
 
+#endif
 
 /*****************************************************************************
   4 全局变量声明
@@ -233,6 +258,26 @@ VOS_UINT32 AT_RcvL4AIsmCoexSetCnf(
 VOS_UINT32 AT_RcvMtaIsmCoexQryCnf(
     VOS_VOID                           *pMsg
 );
+
+VOS_UINT32 AT_SetLL2ComCfgPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_SetLL2ComQryPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaLL2ComCfgSetCnf(
+    VOS_VOID                           *pMsg
+);
+VOS_UINT32 AT_RcvMtaLL2ComCfgQryCnf(
+    VOS_VOID                           *pMsg
+);
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_SetNL2ComCfgPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaNL2ComCfgSetCnf(
+    VOS_VOID                           *pMsg
+);
+VOS_UINT32 AT_SetNL2ComQryPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaNL2ComCfgQryCnf(
+    VOS_VOID                           *pMsg
+);
+#endif
+
 VOS_UINT32 AT_SetLCaCfgPara(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_RcvMtaLteCaCfgSetCnf(
     VOS_VOID                           *pMsg
@@ -303,8 +348,6 @@ VOS_UINT32  AT_ProcSimlockWriteExData(
 VOS_UINT32 AT_RcvMtaAfcClkInfoCnf(
     VOS_VOID                           *pMsg
 );
-
-extern VOS_UINT32 AT_SetPdmCtrlPara(VOS_UINT8 ucIndex);
 
 VOS_UINT32 AT_SetPhyComCfgPara(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_RcvMtaPhyComCfgSetCnf(VOS_VOID *pMsg);
@@ -460,6 +503,19 @@ VOS_UINT32 AT_ConvertDecFormatPlmnId2HexFormat(
     VOS_UINT32                          ulPlmnId
 );
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_SetLendcPara(VOS_UINT8 ucIndex);
+
+#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
+VOS_UINT32 At_SetNrFreqLockPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_GetNrFreqLockPara(
+    VOS_UINT8                           ucClientId,
+    AT_MTA_SET_NRFREQLOCK_REQ_STRU     *pstNrFreqLockInfo
+);
+#endif
+
+#endif
+
 extern VOS_VOID AT_PrintCclkTime(
     VOS_UINT8                           ucIndex,
     TIME_ZONE_TIME_STRU                *pstTimeZoneTime,
@@ -497,6 +553,18 @@ VOS_UINT32 At_SetPsScenePara(TAF_UINT8 ucIndex);
 VOS_UINT32 AT_QryPsScenePara(TAF_UINT8 ucIndex);
 VOS_UINT32 AT_RcvMmaPsSceneSetCnf(VOS_VOID *pstMsg);
 VOS_UINT32 AT_RcvMmaPsSceneQryCnf(VOS_VOID *pstMsg);
+
+VOS_UINT32 AT_SetForceSyncPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaForceSyncSetCnf (VOS_VOID *pMsg);
+
+VOS_UINT32 At_SetGnssNtyPara(VOS_UINT8 ucIndex);
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_SetNrrcCapCfgPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_SetNrrcCapQryPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_SetNrPwrCtrlPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_TestNrPwrCtrlPara(VOS_UINT8 ucIndex);
+#endif
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

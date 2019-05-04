@@ -84,6 +84,7 @@ AT_MODEM_PID_TAB_STRU                   g_astAtModemPidTab[] =
     {I0_WUEPS_PID_ADMIN,        I1_WUEPS_PID_ADMIN,         I2_WUEPS_PID_ADMIN,     0},
     {I0_WUEPS_PID_TAF,          I1_WUEPS_PID_TAF,           I2_WUEPS_PID_TAF,       0},
     {I0_UEPS_PID_DSM,           I1_UEPS_PID_DSM,            I2_UEPS_PID_DSM,        0},
+	{I0_UEPS_PID_CCM,           I1_UEPS_PID_CCM,            I2_UEPS_PID_CCM,       0},
     {I0_WUEPS_PID_VC,           I1_WUEPS_PID_VC,            I2_WUEPS_PID_VC,        0},
     {I0_WUEPS_PID_DRV_AGENT,    I1_WUEPS_PID_DRV_AGENT,     I2_WUEPS_PID_DRV_AGENT, 0},
     {I0_UEPS_PID_MTA,           I1_UEPS_PID_MTA,            I2_UEPS_PID_MTA,        0},
@@ -220,6 +221,7 @@ AT_CLIENT_CFG_MAP_TAB_STRU              g_astAtClientCfgMapTbl[] =
     AT_CLIENT_CFG_ELEMENT(UART),
     AT_CLIENT_CFG_ELEMENT(SOCK),
     AT_CLIENT_CFG_ELEMENT(APPSOCK),
+
     AT_CLIENT_CFG_ELEMENT(APP),
     AT_CLIENT_CFG_ELEMENT(APP1),
     AT_CLIENT_CFG_ELEMENT(APP2),
@@ -330,9 +332,6 @@ VOS_VOID AT_InitPlatformRatList(MODEM_ID_ENUM_UINT16 enModemId)
 VOS_VOID AT_InitCommPsCtx(VOS_VOID)
 {
     AT_COMM_PS_CTX_STRU                *pstPsCtx = VOS_NULL_PTR;
-
-    TAF_MEM_SET_S(&g_stAtNdisDhcpPara, sizeof(g_stAtNdisDhcpPara), 0x00, sizeof(g_stAtNdisDhcpPara));
-    TAF_MEM_SET_S(&g_stAtAppPdpEntity, sizeof(g_stAtAppPdpEntity), 0x00, sizeof(g_stAtAppPdpEntity));
 
     pstPsCtx = AT_GetCommPsCtxAddr();
 
@@ -678,6 +677,7 @@ VOS_VOID AT_InitModemNetCtx(MODEM_ID_ENUM_UINT16 enModemId)
     pstNetCtx->ucCregType              = AT_CREG_RESULT_CODE_NOT_REPORT_TYPE;
     pstNetCtx->ucCgregType             = AT_CGREG_RESULT_CODE_NOT_REPORT_TYPE;
 
+
     pstNetCtx->ucCopsFormatType         = AT_COPS_LONG_ALPH_TYPE;
     pstNetCtx->enPrefPlmnType           = MN_PH_PREF_PLMN_UPLMN;
     pstNetCtx->ucCpolFormatType         = AT_COPS_NUMERIC_TYPE;
@@ -732,30 +732,33 @@ VOS_VOID AT_InitModemPsCtx(
     /* 初始化呼叫实体 */
     for (ulCnt = 0; ulCnt < AT_PS_MAX_CALL_NUM; ulCnt++)
     {
-        pstPsCtx->astCallEntity[ulCnt].ulUsedFlg   = VOS_FALSE;
+        pstPsCtx->astCallEntity[ulCnt].ulUsedFlg    = VOS_FALSE;
+        pstPsCtx->astCallEntity[ulCnt].ucRmNetId    = RNIC_DEV_ID_BUTT;
+        pstPsCtx->astCallEntity[ulCnt].ucIfaceId    = PS_IFACE_ID_BUTT;
+        pstPsCtx->astCallEntity[ulCnt].enPsCallType = AT_PS_WAN_TYPE_BUTT;
 
         TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stUsrDialParam,
                    sizeof(pstPsCtx->astCallEntity[ulCnt].stUsrDialParam), 0x00, sizeof(AT_DIAL_PARAM_STRU));
 
-        pstPsCtx->astCallEntity[ulCnt].ucIpv4Cid   = AT_PS_CALL_INVALID_CID;
-        pstPsCtx->astCallEntity[ulCnt].enIpv4State = AT_PDP_STATE_IDLE;
-        pstPsCtx->astCallEntity[ulCnt].enWlanPdpType    = TAF_PDP_TYPE_BUTT;
-        pstPsCtx->astCallEntity[ulCnt].enHoPdpType      = TAF_PDP_TYPE_BUTT;
-        pstPsCtx->astCallEntity[ulCnt].enWlanIpv4State  = AT_PDP_STATE_IDLE;
-        pstPsCtx->astCallEntity[ulCnt].ucIpv4DendRptFlg = VOS_FALSE;
+        pstPsCtx->astCallEntity[ulCnt].stIpv4Info.ucIpv4Cid   = AT_PS_CALL_INVALID_CID;
+        pstPsCtx->astCallEntity[ulCnt].stIpv4Info.enIpv4State = AT_PDP_STATE_IDLE;
+        pstPsCtx->astCallEntity[ulCnt].stDialPdpType.enWlanPdpType    = TAF_PDP_TYPE_BUTT;
+        pstPsCtx->astCallEntity[ulCnt].stDialPdpType.enHoPdpType      = TAF_PDP_TYPE_BUTT;
+        pstPsCtx->astCallEntity[ulCnt].stIpv4Info.enWlanIpv4State  = AT_PDP_STATE_IDLE;
+        pstPsCtx->astCallEntity[ulCnt].stIpv4Info.ucIpv4DendRptFlg = VOS_FALSE;
 
-        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv4DhcpInfo,
-                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv4DhcpInfo), 0x00, sizeof(AT_IPV4_DHCP_PARAM_STRU));
+        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv4Info.stIpv4DhcpInfo,
+                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv4Info.stIpv4DhcpInfo), 0x00, sizeof(AT_IPV4_DHCP_PARAM_STRU));
 
-        pstPsCtx->astCallEntity[ulCnt].ucIpv6Cid   = AT_PS_CALL_INVALID_CID;
-        pstPsCtx->astCallEntity[ulCnt].enIpv6State = AT_PDP_STATE_IDLE;
-        pstPsCtx->astCallEntity[ulCnt].enWlanIpv6State = AT_PDP_STATE_IDLE;
-        pstPsCtx->astCallEntity[ulCnt].ucIpv6DendRptFlg = VOS_FALSE;
+        pstPsCtx->astCallEntity[ulCnt].stIpv6Info.ucIpv6Cid   = AT_PS_CALL_INVALID_CID;
+        pstPsCtx->astCallEntity[ulCnt].stIpv6Info.enIpv6State = AT_PDP_STATE_IDLE;
+        pstPsCtx->astCallEntity[ulCnt].stIpv6Info.enWlanIpv6State = AT_PDP_STATE_IDLE;
+        pstPsCtx->astCallEntity[ulCnt].stIpv6Info.ucIpv6DendRptFlg = VOS_FALSE;
 
-        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv6RaInfo,
-                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv6RaInfo), 0x00, sizeof(AT_IPV6_RA_INFO_STRU));
-        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv6DhcpInfo,
-                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv6DhcpInfo), 0x00, sizeof(AT_IPV6_DHCP_PARAM_STRU));
+        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv6Info.stIpv6RaInfo,
+                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv6Info.stIpv6RaInfo), 0x00, sizeof(AT_IPV6_RA_INFO_STRU));
+        TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stIpv6Info.stIpv6DhcpInfo,
+                   sizeof(pstPsCtx->astCallEntity[ulCnt].stIpv6Info.stIpv6DhcpInfo), 0x00, sizeof(AT_IPV6_DHCP_PARAM_STRU));
         TAF_MEM_SET_S(&pstPsCtx->astCallEntity[ulCnt].stApnDataSysInfo,
                    sizeof(pstPsCtx->astCallEntity[ulCnt].stApnDataSysInfo), 0x00, sizeof(AT_PS_APN_DATA_SYS_INFO_STRU));
 
@@ -769,7 +772,7 @@ VOS_VOID AT_InitModemPsCtx(
         pstPsCtx->astChannelCfg[ulCnt].ulUsed        = VOS_FALSE;
         pstPsCtx->astChannelCfg[ulCnt].ulRmNetId     = AT_PS_INVALID_RMNET_ID;
         pstPsCtx->astChannelCfg[ulCnt].ulRmNetActFlg = VOS_FALSE;
-        pstPsCtx->astChannelCfg[ulCnt].ulIfaceld     = AT_PS_INVALID_IFACE_ID;
+        pstPsCtx->astChannelCfg[ulCnt].ulIfaceId     = AT_PS_INVALID_IFACE_ID;
     }
 
     /* 初始化错误码 */
@@ -869,7 +872,7 @@ VOS_VOID AT_InitResetCtx(VOS_VOID)
     /* 分配二进制信号量 */
     if (VOS_OK != VOS_SmBCreate( "AT", 0, VOS_SEMA4_FIFO, &pstResetCtx->hResetSem))
     {
-        PS_PRINTF("Create AT acpu cnf sem failed!\r\n");
+        PS_PRINTF_WARNING("Create AT acpu cnf sem failed!\n");
         AT_DBG_SET_SEM_INIT_FLAG(VOS_FALSE);
         AT_DBG_CREATE_BINARY_SEM_FAIL_NUM(1);
 
@@ -904,9 +907,6 @@ VOS_VOID AT_InitCommCtx(VOS_VOID)
 
     /* 默认应该类型为MP */
     pstCommCtx->ucSystemAppConfigAddr = SYSTEM_APP_MP;
-
-    /* 初始化MUX相关的上下文 */
-    TAF_MEM_SET_S(&(pstCommCtx->stMuxCtx), (VOS_UINT32)sizeof(pstCommCtx->stMuxCtx), 0x00, (VOS_UINT32)sizeof(AT_MUX_CTX_STRU));
 
     TAF_MEM_SET_S(&pstCommCtx->stCustomUsimmCfg,
                   sizeof(NAS_NVIM_CUSTOM_USIMM_CFG_STRU),
@@ -1460,7 +1460,7 @@ VOS_UINT32 AT_GetDestPid(
         /* 如果出现找不到对应的PID应该时出错了 */
         if (i >= (sizeof(g_astAtModemPidTab)/sizeof(AT_MODEM_PID_TAB_STRU)))
         {
-            PS_PRINTF("AT_GetDestPid: usClientId is %d, ulRcvPid is %d no modem1 pid. \r\n", usClientId, ulRcvPid);
+            PS_PRINTF_WARNING("<AT_GetDestPid> usClientId is %d, ulRcvPid is %d no modem1 pid. \n", usClientId, ulRcvPid);
         }
     }
 
@@ -1911,6 +1911,7 @@ VOS_UINT8 AT_IsSupportReleaseRst(
     {
         return VOS_TRUE;
     }
+
     return VOS_FALSE;
 }
 

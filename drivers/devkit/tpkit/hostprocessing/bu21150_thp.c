@@ -61,7 +61,11 @@ static int thp_bu21150_spi_transfer(struct thp_device *tdev,
 	THP_LOG_DEBUG("%s called\n", __func__);
 
 	spi_message_add_tail(xfer, msg);
-	thp_bus_lock();
+	rc = thp_bus_lock();
+	if (rc < 0) {
+		THP_LOG_ERR("%s:get lock failed\n", __func__);
+		return -EINVAL;
+	}
 	rc = thp_spi_sync(sdev, msg);
 	thp_bus_unlock();
 

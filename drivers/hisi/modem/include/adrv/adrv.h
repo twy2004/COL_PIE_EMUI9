@@ -628,6 +628,247 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 /********sim hotplug end************/
 
+/********kirin pcie start************/
+enum kirin_pcie_trigger {
+	KIRIN_PCIE_TRIGGER_CALLBACK,
+	KIRIN_PCIE_TRIGGER_COMPLETION,
+};
+
+enum kirin_pcie_event {
+	KIRIN_PCIE_EVENT_MIN_INVALID = 0x0,		/*min invalid value*/
+	KIRIN_PCIE_EVENT_LINKUP = 0x1,		/* linkup event  */
+	KIRIN_PCIE_EVENT_LINKDOWN = 0x2,		/* linkdown event */
+	KIRIN_PCIE_EVENT_WAKE = 0x4,	/* wake event*/
+	KIRIN_PCIE_EVENT_L1SS = 0x8,	/* l1ss event*/
+	KIRIN_PCIE_EVENT_CPL_TIMEOUT = 0x10,	/* completion timeout event */
+	KIRIN_PCIE_EVENT_MAX_INVALID = 0x1F,	/* max invalid value*/
+};
+
+struct kirin_pcie_notify {
+	enum kirin_pcie_event event;
+	void *user;
+	void *data;
+	u32 options;
+};
+
+struct kirin_pcie_register_event {
+	u32 events;
+	void *user;
+	enum kirin_pcie_trigger mode;
+	void (*callback)(struct kirin_pcie_notify *notify);
+	struct kirin_pcie_notify notify;
+	struct completion *completion;
+	u32 options;
+};
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_register_event
+*
+* 功能描述  : EP register hook fun for link event notification
+*
+* 输入参数  : reg register_event
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_register_event(struct kirin_pcie_register_event *reg);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_deregister_event
+*
+* 功能描述  : EP deregister hook fun for link event notification
+*
+* 输入参数  : reg register_event
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_deregister_event(struct kirin_pcie_register_event *reg);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_pm_control
+*
+* 功能描述  : ep控制rc上电接口
+*
+* 输入参数  : power_ops 0---PowerOff normally
+*                       1---Poweron normally
+*                       2---PowerOFF without PME
+*                       3---Poweron without LINK
+*             rc_idx ep对接的rc端口号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_pm_control(int power_ops, u32 rc_idx);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_ep_off
+*
+* 功能描述  : 获取ep设备下电状态接口
+*
+* 输入参数  : rc_idx ep对接的rc端口号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  未下电
+*             1  已下电
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_ep_off(u32 rc_idx);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_lp_ctrl
+*
+* 功能描述  : 打开关闭低功耗接口
+*
+* 输入参数  : rc_idx ep对接的rc端口号
+*             enable 0---关闭
+*                    1---打开
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_lp_ctrl(u32 rc_idx, u32 enable);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_enumerate
+*
+* 功能描述  : pcie枚举接口
+*
+* 输入参数  : rc_idx ep对接的rc端口号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_enumerate(u32 rc_idx);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_remove_ep
+*
+* 功能描述  : pcie删除ep设备接口
+*
+* 输入参数  : rc_idx ep对接的rc端口号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_remove_ep(u32 rc_idx);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_rescan_ep
+*
+* 功能描述  : pcie扫描ep设备接口
+*
+* 输入参数  : rc_idx ep对接的rc端口号
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_rescan_ep(u32 rc_idx);
+
+/*****************************************************************************
+* 函 数 名  : pcie_ep_link_ltssm_notify
+*
+* 功能描述  : 设置ep设备link状态接口
+*
+* 输入参数  : rc_id ep对接的rc端口号
+*             link_status ep设备link状态
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int pcie_ep_link_ltssm_notify(u32 rc_id, u32 link_status);
+
+/*****************************************************************************
+* 函 数 名  : kirin_pcie_power_notifiy_register
+*
+* 功能描述  : 注册pcie上电提供时钟后ep回调
+*
+* 输入参数  : rc_id ep对接的rc端口号
+*             poweron ep上电回调指针
+*             poweroff ep下电回调指针
+*             data ep回调函数入参
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 0  处理成功
+*             非0 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+int kirin_pcie_power_notifiy_register(u32 rc_id, int (*poweron)(void* data),
+				int (*poweroff)(void* data), void* data);
+
+/********kirin pcie end************/
+
+/*****************************************************************************
+* 函 数 名  : get_cmd_product_id
+*
+* 功能描述  : 从kernel的cmdline中获取product id
+*
+* 输入参数  : 无
+*
+* 输出参数  : 无
+*
+* 返 回 值  : 32bit无符号值，非0xFFFFFFFF  处理成功
+*             0xFFFFFFFF 处理失败
+*
+* 其它说明  : kernel
+*
+*****************************************************************************/
+unsigned int get_cmd_product_id(void);
+
+/******************* modem temp start *************/
+struct mdm_adc_s {
+    unsigned int channel;
+    unsigned int mode;
+};
+extern int hisi_mdm_adc_get_value_register(int (*func)(struct mdm_adc_s *mdm_adc_para));
+/******************* modem temp end ****************/
+
 #endif /* HISI_AP_DRV_H */
 
 

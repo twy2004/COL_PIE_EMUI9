@@ -55,6 +55,14 @@
 
 #include <linux/types.h>
 #include <linux/etherdevice.h>
+#include <linux/atomic.h>
+#include <linux/notifier.h>
+#include <linux/cpu.h>
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM))
+#include <linux/timer.h>
+#endif
+#include <linux/workqueue.h>
+#include <linux/version.h>
 #include "product_config.h"
 #include "rnic_dev_def.h"
 #include "rnic_dev_i.h"
@@ -84,6 +92,10 @@ extern "C" {
 #else
 #define RNIC_SPE_IPF_PORT_FLAG	(1)
 #endif
+#endif
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM))
+#define RNIC_TPUT_TIMER_INTERVAL (1*HZ)
 #endif
 
 #if (FEATURE_ON == FEATURE_RMNET_CUSTOM)
@@ -141,6 +153,7 @@ extern "C" {
 			|| (RNIC_DEV_ID_RMNET_R_IMS11 == (RmNetId)))
 #endif
 
+
 /*****************************************************************************
   3. Enumerations declatations
 *****************************************************************************/
@@ -170,6 +183,10 @@ struct rnic_dev_ethhdr {
 struct rnic_dev_context_s {
 	uint32_t ready;
 	rnic_device_notifier_func dev_notifier_func;
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+	rnic_ep_data_stats_hook data_stats_hook;
+	rnic_ep_napi_stats_hook napi_stats_hook;
+#endif
 
 	struct net_device *netdev[RNIC_DEV_ID_BUTT];
 	struct rnic_dev_priv_s *priv[RNIC_DEV_ID_BUTT];
@@ -181,10 +198,12 @@ struct rnic_dev_context_s {
 };
 
 struct rnic_dev_priv_s {
+	struct device *pdev;
 	struct net_device *netdev;
 	struct net_device_stats stats;
 	struct rnic_data_stats_s data_stats;
 	struct rnic_dsflow_stats_s dsflow_stats;
+	struct rnic_lb_stats_s lb_stats[NR_CPUS];
 
 	unsigned long state;
 
@@ -195,15 +214,26 @@ struct rnic_dev_priv_s {
 	uint32_t napi_queue_length;
 
 	struct sk_buff_head napi_queue ____cacheline_aligned;
+	struct sk_buff_head pend_queue ____cacheline_aligned;
+	struct sk_buff_head process_queue ____cacheline_aligned;
 	struct napi_struct napi ____cacheline_aligned;
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+	struct sk_buff_head peth_rx_queue ____cacheline_aligned;
+#endif
 
 	struct rnic_dev_ethhdr v4_eth_header ____cacheline_aligned;
 	struct rnic_dev_ethhdr v6_eth_header;
 
 #if (defined(CONFIG_BALONG_SPE))
+	struct rnic_dev_ethhdr v4_fix_eth_header ____cacheline_aligned;
+	struct rnic_dev_ethhdr v6_fix_eth_header;
+
 	int spe_port;
 	int ipf_port_flag;
 #endif
+
+	unsigned long addr_family_mask;
 
 	struct rnic_ps_iface_info_s v4_info;
 	struct rnic_ps_iface_info_s v6_info;
@@ -211,6 +241,30 @@ struct rnic_dev_priv_s {
 	rnic_ps_iface_data_tx_func v4_data_tx_func;
 	rnic_ps_iface_data_tx_func v6_data_tx_func;
 	rnic_ps_iface_drop_notifier_func drop_notifier_func;
+
+	/* NAPI load balance config */
+	bool lb_cap_valid;
+	uint8_t napi_lb_enable;
+	uint8_t lb_cur_level;
+	unsigned long lb_cpu_bitmask;
+	struct rnic_napi_lb_level_config_s napi_lb_level_cfg[RNIC_NAPI_LB_MAX_LEVEL];
+
+	/* Variable for NAPI load balance cpu selection */
+	atomic_t napi_cpu;
+	struct work_struct napi_dispatcher_work ____cacheline_aligned;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
+	struct notifier_block cpu_hotplug_notifier;
+#endif
+	cpumask_var_t lb_cpumask_curr_avail ____cacheline_aligned;
+	cpumask_var_t lb_cpumask_orig;
+	cpumask_var_t lb_cpumask_candidacy;
+	uint8_t lb_weight_orig[NR_CPUS];
+	uint8_t lb_weight_remaind[NR_CPUS];
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM))
+	struct timer_list tput_timer;
+	unsigned long rx_cmplt_mark;
+#endif
 };
 
 
@@ -226,6 +280,7 @@ extern struct rnic_dev_context_s rnic_dev_context;
 *******************************************************************************/
 
 struct net_device *rnic_get_netdev_by_devid(uint8_t devid);
+struct rnic_dev_priv_s *rnic_get_priv(uint8_t devid);
 
 
 #ifdef __cplusplus

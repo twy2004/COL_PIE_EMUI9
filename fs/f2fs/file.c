@@ -638,6 +638,7 @@ int truncate_blocks(struct inode *inode, u64 from, bool lock, bool buf_write)
 	struct page *ipage;
 	bool truncate_page = false;
 	int flag = buf_write ? F2FS_GET_BLOCK_PRE_AIO : F2FS_GET_BLOCK_PRE_DIO;
+	bool lock2 = false;
 
 	trace_f2fs_truncate_blocks_enter(inode, from);
 
@@ -647,7 +648,7 @@ int truncate_blocks(struct inode *inode, u64 from, bool lock, bool buf_write)
 		goto free_partial;
 
 	if (lock)
-		__do_map_lock(sbi, flag, true);
+		lock2 = __do_map_lock(sbi, flag, true, false);
 
 	ipage = get_node_page(sbi, inode->i_ino);
 	if (IS_ERR(ipage)) {
@@ -685,7 +686,7 @@ free_next:
 	err = truncate_inode_blocks(inode, free_from);
 out:
 	if (lock)
-		__do_map_lock(sbi, flag, false);
+		(void)__do_map_lock(sbi, flag, false, lock2);
 free_partial:
 	/* lastly zero out the first data page */
 	if (!err)
@@ -734,18 +735,6 @@ int f2fs_getattr(struct vfsmount *mnt,
 			struct dentry *dentry, struct kstat *stat)
 {
 	struct inode *inode = d_inode(dentry);
-#if 0
-	struct f2fs_inode_info *fi = F2FS_I(inode);
-	struct f2fs_inode *ri;
-
-	if (f2fs_has_extra_attr(inode) &&
-			f2fs_sb_has_inode_crtime(inode->i_sb) &&
-			F2FS_FITS_IN_INODE(ri, fi->i_extra_isize, i_crtime)) {
-		stat->result_mask |= STATX_BTIME;
-		stat->btime.tv_sec = fi->i_crtime.tv_sec;
-		stat->btime.tv_nsec = fi->i_crtime.tv_nsec;
-	}
-#endif
 
 	generic_fillattr(inode, stat);
 
@@ -1970,10 +1959,6 @@ static int f2fs_ioc_fitrim(struct file *filp, unsigned long arg)
 	 * disable aligning minlen to discard granularity of device,
 	 * so that smaller discard could be issued from FITRIM interface.
 	 */
-#if 0
-	range.minlen = max((unsigned int)range.minlen,
-				q->limits.discard_granularity);
-#endif
 
 	f2fs_msg(sb, KERN_ALERT,
 		"%s: Recive fstrim command from userspace!\n", __func__);

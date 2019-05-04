@@ -56,7 +56,7 @@ extern "C" {
 #include "product_config.h"
 #include "osl_types.h"
 #include "mdrv_rfile_common.h"
-#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) ||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) ||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "mdrv_pmu.h"
 #endif
 
@@ -288,7 +288,7 @@ int bsp_pmic_ioshare_status_get(pmic_ioshare_e id);
 
 #endif
 
-#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) || defined(__CMSIS_RTOS) ||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) || defined(__CMSIS_RTOS) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 /*****************************************************************************
  函 数 名  : bsp_pmu_init
  功能描述  : 系统启动初始化pmu相关信号量
@@ -300,7 +300,7 @@ int bsp_pmu_init(void);
 int bsp_sim_upres_disable(u32 sim_id);
 #endif
 
-#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 void* pmic_get_base_addr(void);
 s32 bsp_pmu_apt_enable(void);
 s32 bsp_pmu_apt_disable(void);
@@ -354,8 +354,23 @@ int bsp_pmu_sdio_resume(void);
 void bsp_pmu_volt_state_save(void);
 #endif
 
-void bsp_pmu_rfclk_enable(u32 rf_id);
+#ifdef CONFIG_NRCCPU_PMU
+int bsp_pmu_rfclk_enable(u32 rf_id);
+int bsp_pmu_rfclk_disable(u32 rf_id);
+int pmic_volt_enable(int volt_id);
+int pmic_volt_disable(int volt_id);
+int pmic_volt_set_voltage(int volt_id,int min_uV,int max_uV,unsigned * selector);
+int bsp_pmu_rfclk_set_driving(u32 rf_id,unsigned int driving_id);
+int pmic_volt_is_enabled(int volt_id);
+int pmic_volt_get_voltage(int volt_id);
+int bsp_pmu_rfclk_get_driving(u32 rf_id);
+int bsp_pmu_rfclk_set_freq(u32 rf_id,u32 sel);
+int bsp_pmu_rfclk_get_freq(u32 rf_id);
+
+#else
 void bsp_pmu_rfclk_disable(u32 rf_id);
+void bsp_pmu_rfclk_enable(u32 rf_id);
+#endif
 int bsp_pmu_rfclk_is_enabled(u32 rf_id);
 unsigned int bsp_pmu_get_rtc_value(void);
 void* bsp_pmic_get_base_addr(void);

@@ -44,6 +44,7 @@
 				phy_type = "utmi_wide";
 				snps,hsphy_interface = "utmi";
 				maximum-speed = "super-speed";
+				linux,sysdev_is_parent;
 				snps,ctrl_nyet_abnormal;
 				snps,warm_reset_after_init;
 				snps,dis-del-phy-power-chg-quirk;
@@ -51,6 +52,9 @@
 				snps,dis_u3_susphy_quirk;
 				snps,tx_de_emphasis_quirk;
 				snps,tx_de_emphasis = <1>;
+				snps,dis-split-quirk;
+				snps,gctl-reset-quirk;
+				snps,xhci-delay-ctrl-data-stage;
 			};
 		};
 

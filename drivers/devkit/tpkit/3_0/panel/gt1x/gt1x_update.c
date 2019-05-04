@@ -676,7 +676,6 @@ static int gt1x_run_ss51_isp(u8 * ss51_isp, int length)
 	ret = gt1x_i2c_write_with_readback(GTP_REG_VERSION, buffer, 10);
 	if (ret) {
 		TS_LOG_ERR("write readback fail!\n");
-
 	}
 	// disable patch area access
 	buffer[0] = 0x00;

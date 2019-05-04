@@ -762,6 +762,8 @@ static int hisi_charger_event(struct notifier_block *nb, unsigned long event,
 		break;/*lint !e456*/
 	case WIRELESS_TX_STATUS_CHANGED:
 		break;/*lint !e456*/
+	case WIRELESS_COVER_DETECTED:
+		break; /* lint !e456 */
 	default:
 		bci_err("%s defualt run.\n", __func__);
 		break;/*lint !e456*/
@@ -819,27 +821,6 @@ int check_batt_volt_overhigh(char *buf)
 		}
 		avg_volt = (int)(volt/(MAX_CONFIRM_CNT));
 		if(BATT_VOLT_OVERHIGH_TH < avg_volt){
-			snprintf(buf, DSM_BATTERY_MAX_SIZE, "avg_batt_volt = %dmV\n", avg_volt);
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int check_batt_volt_overlow(char *buf)
-{
-	int volt;
-	int avg_volt = 0;
-	int check_cnt = 0;
-
-	volt = hisi_battery_voltage();
-	if (volt < BATT_VOLT_OVERLOW_TH) {
-		for(check_cnt = 0 ; check_cnt < MAX_CONFIRM_CNT-1; check_cnt++){
-			msleep(CONFIRM_INTERVAL);
-			volt += hisi_battery_voltage();
-		}
-		avg_volt = (int)(volt/(MAX_CONFIRM_CNT));
-		if( BATT_VOLT_OVERLOW_TH > avg_volt){
 			snprintf(buf, DSM_BATTERY_MAX_SIZE, "avg_batt_volt = %dmV\n", avg_volt);
 			return 1;
 		}
@@ -1195,7 +1176,7 @@ void batt_info_dump(char* pstr)
 	int tusb = INVALID_TEMP_VAL;
 #endif
 
-	enum usb_charger_type charger_type = charge_get_charger_type();
+	enum huawei_usb_charger_type charger_type = charge_get_charger_type();
 	if (!pstr) {
 		bci_err("%s: para null\n", __func__);
 		return;
@@ -1213,7 +1194,6 @@ struct batt_dsm batt_dsm_array[] = {
 	{ERROR_BATT_NOT_EXIST, true, .dump = batt_info_dump, check_batt_not_exist},
 	{ERROR_BATT_TEMP_LOW, true, .dump = batt_info_dump, check_batt_temp_overlow},
 	{ERROR_BATT_VOLT_HIGH, true, .dump = batt_info_dump, check_batt_volt_overhigh},
-	{ERROR_BATT_VOLT_LOW, true, .dump = batt_info_dump, check_batt_volt_overlow},
 	{ERROR_BATT_TERMINATE_TOO_EARLY, true, .dump = batt_info_dump, check_batt_terminate_too_early},
 	{ERROR_BATT_NOT_TERMINATE, true, .dump = batt_info_dump, check_batt_not_terminate},
 	{ERROR_BATT_BAD_CURR_SENSOR, true, .dump = batt_info_dump, check_batt_bad_curr_sensor},
@@ -1316,12 +1296,13 @@ static int hisi_ac_get_property(struct power_supply *psy,
 				enum power_supply_property psp,
 				union power_supply_propval *val)
 {
-    struct hisi_bci_device_info *di = g_hisi_bci_dev;
-	if( NULL == di )
-	{
+	struct hisi_bci_device_info *di = g_hisi_bci_dev;
+
+	if (!di) {
 		bci_info("NULL point in [%s]\n", __func__);
 		return -EINVAL;
-    }
+	}
+
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (di->ac_online && CHARGER_TYPE_WIRELESS != charge_get_charger_type())
@@ -1335,6 +1316,7 @@ static int hisi_ac_get_property(struct power_supply *psy,
 	default:
 		return -EINVAL;
 	}
+
 	return 0;
 }
 
@@ -1432,6 +1414,9 @@ static int hisi_bci_battery_get_fcp_status(struct hisi_bci_device_info *di)
 		{
 			intval = 1;
 			bci_info("pd_dpm_get_optional_max_power_status intval 1 [%s]\n", __func__);
+		} else if (pd_dpm_get_wireless_cover_power_status() == true && di->ac_online) {
+			intval = 1;
+			bci_info("intval=1 [%s]\n", __func__);
 		}
 #endif
 #ifdef CONFIG_WIRELESS_CHARGER

@@ -244,7 +244,7 @@ static int hisi_powerkey_probe(struct spmi_device *pdev)
 	powerkey_press_count = 0;
 	powerkey_last_press_time = 0;
 	setup_timer(&dsm_powerkey_timer, powerkey_timer_func,
-			(unsigned long)info);
+			(uintptr_t)info);
 #endif
 
 #ifdef CONFIG_HISI_POWERKEY_DEBUG

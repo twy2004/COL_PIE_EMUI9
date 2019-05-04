@@ -35,6 +35,7 @@
 #include "../pmic/hw_pmic.h"
 
 #define I2S(i) container_of(i, sensor_t, intf)
+#define Sensor2Pdev(s) container_of((s).dev, struct platform_device, dev)
 #define CAMERA_LOG_DEBUG
 
 #define BS_DAY    0
@@ -160,7 +161,7 @@ ov8856_power_up(
     cam_info("enter %s. index = %d name = %s", __func__, sensor->board_info->sensor_index, sensor->board_info->name);
 
     if (hw_is_fpga_board()){
-        //ret = do_sensor_power_on(sensor->board_info->sensor_index, sensor->board_info->name);
+        cam_info("%s powerup by isp on FPGA", __func__);
     } else {
         ret = hw_sensor_power_up(sensor);
     }
@@ -184,7 +185,7 @@ ov8856_power_down(
     sensor = I2S(si);
     cam_info("enter %s. index = %d name = %s", __func__, sensor->board_info->sensor_index, sensor->board_info->name);
     if (hw_is_fpga_board()) {
-        //ret = do_sensor_power_off(sensor->board_info->sensor_index, sensor->board_info->name);
+        cam_info("%s poweroff by isp on FPGA", __func__);
     } else {
         ret = hw_sensor_power_down(sensor);
     }
@@ -234,9 +235,6 @@ ov8856_match_id(
 
     if (cdata->data != SENSOR_INDEX_INVALID) /*lint !e650 */
     {
-        /*
-        hwsensor_writefile(sensor->board_info->sensor_index, cdata->cfg.name);
-        */
         cam_info("%s, cdata->cfg.name = %s", __func__,cdata->cfg.name );
     }
     cam_info("%s TODO.  cdata->data=%d", __func__, cdata->data);
@@ -281,10 +279,8 @@ ov8856_config(
         case SEN_CONFIG_READ_REG_SETTINGS:
             break;
         case SEN_CONFIG_ENABLE_CSI:
-            /* ret = si->vtbl->csi_enable(si); */
             break;
         case SEN_CONFIG_DISABLE_CSI:
-            /* ret = si->vtbl->csi_disable(si); */
             break;
         case SEN_CONFIG_MATCH_ID:
             ret = si->vtbl->match_id(si,argp);
@@ -363,7 +359,7 @@ ov8856_platform_remove(
     sensor = I2S(intf);
 
     rpmsg_sensor_unregister((void*)&sensor);
-    hwsensor_unregister(intf);
+    hwsensor_unregister(Sensor2Pdev(*sensor));
     return 0;
 }
 static int __init
@@ -378,7 +374,7 @@ static void __exit
 ov8856_exit_module(void)
 {
     rpmsg_sensor_unregister((void*)&s_ov8856_hma);
-    hwsensor_unregister(&s_ov8856_hma.intf);
+    hwsensor_unregister(Sensor2Pdev(s_ov8856_hma));
     platform_driver_unregister(&s_ov8856_driver);
 }
 

@@ -22,6 +22,8 @@
 #include "hisi_fb.h"
 #include "../hisi_fb_panel.h"
 
+#define TEST_ERROR_CHIP_INIT     BIT(16)
+
 static struct lp8556_backlight_information lp8556_bl_info;
 
 static struct gpio_desc lp8556_hw_en_on_cmds[] = {
@@ -106,7 +108,7 @@ static int lp8556_parse_dts(struct device_node *np)
 	for (i = 0;i < LP8556_RW_REG_MAX;i++ ) {
 		ret = of_property_read_u32(np, lp8556_dts_string[i], &lp8556_bl_info.lp8556_reg[i]);
 		if (ret < 0) {
-			lp8556_bl_info.lp8556_reg[i] = 0xffff;
+			lp8556_bl_info.lp8556_reg[i] = 0xffff;//init to invalid data
 			LP8556_INFO("can not find config:%s\n", lp8556_dts_string[i]);
 		}
 	}
@@ -142,6 +144,7 @@ static int lp8556_config_write(struct lp8556_chip_data *pchip,
 	}
 
 	for(i = 0;i < size;i++) {
+		/*judge reg is invalid*/
 		if (val[i] != 0xffff) {
 			ret = regmap_write(pchip->regmap, reg[i], val[i]);
 			if (ret < 0) {

@@ -286,6 +286,11 @@ extern int erofs_try_to_free_all_cached_pages(struct erofs_sb_info *sbi,
 	struct erofs_workgroup *egrp);
 extern int erofs_try_to_free_cached_page(struct address_space *mapping,
 	struct page *page);
+#ifdef CONFIG_MIGRATION
+int erofs_migrate_cached_page(struct address_space *mapping,
+			      struct page *newpage, struct page *page,
+			      enum migrate_mode mode);
+#endif
 #endif
 
 #define DEFAULT_MAX_SYNC_DECOMPRESS_PAGES	3

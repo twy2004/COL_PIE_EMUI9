@@ -212,9 +212,6 @@ VOS_UINT32 AT_TestCclprPara( VOS_UINT8 ucIndex );
 extern VOS_UINT32 AT_SetRejCallPara(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_TestRejCallPara(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_QryCsChannelInfoPara(VOS_UINT8 ucIndex);
-extern VOS_UINT32 AT_RcvTafSpmQryCSChannelInfoCnf(
-    MN_AT_IND_EVT_STRU                 *pstData
-);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

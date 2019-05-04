@@ -486,7 +486,6 @@ static int himos_paser_kwai_proxy_header(struct himos_aweme_detect_info *info,
 {
 	const char *loc;
 	int ret = -1;
-	char number[16];
 	int i = 0, temp;
 
 	temp = len;
@@ -708,7 +707,7 @@ static void himos_process_response(struct himos_aweme_detect_info *info,
  */
 static int himos_copy_from_msg(char *buf, struct msghdr *msg)
 {
-	struct iovec *iov = NULL;
+	const struct iovec *iov = NULL;
 	int len = -1, ret;
 
 	iov = msg->msg_iter.iov;
@@ -726,7 +725,7 @@ void himos_aweme_tcp_stats(struct sock *sk, struct msghdr *old, struct msghdr *n
 	struct himos_aweme_detect_info *info;
 	struct stall_info *stall = NULL;
 	int i, j;
-	char buffer[BUF_LEN];
+	char *buffer = NULL;
 	int len = -1;
 	__s32 uid;
 
@@ -738,6 +737,12 @@ void himos_aweme_tcp_stats(struct sock *sk, struct msghdr *old, struct msghdr *n
 		return;
 
 	//copy the data
+	buffer = kmalloc(BUF_LEN, GFP_KERNEL);
+	if(NULL == buffer){
+		WIFIPRO_DEBUG("failed to allocate buffer\n");
+		return;
+	}
+	memset(buffer, 0, BUF_LEN);
 	if (outbytes > 0) {
 		if ((new->msg_iter.type == WRITE) && (new->msg_iter.nr_segs > 0)) {
 			len = himos_copy_from_msg(buffer, new);
@@ -748,8 +753,13 @@ void himos_aweme_tcp_stats(struct sock *sk, struct msghdr *old, struct msghdr *n
 			len = himos_copy_from_msg(buffer, old);
 		}
 	}
-	if (len <= 0)
+	if (len <= 0){
+		if(buffer){
+			kfree(buffer);
+			buffer = NULL;
+		}
 		return;
+	}
 
 	//hold the info lock
 	spin_lock_bh(&stats_info_lock);
@@ -815,6 +825,10 @@ void himos_aweme_tcp_stats(struct sock *sk, struct msghdr *old, struct msghdr *n
 	}
 out:
 	spin_unlock_bh(&stats_info_lock);
+	if(buffer){
+		kfree(buffer);
+		buffer = NULL;
+	}
 }
 
 int __init himos_aweme_init(void)

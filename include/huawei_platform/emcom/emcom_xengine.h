@@ -99,9 +99,7 @@ struct Emcom_Xengine_mpip_config{
 *****************************************************************************/
 void Emcom_Xengine_Init(void);
 int Emcom_Xengine_clear(void);
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
 bool Emcom_Xengine_Hook_Ul_Stub(struct sock *pstSock);
-#endif
 void Emcom_Xengine_SpeedCtrl_WinSize(struct sock *pstSock, uint32_t* win);
 void Emcom_Xengine_UdpEnqueue(struct sk_buff *skb);
 void Emcom_Xengine_FastSyn(struct sock *pstSock);
@@ -115,15 +113,10 @@ int Emcom_Xengine_GetProxyUid(struct sock *sk, char __user *optval, int __user *
 int Emcom_Xengine_SetSockFlag(struct sock *sk, char __user *optval, int optlen);
 void Emcom_Xengine_NotifySockError(struct sock *sk);
 
-#ifdef CONFIG_SMART_MP
-bool Emcom_Xengine_CheckUidAccount(const struct sk_buff *skb, uint32_t *uid, const struct sock *alternate_sk, int proto);
-bool Emcom_Xengine_CheckIfaceAccount(const struct sock *sk, int proto);
-bool Emcom_Xengine_SmartMpEnable(void);
-void Emcom_Xengine_SmartMpOnDK_Connect(void);
-#endif
 #ifdef CONFIG_MPTCP
 void Emcom_Xengine_MptcpSocketClosed(void *data, int len);
 void Emcom_Xengine_MptcpSocketSwitch(void *data, int len);
+void Emcom_Xengine_MptcpProxyFallback(void *data, int len);
 #endif
 
 /*****************************************************************************

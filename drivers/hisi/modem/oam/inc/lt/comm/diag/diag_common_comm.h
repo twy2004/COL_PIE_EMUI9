@@ -63,7 +63,6 @@ extern "C" {
 #include "msp.h"
 #include "msp_debug.h"
 #include "diag_message_comm.h"
-#include "diag_service_comm.h"
 #include "diag_frame.h"
 //#include "msp_tag.h"
 
@@ -78,16 +77,16 @@ extern "C" {
 #define diag_info(fmt, ...)    mdrv_info(fmt, ##__VA_ARGS__)
 
 /* debug定时器时长 */
-#define DIAG_DEBUG_TIMER_LEN                            (5*1000)
-#define DIAG_HIDP_DEBUG_TIMER_LEN                       (31*1000)
+#define DIAG_OPENLOG_MNTN_TIMER_LEN                    (30*1000)
+#define DIAG_HIDP_DEBUG_TIMER_LEN                      (31*1000)
 
-#define     DIAG_ERRORLOG_TIMER_NAME                    (0x00001001)
-#define     DIAG_CLTINFO_TIMER_NAME                     (0x00002002)
-#define     DIAG_DEBUG_TIMER_NAME                       (0x00003003)
+#define DIAG_ERRORLOG_TIMER_NAME                    (0x00001001)
+#define DIAG_CLTINFO_TIMER_NAME                     (0x00002002)
+#define DIAG_DEBUG_TIMER_NAME                       (0x00003003)
 
-#define     DIAG_ERRORLOG_TIMER_PARA                    (0x0000EFFE)
-#define     DIAG_CLTINFO_TIMER_PARA                     (0x0000DFFD)
-#define     DIAG_DEBUG_TIMER_PARA                       (0x0000CFFC)
+#define DIAG_ERRORLOG_TIMER_PARA                    (0x0000EFFE)
+#define DIAG_CLTINFO_TIMER_PARA                     (0x0000DFFD)
+#define DIAG_DEBUG_TIMER_PARA                       (0x0000CFFC)
 
 /*****************************************************************************
   DIAG Cookie

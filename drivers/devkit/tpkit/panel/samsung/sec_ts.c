@@ -280,6 +280,7 @@ static int sec_ts_i2c_write_burst(struct sec_ts_data *ts, u8 *data, int len)
 		if (!ts->chip_data->ts_platform_data->bops->bus_write) {
 			TS_LOG_ERR("bus_write not exits\n");
 			ret = -EIO;
+			mutex_unlock(&ts->i2c_mutex);
 			goto err;
 		}
 		ret = ts->chip_data->ts_platform_data->bops->bus_write(data, len);
@@ -304,10 +305,10 @@ err:
 
 static int sec_ts_i2c_read_bulk(struct sec_ts_data *ts, u8 *data, int len)
 {
-	int ret;
-	unsigned char retry;
+	int ret = 0;
+	unsigned char retry = 0;
 	int remain = len;
-	struct i2c_msg msg;
+	struct i2c_msg msg = {0};
 	u8 reg = 0;
 
 	mutex_lock(&ts->i2c_mutex);
@@ -702,10 +703,10 @@ reinit_err:
 static int sec_ts_process_status(struct sec_ts_data *ts,
 					struct ts_fingers *info, u8 *event_buff)
 {
-	int ret;
-	struct sec_ts_event_status *p_event_status;
-	struct sec_ts_selfcheck *p_selfcheck;
-	u8 rBuff[SEC_TS_SELFCHECK_BUFF_SIZE];
+	int ret = 0;
+	struct sec_ts_event_status *p_event_status = NULL;
+	struct sec_ts_selfcheck *p_selfcheck = NULL;
+	u8 rBuff[SEC_TS_SELFCHECK_BUFF_SIZE] = {0};
 
 	p_event_status = (struct sec_ts_event_status *)event_buff;
 
@@ -2047,11 +2048,9 @@ static int i2c_communicate_check(void)
 
 	ret = sec_ts_i2c_read(ts, SEC_TS_READ_DEVICE_ID, deviceID, 5);
 	if (ret < 0)
-		TS_LOG_ERR("%s: failed to read device ID(%d)\n", __func__, ret);
+		TS_LOG_ERR("%s: failed to read device, ret = %d  \n", __func__, ret);
 	else
-		TS_LOG_INFO("%s: TOUCH DEVICE ID : %02X, %02X, %02X, %02X, %02X\n",
-					__func__, deviceID[0], deviceID[1],
-					deviceID[2], deviceID[3], deviceID[4]);
+		TS_LOG_INFO("%s: read device_id SUCC \n", __func__);
 
 	ret = sec_ts_i2c_read(ts, SEC_TS_READ_FIRMWARE_INTEGRITY, &result, 1);
 	if (ret < 0) {
@@ -2115,8 +2114,12 @@ static int sec_ts_chip_detect(struct ts_kit_platform_data *data)
 	int retval = NO_ERR;
 
 	TS_LOG_INFO("sec_ts chip detect called\n");
-	if ((!data) && (!data->ts_dev)) {
-		TS_LOG_ERR("device, ts_kit_platform_data *data or data->ts_dev is NULL \n");
+	if (!data) {
+		TS_LOG_ERR("%s: *data or data->ts_dev is NULL \n", __func__);
+		retval =  -EINVAL;
+		goto out;
+	} else if (data->ts_dev == NULL) {
+		TS_LOG_ERR("%s: *data or data->ts_dev is NULL \n", __func__);
 		retval =  -EINVAL;
 		goto out;
 	}
@@ -2181,8 +2184,8 @@ static int sec_ts_chip_detect(struct ts_kit_platform_data *data)
 	} else {
 		TS_LOG_INFO("find sec_ts device\n");
 		strncpy(ts->chip_data->chip_name, SEC_TS_I2C_NAME,
-			(MAX_STR_LEN > strlen(SEC_TS_I2C_NAME)) ?
-				strlen(SEC_TS_I2C_NAME):(MAX_STR_LEN - 1));
+			((MAX_STR_LEN - 1) > (strlen(SEC_TS_I2C_NAME) + 1)) ?
+			(strlen(SEC_TS_I2C_NAME) + 1) : (MAX_STR_LEN - 1));
 	}
 
 	if(S6SY761X == tsp_info->ic_name) {
@@ -2731,7 +2734,8 @@ static int sec_ts_set_roi_switch(u8 roi_switch)
 	int retval = NO_ERR;
 	int i;
 	unsigned short roi_ctrl_addr = 0;
-	u8 roi_control_bit, temp_roi_switch;
+	u8 roi_control_bit = 0;
+	u8 temp_roi_switch = 0;
 
 #ifdef ROI
 	roi_ctrl_addr = tsp_info->chip_data->ts_platform_data->feature_info.roi_info.roi_control_addr;

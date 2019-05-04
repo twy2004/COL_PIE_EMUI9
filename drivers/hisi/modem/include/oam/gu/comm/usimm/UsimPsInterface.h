@@ -64,26 +64,19 @@ extern "C" {
 *****************************************************************************/
 #include "vos.h"
 #include "product_config.h"
-#include "mdrv.h"
+
 #include "UsimPsInterface_comm.h"
-
-#if (FEATURE_VSIM == FEATURE_ON)
-#include "mdrv.h"
-#endif
-
 #if ( (OSA_CPU_CCPU == VOS_OSA_CPU) || (OSA_CPU_NRCPU == VOS_OSA_CPU) )
 #include "UsimInterface_ccore.h"
 #endif
 
 #pragma pack(4)
 
-
 #if ((VOS_OS_VER == VOS_WIN32) || (VOS_OS_VER == VOS_NUCLEUS))
 #pragma pack()
 #else
 #pragma pack(0)
 #endif
-
 
 #ifdef __cplusplus
 #if __cplusplus

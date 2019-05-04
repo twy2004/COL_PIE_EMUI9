@@ -85,6 +85,8 @@
 #include "v_lib.h"
 #include "product_config.h"
 #include "v_MemCfg.inc"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /* LINUX 不支持 */
 
@@ -99,7 +101,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_BLKMEM_C
-
+#define    THIS_MODU           mod_pam_osa
 
 /* which be used to calc real size of mem */
 typedef struct
@@ -167,7 +169,6 @@ VOS_UINT_PTR g_ulVosMemCtrlSpaceStart;
 VOS_UINT_PTR g_ulVosMemCtrlSpaceEnd;
 
 /* the buf of VOS's mem */
-
 /* the buf of VOS's mem */
 VOS_CHAR g_acVosMemBuf[1577424]; /* 由于A核支持64位，内存需要增大 */
 
@@ -199,6 +200,45 @@ VOS_SPINLOCK             g_stVosStaticMemSpinLock;
 /* 自旋锁，用来作Dump Memory的临界资源保护 */
 VOS_SPINLOCK             g_stVosDumpMemSpinLock;
 VOS_UINT32               g_ulVosDumpMemFlag;
+
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+
+struct platform_device *modem_osa_pdev;
+
+static int osa_driver_probe(struct platform_device *pdev)
+{
+    dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
+
+    modem_osa_pdev = pdev;
+
+    return VOS_OK;
+}
+
+static int osa_driver_remove(struct platform_device *pdev)
+{
+    return VOS_OK;
+}
+
+static const struct of_device_id osa_dev_of_match[] = {
+    {
+        .compatible = "hisilicon,hisi-osa",
+        .data = NULL,
+    },
+    {},
+};
+
+static struct platform_driver osa_driver = {
+    .probe  = osa_driver_probe,
+    .remove = osa_driver_remove,
+    .driver = {
+        .name = "hisi-osa",
+        .of_match_table = osa_dev_of_match,
+    },
+};
+
+#endif
+
 
 
 /*****************************************************************************
@@ -309,12 +349,16 @@ VOS_UINT32 VOS_MemInit( VOS_VOID )
     VOS_UINT_PTR ulSpaceEnd;
     VOS_UINT_PTR ulCtrlStart;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+    VOS_INT32 lRegResult = 0;
+#endif
+
     /* calculate msg+mem's size */
     for ( i=0; i<VOS_MEM_CTRL_BLOCK_NUMBER; i++ )
     {
         if ( 0x00000003 & MsgBlockInfo[i].size )/* 4 byte Aligned */
         {
-            LogPrint2("# MsgBlockInfo[%d].size(%d) not aligned.\r\n",
+            mdrv_err("<VOS_MemInit> MsgBlockInfo=%d size=%d not aligned.\n",
                 i, MsgBlockInfo[i].size );
 
             return VOS_ERR;
@@ -330,7 +374,7 @@ VOS_UINT32 VOS_MemInit( VOS_VOID )
     {
         if ( 0x00000003 & MemBlockInfo[i].size )/* 4 byte Aligned */
         {
-            LogPrint2("# MemBlockInfo[%d].size(%d) not aligned.\r\n",
+            mdrv_err("<VOS_MemInit> MemBlockInfo=%d size=%d not aligned.\n",
                     i, MemBlockInfo[i].size );
 
             return VOS_ERR;
@@ -396,6 +440,17 @@ VOS_UINT32 VOS_MemInit( VOS_VOID )
     VOS_SpinLockInit(&g_stVosDumpMemSpinLock);
     g_ulVosDumpMemFlag = VOS_TRUE;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+
+    lRegResult = platform_driver_register(&osa_driver);
+
+    if (lRegResult)
+    {
+        mdrv_err("<VOS_MemInit> platform_driver_register fail, lRegResult=%d.\n",lRegResult);
+    }
+
+#endif
+
     return VOS_OK;
 }
 
@@ -458,12 +513,10 @@ VOS_VOID* VOS_MemCtrlBlkMalloc( VOS_MEM_CTRL_BLOCK *VOS_MemCtrlBlock,
     VOS_UINT_PTR          ulBlockAddr;
     VOS_UINT32            ulCrcTag;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosMemSpinLock, ulLockLevel);
 
     if( 0 >= VOS_MemCtrlBlock->IdleBlockNumber )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosMemSpinLock, ulLockLevel);
 
         return((VOS_VOID*)VOS_NULL_PTR);
@@ -487,7 +540,6 @@ VOS_VOID* VOS_MemCtrlBlkMalloc( VOS_MEM_CTRL_BLOCK *VOS_MemCtrlBlock,
     }
     VOS_MemCtrlBlock->BusyBlocks = Block;
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosMemSpinLock, ulLockLevel);
 
     /* record the usage of control block */
@@ -551,7 +603,7 @@ VOS_VOID* VOS_TIMER_MemCtrlBlkMalloc( VOS_PID PID, VOS_INT ulLength )
 
     (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_MEMORY_FULL);
 
-    LogPrint("# alloc timer msg fail.\r\n");
+    mdrv_err("<VOS_TIMER_MemCtrlBlkMalloc> alloc timer msg fail.\n");
 
     VOS_ProtectionReboot(FAIL_TO_ALLOCATE_TIMER_MSG, 0,
                          (VOS_INT)ulLength, VOS_NULL_PTR, 0);
@@ -574,18 +626,16 @@ VOS_UINT32 VOS_MemCtrlBlkFree( VOS_MEM_CTRL_BLOCK *VOS_MemCtrlBlock,
     VOS_ULONG             ulLockLevel;
     VOS_MEM_CTRL_BLOCK   *pstTemp;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosMemSpinLock, ulLockLevel);
 
     if ( VOS_NOT_USED == Block->ulMemUsedFlag )/*[false alarm]:屏蔽Fortify的Redundant Null Check告警*/
     {
         VOS_ProtectionReboot(VOS_FREE_MSG_AGAIN, (VOS_INT)ulFileID, (VOS_INT)Pid, (VOS_CHAR *)Block, sizeof(VOS_MEM_HEAD_BLOCK));
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosMemSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_FREE_REPECTION);
-        LogPrint3("# Free again.F %d PID %d.Tick %d.\r\n",
+        mdrv_err("<VOS_MemCtrlBlkFree> Free again.F=%d PID=%d.Tick=%d.\n",
             (VOS_INT)ulFileID, (VOS_INT)Pid, (VOS_INT)VOS_GetSlice() );
 
         return VOS_ERR;
@@ -626,7 +676,6 @@ VOS_UINT32 VOS_MemCtrlBlkFree( VOS_MEM_CTRL_BLOCK *VOS_MemCtrlBlock,
     /*lint +e613*/
     pstTemp->lRealNumber--;
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosMemSpinLock, ulLockLevel);
 
     return VOS_OK;
@@ -707,7 +756,7 @@ VOS_VOID * VOS_MemBlkMalloc( VOS_PID PID, VOS_INT ulLength,
 
     (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_MEMORY_FULL);
 
-    LogPrint3("# alloc msg fail size %d.F %d L %d.\r\n",
+    mdrv_err("<VOS_MemBlkMalloc> alloc msg fail size=%d. F=%d L=%d.\n",
         (VOS_INT)ulLength, (VOS_INT)ulFileID, usLineNo);
 
     VOS_MsgDump(PID, (VOS_UINT32)ulLength, ulFileID, usLineNo);
@@ -739,7 +788,7 @@ MODULE_EXPORTED VOS_VOID * V_MemAlloc( VOS_UINT32 ulInfo, VOS_UINT8  ucPtNo, VOS
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_ALLOC_INPUTMSGISNULL);
 
-        Print3("# V_MemAlloc partion invalid, F %d L %d P %d.\r\n",
+        mdrv_err("<V_MemAlloc> partion invalid, F=%d L=%d P=%d.\n",
                 ulFileID, usLineNo, ulInfo);
 
         return VOS_NULL_PTR;
@@ -747,7 +796,7 @@ MODULE_EXPORTED VOS_VOID * V_MemAlloc( VOS_UINT32 ulInfo, VOS_UINT8  ucPtNo, VOS
 
     if( 0 == ulSize )
     {
-        Print2("# V_MemAlloc size is 0,F %d L %d.\r\n", ulFileID, usLineNo);
+        mdrv_err("<V_MemAlloc> size is 0,F=%d L=%d.\n", ulFileID, usLineNo);
 
         return VOS_NULL_PTR;
     }
@@ -755,7 +804,7 @@ MODULE_EXPORTED VOS_VOID * V_MemAlloc( VOS_UINT32 ulInfo, VOS_UINT8  ucPtNo, VOS
     /* 如果申请的空间大小超过0x7FFFFFFF个Byte，直接返回空指针 */
     if (0x7FFFFFFF < ulSize)
     {
-        Print2("# V_MemAlloc size over 0x7FFFFFFF,FileID: %d LineNo: %d.\r\n", ulFileID, usLineNo);
+        mdrv_err("<V_MemAlloc> size over 0x7FFFFFFF, FileID=%d LineNo=%d.\n", ulFileID, usLineNo);
 
         return VOS_NULL_PTR;
     }
@@ -824,7 +873,7 @@ MODULE_EXPORTED VOS_VOID * V_MemAlloc( VOS_UINT32 ulInfo, VOS_UINT8  ucPtNo, VOS
 
     (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_FULL);
 
-    LogPrint3("# alloce memory fail size %d.F %d L %d.\r\n",
+    mdrv_err("<V_MemAlloc> alloce memory fail size=%d. F=%d L=%d.\n",
         (VOS_INT)ulSize, (VOS_INT)ulFileID, usLineNo);
 
     if ( VOS_FALSE == ulRebootFlag )
@@ -874,7 +923,7 @@ VOS_UINT32 VOS_CalcMem(VOS_MEM_CTRL_BLOCK *pstMemCtrl, VOS_UINT32 *pulRealSize,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_GLOBAL_COVER);
 
-        LogPrint2("# MEM Global Cover: F %d L %d.\r\n",
+        mdrv_err("<VOS_CalcMem> MEM Global Cover: F=%d L=%d.\n",
             (VOS_INT)stInfo.ulFileID, stInfo.usLineNo);
 
         return(VOS_ERRNO_MEMORY_GLOBAL_COVER);
@@ -900,7 +949,7 @@ VOS_UINT32 VOS_CalcMem(VOS_MEM_CTRL_BLOCK *pstMemCtrl, VOS_UINT32 *pulRealSize,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_HEAD_COVER);
 
-        LogPrint2("# MEM HEAD FAIL: F %d L %d.\r\n",
+        mdrv_err("<VOS_CalcMem> MEM HEAD FAIL: F=%d L=%d.\n",
             (VOS_INT)stInfo.ulFileID, stInfo.usLineNo);
 
         return(VOS_ERRNO_MEMORY_HEAD_COVER);
@@ -914,7 +963,7 @@ VOS_UINT32 VOS_CalcMem(VOS_MEM_CTRL_BLOCK *pstMemCtrl, VOS_UINT32 *pulRealSize,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_TAIL_COVER);
 
-        LogPrint2("# MEM TAIL FAIL: F %d L %d.\r\n",
+        mdrv_err("<VOS_CalcMem> MEM TAIL FAIL: F=%d L=%d.\n",
             (VOS_INT)stInfo.ulFileID, stInfo.usLineNo);
 
         return(VOS_ERRNO_MEMORY_TAIL_COVER);
@@ -933,7 +982,7 @@ VOS_UINT32 VOS_CalcMem(VOS_MEM_CTRL_BLOCK *pstMemCtrl, VOS_UINT32 *pulRealSize,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_LOCATION_CANNOTDO);
 
-        LogPrint2("# address out space: F %d L %d.\r\n",
+        mdrv_err("<VOS_CalcMem> address out space: F=%d L=%d.\n",
             (VOS_INT)stInfo.ulFileID, stInfo.usLineNo);
 
         return(VOS_ERRNO_MEMORY_LOCATION_CANNOTDO);
@@ -991,7 +1040,7 @@ VOS_UINT32 VOS_LocationMem( VOS_VOID *pAddr, VOS_UINT32 *pulRealSize,
 
     (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_LOCATION_INPUTINVALID);
 
-    LogPrint2("# OSA MEM INPUTINVALID: F %d L %d.\r\n",
+    mdrv_err("<VOS_LocationMem> OSA MEM INPUTINVALID: F=%d L=%d.\n",
         (VOS_INT)ulFileID, usLineNo);
 
     return VOS_ERRNO_MEMORY_LOCATION_INPUTINVALID;
@@ -1026,7 +1075,7 @@ VOS_UINT32 VOS_MemCheck( VOS_VOID *pAddr, VOS_UINT_PTR *pulBlock,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_NON_DOPRAMEM);
 
-        LogPrint2("# NOT OSA MEM: F %d L %d.\r\n",
+        mdrv_err("<VOS_MemCheck> NOT OSA MEM: F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return(VOS_ERRNO_MEMORY_NON_DOPRAMEM);
@@ -1037,7 +1086,7 @@ VOS_UINT32 VOS_MemCheck( VOS_VOID *pAddr, VOS_UINT_PTR *pulBlock,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_DOPRAMEM_OVERFLOW);
 
-        LogPrint2("# OSA MEM OVERFLOW: F %d L %d.\r\n",
+        mdrv_err("<VOS_MemCheck> OSA MEM OVERFLOW: F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return(VOS_ERRNO_MEMORY_DOPRAMEM_OVERFLOW);
@@ -1060,7 +1109,7 @@ VOS_UINT32 VOS_MemCheck( VOS_VOID *pAddr, VOS_UINT_PTR *pulBlock,
 
         VOS_DumpVosMem(VOS_NULL_PTR, ulUserAddress, VOS_ERRNO_MEMORY_HEAD_COVER, ulFileID, usLineNo);
 
-        LogPrint2("# MEM HEAD FAIL: F %d L %d.\r\n",
+        mdrv_err("<VOS_MemCheck> MEM HEAD FAIL: F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return(VOS_ERRNO_MEMORY_HEAD_COVER);
@@ -1073,7 +1122,7 @@ VOS_UINT32 VOS_MemCheck( VOS_VOID *pAddr, VOS_UINT_PTR *pulBlock,
 
         VOS_DumpVosMem(VOS_NULL_PTR, ulUserAddress, VOS_ERRNO_MEMORY_LINK_COVER, ulFileID, usLineNo);
 
-        LogPrint2("# MEM LINK FAIL: F %d L %d.\r\n",
+        mdrv_err("<VOS_MemCheck> MEM LINK FAIL: F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return(VOS_ERRNO_MEMORY_LINK_COVER);
@@ -1096,7 +1145,7 @@ VOS_UINT32 VOS_MemCheck( VOS_VOID *pAddr, VOS_UINT_PTR *pulBlock,
 
         VOS_DumpVosMem(pstHeadBlock, ulUserAddress, VOS_ERRNO_MEMORY_TAIL_COVER, ulFileID, usLineNo);
 
-        LogPrint2("# MEM TAIL FAIL: F %d L %d.\r\n",
+        mdrv_err("<VOS_MemCheck> MEM TAIL FAIL: F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return(VOS_ERRNO_MEMORY_TAIL_COVER);
@@ -1128,7 +1177,7 @@ MODULE_EXPORTED VOS_UINT32 V_MemFree( VOS_UINT32 ulInfo, VOS_VOID **ppAddr,
 
     if( VOS_NULL_PTR == *ppAddr )
     {
-        LogPrint3("# V_MemFree,free mem again.F %d L %d T %d.\r\n",
+        mdrv_err("<V_MemFree> V_MemFree,free mem again.F=%d L=%d T=%d.\n",
             (VOS_INT)ulFileID, usLineNo, (VOS_INT)VOS_GetSlice() );
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MEMORY_FREE_INPUTPIDINVALID);
@@ -1220,24 +1269,22 @@ MODULE_EXPORTED VOS_VOID VOS_show_memory_info(VOS_VOID)
 
     for ( i=0; i<VOS_MEM_CTRL_BLOCK_NUMBER; i++)
     {
-        Print2("MSG %d Max is %d.\r\n",i,VOS_MemCtrlBlk[i].MaxSize);
-        Print2("MSG %d Min is %d.\r\n",i,VOS_MemCtrlBlk[i].MinSize);
-        Print2("MSG %d Real number is %d.\r\n",i,VOS_MemCtrlBlk[i].lMaxRealNumber);
-        Print2("MSG %d Max use is %d.\r\n",i,
+        mdrv_debug("<VOS_show_memory_info> MSG %d Max is %d.\n",i,VOS_MemCtrlBlk[i].MaxSize);
+        mdrv_debug("<VOS_show_memory_info> MSG %d Min is %d.\n",i,VOS_MemCtrlBlk[i].MinSize);
+        mdrv_debug("<VOS_show_memory_info> MSG %d Real number is %d.\n",i,VOS_MemCtrlBlk[i].lMaxRealNumber);
+        mdrv_debug("<VOS_show_memory_info> MSG %d Max use is %d.\r\n\n",i,
             VOS_MemCtrlBlk[i].TotalBlockNumber
             - VOS_MemCtrlBlk[i].MinIdleBlockNumber);
-        Print1("%s", "\r\n");
     }
 
     for ( i=0; i<VOS_SIMPLE_MEM_CTRL_BLOCK_NUMBER; i++)
     {
-        Print2("MEM %d Max is %d.\r\n",i,VOS_SimpleMemCtrlBlk[i].MaxSize);
-        Print2("MEM %d Min is %d.\r\n",i,VOS_SimpleMemCtrlBlk[i].MinSize);
-        Print2("MEM %d Real number is %d.\r\n",i,VOS_SimpleMemCtrlBlk[i].lMaxRealNumber);
-        Print2("MEM %d Max use is %d.\r\n",i,
+        mdrv_debug("<VOS_show_memory_info> MEM %d Max is %d.\n",i,VOS_SimpleMemCtrlBlk[i].MaxSize);
+        mdrv_debug("<VOS_show_memory_info> MEM %d Min is %d.\n",i,VOS_SimpleMemCtrlBlk[i].MinSize);
+        mdrv_debug("<VOS_show_memory_info> MEM %d Real number is %d.\n",i,VOS_SimpleMemCtrlBlk[i].lMaxRealNumber);
+        mdrv_debug("<VOS_show_memory_info> MEM %d Max use is %d.\r\n\n",i,
             VOS_SimpleMemCtrlBlk[i].TotalBlockNumber
             - VOS_SimpleMemCtrlBlk[i].MinIdleBlockNumber);
-        Print1("%s", "\r\n");
     }
 }
 
@@ -1258,13 +1305,13 @@ MODULE_EXPORTED VOS_VOID VOS_show_used_msg_info(VOS_UINT32 Para0, VOS_UINT32 Par
 
     for ( i=VOS_MEM_CTRL_BLOCK_NUMBER-1; i>=0; i--)
     {
-        Print1("messge Ctrl %d.\r\n",i);
+        mdrv_debug("<VOS_show_used_msg_info> messge Ctrl %d.\n",i);
 
         pstTemp = VOS_MemCtrlBlk[i].BusyBlocks;
 
         while ( VOS_NULL_PTR != pstTemp)
         {
-            Print5("F %d L %d P %d S %d T %u.\r\n",
+            mdrv_debug("<VOS_show_used_msg_info>F=%d L=%d P=%d S=%d T=%u.\n",
                 pstTemp->aulMemRecord[0],
                 pstTemp->aulMemRecord[1],
                 pstTemp->ulAllocPid,
@@ -1288,13 +1335,13 @@ MODULE_EXPORTED VOS_VOID VOS_show_used_timer_msg_info(VOS_UINT32 Para0, VOS_UINT
 {
     VOS_MEM_HEAD_BLOCK  *pstTemp;
 
-    Print1("%s", "Timer messge used info.\r\n");
+    mdrv_debug("<VOS_show_used_timer_msg_info> Timer messge used info.\n");
 
     pstTemp = VOS_MemCtrlBlk[VOS_MEM_CTRL_BLOCK_NUMBER-1].BusyBlocks;
 
     while ( VOS_NULL_PTR != pstTemp)
     {
-        Print4("F %d L %d P %d T %u.\r\n",
+        mdrv_debug("<VOS_show_used_timer_msg_info> F=%d L=%d P=%d T=%u.\n",
             pstTemp->aulMemRecord[0],
             pstTemp->aulMemRecord[1],
             pstTemp->ulAllocPid,
@@ -1324,13 +1371,13 @@ MODULE_EXPORTED VOS_VOID VOS_show_used_memory_info(VOS_UINT32 Para0, VOS_UINT32 
 
     for ( i=lCycle-1; i>=0; i--)
     {
-        Print1("memory Ctrl %d.\r\n",i);
+        mdrv_debug("<VOS_show_used_memory_info> memory Ctrl %d.\n",i);
 
         pstTemp = pstMemCtrl[i].BusyBlocks;
 
         while ( VOS_NULL_PTR != pstTemp)
         {
-            Print5("F %d L %d P %d S %d T %u.\r\n",
+            mdrv_debug("<VOS_show_used_memory_info> F=%d L=%d P=%d S=%d T=%u.\n",
                 pstTemp->aulMemRecord[0],
                 pstTemp->aulMemRecord[1],
                 pstTemp->ulAllocPid,
@@ -1402,7 +1449,7 @@ VOS_VOID VOS_FatalError(VOS_VOID)
     VOS_UINT32      Argument[4] = {0};
 #endif
 
-    LogPrint("# VOS_FatalError,system halt.\r\n");
+    mdrv_err("<VOS_FatalError> system halt.\n");
 
 
 
@@ -1446,7 +1493,7 @@ VOS_VOID VOS_FindLeakMem(VOS_MEM_CTRL_BLOCK *pstMemCtrl, VOS_INT lCycle, VOS_UIN
             if ( (ulTempTick - pstTemp->ulcputickAlloc)
                 >= g_ulAutoCheckMemoryThreshold )
             {
-                LogPrint5("# V_AutoCheckMemory: F %d L %d P %d S %d T %u.\r\n",
+                mdrv_err("<V_AutoCheckMemory> F=%d L=%d P=%d S=%d T=%u.\n",
                         (VOS_INT)pstTemp->aulMemRecord[0],
                         (VOS_INT)pstTemp->aulMemRecord[1],
                         (VOS_INT)pstTemp->ulAllocPid,
@@ -1474,19 +1521,17 @@ MODULE_EXPORTED VOS_VOID VOS_AutoCheckMemory( VOS_VOID )
 
     ulTempTick = VOS_GetSlice();
 
-    Print1("# Auto Check Memory begin at T %d.\r\n", ulTempTick );
+    mdrv_debug("<VOS_AutoCheckMemory> Auto Check Memory begin at T=%d.\n", ulTempTick );
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosMemSpinLock, ulLockLevel);
 
     VOS_FindLeakMem(VOS_MemCtrlBlk, VOS_MEM_CTRL_BLOCK_NUMBER, VOS_LOCATION_MSG);
 
     VOS_FindLeakMem(VOS_SimpleMemCtrlBlk, VOS_SIMPLE_MEM_CTRL_BLOCK_NUMBER, VOS_LOCATION_MEM);
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosMemSpinLock, ulLockLevel);
 
-    Print1("# V_AutoCheckMemory end at T %d.\r\n", VOS_GetSlice() );
+    mdrv_debug("<VOS_AutoCheckMemory> V_AutoCheckMemory end at T=%d.\n", VOS_GetSlice() );
 
     return;
 }
@@ -1509,7 +1554,7 @@ VOS_VOID VOS_MemDump(VOS_UINT32 ulInfo, VOS_UINT32 ulSize,VOS_UINT32 ulFileID,
 
     if (VOS_FALSE == VOS_MemDumpCheck())
     {
-        LogPrint("VOS_MemDump not need dump\r\n");
+        mdrv_debug("<VOS_MemDump> not need dump\n");
 
         return;
     }
@@ -1588,7 +1633,7 @@ VOS_VOID VOS_MsgDump(VOS_UINT32 ulInfo, VOS_UINT32 ulSize,
 
     if (VOS_FALSE == VOS_MemDumpCheck())
     {
-        LogPrint("VOS_MsgDump not need dump\r\n");
+        mdrv_debug("<VOS_MsgDump> not need dump\n");
 
         return;
     }
@@ -1888,7 +1933,6 @@ VOS_VOID *VOS_StaticMemAlloc( VOS_CHAR *pcBuf, VOS_UINT32 ulBufSize,
     /* for ARM 4 byte aligned. Do it for peformence only */
     ulTempSize = (ulAllocSize + VOS_ARM_ALIGNMENT)&(~VOS_ARM_ALIGNMENT);
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
     if ( (*pulSuffix + ulTempSize) <= ulBufSize )
@@ -1896,13 +1940,11 @@ VOS_VOID *VOS_StaticMemAlloc( VOS_CHAR *pcBuf, VOS_UINT32 ulBufSize,
         ulTempSuffix = *pulSuffix;
         *pulSuffix += ulTempSize;
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
         return (VOS_VOID *)(&(pcBuf[ulTempSuffix]));
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
     VOS_ProtectionReboot(VOS_FAIL_TO_ALLOC_STATIC_MEM,(VOS_INT)ulBufSize,0,VOS_NULL_PTR,0);
@@ -1999,7 +2041,11 @@ MODULE_EXPORTED VOS_UINT32 VOS_CacheMemFree(VOS_VOID *pAddr)
  Return     : null or vir address
  Other      :
  *****************************************************************************/
-MODULE_EXPORTED VOS_VOID *VOS_UnCacheMemAllocDebug(VOS_UINT32 ulSize, VOS_UINT_PTR *pulRealAddr, VOS_UINT32 uwCookie)
+MODULE_EXPORTED VOS_VOID *VOS_UnCacheMemAllocDebug(
+    VOS_UINT32                          ulSize,
+    VOS_UNCACHE_MEM_ALIGN_ENUM          enAlign,
+    VOS_UINT_PTR                       *pulRealAddr,
+    VOS_UINT32                          uwCookie)
 {
     VOS_VOID                           *pVirtAdd;
 
@@ -2025,6 +2071,10 @@ MODULE_EXPORTED VOS_VOID *VOS_UnCacheMemAllocDebug(VOS_UINT32 ulSize, VOS_UINT_P
 
 
 
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+    pVirtAdd = dma_alloc_coherent(&modem_osa_pdev->dev, ulSize, &ulAddress, GFP_KERNEL);
+#else
     if ( VOS_NULL_PTR == VOS_MemSet_s(&dev, sizeof(dev), 0, sizeof(dev)) )
     {
         mdrv_om_system_error(VOS_REBOOT_MEMSET_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0);
@@ -2034,6 +2084,8 @@ MODULE_EXPORTED VOS_VOID *VOS_UnCacheMemAllocDebug(VOS_UINT32 ulSize, VOS_UINT_P
     of_dma_configure(&dev, dev.of_node);
 #endif
     pVirtAdd = dma_alloc_coherent(&dev, ulSize, &ulAddress, GFP_KERNEL);
+#endif
+
 
     *pulRealAddr = (VOS_UINT_PTR)ulAddress;
 
@@ -2078,7 +2130,7 @@ VOS_UINT_PTR VOS_UncacheMemPhyToVirt(VOS_UINT8 *pucCurPhyAddr, VOS_UINT8 *pucPhy
 {
     if((pucCurPhyAddr < pucPhyStart) || (pucCurPhyAddr >= (pucPhyStart+ulBufLen)))
     {
-        (VOS_VOID)vos_printf("[pam_osa]:<VOS_UncacheMemPhyToVirt> parameters not right.\r\n");
+        mdrv_err("<VOS_UncacheMemPhyToVirt> parameters not right.\n");
 
         return VOS_NULL;
     }
@@ -2091,7 +2143,7 @@ VOS_UINT_PTR VOS_UncacheMemVirtToPhy(VOS_UINT8 *pucCurVirtAddr, VOS_UINT8 *pucPh
 {
     if((pucCurVirtAddr < pucVirtStart) || (pucCurVirtAddr >= (pucVirtStart+ulBufLen)))
     {
-        (VOS_VOID)vos_printf("[pam_osa]:<VOS_UncacheMemVirtToPhy> parameters not right.\r\n");
+        mdrv_err("<VOS_UncacheMemVirtToPhy> parameters not right.\r\n");
 
         return VOS_NULL;
     }

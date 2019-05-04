@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -53,7 +53,7 @@
 extern "C"
 {
 #else
-#if defined(__CMSIS_RTOS) || defined(__OS_VXWORKS__) ||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) /* linux中有bool枚举定义 */
+#if defined(__CMSIS_RTOS) || defined(__OS_VXWORKS__) ||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) || defined(__OS_RTOSCK_TVP__) || defined(__OS_RTOSCK_TSP__) /* linux中有bool枚举定义 */
 #ifndef bool
 typedef enum {
 	false	= 0,
@@ -81,7 +81,7 @@ typedef unsigned int        BSP_U32;
 #define __inline__ inline
 #endif
 
-#elif defined(_WRS_KERNEL) || defined(__OS_VXWORKS__) ||  defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TSP__) || defined(__FASTBOOT__) || defined(__NR_LL1C_)
+#elif defined(_WRS_KERNEL) || defined(__OS_VXWORKS__) ||  defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TSP__) || defined(__FASTBOOT__) || defined(__NR_LL1C_) || defined(__OS_RTOSCK_TVP__)
 
 #ifndef __ASSEMBLY__
 #ifdef __OS_VXWORKS__
@@ -106,7 +106,7 @@ typedef unsigned long long u64;
 typedef unsigned short __be16;
 typedef unsigned int __be32;
 
-#if defined(__OS_RTOSCK__)  ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TSP__)
+#if defined(__OS_RTOSCK__)  ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TSP__) || defined(__OS_RTOSCK_TVP__)
 #ifndef uint32_t
 typedef unsigned int uint32_t;
 #endif
@@ -151,9 +151,6 @@ typedef unsigned int size_t;/*lint !e410 !e452*/
 #define container_of(pointer, str_type, member)  ((str_type *)((char *)(pointer) - offsetof(str_type,member)))
 
 
-#ifndef printk
-#define printk  printf
-#endif
 
 #elif defined(__CMSIS_RTOS) || defined(__FASTBOOT__) || defined(__NR_LL1C_)
 

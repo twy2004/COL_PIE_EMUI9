@@ -13,6 +13,8 @@
 #include "dp_aux.h"
 #include "core.h"
 #include "../hisi_fb_def.h"
+
+#define DPTX_NO_DEBUG_REG
 /*lint -save -e* */
 static void dptx_aux_clear_data(struct dp_ctrl *dptx)
 {

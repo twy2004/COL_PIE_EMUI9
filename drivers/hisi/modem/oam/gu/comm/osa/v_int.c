@@ -79,8 +79,11 @@
 #include "v_typdef.h"
 #include "v_IO.h"
 #include "v_timer.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
+#define THIS_MODU  mod_pam_osa
 
 
 

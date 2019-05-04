@@ -670,6 +670,21 @@ static inline int secure_memcpy(unsigned char *dest, unsigned int dest_size,
 	return 0;
 }
 
+static inline char *syna_tcm_strncat(char *dest, char *src, size_t dest_size)
+{
+	size_t dest_len = 0;
+	size_t len = 0;
+
+	dest_len = strnlen(dest, dest_size);
+	if (dest_size > dest_len) {
+		len = dest_size - dest_len - 1;
+	} else {
+		len = 0;
+	}
+
+	return strncat(&dest[dest_len], src, len);
+}
+
 static inline int syna_tcm_realloc_mem(struct syna_tcm_hcd *tcm_hcd,
 		struct syna_tcm_buffer *buffer, unsigned int size)
 {

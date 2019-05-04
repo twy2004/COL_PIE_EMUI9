@@ -98,6 +98,7 @@ changes:
 #define CY_MAX_ELEN 100
 #endif
 
+#define PT_MAX_MSG_LEN		255
 #define LCD_PANEL_INFO_MAX_LEN  128
 #define LCD_PANEL_TYPE_DEVICE_NODE_NAME     "huawei,lcd_panel_type"
 
@@ -418,7 +419,8 @@ enum parade_loader_platform_flags {
 	CY_LOADER_FLAG_CALIBRATE_AFTER_TTCONFIG_UPGRADE,
 };
 
-
+struct parade_oem_data;
+struct parade_oem_ops;
 
 struct parade_touch_firmware {
 	const uint8_t *img;
@@ -456,7 +458,7 @@ struct parade_core_platform_data {
 	struct touch_settings *sett[CY_TOUCH_SETTINGS_MAX];
 	u32 flags;
 	u8 wakeup_gesture_enable;
-	u8 irq_config;/* 0 - LOW LEVEL  1 - HIGH LEVEL  2 - RAISE EDGE  3 - FALL EDGE*/
+	s8 irq_config; /* 0:LOW LEVEL 1:HIGH LEVEL 2:RAISE EDGE 3:FALL EDGE */
 	int (*irq_stat)(struct ts_kit_device_data *pdata);
 	bool check_irq_state;
 };

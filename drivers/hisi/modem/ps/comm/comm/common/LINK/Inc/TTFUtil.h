@@ -277,7 +277,6 @@ extern VOS_VOID    *TTF_QOut(VOS_UINT32 ulPid, TTF_Q_ST *pQ);
 extern VOS_UINT16   TTF_MbufGetLen(VOS_UINT32 ulPid, TTF_MBUF_ST *pMem);
 extern VOS_VOID     TTF_QLink(VOS_UINT32 ulPid, VOS_VOID *pItem, TTF_Q_LINK_ST *pLink);
 extern VOS_VOID     TTF_QInit(VOS_UINT32 ulPid, TTF_Q_ST *pQ);
-extern VOS_UINT32   TTF_LenStr2IpAddr(VOS_UINT8* pucStr, VOS_UINT8 *pucIpAddr);
 
 extern VOS_UINT32   TTF_SetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucStartBit, VOS_UINT8 ucEndBit,VOS_UINT32 ulSetValue);
 extern VOS_UINT32   TTF_GetByBit(VOS_UINT32 ulPid, VOS_UINT32 ulOrgValue, VOS_UINT8 ucStartBit, VOS_UINT8 ucEndBit);

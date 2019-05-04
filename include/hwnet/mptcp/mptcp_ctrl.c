@@ -763,7 +763,9 @@ static void mptcp_set_state(struct sock *sk)
 
 		if (!sock_flag(meta_sk, SOCK_DEAD)) {
 			meta_sk->sk_state_change(meta_sk);
-			sk_wake_async(meta_sk, SOCK_WAKE_IO, POLL_OUT);
+			if (tcp_sk(meta_sk)->mptcp_cap_flag != MPTCP_CAP_ALL_APP) {
+				sk_wake_async(meta_sk, SOCK_WAKE_IO, POLL_OUT);
+			}
 		}
 
 		tcp_sk(meta_sk)->lsndtime = tcp_time_stamp;
@@ -3012,6 +3014,9 @@ void __init mptcp_init(void)
 		goto register_pm_failed;
 
 	if (mptcp_register_scheduler(&mptcp_sched_default))
+		goto register_sched_failed;
+
+	if (mptcp_register_scheduler(&mptcp_sched_default_adv))
 		goto register_sched_failed;
 
 	pr_info("MPTCP: Stable release v0.93.1");

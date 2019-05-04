@@ -812,13 +812,7 @@ static int pci_pm_resume_noirq(struct device *dev)
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	struct device_driver *drv = dev->driver;
 	int error = 0;
-#ifdef CONFIG_PCIE_KIRIN
-	if (kirin_pcie_ep_off(0))
-		return 0;
-	/*EP resumed by Deivce Drivers*/
-	if (pci_dev->bus->number != 0)
-		return 0;
-#endif
+
 	pci_pm_default_resume_early(pci_dev);
 
 	if (pci_has_legacy_pm_support(pci_dev))
@@ -835,10 +829,7 @@ static int pci_pm_resume(struct device *dev)
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	const struct dev_pm_ops *pm = dev->driver ? dev->driver->pm : NULL;
 	int error = 0;
-#ifdef CONFIG_PCIE_KIRIN
-	if (kirin_pcie_ep_off(0))
-		return 0;
-#endif
+
 	/*
 	 * This is necessary for the suspend error path in which resume is
 	 * called without restoring the standard config registers of the device.

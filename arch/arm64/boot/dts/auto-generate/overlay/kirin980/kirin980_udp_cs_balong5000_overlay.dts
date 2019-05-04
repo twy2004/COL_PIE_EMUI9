@@ -8,6 +8,7 @@
 
 /dts-v1/;
 /plugin/;
+/include/ "hi11xx_connectivity_dto.dtsi"
 /include/ "kirin980_udp_default_cs_overlay.dtsi"
 /include/ "kirin980_udp_cs_balong5000_pin.dtsi"
 /include/ "kirin980_udp_cs_balong5000_modem_pin.dtsi"
@@ -21,6 +22,214 @@
 		hisi,boardname = "kirin980_udp_cs_balong5000";
 		hisi,product_id = <0x37F5FC41>;
 	};
+
+    &bcm_wifi {
+        wifi_fw_test_name;
+        wifi_fw_ap_name;
+        wifi_fw_name;
+        wifi_nvram_name;
+    };
+
+    &hw_connectivity {
+        compatible = "huawei,hw_connectivity";
+        /*huawei configuration*/
+        chip_type = "hisi";
+    };
+
+    /*hisi power*/
+    &hi110x {
+        hi110x,subchip_type="hi1103";
+        hi110x,gpio_power_on = <&gpio7 5 0>;                 /*GPIO_061*/
+        hi110x,gpio_bfgx_power_on = <&gpio25 2 0>;           /*GPIO_202*/
+        hi110x,gpio_wlan_power_on = <&gpio25 0 0>;           /*GPIO_200*/
+        hi110x,gpio_ssi_clk  = <&gpio33 0 0>;                /*GPIO_264*/
+        hi110x,gpio_ssi_data = <&gpio33 2 0>;                /*GPIO_266*/
+        huawei,pmu_clk32b = "clk_pmu32kb";
+        hi110x,asic_version;
+    };
+
+    /*hisi wifi*/
+    &hisi_wifi {
+        hi110x,gpio_wlan_wakeup_host =  <&gpio29 5 0>;       /*GPIO_237*/
+        hi110x,gpio_host_wakeup_wlan =  <&gpio32 7 0>;       /*GPIO_263*/
+    };
+
+    /*hisi bfgx*/
+    &hisi_bfgx {
+        hi110x,gpio_bfgx_wakeup_host = <&gpio22 1 0>;      /*GPIO_177*/
+        hi110x,uart_port = "/dev/ttyAMA4";
+        hi110x,uart_pclk_normal;
+    };
+
+    /*hisi customize*/
+    &hisi_cust_cfg {
+        ini_file_name = "/vendor/etc/cfg_udp_b5000_1103_pilot.ini";
+    };
+
+    /*hisi gps*/
+    &hisi_gps {
+        clocks = <&clk_gate_gps_ref>, <&clk_mux_gps_ref>, <&clk_gate_mdm2gps0>, <&clk_gate_mdm2gps1>, <&clk_gate_mdm2gps2>;
+        clock-names = "ref_clk", "mux_clk", "mdm_clk0", "mdm_clk1", "mdm_clk2";
+        /*hisi gps iomux config*/
+        pinctrl-names = "default", "idle";
+        pinctrl-0 = <&gpio248_pmx_func &gpio248_cfg_func>;
+        pinctrl-1 = <&gpio248_pmx_idle &gpio248_cfg_idle>;
+    };
+
+    /*hisi gps sync*/
+    &hisi_gps_sync {
+        version = <1>;
+        /*sync register configuration*/
+        addr_base = <0xfff11000>;
+        addr_offset = <0x0b8>;
+    };
+
+     /*irda*/
+     &irda {
+         compatible = "irda,config";
+         irda,chiptype = <2>; /*hi110x*/
+     };
+
+
+	&amba {
+		i2c@FDF0A000 {
+			rt1711_kirin980_i2c6@4e {
+				status = "disabled";
+			};
+		};
+
+		i2c@FDF0C000 {
+			status = "ok";
+			rt1711_kirin980_i2c3@4e {
+				status = "ok";
+				rt1711,irq_pin = <&gpio33 3 0>;
+			};
+		};
+
+		i2c@FDF0D000 {
+
+			smartpa@34{
+				compatible = "huawei,smartpakit_i2c";
+				reg = <0x34>;
+				/* 0 MAXIM, 1 NXP, 2 TI, 3 OTHER, 4:huawei customize */
+				chip_vendor = <1>;
+				/* refer to smartpakit.out_device prop */
+				chip_id = <0>;
+				chip_model = "tfa9874";
+				status = "ok";
+
+				/* reg_ctl node: a node contains three data<addr value ctl_type>
+				 * ctl_type: 0 read reg(default), 1 write reg, 2 only time delay
+				 * value:
+				 *     read:  reg number(num >= 1)
+				 *     write: reg value
+				 *     delay: time delay
+				 * time delay unit: msecs */
+				version_regs = <0x03 1 0>;
+				dump_regs = <0 256 0>;
+				hw_reset {
+					gpio_reset = <&gpio30 5 0>;
+					/* gpio_state node: a node contains two data<state delay>
+					 * time delay unit: msecs */
+					ctl_sequence = <1 1 0 1>;
+				};
+				irq_handler {
+					gpio_irq = <&gpio25 1 0>;
+					/* 0x0 IRQF_TRIGGER_NONE, 0x1 IRQF_TRIGGER_RISING, 0x2 IRQF_TRIGGER_FALLING, 0x4 IRQF_TRIGGER_HIGH, 0x8 IRQF_TRIGGER_LOW*/
+					irq_flags = <2>;
+					/* whether or not need reset chip*/
+					need_reset;
+					rw_sequence = <
+						0x10 1 0
+						0x11 1 0
+						0x13 1 0
+						0x14 1 0
+						0x40 1 0
+						0x41 1 0
+						0x42 1 0
+					>;
+				};
+				regmap_cfg {
+					reg_bits = <8>;
+					val_bits = <16>;
+					/* 0 REGCACHE_NONE, 1 REGCACHE_RBTREE, 2 REGCACHE_COMPRESSED, 3 REGCACHE_FLAT */
+					cache_type = <0>;
+					max_register = <0xff>;
+					// reg_writeable = <>;
+					// reg_unwriteable = <>;
+					// reg_readable = <>;
+					// reg_unreadable = <>;
+					// reg_volatile = <>;
+					// reg_unvolatile = <>;
+					reg_defaults = <
+						0x00 0x1801
+						0x01 0x0014
+					>;
+				};
+			};
+
+			smartpa@35 {
+				compatible = "huawei,smartpakit_i2c";
+				reg = <0x35>;
+				/* 0 MAXIM, 1 NXP, 2 TI, 3 OTHER, 4:huawei customize */
+				chip_vendor = <1>;
+				/* refer to smartpakit.out_device prop */
+				chip_id = <1>;
+				chip_model = "tfa9874";
+				status = "ok";
+
+				/* reg_ctl node: a node contains three data<addr value ctl_type>
+				 * ctl_type: 0 read reg(default), 1 write reg, 2 only time delay
+				 * value:
+				 *     read:  reg number(num >= 1)
+				 *     write: reg value
+				 *     delay: time delay
+				 * time delay unit: msecs */
+				version_regs = <0x03 1 0>;
+				dump_regs = <0 256 0>;
+				hw_reset {
+					gpio_reset = <&gpio30 5 0>;
+					/* gpio_state node: a node contains two data<state delay>
+					 * time delay unit: msecs */
+					ctl_sequence = <1 1 0 1>;
+				};
+				irq_handler {
+					gpio_irq = <&gpio25 1 0>;
+					/* 0x0 IRQF_TRIGGER_NONE, 0x1 IRQF_TRIGGER_RISING, 0x2 IRQF_TRIGGER_FALLING, 0x4 IRQF_TRIGGER_HIGH, 0x8 IRQF_TRIGGER_LOW*/
+					irq_flags = <2>;
+					/* whether or not need reset chip*/
+					need_reset;
+					rw_sequence = <
+						0x10 1 0
+						0x11 1 0
+						0x13 1 0
+						0x14 1 0
+						0x40 1 0
+						0x41 1 0
+						0x42 1 0
+					>;
+				};
+				regmap_cfg {
+					reg_bits = <8>;
+					val_bits = <16>;
+					/* 0 REGCACHE_NONE, 1 REGCACHE_RBTREE, 2 REGCACHE_COMPRESSED, 3 REGCACHE_FLAT */
+					cache_type = <0>;
+					max_register = <0xff>;
+					// reg_writeable = <>;
+					// reg_unwriteable = <>;
+					// reg_readable = <>;
+					// reg_unreadable = <>;
+					// reg_volatile = <>;
+					// reg_unvolatile = <>;
+					reg_defaults = <
+						0x00 0x1801
+						0x01 0x0014
+					>;
+				};
+			};
+		};
+	};
+
 	/* display start */
 	&framebuffer {
 		fpga_flag = <0>;
@@ -190,8 +399,84 @@
 		compatible = "huawei,usbvbus";
 		status = "ok";
 	};
+	/* audio device beg */
+	&codec_controller {
+		gpios = <&gpio26 3 0>; /* GPIO_211 */
+		gpio_reset = <74>; /* GPIO_74*/
+		gpio_irq = <211>;
+		gpio_codec_ssi = <204>;
+		gpio_codec_ssi_func = <1>;
+		gpio_ssi_mux = <16>; /* Chicago only */
+		hisilicon,codec-sel = "hi6405";
+		slimbusclk_io_driver = <0x7>;
+		slimbusdata_io_driver = <0x7>;
+		pm_runtime_support;
+		status = "ok";
 
-	&bcm_wifi {
+		hi64xx_irq@0 {
+			status = "ok";
+
+			hi6403_codec@0{
+				hisilicon,mic_num = <2>;
+				status = "disabled";
+			};
+
+			hi6405_codec@0{
+				hisilicon,mic_num = <2>;
+				hs_detect_extern_cable = <1>;
+				status = "ok";
+			};
+
+		};
+	};
+
+	&sound_hi6403 {
+		compatible = "hisilicon,hi3xxx-hi6403";
 		status = "disabled";
+	};
+
+	&sound_hi6405 {
+		compatible = "hisilicon,hi3xxx-hi6405";
+		status = "ok";
+	};
+
+	&slimbusmisc {
+		codec-type = "slimbus-6405";
+	};
+
+	&smartpakit {
+		compatible = "huawei,smartpakit";
+		/* 0 hisi, 1 qcom */
+		soc_platform = <0>;
+		/* algo running on: 0 codec_dsp, 1 soc_dsp, 2 smartpa_dsp, 3 simple pa(not smpartpa), 4 simple pa(with i2c) */
+		algo_in = <0>;
+		/* algo_in params need match out_device for smartpa.
+		 * Now, up to only support four pa, so out_device = <0 0 0 0>;
+		 * 1. This array is arranged in the following order:
+		 *    <0 1 2 3>
+		 *    <pril prir secl secr>
+		 * 2. This array element value is 0 or 1:
+		 *    smartpa: 0 speaker, 1 receiver
+		 *    simple pa: out_device not applicable, only set 0 to indicate pa_num
+		 * 3. The length of this array is variable, for example:
+		 *    single pa: out_device = <0>;
+		 *    two pa: out_device = <0 0>;
+		 *    four pa: out_device = <1 1 0 0>; */
+		out_device = <0 0>;
+		dsp_img_name = "hifi_6405_imedia150_devkit_hisi.img";
+		status = "ok";
+	};
+
+	&audio_hw_config {
+		spk_pa_name = "smartpakit";
+		codec_name = "hi6405";
+		codec_dsp_algo = "mad";
+		ear_pa_name = "smartpakit";
+
+	};
+
+	&kirin_pcie_rc {
+		/* connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
+		ep_device_type = <0x4>;
 	};
 	/* display end */

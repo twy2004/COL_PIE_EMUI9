@@ -1,4 +1,4 @@
-# MD5: ffbea14922bb6071954dadb1638fc4ff
+# MD5: 5cc8c2391610b0e8f558490989af5faa
 CFG_FEATURE_IMS                                 := FEATURE_ON
 CFG_FEATURE_LTE_R11                             := FEATURE_ON
 CFG_FEATURE_LTE_R13                             := FEATURE_ON
@@ -50,3 +50,6 @@ CFG_FEATURE_LTE_UL_256QAM                            := FEATURE_ON
 CFG_FEATURE_LRRC_PRINT_CUT_DEFAULT_ON				:=FEATURE_ON
 CFG_FEATURE_LRRC_VOS_PRINT_CUT_DEFAULT_OFF			:=FEATURE_OFF
 CFG_FEATURE_LMAC_LPHY_R14_CR                         := FEATURE_OFF
+CFG_FEATURE_PSUP_MEM_DEBUG                           := FEATURE_ON
+CFG_FEATURE_NRL2_SLEEP                               := FEATURE_OFF
+CFG_FEATURE_EXTRA_MODEM_MODE                               := FEATURE_OFF

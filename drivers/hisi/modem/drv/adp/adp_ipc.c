@@ -79,9 +79,9 @@ int mdrv_ipc_int_connect (IPC_INT_LEV_E ulLvl,VOIDFUNCPTR routine, unsigned int 
 	return bsp_ipc_int_connect(ulLvl,(voidfuncptr)routine,parameter);
 }
 
-int mdrv_ipc_int_disconnect (IPC_INT_LEV_E ulLvl,VOIDFUNCPTR routine, unsigned int parameter)
+int mdrv_ipc_int_disconnect (IPC_INT_LEV_E ulLvl)
 {
-	return bsp_ipc_int_disconnect(ulLvl,(voidfuncptr)routine,parameter);
+	return bsp_ipc_int_disconnect(ulLvl);
 }
 
 int mdrv_ipc_int_send(IPC_INT_CORE_E enDstCore, IPC_INT_LEV_E ulLvl)

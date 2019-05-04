@@ -488,8 +488,9 @@ int ip_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt, 
 	skb_orphan(skb);
 
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_ip_combine(skb,TP_SKB_DIRECT_RCV);
-	delay_flow_ctl(skb);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_ip_combine(skb,TP_SKB_DIRECT_RCV);
+	}
 #endif
 
 	return NF_HOOK(NFPROTO_IPV4, NF_INET_PRE_ROUTING,

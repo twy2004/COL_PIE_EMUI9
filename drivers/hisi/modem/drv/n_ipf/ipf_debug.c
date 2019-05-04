@@ -3,6 +3,7 @@
 #include <bsp_slice.h>
 #include <bsp_pm_om.h>
 #include "ipf_balong.h"
+#include "hi_ipf.h"
 
 #define SYMBOL(symbol)    #symbol
 

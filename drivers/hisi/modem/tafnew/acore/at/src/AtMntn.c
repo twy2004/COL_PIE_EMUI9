@@ -433,59 +433,6 @@ VOS_VOID AT_MNTN_TraceCmdResult(
 }
 
 
-VOS_VOID AT_MNTN_TraceCmdBuffer(
-    VOS_UINT8                           ucIndex,
-    VOS_UINT8                          *pucData,
-    VOS_UINT16                          usDataLen
-)
-{
-    AT_MSG_STRU                        *pstMsg;
-    AT_INTER_MSG_ID_ENUM_UINT32         enEventId;
-    VOS_UINT32                          ulLength;
-    MODEM_ID_ENUM_UINT16                enModemId;
-
-    AT_GetAtMsgStruMsgLength(usDataLen, &ulLength);
-
-    /* 申请消息内存 */
-    pstMsg = (AT_MSG_STRU *)PS_MEM_ALLOC(WUEPS_PID_AT, (ulLength + VOS_MSG_HEAD_LENGTH));
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        AT_ERR_LOG("AT_MNTN_TraceCmdBuffer:ERROR:Alloc Mem Fail.");
-        return;
-    }
-
-    /* 填写消息头 */
-    enEventId       = AT_GetResultMsgID(ucIndex);
-    AT_MNTN_CFG_MSG_HDR(pstMsg, enEventId, ulLength);
-
-    /* 填写消息内容 */
-    pstMsg->ucType          = 0x2;
-    pstMsg->ucIndex         = ucIndex;
-    pstMsg->usLen           = usDataLen;
-
-    enModemId               = MODEM_ID_0;
-    if (VOS_OK != AT_GetModemIdFromClient(ucIndex, &enModemId))
-    {
-        enModemId = MODEM_ID_0;
-    }
-
-    pstMsg->enModemId       = (VOS_UINT8)enModemId;
-    pstMsg->enVersionId     = 0xAA;
-    pstMsg->ucFilterAtType  = (VOS_UINT8)g_enLogPrivacyAtCmd;
-
-    AT_GetUserTypeFromIndex(ucIndex, &pstMsg->ucUserType);
-
-    TAF_MEM_CPY_S((TAF_VOID*)pstMsg->aucValue, usDataLen, pucData, usDataLen);
-
-    /* 填写消息内容 */
-    AT_MNTN_TraceEvent(pstMsg);
-
-    /* 释放消息内存 */
-    PS_FREE_MSG(WUEPS_PID_AT, pstMsg);
-
-    return;
-}
-
 
 VOS_VOID AT_MNTN_TraceContextData(VOS_VOID)
 {
@@ -675,21 +622,17 @@ VOS_VOID AT_RecordAtMsgInfo(
 
 VOS_VOID AT_ShowModemDataStats(VOS_VOID)
 {
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("MODEM UL DATA STATS                 \r\n");
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("UL Read CB NUM:             %d\r\n", g_stAtStatsInfo.stModemStats.ulUlDataReadCBNum);
-    PS_PRINTF("UL RD SUCC NUM:             %d\r\n", g_stAtStatsInfo.stModemStats.ulUlGetRDSuccNum);
-    PS_PRINTF("UL RD Fail NUM:             %d\r\n", g_stAtStatsInfo.stModemStats.ulUlGetRDFailNum);
-    PS_PRINTF("UL Invalid RD NUM:          %d\r\n", g_stAtStatsInfo.stModemStats.ulUlInvalidRDNum);
-    PS_PRINTF("UL Retrun BUFF SUCC NUM:    %d\r\n", g_stAtStatsInfo.stModemStats.ulUlReturnBuffSuccNum);
-    PS_PRINTF("UL Retrun BUFF FAIL NUM:    %d\r\n", g_stAtStatsInfo.stModemStats.ulUlReturnBuffFailNum);
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("MODEM DL DATA STATS                 \r\n");
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("DL Write Async SUCC NUM:    %d\r\n", g_stAtStatsInfo.stModemStats.ulDlWriteAsyncSuccNum);
-    PS_PRINTF("DL Write Async FAIL NUM:    %d\r\n", g_stAtStatsInfo.stModemStats.ulDlWriteAsyncFailNum);
-    PS_PRINTF("DL Free BUFF NUM:           %d\r\n", g_stAtStatsInfo.stModemStats.ulDlFreeBuffNum);
+    PS_PRINTF_INFO("MODEM UL DATA STATS                 \n");
+    PS_PRINTF_INFO("UL Read CB NUM:             %d\n", g_stAtStatsInfo.stModemStats.ulUlDataReadCBNum);
+    PS_PRINTF_INFO("UL RD SUCC NUM:             %d\n", g_stAtStatsInfo.stModemStats.ulUlGetRDSuccNum);
+    PS_PRINTF_INFO("UL RD Fail NUM:             %d\n", g_stAtStatsInfo.stModemStats.ulUlGetRDFailNum);
+    PS_PRINTF_INFO("UL Invalid RD NUM:          %d\n", g_stAtStatsInfo.stModemStats.ulUlInvalidRDNum);
+    PS_PRINTF_INFO("UL Retrun BUFF SUCC NUM:    %d\n", g_stAtStatsInfo.stModemStats.ulUlReturnBuffSuccNum);
+    PS_PRINTF_INFO("UL Retrun BUFF FAIL NUM:    %d\n", g_stAtStatsInfo.stModemStats.ulUlReturnBuffFailNum);
+    PS_PRINTF_INFO("MODEM DL DATA STATS                 \n");
+    PS_PRINTF_INFO("DL Write Async SUCC NUM:    %d\n", g_stAtStatsInfo.stModemStats.ulDlWriteAsyncSuccNum);
+    PS_PRINTF_INFO("DL Write Async FAIL NUM:    %d\n", g_stAtStatsInfo.stModemStats.ulDlWriteAsyncFailNum);
+    PS_PRINTF_INFO("DL Free BUFF NUM:           %d\n", g_stAtStatsInfo.stModemStats.ulDlFreeBuffNum);
 
 
     return;
@@ -706,63 +649,61 @@ VOS_VOID AT_ShowPsEntityInfo(VOS_UINT8 ucCallId)
 
     for (enModemId = 0; enModemId < MODEM_ID_BUTT; enModemId++)
     {
-        PS_PRINTF("################MODEM ID is %d################\n", enModemId);
+        PS_PRINTF_INFO("MODEM ID is %d                \n", enModemId);
         pstCallEntity = &(AT_GetModemPsCtxAddrFromModemId(enModemId)->astCallEntity[ucCallId]);
 
-        PS_PRINTF("********************PS拨号实体信息***********************\n");
-        PS_PRINTF("Active Flag                             %d\n", pstCallEntity->ulUsedFlg);
-        PS_PRINTF("Current Call Type                       %d\n", pstCallEntity->enCurrPdpType);
-        PS_PRINTF("Wlan Call Type                          %d\n", pstCallEntity->enWlanPdpType);
-        PS_PRINTF("HandOver Call Type                      %d\n", pstCallEntity->enHoPdpType);
-        PS_PRINTF("********************用户拨号信息*************************\n");
-        PS_PRINTF("User Actual Index                       %d\n", pstCallEntity->stUserInfo.enPortIndex);
-        PS_PRINTF("User Expect Index                       %d\n", pstCallEntity->stUserInfo.enUserIndex);
-        PS_PRINTF("User Type                               %d\n", pstCallEntity->stUserInfo.ucUsrType);
-        PS_PRINTF("User CID                                %d\n", pstCallEntity->stUserInfo.ucUsrCid);
-        PS_PRINTF("********************IPv4连接信息*************************\n");
-        PS_PRINTF("IPv4 Bearer CID                         %d\n", pstCallEntity->ucIpv4Cid);
-        PS_PRINTF("IPv4 Bearer State                       %d\n", pstCallEntity->enIpv4State);
-        PS_PRINTF("IPv4 Bearer Wlan State                  %d\n", pstCallEntity->enWlanIpv4State);
-        PS_PRINTF("IPv4 Bearer ID (RAB ID)                 %d\n", pstCallEntity->stIpv4DhcpInfo.ucRabId);
-        PS_PRINTF("IPv4 Bearer Address                     0x%x\n", pstCallEntity->stIpv4DhcpInfo.ulIpv4Addr);
-        PS_PRINTF("IPv4 Bearer Primary DNS                 0x%x\n", pstCallEntity->stIpv4DhcpInfo.ulIpv4PrimDNS);
-        PS_PRINTF("IPv4 Bearer Secondary DNS               0x%x\n", pstCallEntity->stIpv4DhcpInfo.ulIpv4SecDNS);
-        PS_PRINTF("IPv4 Bearer Gate Way                    0x%x\n", pstCallEntity->stIpv4DhcpInfo.ulIpv4GateWay);
-        PS_PRINTF("IPv4 Bearer NET Mask                    0x%x\n", pstCallEntity->stIpv4DhcpInfo.ulIpv4NetMask);
-        PS_PRINTF("***********************************************************\n");
+        PS_PRINTF_INFO("PS Call Entity Info                  \n");
+        PS_PRINTF_INFO("Active Flag                             %d\n", pstCallEntity->ulUsedFlg);
+        PS_PRINTF_INFO("PS CALL TYPE                            %d\n", pstCallEntity->enPsCallType);
+        PS_PRINTF_INFO("Current Call Type                       %d\n", pstCallEntity->stDialPdpType.enCurrPdpType);
+        PS_PRINTF_INFO("Wlan Call Type                          %d\n", pstCallEntity->stDialPdpType.enWlanPdpType);
+        PS_PRINTF_INFO("HandOver Call Type                      %d\n", pstCallEntity->stDialPdpType.enHoPdpType);
+        PS_PRINTF_INFO("User Call Entity Info                \n");
+        PS_PRINTF_INFO("User Actual Index                       %d\n", pstCallEntity->stUserInfo.enPortIndex);
+        PS_PRINTF_INFO("User Expect Index                       %d\n", pstCallEntity->stUserInfo.enUserIndex);
+        PS_PRINTF_INFO("User Type                               %d\n", pstCallEntity->stUserInfo.ucUsrType);
+        PS_PRINTF_INFO("User CID                                %d\n", pstCallEntity->stUserInfo.ucUsrCid);
+        PS_PRINTF_INFO("IPv4 Connect Info                    \n");
+        PS_PRINTF_INFO("IPv4 Bearer CID                         %d\n", pstCallEntity->stIpv4Info.ucIpv4Cid);
+        PS_PRINTF_INFO("IPv4 Bearer State                       %d\n", pstCallEntity->stIpv4Info.enIpv4State);
+        PS_PRINTF_INFO("IPv4 Bearer Wlan State                  %d\n", pstCallEntity->stIpv4Info.enWlanIpv4State);
+        PS_PRINTF_INFO("IPv4 Bearer ID (RAB ID)                 %d\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ucRabId);
+        PS_PRINTF_INFO("IPv4 Bearer Address                     0x%x\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ulIpv4Addr);
+        PS_PRINTF_INFO("IPv4 Bearer Primary DNS                 0x%x\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ulIpv4PrimDNS);
+        PS_PRINTF_INFO("IPv4 Bearer Secondary DNS               0x%x\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ulIpv4SecDNS);
+        PS_PRINTF_INFO("IPv4 Bearer Gate Way                    0x%x\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ulIpv4GateWay);
+        PS_PRINTF_INFO("IPv4 Bearer NET Mask                    0x%x\n", pstCallEntity->stIpv4Info.stIpv4DhcpInfo.ulIpv4NetMask);
 
         TAF_MEM_SET_S(aucIpv6AddrStr, sizeof(aucIpv6AddrStr), 0x00, sizeof(aucIpv6AddrStr));
         TAF_MEM_SET_S(aucIpv6PrimDnsStr, sizeof(aucIpv6PrimDnsStr), 0x00, sizeof(aucIpv6PrimDnsStr));
         TAF_MEM_SET_S(aucIpv6SecDnsStr, sizeof(aucIpv6SecDnsStr), 0x00, sizeof(aucIpv6SecDnsStr));
 
         AT_ConvertIpv6AddrToCompressedStr(aucIpv6AddrStr,
-                                          pstCallEntity->stIpv6DhcpInfo.aucIpv6Addr,
+                                          pstCallEntity->stIpv6Info.stIpv6DhcpInfo.aucIpv6Addr,
                                           TAF_IPV6_STR_RFC2373_TOKENS);
 
         AT_ConvertIpv6AddrToCompressedStr(aucIpv6PrimDnsStr,
-                                          pstCallEntity->stIpv6DhcpInfo.aucIpv6PrimDNS,
+                                          pstCallEntity->stIpv6Info.stIpv6DhcpInfo.aucIpv6PrimDNS,
                                           TAF_IPV6_STR_RFC2373_TOKENS);
 
         AT_ConvertIpv6AddrToCompressedStr(aucIpv6SecDnsStr,
-                                          pstCallEntity->stIpv6DhcpInfo.aucIpv6SecDNS,
+                                          pstCallEntity->stIpv6Info.stIpv6DhcpInfo.aucIpv6SecDNS,
                                           TAF_IPV6_STR_RFC2373_TOKENS);
 
-        PS_PRINTF("********************IPv6连接信息*************************\n");
-        PS_PRINTF("IPv6 Bearer CID                         %d\n", pstCallEntity->ucIpv6Cid);
-        PS_PRINTF("IPv6 Bearer State                       %d\n", pstCallEntity->enIpv6State);
-        PS_PRINTF("IPv6 Bearer Wlan State                  %d\n", pstCallEntity->enWlanIpv6State);
-        PS_PRINTF("***********************************************************\n");
-        PS_PRINTF("IPv6 Bearer ID (RAB ID)                 %d\n", pstCallEntity->stIpv6DhcpInfo.ucRabId);
-        PS_PRINTF("IPv6 Bearer Global Address              %s\n", aucIpv6AddrStr);
-        PS_PRINTF("IPv6 Bearer Primary DNS                 %s\n", aucIpv6PrimDnsStr);
-        PS_PRINTF("IPv6 Bearer Secondary DNS               %s\n", aucIpv6SecDnsStr);
-        PS_PRINTF("***********************************************************\n");
-        PS_PRINTF("********************域选信息*************************\n");
-        PS_PRINTF("DataSysInfoFlg                         %d\n", pstCallEntity->stApnDataSysInfo.ucDataSysInfoFlg);
-        PS_PRINTF("DataSysPolicyIndex                     %d\n", pstCallEntity->stApnDataSysInfo.ucDataSysPolicyIndex);
-        PS_PRINTF("CurrentDataSys                         %d\n", pstCallEntity->stApnDataSysInfo.enCurrentDataSys);
-        PS_PRINTF("IsHandOver                             %d\n", pstCallEntity->stApnDataSysInfo.ucIsHandOver);
-        PS_PRINTF("HoFailCause                            %d\n", pstCallEntity->stApnDataSysInfo.enHoFailCause);
+        PS_PRINTF_INFO("IPv6 Connect Info                         \n");
+        PS_PRINTF_INFO("IPv6 Bearer CID                         %d\n", pstCallEntity->stIpv6Info.ucIpv6Cid);
+        PS_PRINTF_INFO("IPv6 Bearer State                       %d\n", pstCallEntity->stIpv6Info.enIpv6State);
+        PS_PRINTF_INFO("IPv6 Bearer Wlan State                  %d\n", pstCallEntity->stIpv6Info.enWlanIpv6State);
+        PS_PRINTF_INFO("IPv6 Bearer ID (RAB ID)                 %d\n", pstCallEntity->stIpv6Info.stIpv6DhcpInfo.ucRabId);
+        PS_PRINTF_INFO("IPv6 Bearer Global Address              %s\n", aucIpv6AddrStr);
+        PS_PRINTF_INFO("IPv6 Bearer Primary DNS                 %s\n", aucIpv6PrimDnsStr);
+        PS_PRINTF_INFO("IPv6 Bearer Secondary DNS               %s\n", aucIpv6SecDnsStr);
+        PS_PRINTF_INFO("Domain Select Info                       \n");
+        PS_PRINTF_INFO("DataSysInfoFlg                         %d\n", pstCallEntity->stApnDataSysInfo.ucDataSysInfoFlg);
+        PS_PRINTF_INFO("DataSysPolicyIndex                     %d\n", pstCallEntity->stApnDataSysInfo.ucDataSysPolicyIndex);
+        PS_PRINTF_INFO("CurrentDataSys                         %d\n", pstCallEntity->stApnDataSysInfo.enCurrentDataSys);
+        PS_PRINTF_INFO("IsHandOver                             %d\n", pstCallEntity->stApnDataSysInfo.ucIsHandOver);
+        PS_PRINTF_INFO("HoFailCause                            %d\n", pstCallEntity->stApnDataSysInfo.enHoFailCause);
     }
 
     return;
@@ -773,36 +714,18 @@ VOS_VOID AT_ShowPsFcIdState(VOS_UINT32 ulFcid)
 {
     if (ulFcid >= FC_ID_BUTT)
     {
-        PS_PRINTF("AT_ShowFcStatsInfo: Fcid overtop, ulFcid = %d\n", ulFcid);
+        PS_PRINTF_WARNING("<AT_ShowFcStatsInfo> Fcid overtop, ulFcid = %d\n", ulFcid);
         return;
     }
 
-    PS_PRINTF("指定FCID对应的结点是否有效                  %d\n", g_stFcIdMaptoFcPri[ulFcid].ulUsed);
-    PS_PRINTF("指定FCID对应的结点的优先级                  %d\n", g_stFcIdMaptoFcPri[ulFcid].enFcPri);
-    PS_PRINTF("指定FCID对应的结点的RABID掩码               %d\n", g_stFcIdMaptoFcPri[ulFcid].ulRabIdMask);
-    PS_PRINTF("指定FCID对应的结点的ModemId                 %d\n", g_stFcIdMaptoFcPri[ulFcid].enModemId);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("Indicate the validity of the corresponding node of FCID,      Used = %d\n", g_stFcIdMaptoFcPri[ulFcid].ulUsed);
+    PS_PRINTF_INFO("Indicate the priority of the corresponding node of FCID,      FcPri = %d\n", g_stFcIdMaptoFcPri[ulFcid].enFcPri);
+    PS_PRINTF_INFO("Indicate the RABID mask of the corresponding node of FCID,    RabIdMask = %d\n", g_stFcIdMaptoFcPri[ulFcid].ulRabIdMask);
+    PS_PRINTF_INFO("Indicate the ModemId of the corresponding node of FCID,       ModemId = %d\n", g_stFcIdMaptoFcPri[ulFcid].enModemId);
 
     return;
 }
 
-
-VOS_VOID AT_ShowResetStatsInfo(VOS_VOID)
-{
-    PS_PRINTF("模块初始化标识                              %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulSemInitFlg);
-    PS_PRINTF("当前的二进制信号量                          %u\n", AT_GetResetSem()); /*lint !e559 */
-    PS_PRINTF("创建的二进制信号量                          %u\n", g_stAtStatsInfo.stCCpuResetStatsInfo.hBinarySemId); /*lint !e559 */
-    PS_PRINTF("创建二进制信号量失败次数                    %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulCreateBinarySemFailNum);
-    PS_PRINTF("锁二进制信号量失败次数                      %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulLockBinarySemFailNum);
-    PS_PRINTF("最后一次锁二进制信号量失败原因              %x\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulLastBinarySemErrRslt);
-    PS_PRINTF("C核复位前的次数                             %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulResetBeforeNum);
-    PS_PRINTF("C核复位后的次数                             %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulResetAfterNum);
-    PS_PRINTF("HIFI复位成功的次数                          %d\n", g_stAtStatsInfo.stCCpuResetStatsInfo.ulHifiResetNum);
-    PS_PRINTF("AT复位状态                                  %d\n", AT_GetResetFlag());
-    PS_PRINTF("\r\n");
-
-    return;
-}
 
 
 VOS_VOID AT_ShowAllClientState(VOS_VOID)
@@ -811,11 +734,11 @@ VOS_VOID AT_ShowAllClientState(VOS_VOID)
     VOS_CHAR                            acStateStr[][20] = {"READY", "PEND"};
     VOS_CHAR                            acModeStr[][20] = {"CMD", "DATA", "ONLINE_CMD"};
 
-    PS_PRINTF("\r\n The All Client State: \r\n");
+    PS_PRINTF_INFO("The All Client State: \n");
 
     for (i = 0; i < AT_MAX_CLIENT_NUM; i++)
     {
-        PS_PRINTF("Client[%d] State: %s    Mode: %s\r\n", i,
+        PS_PRINTF_INFO("Client[%d] State: %s    Mode: %s\n", i,
             acStateStr[g_stParseContext[i].ucClientStatus], acModeStr[gastAtClientTab[i].Mode]);
     }
 
@@ -859,11 +782,11 @@ VOS_VOID AT_ShowUsedClient(VOS_VOID)
 
     pstPortCfg = AT_GetPortBuffCfgInfo();
 
-    PS_PRINTF("\r\n The All Used Client State: \r\n");
+    PS_PRINTF_INFO("The All Used Client State: \n");
     for (i = 0; i < pstPortCfg->ucNum; i++)
     {
         ulIndex = pstPortCfg->ulUsedClientID[i];
-        PS_PRINTF("Client[%d] State: %s    Mode: %s\r\n", ulIndex,
+        PS_PRINTF_INFO("Client[%d] State: %s    Mode: %s\n", ulIndex,
             acStateStr[g_stParseContext[ulIndex].ucClientStatus], acModeStr[gastAtClientTab[ulIndex].Mode]);
     }
 
@@ -878,12 +801,12 @@ VOS_VOID AT_ShowClientCtxInfo(VOS_VOID)
     AT_CLIENT_CFG_MAP_TAB_STRU         *pstCfgMapTbl;
     AT_CLIENT_CONFIGURATION_STRU       *pstClientCfg;
 
-    PS_PRINTF("\r\n The All Used Client Config: \r\n");
+    PS_PRINTF_INFO("The All Used Client Config: \n");
     for (i = 0; i < AT_GET_CLIENT_CFG_TAB_LEN(); i++)
     {
         pstCfgMapTbl = AT_GetClientCfgMapTbl(i);
         pstClientCfg = AT_GetClientConfig(pstCfgMapTbl->enClientId);
-        PS_PRINTF("Client[%s] modem:%d, reportFlag:%d\r\n",
+        PS_PRINTF_INFO("Client[%s] modem:%d, reportFlag:%d\n",
                    pstCfgMapTbl->aucPortName,
                    pstClientCfg->enModemId,
                    pstClientCfg->ucReportFlg);
@@ -901,9 +824,7 @@ VOS_VOID AT_ShowIPv6IIDMgrInfo(VOS_VOID)
     VOS_UINT32                          i;
 
 
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("IPv6 IID MANGER INFO                         \n");
-    PS_PRINTF("=============================================\n");
+    PS_PRINTF_INFO("IPv6 IID MANGER INFO                         \n");
 
     for (i = 0; i < MODEM_ID_BUTT; i++)
     {
@@ -919,9 +840,9 @@ VOS_VOID AT_ShowIPv6IIDMgrInfo(VOS_VOID)
                                               pstEntry->aucPrefix,
                                               TAF_IPV6_STR_RFC2373_TOKENS);
 
-            PS_PRINTF("[MODEM%d] APN            %s\n", i, pstEntry->aucApn);
-            PS_PRINTF("[MODEM%d] IPv6 Prefix    %s\n", i, aucIpv6AddrStr);
-            PS_PRINTF("[MODEM%d] IPv6 IID       0x%llx\n", i, pstEntry->ullIID);
+            PS_PRINTF_INFO("[MODEM%d] APN            %s\n", i, pstEntry->aucApn);
+            PS_PRINTF_INFO("[MODEM%d] IPv6 Prefix    %s\n", i, aucIpv6AddrStr);
+            PS_PRINTF_INFO("[MODEM%d] IPv6 IID       0x%llx\n", i, pstEntry->ullIID);
         }
     }
 
@@ -931,30 +852,21 @@ VOS_VOID AT_ShowIPv6IIDMgrInfo(VOS_VOID)
 
 VOS_VOID AT_Help(VOS_VOID)
 {
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("PS软调信息                                              \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("AT_ShowPsEntityInfo         显示拨号实体信息            \n");
-    PS_PRINTF("AT_ShowPsFcIdState(ulFcid)  显示流控点状态信息          \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("UART软调信息                                            \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("AT_ShowHsUartConfigInfo     显示HSUART的配置信息        \n");
-    PS_PRINTF("AT_ShowHsUartNvStats        显示HSUART的NV读写统计信息  \n");
-    PS_PRINTF("AT_ShowHsUartIoctlStats     显示HSUART的IOCTL统计信息   \n");
-    PS_PRINTF("AT_ShowHsUartDataStats      显示HSUART的数据统计信息    \n");
-    PS_PRINTF("AT_ShowHsUartFcState        显示HSUART的流控状态信息    \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("MODEM软调信息                                           \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("AT_ShowModemDataStats       显示MODEM的数据统计信息     \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("其他软调信息                                            \n");
-    PS_PRINTF("********************************************************\n");
-    PS_PRINTF("AT_ShowResetStatsInfo       显示AT复位状态信息          \n");
-    PS_PRINTF("AT_ShowAllClientState       查看端口状态信息            \n");
-    PS_PRINTF("AT_ShowClientCtxInfo        查看Client配置的上下文信息  \n");
-    PS_PRINTF("AT_ShowIPv6IIDMgrInfo       查看IPv6接口ID管理信息      \n");
+    PS_PRINTF_INFO("PS Debug Info               \n");
+    PS_PRINTF_INFO("<AT_ShowPsEntityInfo>         Show PS Call Entity Info           \n");
+    PS_PRINTF_INFO("<AT_ShowPsFcIdState(ulFcid)>  Show Flow Control Node Info        \n");
+    PS_PRINTF_INFO("UART Debug Info             \n");
+    PS_PRINTF_INFO("<AT_ShowHsUartConfigInfo>     Show HSUART Config Info            \n");
+    PS_PRINTF_INFO("<AT_ShowHsUartNvStats>        Show HSUART NV Stats              \n");
+    PS_PRINTF_INFO("<AT_ShowHsUartIoctlStats>     Show HSUART IOCTL Stats           \n");
+    PS_PRINTF_INFO("<AT_ShowHsUartDataStats>      Show HAUART Data Stats            \n");
+    PS_PRINTF_INFO("<AT_ShowHsUartFcState>        Show HAUART Flow Control State     \n");
+    PS_PRINTF_INFO("MODEM Debug Info            \n");
+    PS_PRINTF_INFO("<AT_ShowModemDataStats>       Show Modem Data Stats             \n");
+    PS_PRINTF_INFO("Others Debug Info           \n");
+    PS_PRINTF_INFO("<AT_ShowAllClientState>       Show All Client Port State         \n");
+    PS_PRINTF_INFO("<AT_ShowClientCtxInfo>        Show Client Configure Context Info \n");
+    PS_PRINTF_INFO("<AT_ShowIPv6IIDMgrInfo>       Show IPv6 Interface ID Manage Info \n");
 
     return;
 }
@@ -966,15 +878,13 @@ VOS_VOID AT_ShowCurrentDataSys(VOS_UINT16 usModemId)
 
     pstDataSystemStatus = &(g_stAtCommCtx.stPsCtx.astDataSystemStatus[usModemId]);
 
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("         AT系统域状态信息           \r\n");
-    PS_PRINTF("====================================\r\n");
-    PS_PRINTF("CellularPowerState:      %d\r\n", pstDataSystemStatus->bCellularPowerState);
-    PS_PRINTF("CellularRoamingStatus:   %d\r\n", pstDataSystemStatus->bCellularRoamingStatus);
-    PS_PRINTF("RatType:                 %d\r\n", pstDataSystemStatus->enRatType);
-    PS_PRINTF("PsServiceStatus:         %d\r\n", pstDataSystemStatus->enPsServiceStatus);
-    PS_PRINTF("WlanPowerState:          %d\r\n", pstDataSystemStatus->bWlanPowerState);
-    PS_PRINTF("WiFiServiceStatu:        %d\r\n", pstDataSystemStatus->enWiFiServiceStatus);
+    PS_PRINTF_INFO("Sys Domain State Info         \n");
+    PS_PRINTF_INFO("CellularPowerState:      %d\n", pstDataSystemStatus->bCellularPowerState);
+    PS_PRINTF_INFO("CellularRoamingStatus:   %d\n", pstDataSystemStatus->bCellularRoamingStatus);
+    PS_PRINTF_INFO("RatType:                 %d\n", pstDataSystemStatus->enRatType);
+    PS_PRINTF_INFO("PsServiceStatus:         %d\n", pstDataSystemStatus->enPsServiceStatus);
+    PS_PRINTF_INFO("WlanPowerState:          %d\n", pstDataSystemStatus->bWlanPowerState);
+    PS_PRINTF_INFO("WiFiServiceStatu:        %d\n", pstDataSystemStatus->enWiFiServiceStatus);
 
     return;
 }

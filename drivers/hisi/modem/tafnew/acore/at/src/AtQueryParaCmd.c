@@ -89,8 +89,9 @@
 #include "product_config.h"
 #include "TafAppCall.h"
 #include "AtCmdMiscProc.h"
+#include "TafCcmApi.h"
 
-
+/*lint -esym(516,free,malloc)*/
 
 
 
@@ -442,85 +443,6 @@ VOS_UINT32 AT_QryPhyNumPara(VOS_UINT8 ucIndex)
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
-}
-
-
-VOS_UINT32 AT_WriteActiveMessage(
-    MODEM_ID_ENUM_UINT16                enModemId,
-    MN_MSG_ACTIVE_MESSAGE_STRU         *pstOrgActiveMessageInfo,
-    MN_MSG_ACTIVE_MESSAGE_STRU         *pstActiveMessageInfo
-)
-{
-    VOS_UINT32                          ulRet;
-    VOS_INT32                           lRet;
-    VOS_UINT8                          *pucActiveMessageInfo;
-    VOS_UINT8                          *pucEvaluate;
-
-    /*1.判断待写入的激活短信参数与NVIM中的参数是否一致；一致则不用写NVIM直接退出*/
-    if (pstOrgActiveMessageInfo->enActiveStatus == pstActiveMessageInfo->enActiveStatus)
-    {
-        if (pstOrgActiveMessageInfo->stUrl.ulLen == pstActiveMessageInfo->stUrl.ulLen)
-        {
-            if (pstOrgActiveMessageInfo->enMsgCoding == pstActiveMessageInfo->enMsgCoding)
-            {
-                lRet = VOS_MemCmp(pstOrgActiveMessageInfo->stUrl.aucUrl,
-                                  pstActiveMessageInfo->stUrl.aucUrl,
-                                  pstActiveMessageInfo->stUrl.ulLen);
-                if (0 == lRet)
-                {
-                    return MN_ERR_NO_ERROR;
-                }
-            }
-        }
-    }
-
-    /*2.写激活短信参数到NVIM中*/
-    /*2.1 为NVIM存储的数据流申请内存*/
-    pucActiveMessageInfo = (VOS_UINT8 *)PS_MEM_ALLOC(WUEPS_PID_AT,
-                                                     MN_MSG_ACTIVE_MESSAGE_PARA_LEN);
-    if (VOS_NULL_PTR == pucActiveMessageInfo)
-    {
-        return MN_ERR_NOMEM;
-    }
-
-    /*2.2 将激活短信参数数据结构转换成NVIM存储的数据流*/
-    pucEvaluate  = pucActiveMessageInfo;
-    *pucEvaluate = pstActiveMessageInfo->enActiveStatus;
-    pucEvaluate++;
-
-    *pucEvaluate = pstActiveMessageInfo->enMsgCoding;
-    pucEvaluate++;
-
-    *pucEvaluate = (VOS_UINT8)(pstActiveMessageInfo->stUrl.ulLen & 0xff);
-    pucEvaluate++;
-    *pucEvaluate = (VOS_UINT8)((pstActiveMessageInfo->stUrl.ulLen >> 8) & 0xff);
-    pucEvaluate++;
-    *pucEvaluate = (VOS_UINT8)((pstActiveMessageInfo->stUrl.ulLen >> 16) & 0xff);
-    pucEvaluate++;
-    *pucEvaluate = (VOS_UINT8)((pstActiveMessageInfo->stUrl.ulLen >> 24) & 0xff);
-    pucEvaluate++;
-
-    TAF_MEM_CPY_S(pucEvaluate,
-               MN_MSG_ACTIVE_MESSAGE_PARA_LEN - 6,
-               pstActiveMessageInfo->stUrl.aucUrl,
-               (VOS_UINT16)pstActiveMessageInfo->stUrl.ulLen);
-
-    /*2.3 写激活短信信息到NVIM*/
-    ulRet = TAF_ACORE_NV_WRITE(enModemId,
-                               en_NV_Item_SMS_ActiveMessage_Para,
-                               pucActiveMessageInfo,
-                               MN_MSG_ACTIVE_MESSAGE_PARA_LEN);
-    if (NV_OK != ulRet)
-    {
-        ulRet = MN_ERR_CLASS_SMS_NVIM;
-    }
-    else
-    {
-        ulRet = MN_ERR_NO_ERROR;
-    }
-
-    PS_MEM_FREE(WUEPS_PID_AT, pucActiveMessageInfo);
-    return ulRet;
 }
 
 
@@ -1699,6 +1621,9 @@ VOS_UINT32 At_QryCeregPara(VOS_UINT8 ucIndex)
 }
 
 
+
+
+
 TAF_UINT32 At_QryCregPara(TAF_UINT8 ucIndex)
 {
     if (VOS_TRUE == TAF_MMA_QryRegStateReq(WUEPS_PID_AT, gastAtClientTab[ucIndex].usClientId, 0, TAF_MMA_QRY_REG_STATUS_TYPE_CS))
@@ -2138,7 +2063,7 @@ TAF_UINT32 At_QryCemode(TAF_UINT8 ucIndex)
     }
     else
     {
-        PS_PRINTF(" At_QryCemode TAF_PS_GetCemodeInfo fail\n");
+        PS_PRINTF_WARNING("<At_QryCemode> TAF_PS_GetCemodeInfo fail\n");
         return AT_ERROR;
     }
 }
@@ -2824,94 +2749,6 @@ VOS_VOID At_CovertMsInternalRxDivParaToUserSet(
 }
 
 
-VOS_UINT32 At_QryFrssiPara(
-    VOS_UINT8                           ucIndex
-)
-{
-    AT_HPA_RF_RX_RSSI_REQ_STRU          *pstMsg;
-    VOS_UINT32                          ulLength;
-
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFRSSIPara(ucIndex);
-    }
-
-    if(AT_RAT_MODE_TDSCDMA == g_stAtDevCmdCtrl.ucDeviceRatMode)
-    {
-        return atQryFRSSIPara(ucIndex);
-    }
-
-
-    /*该命令需在非信令模式下使用*/
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /*该命令需在设置非信令信道后使用*/
-    if (VOS_FALSE == g_stAtDevCmdCtrl.bDspLoadFlag)
-    {
-        return AT_CHANNEL_NOT_SET;
-    }
-
-    /*该命令需要在打开接收机后使用*/
-    if (AT_DSP_RF_SWITCH_OFF == g_stAtDevCmdCtrl.ucRxOnOff)
-    {
-        return AT_FRSSI_RX_NOT_OPEN;
-    }
-
-    /* GDSP LOAD的情况下不支持接收机和发射机同时打开，需要判断最近一次执行的是打开接收机操作
-    还是打开发射机操作，如果是打开发射机操作，则直接返回出错无需和GDSP 交互 */
-    if ((AT_TXON_OPEN == g_stAtDevCmdCtrl.ucRxonOrTxon)
-     && ((AT_RAT_MODE_GSM == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      || (AT_RAT_MODE_EDGE == g_stAtDevCmdCtrl.ucDeviceRatMode)))
-    {
-        return AT_FRSSI_OTHER_ERR;
-    }
-
-    /* 申请AT_HPA_RF_RX_RSSI_REQ_STRU消息 */
-    ulLength = sizeof(AT_HPA_RF_RX_RSSI_REQ_STRU) - VOS_MSG_HEAD_LENGTH;
-    /*lint -save -e830 */
-    pstMsg   = (AT_HPA_RF_RX_RSSI_REQ_STRU *)PS_ALLOC_MSG(WUEPS_PID_AT, ulLength);
-    /*lint -restore */
-    if (VOS_NULL_PTR == pstMsg)
-    {
-        AT_WARN_LOG("At_QryFrssiPara: alloc msg fail!");
-        return AT_FRSSI_OTHER_ERR;
-    }
-
-    if ((AT_RAT_MODE_GSM == g_stAtDevCmdCtrl.ucDeviceRatMode)
-     || (AT_RAT_MODE_EDGE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        pstMsg->ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_GPHY);
-        pstMsg->usMsgID       = ID_AT_GHPA_RF_RX_RSSI_REQ;
-    }
-    else
-    {
-        pstMsg->ulReceiverPid = AT_GetDestPid(ucIndex, I0_DSP_PID_WPHY);
-        pstMsg->usMsgID       = ID_AT_HPA_RF_RX_RSSI_REQ;
-    }
-
-    pstMsg->usMeasNum  = AT_DSP_RSSI_MEASURE_NUM;
-    pstMsg->usInterval = AT_DSP_RSSI_MEASURE_INTERVAL;
-    pstMsg->usRsv      = 0;
-
-    if (VOS_OK != PS_SEND_MSG(WUEPS_PID_AT, pstMsg))
-    {
-        AT_WARN_LOG("At_QryFrssiPara: Send msg fail!");
-        return AT_FRSSI_OTHER_ERR;
-    }
-
-    /* 设置当前操作类型 */
-    gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_QUERY_RSSI;
-    g_stAtDevCmdCtrl.ucIndex               = ucIndex;
-
-    return AT_WAIT_ASYNC_RETURN;    /* 返回命令处理挂起状态 */
-
-}
-
-
 VOS_UINT32 At_QryRxDiv(TAF_UINT8 ucIndex)
 {
     VOS_UINT32                          ulRst;
@@ -3254,213 +3091,6 @@ TAF_UINT32  At_QryTModePara(TAF_UINT8 ucIndex )
     usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
                                        (TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%d",
                                        1);
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-}
-
-
-VOS_UINT32  At_QryFpaPara(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                          usLength;
-
-    /*当前不为非信令模式*/
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 查询当前发射机PA等级的设置 */
-    usLength =  (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr, "%s:%d",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                       g_stAtDevCmdCtrl.ucPaLevel);
-
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-VOS_UINT32  At_QryFlnaPara(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                          usLength;
-
-    /* 添加 LTE 模的接口分支 */
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFLNAPara(ucIndex);
-    }
-
-    /*当前不为非信令模式*/
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 查询当前发射机PA等级的设置 */
-    usLength =  (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr, "%s:%d",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                       g_stAtDevCmdCtrl.ucLnaLevel);
-
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-TAF_UINT32  At_QryFChanPara(TAF_UINT8 ucIndex )
-{
-    TAF_UINT16                 usLength;
-
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFCHANPara(ucIndex);
-    }
-
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 查询当前FCHAN的设置 */
-    usLength =  (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                       (TAF_CHAR*)pgucAtSndCodeAddr, "%s:",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                  (TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%d,%d,%d,%d",
-                                   g_stAtDevCmdCtrl.ucDeviceRatMode,
-                                   g_stAtDevCmdCtrl.ucDeviceAtBand,
-                                   g_stAtDevCmdCtrl.stDspBandArfcn.usUlArfcn,
-                                   g_stAtDevCmdCtrl.stDspBandArfcn.usDlArfcn);
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-VOS_UINT32  At_QryFRxonPara(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                          usLength;
-
-    /* 添加LTE 模的接口分支 */
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFRXONPara(ucIndex);
-    }
-
-    /*当前不为非信令模式*/
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 查询当前接收机开关状态 */
-    usLength =  (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                       (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr, "%s:%d",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                       g_stAtDevCmdCtrl.ucRxOnOff);
-
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-TAF_UINT32  At_QryFTxonPara(TAF_UINT8 ucIndex )
-{
-    TAF_UINT16                 usLength;
-
-    /*添加 LTE 模的接口分支 */
-    if ((AT_RAT_MODE_FDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode)
-      ||(AT_RAT_MODE_TDD_LTE == g_stAtDevCmdCtrl.ucDeviceRatMode))
-    {
-        return atQryFTXONPara(ucIndex);
-    }
-
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-    /* 查询当前DAC的设置 */
-    usLength =  (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                       (TAF_CHAR*)pgucAtSndCodeAddr, "%s:",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                  (TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%d",
-                                   g_stAtDevCmdCtrl.ucTxOnOff);
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-VOS_UINT32  At_QryCltInfo(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                 usLength;
-
-    usLength = 0;
-
-    /* 如果记录有效，则上报查询结果 */
-    if (VOS_TRUE == g_stAtDevCmdCtrl.stCltInfo.ulInfoAvailableFlg)
-    {
-
-        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                           (VOS_CHAR *)pgucAtSndCodeAddr,
-                                           (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                            "%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
-                                            "^CLTINFO: ",
-                                            g_stAtDevCmdCtrl.stCltInfo.shwGammaReal,          /* 反射系数实部 */
-                                            g_stAtDevCmdCtrl.stCltInfo.shwGammaImag,          /* 反射系数虚部 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwGammaAmpUc0,       /* 驻波检测场景0反射系数幅度 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwGammaAmpUc1,       /* 驻波检测场景1反射系数幅度 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwGammaAmpUc2,       /* 驻波检测场景2反射系数幅度 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwGammaAntCoarseTune,/* 粗调格点位置 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ulwFomcoarseTune,      /* 粗调FOM值 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwCltAlgState,       /* 闭环算法收敛状态 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwCltDetectCount,    /* 闭环收敛总步数 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwDac0,              /* DAC0 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwDac1,              /* DAC1 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwDac2,              /* DAC2 */
-                                            g_stAtDevCmdCtrl.stCltInfo.ushwDac3);             /* DAC3 */
-
-        /* 上报后本地记录就无效 */
-        g_stAtDevCmdCtrl.stCltInfo.ulInfoAvailableFlg = VOS_FALSE;
-    }
-
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-
-}
-
-
-TAF_UINT32  AT_QryFDac(TAF_UINT8 ucIndex )
-{
-    TAF_UINT16                 usLength;
-
-    if (AT_TMODE_FTM != g_stAtDevCmdCtrl.ucCurrentTMode)
-    {
-        return AT_DEVICE_MODE_ERROR;
-    }
-
-    /* 查询当前DAC的设置 */
-    usLength =  (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                       (TAF_CHAR*)pgucAtSndCodeAddr, "%s:",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,
-                                  (TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%d",
-                                   g_stAtDevCmdCtrl.usFDAC);
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
@@ -4481,61 +4111,6 @@ VOS_UINT32 At_QryNdisdupPara(
 }
 
 
-VOS_UINT32 At_QryNdisConnPara(
-    VOS_UINT8                           ucIndex
-)
-{
-    /*--------------------------------------------------------------
-       拨号参数查询, 直接返回本地保存的信息, 不在下发到适配层查询,
-       PS域业务处理融合后, 查询处理再统一修改
-    --------------------------------------------------------------*/
-    AT_NDISCONN_PARA_STRU              *pstNdisConnDialInfo;
-    VOS_UINT16                          usLength;
-
-    /* 获取NDISCONN拨号时的参数 */
-    usLength            = 0;
-    pstNdisConnDialInfo = AT_GetNdisConnParaAddr();
-
-    /* ^NDISCONN:  */
-    usLength =  (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR*)pgucAtSndCodeAddr, "%s:", "^NDISCONN");
-
-    /*<pdpid>*/
-    usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%d", pstNdisConnDialInfo->ucCID);
-
-
-    /*当前不在激活状态时不上报APN等信息*/
-    if ( (AT_PDP_STATE_IDLE == g_stAtNdisDhcpPara.enIpv4State)
-      && (AT_PDP_STATE_IDLE == g_stAtNdisDhcpPara.enIpv6State)
-      && (AT_PDP_STATE_IDLE == g_stAtNdisDhcpPara.enIpv4v6State) )
-    {
-        /*<connect>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",%d", 0);
-    }
-    else
-    {
-        /*<connect>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",%d", pstNdisConnDialInfo->ulConnectState);
-
-        /*<APN>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",\"%s\"", pstNdisConnDialInfo->aucAPN);
-
-        /*<username>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",\"%s\"", pstNdisConnDialInfo->aucUsername);
-
-        /*<passwd>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",\"%s\"", pstNdisConnDialInfo->aucPassword);
-
-        /*<auth>*/
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",%d", pstNdisConnDialInfo->usAuthType);
-    }
-    gstAtSendData.usBufLen = usLength;
-
-
-
-    return AT_OK;
-}
-
-
 AT_PDP_STATUS_ENUM_UINT32 AT_NdisGetConnStatus(
     AT_PDP_STATE_ENUM_U8                enPdpState
 )
@@ -4554,156 +4129,109 @@ AT_PDP_STATUS_ENUM_UINT32 AT_NdisGetConnStatus(
 }
 
 
-VOS_UINT32 AT_ReportNdisStatInfo(VOS_UINT8 ucIndex)
-{
-    VOS_UINT16                          usLength;
-    AT_PDP_STATUS_ENUM_UINT32           enIpv4Status;
-
-    /* 初始化 */
-    usLength        = 0;
-    enIpv4Status    = AT_PDP_STATUS_DEACT;
-
-    /* 上报查询结果 */
-    if (AT_PDP_STATE_ACTED == AT_NdisGetState(TAF_PDP_IPV4))
-    {
-        enIpv4Status = AT_PDP_STATUS_ACT;
-    }
-
-    usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr,
-                                       "%s: ",
-                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr,
-                                       (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                       "%d",
-                                       enIpv4Status);
-
-    gstAtSendData.usBufLen = usLength;
-
-    return AT_OK;
-}
-
-
 VOS_UINT32 AT_QryNdisStatPara(
     VOS_UINT8                           ucIndex
 )
 {
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity;
     AT_PDP_STATUS_ENUM_UINT32           enIpv4Status;
     AT_PDP_STATUS_ENUM_UINT32           enIpv6Status;
-    AT_PDP_STATUS_ENUM_UINT32           enIpv4v6Status;
     VOS_UINT16                          usLength;
     VOS_UINT8                           aucAtStrIpv4[] = "IPV4";
     VOS_UINT8                           aucAtStrIpv6[] = "IPV6";
+    VOS_UINT32                          ulCallIndex;
 
-    usLength                            = 0;
-    enIpv4Status                        = AT_PDP_STATUS_DEACT;
-    enIpv6Status                        = AT_PDP_STATUS_DEACT;
-    enIpv4v6Status                      = AT_PDP_STATUS_DEACT;
-
-    switch (AT_GetIpv6Capability())
+    usLength        = 0;
+    enIpv4Status    = AT_PDP_STATUS_DEACT;
+    enIpv6Status    = AT_PDP_STATUS_DEACT;
+    for (ulCallIndex = AT_PS_NDIS_CALL_ID_BEGIN; ulCallIndex <= AT_PS_NDIS_CALL_ID_END; ulCallIndex++)
     {
-        case AT_IPV6_CAPABILITY_IPV4_ONLY:
-            enIpv4Status = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV4));
+        pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallIndex);
 
-            usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: ",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%d,,,\"%s\"",
-                                               enIpv4Status,
-                                               aucAtStrIpv4);
-            break;
+        if ( (0 == pstCallEntity->stUserInfo.ucUsrCid)
+          || (pstCallEntity->stUserInfo.ucUsrCid > TAF_MAX_CID_NV))
+        {
+            continue;
+        }
 
-        case AT_IPV6_CAPABILITY_IPV6_ONLY:
-            enIpv6Status    = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV6));
+        switch (AT_GetIpv6Capability())
+        {
+            case AT_IPV6_CAPABILITY_IPV4_ONLY:
+                enIpv4Status = AT_NdisGetConnStatus(pstCallEntity->stIpv4Info.enIpv4State);
 
-            usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: ",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%d,,,\"%s\"",
-                                               enIpv6Status,
-                                               aucAtStrIpv6);
-            break;
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: ",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%d,%d,,,\"%s\"%s",
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   enIpv4Status,
+                                                   aucAtStrIpv4,
+                                                   gaucAtCrLf);
+                break;
 
-        case AT_IPV6_CAPABILITY_IPV4V6_OVER_ONE_PDP:
-            enIpv4v6Status  = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV4V6));
-            if ( AT_PDP_STATUS_ACT != enIpv4v6Status )
-            {
-                enIpv4Status = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV4));
-                enIpv6Status = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV6));
-            }
-            else
-            {
-                enIpv4Status = enIpv4v6Status;
-                enIpv6Status = enIpv4v6Status;
-            }
+            case AT_IPV6_CAPABILITY_IPV6_ONLY:
+                enIpv6Status    = AT_NdisGetConnStatus(pstCallEntity->stIpv6Info.enIpv6State);
 
-            usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: ",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%d,,,\"%s\"",
-                                               enIpv4Status,
-                                               aucAtStrIpv4);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               ",%d,,,\"%s\"",
-                                               enIpv6Status,
-                                               aucAtStrIpv6);
-            break;
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: ",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%d,%d,,,\"%s\"%s",
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   enIpv6Status,
+                                                   aucAtStrIpv6,
+                                                   gaucAtCrLf);
+                break;
 
-        case AT_IPV6_CAPABILITY_IPV4V6_OVER_TWO_PDP:
-            enIpv4Status = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV4));
-            enIpv6Status = AT_NdisGetConnStatus(AT_NdisGetState(TAF_PDP_IPV6));
+            case AT_IPV6_CAPABILITY_IPV4V6_OVER_ONE_PDP:
+            case AT_IPV6_CAPABILITY_IPV4V6_OVER_TWO_PDP:
+                enIpv4Status = AT_NdisGetConnStatus(pstCallEntity->stIpv4Info.enIpv4State);
+                enIpv6Status = AT_NdisGetConnStatus(pstCallEntity->stIpv6Info.enIpv6State);
 
-            usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: ",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%d,,,\"%s\"",
-                                               enIpv4Status,
-                                               aucAtStrIpv4);
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               ",%d,,,\"%s\"",
-                                               enIpv6Status,
-                                               aucAtStrIpv6);
-            break;
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: ",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%d,%d,,,\"%s\"",
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   enIpv4Status,
+                                                   aucAtStrIpv4);
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   ",%d,,,\"%s\"%s",
+                                                   enIpv6Status,
+                                                   aucAtStrIpv6,
+                                                   gaucAtCrLf);
+                break;
 
-        default:
-            break;
+            default:
+                break;
+        }
     }
+
+    if (usLength >= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf))
+    {
+        usLength -= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf);
+    }
+
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
 
-}
-
-
-TAF_UINT32 At_QryNdisAddPara(VOS_UINT8 ucIndex)
-{
-    return AT_CMD_NOT_SUPPORT;
 }
 
 
@@ -4711,43 +4239,58 @@ VOS_UINT32 At_QryDnsPrim(
     VOS_UINT8                           ucIndex
 )
 {
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity   = VOS_NULL_PTR;
+    AT_DIAL_PARAM_STRU                 *pstAppDialPara  = VOS_NULL_PTR;
     TAF_UINT16                          usLength;
-    VOS_UINT32                          ulPdpStateFlag;
-    AT_PDP_STATE_ENUM_U8                enState;
+    VOS_UINT32                          ulCallIndex;
 
-    AT_DIAL_PARAM_STRU                 *pstAppDialPara;
-
-    pstAppDialPara                      = AT_APP_GetDailParaAddr();
-
-    ulPdpStateFlag                      = VOS_FALSE;
-    usLength                            = 0;
+    usLength        = 0;
 
     if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
     {
-        ulPdpStateFlag = AT_AppCheckIpv4PdpState(AT_PDP_STATE_ACTED);
-        if (VOS_TRUE != ulPdpStateFlag)
+        for (ulCallIndex = AT_PS_APP_CALL_ID_BEGIN; ulCallIndex <= AT_PS_APP_CALL_ID_END; ulCallIndex++)
         {
-            AT_WARN_LOG("At_QryDnsPrim:WARNING: PDP is not ativated!");
-            return AT_CME_NO_CONNECTION_TO_PHONE;
+            pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallIndex);
+            pstAppDialPara  = &(pstCallEntity->stUsrDialParam);
+
+            if (AT_PDP_STATE_ACTED != pstCallEntity->stIpv4Info.enIpv4State)
+            {
+                continue;
+            }
+
+            if (VOS_FALSE == pstAppDialPara->ulPrimIPv4DNSValidFlag)
+            {
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                       (VOS_CHAR*)pgucAtSndCodeAddr,
+                                       (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                       "%s: %d,%s%s",
+                                       g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                       pstCallEntity->stUserInfo.ucUsrCid,
+                                       "0.0.0.0",
+                                       gaucAtCrLf);
+            }
+            else
+            {
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   pstAppDialPara->aucPrimIPv4DNSAddr,
+                                                   gaucAtCrLf);
+            }
         }
 
-        if (VOS_FALSE == pstAppDialPara->ulPrimIPv4DNSValidFlag)
+        if (usLength < (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf))
         {
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                   (VOS_CHAR*)pgucAtSndCodeAddr,
-                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                   "%s: %s",
-                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                   "0.0.0.0");
+            AT_WARN_LOG("At_QryDnsPrim:WARNING: PDP is not ativated!");
+            gstAtSendData.usBufLen = usLength;
+            return AT_CME_NO_CONNECTION_TO_PHONE;
         }
         else
         {
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%s: %s",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                               pstAppDialPara->aucPrimIPv4DNSAddr);
+            usLength -= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf);
         }
 
         gstAtSendData.usBufLen = usLength;
@@ -4755,32 +4298,46 @@ VOS_UINT32 At_QryDnsPrim(
         return AT_OK;
     }
 
-    enState = AT_NdisGetState(TAF_PDP_IPV4);
-    if(AT_PDP_STATE_ACTED == enState)
+    for (ulCallIndex = AT_PS_NDIS_CALL_ID_BEGIN; ulCallIndex <= AT_PS_NDIS_CALL_ID_END; ulCallIndex++)
     {
-       ulPdpStateFlag = VOS_TRUE;
+        pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallIndex);
+
+        if (AT_PDP_STATE_ACTED != pstCallEntity->stIpv4Info.enIpv4State)
+        {
+            continue;
+        }
+
+        if (VOS_FALSE == pstCallEntity->stUsrDialParam.ulPrimIPv4DNSValidFlag)
+        {
+            usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   "0.0.0.0",
+                                                   gaucAtCrLf);
+        }
+        else
+        {
+            usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   pstCallEntity->stUsrDialParam.aucPrimIPv4DNSAddr,
+                                                   gaucAtCrLf);
+        }
     }
 
-    if (VOS_FALSE == ulPdpStateFlag)
+    if (usLength < (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf))
     {
         AT_WARN_LOG("At_QryDnsPrim AT_NdisGetState:");
+        gstAtSendData.usBufLen = usLength;
         return AT_CME_NO_CONNECTION_TO_PHONE;
-    }
-
-    if (VOS_FALSE == gstAtNdisAddParam.ulPrimIPv4DNSValidFlag)
-    {
-        usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s",
-                                               "^DNSP: 0.0.0.0");
     }
     else
     {
-        usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: %s",
-                                               "^DNSP",
-                                               gstAtNdisAddParam.aucPrimIPv4DNSAddr);
+        usLength -= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf);
     }
 
     gstAtSendData.usBufLen = usLength;
@@ -4794,43 +4351,59 @@ VOS_UINT32 At_QryDnsSnd(
     VOS_UINT8                           ucIndex
 )
 {
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity   = VOS_NULL_PTR;
+    AT_DIAL_PARAM_STRU                 *pstAppDialPara  = VOS_NULL_PTR;
     TAF_UINT16                          usLength;
-    VOS_UINT32                          ulPdpStateFlag;
-    AT_PDP_STATE_ENUM_U8                enState;
-    AT_DIAL_PARAM_STRU                 *pstAppDialPara;
+    VOS_UINT32                          ulCallIndex;
 
-    pstAppDialPara                      = AT_APP_GetDailParaAddr();
-
-    ulPdpStateFlag                      = VOS_FALSE;
-    usLength                            = 0;
+    usLength        = 0;
 
     if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
     {
-        ulPdpStateFlag = AT_AppCheckIpv4PdpState(AT_PDP_STATE_ACTED);
-        if (VOS_TRUE != ulPdpStateFlag)
+        for (ulCallIndex = AT_PS_APP_CALL_ID_BEGIN; ulCallIndex <= AT_PS_APP_CALL_ID_END; ulCallIndex++)
         {
-            AT_WARN_LOG("At_QryDnsPrim:WARNING: PDP is not ativated!");
-            return AT_CME_NO_CONNECTION_TO_PHONE;
+            pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallIndex);
+            pstAppDialPara  = &(pstCallEntity->stUsrDialParam);
+
+            if (AT_PDP_STATE_ACTED != pstCallEntity->stIpv4Info.enIpv4State)
+            {
+                continue;
+            }
+
+            if (VOS_FALSE == pstAppDialPara->ulSndIPv4DNSValidFlag)
+            {
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   "0.0.0.0",
+                                                   gaucAtCrLf);
+            }
+            else
+            {
+                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   pstAppDialPara->aucSndIPv4DNSAddr,
+                                                   gaucAtCrLf);
+
+            }
         }
 
-        if (VOS_FALSE == pstAppDialPara->ulSndIPv4DNSValidFlag)
+        if (usLength < (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf))
         {
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%s: %s",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                               "0.0.0.0");
+            AT_WARN_LOG("At_QryDnsPrim:WARNING: PDP is not ativated!");
+            gstAtSendData.usBufLen = usLength;
+            return AT_CME_NO_CONNECTION_TO_PHONE;
         }
         else
         {
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
-                                               "%s: %s",
-                                               g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                               pstAppDialPara->aucSndIPv4DNSAddr);
-
+            usLength -= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf);
         }
 
         gstAtSendData.usBufLen = usLength;
@@ -4838,34 +4411,47 @@ VOS_UINT32 At_QryDnsSnd(
         return AT_OK;
     }
 
-    enState = AT_NdisGetState(TAF_PDP_IPV4);
-    if(AT_PDP_STATE_ACTED == enState)
+    for (ulCallIndex = AT_PS_NDIS_CALL_ID_BEGIN; ulCallIndex <= AT_PS_NDIS_CALL_ID_END; ulCallIndex++)
     {
-       ulPdpStateFlag = VOS_TRUE;
+        pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallIndex);
+
+        if (AT_PDP_STATE_ACTED != pstCallEntity->stIpv4Info.enIpv4State)
+        {
+            continue;
+        }
+
+        if (VOS_FALSE == pstCallEntity->stUsrDialParam.ulSndIPv4DNSValidFlag)
+        {
+            usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   "0.0.0.0",
+                                                   gaucAtCrLf);
+        }
+        else
+        {
+            usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
+                                                   (VOS_CHAR*)pgucAtSndCodeAddr + usLength,
+                                                   "%s: %d,%s%s",
+                                                   g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
+                                                   pstCallEntity->stUserInfo.ucUsrCid,
+                                                   pstCallEntity->stUsrDialParam.aucSndIPv4DNSAddr,
+                                                   gaucAtCrLf);
+        }
     }
 
-    if (VOS_FALSE == ulPdpStateFlag)
+    if (usLength < (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf))
     {
         AT_WARN_LOG("At_QryDnsPrim AT_NdisGetState:");
+        gstAtSendData.usBufLen = usLength;
         return AT_CME_NO_CONNECTION_TO_PHONE;
-    }
-
-    if (VOS_FALSE == gstAtNdisAddParam.ulSndIPv4DNSValidFlag)
-    {
-        usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s",
-                                               "^DNSS: 0.0.0.0");
     }
     else
     {
-        usLength    += (VOS_UINT16)At_sprintf( AT_CMD_MAX_LEN,(VOS_CHAR *)pgucAtSndCodeAddr,
-                                               (VOS_CHAR*)pgucAtSndCodeAddr,
-                                               "%s: %s",
-                                               "^DNSS:",
-                                               gstAtNdisAddParam.aucSndIPv4DNSAddr);
+        usLength -= (VOS_UINT16)VOS_StrLen((VOS_CHAR *)gaucAtCrLf);
     }
-
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
@@ -6600,7 +6186,7 @@ VOS_UINT32  AT_QryRsrpCfgPara ( VOS_UINT8 ucIndex )
     {
         if (NV_OK != TAF_ACORE_NV_READ(MODEM_ID_0, EN_NV_ID_RSRP_CFG, &stRsrpCfg,sizeof(stRsrpCfg)))
         {
-            PS_PRINTF("read RSRP_CFG NV fail!\n");
+            PS_PRINTF_WARNING("read RSRP_CFG NV fail!\n");
             return AT_ERROR;
         }
 
@@ -6697,7 +6283,7 @@ VOS_UINT32  AT_QryEcioCfgPara ( VOS_UINT8 ucIndex )
                                        &stEcioCfg,
                                        sizeof(stEcioCfg)))
         {
-            PS_PRINTF("read ECIO_CFG NV fail!\n");
+            PS_PRINTF_WARNING("read ECIO_CFG NV fail!\n");
             return AT_ERROR;
         }
 
@@ -6840,43 +6426,6 @@ VOS_UINT32 AT_QryPhonePhynumPara(VOS_UINT8 ucIndex)
     return AT_WAIT_ASYNC_RETURN;
 }
 
-
-
-VOS_UINT32 AT_QryPortCtrlTmpPara(VOS_UINT8 ucIndex)
-{
-    OM_HSIC_PORT_STATUS_ENUM_UINT32     enOmHsicPortStatus;
-
-    /* 通道检查 */
-    if (VOS_FALSE == AT_IsApPort(ucIndex))
-    {
-        return AT_ERROR;
-    }
-
-    /* 调用A核OM模块提供的接口OM_GetHsicPortStatus()读取端口状态的全局变量，并返回给AP */
-    enOmHsicPortStatus = PPM_GetHsicPortStatus();
-
-    if ( (OM_HSIC_PORT_STATUS_ON != enOmHsicPortStatus)
-       && (OM_HSIC_PORT_STATUS_OFF != enOmHsicPortStatus) )
-    {
-        return AT_ERROR;
-    }
-
-
-    gstAtSendData.usBufLen = (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                    (TAF_CHAR *)pgucAtSndCodeAddr,
-                                                    (TAF_CHAR *)pgucAtSndCodeAddr,
-                                                    "%s: %d",
-                                                    g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
-                                                    enOmHsicPortStatus);
-
-    return AT_OK;
-}
-
-
-VOS_UINT32 AT_QryPortAttribSetPara(VOS_UINT8 ucIndex)
-{
-    return AT_OK;
-}
 
 
 
@@ -7032,6 +6581,8 @@ VOS_UINT32 At_QryCerssiPara(VOS_UINT8 ucIndex)
 
 
 
+
+
 VOS_UINT32 At_QryCecellidPara(VOS_UINT8 ucIndex)
 {
     /* 调用L 提供接口 */
@@ -7180,7 +6731,7 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
     MTA_BODY_SAR_PARA_STRU             *pstBodySarPara,
     AT_BODYSARWCDMA_SET_PARA_STRU      *pstBodySarWcdmaPara)
 {
-    VOS_UINT8                           ucLoop1;
+    VOS_UINT32                          ulLoop1;
     VOS_UINT8                           ucLoop2;
     AT_NV_WG_RF_MAIN_BAND_STRU          stWGBand;
     VOS_UINT32                          ulTmpBand;
@@ -7198,11 +6749,11 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
         return VOS_ERR;
     }
 
-    for (ucLoop1 = 0; ucLoop1 < pstBodySarPara->usWBandNum; ucLoop1++)
+    for (ulLoop1 = 0; ulLoop1 < pstBodySarPara->usWBandNum; ulLoop1++)
     {
         for (ucLoop2 = 0; ucLoop2 < pstBodySarWcdmaPara->ucParaNum; ucLoop2++)
         {
-            if (pstBodySarPara->astWBandPara[ucLoop1].sPower == pstBodySarWcdmaPara->asPower[ucLoop2])
+            if (pstBodySarPara->astWBandPara[ulLoop1].sPower == pstBodySarWcdmaPara->asPower[ucLoop2])
             {
                 break;
             }
@@ -7211,10 +6762,10 @@ VOS_UINT32 AT_FillBodySarWcdmaQryPara(
         if (ucLoop2 == pstBodySarWcdmaPara->ucParaNum)
         {
             pstBodySarWcdmaPara->ucParaNum++;
-            pstBodySarWcdmaPara->asPower[ucLoop2] =pstBodySarPara->astWBandPara[ucLoop1].sPower;
+            pstBodySarWcdmaPara->asPower[ucLoop2] =pstBodySarPara->astWBandPara[ulLoop1].sPower;
         }
 
-        pstBodySarWcdmaPara->aulBand[ucLoop2]   |= 0x00000001U << (pstBodySarPara->astWBandPara[ucLoop1].enBand - 1);
+        pstBodySarWcdmaPara->aulBand[ucLoop2]   |= 0x00000001U << (pstBodySarPara->astWBandPara[ulLoop1].enBand - 1);
         ulTmpBand                               |= pstBodySarWcdmaPara->aulBand[ucLoop2];
     }
 
@@ -7954,15 +7505,21 @@ VOS_UINT32 AT_QryClccPara(VOS_UINT8 ucIndex)
 
 VOS_UINT32 AT_QryClccEconfInfo(VOS_UINT8 ucIndex)
 {
-    VOS_UINT32                          ulRet;
+    TAF_CTRL_STRU                       stCtrl;
+    VOS_UINT32                          ulRst;
 
-    /* 发消息到C核获取当前所有通话信息 */
-    ulRet = MN_CALL_SendAppRequest(TAF_CALL_APP_GET_ECONF_CALLED_INFO_REQ,
-                                   gastAtClientTab[ucIndex].usClientId,
-                                   gastAtClientTab[ucIndex].opId,
-                                   0,
-                                   VOS_NULL_PTR);
-    if (VOS_OK != ulRet)
+    TAF_MEM_SET_S(&stCtrl, sizeof(stCtrl), 0x00, sizeof(TAF_CTRL_STRU));
+
+    stCtrl.ulModuleId                   = WUEPS_PID_AT;
+    stCtrl.usClientId                   = gastAtClientTab[ucIndex].usClientId;
+    stCtrl.ucOpId                       = gastAtClientTab[ucIndex].opId;
+
+    ulRst   = AT_SndCcmReqMsg(&stCtrl,
+                              VOS_NULL_PTR,
+                              ID_TAF_CCM_QRY_ECONF_CALLED_INFO_REQ,
+                              0);
+
+    if (VOS_OK != ulRst)
     {
         AT_WARN_LOG("AT_QryClccEconfInfo: MN_CALL_SendAppRequest fail.");
 
@@ -8268,17 +7825,17 @@ VOS_VOID Show_Time(MODEM_ID_ENUM_UINT16 enModemId)
 
     pstNetCtx = AT_GetModemNetCtxAddrFromModemId(enModemId);
 
-    PS_PRINTF("\r\nTime:\r\n");
-    PS_PRINTF("ucIeFlg: %d\r\n",pstNetCtx->stTimeInfo.ucIeFlg);
-    PS_PRINTF("cLocalTimeZone: %d\r\n",pstNetCtx->stTimeInfo.cLocalTimeZone);
-    PS_PRINTF("ucDST: %d\r\n",pstNetCtx->stTimeInfo.ucDST);
-    PS_PRINTF("cTimeZone: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.cTimeZone);
-    PS_PRINTF("ucYear: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucYear);
-    PS_PRINTF("ucMonth: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucMonth);
-    PS_PRINTF("ucDay: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucDay);
-    PS_PRINTF("ucHour: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucHour);
-    PS_PRINTF("ucMinute: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucMinute);
-    PS_PRINTF("ucSecond: %d\r\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucSecond);
+    PS_PRINTF_INFO("Time:\n");
+    PS_PRINTF_INFO("ucIeFlg: %d\n",pstNetCtx->stTimeInfo.ucIeFlg);
+    PS_PRINTF_INFO("cLocalTimeZone: %d\n",pstNetCtx->stTimeInfo.cLocalTimeZone);
+    PS_PRINTF_INFO("ucDST: %d\n",pstNetCtx->stTimeInfo.ucDST);
+    PS_PRINTF_INFO("cTimeZone: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.cTimeZone);
+    PS_PRINTF_INFO("ucYear: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucYear);
+    PS_PRINTF_INFO("ucMonth: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucMonth);
+    PS_PRINTF_INFO("ucDay: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucDay);
+    PS_PRINTF_INFO("ucHour: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucHour);
+    PS_PRINTF_INFO("ucMinute: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucMinute);
+    PS_PRINTF_INFO("ucSecond: %d\n",pstNetCtx->stTimeInfo.stUniversalTimeandLocalTimeZone.ucSecond);
 
     return;
 }
@@ -9241,6 +8798,23 @@ VOS_UINT32 AT_QryRejInfoPara(VOS_UINT8 ucIndex)
         return AT_ERROR;
     }
 
+}
+
+
+VOS_UINT32 AT_QryLteAttachInfoPara(VOS_UINT8 ucIndex)
+{
+    /* 执行命令操作 */
+    if ( VOS_OK != TAF_PS_GetLteAttchInfo(WUEPS_PID_AT,
+                                            AT_PS_BuildExClientId(gastAtClientTab[ucIndex].usClientId),
+                                            gastAtClientTab[ucIndex].opId) )
+    {
+        AT_WARN_LOG("AT_QryLteAttachInfoPara: TAF_PS_GetLteAttchInfo fail.");
+        return AT_ERROR;
+    }
+
+    gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_LTEATTACHINFO_QRY;
+
+    return AT_WAIT_ASYNC_RETURN;
 }
 
 

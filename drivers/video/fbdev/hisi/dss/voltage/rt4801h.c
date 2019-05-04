@@ -186,6 +186,7 @@ int rt4801h_set_voltage(void)
 static void rt4801h_get_target_voltage(int *vpos_target, int *vneg_target)
 {
 	int ret = 0;
+	struct lcd_kit_ops *lcd_ops = NULL;
 
 	if((vpos_target == NULL) || (vneg_target == NULL)) {
 		pr_err("%s: NULL point\n", __func__);
@@ -193,7 +194,7 @@ static void rt4801h_get_target_voltage(int *vpos_target, int *vneg_target)
 	}
 
 
-        struct lcd_kit_ops *lcd_ops = lcd_kit_get_ops();
+	lcd_ops = lcd_kit_get_ops();
         if (lcd_ops && lcd_ops->lcd_kit_support) {
             if (lcd_ops->lcd_kit_support()) {
                 if (common_ops->get_bias_voltage) {

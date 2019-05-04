@@ -499,7 +499,7 @@ struct tcp_sock {
 		mptcp_sched_setsockopt:1,
 		mptcp_pm_setsockopt:1,
 		record_master_info:1,
-		mptcp_cap_flag:2,
+		mptcp_cap_flag:3,
 		user_switch:1, /* indicate whether can create subflows */
 		mptcp_sched_prim_intf:1;
 	struct mptcp_tcp_sock *mptcp;
@@ -530,6 +530,7 @@ enum tsq_flags {
 #ifdef CONFIG_MPTCP
 	MPTCP_PATH_MANAGER_DEFERRED, /* MPTCP deferred creation of new subflows */
 	MPTCP_SUB_DEFERRED, /* A subflow got deferred - process them */
+	MPTCP_USER_SWTCH_DEFERRED, /* A user switch event deferred - process them */
 #endif /* CONFIG_MPTCP */
 };
 

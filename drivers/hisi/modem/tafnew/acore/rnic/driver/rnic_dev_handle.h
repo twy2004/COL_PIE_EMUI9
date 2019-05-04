@@ -86,11 +86,25 @@ extern "C" {
 
 #if (defined(CONFIG_BALONG_SPE))
 void rnic_spe_start_xmit(int port, struct sk_buff *skb);
-#endif
+#endif /* CONFIG_BALONG_SPE */
 
 int rnic_napi_poll(struct napi_struct *napi, int budget);
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+int rnic_peth_ep_init(void);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM_MBB */
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM))
+void rnic_tput_timer_start(struct rnic_dev_priv_s *priv);
+void rnic_tput_timer_stop(struct rnic_dev_priv_s *priv);
+void rnic_tput_timer_expire(unsigned long data);
+int rnic_peth_rc_start_xmit(struct sk_buff *skb, uint8_t devid);
+int rnic_peth_rc_init(void);
+#endif /* CONFIG_HISI_BALONG_EXTRA_MODEM */
+
 netdev_tx_t rnic_tx_hanlde(struct sk_buff *skb,
 					struct rnic_dev_priv_s *priv);
+void rnic_napi_dispatcher_cb(struct work_struct * work);
 
 
 #ifdef __cplusplus

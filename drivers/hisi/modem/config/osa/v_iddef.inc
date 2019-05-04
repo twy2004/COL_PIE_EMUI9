@@ -276,6 +276,7 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 #if defined( FEATURE_NPHY_START)
     {NPHY_FID_STARTUP,      "NPHY_START",   NPHY_STARTUP_FidInit,   VOS_START_THIRD,    4096,   0  },
 #endif
+    {UEPS_FID_PSUPMEM,      "PSUPMEM_FID",  PSUPMEM_FidInit,        VOS_START_THIRD,    8192,   0  },
 #if (VOS_WIN32 == VOS_OS_VER)
     {WUEPS_FID_AT,          "NAS_AT",       WuepsATFidInit,         VOS_START_THIRD,    6144,   0  },
     {WUEPS_FID_ITTSTUB,     "ITTSTUB",      WuepsFidITTStubInit,    VOS_START_THIRD,    10240,  0  },
@@ -294,8 +295,14 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {ACPU_FID_PAM_OM,       "PAM_OM",       PAMOM_APP_FID_Init,     VOS_START_THIRD,    8192,   0  },
     {I0_UEPS_FID_NRMM,      "NRMM_FID",     I0_NAS_NRMM_FidInit,    VOS_START_THIRD,    16384,  0  },
     {I0_UEPS_FID_NRCM,      "NRCM_FID",     I0_NAS_NRCM_FidInit,    VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_NREAP,     "NREAP_FID",    I0_NAS_NREAP_FidInit,   VOS_START_THIRD,    16384,  0  },
 #endif
-
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+    {I0_PS_FID_VRRC,        "VRRC_FID",     VRRC_FidInit,           VOS_START_THIRD,    16384,  0  },
+    {I0_PS_FID_VRM_UL,      "VMACRLCUL_FID",VMAC_RLC_UlFidInit,     VOS_START_THIRD,    16384,  0  },
+    {I0_PS_FID_VRM_DL,      "VMACRLCDL_FID",VMAC_RLC_DlFidInit,     VOS_START_THIRD,    16384,  0  },
+    {I0_PS_FID_VHPA,        "VHPA_FID",     VHPA_FidPidInit,        VOS_START_THIRD,    4096,   0  },
+#endif
 };
 #endif
 
@@ -349,6 +356,8 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {ACPU_FID_PPP,              "ACPU_PPP",        APP_PPP_FidInit,         VOS_START_THIRD,    16384, 0  },
 #endif
 
+    {ACPU_FID_VOICE_AGENT,      "VOICE_AGENT",      VOICE_AGENT_FidInit,    VOS_START_THIRD,    16384, 0  },
+
 };
 #endif
 
@@ -362,7 +371,6 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {NRCPU_FID_PAM_OM,               "PAM_OM",                PAMOM_NR_FID_Init,        VOS_START_THIRD,    8192,   0  },
     {UEPS_FID_NRRC,                  "NRRC_FID",              I0_NRRC_FidInit,          VOS_START_THIRD,    16384,  0  },
     {I0_UEPS_FID_L2MA,               "L2MA_FID",              L2MA_FidInit,             VOS_START_THIRD,    16384,  0  },
-    {I0_UEPS_FID_SDAP,               "SDAP_FID",              SDAP_FidInit,             VOS_START_THIRD,    16384,  0  },
     {I0_UEPS_FID_NPDCPRLC_UL,        "NPDCP_RLC_UL_FID",      NPDCP_RLC_UlFidInit,      VOS_START_THIRD,    16384,  0  },
     {I0_UEPS_FID_NPDCP_DL_NRT,       "NPDCP_DL_NRT_FID",      NPDCP_DL_NRT_FidInit,     VOS_START_THIRD,    16384,  0  },
     {I0_UEPS_FID_NRLC_DL_NRT,        "NRLC_DL_NRT_FID",       NRLC_DlNrtFidInit,        VOS_START_THIRD,    16384,  0  },
@@ -375,6 +383,9 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
     {I0_UEPS_FID_NRCM,               "NRCM_FID",              I0_NAS_NRCM_FidInit,      VOS_START_THIRD,    16384,  0  },
     {NRCBT_FID_NOSIG,                "NRNOSIG",               NRNOSIG_FidInit,          VOS_START_THIRD,    8192,   0  },
     {NRCBT_FID_CBT,                  "NRCBT",                 NRCBT_FidInit,            VOS_START_THIRD,    8192,   0  },
+    {I0_UEPS_FID_NREAP,              "NREAP_FID",             I0_NAS_NREAP_FidInit,     VOS_START_THIRD,    16384,  0  },
+    {I0_UEPS_FID_SDAP,               "SDAP_FID",              SDAP_FidInit,             VOS_START_THIRD,    16384,  0  },
+    {NRAGENT_FID_AGENT,              "NPHY_RTTAGENT",         NPHY_RTTAGENTNR_FidInit,  VOS_START_THIRD,    8192,   0  },
 };
 #endif
 
@@ -384,11 +395,11 @@ FID_Static_Table_Type g_aFidStaticTable[VOS_FID_BUTT] =
 {
     {DOPRA_FID_SYS ,                 "fSYS",                  VOS_NULL_PTR,                   VOS_START_FIRST,    0,          0  },
 /* 以上是OSA 保留配置请不要动 */
-    {I0_UEPS_FID_NL2_DECODE,         "NL2_DECODE_FID",        NL2_DECODE_FidInit,             VOS_START_THIRD,    16384,      0  },
-    {I0_UEPS_FID_NMACRLC_UL_RT,      "NMACRLC_UL_FID",        NMACRLC_UL_RT_FidInit,          VOS_START_THIRD,    16384,      0  },
-    {I0_UEPS_FID_NMACRLC_UL_NRT,     "NMAC_UL_NRT_FID",       NMAC_UL_NRT_FidInit,            VOS_START_THIRD,    8192,      0  },
+    {I0_UEPS_FID_NL2_DECODE,         "NL2_DECODE_FID",        NL2_DECODE_FidInit,             VOS_START_THIRD,    10240,      0  },
+    {I0_UEPS_FID_NMACRLC_UL_RT,      "NMACRLC_UL_FID",        NMACRLC_UL_RT_FidInit,          VOS_START_THIRD,    10240,      0  },
+    {I0_UEPS_FID_NMACRLC_UL_NRT,     "NMAC_UL_NRT_FID",       NMAC_UL_NRT_FidInit,            VOS_START_THIRD,    2048,      0  },
     {MSP_FID_DIAG_HAC,               "HacDiag",               MSP_DiagHacFidInit,             VOS_START_THIRD,    8192,       0  },
-    {I0_UEPS_FID_NMACMSG_DISPATCH,   "NMAC_MSG",             NMACMSG_DISPATCH_FidInit,       VOS_START_THIRD,    8192,       0  },
+    {I0_UEPS_FID_NMACMSG_DISPATCH,   "NMAC_MSG",             NMACMSG_DISPATCH_FidInit,       VOS_START_THIRD,    2048,       0  },
 };
 #endif
 

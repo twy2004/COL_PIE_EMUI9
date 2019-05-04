@@ -51,6 +51,11 @@ endif
 obj-$(CONFIG_HIFI_DSP_ONE_TRACK)	+= hifi_lpp.o
 obj-$(CONFIG_HIFI_DSP_ONE_TRACK)	+= hifi_om.o
 
+ifneq ($(HISI_EXTERNAL_MODEM), )
+obj-$(CONFIG_HIFI_DSP_ONE_TRACK)	+= audio_pcie_proc.o
+obj-$(CONFIG_HIFI_DSP_ONE_TRACK)	+= b5000_strategy_acore.o
+EXTRA_CFLAGS += -DHISI_EXTERNAL_MODEM
+endif
 ifeq ($(CONFIG_HISI_AUDIO_DEBUG),y)
 obj-$(CONFIG_SND_SOC_CODEC_STUB)	+= memcpy_opt.o
 ifeq ($(CONFIG_SND_SOC_CODEC_STUB),y)

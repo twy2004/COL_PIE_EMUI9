@@ -82,6 +82,7 @@
 #include "AtCmdSupsProc.h"
 
 #include "mnmsgcbencdec.h"
+#include "TafCcmApi.h"
 
 
 /*****************************************************************************
@@ -100,6 +101,8 @@
 /*****************************************************************************
   4 全局变量定义
 *****************************************************************************/
+extern AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl;
+
 const AT_SMS_ERROR_CODE_MAP_STRU        g_astAtSmsErrorCodeMap[] =
 {
     {TAF_MSG_ERROR_RP_CAUSE_UNASSIGNED_UNALLOCATED_NUMBER,                              AT_CMS_UNASSIGNED_UNALLOCATED_NUMBER},
@@ -337,6 +340,10 @@ const AT_PS_EVT_FUNC_TBL_STRU           g_astAtPsEvtFuncTbl[] =
 
     {ID_EVT_TAF_PS_GET_CID_SDF_CNF,
         AT_RcvTafPsEvtGetCidSdfInfoCnf},
+
+    {ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_CNF,
+        AT_RcvTafGetLteAttachInfoCnf},
+
     {ID_EVT_TAF_PS_SET_APDSFLOW_RPT_CFG_CNF,
         AT_RcvTafPsEvtSetApDsFlowRptCfgCnf},
     {ID_EVT_TAF_PS_GET_APDSFLOW_RPT_CFG_CNF,
@@ -422,6 +429,7 @@ const AT_PS_EVT_FUNC_TBL_STRU           g_astAtPsEvtFuncTbl[] =
     {ID_EVT_TAF_PS_DATA_SYSTEM_CHG_NTF,
         AT_RcvTafPsEvtDataSystemChgNtf},
 
+
 };
 
 /* 主动上报命令与控制Bit位对应表 */
@@ -465,7 +473,7 @@ AT_RPT_CMD_INDEX_ENUM_UINT8             g_aenAtUnsolicitedRptCmdTable[] =
     AT_RPT_CMD_CERSSI,      AT_RPT_CMD_LWURC,       AT_RPT_CMD_BUTT,        AT_RPT_CMD_CUUS1U,
     AT_RPT_CMD_CUUS1I,      AT_RPT_CMD_CGREG,       AT_RPT_CMD_CEREG,       AT_RPT_CMD_BUTT,
     AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT,
-    AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT
+    AT_RPT_CMD_BUTT,        AT_RPT_CMD_C5GREG,      AT_RPT_CMD_BUTT,        AT_RPT_CMD_BUTT
 };
 
 AT_CME_CALL_ERR_CODE_MAP_STRU           g_astAtCmeCallErrCodeMapTbl[] =
@@ -607,7 +615,7 @@ static AT_PH_SYS_MODE_TBL_STRU g_astSysModeTbl[] =
     {MN_PH_SYS_MODE_EX_LTE_RAT      ,"LTE"},
     {MN_PH_SYS_MODE_EX_EVDO_RAT     ,"EVDO"},
     {MN_PH_SYS_MODE_EX_HYBRID_RAT   ,"CDMA1X+EVDO(HYBRID)"},
-    {MN_PH_SYS_MODE_EX_SVLTE_RAT    ,"CDMA1X+LTE"}
+    {MN_PH_SYS_MODE_EX_SVLTE_RAT    ,"CDMA1X+LTE"},
 };
 
 AT_PH_SUB_SYS_MODE_TBL_STRU g_astSubSysModeTbl[] =
@@ -638,6 +646,7 @@ AT_PH_SUB_SYS_MODE_TBL_STRU g_astSubSysModeTbl[] =
     {MN_PH_SUB_SYS_MODE_EX_HYBIRD_EVDORELA_RAT ,"HYBRID(EVDO RelA)"},
 
     {MN_PH_SUB_SYS_MODE_EX_EHRPD_RAT           ,"EHRPD"},
+
 
 };
 /* end V7R1 PhaseI Modify */
@@ -803,6 +812,29 @@ LOCAL VOS_VOID AT_ConvertSysCfgStrToAutoModeStr(
     VOS_UINT8                          *pucAcqOrderBegin,
     VOS_UINT8                          *pucAcqOrder,
     VOS_UINT8                           ucRatNum
+);
+
+
+LOCAL VOS_VOID AT_RcvMmaLteCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+);
+
+LOCAL VOS_VOID AT_RcvMmaWcdmaCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+);
+
+LOCAL VOS_VOID AT_RcvMmaGsmCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+);
+
+LOCAL VOS_CHAR* AT_ConvertRatModeForQryParaPlmnList(
+    TAF_PH_RA_MODE  enRaMode
 );
 
 
@@ -1164,60 +1196,6 @@ TAF_UINT32 At_HexAlpha2AsciiString(TAF_UINT32 MaxLength,TAF_INT8 *headaddr,TAF_U
 
     }
     return usLen;
-}
-
-
-TAF_UINT16 At_UnicodeFormatPrint(const TAF_UINT8 *pSrc, TAF_UINT8 *pDest, TAF_UINT32 Dcs)
-{
-    TAF_UINT8 i, j;
-    TAF_UINT16 len;
-    TAF_UINT16 base, tmp;
-
-    base = 0;
-
-    if(SI_PB_ALPHATAG_TYPE_UCS2_81 == Dcs)                     /* name decode by 81 */
-    {
-        base = (TAF_UINT16)((pSrc[1]<<0x07)&0x7F80);           /* get the basepoint value */
-
-        j = 0x02;                                              /* name content offset */
-    }
-    else if(SI_PB_ALPHATAG_TYPE_UCS2_82 == Dcs)                /* name decode by 82 */
-    {
-        base = (TAF_UINT16)((pSrc[1]<<0x08)&0xFF00) + pSrc[2];  /* get the basepoint value */
-
-        j = 0x03;                                               /* name content offset */
-    }
-    else                                                        /* name decode error */
-    {
-        return 0;
-    }
-
-    len = 2 * pSrc[0];                                          /* get the length of name */
-
-    if((len == 0x00)||(len == 0xFF))                            /* length error */
-    {
-        return 0;
-    }
-
-    for( i = 0; i < pSrc[0] ; i++)                              /* decode action begin */
-    {
-        if((pSrc[j+i]&0x80) == 0x00)
-        {
-            pDest[i*2] = 0x00;
-
-            pDest[(i*2)+1] = pSrc[j+i];
-        }
-        else
-        {
-            tmp = base + (pSrc[j+i]&0x7F);
-
-            pDest[i*2] = (TAF_UINT8)((tmp&0xFF00)>>0x08);
-
-            pDest[(i*2)+1] = (TAF_UINT8)(tmp&0x00FF);
-        }
-    }
-
-    return len;                                                    /* return the Byte number of the name */
 }
 
 
@@ -3295,6 +3273,22 @@ VOS_VOID At_ReportClccRttPara(
 
 
 
+VOS_VOID At_ReportClccEncryptPara(
+    MN_CALL_INFO_PARAM_STRU            *pstCallInfo,
+    VOS_UINT16                         *pusLength
+)
+{
+    /* ,<isEncrypt> */
+    (*pusLength) += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr + (*pusLength),
+                                           ",%d",
+                                           pstCallInfo->ucEncryptFlag);
+
+    return;
+}
+
+
 VOS_VOID At_ProcQryClccResult(
     VOS_UINT8                           ucNumOfCalls,
     MN_CALL_INFO_QRY_CNF_STRU          *pstCallInfos,
@@ -3357,12 +3351,11 @@ VOS_VOID At_ProcQryClccResult(
             {
                 if (0 != pstCallInfos->astCallInfos[ucTmp].stConnectNumber.ucNumLen)
                 {
-                    /* <number>, */
                     AT_BcdNumberToAscii(pstCallInfos->astCallInfos[ucTmp].stConnectNumber.aucBcdNum,
                                         pstCallInfos->astCallInfos[ucTmp].stConnectNumber.ucNumLen,
                                         (TAF_CHAR*)aucAsciiNum);
 
-                    /* <type>,<display name>,不报<priority> */
+                    /* ,<number>,<type> */
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
@@ -3372,12 +3365,11 @@ VOS_VOID At_ProcQryClccResult(
                 }
                 else if (0 != pstCallInfos->astCallInfos[ucTmp].stCalledNumber.ucNumLen)
                 {
-                    /* <number>, */
                     AT_BcdNumberToAscii(pstCallInfos->astCallInfos[ucTmp].stCalledNumber.aucBcdNum,
                                         pstCallInfos->astCallInfos[ucTmp].stCalledNumber.ucNumLen,
                                         (TAF_CHAR*)aucAsciiNum);
 
-                    /* <type>,<display name>,不报<priority> */
+                    /* ,<number>,<type> */
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
@@ -3387,7 +3379,7 @@ VOS_VOID At_ProcQryClccResult(
                 }
                 else
                 {
-                    /* <type>,<display name>,不报<priority> */
+                    /* ,,<type> */
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
@@ -3398,12 +3390,11 @@ VOS_VOID At_ProcQryClccResult(
             {
                 if (0 != pstCallInfos->astCallInfos[ucTmp].stCallNumber.ucNumLen)
                 {
-                    /* <number>, */
                     AT_BcdNumberToAscii(pstCallInfos->astCallInfos[ucTmp].stCallNumber.aucBcdNum,
                                         pstCallInfos->astCallInfos[ucTmp].stCallNumber.ucNumLen,
                                         (VOS_CHAR *)aucAsciiNum);
 
-                    /* <type>,<display name>,不报<priority> */
+                    /* ,<number>,<type> */
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
@@ -3413,7 +3404,7 @@ VOS_VOID At_ProcQryClccResult(
                 }
                 else
                 {
-                    /* <type>,<display name>,不报<priority> */
+                    /* ,,<type> */
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr,
                                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
@@ -3428,6 +3419,8 @@ VOS_VOID At_ProcQryClccResult(
             At_ReportClccImsDomain(&(pstCallInfos->astCallInfos[ucTmp]), &usLength);
 
             At_ReportClccRttPara(&(pstCallInfos->astCallInfos[ucTmp]), &usLength);
+
+            At_ReportClccEncryptPara(&(pstCallInfos->astCallInfos[ucTmp]), &usLength);
         }
     }
 
@@ -3436,8 +3429,8 @@ VOS_VOID At_ProcQryClccResult(
 }
 
 VOS_UINT32 At_ProcQryClccEconfResult(
-    TAF_CALL_ECONF_INFO_QRY_CNF_STRU   *pstCallInfos,
-    VOS_UINT8                           ucIndex
+    TAF_CCM_QRY_ECONF_CALLED_INFO_CNF_STRU                 *pstCallInfos,
+    VOS_UINT8                                               ucIndex
 )
 {
     VOS_UINT16                          usLength;
@@ -4057,9 +4050,6 @@ TAF_VOID At_CsMsgProc(MN_AT_IND_EVT_STRU *pstData,TAF_UINT16 usLen)
             At_RcvMnCallSetCssnCnf(pstData);
             break;
 
-        case MN_CALL_EVT_CHANNEL_INFO_IND:
-            AT_RcvMnCallChannelInfoInd(pstData->aucContent);
-            break;
 
         case MN_CALL_EVT_XLEMA_CNF:
             At_RcvXlemaQryCnf(pstData, usLen);
@@ -4154,23 +4144,8 @@ TAF_VOID At_CsMsgProc(MN_AT_IND_EVT_STRU *pstData,TAF_UINT16 usLen)
             AT_RcvTafCallCclprCnf(pstData);
             break;
 
-        case TAF_CALL_EVT_CHANNEL_QRY_CNF:
-            AT_RcvTafSpmQryCSChannelInfoCnf(pstData);
-            break;
 
-        case MN_CALL_EVT_CALL_MODIFY_CNF:
-            At_RcvTafCallModifyCnf(pstData, usLen);
-            break;
-        case MN_CALL_EVT_CALL_ANSWER_REMOTE_MODIFY_CNF:
-            At_RcvTafCallAnswerRemoteModifyCnf(pstData, usLen);
-            break;
-        case MN_CALL_EVT_CALL_MODIFY_STATUS_IND:
-            At_RcvTafCallModifyStatusInd(pstData, usLen);
-            break;
 
-        case TAF_CALL_EVT_CLCCECONF_INFO:
-            AT_RcvTafGetEconfInfoCnf(pstData,usLen);
-            break;
 
         case TAF_CALL_EVT_ECONF_DIAL_CNF:
             AT_RcvTafEconfDialCnf(pstData,usLen);
@@ -5439,11 +5414,13 @@ TAF_UINT32 At_PhReadCreg(TAF_PH_REG_STATE_STRU  *pPara,TAF_UINT8 *pDst)
     if(pPara->CellId.ucCellNum > 0)
     {
         /* lac */
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pDst + usLength,",\"%X%X%X%X\"",
-                0x000f & (pPara->usLac >> 12),
-                0x000f & (pPara->usLac >> 8),
-                0x000f & (pPara->usLac >> 4),
-                0x000f & (pPara->usLac >> 0));
+        {
+            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pDst + usLength,",\"%X%X%X%X\"",
+                    0x000f & (pPara->ulLac >> 12),
+                    0x000f & (pPara->ulLac >> 8),
+                    0x000f & (pPara->ulLac >> 4),
+                    0x000f & (pPara->ulLac >> 0));
+        }
 
         /* ci */
         if (CREG_CGREG_CI_RPT_FOUR_BYTE == gucCiRptByte)
@@ -5478,6 +5455,7 @@ TAF_UINT32 At_PhReadCreg(TAF_PH_REG_STATE_STRU  *pPara,TAF_UINT8 *pDst)
 
     return usLength;
 }
+
 
 
 VOS_VOID AT_PhSendPinReady( VOS_UINT16 usModemID )
@@ -5781,7 +5759,7 @@ LOCAL VOS_VOID AT_ConvertSysCfgStrToAutoModeStr(
     VOS_UINT8                           ucRatNum
 )
 {
-    
+
     if ((0 == VOS_StrCmp((VOS_CHAR *)pucAcqOrderBegin, "030201"))
      && (TAF_PH_MAX_GUL_RAT_NUM == ucRatNum))
     {
@@ -6285,6 +6263,8 @@ VOS_VOID AT_ReportCregResult(
 }
 
 
+
+
 VOS_VOID AT_ProcRegStatusInfoInd(
     VOS_UINT8                           ucIndex,
     TAF_MMA_REG_STATUS_IND_STRU        *pstRegInfo
@@ -6300,6 +6280,8 @@ VOS_VOID AT_ProcRegStatusInfoInd(
 
     /* 通过NV判断当前是否支持LTE */
     AT_ReportCeregResult(ucIndex, pstRegInfo, &usLength);
+
+
 
     At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
 
@@ -6649,6 +6631,7 @@ VOS_VOID    At_QryCpinRspProc(
 TAF_UINT32 AT_ProcOperModeWhenLteOn(VOS_UINT8 ucIndex)
 {
     return atSetTmodePara(ucIndex, g_stAtDevCmdCtrl.ucCurrentTMode);
+
 }
 
 
@@ -7803,17 +7786,46 @@ VOS_UINT32 AT_RcvMmaQryCampCsgIdInfoCnfProc(
 }
 
 
+
+LOCAL VOS_CHAR* AT_ConvertRatModeForQryParaPlmnList(
+    TAF_PH_RA_MODE  enRaMode
+)
+{
+    VOS_CHAR        *pcCopsRat = VOS_NULL_PTR;
+
+    switch (enRaMode)
+    {
+        case TAF_PH_RA_GSM:
+            pcCopsRat = "0";
+            break;
+
+        case TAF_PH_RA_WCDMA:
+            pcCopsRat = "2";
+            break;
+
+        case TAF_PH_RA_LTE:
+            pcCopsRat = "7";
+            break;
+        default:
+            pcCopsRat = "";
+
+    }
+
+    return pcCopsRat;
+}
+
 VOS_UINT32 At_QryParaPlmnListProc(
     VOS_VOID                           *pMsg
 )
 {
     TAF_MMA_PLMN_LIST_CNF_STRU         *pstPlmnListCnf;
     TAF_MMA_PLMN_LIST_CNF_PARA_STRU    *pstPlmnList;
+    TAF_MMA_PLMN_LIST_PARA_STRU         stPlmnListPara;
+    AT_RRETURN_CODE_ENUM_UINT32         enResult;
+    VOS_CHAR                           *pcRatMode;
     VOS_UINT16                          usLength;
     VOS_UINT8                           ucTmp;
     VOS_UINT8                           ucIndex;
-    TAF_MMA_PLMN_LIST_PARA_STRU         stPlmnListPara;
-    AT_RRETURN_CODE_ENUM_UINT32         enResult;
 
     usLength       = 0;
     pstPlmnListCnf = (TAF_MMA_PLMN_LIST_CNF_STRU *)pMsg;
@@ -7870,58 +7882,35 @@ VOS_UINT32 At_QryParaPlmnListProc(
         if((0 != ucTmp)
         || (0 != pstPlmnList->ulCurrIndex))/* 除第一项外，其它以前要加逗号 */
         {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",");
+            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",");
         }
 
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"(%d",pstPlmnList->astPlmnInfo[ucTmp].PlmnStatus);
+        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                           (TAF_CHAR *)pgucAtSndCodeAddr,
+                                           (TAF_CHAR *)pgucAtSndCodeAddr + usLength,
+                                           "(%d,\"%s\",\"%s\"",
+                                           pstPlmnList->astPlmnInfo[ucTmp].PlmnStatus,
+                                           pstPlmnList->astPlmnName[ucTmp].aucOperatorNameLong,
+                                           pstPlmnList->astPlmnName[ucTmp].aucOperatorNameShort);
 
-        if (( '\0' == pstPlmnList->astPlmnName[ucTmp].aucOperatorNameLong[0] )
-         || ( '\0' == pstPlmnList->astPlmnName[ucTmp].aucOperatorNameShort[0] ))
-        {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"\"");
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"\"");
-        }
-        else
-        {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ucTmp].aucOperatorNameLong);
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%s\"",pstPlmnList->astPlmnName[ucTmp].aucOperatorNameShort);
-        }
-
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",\"%X%X%X",
-            (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 8,
-            (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 4,
-            (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc)
-            );
+        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",\"%X%X%X",
+                                           (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 8,
+                                           (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc) >> 4,
+                                           (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mcc));
 
         if(0x0F != ((0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 8))
         {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"%X",
-            (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 8
-            );
-
-        }
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,"%X%X\"",
-            (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 4,
-            (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc)
-            );
-        if(TAF_PH_RA_GSM == pstPlmnList->astPlmnInfo[ucTmp].RaMode)  /* GSM */
-        {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",0");
-        }
-        else if(TAF_PH_RA_WCDMA == pstPlmnList->astPlmnInfo[ucTmp].RaMode)     /* CDMA */
-        {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",2");
-        }
-        else if(TAF_PH_RA_LTE == pstPlmnList->astPlmnInfo[ucTmp].RaMode)   /* LTE */
-        {
-            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,",7");
-        }
-        else
-        {
-
+            usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%X",
+                                               (0x0f00 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 8);
         }
 
-        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength,")");
+        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, "%X%X\"",
+                                           (0x00f0 & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc) >> 4,
+                                           (0x000f & pstPlmnList->astPlmnName[ucTmp].PlmnId.Mnc));
+
+        pcRatMode = AT_ConvertRatModeForQryParaPlmnList(pstPlmnList->astPlmnInfo[ucTmp].RaMode);
+        usLength += (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,(TAF_CHAR *)pgucAtSndCodeAddr,(TAF_CHAR *)pgucAtSndCodeAddr + usLength, ",%s)", pcRatMode);
+
     }
 
     At_BufferorSendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
@@ -9400,11 +9389,10 @@ VOS_VOID At_SmsStorageListProc(
     {
 
         /* 接收到NV的短信容量上报，修改NV的短信容量等待标志已接收到NV的短信容量 */
-        if (MN_MSG_MEM_STORE_NV == pstStorageListInfo->enMemStroe)
+        if (MN_MSG_MEM_STORE_ME == pstStorageListInfo->enMemStroe)
         {
             gastAtClientTab[ucIndex].AtSmsData.bWaitForNvStorageStatus = TAF_FALSE;
         }
-
         /* 接收到SIM的短信容量上报，修改SIM的短信容量等待标志已接收到SIM的短信容量 */
         if (MN_MSG_MEM_STORE_SIM == pstStorageListInfo->enMemStroe)
         {
@@ -11404,8 +11392,7 @@ TAF_VOID At_VcMsgProc(MN_AT_IND_EVT_STRU *pstData,TAF_UINT16 usLen)
 TAF_VOID At_SetParaRspProc( TAF_UINT8 ucIndex,
                                       TAF_UINT8 OpId,
                                       TAF_PARA_SET_RESULT Result,
-                                      TAF_PARA_TYPE ParaType,
-                                      TAF_VOID *pPara)
+                                      TAF_PARA_TYPE ParaType)
 {
     AT_RRETURN_CODE_ENUM_UINT32         ulResult = AT_FAILURE;
     TAF_UINT16 usLength = 0;
@@ -11468,9 +11455,7 @@ TAF_VOID At_SetMsgProc(TAF_UINT8* pData,TAF_UINT16 usLen)
     TAF_UINT8 OpId = 0;
     TAF_PARA_SET_RESULT Result = 0;
     TAF_PARA_TYPE ParaType = 0;
-    TAF_VOID *pPara = TAF_NULL_PTR;
     TAF_UINT16 usAddr = 0;
-    TAF_UINT16 usParaLen = 0;
     TAF_UINT8 ucIndex  = 0;
 
     TAF_MEM_CPY_S(&ClientId, sizeof(ClientId), pData, sizeof(ClientId));
@@ -11485,13 +11470,6 @@ TAF_VOID At_SetMsgProc(TAF_UINT8* pData,TAF_UINT16 usLen)
     TAF_MEM_CPY_S(&ParaType, sizeof(ParaType), pData+usAddr, sizeof(ParaType));
     usAddr += sizeof(ParaType);
 
-    TAF_MEM_CPY_S(&usParaLen, sizeof(usParaLen), pData+usAddr, sizeof(usParaLen));
-    usAddr += sizeof(usParaLen);
-
-    if(0 != usParaLen)
-    {
-        pPara = pData+usAddr;
-    }
 
     AT_LOG1("At_SetMsgProc ClientId",ClientId);
     AT_LOG1("At_SetMsgProc Result",Result);
@@ -11519,7 +11497,7 @@ TAF_VOID At_SetMsgProc(TAF_UINT8* pData,TAF_UINT16 usLen)
         AT_LOG1("At_SetMsgProc ucIndex",ucIndex);
         AT_LOG1("gastAtClientTab[ucIndex].CmdCurrentOpt",gastAtClientTab[ucIndex].CmdCurrentOpt);
 
-        At_SetParaRspProc(ucIndex,OpId,Result,ParaType,pPara);
+        At_SetParaRspProc(ucIndex,OpId,Result,ParaType);
     }
 }
 
@@ -12050,6 +12028,8 @@ VOS_VOID AT_QryParaRspCeregProc(
 
 
 
+
+
 TAF_VOID At_QryParaRspIccidProc(
     TAF_UINT8                           ucIndex,
     TAF_UINT8                           OpId,
@@ -12547,61 +12527,6 @@ VOS_VOID AT_RcvCdurQryRsp(
     return;
 }
 
-
-VOS_UINT32 AT_RcvDrvAgentTseLrfSetRsp(VOS_VOID *pMsg)
-{
-    VOS_UINT32                          ulRet;
-    VOS_UINT8                           ucIndex;
-    DRV_AGENT_TSELRF_SET_CNF_STRU      *pstEvent;
-    DRV_AGENT_MSG_STRU                 *pstRcvMsg;
-
-    /* 初始化 */
-    pstRcvMsg              = (DRV_AGENT_MSG_STRU *)pMsg;
-    pstEvent               = (DRV_AGENT_TSELRF_SET_CNF_STRU *)pstRcvMsg->aucContent;
-
-    /* 通过clientid获取index */
-    if (AT_FAILURE == At_ClientIdToUserId(pstEvent->stAtAppCtrl.usClientId, &ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvDrvAgentTseLrfSetRsp: AT INDEX NOT FOUND!");
-        return VOS_ERR;
-    }
-
-    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvDrvAgentTseLrfSetRsp : AT_BROADCAST_INDEX.");
-        return VOS_ERR;
-    }
-
-    /* AT模块在等待TSELRF设置命令的结果事件上报 */
-    if (AT_CMD_TSELRF_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
-    {
-        return VOS_ERR;
-    }
-
-    /* 使用AT_STOP_TIMER_CMD_READY恢复AT命令实体状态为READY状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    /* 输出查询结果 */
-    gstAtSendData.usBufLen = 0;
-    if (DRV_AGENT_TSELRF_SET_NO_ERROR == pstEvent->enResult)
-    {
-        /* 设置错误码为AT_OK */
-        ulRet                            = AT_OK;
-        g_stAtDevCmdCtrl.bDspLoadFlag    = VOS_TRUE;
-        g_stAtDevCmdCtrl.ucDeviceRatMode = pstEvent->ucDeviceRatMode;
-        g_stAtDevCmdCtrl.usFDAC          = 0;
-
-    }
-    else
-    {
-        /* 查询失败返回ERROR字符串 */
-        ulRet                            = AT_ERROR;
-    }
-
-    /* 4. 调用At_FormatResultData输出结果 */
-    At_FormatResultData(ucIndex, ulRet);
-    return VOS_OK;
-}
 
 
 VOS_UINT32 AT_RcvDrvAgentHkAdcGetRsp(VOS_VOID *pMsg)
@@ -13850,8 +13775,8 @@ TAF_VOID At_QryParaRspProc  (
 
     TAF_UINT32                          ulResult = AT_FAILURE;
     TAF_UINT16                          usLength = 0;
-    TAF_UINT16                          ucTmp;
-    TAF_UINT8                           i;
+    TAF_UINT32                          ulTmp;
+    TAF_UINT32                          i;
 
     if(0 != usErrorCode)  /* 错误 */
     {
@@ -13872,8 +13797,8 @@ TAF_VOID At_QryParaRspProc  (
         return;
     }
 
-    ucTmp = (sizeof(g_aAtQryTypeProcFuncTbl) / sizeof(g_aAtQryTypeProcFuncTbl[0]));
-    for (i = 0; i != ucTmp; i++ )
+    ulTmp = (sizeof(g_aAtQryTypeProcFuncTbl) / sizeof(g_aAtQryTypeProcFuncTbl[0]));
+    for (i = 0; i != ulTmp; i++ )
     {
         if (QueryType == g_aAtQryTypeProcFuncTbl[i].QueryType)
         {
@@ -14615,7 +14540,7 @@ TAF_VOID At_TAFPbMsgProc(TAF_UINT8* pData,TAF_UINT16 usLen)
 }
 
 
-TAF_VOID At_PbMsgProc(MsgBlock* pMsg)
+TAF_VOID At_PbMsgProc(VOS_VOID* pMsg)
 {
     MN_APP_PB_AT_CNF_STRU   *pstMsg;
     TAF_UINT8               ucIndex = 0;
@@ -14648,7 +14573,7 @@ TAF_VOID At_PbMsgProc(MsgBlock* pMsg)
 }
 
 
-TAF_VOID At_PIHMsgProc(MsgBlock* pMsg)
+TAF_VOID At_PIHMsgProc(VOS_VOID* pMsg)
 {
     MN_APP_PIH_AT_CNF_STRU  *pstMsg;
     TAF_UINT8               ucIndex = 0;
@@ -14840,10 +14765,12 @@ VOS_VOID At_XsmsCnfProc(
 }
 
 
-VOS_VOID AT_ProcXsmsMsg(TAF_XSMS_APP_AT_CNF_STRU *pstMsg)
+VOS_VOID AT_ProcXsmsMsg(VOS_VOID *pMsg)
 {
+    TAF_XSMS_APP_AT_CNF_STRU           *pstMsg = VOS_NULL_PTR;
     VOS_UINT8                           ucIndex = 0;
 
+    pstMsg = (TAF_XSMS_APP_AT_CNF_STRU *)pMsg;
     /* 消息类型不正确 */
     if (TAF_XSMS_APP_MSG_TYPE_BUTT <= pstMsg->enEventType)
     {
@@ -15415,7 +15342,7 @@ TAF_VOID AT_STKPrintMsgProc(MN_APP_STK_AT_DATAPRINT_STRU *pstSTKPrintMsg)
 }
 
 
-TAF_VOID At_STKMsgProc(MsgBlock* pMsg)
+TAF_VOID At_STKMsgProc(VOS_VOID* pMsg)
 {
     MN_APP_STK_AT_DATAPRINT_STRU    *pstSTKPrintMsg;
     MN_APP_STK_AT_CNF_STRU          *pstSTKCnfMsg;
@@ -16700,6 +16627,237 @@ VOS_UINT32 AT_IsBroadcastPsEvt(
 }
 
 
+VOS_VOID AT_ConvertPdpContextIpAddrParaToString(
+    TAF_PDP_DYNAMIC_PRIM_EXT_STRU      *pstCgdcont,
+    VOS_UINT16                         *usLength
+)
+{
+    VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
+    VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
+
+    TAF_MEM_SET_S(acIpv4StrTmp,  sizeof(acIpv4StrTmp), 0x00, TAF_MAX_IPV4_ADDR_STR_LEN);
+    TAF_MEM_SET_S(acIpv6StrTmp, sizeof(acIpv6StrTmp), 0x00, AT_IPV6_ADDR_MASK_FORMAT_STR_LEN);
+
+    if((VOS_TRUE == pstCgdcont->bitOpIpAddr) && (VOS_TRUE == pstCgdcont->bitOpSubMask))
+    {
+        if (TAF_PDP_IPV4 == pstCgdcont->stPdpAddr.enPdpType)
+        {
+            AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgdcont->stPdpAddr.aucIpv4Addr);
+            *usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *usLength,",\"%s",acIpv4StrTmp);
+
+            AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgdcont->stSubnetMask.aucIpv4Addr);
+            *usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *usLength,".%s\"",acIpv4StrTmp);
+        }
+        else if(TAF_PDP_IPV6 == pstCgdcont->stPdpAddr.enPdpType)
+        {
+            (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
+                                                   pstCgdcont->stPdpAddr.aucIpv6Addr,
+                                                   pstCgdcont->stSubnetMask.aucIpv6Addr);
+            *usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *usLength, ",\"%s\"", acIpv6StrTmp);
+        }
+        else
+        {
+            *usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *usLength,",");
+        }
+    }
+    else
+    {
+        *usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *usLength,",");
+    }
+
+    return;
+}
+
+
+VOS_VOID AT_ConvertPdpContextAddrParaToString(
+    VOS_UINT32                          bitOpAddr,
+    TAF_PDP_TYPE_ENUM_UINT8             enPdpType,
+    VOS_UINT8                          *pucNumber,
+    VOS_UINT8                           aucIpv6Addr[],
+    VOS_UINT16                         *pusStringLength
+)
+{
+    VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
+    VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
+
+    TAF_MEM_SET_S(acIpv4StrTmp,  sizeof(acIpv4StrTmp), 0x00, TAF_MAX_IPV4_ADDR_STR_LEN);
+    TAF_MEM_SET_S(acIpv6StrTmp, sizeof(acIpv6StrTmp), 0x00, AT_IPV6_ADDR_MASK_FORMAT_STR_LEN);
+
+    if(VOS_TRUE == bitOpAddr)
+    {
+        if ( (TAF_PDP_IPV4 == enPdpType) || (TAF_PDP_PPP == enPdpType) )
+        {
+            AT_Ipv4AddrItoa(acIpv4StrTmp, pucNumber);
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",\"%s\"",acIpv4StrTmp);
+        }
+        else if(TAF_PDP_IPV6 == enPdpType)
+        {
+            (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
+                                                   aucIpv6Addr,
+                                                   VOS_NULL_PTR);
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength, ",\"%s\"", acIpv6StrTmp);
+        }
+        else
+        {
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",");
+        }
+    }
+    else
+    {
+        *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",");
+    }
+
+    return;
+}
+
+
+VOS_VOID AT_ConvertULParaToString(
+    VOS_UINT32                          ulOpPara,
+    VOS_UINT32                          ulParaVal,
+    VOS_UINT16                         *pusLength
+)
+{
+    if (VOS_TRUE == ulOpPara)
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusLength,",%d",ulParaVal);
+    }
+    else
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusLength,",");
+    }
+
+    return;
+}
+
+
+
+VOS_VOID AT_ConvertULParaToXString(
+    VOS_UINT32                          ulOpPara,
+    VOS_UINT32                          ulParaVal,
+    VOS_UINT16                         *pusLength
+)
+{
+    if (VOS_TRUE == ulOpPara)
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusLength,",%X",ulParaVal);
+    }
+    else
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusLength,",");
+    }
+
+    return;
+}
+
+
+VOS_VOID AT_ConvertRangeParaToString(
+    VOS_UINT32                          ulOpPara1,
+    VOS_UINT32                          ulOpPara2,
+    VOS_UINT32                          ulParaVal1,
+    VOS_UINT32                          ulParaVal2,
+    VOS_UINT16                         *pusLength
+)
+{
+    if (VOS_TRUE == ulOpPara1)
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",%d", ulParaVal1);
+    }
+    else if (VOS_TRUE == ulOpPara2)
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",\"%d", ulParaVal1);
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ".%d\"", ulParaVal2);
+    }
+    else
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",");
+    }
+
+    return;
+}
+
+
+VOS_VOID AT_ConvertIpAddrAndMaskParaToString(
+    TAF_TFT_QUREY_INFO_STRU            *pstCgtft,
+    VOS_UINT8                           ucTmp2,
+    VOS_UINT16                         *pusLength
+)
+{
+    VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
+    VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
+
+    TAF_MEM_SET_S(acIpv4StrTmp, sizeof(acIpv4StrTmp), 0x00, sizeof(acIpv4StrTmp));
+    TAF_MEM_SET_S(acIpv6StrTmp, sizeof(acIpv6StrTmp), 0x00, sizeof(acIpv6StrTmp));
+
+    if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpRmtIpv4AddrAndMask)
+    {
+        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astPfInfo[ucTmp2].aucRmtIpv4Address);
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",\"%s", acIpv4StrTmp);
+        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astPfInfo[ucTmp2].aucRmtIpv4Mask);
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ".%s\"", acIpv4StrTmp);
+    }
+    else if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpRmtIpv6AddrAndMask)
+    {
+        (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
+                                               pstCgtft->astPfInfo[ucTmp2].aucRmtIpv6Address,
+                                               pstCgtft->astPfInfo[ucTmp2].aucRmtIpv6Mask);
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",\"%s\"", acIpv6StrTmp);
+    }
+    else
+    {
+        *pusLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusLength, ",");
+    }
+
+    return;
+}
+
+
+VOS_VOID AT_ConvertTftSrcAddrParaToString(
+    TAF_TFT_EXT_STRU                   *pstTftInfo,
+    VOS_UINT16                         *pusStringLength
+)
+{
+    VOS_CHAR                            acIpv4StrTmp[TAF_MAX_IPV4_ADDR_STR_LEN];
+    VOS_CHAR                            acIpv6StrTmp[AT_IPV6_ADDR_MASK_FORMAT_STR_LEN];
+
+    TAF_MEM_SET_S(acIpv4StrTmp,  sizeof(acIpv4StrTmp), 0x00, TAF_MAX_IPV4_ADDR_STR_LEN);
+    TAF_MEM_SET_S(acIpv6StrTmp, sizeof(acIpv6StrTmp), 0x00, AT_IPV6_ADDR_MASK_FORMAT_STR_LEN);
+
+    if(VOS_TRUE == pstTftInfo->bitOpSrcIp)
+    {
+        if ( (TAF_PDP_IPV4 == pstTftInfo->stSourceIpaddr.enPdpType)
+            || (TAF_PDP_PPP == pstTftInfo->stSourceIpaddr.enPdpType) )
+        {
+            AT_Ipv4AddrItoa(acIpv4StrTmp, pstTftInfo->stSourceIpaddr.aucIpv4Addr);
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",\"%s",acIpv4StrTmp);
+
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,".");
+
+            AT_Ipv4AddrItoa(acIpv4StrTmp, pstTftInfo->stSourceIpMask.aucIpv4Addr);
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,"%s\"",acIpv4StrTmp);
+        }
+        else if(TAF_PDP_IPV6 == pstTftInfo->stSourceIpaddr.enPdpType)
+        {
+            (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
+                                                   pstTftInfo->stSourceIpaddr.aucIpv6Addr,
+                                                   pstTftInfo->stSourceIpMask.aucIpv6Addr);
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength, ",\"%s\"", acIpv6StrTmp);
+        }
+        else
+        {
+            *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",");
+        }
+    }
+    else
+    {
+        *pusStringLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + *pusStringLength,",");
+    }
+
+    return;
+}
+
+
+
+
 VOS_VOID AT_RcvTafPsEvt(
     TAF_PS_EVT_STRU                     *pstEvt
 )
@@ -16734,7 +16892,9 @@ VOS_VOID AT_RcvTafPsEvt(
     }
 
     /* 在事件处理表中查找处理函数 */
+    /* Modified by l60609 for DSDA Phase III, 2013-3-5, Begin */
     for ( i = 0; i < AT_ARRAY_SIZE(g_astAtPsEvtFuncTbl); i++ )
+    /* Modified by l60609 for DSDA Phase III, 2013-3-5, End */
     {
         if ( pstEvt->ulEvtId == g_astAtPsEvtFuncTbl[i].ulEvtId )
         {
@@ -16767,55 +16927,15 @@ VOS_VOID AT_RcvTafPsEvt(
 }
 
 
-VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf_App(
-    VOS_UINT8                           ucIndex,
-    VOS_VOID                           *pstEvtInfo
-)
-{
-    TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU  *pstEvent;
-    VOS_UINT8                          *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
-
-    pstEvent  = (TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU*)pstEvtInfo;
-
-    if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-    {
-        /* 非手机形态 */
-        AT_AppPsRspEvtPdpActCnfProc(ucIndex, pstEvent);
-    }
-    else
-    {
-        /* 手机形态 */
-        if (AT_CMD_CGACT_ORG_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
-        {
-            /* AT+CGACT拨号 */
-            AT_STOP_TIMER_CMD_READY(ucIndex);
-            At_FormatResultData(ucIndex, AT_OK);
-        }
-        else
-        {
-            /* AT^NDISDUP拨号 */
-            AT_PS_ProcCallConnectedEvent(pstEvent);
-        }
-    }
-
-    return VOS_OK;
-}
-
-
 VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf(
     VOS_UINT8                           ucIndex,
     VOS_VOID                           *pEvtInfo
 )
 {
-    VOS_UINT32                          ulResult;
     TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU  *pstEvent;
     MODEM_ID_ENUM_UINT16                usModemId;
 
     /* 初始化 */
-    ulResult  = AT_FAILURE;
     pstEvent  = (TAF_PS_CALL_PDP_ACTIVATE_CNF_STRU*)pEvtInfo;
 
     /* 记录<CID> */
@@ -16833,72 +16953,24 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf(
     /* 保存为扩展RABID = modemId + rabId */
     gastAtClientTab[ucIndex].ucExPsRabId  = AT_BUILD_EXRABID(usModemId, pstEvent->ucRabId);
 
-    /* 通知ADS承载激活 */
-    /* AT_NotifyAdsWhenPdpAvtivated(pstEvent); */
-
     /* 清除PS域呼叫错误码 */
     AT_PS_SetPsCallErrCause(ucIndex, TAF_PS_CAUSE_SUCCESS);
 
     AT_PS_AddIpAddrRabIdMap(ucIndex, pstEvent);
 
-    switch ( gastAtClientTab[ucIndex].UserType )
-    {
-        /* NDIS拨号处理 */
-        case AT_NDIS_USER:
-            AT_NdisPsRspPdpActEvtCnfProc(ucIndex, pstEvent);
-            return VOS_OK;
-
-
-        /* E5或闪电卡拨号处理 */
-        case AT_APP_USER:
-            return AT_RcvTafPsCallEvtPdpActivateCnf_App(ucIndex, pEvtInfo);
-
-        /* 处理AP_MODEM形态通过HISC通道下发的拨号 */
-        case AT_HSIC1_USER:
-        case AT_HSIC2_USER:
-        case AT_HSIC3_USER:
-        case AT_HSIC4_USER:
-            if (AT_CMD_CGACT_ORG_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
-            {
-                AT_HsicPsRspEvtPdpActCnfProc(pstEvent);
-                AT_STOP_TIMER_CMD_READY(ucIndex);
-                At_FormatResultData(ucIndex, AT_OK);
-            }
-            else
-            {
-                AT_PS_ProcCallConnectedEvent(pstEvent);
-            }
-
-            return VOS_OK;
-
-        case AT_USBCOM_USER:
-            AT_CtrlConnIndProc(pstEvent, AT_USBCOM_USER);
-            break;
-
-        default:
-            break;
-    }
-
     /* 根据操作类型 */
     switch(gastAtClientTab[ucIndex].CmdCurrentOpt)
     {
         case AT_CMD_CGACT_ORG_SET:
-            ulResult    = AT_OK;
-            AT_STOP_TIMER_CMD_READY(ucIndex);
-            At_FormatResultData(ucIndex,ulResult);
-            break;
-
         case AT_CMD_CGANS_ANS_SET:
-            ulResult    = AT_OK;
             AT_STOP_TIMER_CMD_READY(ucIndex);
-            At_FormatResultData(ucIndex,ulResult);
+            At_FormatResultData(ucIndex,AT_OK);
             break;
 
         case AT_CMD_CGDATA_SET:
-            ulResult    = AT_CONNECT;
             AT_STOP_TIMER_CMD_READY(ucIndex);
             At_SetMode(ucIndex, AT_DATA_MODE, AT_IP_DATA_MODE);
-            At_FormatResultData(ucIndex, ulResult);
+            At_FormatResultData(ucIndex, AT_CONNECT);
             break;
 
         case AT_CMD_CGANS_ANS_EXT_SET:
@@ -16915,6 +16987,13 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf(
             break;
 
         default:
+            /* PS CALL相关处理 */
+            if ( (AT_NDIS_USER == gastAtClientTab[ucIndex].UserType)
+              || (AT_APP_USER == gastAtClientTab[ucIndex].UserType))
+            {
+                /* AT^NDISDUP拨号 */
+                AT_PS_ProcCallConnectedEvent(pstEvent);
+            }
             break;
     }
 
@@ -16928,15 +17007,8 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateRej(
 )
 {
     TAF_PS_CALL_PDP_ACTIVATE_REJ_STRU  *pstEvent;
-    VOS_UINT8                          *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
 
     pstEvent  = (TAF_PS_CALL_PDP_ACTIVATE_REJ_STRU*)pEvtInfo;
-
-    /* gastAtClientTab[ucIndex].ulCause没有使用点，赋值点删除 */
-
 
     /* 记录PS域呼叫错误码 */
     AT_PS_SetPsCallErrCause(ucIndex, pstEvent->enCause);
@@ -16952,51 +17024,23 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateRej(
 
         /* NDIS拨号处理 */
         case AT_NDIS_USER:
-            AT_NdisPsRspPdpActEvtRejProc(ucIndex, pstEvent);
-            break;
-
         /* E5和闪电卡使用同一个端口名 */
         case AT_APP_USER:
-            if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-            {
-                /* 非手机形态 */
-                AT_AppPsRspEvtPdpActRejProc(ucIndex, pstEvent);
-            }
-            else
-            {
-                if (AT_CMD_CGACT_ORG_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
-                {
-                    /* AT+CGACT拨号 */
-                    AT_STOP_TIMER_CMD_READY(ucIndex);
-                    At_FormatResultData(ucIndex, AT_ERROR);
-                }
-                else
-                {
-                    /* AT^NDISDUP拨号 */
-                    AT_PS_ProcCallRejectEvent(pstEvent);
-                }
-            }
-            return VOS_OK;
-
-        case AT_HSIC1_USER:
-        case AT_HSIC2_USER:
-        case AT_HSIC3_USER:
-        case AT_HSIC4_USER:
             if (AT_CMD_CGACT_ORG_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
             {
-                /* 清除CID与数传通道的映射关系 */
-                AT_CleanAtChdataCfg(pstEvent->stCtrl.usClientId, pstEvent->ucCid, AT_PS_MAX_CALL_NUM, TAF_PS_APN_DATA_SYS_CELLULAR);
+                /* AT+CGACT拨号 */
                 AT_STOP_TIMER_CMD_READY(ucIndex);
                 At_FormatResultData(ucIndex, AT_ERROR);
             }
             else
             {
+                /* AT^NDISDUP拨号 */
                 AT_PS_ProcCallRejectEvent(pstEvent);
             }
+
             return VOS_OK;
 
         /* 其他端口全部返回ERROR */
-        case AT_USBCOM_USER:
         default:
             AT_STOP_TIMER_CMD_READY(ucIndex);
             At_FormatResultData(ucIndex, AT_ERROR);
@@ -17126,8 +17170,7 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifyCnf(
     VOS_VOID                           *pEvtInfo
 )
 {
-    TAF_PS_CALL_PDP_MODIFY_CNF_STRU    *pstEvent;
-    AT_MODEM_PS_CTX_STRU               *pstPsModemCtx = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_MODIFY_CNF_STRU    *pstEvent      = VOS_NULL_PTR;
 
     /* 检查当前命令的操作类型 */
     if ( AT_CMD_CGCMOD_SET != gastAtClientTab[ucIndex].CmdCurrentOpt )
@@ -17136,11 +17179,6 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifyCnf(
     }
 
     pstEvent = (TAF_PS_CALL_PDP_MODIFY_CNF_STRU*)pEvtInfo;
-
-    /* 通知ADS承载修改 */
-    /*AT_NotifyAdsWhenPdpModify(pstEvent);*/
-
-    pstPsModemCtx = AT_GetModemPsCtxAddrFromClientId(ucIndex);
 
     switch ( gastAtClientTab[ucIndex].UserType )
     {
@@ -17151,38 +17189,8 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifyCnf(
             break;
 
         case AT_NDIS_USER:
-            /* 向FC指示修改流控点 */
-            AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_NIC_1);
-            break;
-
         case AT_APP_USER:
             AT_PS_ProcCallModifyEvent(ucIndex, pstEvent);
-            break;
-
-        case AT_HSIC1_USER:
-        case AT_HSIC2_USER:
-        case AT_HSIC3_USER:
-        case AT_HSIC4_USER:
-            switch ( pstPsModemCtx->astChannelCfg[pstEvent->ucCid].ulRmNetId)
-            {
-                case UDI_ACM_HSIC_ACM1_ID:
-                case UDI_NCM_HSIC_NCM0_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_1);
-                    break;
-                case UDI_ACM_HSIC_ACM3_ID:
-                case UDI_NCM_HSIC_NCM1_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_2);
-                    break;
-                case UDI_ACM_HSIC_ACM5_ID:
-                case UDI_NCM_HSIC_NCM2_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_3);
-                    break;
-                default:
-                    break;
-            }
             break;
 
         default:
@@ -17219,15 +17227,9 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifiedInd(
     VOS_VOID                           *pEvtInfo
 )
 {
-    TAF_PS_CALL_PDP_MODIFY_IND_STRU    *pstEvent;
-    AT_MODEM_PS_CTX_STRU               *pstPsModemCtx = VOS_NULL_PTR;
+    TAF_PS_CALL_PDP_MODIFY_CNF_STRU    *pstEvent      = VOS_NULL_PTR;
 
     pstEvent = (TAF_PS_CALL_PDP_MODIFY_IND_STRU*)pEvtInfo;
-
-    /* 通知ADS承载修改 */
-    /*AT_NotifyAdsWhenPdpModify(pstEvent);*/
-
-    pstPsModemCtx = AT_GetModemPsCtxAddrFromClientId(ucIndex);
 
     switch ( gastAtClientTab[ucIndex].UserType )
     {
@@ -17238,39 +17240,10 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifiedInd(
             break;
 
         case AT_NDIS_USER:
-            /* 向FC指示修改流控点 */
-            AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_NIC_1);
-            break;
-
         case AT_APP_USER:
             AT_PS_ProcCallModifyEvent(ucIndex, pstEvent);
             break;
 
-        case AT_HSIC1_USER:
-        case AT_HSIC2_USER:
-        case AT_HSIC3_USER:
-        case AT_HSIC4_USER:
-            switch ( pstPsModemCtx->astChannelCfg[pstEvent->ucCid].ulRmNetId)
-            {
-                case UDI_ACM_HSIC_ACM1_ID:
-                case UDI_NCM_HSIC_NCM0_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_1);
-                    break;
-                case UDI_ACM_HSIC_ACM3_ID:
-                case UDI_NCM_HSIC_NCM1_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_2);
-                    break;
-                case UDI_ACM_HSIC_ACM5_ID:
-                case UDI_NCM_HSIC_NCM2_ID:
-                    /* 向FC指示修改流控点 */
-                    AT_NotifyFcWhenPdpModify(pstEvent, FC_ID_DIPC_3);
-                    break;
-                default:
-                    break;
-            }
-            break;
         default:
             break;
     }
@@ -17285,91 +17258,32 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivateCnf(
 )
 {
     TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU *pstEvent;
-    VOS_UINT8                           *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
 
     pstEvent  = (TAF_PS_CALL_PDP_DEACTIVATE_CNF_STRU*)pEvtInfo;
 
-    /* gastAtClientTab[ucIndex].ulCause没有使用点，赋值点删除 */
-
-    /* 通知ADS承载去激活 */
-    /*AT_NotifyAdsWhenPdpDeactivated(pstEvent);*/
-
     AT_PS_DeleteIpAddrRabIdMap(ucIndex, pstEvent);
-
-    /* NDIS拨号处理 */
-    if (AT_NDIS_USER == gastAtClientTab[ucIndex].UserType)
-    {
-        AT_NdisPsRspPdpDeactEvtCnfProc(ucIndex, pstEvent);
-        return VOS_OK;
-    }
-
-    /* E5或闪电卡拨号处理 */
-    if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
-    {
-        if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-        {
-            /* 非手机形态 */
-            AT_AppPsRspEvtPdpDeactCnfProc(ucIndex, pstEvent);
-        }
-        else
-        {
-            /* 手机形态 */
-            if (AT_CMD_CGACT_END_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
-            {
-                /* AT+CGACT拨号 */
-                AT_STOP_TIMER_CMD_READY(ucIndex);
-                At_SetMode(ucIndex, AT_CMD_MODE, AT_NORMAL_MODE);
-                At_FormatResultData(ucIndex, AT_OK);
-            }
-            else
-            {
-                /* AT^NDISDUP拨号 */
-                AT_PS_ProcCallEndedEvent(pstEvent);
-            }
-        }
-
-        return VOS_OK;
-    }
-
-    if (VOS_TRUE == AT_CheckHsicUser(ucIndex))
-    {
-        if (AT_CMD_CGACT_END_SET == gastAtClientTab[ucIndex].CmdCurrentOpt)
-        {
-            AT_HsicPsRspEvtPdpDeactCnfProc(pstEvent);
-            AT_STOP_TIMER_CMD_READY(ucIndex);
-            At_SetMode(ucIndex, AT_CMD_MODE, AT_NORMAL_MODE);
-            At_FormatResultData(ucIndex, AT_OK);
-        }
-        else
-        {
-            AT_PS_ProcCallEndedEvent(pstEvent);
-        }
-
-        return VOS_OK;
-    }
 
     /* 还是应该先判断是否是数传状态，再决定处理 */
     switch(gastAtClientTab[ucIndex].CmdCurrentOpt)
     {
         case AT_CMD_CGACT_END_SET:
-
             AT_STOP_TIMER_CMD_READY(ucIndex);
-
-            /* 返回命令模式 */
             At_SetMode(ucIndex, AT_CMD_MODE, AT_NORMAL_MODE);
-
             At_FormatResultData(ucIndex,AT_OK);
             break;
 
         case AT_CMD_H_PS_SET:
         case AT_CMD_PS_DATA_CALL_END_SET:
-                AT_ModemPsRspPdpDeactEvtCnfProc(ucIndex, pstEvent);
+            AT_ModemPsRspPdpDeactEvtCnfProc(ucIndex, pstEvent);
             break;
 
         default:
+            if ( (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
+              || (AT_NDIS_USER == gastAtClientTab[ucIndex].UserType))
+            {
+                /* AT^NDISDUP拨号 */
+                AT_PS_ProcCallEndedEvent(pstEvent);
+            }
             break;
     }
 
@@ -17383,14 +17297,8 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivatedInd(
 )
 {
     TAF_PS_CALL_PDP_DEACTIVATE_IND_STRU *pstEvent;
-    VOS_UINT8                           *pucSystemAppConfig;
-    VOS_UINT8                           ucCallId;
-
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
 
     pstEvent    = (TAF_PS_CALL_PDP_DEACTIVATE_IND_STRU*)pEvtInfo;
-
-    /* gastAtClientTab[ucIndex].ulCause没有使用点，赋值点删除 */
 
     /* 记录PS域呼叫错误码 */
     AT_PS_SetPsCallErrCause(ucIndex, pstEvent->enCause);
@@ -17407,60 +17315,8 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivatedInd(
             break;
 
         case AT_NDIS_USER:
-            /* 增加拨号状态保护, 防止端口挂死 */
-            if (AT_CMD_NDISCONN_SET == AT_NDIS_GET_CURR_CMD_OPT())
-            {
-                /* 清除命令处理状态 */
-                AT_STOP_TIMER_CMD_READY(AT_NDIS_GET_USR_PORT_INDEX());
-
-                /* 上报断开拨号结果 */
-                At_FormatResultData(AT_NDIS_GET_USR_PORT_INDEX(), AT_OK);
-            }
-
-            AT_NdisPsRspPdpDeactivatedEvtProc(ucIndex, pstEvent);
-            break;
-
         case AT_APP_USER:
-            /* 增加拨号状态保护, 防止端口挂死 */
-            if (AT_CMD_NDISCONN_SET == AT_APP_GET_CURR_CMD_OPT())
-            {
-                /* 清除命令处理状态 */
-                AT_STOP_TIMER_CMD_READY(AT_APP_GET_USR_PORT_INDEX());
-
-                /* 上报断开拨号结果 */
-                At_FormatResultData(AT_APP_GET_USR_PORT_INDEX(), AT_OK);
-            }
-
-            if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-            {
-                AT_AppPsRspEvtPdpDeactivatedProc(ucIndex, pstEvent);
-            }
-            else
-            {
-                ucCallId = AT_PS_TransCidToCallId(ucIndex, pstEvent->ucCid);
-                if (AT_PS_IsCallIdValid(ucIndex, ucCallId))
-                {
-                    /* AT^NDISDUP拨号，网侧发起PDP去激活 */
-                    AT_PS_ProcCallEndedEvent(pstEvent);
-                }
-            }
-            break;
-
-        case AT_HSIC1_USER:
-        case AT_HSIC2_USER:
-        case AT_HSIC3_USER:
-        case AT_HSIC4_USER:
-            /* AT+CGACT 拨号调用AT_HsicPsRspEvtPdpDeactivatedProc
-               AT^NDISDUP 拨号调用 AT_PS_ProcCallEndedEvent*/
-            ucCallId = AT_PS_TransCidToCallId(ucIndex, pstEvent->ucCid);
-            if (!AT_PS_IsCallIdValid(ucIndex, ucCallId))
-            {
-                AT_HsicPsRspEvtPdpDeactivatedProc(ucIndex, pstEvent);
-            }
-            else
-            {
-                AT_PS_ProcCallEndedEvent(pstEvent);
-            }
+            AT_PS_ProcCallEndedEvent(pstEvent);
             break;
 
         default:
@@ -17469,102 +17325,6 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivatedInd(
 
     return VOS_OK;
 }
-
-
-VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf_Ndis(
-    VOS_UINT8                           ucIndex,
-    TAF_PS_CALL_ORIG_CNF_STRU          *pstCallOrigCnf
-)
-{
-    VOS_UINT32                          ulResult;
-
-    ulResult = AT_FAILURE;
-
-    if (TAF_PS_CAUSE_SUCCESS != pstCallOrigCnf->enCause)
-    {
-        /* 清除该PDP类型的状态 */
-        AT_NdisSetState(g_enAtNdisActPdpType, AT_PDP_STATE_IDLE);
-
-        /* 清除NDIS拨号参数 */
-        TAF_MEM_SET_S(&gstAtNdisAddParam, sizeof(gstAtNdisAddParam), 0x00, sizeof(AT_DIAL_PARAM_STRU));
-
-        if (TAF_PS_CAUSE_PDP_ACTIVATE_LIMIT == pstCallOrigCnf->enCause)
-        {
-            ulResult = AT_CME_PDP_ACT_LIMIT;
-        }
-        else
-        {
-            ulResult = AT_ERROR;
-        }
-
-    }
-    else
-    {
-        ulResult = AT_OK;
-    }
-
-    /* 清除命令处理状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    At_FormatResultData(ucIndex, ulResult);
-
-    return VOS_OK;
-}
-
-
-VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf_App(
-    TAF_PS_CALL_ORIG_CNF_STRU          *pstCallOrigCnf
-)
-{
-    VOS_UINT32                          ulResult;
-    VOS_UINT8                          *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
-
-    if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-    {
-        if (AT_CMD_NDISCONN_SET == AT_APP_GET_CURR_CMD_OPT())
-        {
-            ulResult = AT_FAILURE;
-
-            if (TAF_PS_CAUSE_SUCCESS != pstCallOrigCnf->enCause)
-            {
-                /* 清除该PDP类型的状态 */
-                AT_AppSetPdpState(AT_APP_GetActPdpType(), AT_PDP_STATE_IDLE);
-
-                /* 清除APP拨号参数 */
-                TAF_MEM_SET_S(AT_APP_GetDailParaAddr(), sizeof(AT_DIAL_PARAM_STRU), 0x00, sizeof(AT_DIAL_PARAM_STRU));
-
-                if (TAF_PS_CAUSE_PDP_ACTIVATE_LIMIT == pstCallOrigCnf->enCause)
-                {
-                    ulResult = AT_CME_PDP_ACT_LIMIT;
-                }
-                else
-                {
-                    ulResult = AT_ERROR;
-                }
-            }
-            else
-            {
-                ulResult = AT_OK;
-            }
-
-            /* 清除命令处理状态 */
-            AT_STOP_TIMER_CMD_READY(AT_APP_GET_USR_PORT_INDEX());
-
-            At_FormatResultData(AT_APP_GET_USR_PORT_INDEX(), ulResult);
-        }
-
-        return VOS_OK;
-    }
-    else
-    {
-        AT_PS_ProcCallOrigCnfEvent(pstCallOrigCnf);
-        return VOS_OK;
-    }
-}
-
 
 
 VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf(
@@ -17582,69 +17342,13 @@ VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf(
         AT_PS_SetPsCallErrCause(ucIndex, pstCallOrigCnf->enCause);
     }
 
-    if ( (VOS_TRUE == AT_CheckNdisUser(ucIndex))
-      && (AT_CMD_NDISCONN_SET == AT_NDIS_GET_CURR_CMD_OPT()) )
-    {
-        return AT_RcvTafPsCallEvtCallOrigCnf_Ndis(AT_NDIS_GET_USR_PORT_INDEX(), pstCallOrigCnf);
-    }
-
-    if (VOS_TRUE == AT_CheckAppUser(ucIndex))
-    {
-        return AT_RcvTafPsCallEvtCallOrigCnf_App(pstCallOrigCnf);
-    }
-
-    if (VOS_TRUE == AT_CheckHsicUser(ucIndex))
+    if ( (VOS_TRUE == AT_CheckAppUser(ucIndex))
+      || (VOS_TRUE == AT_CheckNdisUser(ucIndex)))
     {
         AT_PS_ProcCallOrigCnfEvent(pstCallOrigCnf);
-        return VOS_OK;
     }
 
     return VOS_OK;
-}
-
-
-VOS_UINT32 AT_RcvTafPsCallEvtCallEndCnf_App(
-    VOS_UINT8                           ucIndex,
-    VOS_VOID                           *pstEvtInfo
-)
-{
-    VOS_UINT32                          ulResult;
-    TAF_PS_CALL_END_CNF_STRU           *pstCallEndCnf;
-    VOS_UINT8                          *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
-
-    ulResult        = AT_FAILURE;
-    pstCallEndCnf   = (TAF_PS_CALL_END_CNF_STRU*)pstEvtInfo;
-
-    if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-    {
-        if (AT_CMD_NDISCONN_SET == AT_APP_GET_CURR_CMD_OPT())
-        {
-            if ( TAF_ERR_NO_ERROR != pstCallEndCnf->enCause)
-            {
-                ulResult = AT_ERROR;
-            }
-            else
-            {
-                ulResult = AT_OK;
-            }
-
-            /* 清除命令处理状态 */
-            AT_STOP_TIMER_CMD_READY(AT_APP_GET_USR_PORT_INDEX());
-
-            /* 上报断开拨号结果 */
-            At_FormatResultData(AT_APP_GET_USR_PORT_INDEX(), ulResult);
-        }
-
-        return VOS_OK;
-    }
-    else
-    {
-        AT_PS_ProcCallEndCnfEvent(pstCallEndCnf);
-        return VOS_OK;
-    }
 }
 
 
@@ -17653,11 +17357,9 @@ VOS_UINT32 AT_RcvTafPsCallEvtCallEndCnf(
     VOS_VOID                           *pEvtInfo
 )
 {
-    VOS_UINT32                          ulResult;
     TAF_PS_CALL_END_CNF_STRU           *pstCallEndCnf;
 
     /* 初始化 */
-    ulResult        = AT_FAILURE;
     pstCallEndCnf   = (TAF_PS_CALL_END_CNF_STRU*)pEvtInfo;
 
     if ( (AT_MODEM_USER == gastAtClientTab[ucIndex].UserType)
@@ -17667,36 +17369,10 @@ VOS_UINT32 AT_RcvTafPsCallEvtCallEndCnf(
         return VOS_OK;
     }
 
-    if ( (VOS_TRUE == AT_CheckNdisUser(ucIndex))
-      && (AT_CMD_NDISCONN_SET == AT_NDIS_GET_CURR_CMD_OPT()) )
-    {
-        if ( TAF_ERR_NO_ERROR != pstCallEndCnf->enCause)
-        {
-            ulResult = AT_ERROR;
-        }
-        else
-        {
-            ulResult = AT_OK;
-        }
-
-        /* 清除命令处理状态 */
-        AT_STOP_TIMER_CMD_READY(AT_NDIS_GET_USR_PORT_INDEX());
-
-        /* 上报断开拨号结果 */
-        At_FormatResultData(AT_NDIS_GET_USR_PORT_INDEX(), ulResult);
-
-        return VOS_OK;
-    }
-
-    if (VOS_TRUE == AT_CheckAppUser(ucIndex))
-    {
-        return AT_RcvTafPsCallEvtCallEndCnf_App(ucIndex, pEvtInfo);
-    }
-
-    if (VOS_TRUE == AT_CheckHsicUser(ucIndex))
+    if ( (VOS_TRUE == AT_CheckAppUser(ucIndex))
+      || (VOS_TRUE == AT_CheckNdisUser(ucIndex)))
     {
         AT_PS_ProcCallEndCnfEvent(pstCallEndCnf);
-        return VOS_OK;
     }
 
     return VOS_OK;
@@ -17827,6 +17503,7 @@ VOS_UINT32 AT_RcvTafPsCallEvtCallHangupCnf(
 
     return VOS_OK;
 }
+
 
 
 VOS_UINT32 AT_RcvTafPsEvtSetPrimPdpContextInfoCnf(
@@ -18152,61 +17829,25 @@ VOS_UINT32 AT_RcvTafPsEvtGetTftInfoCnf(
             /* <evaluation precedence index> */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",%d", pstCgtft->astPfInfo[ucTmp2].ucPrecedence);
             /* <source address and subnet mask> */
-            if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpRmtIpv4AddrAndMask)
-            {
-                AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astPfInfo[ucTmp2].aucRmtIpv4Address);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s", acIpv4StrTmp);
-                AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astPfInfo[ucTmp2].aucRmtIpv4Mask);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ".%s\"", acIpv4StrTmp);
-            }
-            else if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpRmtIpv6AddrAndMask)
-            {
-                (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                       pstCgtft->astPfInfo[ucTmp2].aucRmtIpv6Address,
-                                                       pstCgtft->astPfInfo[ucTmp2].aucRmtIpv6Mask);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
-            }
+            AT_ConvertIpAddrAndMaskParaToString(pstCgtft, ucTmp2, &usLength);
+
             /* <protocol number (ipv4) / next header (ipv6)> */
-            if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpProtocolId)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",%d", pstCgtft->astPfInfo[ucTmp2].ucProtocolId);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
-            }
+            AT_ConvertULParaToString(pstCgtft->astPfInfo[ucTmp2].bitOpProtocolId, pstCgtft->astPfInfo[ucTmp2].ucProtocolId, &usLength);
+
             /* <destination port range> */
-            if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpSingleLocalPort)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",%d", pstCgtft->astPfInfo[ucTmp2].usLcPortLowLimit);
-            }
-            else if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpLocalPortRange)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%d", pstCgtft->astPfInfo[ucTmp2].usLcPortLowLimit);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ".%d\"", pstCgtft->astPfInfo[ucTmp2].usLcPortHighLimit);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
-            }
+            AT_ConvertRangeParaToString(pstCgtft->astPfInfo[ucTmp2].bitOpSingleLocalPort,
+                                            pstCgtft->astPfInfo[ucTmp2].bitOpLocalPortRange,
+                                            pstCgtft->astPfInfo[ucTmp2].usLcPortLowLimit,
+                                            pstCgtft->astPfInfo[ucTmp2].usLcPortHighLimit,
+                                            &usLength);
+
             /* <source port range> */
-            if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpSingleRemotePort)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",%d", pstCgtft->astPfInfo[ucTmp2].usRmtPortLowLimit);
-            }
-            else if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpRemotePortRange)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%d", pstCgtft->astPfInfo[ucTmp2].usRmtPortLowLimit);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ".%d\"", pstCgtft->astPfInfo[ucTmp2].usRmtPortHighLimit);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
-            }
+            AT_ConvertRangeParaToString(pstCgtft->astPfInfo[ucTmp2].bitOpSingleRemotePort,
+                                        pstCgtft->astPfInfo[ucTmp2].bitOpRemotePortRange,
+                                        pstCgtft->astPfInfo[ucTmp2].usRmtPortLowLimit,
+                                        pstCgtft->astPfInfo[ucTmp2].usRmtPortHighLimit,
+                                        &usLength);
+
             /* <ipsec security parameter index (spi)> */
             if (1 == pstCgtft->astPfInfo[ucTmp2].bitOpSecuParaIndex)
             {
@@ -18216,16 +17857,14 @@ VOS_UINT32 AT_RcvTafPsEvtGetTftInfoCnf(
             {
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
             }
+
             /* <type of service (tos) (ipv4) and mask / traffic class (ipv6) and mask> */
-            if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpTypeOfService)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%d", pstCgtft->astPfInfo[ucTmp2].ucTypeOfService);
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ".%d\"", pstCgtft->astPfInfo[ucTmp2].ucTypeOfServiceMask);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
-            }
+            AT_ConvertRangeParaToString(VOS_FALSE,
+                                            pstCgtft->astPfInfo[ucTmp2].bitOpTypeOfService,
+                                            pstCgtft->astPfInfo[ucTmp2].ucTypeOfService,
+                                            pstCgtft->astPfInfo[ucTmp2].ucTypeOfServiceMask,
+                                            &usLength);
+
             /* <flow label (ipv6)> */
             if (VOS_TRUE == pstCgtft->astPfInfo[ucTmp2].bitOpFlowLabelType)
             {
@@ -18261,7 +17900,9 @@ VOS_UINT32 AT_RcvTafPsEvtGetTftInfoCnf(
                 {
                     usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",");
                 }
+
             }
+
         }
     }
 
@@ -19123,10 +18764,13 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicPrimPdpContextInfoCnf(
 
             /* +CGCONTRDP:  */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s: ",g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+
             /* <p_cid> */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%d",stCgdcont.ucPrimayCid);
+
             /* <bearer_id> */
             usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",stCgdcont.ucBearerId);
+
             /* <APN> */
             if(1 == stCgdcont.bitOpApn)
             {
@@ -19140,171 +18784,26 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicPrimPdpContextInfoCnf(
             }
 
             /* <ip_addr> */
-            if((VOS_TRUE == stCgdcont.bitOpIpAddr) && (VOS_TRUE == stCgdcont.bitOpSubMask))
-            {
-                if (TAF_PDP_IPV4 == stCgdcont.stPdpAddr.enPdpType)
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stPdpAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s",acIpv4StrTmp);
-
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stSubnetMask.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,".%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stPdpAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stPdpAddr.aucIpv6Addr,
-                                                           stCgdcont.stSubnetMask.aucIpv6Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            AT_ConvertPdpContextIpAddrParaToString(&stCgdcont, &usLength);
 
             /* <gw_addr> */
-            if(VOS_TRUE == stCgdcont.bitOpGwAddr)
-            {
-                if ( (TAF_PDP_IPV4 == stCgdcont.stGWAddr.enPdpType)
-                  || (TAF_PDP_PPP == stCgdcont.stGWAddr.enPdpType) )
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stGWAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stGWAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stGWAddr.aucIpv6Addr,
-                                                           VOS_NULL_PTR);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            AT_ConvertPdpContextAddrParaToString(stCgdcont.bitOpGwAddr, stCgdcont.stGWAddr.enPdpType, stCgdcont.stGWAddr.aucIpv4Addr, stCgdcont.stGWAddr.aucIpv6Addr, &usLength);
 
-            /* <NDS_prim_addr> */
-            if(VOS_TRUE == stCgdcont.bitOpDNSPrimAddr)
-            {
-                if ( (TAF_PDP_IPV4 == stCgdcont.stDNSPrimAddr.enPdpType)
-                  || (TAF_PDP_PPP == stCgdcont.stDNSPrimAddr.enPdpType) )
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stDNSPrimAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stDNSPrimAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stDNSPrimAddr.aucIpv6Addr,
-                                                           VOS_NULL_PTR);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            /* <DNS_prim_addr> */
+            AT_ConvertPdpContextAddrParaToString(stCgdcont.bitOpDNSPrimAddr, stCgdcont.stDNSPrimAddr.enPdpType, stCgdcont.stDNSPrimAddr.aucIpv4Addr, stCgdcont.stDNSPrimAddr.aucIpv6Addr, &usLength);
 
             /* <DNS_sec_addr> */
-            if(VOS_TRUE == stCgdcont.bitOpDNSSecAddr)
-            {
-                if ( (TAF_PDP_IPV4 == stCgdcont.stDNSSecAddr.enPdpType)
-                  || (TAF_PDP_PPP == stCgdcont.stDNSSecAddr.enPdpType) )
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stDNSSecAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stDNSSecAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stDNSSecAddr.aucIpv6Addr,
-                                                           VOS_NULL_PTR);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            AT_ConvertPdpContextAddrParaToString(stCgdcont.bitOpDNSSecAddr, stCgdcont.stDNSSecAddr.enPdpType, stCgdcont.stDNSSecAddr.aucIpv4Addr, stCgdcont.stDNSSecAddr.aucIpv6Addr, &usLength);
 
             /* <P-CSCF_prim_addr> */
-            if(VOS_TRUE == stCgdcont.bitOpPCSCFPrimAddr)
-            {
-                if ( (TAF_PDP_IPV4 == stCgdcont.stPCSCFPrimAddr.enPdpType)
-                  || (TAF_PDP_PPP == stCgdcont.stPCSCFPrimAddr.enPdpType) )
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stPCSCFPrimAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stPCSCFPrimAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stPCSCFPrimAddr.aucIpv6Addr,
-                                                           VOS_NULL_PTR);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            AT_ConvertPdpContextAddrParaToString(stCgdcont.bitOpPCSCFPrimAddr, stCgdcont.stPCSCFPrimAddr.enPdpType, stCgdcont.stPCSCFPrimAddr.aucIpv4Addr, stCgdcont.stPCSCFPrimAddr.aucIpv6Addr, &usLength);
 
             /* <P-CSCF_sec_addr> */
-            if(VOS_TRUE == stCgdcont.bitOpPCSCFSecAddr)
-            {
-                if ( (TAF_PDP_IPV4 == stCgdcont.stPCSCFSecAddr.enPdpType)
-                  || (TAF_PDP_PPP == stCgdcont.stPCSCFSecAddr.enPdpType))
-                {
-                    AT_Ipv4AddrItoa(acIpv4StrTmp, stCgdcont.stPCSCFSecAddr.aucIpv4Addr);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"",acIpv4StrTmp);
-                }
-                else if(TAF_PDP_IPV6 == stCgdcont.stPCSCFSecAddr.enPdpType)
-                {
-                    (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                           stCgdcont.stPCSCFSecAddr.aucIpv6Addr,
-                                                           VOS_NULL_PTR);
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            AT_ConvertPdpContextAddrParaToString(stCgdcont.bitOpPCSCFSecAddr, stCgdcont.stPCSCFSecAddr.enPdpType, stCgdcont.stPCSCFSecAddr.aucIpv4Addr, stCgdcont.stPCSCFSecAddr.aucIpv6Addr, &usLength);
 
-            if (VOS_TRUE == stCgdcont.bitOpImCnSignalFlg)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",stCgdcont.enImCnSignalFlg);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-            }
+            /* <im-cn-signal-flag> */
+            AT_ConvertULParaToString(stCgdcont.bitOpImCnSignalFlg, stCgdcont.enImCnSignalFlg, &usLength);
+
         }
         ulResult                = AT_OK;
         gstAtSendData.usBufLen  = usLength;
@@ -19439,135 +18938,51 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                 /* <cid> */
                 usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%d",pstCgtft->ulCid);
                 /* <packet filter identifier> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpPktFilterId)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucPacketFilterId);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToString(pstCgtft->astTftInfo[ucIndex2].bitOpPktFilterId, pstCgtft->astTftInfo[ucIndex2].ucPacketFilterId, &usLength);
 
                 /* <evaluation precedence index> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpPrecedence)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucPrecedence);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToString(pstCgtft->astTftInfo[ucIndex2].bitOpPrecedence, pstCgtft->astTftInfo[ucIndex2].ucPrecedence, &usLength);
 
                 /* <source address and subnet> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSrcIp)
-                {
-                    if ( (TAF_PDP_IPV4 == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType)
-                      || (TAF_PDP_PPP == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType) )
-                    {
-                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.aucIpv4Addr);
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s",acIpv4StrTmp);
-
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,".");
-
-                        AT_Ipv4AddrItoa(acIpv4StrTmp, pstCgtft->astTftInfo[ucIndex2].stSourceIpMask.aucIpv4Addr);
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s\"",acIpv4StrTmp);
-                    }
-                    else if(TAF_PDP_IPV6 == pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.enPdpType)
-                    {
-                        (VOS_VOID)AT_Ipv6AddrMask2FormatString(acIpv6StrTmp,
-                                                               pstCgtft->astTftInfo[ucIndex2].stSourceIpaddr.aucIpv6Addr,
-                                                               pstCgtft->astTftInfo[ucIndex2].stSourceIpMask.aucIpv6Addr);
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN, (VOS_CHAR*)pgucAtSndCodeAddr, (VOS_CHAR*)pgucAtSndCodeAddr + usLength, ",\"%s\"", acIpv6StrTmp);
-                    }
-                    else
-                    {
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                    }
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertTftSrcAddrParaToString(&pstCgtft->astTftInfo[ucIndex2], &usLength);
 
                 /* <protocal number(ipv4)/next header ipv6> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpProtocolId)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucProtocolId);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToString(pstCgtft->astTftInfo[ucIndex2].bitOpProtocolId, pstCgtft->astTftInfo[ucIndex2].ucProtocolId, &usLength);
+
                 /* <destination port range> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpDestPortRange)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].usLowDestPort,pstCgtft->astTftInfo[ucIndex2].usHighDestPort);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertRangeParaToString(VOS_FALSE,
+                                            pstCgtft->astTftInfo[ucIndex2].bitOpDestPortRange,
+                                            pstCgtft->astTftInfo[ucIndex2].usLowDestPort,
+                                            pstCgtft->astTftInfo[ucIndex2].usHighDestPort,
+                                            &usLength);
+
                 /* <source port range> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSrcPortRange)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].usLowSourcePort,pstCgtft->astTftInfo[ucIndex2].usHighSourcePort);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertRangeParaToString(VOS_FALSE,
+                                            pstCgtft->astTftInfo[ucIndex2].bitOpSrcPortRange,
+                                            pstCgtft->astTftInfo[ucIndex2].usLowSourcePort,
+                                            pstCgtft->astTftInfo[ucIndex2].usHighSourcePort,
+                                            &usLength);
 
                 /* <ipsec security parameter index(spi)> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpSpi)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ucIndex2].ulSecuParaIndex);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToXString(pstCgtft->astTftInfo[ucIndex2].bitOpSpi, pstCgtft->astTftInfo[ucIndex2].ulSecuParaIndex, &usLength);
+
                 /* <type os service(tos) (ipv4) and mask> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpTosMask)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%d.%d\"",pstCgtft->astTftInfo[ucIndex2].ucTypeOfService,pstCgtft->astTftInfo[ucIndex2].ucTypeOfServiceMask);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertRangeParaToString(VOS_FALSE,
+                                            pstCgtft->astTftInfo[ucIndex2].bitOpTosMask,
+                                            pstCgtft->astTftInfo[ucIndex2].ucTypeOfService,
+                                            pstCgtft->astTftInfo[ucIndex2].ucTypeOfServiceMask,
+                                            &usLength);
+
                 /* <traffic class (ipv6) and mask> */
 
                 /* <flow lable (ipv6)> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpFlowLable)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%X",pstCgtft->astTftInfo[ucIndex2].ulFlowLable);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToXString(pstCgtft->astTftInfo[ucIndex2].bitOpFlowLable, pstCgtft->astTftInfo[ucIndex2].ulFlowLable, &usLength);
+
                 /* <direction> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpDirection)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucDirection);
-                }
-                else
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                }
+                AT_ConvertULParaToString(pstCgtft->astTftInfo[ucIndex2].bitOpDirection, pstCgtft->astTftInfo[ucIndex2].ucDirection, &usLength);
 
                 /* <NW packet filter Identifier> */
-                if(1 == pstCgtft->astTftInfo[ucIndex2].bitOpNwPktFilterId)
-                {
-                    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",%d",pstCgtft->astTftInfo[ucIndex2].ucNwPktFilterId);
-                }
-                else
-                {
-                    if (AT_IsSupportReleaseRst(AT_ACCESS_STRATUM_REL11))
-                    {
-                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
-                    }
-                }
+                AT_ConvertULParaToString(pstCgtft->astTftInfo[ucIndex2].bitOpNwPktFilterId, pstCgtft->astTftInfo[ucIndex2].ucNwPktFilterId, &usLength);
 
                 if (AT_IsSupportReleaseRst(AT_ACCESS_STRATUM_REL11))
                 {
@@ -19592,9 +19007,11 @@ VOS_UINT32 AT_RcvTafPsEvtGetDynamicTftInfoCnf(
                     }
                     else
                     {
-                        /* empty proc */
+                        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,(VOS_CHAR*)pgucAtSndCodeAddr,(VOS_CHAR*)pgucAtSndCodeAddr + usLength,",");
                     }
+
                 }
+
             }
 
             /* <3,0,0,"192.168.0.2.255.255.255.0">,0,"0.65535","0.65535",0,"0.0",0,0 */
@@ -20660,62 +20077,77 @@ VOS_UINT32 AT_RcvTafPsEvtReportRaInfo(
     VOS_VOID                           *pEvtInfo
 )
 {
-    TAF_PS_IPV6_INFO_IND_STRU *pstRaInfoNotifyInd;
-    AT_PDP_ENTITY_STRU                  *pstPdpEntity;
-    MODEM_ID_ENUM_UINT16                 enModemId;
-    VOS_UINT32                           ulRet;
-    VOS_UINT8                           *pucSystemAppConfig;
-
-    /* 初始化 */
-    pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
+    TAF_PS_IPV6_INFO_IND_STRU          *pstRaInfoNotifyInd  = VOS_NULL_PTR;
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity       = VOS_NULL_PTR;
+    AT_IPV6_RA_INFO_STRU               *pstIpv6RaInfo       = VOS_NULL_PTR;
+    MODEM_ID_ENUM_UINT16                enModemId;
+    VOS_UINT8                           ucCallId;
 
     pstRaInfoNotifyInd = (TAF_PS_IPV6_INFO_IND_STRU *)pEvtInfo;
 
-    enModemId          = MODEM_ID_0;
-
-    ulRet = AT_GetModemIdFromClient(ucIndex, &enModemId);
-
-    if (VOS_OK != ulRet)
+    enModemId = MODEM_ID_0;
+    if (VOS_OK != AT_GetModemIdFromClient(pstRaInfoNotifyInd->stCtrl.usClientId, &enModemId))
     {
-        AT_ERR_LOG("AT_RcvTafPsEvtReportRaInfo:Get Modem Id fail");
-        return VOS_ERR;
+        AT_ERR_LOG("AT_RcvTafPsEvtReportRaInfo: get modem id failed!");
+        return VOS_OK;
     }
 
-    if (AT_NDIS_USER == gastAtClientTab[ucIndex].UserType)
+    ucCallId = AT_PS_TransCidToCallId(pstRaInfoNotifyInd->stCtrl.usClientId, pstRaInfoNotifyInd->ucCid);
+    if (VOS_FALSE == AT_PS_IsCallIdValid(pstRaInfoNotifyInd->stCtrl.usClientId, ucCallId))
     {
-        pstPdpEntity = AT_NDIS_GetPdpEntInfoAddr();
+        AT_ERR_LOG("AT_RcvTafPsEvtReportRaInfo: CallId is invalid!");
+        return VOS_OK;
+    }
 
-        /* 检查IPv6承载激活状态, 激活场景下才配置NDIS */
-        if ( (AT_PDP_STATE_ACTED == pstPdpEntity->enIpv6State)
-          || (AT_PDP_STATE_ACTED == pstPdpEntity->enIpv4v6State) )
+    pstCallEntity = AT_PS_GetCallEntity(pstRaInfoNotifyInd->stCtrl.usClientId, ucCallId);
+
+    if (AT_PDP_STATE_ACTED != pstCallEntity->stIpv6Info.enIpv6State)
+    {
+        AT_ERR_LOG("AT_RcvTafPsEvtReportRaInfo: enIpv6State is not acted!");
+        return VOS_OK;
+    }
+
+    pstIpv6RaInfo = &pstCallEntity->stIpv6Info.stIpv6RaInfo;
+
+    if (TAF_PS_IPV6_INFO_RESULT_SUCCESS != pstRaInfoNotifyInd->enIpv6Rst)
+    {
+        AT_PS_ProcIpv6RaFail(pstRaInfoNotifyInd, ucCallId);
+        TAF_MEM_SET_S(pstIpv6RaInfo, sizeof(AT_IPV6_RA_INFO_STRU), 0x00, sizeof(AT_IPV6_RA_INFO_STRU));
+        return VOS_OK;
+    }
+
+    if (VOS_TRUE == AT_PS_GetPsCallHandOverFlg(pstCallEntity))
+    {
+        AT_PS_ProcHoIpv6RaInfo(pstRaInfoNotifyInd, pstCallEntity, ucCallId);
+        return VOS_OK;
+    }
+
+    if (0 == pstRaInfoNotifyInd->stIpv6RaInfo.ulPrefixNum)
+    {
+        AT_NORM_LOG("AT_PS_ProcIpv6RaInfo: No IPv6 prefix address in RA.");
+        return VOS_OK;
+    }
+
+    /* 获取到IPv6地址前缀后, 上报已连接结果^DCONN */
+    if (VOS_FALSE == pstIpv6RaInfo->bitOpPrefixAddr)
+    {
+        /* IPv6拨号成功 */
+        AT_PS_SndCallConnectedResult(pstRaInfoNotifyInd->stCtrl.usClientId, ucCallId, TAF_PDP_IPV6);
+
+        if ( (AT_PDP_STATE_IDLE == pstCallEntity->stIpv4Info.enIpv4State)
+          || (AT_PDP_STATE_ACTED == pstCallEntity->stIpv4Info.enIpv4State))
         {
-            /* 向NDIS模块发送IPV6 PDN信息 */
-            AT_SendNdisIPv6PdnInfoCfgReq(enModemId, pstRaInfoNotifyInd);
+            /* 注册数据系统域改变通知 */
+            AT_PS_RegDataSysChgNtf(pstCallEntity);
         }
     }
 
-    if (AT_APP_USER == gastAtClientTab[ucIndex].UserType)
-    {
-        if (SYSTEM_APP_WEBUI == *pucSystemAppConfig)
-        {
-            pstPdpEntity = AT_APP_GetPdpEntInfoAddr();
+    AT_PS_FillIpv6RaInfo(pstRaInfoNotifyInd, pstCallEntity);
 
-            /* 检查IPv6承载激活状态, 激活场景下才处理RA报文信息 */
-            if ( (AT_PDP_STATE_ACTED == pstPdpEntity->enIpv6State)
-              || (AT_PDP_STATE_ACTED == pstPdpEntity->enIpv4v6State) )
-            {
-                AT_AppProcIpv6RaInfo(pstRaInfoNotifyInd);
-            }
-        }
-        else
-        {
-            AT_PS_ProcIpv6RaInfo(pstRaInfoNotifyInd);
-        }
-    }
-
-    if (VOS_TRUE == AT_CheckHsicUser(ucIndex))
+    if (AT_PS_WAN_TYPE_NDIS == pstCallEntity->enPsCallType)
     {
-        AT_PS_ProcIpv6RaInfo(pstRaInfoNotifyInd);
+        /* 向NDIS模块发送IPV6 PDN信息 */
+        AT_PS_SendNdisIPv6PdnInfoCfgReq(enModemId, pstCallEntity, pstRaInfoNotifyInd);
     }
 
     return VOS_OK;
@@ -21028,6 +20460,72 @@ VOS_UINT32 atReadCemodeCnfProc(VOS_UINT8   ucIndex,VOS_VOID    *pEvtInfo)
 
 
 
+/*****************************************************************************
+ 函 数 名  : AT_RcvTafGetLteAttachInfoCnf
+ 功能描述  : ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_CNF事件处理函数
+ 输入参数  : VOS_UINT8                  ucIndex,
+             VOS_VOID                  *pEvtInfo       - 事件内容, MN_PS_EVT_STRU去除EvtId
+ 输出参数  : 无
+ 返 回 值  : VOS_UINT32
+
+*****************************************************************************/
+VOS_UINT32 AT_RcvTafGetLteAttachInfoCnf(
+    VOS_UINT8                           ucIndex,
+    VOS_VOID                           *pEvtInfo
+)
+{
+    TAF_PS_GET_LTE_ATTACH_INFO_CNF_STRU          *pstGetLteAttachInfoCnf      = VOS_NULL_PTR;
+    VOS_UINT16                                    usLength                    = 0;
+    VOS_UINT32                                    ulResult                    = AT_ERROR;
+    VOS_UINT8                                     aucStr[TAF_MAX_APN_LEN + 1] = {0};
+
+    pstGetLteAttachInfoCnf            = (TAF_PS_GET_LTE_ATTACH_INFO_CNF_STRU *)pEvtInfo;
+
+    /* 检查当前命令的操作类型 */
+    if ( AT_CMD_LTEATTACHINFO_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt )
+    {
+        AT_WARN_LOG("AT_RcvTafGetLteAttachInfoCnf : Current Option is not AT_CMD_LTEATTACHINFO_QRY.");
+        return VOS_ERR;
+    }
+
+    /*如果获取成功则填充信息*/
+    if (TAF_PS_CAUSE_SUCCESS == pstGetLteAttachInfoCnf->enCause)
+    {
+        /* ^LTEATTACHINFO:  */
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%s: ",
+                                    g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+
+        /* <PDP_type> */
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr + usLength,"%d",
+                                    pstGetLteAttachInfoCnf->stLteAttQueryInfo.enPdpType);
+
+        /* <APN> */
+        pstGetLteAttachInfoCnf->stLteAttQueryInfo.stApn.ucLength = TAF_MIN(pstGetLteAttachInfoCnf->stLteAttQueryInfo.stApn.ucLength,
+                                                                            sizeof(pstGetLteAttachInfoCnf->stLteAttQueryInfo.stApn.aucValue));
+
+        TAF_MEM_CPY_S(aucStr, sizeof(aucStr),
+            pstGetLteAttachInfoCnf->stLteAttQueryInfo.stApn.aucValue,
+            pstGetLteAttachInfoCnf->stLteAttQueryInfo.stApn.ucLength);
+
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr,
+                                    (VOS_CHAR*)pgucAtSndCodeAddr + usLength,",\"%s\"", aucStr);
+
+        ulResult                    = AT_OK;
+    }
+
+    gstAtSendData.usBufLen          = usLength;
+
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+    At_FormatResultData(ucIndex,ulResult);
+
+    return VOS_OK;
+}
+
 
 
 VOS_VOID AT_ConvertNasMncToBcdType(
@@ -21213,6 +20711,238 @@ VOS_VOID AT_RcvMmaNsmStatusInd(
 }
 
 
+LOCAL VOS_VOID AT_RcvMmaGsmCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+)
+{
+    VOS_UINT16                          usLength;
+    usLength = 0;
+
+    if (SYSTEM_APP_ANDROID != ucSystemAppConfig)
+    {
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                          (VOS_CHAR *)pgucAtSndCodeAddr,
+                                          (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                          "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                          gaucAtCrLf,
+                                          gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                          pstRssiInfoInd->stRssiInfo.aRssi[0].u.stGCellSignInfo.sRssiValue,
+                                          0,
+                                          255,
+                                          0,
+                                          0,
+                                          0,
+                                          0,0x7f7f,0x7f7f,
+                                          0,99,99,99,99,99,99,99,99,
+                                          0,
+                                          0,
+                                          0,
+                                          gaucAtCrLf);
+    }
+    else
+    {
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                          (VOS_CHAR *)pgucAtSndCodeAddr,
+                                          (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                          "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                          gaucAtCrLf,
+                                          gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                          pstRssiInfoInd->stRssiInfo.aRssi[0].u.stGCellSignInfo.sRssiValue,
+                                          0,
+                                          255,
+                                          0,
+                                          0,
+                                          0,
+                                          0,0x7f7f,0x7f7f,
+                                          0,
+                                          0,
+                                          0,
+                                          gaucAtCrLf);
+    }
+
+    At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
+}
+
+
+LOCAL VOS_VOID AT_RcvMmaWcdmaCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+)
+{
+    VOS_UINT16                          usLength;
+    usLength = 0;
+
+    if ( TAF_UTRANCTRL_UTRAN_MODE_FDD == pstRssiInfoInd->stRssiInfo.ucCurrentUtranMode)
+    {
+        if (SYSTEM_APP_ANDROID != ucSystemAppConfig)
+        {
+            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                               "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                               gaucAtCrLf,
+                                               gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                               0,      /* rssi */
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sEcioValue,
+                                               0,
+                                               0,
+                                               0,
+                                               0,0x7f7f,0x7f7f,
+                                               0,99,99,99,99,99,99,99,99,
+                                               0,
+                                               0,
+                                               0,
+                                               gaucAtCrLf);
+        }
+        else
+        {
+            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                               "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                               gaucAtCrLf,
+                                               gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                               0,      /* rssi */
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sEcioValue,
+                                               0,
+                                               0,
+                                               0,
+                                               0,0x7f7f,0x7f7f,
+                                               0,
+                                               0,
+                                               0,
+                                               gaucAtCrLf);
+        }
+    }
+    else
+    {
+        if (SYSTEM_APP_ANDROID != ucSystemAppConfig)
+        {
+            /* 非fdd 3g 小区，ecio值为无效值255 */
+            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                               "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                               gaucAtCrLf,
+                                               gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                               0,      /* rssi */
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
+                                               255,
+                                               0,
+                                               0,
+                                               0,
+                                               0,0x7f7f,0x7f7f,
+                                               0,99,99,99,99,99,99,99,99,
+                                               0,
+                                               0,
+                                               0,
+                                               gaucAtCrLf);
+        }
+        else
+        {
+            /* 非fdd 3g 小区，ecio值为无效值255 */
+            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr,
+                                               (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                               "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                               gaucAtCrLf,
+                                               gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                               0,      /* rssi */
+                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
+                                               255,
+                                               0,
+                                               0,
+                                               0,
+                                               0,0x7f7f,0x7f7f,
+                                               0,
+                                               0,
+                                               0,
+                                               gaucAtCrLf);
+        }
+
+    }
+    At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
+
+    return;
+}
+
+
+
+LOCAL VOS_VOID AT_RcvMmaLteCERssiChangeInd(
+    TAF_UINT8                           ucIndex,
+    TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd,
+    VOS_UINT8                           ucSystemAppConfig
+)
+{
+    VOS_UINT16                          usLength;
+    usLength = 0;
+
+    if (SYSTEM_APP_ANDROID != ucSystemAppConfig)
+    {
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                           "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                           gaucAtCrLf,
+                                           gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                           0,
+                                           0,
+                                           255,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrp,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrq,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.lSINR,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.usRI,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[0],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[1],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.ucRxANTNum,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[0],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[1],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[2],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[3],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[0],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[1],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[2],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[3],
+                                           0,
+                                           0,
+                                           0,
+                                           gaucAtCrLf);
+    }
+    else
+    {
+        usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr,
+                                           (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
+                                           "%s%s%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%s",
+                                           gaucAtCrLf,
+                                           gastAtStringTab[AT_STRING_CERSSI].pucText,
+                                           0,
+                                           0,
+                                           255,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrp,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrq,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.lSINR,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.usRI,
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[0],
+                                           pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[1],
+                                           0,
+                                           0,
+                                           0,
+                                           gaucAtCrLf);
+    }
+    At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
+
+    return;
+}
+
+
+
+
 VOS_VOID AT_RcvMmaRssiChangeInd(
     TAF_UINT8                           ucIndex,
     TAF_MMA_RSSI_INFO_IND_STRU         *pstRssiInfoInd
@@ -21262,121 +20992,30 @@ VOS_VOID AT_RcvMmaRssiChangeInd(
         At_SendResultData(ucIndex, pgucAtSndCodeAddr,usLength);
     }
 
-    usLength = 0;
-
     if ((VOS_TRUE == AT_CheckRptCmdStatus(pstRssiInfoInd->aucUnsolicitedRptCfg, AT_CMD_RPT_CTRL_BY_UNSOLICITED, AT_RPT_CMD_CERSSI))
      && (VOS_TRUE == ulRptCmdCerssi))
     {
+        pucSystemAppConfig = AT_GetSystemAppConfigAddr();
+
         if (TAF_MMA_RAT_GSM == pstRssiInfoInd->stRssiInfo.enRatType)
         {
-            usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                               (VOS_CHAR *)pgucAtSndCodeAddr,
-                                               (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                               "%s%s%d,%d,%d,%d,%d,%d,%d%s",
-                                               gaucAtCrLf,
-                                               gastAtStringTab[AT_STRING_CERSSI].pucText,
-                                               pstRssiInfoInd->stRssiInfo.aRssi[0].u.stGCellSignInfo.sRssiValue,
-                                               0,
-                                               255,
-                                               0,
-                                               0,
-                                               0,
-                                               0,
-                                               gaucAtCrLf);
+            AT_RcvMmaGsmCERssiChangeInd(ucIndex, pstRssiInfoInd, *pucSystemAppConfig);
 
-            At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
             return;
         }
 
         if (TAF_MMA_RAT_WCDMA == pstRssiInfoInd->stRssiInfo.enRatType)
         {
-            if ( TAF_UTRANCTRL_UTRAN_MODE_FDD == pstRssiInfoInd->stRssiInfo.ucCurrentUtranMode)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                                   "%s%s%d,%d,%d,%d,%d,%d,%d%s",
-                                                   gaucAtCrLf,
-                                                   gastAtStringTab[AT_STRING_CERSSI].pucText,
-                                                   0,      /* rssi */
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sEcioValue,
-                                                   0,
-                                                   0,
-                                                   0,
-                                                   0,
-                                                   gaucAtCrLf);
-            }
-            else
-            {
-                /* 非fdd 3g 小区，ecio值为无效值255 */
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                                   "%s%s%d,%d,%d,%d,%d,%d,%d%s",
-                                                   gaucAtCrLf,
-                                                   gastAtStringTab[AT_STRING_CERSSI].pucText,
-                                                   0,      /* rssi */
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stWCellSignInfo.sRscpValue,
-                                                   255,
-                                                   0,
-                                                   0,
-                                                   0,
-                                                   0,
-                                                   gaucAtCrLf);
-
-            }
-            At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
+            AT_RcvMmaWcdmaCERssiChangeInd(ucIndex, pstRssiInfoInd, *pucSystemAppConfig);
 
             return;
         }
+
+
         /* 上报LTE 的CERSSI */
         if (TAF_MMA_RAT_LTE == pstRssiInfoInd->stRssiInfo.enRatType)
         {
-            pucSystemAppConfig = AT_GetSystemAppConfigAddr();
-            if (SYSTEM_APP_ANDROID != *pucSystemAppConfig)
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                                   "%s%s0,0,255,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s",
-                                                   gaucAtCrLf,
-                                                   gastAtStringTab[AT_STRING_CERSSI].pucText,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrp,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrq,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.lSINR,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.usRI,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[0],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[1],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.ucRxANTNum,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[0],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[1],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[2],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.asRsrpRx[3],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[0],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[1],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[2],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stRxAntInfo.alSINRRx[3],
-                                                   gaucAtCrLf);
-            }
-            else
-            {
-                usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr,
-                                                   (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                                   "%s%s0,0,255,%d,%d,%d,%d,%d,%d,%s",
-                                                   gaucAtCrLf,
-                                                   gastAtStringTab[AT_STRING_CERSSI].pucText,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrp,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.sRsrq,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.lSINR,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.usRI,
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[0],
-                                                   pstRssiInfoInd->stRssiInfo.aRssi[0].u.stLCellSignInfo.stCQI.ausCQI[1],
-                                                   gaucAtCrLf);
-            }
-
-            At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
+            AT_RcvMmaLteCERssiChangeInd(ucIndex, pstRssiInfoInd, *pucSystemAppConfig);
         }
     }
 
@@ -21410,6 +21049,8 @@ VOS_VOID AT_RcvMmaRssiChangeInd(
 
     return;
 }
+
+
 
 
 
@@ -22353,49 +21994,6 @@ TAF_CALL_CHANNEL_TYPE_ENUM_UINT8 AT_ConvertCodecTypeToChannelType(
 }
 
 
-VOS_VOID AT_RcvMnCallChannelInfoInd(VOS_VOID *pEvtInfo)
-{
-    MN_CALL_EVT_CHANNEL_INFO_STRU      *pstChannelInfoInd;
-    VOS_UINT16                          usLength;
-    VOS_UINT8                           ucIndex;
-    TAF_CALL_CHANNEL_TYPE_ENUM_UINT8    enChannelType;
-
-    usLength          = 0;
-    pstChannelInfoInd = (MN_CALL_EVT_CHANNEL_INFO_STRU *)pEvtInfo;
-
-    if ((pstChannelInfoInd->enCodecType == MN_CALL_CODEC_TYPE_BUTT)
-     && (VOS_FALSE == pstChannelInfoInd->ucIsLocalAlertingFlag))
-    {
-        AT_WARN_LOG("AT_RcvMnCallChannelInfoInd: WARNING: CodecType BUTT!");
-        return;
-    }
-
-    /* 通过clientid获取index */
-    if (AT_FAILURE == At_ClientIdToUserId(pstChannelInfoInd->usClientId, &ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvMnCallChannelInfoInd:WARNING:AT INDEX NOT FOUND!");
-        return;
-    }
-
-    enChannelType = AT_ConvertCodecTypeToChannelType(pstChannelInfoInd->ucIsLocalAlertingFlag, pstChannelInfoInd->enCodecType);
-
-    usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
-                                       (VOS_CHAR *)pgucAtSndCodeAddr,
-                                       (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
-                                       "%s%s %d,%d%s",
-                                       gaucAtCrLf,
-                                       gastAtStringTab[AT_STRING_CS_CHANNEL_INFO].pucText,
-                                       enChannelType,
-                                       pstChannelInfoInd->enVoiceDomain,
-                                       gaucAtCrLf);
-
-    gstAtSendData.usBufLen = usLength;
-
-    At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
-
-    return;
-}
-
 
 
 VOS_VOID At_RcvXlemaQryCnf(
@@ -22516,6 +22114,12 @@ VOS_VOID AT_RcvTafCallStartDtmfCnf(
         return;
     }
 
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvTafCallStartDtmfCnf: At Is Broadcast!");
+        return;
+    }
+
     /* AT模块在等待^DTMF命令/+VTS命令的操作结果事件上报 */
     if ( (AT_CMD_DTMF_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
       && (AT_CMD_VTS_SET != gastAtClientTab[ucIndex].CmdCurrentOpt) )
@@ -22554,6 +22158,12 @@ VOS_VOID AT_RcvTafCallStopDtmfCnf(
     if(AT_FAILURE == At_ClientIdToUserId(pstData->clientId, &ucIndex))
     {
         AT_WARN_LOG("AT_RcvTafCallStopDtmfCnf: Get Index Fail!");
+        return;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvTafCallStopDtmfCnf: At Is Broadcast!");
         return;
     }
 
@@ -22610,6 +22220,12 @@ VOS_VOID At_RcvTafCallOrigCnf(
     if (AT_FAILURE == At_ClientIdToUserId(pstCallInfo->clientId, &ucIndex))
     {
         AT_WARN_LOG("At_CsEventProc At_ClientIdToUserId FAILURE");
+        return;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("At_RcvTafCallOrigCnf: At Is Broadcast!");
         return;
     }
 
@@ -23052,123 +22668,21 @@ PS_BOOL_ENUM_UINT8 At_CheckUartRingTeCallType(
 
 
 
-VOS_VOID At_RcvTafCallModifyCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-)
+VOS_UINT32 AT_RcvTafCcmCallModifyStatusInd(VOS_VOID *pMsg)
 {
-    MN_CALL_MODIFY_CNF_STRU            *pstModifyCnf;
-    VOS_UINT8                           ucIndex;
-
-    ucIndex = 0;
-
-    pstModifyCnf = (MN_CALL_MODIFY_CNF_STRU *)pstData->aucContent;
-
-    /* 通过ClientId获取ucIndex */
-    if ( AT_FAILURE == At_ClientIdToUserId(pstModifyCnf->usClientId, &ucIndex) )
-    {
-        AT_WARN_LOG("At_RcvTafCallModifyCnf: WARNING:AT INDEX NOT FOUND!");
-        return;
-    }
-
-    /* 广播消息不处理 */
-    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
-    {
-        AT_WARN_LOG("At_RcvTafCallModifyCnf: WARNING:AT_BROADCAST_INDEX!");
-        return;
-    }
-
-    /* 判断当前操作类型是否为AT_CMD_CALL_MODIFY_INIT_SET */
-    if (AT_CMD_CALL_MODIFY_INIT_SET != gastAtClientTab[ucIndex].CmdCurrentOpt )
-    {
-        AT_WARN_LOG("At_RcvTafCallModifyCnf: WARNING:Not AT_CMD_CALL_MODIFY_INIT_SET!");
-        return;
-    }
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    /* 判断操作是否成功 */
-    if (TAF_CS_CAUSE_SUCCESS != pstModifyCnf->enCause)
-    {
-        At_FormatResultData(ucIndex, AT_ERROR);
-    }
-    else
-    {
-        At_FormatResultData(ucIndex, AT_OK);
-    }
-
-    return;
-}
-
-
-VOS_VOID At_RcvTafCallAnswerRemoteModifyCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-)
-{
-    MN_CALL_MODIFY_CNF_STRU            *pstModifyCnf;
-    VOS_UINT8                           ucIndex;
-
-    ucIndex = 0;
-
-    pstModifyCnf = (MN_CALL_MODIFY_CNF_STRU *)pstData->aucContent;
-
-    /* 通过ClientId获取ucIndex */
-    if ( AT_FAILURE == At_ClientIdToUserId(pstModifyCnf->usClientId, &ucIndex) )
-    {
-        AT_WARN_LOG("At_RcvTafCallAnswerRemoteModifyCnf: WARNING:AT INDEX NOT FOUND!");
-        return;
-    }
-
-    /* 广播消息不处理 */
-    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
-    {
-        AT_WARN_LOG("At_RcvTafCallAnswerRemoteModifyCnf: WARNING:AT_BROADCAST_INDEX!");
-        return;
-    }
-
-    /* 判断当前操作类型是否为AT_CMD_CALL_MODIFY_ANS_SET */
-    if (AT_CMD_CALL_MODIFY_ANS_SET != gastAtClientTab[ucIndex].CmdCurrentOpt )
-    {
-        AT_WARN_LOG("At_RcvTafCallAnswerRemoteModifyCnf: WARNING:Not AT_CMD_CALL_MODIFY_CNF_SET!");
-        return;
-    }
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-
-    /* 判断操作是否成功 */
-    if (TAF_CS_CAUSE_SUCCESS != pstModifyCnf->enCause)
-    {
-        At_FormatResultData(ucIndex, AT_ERROR);
-    }
-    else
-    {
-        At_FormatResultData(ucIndex, AT_OK);
-    }
-
-    return;
-}
-
-
-VOS_VOID At_RcvTafCallModifyStatusInd(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-)
-{
-    MN_CALL_EVT_MODIFY_STATUS_IND_STRU *pstStatusInd;
-    VOS_UINT16                          usLength;
-    VOS_UINT8                           ucIndex;
+    TAF_CCM_CALL_MODIFY_STATUS_IND_STRU *pstStatusInd;
+    VOS_UINT16                           usLength;
+    VOS_UINT8                            ucIndex;
 
     usLength          = 0;
-    pstStatusInd      = (MN_CALL_EVT_MODIFY_STATUS_IND_STRU *)pstData->aucContent;
+    ucIndex           = 0;
+    pstStatusInd      = (TAF_CCM_CALL_MODIFY_STATUS_IND_STRU *)pMsg;
 
     /* 通过clientid获取index */
-    if (AT_FAILURE == At_ClientIdToUserId(pstStatusInd->usClientId, &ucIndex))
+    if (AT_FAILURE == At_ClientIdToUserId(pstStatusInd->stCtrl.usClientId, &ucIndex))
     {
-        AT_WARN_LOG("At_RcvTafCallModifyStatusInd:WARNING:AT INDEX NOT FOUND!");
-        return;
+        AT_WARN_LOG("AT_RcvTafCcmCallModifyStatusInd:WARNING:AT INDEX NOT FOUND!");
+        return VOS_ERR;
     }
 
 
@@ -23215,56 +22729,16 @@ VOS_VOID At_RcvTafCallModifyStatusInd(
     }
     else
     {
-        return;
+        return VOS_ERR;
     }
 
     gstAtSendData.usBufLen = usLength;
 
     At_SendResultData(ucIndex, pgucAtSndCodeAddr, usLength);
 
-    return;
+    return VOS_OK;
 }
 
-
-VOS_VOID AT_RcvTafGetEconfInfoCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-)
-{
-    TAF_CALL_ECONF_INFO_QRY_CNF_STRU   *pstCallInfos;
-    VOS_UINT32                          ulRet;
-    VOS_UINT8                           ucIndex;
-
-    /* 初始化 */
-    ucIndex = 0;
-    ulRet   = VOS_ERR;
-
-    /* 获取呼叫信息 */
-    pstCallInfos = (TAF_CALL_ECONF_INFO_QRY_CNF_STRU *)pstData->aucContent;
-
-    /* 通过clientid获取index */
-    if (AT_FAILURE == At_ClientIdToUserId(pstCallInfos->usClientId, &ucIndex))
-    {
-        AT_WARN_LOG("AT_RcvTafGetEconfInfoCnf: WARNING: AT INDEX NOT FOUND!");
-        return;
-    }
-
-
-    if (AT_CMD_CLCCECONF_QRY != gastAtClientTab[ucIndex].CmdCurrentOpt)
-    {
-        AT_WARN_LOG("AT_RcvTafGetEconfInfoCnf: WARNING: CmdCurrentOpt != AT_CMD_CLCCECONF_QRY!");
-        return;
-    }
-
-    /* ^CLCCECONF?命令的结果回复 */
-    ulRet = At_ProcQryClccEconfResult(pstCallInfos, ucIndex);
-
-    /* 复位AT状态 */
-    AT_STOP_TIMER_CMD_READY(ucIndex);
-    At_FormatResultData(ucIndex, ulRet);
-
-    return;
-}
 
 
 VOS_VOID AT_RcvTafEconfDialCnf(

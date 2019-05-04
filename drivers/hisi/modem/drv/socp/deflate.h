@@ -71,29 +71,31 @@
 #include <nv_id_drv.h>
 #include <bsp_nvim.h>
 
-#define DEFLATE_NULL            (void*)0
-#define DEFLATE_OK                  (0)
-#define DEFLATE_ERROR               (1)
-#define DEFLATE_ERR_SET_FAIL        (2)
-#define DEFLATE_ERR_SET_INVALID     (3)
-#define DEFLATE_ERR_INVALID_PARA    (4)
-#define DEFLATE_ERR_NOT_INIT        (5)
-#define DEFLATE_ERR_NULL            (6)
-#define DEFLATE_ERR_NOT_8BYTESALIGN (7)
-#define DEFLATE_ERR_INVALID_CHAN    (8)
+#define DEFLATE_NULL             (void*)0
+#define DEFLATE_OK                    (0)
+#define DEFLATE_ERROR                 (1)
+#define DEFLATE_ERR_SET_FAIL          (2)
+#define DEFLATE_ERR_SET_INVALID       (3)
+#define DEFLATE_ERR_INVALID_PARA      (4)
+#define DEFLATE_ERR_NOT_INIT          (5)
+#define DEFLATE_ERR_NULL              (6)
+#define DEFLATE_ERR_NOT_8BYTESALIGN   (7)
+#define DEFLATE_ERR_INVALID_CHAN      (8)
 #define DEFLATE_ERR_MEM_NOT_ENOUGH    (9)
-#define DEFLATE_ERR_IND_MODE        (10)
+#define DEFLATE_ERR_IND_MODE         (10)
 #define DEFLATE_ERR_GET_CYCLE        (11)
 #define DEFLATE_ERR_SET_CPS_MODE     (12)
- 
 
-#define DEFLATE_CODER_DEST_CHAN             0x01
-#define DEFLATE_MAX_ENCDST_CHN             (0x07)
+
+#define DEFLATE_CODER_DEST_CHAN    (0x01)
+#define DEFLATE_MAX_ENCDST_CHN     (0x07)
 
 //#define DEFLATE_TIMEOUT_DEFLATY        (0x927c0)  // 10min
-#define DEFLATE_TIMEOUT_DEFLATY        (0xFFFF)  // 10min
-#define DEFLATE_TIMEOUT_INDIRECT       (0x0a)     // 10ms
+#define DEFLATE_TIMEOUT_DEFLATY  (0xFFFF)
+#define DEFLATE_TIMEOUT_INDIRECT   (0x0a)     // 10ms
 
+#define deflate_crit            socp_crit
+#define deflate_error          socp_error
 
 typedef SOCP_RING_BUF_S         DEFLATE_RING_BUF_STRU;
 struct deflate_ctrl_info
@@ -109,7 +111,7 @@ struct deflate_ctrl_info
     OSL_TASK_ID             taskid;
     spinlock_t              intSpinLock;
     u32                     intState;
-    
+
     DEFLATE_RING_BUF_STRU   sDeflateDstChan;
     u32 u32IntDeflateDstTfr;
     u32 u32IntDeflateDstThresholdOvf ;
@@ -153,47 +155,51 @@ enum DEFLATE_READ_STATE
 #define  SOCP_REG_DEFLATEDEST_BUFREMAINTHCFG           HI_SOCP_REG_DEFLATEDEST_BUFREMAINTHCFG     /* 压缩通路目的buffer溢出中断阈值寄存器 */
 
 #ifdef FEATURE_SOCP_ADDR_64BITS
-#define  SOCP_REG_DEFLATEDEST_BUFRPTR            	   HI_SOCP_REG_DEFLATE_DST_BUFRPTR_OFSSET            /* 压缩通路目的buffer读指针寄存器 */
-#define  SOCP_REG_DEFLATEDEST_BUFWPTR                  HI_SOCP_REG_DEFLATE_DST_BUFWPTR_OFSSET           /* 压缩通路目的buffer写指针寄存器 */
+#define  SOCP_REG_DEFLATEDEST_BUFRPTR            	   HI_SOCP_REG_DEFLATE_DST_BUFRPTR_OFSSET     /* 压缩通路目的buffer读指针寄存器 */
+#define  SOCP_REG_DEFLATEDEST_BUFWPTR                  HI_SOCP_REG_DEFLATE_DST_BUFWPTR_OFSSET     /* 压缩通路目的buffer写指针寄存器 */
+#define  SOCP_REG_DEFLATEDST_BUFADDR_L                 HI_SOCP_REG_DEFLATE_DST_BUFADDR_LOW        /*压缩目的buffer起始地址低32位*/
+#define  SOCP_REG_DEFLATEDST_BUFADDR_H                 HI_SOCP_REG_DEFLATE_DST_BUFADDR_HIGH       /*压缩目的buffer起始地址高32位*/
 #else
-#define  SOCP_REG_DEFLATEDEST_BUFRPTR            	   HI_SOCP_REG_DEFLATEDEST_BUFRPTR      /* 压缩通路目的buffer读指针寄存器 */
-#define  SOCP_REG_DEFLATEDEST_BUFWPTR                  HI_SOCP_REG_DEFLATEDEST_BUFWPTR        /* 压缩通路目的buffer写指针寄存器 */
-#endif
+#define  SOCP_REG_DEFLATEDEST_BUFRPTR            	   HI_SOCP_REG_DEFLATEDEST_BUFRPTR            /* 压缩通路目的buffer读指针寄存器 */
+#define  SOCP_REG_DEFLATEDEST_BUFWPTR                  HI_SOCP_REG_DEFLATEDEST_BUFWPTR            /* 压缩通路目的buffer写指针寄存器 */
 #define  SOCP_REG_DEFLATEDEST_BUFADDR                  HI_SOCP_REG_DEFLATEDEST_BUFADDR            /* 压缩通路目的buffer起始地址寄存器 */
+#endif
 #define  SOCP_REG_DEFLATEDEST_BUFDEPTH                 HI_SOCP_REG_DEFLATEDEST_BUFDEPTH           /* 压缩通路目的buffer深度寄存器 */
 #define  SOCP_REG_DEFLATEDEST_BUFTHRH                  HI_SOCP_REG_DEFLATEDEST_BUFTHRH            /* 传输阈值中断配置寄存器 */
 #define  SOCP_REG_DEFLATEDEST_BUFOVFTIMEOUT            HI_SOCP_REG_DEFLATEDEST_BUFOVFTIMEOUT      /* 压缩目的BUFFER溢出超时配置寄存器 */
 #define  SOCP_REG_SOCP_MAX_PKG_BYTE_CFG                HI_SOCP_REG_SOCP_MAX_PKG_BYTE_CFG          /* socp最大包长字节阈值配置 */
 #define  SOCP_REG_DEFLATE_OBUF_DEBUG                   HI_SOCP_REG_DEFLATE_OBUF_DEBUG             /* 压缩目的buffer DEBUG */
 
-#define  SOCP_REG_DEFLATE_COM_PKG_NUM                  HI_SOCP_REG_DEFLATE_COM_PKG_NUM                      /*压缩完成的包个数*//
-#define  SOCP_REG_DEFLATE_DST_BUFADDR_L                HI_SOCP_REG_DEFLATE_DST_BUFADDR_LOW                  /*压缩目的buffer起始地址低32位*/
-#define  SOCP_REG_DEFLATE_DST_BUFADDR_H                HI_SOCP_REG_DEFLATE_DST_BUFADDR_HIGH                 /*压缩目的buffer起始地址高32位*/
-#define DEFLATE_DRX_BACKUP_DDR_ADDR        (SHM_BASE_ADDR + SHM_OFFSET_DEFLATE)
-#define DEFLATE_REG_ADDR_DRX(addr)  (addr + g_strDeflateCtrl.baseAddr)
-#define DEFLATE_DRX_REG_GBLRST_NUM   (18)
+#define  SOCP_REG_DEFLATE_COM_PKG_NUM                  HI_SOCP_REG_DEFLATE_COM_PKG_NUM            /*压缩完成的包个数*/
+#ifdef DIAG_SYSTEM_5G
+#define SOCP_REG_DEFLATE_COMPELTE_TIMEOUT              HI_SOCP_REG_DEFLATE_DST_COMPLETE_TIMEOUT   /*传输完成超时寄存器*/
+#endif
+
+#define  DEFLATE_DRX_BACKUP_DDR_ADDR        (SHM_BASE_ADDR + SHM_OFFSET_DEFLATE)
+#define  DEFLATE_REG_ADDR_DRX(addr)  (addr + g_strDeflateCtrl.baseAddr)
+#define  DEFLATE_DRX_REG_GBLRST_NUM   (18)
 
 struct deflate_debug_info
-{  
+{
     u32 u32DeflateDstSetCnt;                  /*deflate目的buffer配置次数*/
     u32 u32DeflateDstSetSucCnt;               /*deflate目的buffer配置成功次数*/
     u32 u32DeflateRegReadCBCnt;               /*注册deflate目的通道读数据回调函数次数*/
-    u32 u32DeflateRegEventCBCnt;              /*注册deflate目的通道异常事件回调函数次数*/   
+    u32 u32DeflateRegEventCBCnt;              /*注册deflate目的通道异常事件回调函数次数*/
     u32 u32DeflateGetReadBufEtrCnt;           /*尝试获取deflate目的buffer次数*/
-    u32 u32DeflateGetReadBufSucCnt;           /*获取deflate目的buffer成功次数*/   
+    u32 u32DeflateGetReadBufSucCnt;           /*获取deflate目的buffer成功次数*/
     u32 u32DeflateReaddoneEtrCnt;             /*尝试读取deflate目的数据次数*/
     u32 u32DeflateReaddoneZeroCnt;            /*尝试读取deflate目的数据长度等于0次数*/
     u32 u32DeflateReaddoneValidCnt;           /*读取deflate目的数据长度不等于0次数*/
     u32 u32DeflateReaddoneFailCnt;            /*读取deflate目的数据失败的次数*/
-    u32 u32DeflateReaddoneSucCnt;             /*读取deflate目的数据成功的次数*/  
+    u32 u32DeflateReaddoneSucCnt;             /*读取deflate目的数据成功的次数*/
     u32 u32DeflateTskTrfCbOriCnt;             /*处理传输中断任务的次数*/
     u32 u32DeflateTskTrfCbCnt;                /*处理完传输中断任务的次数*/
     u32 u32DeflateTskOvfCbOriCnt;             /*处理上溢中断的次数*/
     u32 u32DeflateTskOvfCbCnt;                /*处理完上溢中断的次数*/
     u32 u32DeflateTskThresholdOvfCbOriCnt;    /*处理阈值溢出的次数*/
     u32 u32DeflateTskThresholdOvfCbCnt;       /*处理完阈值溢出的次数*/
-    u32 u32DeflateTskIntWorkAortCbOriCnt;     /*处理异常的次数*/                       
-    u32 u32DeflateTskIntWorkAortCbCnt;        /*处理完异常的次数*/       
+    u32 u32DeflateTskIntWorkAortCbOriCnt;     /*处理异常的次数*/
+    u32 u32DeflateTskIntWorkAortCbCnt;        /*处理完异常的次数*/
 };
 struct deflate_abort_info
 {
@@ -209,24 +215,25 @@ struct deflate_abort_info
 	u32 u32ObufThrh;
     u32 u32ReadAddr;
     u32 u32WriteAddr;
-    u32 u32StartAddr;
+    u32 u32StartLowAddr;
+	u32 u32StartHighAddr;
     u32 u32BufSize;
     u32 u32IntThrh;
     u32 u32OvfTimeoutEn;
     u32 u32PkgConfig;
     u32 u32ObufDebug;
+	u32 u32Reserved;
 };
 
 enum tagDEFLATE_EVENT_E
 {
-        DEFLATE_EVENT_WORK_ABORT          = 0x5,    /* YICHANG*/
-        DEFLATE_EVENT_OVERFLOW            = 0x6,    /* 目的buffer上溢 */
-        DEFLATE_EVENT_THRESHOLD_OVERFLOW  = 0x7,    /* 目的buffer阈值溢出中断 */
-       
-        
-        DEFLATE_EVENT_CYCLE               = 0x1000,    /* 目的循环模式中断*/
-        DEFLATE_EVENT_NOCYCLE             = 0x1001,    /* 目的阻塞模式中断*/
-        DEFLATE_EVENT_BUTT
+	DEFLATE_EVENT_WORK_ABORT          = 0x5,    /* 异常 */
+	DEFLATE_EVENT_OVERFLOW            = 0x6,    /* 目的buffer上溢 */
+	DEFLATE_EVENT_THRESHOLD_OVERFLOW  = 0x7,    /* 目的buffer阈值溢出中断 */
+
+	DEFLATE_EVENT_CYCLE               = 0x1000,    /* 目的循环模式中断*/
+	DEFLATE_EVENT_NOCYCLE             = 0x1001,    /* 目的阻塞模式中断*/
+	DEFLATE_EVENT_BUTT
 };
 typedef unsigned int DEFLATE_EVENT_ENUM_UIN32;
 
@@ -250,7 +257,7 @@ typedef unsigned int DEFLATE_EVENT_ENUM_UIN32;
 
 s32 deflate_init(void);
 u32 deflate_set(u32 u32DestChanID, DEFLATE_CHAN_CONFIG_S *pDeflateAttr);
-u32 deflate_clear(u32 u32DestChanID);
+u32 deflate_ctrl_clear(u32 u32DestChanID);
 
 u32 deflate_enable(u32 u32DestChanID);
 

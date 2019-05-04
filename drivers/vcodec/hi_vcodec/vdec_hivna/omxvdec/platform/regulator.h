@@ -5,7 +5,10 @@
 #include "vfmw_dts.h"
 
 typedef enum {
-	VDEC_CLK_RATE_LOW = 0,
+#ifdef LOWER_FREQUENCY_SUPPORT
+	VDEC_CLK_RATE_LOWER = 0,
+#endif
+	VDEC_CLK_RATE_LOW,
 	VDEC_CLK_RATE_NORMAL,
 	VDEC_CLK_RATE_HIGH,
 	VDEC_CLK_RATE_BUTT,

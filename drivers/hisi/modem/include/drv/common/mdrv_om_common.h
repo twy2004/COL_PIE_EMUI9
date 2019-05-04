@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -54,125 +54,61 @@ extern "C"
 {
 #endif
 
-#define MODID_SUBSYS    32
-#define MODID_MODULE    28
-#define MODID_CORE      24
-#define MODID_RESV      18
-#define MODID_ERRORCODE 16
+#define NR_MODID_TAG      (0xB)
+#define MODID_TAG         (32)
+#define MODID_SYS         (28)
+#define MODID_MODULE      (24)
+#define MODID_CODE        (16)
+/************************************************
+31-28bit	 27-24bit	  23-16bit	  15-0bit
+NRTAG        异常子系统	  异常模块	  错误码，各模块自由定义
+**************************************************/
 
-typedef enum modem_subsys
+typedef enum nr_sys
 {
-    SYS_DRV     = 0,  
-    SYS_PAM     = 1,
-    SYS_GUCNAS  = 2,   
-    SYS_GUCAS   = 3,     
-    SYS_GUCPHY  = 4,    
-    SYS_TLPS    = 5,   
-    SYS_TLPHY   = 6,
-    SYS_5GNAS,
-    SYS_5GAS,
-    SYS_5GPHY,
-   
-}MODEM_SUBSYS;
+    NR_SYSTEM_AP        = 0,
+    NR_SYSTEM_CCPU      = 1,
+    NR_SYSTEM_L2HAC     = 2,
+    NR_SYSTEM_HL1C      = 3,
+    NR_SYSTEM_LL1C      = 4,
+}NR_SYS;
 
-typedef enum modem_module
+
+
+typedef enum nr_module
 {
-    /*DRV*/
-    MODULE_BSP = 0,
-    MODULE_MSP = 1,
-
-    /*PAM*/
-    MODULE_OSA = 0,
-    MODULE_OAM = 1,
-
-    /*GUCNAS*/
-    MODULE_GUNAS = 0,
-    MODULE_CNAS = 1,
-
-    /*GUCAS*/
-    MODULE_GUL2  =0,
-    MODULE_CTTF = 1,
-    MODULE_GUWAS = 2,
-    MODULE_CAS  = 3,
-    MODULE_CPROC = 4,
-    MODULE_GUGAS = 5,
-
-    /*GUCPHY*/
-    MODULE_GUPHY = 0,
-    MODULE_CPHY = 1,
-
-    /*TLPS*/
-    MODULE_TLNAS =0, 
-    MODULE_TLAS = 1,
-
-    /*TLPHY*/
-    MODULE_TLPHY = 0,
-   
-}MODEM_MODULE;
-
-typedef enum cpu_core
-{
-#if defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
-    CORE_ARM = 0,
-#elif defined(__KERNEL__)||defined(__FASTBOOT__)
-    CORE_ARM = 1,
-#elif defined(__CMSIS_RTOS)
-    CORE_ARM = 2,
-#endif
-    CORE_TLDSP = 3,
-    CORE_XDSP =4,
-}CPU_CORE;
-
-#define OM_MODID_HEAD(__subsys,__module,__core)   (((__subsys)<< MODID_MODULE)| ((__module) << MODID_CORE)|((__core) << MODID_RESV))
-
-/*DRV*/
-#define DRV_BSP_MODID_HEAD              OM_MODID_HEAD(SYS_DRV,MODULE_BSP,CORE_ARM)
-#define DRV_MSP_MODID_HEAD              OM_MODID_HEAD(SYS_DRV,MODULE_MSP,CORE_ARM)
-
-/*PAM*/
-#define PAM_OSA_MODID_HEAD              OM_MODID_HEAD(SYS_PAM,MODULE_OSA,CORE_ARM)
-#define PAM_OAM_MODID_HEAD              OM_MODID_HEAD(SYS_PAM,MODULE_OAM,CORE_ARM)
-
-/*GUCNAS*/
-#define GUCNAS_GUNAS_MODID_HEAD         OM_MODID_HEAD(SYS_GUCNAS,MODULE_GUNAS,CORE_ARM)
-#define GUCNAS_CNAS_MODID_HEAD          OM_MODID_HEAD(SYS_GUCNAS,MODULE_CNAS,CORE_ARM)
-
-/*GUCAS*/
-#define GUCAS_GUL2_MODID_HEAD           OM_MODID_HEAD(SYS_GUCAS,MODULE_GUL2,CORE_ARM)
-#define GUCAS_CTTF_MODID_HEAD           OM_MODID_HEAD(SYS_GUCAS,MODULE_CTTF,CORE_ARM)
-#define GUCAS_GUWAS_MODID_HEAD          OM_MODID_HEAD(SYS_GUCAS,MODULE_GUWAS,CORE_ARM)
-#define GUCAS_CAS_MODID_HEAD            OM_MODID_HEAD(SYS_GUCAS,MODULE_CAS,CORE_ARM)
-#define GUCAS_CPROC_MODID_HEAD          OM_MODID_HEAD(SYS_GUCAS,MODULE_CPROC,CORE_ARM)
-#define GUCAS_GUGAS_MODID_HEAD          OM_MODID_HEAD(SYS_GUCAS,MODULE_GUGAS,CORE_ARM)
-
-/*GUCPHY*/
-#define GUCPHY_GUPHY_MODID_HEAD         OM_MODID_HEAD(SYS_GUCPHY,MODULE_GUPHY,CORE_ARM)
-#define GUCPHY_CPHY_MODID_HEAD          OM_MODID_HEAD(SYS_GUCPHY,MODULE_CPHY,CORE_XDSP)
-
-/*TLPS*/
-#define TLPS_TLNAS_MODID_HEAD           OM_MODID_HEAD(SYS_TLPS,MODULE_TLNAS,CORE_ARM)
-#define TLPS_TLAS_MODID_HEAD            OM_MODID_HEAD(SYS_TLPS,MODULE_TLAS,CORE_ARM)
-
-/*TLPHY*/
-#define TLPHY_PHY_MODID_HEAD            OM_MODID_HEAD(SYS_TLPHY,MODULE_TLPHY,CORE_TLDSP)
+    MODULE_BSP     = 0,
+    MODULE_MSP     ,
+    MODULE_OSA     ,
+    MODULE_OAM     ,
+    MODULE_NAS     ,
+    MODULE_AS      ,
+    MODULE_PS      ,
+    MODULE_PHY     ,
+}NR_MODULE;
 
 
-/* field id定义只允许添加，不允许删除，枚举定义删除之后，id值需要保留，新添加id需要跳过删除id */
-/* 添加AP新的field，放到OM_AP_FIELD_END之前，添加CP新的field，放到OM_CP_FIELD_END之前 */
+#define OM_MODID_HEAD(__subsys,__module)   ((unsigned int)(NR_MODID_TAG << (MODID_SYS))|(unsigned int)((__subsys)<< MODID_MODULE)| (unsigned int)((__module) << MODID_CODE))
+
+
+#define OM_GET_MODULE(error_code)          ((unsigned int)(((error_code)&((unsigned int)(0xff << MODID_CODE))>> MODID_CODE)))
+
+
+
 enum OM_FIELD_ID_ENUM
 {
     OM_AP_FIELD_BEGIN   = (0x01200000),
     OM_AP_OSA           = (OM_AP_FIELD_BEGIN),
     OM_AP_DIAG          = (OM_AP_FIELD_BEGIN + 1),
     OM_AP_FIELD_END,
-
+#ifndef __OS_NRCCPU__
     OM_CP_FIELD_BEGIN   = (0x02200000),
     OM_CP_OSA           = (OM_CP_FIELD_BEGIN),
     OM_CP_MSP_SLEEP     = (OM_CP_FIELD_BEGIN + 1),
     OM_CP_TLPS          = (OM_CP_FIELD_BEGIN + 2),
-    OM_CP_FTM_MNTN      = (OM_CP_FIELD_BEGIN + 3),  
+    OM_CP_FTM_MNTN      = (OM_CP_FIELD_BEGIN + 3),
     OM_CP_GUAS          = (OM_CP_FIELD_BEGIN + 4),
-    OM_CP_DIAG          = (OM_CP_FIELD_BEGIN + 5),  
+    OM_CP_DIAG          = (OM_CP_FIELD_BEGIN + 5),
     OM_CP_GUNAS         = (OM_CP_FIELD_BEGIN + 6),
     OM_CP_CPROC         = (OM_CP_FIELD_BEGIN + 7),
     OM_CP_CAS           = (OM_CP_FIELD_BEGIN + 8),
@@ -184,9 +120,58 @@ enum OM_FIELD_ID_ENUM
     OM_CP_TLPS1         = (OM_CP_FIELD_BEGIN + 14),
     OM_CP_GUPHY         = (OM_CP_FIELD_BEGIN + 15),
     OM_CP_RFDSP         = (OM_CP_FIELD_BEGIN + 16),
-    OM_CP_GUCSLEEP         = (OM_CP_FIELD_BEGIN + 17),
+    OM_CP_GUCSLEEP      = (OM_CP_FIELD_BEGIN + 17),
+    OM_CP_TAF           = (OM_CP_FIELD_BEGIN + 18),
     OM_CP_FIELD_END,
+#else
+    OM_CP_FIELD_BEGIN   = (0x07200000),
+    OM_CP_OSA           = (OM_CP_FIELD_BEGIN),
+    OM_CP_MSP_SLEEP     = (OM_CP_FIELD_BEGIN + 1),
+    OM_CP_TLPS          = (OM_CP_FIELD_BEGIN + 2),
+    OM_CP_FTM_MNTN      = (OM_CP_FIELD_BEGIN + 3),
+    OM_CP_GUAS          = (OM_CP_FIELD_BEGIN + 4),
+    OM_CP_DIAG          = (OM_CP_FIELD_BEGIN + 5),
+    OM_CP_GUNAS         = (OM_CP_FIELD_BEGIN + 6),
+    OM_CP_CPROC         = (OM_CP_FIELD_BEGIN + 7),
+    OM_CP_CAS           = (OM_CP_FIELD_BEGIN + 8),
+    OM_CP_CNAS          = (OM_CP_FIELD_BEGIN + 9),
+    OM_CP_MSCC          = (OM_CP_FIELD_BEGIN + 10),
+    OM_CP_CTTF          = (OM_CP_FIELD_BEGIN + 11),
+    OM_CP_USIMM0        = (OM_CP_FIELD_BEGIN + 12),
+    OM_CP_USIMM1        = (OM_CP_FIELD_BEGIN + 13),
+    OM_CP_TLPS1         = (OM_CP_FIELD_BEGIN + 14),
+    OM_CP_GUPHY         = (OM_CP_FIELD_BEGIN + 15),
+    OM_CP_RFDSP         = (OM_CP_FIELD_BEGIN + 16),
+    OM_CP_GUCSLEEP      = (OM_CP_FIELD_BEGIN + 17),
+    OM_CP_NRNAS         = (OM_CP_FIELD_BEGIN + 18),
+
+#endif
+    OM_HAC_FIELD_BEGIN   = (0x08200000),
+    OM_HAC_OSA           = (OM_HAC_FIELD_BEGIN),
+    OM_HAC_MSP_SLEEP     = (OM_HAC_FIELD_BEGIN + 1),
+    OM_HAC_TLPS          = (OM_HAC_FIELD_BEGIN + 2),
+    OM_HAC_FTM_MNTN      = (OM_HAC_FIELD_BEGIN + 3),
+    OM_HAC_GUAS          = (OM_HAC_FIELD_BEGIN + 4),
+    OM_HAC_DIAG          = (OM_HAC_FIELD_BEGIN + 5),
+    OM_HAC_GUNAS         = (OM_HAC_FIELD_BEGIN + 6),
+    OM_HAC_CPROC         = (OM_HAC_FIELD_BEGIN + 7),
+    OM_HAC_CAS           = (OM_HAC_FIELD_BEGIN + 8),
+    OM_HAC_CNAS          = (OM_HAC_FIELD_BEGIN + 9),
+    OM_HAC_MSCC          = (OM_HAC_FIELD_BEGIN + 10),
+    OM_HAC_CTTF          = (OM_HAC_FIELD_BEGIN + 11),
+    OM_HAC_USIMM0        = (OM_HAC_FIELD_BEGIN + 12),
+    OM_HAC_USIMM1        = (OM_HAC_FIELD_BEGIN + 13),
+    OM_HAC_TLPS1         = (OM_HAC_FIELD_BEGIN + 14),
+    OM_HAC_GUPHY         = (OM_HAC_FIELD_BEGIN + 15),
+    OM_HAC_RFDSP         = (OM_HAC_FIELD_BEGIN + 16),
+    OM_HAC_GUCSLEEP      = (OM_HAC_FIELD_BEGIN + 17),
+    OM_HAC_FIELD_END,
+
+
 };
+
+
+
 enum
 {
     DUMP_OUT_VOICE = 0,
@@ -195,6 +180,8 @@ enum
 };
 typedef int dump_handle;
 typedef void (*dump_hook)(void);
+typedef void (*dump_notify)(void*);
+
 
 /*****************************************************************************
  * 函 数 名  : mdrv_om_system_error

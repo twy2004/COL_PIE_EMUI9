@@ -73,6 +73,13 @@
 #define DTS_COMP_TM_FT8716_5P2 "tm_ft8716_5p2_1080p_video"
 #define DTS_COMP_EBBG_NT35596S_5P2 "ebbg_nt35596s_5p2_1080p_video"
 #define DTS_COMP_JDI_ILI7807E_5P2 "jdi_ili7807e_5p2_1080p_video"
+#define DTS_COMP_BOE_NT37700F "boe_nt37700f_vogue_6p47_1080plus_cmd"
+#define DTS_COMP_LG_NT37280 "lg_nt37280_vogue_6p47_1080plus_cmd"
+#define DTS_COMP_SAMSUNG_EA8074 "samsung_ea8074_elle_6p10_1080plus_cmd"
+#define DTS_COMP_SAMSUNG_EA8076 "samsung_ea8076_elle_6p11_1080plus_cmd"
+#define DTS_COMP_SAMSUNG_EA8076_V2 "samsung_ea8076_elle_v2_6p11_1080plus_cmd"
+#define DTS_COMP_BOE_NT37700F_TAH "boe-nt37800f-tah-8p03-3lane-2mux-cmd"
+
 
 enum SENSOR_POWER_CHECK {
 	SENSOR_POWER_STATE_OK = 0,

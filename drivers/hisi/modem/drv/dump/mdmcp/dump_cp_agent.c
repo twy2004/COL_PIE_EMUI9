@@ -56,7 +56,6 @@
 #include <linux/timex.h>
 #include <linux/rtc.h>
 #include <linux/sched.h>
-#include "product_config.h"
 #include "osl_types.h"
 #include "bsp_sysctrl.h"
 #include "bsp_slice.h"
@@ -77,18 +76,12 @@
 #include "dump_baseinfo.h"
 #include "dump_lphy_tcm.h"
 #include "dump_cphy_tcm.h"
-#include "dump_file.h"
-#include "dump_exc_type.h"
 #include "dump_sec_mem.h"
+#include "dump_exc_handle.h"
+
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
-struct semaphore g_cp_agent_sem;
-u32 g_rdr_mod_id = 0;
 
-
-void dump_clear_cpboot_area(void)
-{
-}
 
 /*****************************************************************************
 * 函 数 名  : dump_int_handle
@@ -100,23 +93,67 @@ void dump_clear_cpboot_area(void)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33       creat
 *
 *****************************************************************************/
 void dump_cp_agent_handle(s32 param)
 {
+    dump_exception_info_s exception_info_s = {0, DUMP_REASON_NORMAL};
+
     dump_ok("modem ccore enter system error! timestamp:0x%x\n", bsp_get_slice_value());
 
-    if(true == dump_check_has_error())
-    {
-        return;
-    }
+    bsp_wdt_irq_disable(WDT_CCORE_ID);
+    dump_ok("stop cp wdt\n");
 
-    g_rdr_mod_id = RDR_MODEM_CP_DRV_MOD_ID;
+    dump_fill_excption_info(&exception_info_s,DRV_ERRNO_DUMP_ARM_EXC,0,0,NULL,0,
+                             DUMP_CPU_LRCCPU,DUMP_REASON_NORMAL,NULL,0,0,0,NULL);
 
-    up(&g_cp_agent_sem);
+    dump_register_exception(&exception_info_s);
 
     return;
+}
+/*****************************************************************************
+* 函 数 名  : dump_cp_wdt_dlock_handle
+* 功能描述  : c核异常但是错误要上报到ap的异常
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33       creat
+*
+*****************************************************************************/
+
+void dump_cp_wdt_dlock_handle(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length)
+{
+
+    u32  reason = 0;
+    char* desc = NULL;
+
+    dump_exception_info_s exception_info_s = {0,};
+
+
+    dump_ok("[0x%x]modem cp wdt or pdlock enter system error! \n", bsp_get_slice_value());
+    dump_ok("mod_id=0x%x arg1=0x%x arg2=0x%x len=0x%x\n", mod_id, arg1, arg2, length);
+
+
+    if(arg1 == DUMP_REASON_WDT)
+    {
+        desc = "Modem CP WDT";
+    }
+    else if(arg1 == DUMP_REASON_DLOCK)
+    {
+        desc = "Modem CP DLOCK";
+    }
+    reason = arg1;
+
+    dump_fill_excption_info(&exception_info_s,
+                            mod_id, arg1,arg2,NULL,0,
+                            DUMP_CPU_LRCCPU, reason, desc, 0, 0, 0, NULL);
+
+    dump_register_exception(&exception_info_s);
 }
 /*****************************************************************************
 * 函 数 名  : dump_cp_wdt_hook
@@ -128,95 +165,12 @@ void dump_cp_agent_handle(s32 param)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33       creat
 *
 *****************************************************************************/
 void dump_cp_wdt_hook(void)
 {
-    system_error(DRV_ERRNO_DUMP_CP_WDT, DUMP_REASON_WDT, 0, 0, 0);
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_cp_exc_proc_task
-* 功能描述  : 保存modem log的入口函数
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-int dump_cp_exc_proc_task(void *data)
-{
-    (void)data;
-    /* coverity[no_escape] */
-    while(1)
-    {
-        down(&g_cp_agent_sem);
-        dump_ok("down g_cp_agent_sem success,g_rdr_mod_id = 0x%x\n",g_rdr_mod_id);
-
-        /*非modem ap引起的noc异常，统计复位次数，modem ap noc异常直接复位系统*/
-        if(RDR_MODEM_AP_NOC_MOD_ID !=g_rdr_mod_id)
-        {
-            if(BSP_OK == dump_check_reset_timestamp(g_rdr_mod_id))
-            {
-                rdr_system_error(g_rdr_mod_id, 0, 0);
-            }
-            else
-            {
-                dump_error("stop modem single reset");
-            }
-        }
-        else
-        {
-            rdr_system_error(g_rdr_mod_id, 0, 0);
-        }
-
-    }
-    /*lint -save -e527*/
-    return BSP_OK;
-    /*lint -restore +e527*/
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_save_task_init
-* 功能描述  : 创建modem ap 保存log 的任务函数
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-s32 dump_cp_exc_proc_task_init(void)
-{
-    struct task_struct * pid;
-    struct sched_param   param = {0,};
-
-    sema_init(&g_cp_agent_sem, 0);
-
-    pid = (struct task_struct *)kthread_run(dump_cp_exc_proc_task, 0, "dump_cp_exc_proc_task");
-    if (IS_ERR((void*)pid))
-    {
-        dump_error("fail to create kthread task! ret=%pK\n", __LINE__, pid);
-        return BSP_ERROR;
-    }
-    param.sched_priority = 97;
-    if (BSP_OK != sched_setscheduler(pid, SCHED_FIFO, &param))
-    {
-        dump_error("fail to setscheduler!\n", __LINE__);
-        return BSP_ERROR;
-    }
-
-    dump_ok("init cp exception task ok\n");
-
-    return BSP_OK;
+    dump_cp_wdt_dlock_handle(DRV_ERRNO_DUMP_CP_WDT, DUMP_REASON_WDT, 0, 0, 0);
 }
 
 /*****************************************************************************
@@ -229,24 +183,23 @@ s32 dump_cp_exc_proc_task_init(void)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33       creat
 *
 *****************************************************************************/
-s32 dump_cp_agent_init(void)
+
+__init s32 dump_cp_agent_init(void)
 {
     int ret ;
 
-    dump_cp_exc_proc_task_init();
-
     ret = bsp_ipc_int_connect(IPC_ACPU_SRC_CCPU_DUMP, (voidfuncptr)dump_cp_agent_handle, 0);
-    if(BSP_OK != ret)
+    if(unlikely(BSP_OK != ret))
     {
         dump_error("fail to connect ipc int\n");
         return BSP_ERROR;
     }
 
     ret = bsp_ipc_int_enable(IPC_ACPU_SRC_CCPU_DUMP);
-    if(BSP_OK != ret)
+    if(unlikely(BSP_OK != ret))
     {
         dump_error("fail to enbale ipc int\n");
         return BSP_ERROR;
@@ -254,7 +207,7 @@ s32 dump_cp_agent_init(void)
 
     ret = bsp_wdt_register_hook(WDT_CCORE_ID,dump_cp_wdt_hook);
 
-    if(BSP_OK != ret)
+    if(unlikely(BSP_OK != ret))
     {
         dump_error("fail to register wdt hook\n");
         return BSP_ERROR;
@@ -263,5 +216,4 @@ s32 dump_cp_agent_init(void)
     return BSP_OK;
 
 }
-
 

@@ -25,9 +25,10 @@
 #include <linux/rtc.h>
 #include <linux/statfs.h>
 #include <linux/delay.h>
+#include <asm/io.h>
 #include <chipset_common/bfmr/public/bfmr_public.h>
 #include <chipset_common/bfmr/common/bfmr_common.h>
-#include <log/log_usertype/log-usertype.h>
+#include <log/log_usertype.h>
 
 
 /*----local macroes------------------------------------------------------------------*/
@@ -45,6 +46,7 @@
 /*----local variables-----------------------------------------------------------------*/
 
 static unsigned int s_crc32_table[BFMR_CRC32_TABLE_ELEMENT_COUNT] = {0};
+static bool s_is_first_get_usertype = true;
 static int s_crc32_table_created = 0;
 static bfmr_partition_mount_result_info_t s_bfmr_mount_result[3] = {
     {"/log", false},
@@ -1086,20 +1088,22 @@ char* bfm_get_boot_stage_name(unsigned int boot_stage)
 
 static unsigned int bfm_get_version_type(void)
 {
-    int i;
-    unsigned int user_flag = 0;
+	int i;
+	unsigned int user_flag = 0;
 
-    for (i = 0; i < BFM_HISI_WAIT_FOR_VERSION_PART_TIMEOUT; i++)
-    {
-        user_flag = get_logusertype_flag();
-        if (0 != user_flag)
-        {
-            break;
-        }
-        msleep(1000);
-    }
+	if (s_is_first_get_usertype) {
+		for (i = 0; i < BFM_HISI_WAIT_FOR_VERSION_PART_TIMEOUT; i++) {
+			user_flag = get_logusertype_flag();
+			if (user_flag != 0)
+				break;
+			msleep(1000);
+		}
+		s_is_first_get_usertype = false;
+	} else {
+		user_flag = get_logusertype_flag();
+	}
 
-    return user_flag;
+	return user_flag;
 }
 
 
@@ -1116,6 +1120,40 @@ bool bfmr_is_oversea_commercail_version(void)
     unsigned int usertype = bfm_get_version_type();
 
     return ((BETA_USER != usertype) && (OVERSEA_USER != usertype) && (COMMERCIAL_USER != usertype));
+}
+
+
+static inline int bfm_write_reserved_phys_mem(unsigned int magic_num, void *phys_addr)
+{
+    void *paddr = NULL;
+
+	paddr = ioremap_nocache((phys_addr_t)phys_addr, sizeof(magic_num));
+    if (NULL != paddr)
+    {
+        writel(magic_num, (void *)paddr);
+        iounmap(paddr);
+        return 0;
+    }
+
+    return -1;
+}
+
+
+int bfm_write_sub_bootfail_magic_num(unsigned int magic_num, void *phys_addr)
+{
+    return bfm_write_reserved_phys_mem(magic_num, phys_addr);
+}
+
+
+int bfm_write_sub_bootfail_num(unsigned int bootfail_errno, void *phys_addr)
+{
+    return bfm_write_reserved_phys_mem(bootfail_errno, phys_addr);
+}
+
+
+int bfm_write_sub_bootfail_count(unsigned int bootfail_count, void *phys_addr)
+{
+    return bfm_write_reserved_phys_mem(bootfail_count, phys_addr);
 }
 
 

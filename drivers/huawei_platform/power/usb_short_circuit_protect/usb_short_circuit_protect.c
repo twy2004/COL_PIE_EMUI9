@@ -32,6 +32,7 @@
 #include <huawei_platform/power/huawei_charger.h>
 #include <huawei_platform/power/usb_short_circuit_protect.h>
 #include <linux/thermal.h>
+#include <huawei_platform/power/huawei_battery_temp.h>
 
 #define HWLOG_TAG usb_short_circuit_protect
 HWLOG_REGIST();
@@ -417,7 +418,7 @@ static void check_temperature(struct uscp_device_info* di)
     }
     tusb = get_temperature_value();
     usb_temp = tusb;
-    tbatt = hisi_battery_temperature();
+    huawei_battery_temp(BAT_TEMP_MIXED, &tbatt);
     hwlog_info("tusb = %d, tbatt = %d\n", tusb, tbatt);
     tdiff = tusb - tbatt;
 
@@ -524,15 +525,17 @@ static void check_ntc_error(void)
     hwlog_info("check ntc error, temp = %d\n", temp);
     if (temp > CHECK_NTC_TEMP_MAX || temp < CHECK_NTC_TEMP_MIN)
     {
+        #ifndef CONFIG_HLTHERM_RUNTEST
         if (!dsm_client_ocuppy(power_dsm_get_dclient(POWER_DSM_USCP)))
         {
-            tbatt = hisi_battery_temperature();
+            huawei_battery_temp(BAT_TEMP_MIXED, &tbatt);
             batt_id = hisi_battery_id_voltage();
             hwlog_info("ntc error notify\n");
             dsm_client_record(power_dsm_get_dclient(POWER_DSM_USCP), "ntc error happened,tusb = %d,tbatt = %d,batt_id = %d\n",
                 temp,tbatt,batt_id);
             dsm_client_notify(power_dsm_get_dclient(POWER_DSM_USCP), ERROR_NO_USB_SHORT_PROTECT_NTC);
         }
+        #endif
         protect_enable = 0;
     }
     else

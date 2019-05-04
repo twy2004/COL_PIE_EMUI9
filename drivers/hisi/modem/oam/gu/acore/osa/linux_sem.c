@@ -77,6 +77,8 @@
 #include "v_task.h"
 #include "v_int.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 
@@ -84,6 +86,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_SEM_C
+#define    THIS_MODU           mod_pam_osa
 
 typedef struct SEM_CONTROL_STRU
 {
@@ -153,7 +156,6 @@ SEM_CONTROL_BLOCK *VOS_SemCtrlBlkGet(VOS_VOID)
     VOS_UINT32      i;
     VOS_ULONG       ulLockLevel;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosSemSpinLock, ulLockLevel);
 
     for(i=0; i<vos_SemCtrlBlkNumber; i++)
@@ -165,7 +167,6 @@ SEM_CONTROL_BLOCK *VOS_SemCtrlBlkGet(VOS_VOID)
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosSemSpinLock, ulLockLevel);
 
     if( i < vos_SemCtrlBlkNumber)
@@ -180,7 +181,7 @@ SEM_CONTROL_BLOCK *VOS_SemCtrlBlkGet(VOS_VOID)
     }
     else
     {
-        LogPrint("# VOS_GetSemCtrlBlk no Idle.\r\n");
+        mdrv_err("<VOS_SemCtrlBlkGet> no Idle.\n");
 
         VOS_SetErrorNo(VOS_ERRNO_SEMA4_FULL);
 
@@ -207,12 +208,10 @@ VOS_UINT32 VOS_SemCtrlBlkFree( SEM_CONTROL_BLOCK *Sem_Address )
         }
         else
         {
-            /*intLockLevel = VOS_SplIMP();*/
             VOS_SpinLockIntLock(&g_stVosSemSpinLock, ulLockLevel);
 
             Sem_Address->Flag = VOS_SEM_CTRL_BLK_IDLE;
 
-            /*VOS_Splx(intLockLevel);*/
             VOS_SpinUnlockIntUnlock(&g_stVosSemSpinLock, ulLockLevel);
         }
 
@@ -220,7 +219,7 @@ VOS_UINT32 VOS_SemCtrlBlkFree( SEM_CONTROL_BLOCK *Sem_Address )
     }
     else
     {
-        Print("# VOS_FreeSemCtrlBlk free NULL Sem.\r\n");
+        mdrv_err("<VOS_FreeSemCtrlBlk> free NULL Sem.\n");
 
         return(VOS_ERR);
     }
@@ -467,7 +466,7 @@ VOS_UINT32 VOS_Sm_AsyP( VOS_SEM Sm_ID )
  *****************************************************************************/
 VOS_VOID VOS_show_sem_info( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: Max be used sem is %x.\r\n", __FUNCTION__, vos_SemMaxSemId);
+    mdrv_debug("<VOS_show_sem_info> Max be used sem is %x.\n", vos_SemMaxSemId);
 }
 
 

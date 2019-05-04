@@ -80,13 +80,7 @@ static int hisifb_pipe_clk_updt_config(struct hisi_fb_data_type *hisifd)
 		set_reg(ldi_base + LDI_PXL0_DSI_GT_EN, 1, 2, 0);
 	}
 
-	HISI_FB_INFO("fullhdplus[%d], set pxl0_divxcfg[%d].\n", pipe_clk_ctrl->fullhdplus, pxl0_divxcfg - 1);
-
-	if ((pipe_clk_ctrl->pipe_clk_updt_hporch[0] == pinfo->ldi.h_back_porch)
-		&& (pipe_clk_ctrl->pipe_clk_updt_hporch[1] == pinfo->ldi.h_front_porch)
-		&& (pipe_clk_ctrl->pipe_clk_updt_hporch[2] == pinfo->ldi.h_pulse_width)) {
-		return ret;
-	}
+	HISI_FB_INFO("step1. set pxl0_divxcfg[%d], fullhdplus[%d].\n", (pxl0_divxcfg - 1), pipe_clk_ctrl->fullhdplus);
 
 	if (is_mipi_video_panel(hisifd)) {
 		outp32(ldi_base + LDI_DPI0_HRZ_CTRL0,
@@ -105,7 +99,7 @@ static int hisifb_pipe_clk_updt_config(struct hisi_fb_data_type *hisifd)
 		}
 	}
 
-	HISI_FB_INFO("updt hporch: hbp[%d], hfp[%d], hpw[%d].\n",
+	HISI_FB_INFO("step2. updt hporch: hbp[%d], hfp[%d], hpw[%d].\n",
 		pipe_clk_ctrl->pipe_clk_updt_hporch[0],
 		pipe_clk_ctrl->pipe_clk_updt_hporch[1],
 		pipe_clk_ctrl->pipe_clk_updt_hporch[2]);
@@ -567,9 +561,11 @@ int hisifb_wait_pipe_clk_updt(struct hisi_fb_data_type *hisifd, bool dp_on)
 	dp_pxl_clk_rate = hisifd->panel_info.pxl_clk_rate;
 	primary_hisifd = hisifd_list[PRIMARY_PANEL_IDX];
 	primary_pinfo = &(primary_hisifd->panel_info);
+
+	HISI_FB_INFO("+, dp_on[%d], dp_pxl_clk_rate = %llu \n",dp_on, dp_pxl_clk_rate);
+
 	if (dp_pxl_clk_rate <= primary_pinfo->pxl_clk_rate) {
-		HISI_FB_INFO("pxl_clk_rate[%llu] is enough for dp_pxl_clk_rate[%llu]. \n",
-			primary_pinfo->pxl_clk_rate, dp_pxl_clk_rate);
+		HISI_FB_INFO("pxl_clk_rate[%llu] is enough, return. \n", primary_pinfo->pxl_clk_rate);
 		return 0;
 	}
 
@@ -577,7 +573,6 @@ int hisifb_wait_pipe_clk_updt(struct hisi_fb_data_type *hisifd, bool dp_on)
 	pipe_clk_ctrl->pipe_clk_updt_times = 0;//clean upda_times when dp in/out.
 	pipe_clk_ctrl->pipe_clk_updt_state = PARA_UPDT_END;
 
-	HISI_FB_INFO("+, dp_on[%d], dp_pxl_clk_rate = %llu \n",dp_on, dp_pxl_clk_rate);
 	HISI_FB_DEBUG("primary_pinfo: \n"
 		"pxl_clk_rate[%llu], pxl_clk_rate_div[%d], xres[%d], yres[%d],\n"
 		"hbp[%d], hfp[%d], hpw[%d], vbp[%d], vfp[%d], vpw[%d].\n",

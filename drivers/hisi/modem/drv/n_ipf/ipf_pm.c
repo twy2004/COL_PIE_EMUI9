@@ -12,6 +12,7 @@
 #include <osl_bio.h>
 #include <bsp_slice.h>
 #include "ipf_balong.h"
+#include "hi_ipf.h"
 
 extern ipf_ctx_t g_ipf_ctx;
 

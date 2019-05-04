@@ -110,11 +110,10 @@ VOS_INT RNIC_DataRxProc(
     VOS_UINT32                          ulExParam
 )
 {
-    VOS_UINT8                           ucRmNetId;
+    IMM_ZcSetProtocol(pstImmZc, ((ADS_PKT_TYPE_IPV4 == enPktType) ?
+                                 RNIC_NS_ETH_TYPE_IP : RNIC_NS_ETH_TYPE_IPV6));
 
-    ucRmNetId = RNIC_GET_RMNETID_FROM_EXPARAM(ulExParam);
-
-    return rnic_rx_handle(ucRmNetId, pstImmZc, enPktType);
+    return rnic_rx_handle((VOS_UINT8)ulExParam, pstImmZc);
 }
 
 
@@ -259,9 +258,8 @@ VOS_UINT32 RNIC_RecvVoWifiDlData(
     CDS_RNIC_IMS_DATA_IND_STRU         *pstImsDataInd
 )
 {
-    IMM_ZC_STRU                        *pstImmZc      = VOS_NULL_PTR;
+    IMM_ZC_STRU                        *pstImmZc = VOS_NULL_PTR;
     VOS_UINT8                           ucIpType;
-    VOS_UINT8                           ucIpFamily;
 
     /* ·ÖÅäAºËÄÚ´æ */
     pstImmZc = IMM_ZcStaticAlloc(pstImsDataInd->usDataLen + IMM_MAC_HEADER_RES_LEN);
@@ -282,11 +280,11 @@ VOS_UINT32 RNIC_RecvVoWifiDlData(
     ucIpType = ((RNIC_IPFIXHDR_STRU *)(pstImsDataInd->aucData))->ucIpVer;
     if (RNIC_IPV4_VERSION == ucIpType)
     {
-        ucIpFamily = RNIC_IPV4_ADDR;
+        IMM_ZcSetProtocol(pstImmZc, RNIC_NS_ETH_TYPE_IP);
     }
     else if (RNIC_IPV6_VERSION == ucIpType)
     {
-        ucIpFamily = RNIC_IPV6_ADDR;
+        IMM_ZcSetProtocol(pstImmZc, RNIC_NS_ETH_TYPE_IPV6);
     }
     else
     {
@@ -295,7 +293,7 @@ VOS_UINT32 RNIC_RecvVoWifiDlData(
         return VOS_ERR;
     }
 
-    rnic_rx_handle(enRmNetId, pstImmZc, ucIpFamily);
+    rnic_rx_handle(enRmNetId, pstImmZc);
 
     return VOS_OK;
 }

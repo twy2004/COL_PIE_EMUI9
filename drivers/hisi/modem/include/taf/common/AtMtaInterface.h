@@ -155,6 +155,8 @@ extern "C" {
 
 #define AT_MTA_VERSION_INFO_LEN             (10)      /* 机器学习模型中版本号对应的长度 */
 
+#define UCOM_NV_DCXO_SAMPLE_H_MAX_NUM               ( 40 )
+
 
 /*****************************************************************************
   3 枚举定义
@@ -354,10 +356,38 @@ enum AT_MTA_MSG_TYPE_ENUM
     ID_AT_MTA_NV_REFRESH_SET_REQ         = 0x008E,           /* _H2ASN_MsgChoice AT_MTA_NV_REFRESH_SET_REQ_STRU */
 
 #ifdef MBB_SLT
-    ID_AT_MTA_HIFI_TEST_SET_REQ         = 0X008F,
+    ID_AT_MTA_SLT_TEST_SET_REQ         = 0X008F,
 #endif
+
     ID_AT_MTA_CDMA_MODEM_CAP_SET_REQ    = 0x0090,
+
     ID_AT_MTA_CDMA_CAP_RESUME_SET_REQ   = 0x0091,
+
+    ID_AT_MTA_PHYMIPIWRITE_SET_REQ      = 0x0092,
+
+    ID_AT_MTA_FORCESYNC_SET_REQ      = 0x0093,
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    ID_AT_MTA_LENDC_QRY_REQ          = 0x0094,
+    ID_AT_MTA_NR_FREQLOCK_SET_REQ    = 0x0095,
+    ID_AT_MTA_NR_FREQLOCK_QRY_REQ    = 0x0096,
+#endif
+
+    ID_AT_MTA_SET_LTEPWRDISS_REQ        = 0x0097,
+
+    ID_AT_MTA_GNSS_NTY                  = 0x0098,
+
+    ID_AT_MTA_LL2_COM_CFG_SET_REQ       = 0x009D,
+    ID_AT_MTA_LL2_COM_CFG_QRY_REQ       = 0x009E,
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    ID_AT_MTA_NL2_COM_CFG_SET_REQ       = 0x009F,
+    ID_AT_MTA_NL2_COM_CFG_QRY_REQ       = 0x00A0,
+
+    ID_AT_MTA_NRRCCAP_CFG_SET_REQ       = 0x00A1,
+    ID_AT_MTA_NRRCCAP_QRY_REQ           = 0x00A2,
+    ID_AT_MTA_NRPWRCTRL_SET_REQ         = 0x00A3,
+#endif
+
     ID_AT_MTA_NV_REFRESH_RSP             = 0x2002,           /* 防止AT->MTA新增消息和ID_MTA_NV_REFRESH_RSP取值重复*/
 
     /* MTA发给AT的消息 */
@@ -452,6 +482,16 @@ enum AT_MTA_MSG_TYPE_ENUM
 #if (FEATURE_ON == FEATURE_PROBE_FREQLOCK)
     ID_MTA_AT_SET_M2M_FREQLOCK_CNF      = 0x1040,           /* _H2ASN_MsgChoice AT_MTA_SET_M2M_FREQLOCK_CNF_STRU */
     ID_MTA_AT_QRY_M2M_FREQLOCK_CNF      = 0x1041,           /* _H2ASN_MsgChoice MTA_AT_QRY_FREQLOCK_CNF_STRU */
+#endif
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    ID_MTA_AT_LENDC_QRY_CNF             = 0x1042,
+    ID_MTA_AT_LENDC_INFO_IND            = 0x1043,
+#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
+    ID_MTA_AT_NR_FREQLOCK_SET_CNF       = 0x1044,
+    ID_MTA_AT_NR_FREQLOCK_QRY_CNF       = 0x1045,
+#endif
+
 #endif
 
     ID_MTA_AT_TRANSMODE_QRY_CNF         = 0x1052,
@@ -594,20 +634,60 @@ enum AT_MTA_MSG_TYPE_ENUM
     ID_MTA_AT_NV_REFRESH_SET_CNF         = 0x10AF,          /* _H2ASN_MsgChoice MTA_AT_NV_REFRESH_SET_CNF_STRU */
 
 #ifdef MBB_SLT
-    ID_AT_MTA_HIFI_TEST_SET_CNF         = 0x10B0,
+    ID_AT_MTA_SLT_TEST_SET_CNF         = 0x10B0,
 #endif
+
     ID_MTA_AT_CDMA_MODEM_CAP_SET_CNF    = 0x10B1,
+
     ID_MTA_AT_CDMA_CAP_RESUME_SET_CNF   = 0x10B2,
+
+    ID_MTA_AT_PHYMIPIWRITE_SET_CNF      = 0x10B3,
+
+    ID_MTA_AT_LL2_COM_CFG_SET_CNF         = 0x10B8,
+    ID_MTA_AT_LL2_COM_CFG_QRY_CNF         = 0x10B9,
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    ID_MTA_AT_NL2_COM_CFG_SET_CNF         = 0x10BA,
+    ID_MTA_AT_NL2_COM_CFG_QRY_CNF         = 0x10BB,
+
+    ID_MTA_AT_NRRCCAP_CFG_SET_CNF         = 0x10BC,
+    ID_MTA_AT_NRRCCAP_QRY_CNF             = 0x10BD,
+    ID_MTA_AT_NRPWRCTRL_SET_CNF           = 0x10BE,
+#endif
+
     ID_AT_MTA_QRY_JAM_DETECT_REQ        = 0x1100,
     ID_MTA_AT_QRY_JAM_DETECT_CNF        = 0x1101,
 
     ID_MTA_AT_PSEUD_BTS_IDENT_IND       = 0x1102,
+
+    ID_MTA_AT_FORCESYNC_SET_CNF         = 0X1103,
+
+    ID_AT_MTA_SET_LTEPWRDISS_CNF        = 0X1104,
+
+    ID_AT_MTA_DCXO_SAMPLE_QRY_REQ         = 0X1105,
+    ID_MTA_AT_DCXO_SAMPLE_QRY_CNF         = 0X1106,
 
     /* 最后一条消息 */
     ID_AT_MTA_MSG_TYPE_BUTT
 
 };
 typedef VOS_UINT32 AT_MTA_MSG_TYPE_ENUM_UINT32;
+
+
+enum AT_SET_SLT_TEST_TYPE_ENUM
+{
+    AT_SET_SGMII_TEST                   = 1,    /* SGMII数模接口功能测试 */
+    AT_SET_RGMII_TEST                   = 2,    /* RGMII数模接口功能测试 */
+    AT_SET_PCIE_TEST                    = 3,    /* PCIe模拟PHY接口连接测试 */
+    AT_SET_SPI_TEST                     = 4,    /* SPI master和slave对接环回测试 */
+    AT_SET_SDCARD_TEST                  = 5,    /* MMC0接口及SD卡读写测试 */
+    AT_SET_L2CACHE_TEST                 = 6,    /* L2CACHE测试 */
+    AT_SET_HIFI_TEST                    = 7,    /* HIFI测试*/
+    AT_SET_SLT_SERDES_TEST              = 8,    /* SERDES 测试 */
+    AT_SET_SLT_ALINK_TEST               = 9,    /* alink 测试 */
+    AT_SET_SLT_TEST_BUTT
+};
+typedef VOS_UINT8  AT_SET_SLT_TEST_TYPE_ENUM_UINT8;
+
 
 
 enum MTA_AT_RESULT_ENUM
@@ -704,6 +784,10 @@ enum AT_MTA_RPT_SET_TYPE_ENUM
     AT_MTA_SET_CLOCINFO_RPT_TYPE,
     AT_MTA_SET_MTREATTACH_RPT_TYPE,
     AT_MTA_SET_CENFS_RPT_TYPE,
+    AT_MTA_SET_C5GREG_RPT_TYPE,
+
+    AT_MTA_SET_LENDC_RPT_TYPE,
+
     AT_MTA_SET_RPT_TYPE_BUTT
 };
 typedef VOS_UINT32 AT_MTA_RPT_SET_TYPE_ENUM_UINT32;
@@ -1198,6 +1282,28 @@ enum AT_MTA_JAM_DETECT_MODE_ENUM
 };
 typedef VOS_UINT8 AT_MTA_JAM_DETECT_MODE_ENUM_UINT8;
 
+
+enum AT_MTA_DCXO_SAMPLE_TYPE_ENUM
+{
+    AT_MTA_DCXO_SAMPLE_H             = 0,                /* 高温段 */
+    AT_MTA_DCXO_SAMPLE_M             = 1,                /* 中温段 */
+    AT_MTA_DCXO_SAMPLE_L             = 2,                /* 低温段 */
+    AT_MTA_DCXO_SAMPLE_INITFREQ      = 3,                /* 产线校准数据 */
+    AT_MTA_DCXO_SAMPLE_BUTT
+};
+typedef VOS_UINT16 AT_MTA_DCXO_SAMPLE_TYPE_ENUM_UINT16;
+
+
+enum MTA_AT_DCXO_SAMPLE_RESULT_ENUM
+{
+    MTA_AT_DCXO_SAMPLE_RESULT_NO_ERROR          = 0,                /* 结果正确 */
+    MTA_AT_DCXO_SAMPLE_RESULT_ERROR             = 1,                /* 结果错误 */
+    MTA_AT_DCXO_SAMPLE_RESULT_PARA_ERROR        = 2,                /* 参数错误 */
+    MTA_AT_DCXO_SAMPLE_RESULT_OPTION_TIMEOUT    = 3,                /* 定时器超时 */
+    MTA_AT_DCXO_SAMPLE_RESULT_BUTT
+};
+typedef VOS_UINT16 MTA_AT_DCXO_SAMPLE_RESULT_ENUM_UINT16;
+
 /*****************************************************************************
   4 全局变量声明
 *****************************************************************************/
@@ -1633,6 +1739,9 @@ typedef struct
         VOS_UINT8                       ucClocinfoRptFlg;                       /* CLOCINFO是否主动上报标识 */
         VOS_UINT8                       ucMtReattachRptFlg;                     /* MTREATTACH是否主动上报标识 */
         VOS_UINT8                       ucCenfsRptFlg;                          /* ^CENFS是否主动上报标识 0:不上报，1:上报 */
+        VOS_UINT8                       ucC5gregRptFlg;                         /* NR注册状态是否主动上报标识 */
+
+        VOS_UINT8                       ucLendcRptFlg;
     }u;
 
     VOS_UINT8                           aucReserve[3];
@@ -1770,7 +1879,7 @@ typedef struct
     VOS_UINT8                           ucPseudRat;                            /* 伪基站制式 1.GSM  2.WCDMA  3.LTE */
     VOS_UINT8                           ucPseudBtsQryType;                     /* 查询参数 1.查询伪基站是否支持  2.查询伪基站拦截次数 */
     VOS_UINT8                           aucRsv[2];
-    
+
 }AT_MTA_SET_PSEUDBTS_REQ_STRU;
 
 
@@ -1783,7 +1892,7 @@ typedef struct
     union
     {
         VOS_UINT32                          ulPseudBtsIdentTimes;                   /* 识别次数 */
-        VOS_UINT8                           ucPseudBtsIdentCap;                     /* 是否支持 */ 
+        VOS_UINT8                           ucPseudBtsIdentCap;                     /* 是否支持 */
     }u;
 }MTA_AT_PSEUD_BTS_SET_CNF_STRU;
 
@@ -2074,7 +2183,7 @@ typedef struct
 
 typedef struct
 {
-    VOS_INT16                           sRssiThresh;                            /* 测量RSSI时，检测需要达到的频点测量值，取值范围[0,70]，实际用的时候减70使用 */              
+    VOS_INT16                           sRssiThresh;                            /* 测量RSSI时，检测需要达到的频点测量值，取值范围[0,70]，实际用的时候减70使用 */
     VOS_UINT16                          usPssratioThresh;                       /* 测量PSS Ratio小于该阈值的频点判断为干扰频点，取值范围:[0,100] */
     VOS_UINT8                           ucRssiPercent;                          /* 测量RSSI时检测需要达到的频点个数占频点总数（BAND和干扰信号取交集）的百分比，取值范围：[0,100] */
     VOS_UINT8                           ucPssratioPercent;                      /* 测量PSS Ratio时，干扰频点个数占可疑干扰范围内频点个数的百分比，取值范围:[0,100] */
@@ -2084,7 +2193,7 @@ typedef struct
 
 typedef union
 {
-    AT_MTA_GSM_JAM_DETECT_STRU          stGsmPara;    
+    AT_MTA_GSM_JAM_DETECT_STRU          stGsmPara;
     AT_MTA_WCDMA_JAM_DETECT_STRU        stWcdmaPara;
     AT_MTA_LTE_JAM_DETECT_STRU          stLtePara;
 }AT_MTA_JAM_DETECT_UNION;
@@ -2408,6 +2517,95 @@ typedef struct
 
 
 typedef MTA_AT_RESULT_CNF_STRU MTA_AT_SET_ECC_CFG_CNF_STRU;
+
+typedef MTA_AT_RESULT_CNF_STRU MTA_AT_LENDC_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucEutranNrFlag;                         /* 是否支持Eutra-NR模式: 0:不支持，1:支持 */
+    VOS_UINT8                           ucNrPscellFlag;                         /* 是否进入ENDC双连接状态: 0:非ENDC状态，1:ENDC已经建立状态 */
+    VOS_UINT8                           ucReserved1;                            /* 保留位 */
+    VOS_UINT8                           ucReserved2;                            /* 保留位 */
+} MTA_AT_LENDC_INFO_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enRslt;                                 /* 结果 */
+    VOS_UINT32                          ulReportFlag;                           /* 开启/关闭^LENDC主动上报，0:关闭  1:开启 */
+    MTA_AT_LENDC_INFO_STRU              stEndcInfo;
+} MTA_AT_LENDC_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucEutranNrFlag;                          /* 是否支持Eutran-NR模式: 0:不支持，1:支持 */
+    VOS_UINT8                           ucNrPscellFlag;                          /* 是否进入ENDC双连接状态: 0:非ENDC状态，1:ENDC已经建立状态 */
+    VOS_UINT8                           ucReserved1;                             /* 保留位 */
+    VOS_UINT8                           ucReserved2;                             /* 保留位 */
+} MTA_AT_LENDC_INFO_IND_STRU;
+
+/*****************************************************************************
+ 结构名    : MTA_NRRC_FREQLOCK_TYPE_ENUM
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : NRRC锁频类型
+*****************************************************************************/
+enum MTA_AT_FREQLOCK_TYPE_ENUM
+{
+    MTA_AT_FREQLOCK_TYPE_LOCK_NONE                  =  0,
+    MTA_AT_FREQLOCK_TYPE_LOCK_FREQ                  =  1,
+    MTA_AT_FREQLOCK_TYPE_LOCK_CELL                  =  2,
+    MTA_AT_FREQLOCK_TYPE_LOCK_BAND                  =  3,
+
+    MTA_AT_FREQLOCK_TYPE_LOCK_BUTT
+};
+typedef VOS_UINT8 MTA_AT_FREQLOCK_TYPE_ENUM_UINT8;
+
+/*****************************************************************************
+ 结构名    : MTA_AT_SCS_TYPE_COMM_ENUM
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : NRRC SCS Type COMM
+*****************************************************************************/
+enum MTA_AT_SCS_TYPE_COMM_ENUM
+{
+    MTA_AT_SCS_TYPE_COMM_15          = 0x00,
+    MTA_AT_SCS_TYPE_COMM_30          = 0x01,
+    MTA_AT_SCS_TYPE_COMM_60          = 0x02,
+    MTA_AT_SCS_TYPE_COMM_120         = 0x03,
+    MTA_AT_SCS_TYPE_COMM_240         = 0x04,
+
+    MTA_AT_SCS_TYPE_COMM_BUTT
+};
+typedef VOS_UINT8 MTA_AT_SCS_TYPE_COMM_ENUM_UINT8;
+
+typedef MTA_AT_RESULT_CNF_STRU MTA_AT_NRRC_FREQLOCK_SET_CNF_STRU;
+
+
+typedef struct
+{
+    MTA_AT_FREQLOCK_TYPE_ENUM_UINT8     enFreqType;
+    MTA_AT_SCS_TYPE_COMM_ENUM_UINT8     enScsType;
+    VOS_UINT16                          usReserved;
+    VOS_UINT16                          usBand;
+    VOS_UINT16                          usPhyCellId;
+    VOS_UINT32                          ulNrArfcn;
+}AT_MTA_SET_NRFREQLOCK_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+    MTA_AT_FREQLOCK_TYPE_ENUM_UINT8     enFreqType;
+    MTA_AT_SCS_TYPE_COMM_ENUM_UINT8     enScsType;
+    VOS_UINT16                          usReserved;
+    VOS_UINT16                          usBand;
+    VOS_UINT16                          usPhyCellId;
+    VOS_UINT32                          ulNrArfcn;
+} MTA_AT_NRRC_FREQLOCK_QRY_CNF_STRU;
+
 
 
 typedef struct
@@ -3063,6 +3261,14 @@ typedef struct
 
 typedef struct
 {
+    VOS_UINT32                          ulValue;
+}AT_MTA_GNSSNTY_STRU;
+
+
+
+
+typedef struct
+{
     VOS_UINT8                           ucDeviceID;      /* 需要设置的干扰器件ID, 0表示全部，1-255分别对应特定器件 */
     VOS_UINT8                           ucMode;          /* 0表示关闭主动上报，1表示开启主动上报 */
     VOS_UINT8                           aucReserved[2];
@@ -3253,6 +3459,23 @@ typedef struct
 
 typedef struct
 {
+    VOS_UINT16                          usWriteType;
+    VOS_UINT16                          usMipiId;
+    VOS_UINT16                          usSlaveId;
+    VOS_UINT16                          usRegAddr;
+    VOS_UINT16                          usMipiData;
+    VOS_UINT16                          usReserved1;
+} AT_MTA_PHY_MIPI_WRITE_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;      /* 操作结果 */
+}MTA_AT_PHY_MIPI_WRITE_CNF_STRU;
+
+
+typedef struct
+{
     VOS_UINT32                          ulEnableFlag;
 } AT_MTA_NO_CARD_MODE_SET_REQ_STRU;
 
@@ -3377,7 +3600,8 @@ typedef struct
 typedef struct
 {
     VOS_UINT8                            ucFineTimeType;
-    VOS_UINT8                            aucReserved[3];
+    VOS_UINT8                            ucForceFlag;
+    VOS_UINT16                           usNum;
 } AT_MTA_FINE_TIME_SET_REQ_STRU;
 
 
@@ -3427,6 +3651,37 @@ typedef struct
     MTA_AT_RESULT_ENUM_UINT32           enResult;
     VOS_BOOL                            blEnableType;
 } MTA_AT_CA_CELL_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          ulCmdType;
+    VOS_UINT32                          ulPara1;
+    VOS_UINT32                          ulPara2;
+    VOS_UINT32                          ulPara3;
+}AT_MTA_L2_COM_CFG_SET_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+}MTA_AT_L2_COM_CFG_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          ulCmdType;
+}AT_MTA_L2_COM_CFG_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+    VOS_UINT32                          ulCmdType;
+    VOS_UINT32                          ulPara1;
+    VOS_UINT32                          ulPara2;
+    VOS_UINT32                          ulPara3;
+}MTA_AT_L2_COM_CFG_QRY_CNF_STRU;
 
 
 typedef struct
@@ -3521,6 +3776,149 @@ typedef struct
 {
     VOS_UINT32           ulPseudBtsType;
 }MTA_AT_PSEUD_BTS_IDENT_IND_STRU;
+
+
+typedef struct
+{
+    VOS_UINT16                          usNum;                                  /* 强制脉冲的个数 */
+    VOS_UINT8                           aucRsv[2];
+
+}AT_MTA_SET_FORCESYNC_REQ_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          ulResult;                                 /* 执行结果 */
+}MTA_AT_SET_FORCESYNC_CNF_STRU;
+
+/*****************************************************************************
+结构名    : AT_MTA_LTEPWRDISS_SET_REQ_STRU
+结构说明  : AT向MTA发送LTEPWRDISS请求消息结构体
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8                           ucMode;
+    VOS_UINT8                           ucReserved;
+    VOS_INT16                           sPara;
+}AT_MTA_LTEPWRDISS_SET_REQ_STRU;
+
+/*****************************************************************************
+结构名    : AT_MTA_LTEPWRDISS_SET_CNF_STRU
+结构说明  : MTA向AT发送LTEPWRDISS请求结果消息结构体
+*****************************************************************************/
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+}AT_MTA_LTEPWRDISS_SET_CNF_STRU;
+
+
+typedef struct
+{
+    AT_MTA_DCXO_SAMPLE_TYPE_ENUM_UINT16  enDcxoSampleType;                      /* DCXO_SAMPLE样本类型 */
+    VOS_UINT8                            aucRsv[2];
+}AT_MTA_DCXO_SAMPE_QRY_REQ_STRU;
+
+/*****************************************************************************
+ 结构名    : UCOM_NV_DCXO_SAMPLE_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : 存放一组DCXO样本
+*****************************************************************************/
+typedef struct
+{
+    VOS_INT32                   swTime      :24;                                /* 年月，比如2016.4表示值为1604,小于1604表示该样本无效 */
+    VOS_INT32                   swMode      :8;                                 /* 模式，高4bit为modem_id,低4bit为模式，0:G、1:U、2:L、3:TD、4:1X、5:EVDO */
+    VOS_INT32                   swTemp;                                         /* 温度，Boston温度单位0.001度 */
+    VOS_INT32                   swPpm;                                          /* 相对频偏，定点化2^31/10^6 */
+}MTA_AT_DCXO_SAMPLE_STRU;
+
+/*****************************************************************************
+ 结构名    : UCOM_NV_XO_INIT_FREQUENCY_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  :2.2表示普通晶体的初始频偏和温度
+*****************************************************************************/
+typedef struct
+{
+    VOS_INT32                           swInitFrequency;                        /* 普通晶体的初始频偏，频偏放大倍数为2^31/10^6*/
+    VOS_INT32                           swInitTemperature;                      /* 普通晶体的初始温度，温度单位0.001度 */
+}MTA_AT_XO_INIT_FREQUENCY_STRU;
+
+
+typedef union
+{
+    MTA_AT_DCXO_SAMPLE_STRU                      astSample[UCOM_NV_DCXO_SAMPLE_H_MAX_NUM]; /*不同温段样本数据*/
+    MTA_AT_XO_INIT_FREQUENCY_STRU                stDcxoInitPpm;            /*拟合曲线系数*/
+}MTA_AT_DCXO_SECTION_DATA_UNION_STRU;
+
+
+typedef struct
+{
+    AT_MTA_DCXO_SAMPLE_TYPE_ENUM_UINT16           enDcxoSampleType;                      /* DCXO_SAMPLE样本类型 */
+    MTA_AT_DCXO_SAMPLE_RESULT_ENUM_UINT16         enResult;
+    MTA_AT_DCXO_SECTION_DATA_UNION_STRU           stSctionData;                     /*不同温段和产线校准数据*/
+}MTA_AT_DCXO_SAMPE_QRY_CNF_STRU;
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+
+typedef struct
+{
+    VOS_UINT32                             ulNrrcCfgNetMode;
+    VOS_UINT32                             ulPara1;
+    VOS_UINT32                             ulPara2;
+    VOS_UINT32                             ulPara3;
+    VOS_UINT32                             ulPara4;
+    VOS_UINT32                             ulPara5;
+    VOS_UINT32                             ulPara6;
+    VOS_UINT32                             ulPara7;
+    VOS_UINT32                             ulPara8;
+    VOS_UINT32                             ulPara9;
+    VOS_UINT32                             ulPara10;
+} AT_MTA_NRRCCAP_CFG_SET_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+}MTA_AT_NRRCCAP_CFG_SET_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          ulNrrcCfgNetMode;
+} AT_MTA_NRRCCAP_QRY_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+    VOS_UINT32                          ulNrrcCfgNetMode;
+    VOS_UINT32                          ulPara1;
+    VOS_UINT32                          ulPara2;
+    VOS_UINT32                          ulPara3;
+    VOS_UINT32                          ulPara4;
+    VOS_UINT32                          ulPara5;
+    VOS_UINT32                          ulPara6;
+    VOS_UINT32                          ulPara7;
+    VOS_UINT32                          ulPara8;
+    VOS_UINT32                          ulPara9;
+    VOS_UINT32                          ulPara10;
+} MTA_AT_NRRCCAP_QRY_CNF_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucMode;
+    VOS_UINT8                           ucReserved;
+    VOS_INT16                           sPara;
+}AT_MTA_NRPWRCTRL_SET_REQ_STRU;
+
+
+typedef struct
+{
+    MTA_AT_RESULT_ENUM_UINT32           enResult;
+}MTA_AT_NRPWRCTRL_SET_CNF_STRU;
+
+#endif
 
 /*****************************************************************************
   10 函数声明

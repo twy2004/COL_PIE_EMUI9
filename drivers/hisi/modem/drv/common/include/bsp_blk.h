@@ -61,6 +61,8 @@ extern "C"
 
 #ifdef __KERNEL__
 #include<linux/types.h>
+#include <linux/io.h>
+#include <ptable_com.h>
 
 int bsp_blk_read(const char *part_name,loff_t part_offset, void *data_buf, size_t data_len);
 int bsp_blk_write(const char *part_name,loff_t part_offset, void *data_buf, size_t data_len);
@@ -69,6 +71,10 @@ int bsp_blk_erase(const char *part_name);
 int bsp_blk_size(const char *part_name,u32 *size);
 
 int bsp_blk_get_cdromiso_blkname(char *blk_path, int len);
+static inline unsigned int bsp_boot_mode_get(void)
+{
+    return readl(SHM_MEM_PTABLE_ADDR + SHM_MEM_PTABLE_SIZE - 0x4);
+}
 
 #else
 #define FS_OOB_SIZE  16

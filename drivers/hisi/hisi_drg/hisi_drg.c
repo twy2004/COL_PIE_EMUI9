@@ -70,12 +70,14 @@ struct drg_device {
 	unsigned long max_freq;
 	/* thermal clip state for slave, cur state for master */
 	int state;
+	bool idle;
 };
 
 struct drg_rule {
 	struct kobject kobj;
 	/* work used to notify slave device the freq range has changed */
 	struct kthread_work exec_work;
+	struct kthread_work *coop_work;
 	/* list node for g_drg_rule_list */
 	struct list_head node;
 	/* all master device belong to this rule */
@@ -108,12 +110,12 @@ static LIST_HEAD(g_drg_cpufreq_list);
 static LIST_HEAD(g_drg_devfreq_list);
 static DEFINE_PER_CPU(unsigned int, drg_margin);
 static DEFINE_RWLOCK(drg_list_lock);
+static DEFINE_SPINLOCK(idle_state_lock);
+static struct timer_list g_drg_idle_update_timer;
 static DEFINE_KTHREAD_WORKER(g_drg_worker);
 static struct task_struct *g_drg_work_thread;
-static cpumask_t idle_cpumask;
 static bool g_drg_initialized;
 
-extern int update_devfreq(struct devfreq *devfreq);
 
 static struct drg_freq_device *drg_get_cpu_dev(unsigned int cpu)
 {
@@ -179,9 +181,15 @@ static int find_proper_upbound(struct drg_freq_device *freq_dev,
 	if (!dev)
 		return -ENODEV;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	rcu_read_lock();
+#endif
+
 	(void) dev_pm_opp_find_freq_floor(dev, freq);
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	rcu_read_unlock();
+#endif
 
 	return 0;
 }
@@ -237,21 +245,21 @@ static unsigned long drg_check_thermal_limit(struct drg_device *master,
 
 static int drg_rule_get_master_state(struct drg_rule *ruler)
 {
-	int i, state = INVALID_STATE;
+	int i, tmp, state = INVALID_STATE;
 
 	if (!ruler->enable)
 		return state;
 
 	for (i = 0; i < ruler->master_num; i++) {
-		if (ruler->master_dev[i].state < 0)
+		tmp = ruler->master_dev[i].idle ?
+		      0 : ruler->master_dev[i].state;
+		if (tmp < 0)
 			continue;
 
 		if (state < 0 ||
-		    (ruler->master_vote_max &&
-		     ruler->master_dev[i].state > state) ||
-		    (!ruler->master_vote_max &&
-		     ruler->master_dev[i].state < state))
-			state = ruler->master_dev[i].state;
+		    (ruler->master_vote_max && tmp > state) ||
+		    (!ruler->master_vote_max && tmp < state))
+			state = tmp;
 	}
 
 	return state;
@@ -306,13 +314,9 @@ static void drg_rule_update_work(struct kthread_work *work)
 	struct drg_rule *ruler = container_of(work,
 					      struct drg_rule, exec_work);
 	struct drg_device *slave;
-	int i, cpu, state;
+	int i, cpu;
 
-	state = drg_rule_get_master_state(ruler);
-
-	ruler->state_idx = state;
-
-	cpu_maps_update_begin();
+	get_online_cpus();
 	for (i = 0; i < ruler->slave_num; i++) {
 		slave = &ruler->slave_dev[i];
 		if (!slave->freq_dev)
@@ -324,23 +328,24 @@ static void drg_rule_update_work(struct kthread_work *work)
 			continue;
 		}
 
-		if (slave->freq_dev->df) {
-			mutex_lock(&slave->freq_dev->df->lock);
-			update_devfreq(slave->freq_dev->df);
-			mutex_unlock(&slave->freq_dev->df->lock);
-		}
+		if (slave->freq_dev->df)
+			devfreq_apply_limits(slave->freq_dev->df);
 	}
-	cpu_maps_update_done();
+	put_online_cpus();
 }
 
-static void drg_update_state(struct drg_rule *ruler)
+static void drg_update_state(struct drg_rule *ruler, bool force)
 {
+	ruler->state_idx = drg_rule_get_master_state(ruler);
+
+	if (!force && ruler->coop_work)
+		return;
 	/*
 	 * drg_rule_update_work will update other cpufreq/devfreq's freq,
 	 * throw it to a global worker can avoid function reentrant and
 	 * other potential race risk
 	 */
-	kthread_queue_work(&g_drg_worker, &ruler->exec_work);
+	kthread_queue_work(&g_drg_worker, ruler->coop_work ?: &ruler->exec_work);
 }
 
 static void drg_refresh_all_rule(void)
@@ -351,7 +356,33 @@ static void drg_refresh_all_rule(void)
 		return;
 
 	list_for_each_entry(ruler, &g_drg_rule_list, node)
-		drg_update_state(ruler);
+		drg_update_state(ruler, false);
+}
+
+static void drg_coop_work_update(struct drg_freq_device *freq_dev,
+			struct drg_device *work_dev,
+			unsigned long freq)
+{
+	struct drg_device *master;
+	int old_state, update = 0;
+
+	/* find all related coop work and check if they need an update */
+	list_for_each_entry(master, &freq_dev->master_list, node) {
+		if (master->ruler->coop_work == &work_dev->ruler->exec_work) {
+			old_state = master->state;
+			master->state = drg_freq2state(master->ruler,
+						       master->divider, freq);
+			if (master->state != old_state)
+				update = 1;
+		}
+	}
+
+	old_state = work_dev->state;
+	work_dev->state = drg_freq2state(work_dev->ruler,
+					 work_dev->divider, freq);
+
+	if (work_dev->state != old_state || update)
+		drg_update_state(work_dev->ruler, true);
 }
 
 static unsigned long drg_freq_check_limit(struct drg_freq_device *freq_dev,
@@ -359,7 +390,7 @@ static unsigned long drg_freq_check_limit(struct drg_freq_device *freq_dev,
 {
 	struct drg_device *master;
 	unsigned long ret, min_freq = 0, max_freq = ULONG_MAX;
-	int old_state, cpu;
+	int cpu;
 
 	if (!g_drg_initialized) {
 		freq_dev->cur_freq = target_freq * freq_dev->amp / KHZ;
@@ -384,19 +415,15 @@ static unsigned long drg_freq_check_limit(struct drg_freq_device *freq_dev,
 	list_for_each_entry(master, &freq_dev->master_list, node)
 		ret = drg_check_thermal_limit(master, ret);
 
-	if (cpumask_subset(&freq_dev->cpus, &idle_cpumask))
-		goto end;
-
 	/* get current freq range index and notice all related slaves */
 	list_for_each_entry(master, &freq_dev->master_list, node) {
-		old_state = master->state;
-		master->state = drg_freq2state(master->ruler,
-					       master->divider, ret);
+		/* coop work checked by its related work*/
+		if (master->ruler->coop_work)
+			continue;
 
-		if (master->state != old_state)
-			drg_update_state(master->ruler);
+		drg_coop_work_update(freq_dev, master, ret);
 	}
-end:
+
 	freq_dev->cur_freq = ret;
 
 	return ret * KHZ / freq_dev->amp;
@@ -499,12 +526,12 @@ void drg_cpufreq_cooling_update(unsigned int cpu, unsigned int clip_freq)
 	 * accessed when cpufreq unregister this device in hotplug,
 	 * hold hotplug lock in this interface
 	 */
-	cpu_maps_update_begin();
+	get_online_cpus();
 	freq_dev = drg_get_cpu_dev(cpu);
 	if (freq_dev)
 		drg_update_clip_state(freq_dev, clip_freq);
 
-	cpu_maps_update_done();
+	put_online_cpus();
 }
 
 /*
@@ -584,6 +611,11 @@ static struct notifier_block drg_cpufreq_policy_nb = {
 	.notifier_call = drg_cpufreq_policy_notifier,
 };
 
+static void drg_idle_update_timer_func(unsigned long data)
+{
+	drg_refresh_all_rule();
+}
+
 static int drg_cpu_pm_notifier(struct notifier_block *nb, unsigned long action,
 				void *data)
 {
@@ -607,32 +639,40 @@ static int drg_cpu_pm_notifier(struct notifier_block *nb, unsigned long action,
 	if (!dev_found)
 		goto unlock;
 
+	/* only update master's idle state */
+	if (list_empty(&freq_dev->master_list))
+		goto unlock;
+
+	spin_lock(&idle_state_lock);
+
 	switch (action) {
 	case CPU_PM_ENTER:
 		if (!hisi_cluster_cpu_all_pwrdn())
 			break;
 
-		cpumask_or(&idle_cpumask, &idle_cpumask, &freq_dev->cpus);
-
 		list_for_each_entry(master, &freq_dev->master_list, node) {
-			master->state = 0;
+			master->idle = true;
 		}
+
+		mod_timer(&g_drg_idle_update_timer,
+			  jiffies + msecs_to_jiffies(20));
+
 		break;
 	case CPU_PM_ENTER_FAILED:
 	case CPU_PM_EXIT:
-		if (!cpumask_subset(&freq_dev->cpus, &idle_cpumask))
-			break;
-
 		list_for_each_entry(master, &freq_dev->master_list, node) {
-			trigger_cpufreq = true;
-			master->state = drg_freq2state(master->ruler,
-						       master->divider,
-						       freq_dev->cur_freq);
+			if (master->idle) {
+				trigger_cpufreq = true;
+				master->idle = false;
+			}
 		}
 
-		cpumask_andnot(&idle_cpumask, &idle_cpumask, &freq_dev->cpus);
+		del_timer(&g_drg_idle_update_timer);
+
 		break;
 	}
+
+	spin_unlock(&idle_state_lock);
 
 unlock:
 	read_unlock(&drg_list_lock);
@@ -665,7 +705,7 @@ static void drg_freq_dev_release_work(struct kthread_work *work)
 		drg_dev->freq_dev = NULL;
 		drg_dev->state = INVALID_STATE;
 		list_del(&drg_dev->node);
-		drg_update_state(drg_dev->ruler);
+		drg_update_state(drg_dev->ruler, false);
 	}
 }
 
@@ -1105,6 +1145,55 @@ static int drg_device_init(struct device *dev, struct drg_device **drg_dev,
 	return 0;
 }
 
+static bool drg_is_subset_device(struct drg_device *dev, int dev_num,
+				 struct drg_device *ex_dev, int ex_dev_num)
+{
+	int i, j;
+
+	for (i = 0; i < dev_num; i++) {
+		for (j = 0; j < ex_dev_num; j++) {
+			if (dev[i].np == ex_dev[j].np)
+				break;
+		}
+		if (j == ex_dev_num)
+			break;
+	}
+
+	return (i == dev_num);
+}
+
+static void drg_init_ruler_work(struct drg_rule *ruler)
+{
+	struct drg_rule *ex_ruler;
+
+	list_for_each_entry(ex_ruler, &g_drg_rule_list, node) {
+		if (ex_ruler->master_num < ruler->master_num ||
+		    ex_ruler->slave_num < ruler->slave_num ||
+		    ex_ruler->coop_work)
+			continue;
+
+		if (!drg_is_subset_device(ruler->master_dev,
+					  ruler->master_num,
+					  ex_ruler->master_dev,
+					  ex_ruler->master_num))
+			continue;
+
+		if (!drg_is_subset_device(ruler->slave_dev,
+					  ruler->slave_num,
+					  ex_ruler->slave_dev,
+					  ex_ruler->slave_num))
+			continue;
+		/*
+		 * the master and slave of ruler is a subset of ex_ruler,
+		 * share the ex_ruler's work
+		 */
+		ruler->coop_work = &ex_ruler->exec_work;
+		return;
+	}
+
+	kthread_init_work(&ruler->exec_work, drg_rule_update_work);
+}
+
 /*lint --e{593}*/
 static int drg_probe(struct platform_device *pdev)
 {
@@ -1162,10 +1251,13 @@ static int drg_probe(struct platform_device *pdev)
 			goto err_probe;
 		}
 
-		kthread_init_work(&ruler->exec_work, drg_rule_update_work);
+		drg_init_ruler_work(ruler);
 
 		list_add_tail(&ruler->node, &g_drg_rule_list);
 	}
+
+	setup_deferrable_timer(&g_drg_idle_update_timer,
+			       drg_idle_update_timer_func, 0);
 
 	ret = cpu_pm_register_notifier(&drg_cpu_pm_nb);
 	if (ret) {

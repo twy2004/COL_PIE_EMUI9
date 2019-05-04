@@ -25,12 +25,17 @@
 #include <linux/rtc.h>
 #include <linux/time.h>
 #include <linux/stat.h>
+#include <linux/version.h>
 #include <linux/hisi/hi64xx/hi6403_dsp_regs.h>
 #include <hi64xx_hifi_interface.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <uapi/linux/sched/types.h>
+#endif
 
 #include "hi64xx_hifi_om.h"
 #include "hi64xx_hifi_debug.h"
 #include "slimbus.h"
+#include "slimbus_6405.h"
 #include "hifi_lpp.h"
 #include "hi64xx_hifi_misc.h"
 #include "hi64xx_hifi_anc_beta.h"
@@ -425,7 +430,7 @@ static int _create_dir(char *path)
 	return 0;
 }
 
-static int _create_full_dir(char *path)
+static int _create_full_dir(const char *path)
 {
 	char cur_path[HOOK_PATH_MAX_LENGTH];
 	int index = 0;
@@ -491,7 +496,7 @@ out:
 }
 
 
-void hi64xx_hifi_dump_to_file(char *buf, unsigned int size, char *path)
+void hi64xx_hifi_dump_to_file(const char *buf, unsigned int size, char *path)
 {
 	struct file *fp = NULL;
 	int file_flag = O_RDWR;
@@ -499,7 +504,7 @@ void hi64xx_hifi_dump_to_file(char *buf, unsigned int size, char *path)
 	mm_segment_t fs = 0;
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!path) {
 		HI64XX_DSP_ERROR("path is null.\n");
@@ -560,14 +565,14 @@ END:
 }
 
 static void _dump_dsp_data_for_tool(hook_pos pos,
-				void *data, unsigned int size, unsigned int hook_id)
+				const void *data, unsigned int size, unsigned int hook_id)
 {
 	char path[HOOK_PATH_MAX_LENGTH + HOOK_FILE_NAME_MAX_LENGTH] = {0};
 	char new_path[HOOK_PATH_MAX_LENGTH + HOOK_FILE_NAME_MAX_LENGTH] = {0};
 	struct hi64xx_om_priv *priv = om_priv;
 	struct hook_runtime *runtime = NULL;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (HOOK_POS_LOG == pos) {
 		//todo:print dsp log
@@ -601,12 +606,12 @@ static void _dump_dsp_data_for_tool(hook_pos pos,
 }
 
 static void _dump_dsp_data(hook_pos pos,
-				void *data, unsigned int size, unsigned int hook_id)
+				const void *data, unsigned int size, unsigned int hook_id)
 {
 	char path[HOOK_PATH_MAX_LENGTH + HOOK_FILE_NAME_MAX_LENGTH] = {0};
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (HOOK_POS_LOG == pos) {
 		//todo:print dsp log
@@ -633,7 +638,7 @@ static void _parse_dsp_data(void *data, struct hook_runtime *runtime)
 	unsigned int data_size = 0;
 	unsigned int i = 0;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (VERIFY_FRAME_HEAD_MAGIC_NUM == *buffer) {
 		HI64XX_DSP_WARNING("throw away verify data.\n");
@@ -679,7 +684,7 @@ static int _parse_pos_info(void *data, struct hook_runtime *runtime)
 	char log[HOOK_RECORD_MAX_LENGTH] = {0};
 	char path[HOOK_PATH_MAX_LENGTH + HOOK_FILE_NAME_MAX_LENGTH] = {0};
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	/*
 	 * pos info arrange:
@@ -817,7 +822,7 @@ static int _left_data_parse_thread(void *p)
 	struct hi64xx_om_priv *priv = om_priv;
 	struct hook_runtime *runtime = NULL;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	runtime = &priv->runtime[HOOK_LEFT];
 
@@ -864,7 +869,7 @@ static int _right_data_parse_thread(void *p)
 	struct hi64xx_om_priv *priv = om_priv;
 	struct hook_runtime *runtime = NULL;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	runtime = &priv->runtime[HOOK_RIGHT];
 
@@ -911,7 +916,7 @@ static void _om_hook_stop(unsigned int hook_id)
 	struct pos_infos *pos_infos = NULL;
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	runtime = &priv->runtime[hook_id];
 
@@ -946,7 +951,7 @@ int hi64xx_hifi_om_set_bw(unsigned short bandwidth)
 {
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (bandwidth >= OM_BANDWIDTH_BUTT) {
 		HI64XX_DSP_ERROR("err om bw:%d.\n", bandwidth);
@@ -969,7 +974,7 @@ int hi64xx_hifi_om_set_sponsor(unsigned short sponsor)
 {
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (sponsor >= OM_SPONSOR_BUTT) {
 		HI64XX_DSP_ERROR("err om sponsor:%d.\n", sponsor);
@@ -992,7 +997,7 @@ int hi64xx_hifi_om_set_hook_path(char *path, unsigned int size)
 {
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!path || size > (HOOK_PATH_MAX_LENGTH - 2)) {
 		HI64XX_DSP_ERROR("err para.\n");
@@ -1013,7 +1018,7 @@ int hi64xx_hifi_om_set_dir_count(unsigned int count)
 {
 	struct hi64xx_om_priv *priv = om_priv;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (priv->started || !priv->standby) {
 		HI64XX_DSP_ERROR("om is running, forbid set dir count:%d.\n", count);
@@ -1036,7 +1041,7 @@ void hi64xx_hifi_om_hook_stop(void)
 	struct hi64xx_om_priv *priv = om_priv;
 	int ret = 0;
 
-	BUG_ON(NULL == priv);
+	WARN_ON(NULL == priv);
 
 	if (!priv->started || priv->standby)
 		return;
@@ -1087,6 +1092,10 @@ int hi64xx_hifi_om_init(struct hi64xx_irq *irqmgr, unsigned int codec_type)
 	if (HI64XX_CODEC_TYPE_6403 == codec_type)	{
 		priv->slimbus_device_type = SLIMBUS_DEVICE_HI6403;
 		priv->slimbus_track_type =  SLIMBUS_TRACK_DEBUG;
+	}
+	else if (HI64XX_CODEC_TYPE_6405 == codec_type) {
+		priv->slimbus_device_type = SLIMBUS_DEVICE_HI6405;
+		priv->slimbus_track_type =  SLIMBUS_6405_TRACK_DEBUG;
 	}
 	else {
 		HI64XX_DSP_ERROR("do not support codec_type %d\n", codec_type);

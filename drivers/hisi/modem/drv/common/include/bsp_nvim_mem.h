@@ -74,11 +74,20 @@ extern "C" {
 #define NV_GLOBAL_START_ADDR         (SHM_MEM_NV_ADDR)
 #define NV_GLOBAL_END_ADDR           (SHM_MEM_NV_ADDR + (unsigned long)SHM_MEM_NV_SIZE)
 
+#ifndef SHM_SIZE_NV_UNSAFE
+#define SHM_SIZE_NV_UNSAFE 0
+#endif
+
 /*reg global info*/
+#if (SHM_SIZE_NV_UNSAFE == 0)
 #define NV_GLOBAL_INFO_ADDR         (NV_GLOBAL_START_ADDR)
+#else
+#define NV_GLOBAL_INFO_ADDR         ((unsigned long)SHM_BASE_ADDR + (unsigned long)SHM_OFFSET_NV_UNSAFE)
+#endif
+
 #define NV_GLOBAL_INFO_SIZE         ((unsigned long)0x400)               /*1 K*/
 
-#define NV_GLOBAL_CTRL_INFO_ADDR    (NV_GLOBAL_INFO_ADDR + (unsigned long)NV_GLOBAL_INFO_SIZE)
+#define NV_GLOBAL_CTRL_INFO_ADDR    (NV_GLOBAL_START_ADDR + (unsigned long)NV_GLOBAL_INFO_SIZE)
 
 
 #ifdef __cplusplus

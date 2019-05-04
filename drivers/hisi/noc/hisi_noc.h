@@ -255,7 +255,7 @@ input: void __iomem * pctrl_base: pctrl virtual base address
 output: none
 return: irq status
 */
-unsigned long long noc_get_irq_status(void __iomem *pctrl_base);
+unsigned long long noc_get_irq_status(const void __iomem *pctrl_base);
 void enable_noc_transcation_probe(struct device *dev);
 void disable_noc_transcation_probe(struct device *dev);
 void enable_noc_packet_probe(struct device *dev);

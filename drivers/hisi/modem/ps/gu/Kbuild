@@ -1,6 +1,6 @@
 PSDIR = ..
 MODEM_DIR := $(srctree)/drivers/hisi/modem
--include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
+-include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 ifeq ($(TARGET_ARM_TYPE), arm64)
 EXTRA_CFLAGS += -Iarch/arm64/include/asm
@@ -27,6 +27,7 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/comm/nvim
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/lt/acore/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/oam/lt/common/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/acore
+EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tag/apss
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/common
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/nas
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/tlps/acore
@@ -50,11 +51,9 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/common/LINK/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/common/LOGFILTER/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/LOGFILTER/Inc
-EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/DIPC/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/common/FLOWCTRL/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/FLOWCTRL/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/IMM/Inc
-EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/MUX/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/NFEXT/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/acore/NDIS/Inc
 EXTRA_CFLAGS += -I$(MODEM_DIR)/ps/comm/comm/common/ND/IPCOMM/Inc
@@ -73,9 +72,7 @@ endif
 
 EXTRA_CFLAGS += -fsigned-char 
 
-gups-objs := $(PSDIR)/comm/comm/acore/DIPC/Src/PsDipc.o
-gups-objs += $(PSDIR)/comm/comm/acore/MUX/Src/PsMux.o
-gups-objs += $(PSDIR)/comm/comm/acore/FLOWCTRL/Src/ACpuLoad.o
+gups-objs := $(PSDIR)/comm/comm/acore/FLOWCTRL/Src/ACpuLoad.o
 gups-objs += $(PSDIR)/comm/comm/common/FLOWCTRL/Src/Fc.o
 gups-objs += $(PSDIR)/comm/comm/common/LOGFILTER/Src/PsLogFilterComm.o
 gups-objs += $(PSDIR)/comm/comm/acore/LOGFILTER/Src/PsAcpuLogFilter.o
@@ -103,6 +100,7 @@ gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/ppp_public.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/pppid.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/proto.o
 gups-objs += $(PSDIR)/comm/comm/acore/PPP/Src/throughput.o
+gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/ppp_rand.o
 ifeq ($(CFG_FEATURE_HARDWARE_HDLC_FUNC),FEATURE_ON)
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_service.o
 gups-objs += $(PSDIR)/comm/comm/common/PPP/Src/hdlc_hardware_driver.o
@@ -125,5 +123,4 @@ gups-objs += $(PSDIR)/comm/comm/acore/NFEXT/NetfilterExCtrl.o
 ifneq ($(strip $(CONFIG_HISI_BALONG_MODEM)),m)
 obj-y  := gups.o
 endif
-
 

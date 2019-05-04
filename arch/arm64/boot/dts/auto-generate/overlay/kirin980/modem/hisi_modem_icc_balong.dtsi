@@ -85,33 +85,12 @@
 				unused = <1>;
                 cfg = <11 0x3 0x0 31 6 20 1>;
                 status = "ok";					
-			};	
-			icc_channel_cm  /* CM */          /* 此通道对A核无意义，但是对fifo地址初始化有意义 */
-			{                
-				ch_name = "CM"; 
-				skip = <1>;
-                cfg = <12 0x3 0x200 29 6 20 1>;
-                status = "ok";					
-			};	
+			};		
 			icc_channel_amcore  /* A<->M */
 			{                 
 				ch_name = "A-M"; 
                 cfg = <13 0x3 0x200 29 6 20 1>;				
 				status = "ok";			
-			};
-			icc_channel_chifi_vos  /* C<->HIFI VOS */
-			{                 
-				ch_name = "C-HIFI-VOS"; 
-				skip = <1>;   /* C核与HIFI通信使用，skip */
-                cfg = <14 0x3 0x1800 1 31 20 1>;  /* skip的节点不关心ipc */
-                status = "ok";					
-			};
-			icc_channel_chifi_tphy  /* C<->HIFI TPHY */
-			{                 
-				ch_name = "C-HIFI-TPHY";
-				skip = <1>;	 /* C核与HIFI通信使用，skip */			
-                cfg = <15 0x3 0x1800 2 31 20 1>;  /* skip的节点不关心ipc */
-                status = "ok";					
 			};
 			icc_channel_vt_voip  /* A<->C VT_VOIP */
 			{                 

@@ -1168,10 +1168,10 @@ void select_als_para(struct device_node *dn)
 	}else if (vishay_vcnl36658_als_flag ==1){
 		select_vishay_vcnl36658_als_data();
 	}  else if((apds9922_flag == 1)||(ltr578_flag == 1)){
+		mutex_lock(&mutex_set_para);
 		if(WAS == als_data.als_phone_type){
 			tp_manufacture = tplcd_manufacture;
 		}/*when the product is Was,the tp_manufacture is the same as tplcd_manufacture*/
-		mutex_lock(&mutex_set_para);
 		set_pinhole_als_extend_parameters();
 		set_pinhole_para_flag = 1;
 		mutex_unlock(&mutex_set_para);
@@ -1256,7 +1256,7 @@ static int light_sensor_update_fastboot_info(void)
 {
 	char *pstr, *dstr;
 	char tmp[20];
-	long tmp_code;
+	long tmp_code = 0;
 	int err;
 
 	pstr = strstr(saved_command_line, "TP_COLOR=");

@@ -63,7 +63,7 @@
 #include <bsp_hardtimer.h>
 #include <bsp_slice.h>
 #include <bsp_version.h>
-#include "securec.h"
+#include <securec.h>
 
 #undef THIS_MODU
 #define THIS_MODU mod_hardtimer
@@ -205,10 +205,22 @@ unsigned int mdrv_timer_get_hrt_timestamp(void)
 	 return bsp_get_slice_value_hrt();
 }
 
+unsigned int mdrv_get_normal_timestamp_freq(void)
+{
+	return bsp_get_slice_freq();
+}
+unsigned int mdrv_get_hrt_timestamp_freq(void)
+{
+	return bsp_get_hrtimer_freq();
+}
 
 int mdrv_timer_start(unsigned int usrClkId,FUNCPTR_1 routine,int arg,unsigned int timerValue,DRV_TIMER_MODE_E mode,DRV_TIMER_UNIT_E unitType)
 {
     s32 ret = 0;
+    if(usrClkId>=TIMER_ID_MAX)
+    {
+          return MDRV_ERROR;
+	}
     adp_timer_ctrl[usrClkId].my_hardtimer.func = NULL;
     adp_timer_ctrl[usrClkId].my_hardtimer.para = NULL;
     adp_timer_ctrl[usrClkId].my_hardtimer.mode = (u32)mode;
@@ -223,6 +235,10 @@ int mdrv_timer_start(unsigned int usrClkId,FUNCPTR_1 routine,int arg,unsigned in
 }
 int mdrv_timer_stop(unsigned int usrClkId)
 {
+    if(usrClkId>=TIMER_ID_MAX)
+    {
+          return MDRV_ERROR;
+	}
 	timer_disable_stamp_dbg(usrClkId);
     return bsp_hardtimer_disable(usrClkId);
 }
@@ -230,6 +246,10 @@ int mdrv_timer_stop(unsigned int usrClkId)
 int mdrv_timer_get_rest_time(unsigned int usrClkId,unsigned int unitType,unsigned int * pRestTime)
 {
     int ret=0;
+    if(usrClkId>=TIMER_ID_MAX)
+    {
+          return MDRV_ERROR;
+	}
     ret = bsp_get_timer_rest_time(usrClkId,(DRV_TIMER_UNIT_E)unitType,pRestTime);
     timer_get_stamp_dbg(usrClkId,*pRestTime);
     return ret;
@@ -239,6 +259,10 @@ int mdrv_timer_get_rest_time(unsigned int usrClkId,unsigned int unitType,unsigne
 
 BSP_VOID mdrv_timer_debug_register(unsigned int usrClkId,FUNCPTR_1 routine, int arg)
 {
+    if(usrClkId>=TIMER_ID_MAX)
+    {
+          return;
+	}
 	adp_timer_ctrl[usrClkId].debug_routine = routine;
 	adp_timer_ctrl[usrClkId].debug_args = arg;
 }
@@ -352,5 +376,7 @@ EXPORT_SYMBOL(mdrv_timer_stop);
 EXPORT_SYMBOL(mdrv_timer_get_accuracy_timestamp);
 EXPORT_SYMBOL(mdrv_timer_get_normal_timestamp);
 EXPORT_SYMBOL(mdrv_timer_get_hrt_timestamp);
+EXPORT_SYMBOL(mdrv_get_normal_timestamp_freq);
+EXPORT_SYMBOL(mdrv_get_hrt_timestamp_freq);
 /*lint -restore +e19*/
 

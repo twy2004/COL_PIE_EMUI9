@@ -80,12 +80,14 @@
 #include "v_IO.h"
 #include "v_timer.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_LIB_C
-
+#define    THIS_MODU           mod_pam_osa
 
 #define COPY_LONG_SIZE          ( sizeof(VOS_UINT32) )
 #define COPY_WORD_SIZE          ( sizeof(VOS_UINT16) )
@@ -185,7 +187,7 @@ MODULE_EXPORTED VOS_UINT32 V_SetErrorNo( VOS_UINT32 ulErrorNo,
                          VOS_UINT32 ulFileID, VOS_INT32 usLineNo )
 {
     g_ulErrorNo = ulErrorNo;
-    LogPrint3("# VOS_SetErrorNo, F:%d, L:%d, ErrNo:%x.\r\n",
+    mdrv_debug("<VOS_SetErrorNo> F=%d, L=%d, ErrNo=%x.\n",
         (VOS_INT)ulFileID, usLineNo, (VOS_INT)ulErrorNo);
     return VOS_OK;
 }
@@ -712,14 +714,14 @@ VOS_VOID * V_MemSet( VOS_VOID * ToSet, VOS_CHAR Char, VOS_SIZE_T Count,
 
     if ( VOS_OK != VOS_LocationMem( ToSet, &ulSize, ulFileID, usLineNo ) )
     {
-        Print2("# WARING:V_MemSet destination error.file %d l %d.\r\n",
+        mdrv_err("<V_MemSet> destination error.file=%d l=%d.\n",
             ulFileID, usLineNo);
         return(VOS_NULL_PTR);
     }
 
     if ( Count > ulSize )
     {
-        Print4("# WARNING:V_MemSet big.file %d l %d.count %d real size %d.\r\n",
+        mdrv_err("<V_MemSet> big.file=%d l=%d.count=%d real size=%d.\n",
             ulFileID, usLineNo, Count, ulSize);
         return(VOS_NULL_PTR);
     }
@@ -790,7 +792,7 @@ VOS_VOID * V_MemCpy( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
 
     if ( VOS_OK != VOS_LocationMem( Dest, &ulSize, ulFileID, usLineNo ) )
     {
-        Print2("WARING:VOS_MemCpy destination error.file %d l %d.\r\n",
+        mdrv_err("<VOS_MemCpy> destination error.file=%d l=%d.\n",
             ulFileID, usLineNo);
 
         return(VOS_NULL_PTR);
@@ -798,7 +800,7 @@ VOS_VOID * V_MemCpy( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
 
     if ( Count > ulSize )
     {
-        Print4("WARNING:VOS_MemCpy big.file %d l %d.Count %d real size %d.\r\n",
+        mdrv_err("<VOS_MemCpy> big.file=%d l=%d.Count=%d real size=%d.\n",
             ulFileID, usLineNo, Count, ulSize);
 
         return(VOS_NULL_PTR);
@@ -877,7 +879,7 @@ VOS_VOID * V_MemMove( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
 
     if ( VOS_OK != VOS_LocationMem( Dest, &ulSize, ulFileID, usLineNo ) )
     {
-        Print2("WARING:VOS_MemCpy destination error.file %d l %d.\r\n",
+        mdrv_err("<VOS_MemCpy> destination error.file=%d l=%d.\n",
             ulFileID, usLineNo);
 
         return(VOS_NULL_PTR);
@@ -885,7 +887,7 @@ VOS_VOID * V_MemMove( VOS_VOID * Dest, const VOS_VOID * Src, VOS_SIZE_T Count,
 
     if ( Count > ulSize )
     {
-        Print4("WARNING:VOS_MemCpy big.file %d l %d.Count %d real size %d.\r\n",
+        mdrv_err("<VOS_MemCpy> big.file=%d l=%d.Count=%d real size=%d.\n",
             ulFileID, usLineNo, Count, ulSize);
 
         return(VOS_NULL_PTR);

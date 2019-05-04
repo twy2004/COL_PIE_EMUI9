@@ -42,7 +42,8 @@
 #include <linux/mmdebug.h>
 
 #if defined(CONFIG_HISI_LB_DEBUG)
-#include <linux/hisi/hisi_lb_debug.h>
+extern void __lb_assert_pte(pte_t pte);
+#define lb_assert_pte __lb_assert_pte
 #endif
 extern void __pte_error(const char *file, int line, unsigned long val);
 extern void __pmd_error(const char *file, int line, unsigned long val);

@@ -225,6 +225,8 @@ struct ps_platform_data {
 	uint8_t pulse_len;
 	uint8_t pgain;
 	uint8_t led_current;
+	uint8_t led_limited_curr;
+	uint8_t pd_current;
 	uint8_t prox_avg;/* ps  Filtrate control*/
 	uint8_t offset_max;
 	uint8_t offset_min;

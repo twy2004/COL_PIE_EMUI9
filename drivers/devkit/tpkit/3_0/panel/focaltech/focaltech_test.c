@@ -3126,6 +3126,7 @@ static void focal_put_test_result_fornewformat(
 		strncpy(pts_node->tptestfailedreason,test_results[i]->tptestfailedreason,TP_TEST_FAILED_REASON_LEN-1);
 		list_add_tail(&pts_node->node, &info->rawdata_head);
 	}
+
 out:
 	return;
 }

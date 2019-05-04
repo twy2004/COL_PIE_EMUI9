@@ -90,7 +90,7 @@ VOS_INT32 DMS_WriteData(DMS_PHY_BEAR_ENUM enPhyBear, VOS_UINT8 *pucData, VOS_UIN
         return VOS_ERROR;
     }
 
-    DMS_LOG_INFO("DMS_WriteData: PortNo = %d, len = %d, buf = %s\n", enPhyBear, usLen, pucData);
+    DMS_LOG_INFO("<DMS_WriteData> PortNo = %d, len = %d, buf = %s\n", enPhyBear, usLen, pucData);
 
     if ( (DMS_PHY_BEAR_USB_PCUI == enPhyBear)
       || (DMS_PHY_BEAR_USB_CTRL == enPhyBear)
@@ -269,13 +269,13 @@ VOS_UINT32 DMS_VcomWriteAsync(
     lHandle = pstPhyBearProp->lPortHandle;
     if (UDI_INVALID_HANDLE == lHandle)
     {
-        DMS_LOG_INFO("DMS_VcomWriteAsync[%d]: INVALID HANDLE.\n", enPhyBear);
+        DMS_LOG_INFO("<DMS_VcomWriteAsync[%d]> INVALID HANDLE.\n", enPhyBear);
         return ERR_MSP_FAILURE;
     }
 
     if (ACM_EVT_DEV_SUSPEND == pstPhyBearProp->ucChanStat)
     {
-        DMS_LOG_INFO("DMS_VcomWriteAsync[%d]: DEV SUSPEND.\n", enPhyBear);
+        DMS_LOG_INFO("<DMS_VcomWriteAsync[%d]> DEV SUSPEND.\n", enPhyBear);
         return ERR_MSP_FAILURE;
     }
 

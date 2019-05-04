@@ -1179,8 +1179,6 @@ void lcdkit_dump_reg_buf(const u32* buf, int cnt)
                 LCDKIT_DEBUG( "0x%02x,", (buf[i / INT_COUNT] >> (3 * REG_BIT_COUNT)) & 0xFF);
             }
             break;
-        default:
-            break;
         }
     }
 }
@@ -1465,8 +1463,6 @@ static ssize_t lcdkit_mipi_reg_read(struct file *file,
                         snprintf( tmp, sizeof(tmp), "0x%02x,", (lcdkit_dbg.lcdkit_ic_mipi_value[i / INT_COUNT] >> (3 * REG_BIT_COUNT)) & 0xFF);
                     }
                     break;
-                default:
-                    break;
                 }
                 strncat(lcd_debug_buf, tmp, strlen(tmp));
             }
@@ -1640,14 +1636,6 @@ static ssize_t lcdkit_mipi_reg_write(struct file *file,
             LCDKIT_ERR("write ic reg fail! ret = %d\n", ret);  // write fail
             goto err_handle;
          }
-         break;
-      }
-
-      /* error */
-      default:
-      {
-         LCDKIT_ERR("op type not support! op = %d\n", op_type);
-         ret = -1;
          break;
       }
    }

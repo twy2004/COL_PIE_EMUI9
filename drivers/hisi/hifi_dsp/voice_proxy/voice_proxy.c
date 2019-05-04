@@ -563,7 +563,7 @@ static int voice_proxy_write_thread(void *arg)
 /*
  * the interrupt handle function for receiving mailbox data
  */
-static void handle_mail(void *usr_para, void *mail_handle, uint32_t mail_len)
+static void handle_mail(const void *usr_para, void *mail_handle, uint32_t mail_len)
 {
 	int32_t i = 0;
 	int32_t ret_mail = 0;

@@ -67,23 +67,15 @@
 
 typedef struct _dump_ctrl_s
 {
-    uintptr_t dump_task_id;
-    u32 dump_task_job;
-    u32 current_task_info;           /*0xA0 */
+    uintptr_t        dump_task_id;
+    u32              dump_task_job;
+    u32              current_task_info;           /*0xA0 */
     struct semaphore sem_dump_task;
+    atomic_t         exc_flag;
 }modem_dump_ctrl_s;
-void dump_map_mdm_ddr(void);
-void dump_save_mdm_ddr_file(char* dir_name);
-void dump_save_mdm_dts_file(char* dir_name);
-void dump_save_mdm_sram_file(char* dir_name);
-void dump_save_mdm_secshare_file(char* dir_name);
-void dump_save_mdm_share_file(char* dir_name);
-void dump_save_mdm_llram_file(char* dir_name);
-void dump_optional_log_init(void);
 
-
-void dump_save_mandatory_logs(char* dir_name);
-void dump_save_mntn_bin(char* dir_name);
+void dump_save_file(char * file_name, void * addr,void * phy_addr, u32 len);
+int dump_create_dir(char *path);
+int dump_append_file(char * dir, char *filename, void * address,void* phy_addr, u32 length, u32 max_size);
 
 #endif
-

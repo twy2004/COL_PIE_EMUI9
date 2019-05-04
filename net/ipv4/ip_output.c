@@ -93,6 +93,7 @@ int g_FastGrabDscp = 0;    /*fg app dscp value,get from hilink*/
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 #include <hwnet/ipv4/wifi_delayst.h>
 #endif
+
 static int
 ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
 	    unsigned int mtu,
@@ -301,12 +302,21 @@ static int ip_finish_output(struct net *net, struct sock *sk, struct sk_buff *sk
 {
 	unsigned int mtu;
 	int ret;
-
+#ifdef CONFIG_HW_STRICT_RST
+	ret = BPF_CGROUP_RUN_PROG_INET_EGRESS(sk, skb);
+	if (!sk || (sk && sk_fullsock(sk) && !sk->is_strict_rst)) {
+		if (ret) {
+			kfree_skb(skb);
+			return ret;
+		}
+	}
+#else
 	ret = BPF_CGROUP_RUN_PROG_INET_EGRESS(sk, skb);
 	if (ret) {
 		kfree_skb(skb);
 		return ret;
 	}
+#endif
 
 #if defined(CONFIG_NETFILTER) && defined(CONFIG_XFRM)
 	/* Policy lookup after SNAT yielded a new policy */
@@ -411,8 +421,9 @@ int ip_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 	skb->protocol = htons(ETH_P_IP);
 
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_ip_combine(skb,TP_SKB_DIRECT_SND);
-	delay_flow_ctl(skb);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_ip_combine(skb,TP_SKB_DIRECT_SND);
+	}
 #endif
 	return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING,
 			    net, sk, skb, NULL, dev,
@@ -556,7 +567,7 @@ static void ip_copy_metadata(struct sk_buff *to, struct sk_buff *from)
 	IPCB(to)->flags = IPCB(from)->flags;
 
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	if(!IS_DELAY_SWITCH_DISABLE) {
+	if(DELAY_STATISTIC_SWITCH_ON) {
 		MEMCPY_SKB_CB(to,from);
 	}
 #endif

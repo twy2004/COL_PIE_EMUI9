@@ -31,8 +31,8 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      2          0     0xffff
-					33         1      0x108           3        0x13C      1     0xffff     0xffff
-					33         2      0x10C           3        0x140      0     0xffff     0xffff
+					33         1      0x108           0        0x13C      0     0xffff     0xffff
+					33         2      0x10C           0        0x140      2     0xffff     0xffff
 					>;
 			pinctrl-1 = <
 					 0         4      0x00C           1        0x010      0     0xffff     0xffff
@@ -52,8 +52,8 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      2          0     0xffff
-					33         1      0x108           3        0x13C      1     0xffff     0xffff
-					33         2      0x10C           3        0x140      0     0xffff     0xffff
+					33         1      0x108           0        0x13C      0     0xffff     0xffff
+					33         2      0x10C           0        0x140      2     0xffff     0xffff
 					>;
 			pinctrl-2 = <
 					 0         4      0x00C           1        0x010      0     0xffff     0xffff
@@ -73,8 +73,8 @@
 					 9         1      0x0F0           1        0x0F4      2     0xffff     0xffff
 					29         0      0x098           0        0x0C4      1          0     0xffff
 					31         4      0x0D4           0        0x108      2          0     0xffff
-					33         1      0x108           3        0x13C      1     0xffff     0xffff
-					33         2      0x10C           3        0x140      0     0xffff     0xffff
+					33         1      0x108           0        0x13C      0     0xffff     0xffff
+					33         2      0x10C           0        0x140      2     0xffff     0xffff
 					>;
 			pinctrl-num   = <19 19 19>;
 			status = "ok";

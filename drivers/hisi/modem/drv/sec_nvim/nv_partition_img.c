@@ -308,7 +308,7 @@ u32 nv_img_set_flag(u32 flag)
     }
 
     ret = (u32)nv_file_write((u8 *)&flag,1,sizeof(u32),fp);
-    nv_file_close(fp);
+    (void)nv_file_close(fp);
     if(ret != sizeof(u32))
     {
         nv_printf("write nv file failed!\n");
@@ -339,7 +339,7 @@ u32 nv_img_chk_flag(void)
     }
 
     ret = (u32)nv_file_read((u8 *)&flag,1,sizeof(u32),fp);
-    nv_file_close(fp);
+    (void)nv_file_close(fp);
     if(ret != sizeof(u32))
     {
         nv_printf("read nv file failed!ret=0x%x\n",ret);
@@ -347,6 +347,56 @@ u32 nv_img_chk_flag(void)
     }
 
     return flag;
+}
+
+/**************************************************************************
+Function  : nv_write_rwfile
+parameter :
+
+detail    :
+***************************************************************************/
+u32 nv_write_rwfile(u8* path, u32 ftype)
+{
+    u32 ret;
+    u32 length;
+    u8* buf;
+
+    FILE* fp = NULL;
+    nv_global_info_s* ddr_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
+    nv_ctrl_info_s *ctrl_info = (nv_ctrl_info_s*)NV_GLOBAL_CTRL_INFO_ADDR;
+    nv_file_info_s* finfo = (nv_file_info_s*)(NV_GLOBAL_CTRL_INFO_ADDR + NV_GLOBAL_CTRL_INFO_SIZE);
+
+    if(ftype > ctrl_info->file_num)
+    {
+        nv_printf("invalid ftype:%d\n",ftype);
+        return BSP_ERR_NV_FILE_ERROR;
+    }
+
+    if(0 == ddr_info->nminfo.mem_buf_addr)
+    {
+        nv_printf("invalid mem buf addr\n");
+        return BSP_ERR_NV_INVALID_MEM_BUF;
+    }
+
+    length = finfo[ftype - 1].file_size;
+
+    fp = nv_file_open((s8*)path,(s8*)NV_FILE_WRITE);
+    if(NULL == fp)
+    {
+        nv_printf("create nv file failed!\n");
+        return BSP_ERR_NV_READ_FILE_FAIL;
+    }
+
+    buf = (u8*)SHD_DDR_P2V(ddr_info->nminfo.mem_buf_addr);
+    ret = (u32)nv_file_write(buf,1,length,fp);
+    (void)nv_file_close(fp);
+    if(ret != length)
+    {
+        nv_printf("write nv file failed!\n");
+        return BSP_ERR_NV_WRITE_FILE_FAIL;
+    }
+
+    return NV_OK;
 }
 
 /**************************************************************************
@@ -392,7 +442,7 @@ u32 nv_img_write_file(u8* path, u32 file_type)
     }
 
     ret = (u32)nv_file_write((u8*)(NV_GLOBAL_CTRL_INFO_ADDR + offset),1,length,fp);
-    nv_file_close(fp);
+    (void)nv_file_close(fp);
     if(ret != length)
     {
         nv_printf("write nv file failed!\n");
@@ -411,14 +461,62 @@ u32 nv_img_write_file(u8* path, u32 file_type)
 *****************************************************************************/
 bool nv_img_is_need_flush(void)
 {
-    nv_global_info_s* global_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
+    nv_global_info_s* ddr_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
 
-    if(global_info->file_sign & (1 << NV_FILE_ATTRIBUTE_RDWR))
+    if(ddr_info->file_sign & (1 << NV_FILE_ATTRIBUTE_RDWR))
     {
         return true;
     }
 
     return false;
+}
+
+/*****************************************************************************
+Function  : nv_img_rwbuf
+parameter :
+
+detail    :
+*****************************************************************************/
+u32 nv_img_rwbuf(void)
+{
+    u32 ret;
+
+    nv_debug_printf("%s start\n", __func__);
+    if(nv_img_chk_flag() == NVM_IMG_BIN)
+    {
+        ret = nv_write_rwfile((u8 *)g_nv_path.file_path[NV_IMG_RDWR1], NV_FILE_ATTRIBUTE_RDWR);
+        if(ret)
+        {
+            nv_record("create %s file fail!\n", (u8 *) g_nv_path.file_path[NV_IMG_RDWR1]);
+            return ret;
+        }
+
+        ret = nv_img_set_flag(NVM_IMG_BAK);
+        if(ret)
+        {
+            nv_record("create flag(%d) fail!\n", NVM_IMG_BAK);
+            return ret;
+        }
+    }
+    else
+    {
+        ret = nv_write_rwfile((u8 *)g_nv_path.file_path[NV_IMG_RDWR], NV_FILE_ATTRIBUTE_RDWR);
+        if(ret)
+        {
+            nv_record("create %s file fail!\n", (u8 *) g_nv_path.file_path[NV_IMG_RDWR]);
+            return ret;
+        }
+
+        ret = nv_img_set_flag(NVM_IMG_BIN);
+        if(ret)
+        {
+            nv_record("create flag(%d) fail!\n", NVM_IMG_BIN);
+            return ret;
+        }
+    }
+    nv_debug_printf("%s end\n", __func__);
+
+    return NV_OK;
 }
 
 
@@ -739,7 +837,7 @@ u32 nv_img_mreset_load(void)
     length = file_info[NV_FILE_ATTRIBUTE_RDWR - 1].file_size;
 
     runaddr = (u32)(unsigned long)SHD_DDR_V2P(offset);
-    ret = load_image(NVM, offset, length);
+    ret = load_image(NVM, runaddr, length);
     if(ret)
     {
         nv_record("sec_os reload nv file form img fail!\n");
@@ -752,6 +850,7 @@ u32 nv_img_mreset_load(void)
 }
 
 
+EXPORT_SYMBOL(nv_img_check_rdwr);
 EXPORT_SYMBOL(nv_img_flush);
 EXPORT_SYMBOL(nv_img_boot_check);
 EXPORT_SYMBOL(nv_img_clear_check_result);

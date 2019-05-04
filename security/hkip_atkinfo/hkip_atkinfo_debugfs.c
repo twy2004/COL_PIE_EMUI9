@@ -23,7 +23,7 @@
 extern unsigned int disable_upload;
 
 #define	MAX_BUF		16
-#define	MAX_SHOW_ITEMS		3
+#define	MAX_SHOW_ITEMS		256
 #define DEBUGFS_R_FOPS(name)  \
 		static int attr_##name##_open(struct inode *inode, struct file *file) \
 		{   \
@@ -98,9 +98,8 @@ static int attr_events_show(struct seq_file *m, void *private)
 						0 : (hdr->write_offset - hdr->buffer_capacity);
 	end = hdr->write_offset;
 
-	for (i = start; i < end; i++,count++) {
+	for (i = start; i < end; i++, count++) {
 		if (count >= MAX_SHOW_ITEMS) {
-			/*if the number of uploaded events is more than 3, we just show 3 events.*/
 			pr_warn("the number of uploaded events is more than 3!!!\n");
 			break;
 		}

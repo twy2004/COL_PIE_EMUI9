@@ -250,6 +250,7 @@ static int read_file(const char *file_name, unsigned int offset,
 {
     struct file * fp;
     int retval;
+    loff_t file_pos = offset;
     fp = filp_open(file_name, O_RDONLY, 0600);
     if ((!fp) || (IS_ERR(fp))) {
         /* cov_verified_start */
@@ -258,8 +259,13 @@ static int read_file(const char *file_name, unsigned int offset,
         return retval;
         /* cov_verified_stop */
     }
-    retval = kernel_read(fp, (loff_t)offset, buffer, (unsigned long)length);
 
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+    retval = kernel_read(fp, buffer, (size_t)length, &file_pos);
+#else
+    retval = kernel_read(fp, file_pos, buffer, (unsigned long)length);
+#endif
     if (retval != (int)length) {
         /* cov_verified_start */
         sec_print_err("kernel_read(%s) failed, retval %d, require len %u\n",
@@ -275,6 +281,7 @@ static int read_file(const char *file_name, unsigned int offset,
     filp_close(fp, NULL);
     return retval;
 }
+
 int gzip_header_check(unsigned char* zbuf)
 {
     if (zbuf[0] != 0x1f || zbuf[1] != 0x8b || zbuf[2] != 0x08) {
@@ -764,6 +771,7 @@ error:
 
 void load_modem_cold_patch_image(enum SVC_SECBOOT_IMG_TYPE ecoretype)
 {
+    s32 ret = 0;
     char file_name[256] = {0};
     enum modem_patch_type patch_type;
 
@@ -790,7 +798,9 @@ void load_modem_cold_patch_image(enum SVC_SECBOOT_IMG_TYPE ecoretype)
         g_cold_patch_info.modem_patch_info[patch_type].patch_exist = 1;
         if(g_cold_patch_info.modem_update_fail_count < 3)
         {
-            if(load_image(ecoretype, 0, 0))
+            ret = load_image(ecoretype, 0, 0);
+            g_cold_patch_info.patch_ret_value[patch_type].load_ret_val = ret;
+            if(ret)
             {
                 sec_print_err("load patch img failed, img_type %d\n",ecoretype);
                 g_cold_patch_info.modem_patch_info[patch_type].patch_status = LOAD_PATCH_FAIL;
@@ -836,13 +846,23 @@ void update_modem_cold_patch_status(enum modem_patch_type epatch_type)
     }
     for(i = 0; i < MAX_PATCH; i++)
     {
-        if(g_cold_patch_info.modem_patch_info[i].patch_status != NOT_LOAD_PATCH)
+        if((g_cold_patch_info.modem_patch_info[i].patch_exist) && (g_cold_patch_info.modem_patch_info[i].patch_status != NOT_LOAD_PATCH))
         {
             g_cold_patch_info.cold_patch_status = 1;
             return;
         }
     }
     return;
+}
+
+void record_cold_patch_splicing_ret_val(enum modem_patch_type epatch_type,int value)
+{
+    if(g_cold_patch_info.modem_patch_info[epatch_type].patch_status == PUT_PATCH)
+    {
+        g_cold_patch_info.patch_ret_value[epatch_type].splice_ret_val = value;
+        g_cold_patch_info.modem_update_fail_count = 3;
+        g_cold_patch_info.cold_patch_status =0;
+    }
 }
 
 
@@ -949,9 +969,8 @@ static s32 load_and_verify_dtb_data(void)
        ret = readed_bytes;
        goto err_out;
     }
-    offset -= sizeof(struct modem_dt_table_t);
+      offset -= sizeof(struct modem_dt_table_t);
     /* 需要mask掉射频扣板ID号或modemid的bit[9:0] */
-
     if (bsp_get_version_info() != NULL)
         modem_id = bsp_get_version_info()->board_id_udp_masked;
     else
@@ -1032,6 +1051,8 @@ int bsp_load_modem_images(void)
 {
     int ret;
 
+    u32 cold_patch_stamp[2][2] = {{0,0}};
+
     mutex_lock(&load_proc_lock);
 
     ret = TEEK_init();
@@ -1057,7 +1078,7 @@ int bsp_load_modem_images(void)
     }
 
 
-    printk(KERN_INFO "dsp_cold_patch load start at 0x%x\n",bsp_get_slice_value());
+    cold_patch_stamp[0][0] = bsp_get_slice_value();
     if(bsp_nvem_cold_patch_read(&g_cold_patch_info))
         memset_s(&g_cold_patch_info,sizeof(g_cold_patch_info),0,sizeof(g_cold_patch_info));
     load_modem_cold_patch_image(DSP_COLD_PATCH);
@@ -1066,7 +1087,7 @@ int bsp_load_modem_images(void)
 
 
 
-    printk(KERN_INFO "dsp_cold_patch splice end at 0x%x\n",bsp_get_slice_value());
+    cold_patch_stamp[0][1] = bsp_get_slice_value();
     update_modem_cold_patch_status(DSP_PATCH);
 
 
@@ -1076,23 +1097,27 @@ int bsp_load_modem_images(void)
         goto error;
     }
 
-    printk(KERN_INFO "modem_cold_patch load start at 0x%x\n",bsp_get_slice_value());
+    cold_patch_stamp[1][0] = bsp_get_slice_value();
     load_modem_cold_patch_image(MODEM_COLD_PATCH);
 
+    (void)load_image(MODEM_CERT,0,0);
     ret = load_image(MODEM, 0, 0);
     if(ret)
     {
+        record_cold_patch_splicing_ret_val(CCORE_PATCH,ret);
         goto error;
     }
 
-    printk(KERN_INFO "modem_cold_patch splice end at 0x%x\n",bsp_get_slice_value());
+    cold_patch_stamp[1][1] = bsp_get_slice_value();
     update_modem_cold_patch_status(CCORE_PATCH);
+
+
 
 error:
     TEEK_uninit();
-    if(ret)
-        g_cold_patch_info.modem_update_fail_count = 3;
     (void)bsp_nvem_cold_patch_write(&g_cold_patch_info);
+    printk(KERN_INFO "dsp_cold_patch loads start at 0x%x, splice end at 0x%x,modem_cold_patch loads start at 0x%x, splice end at 0x%x\n",
+        cold_patch_stamp[0][0],cold_patch_stamp[0][1],cold_patch_stamp[1][0],cold_patch_stamp[1][1]);
 
     mutex_unlock(&load_proc_lock);
 

@@ -64,19 +64,19 @@ void rdr_callback(struct rdr_exception_info_s *p_exce_info, u32 mod_id,
 		spin_unlock(&__rdr_exception_list_lock);
 		if ((e_from_core != p_exce_info->e_from_core) &&
 		    (e_from_core & p_exce_info->e_notify_core_mask)) {
-			if ((u64) (e_callback) &
+			if ((uintptr_t)(e_callback) &
 			    BBOX_COMMON_CALLBACK) {
 				BB_PRINT_PN("%s: call core common callback function.\n", __func__);
-				((rdr_e_callback)((u64) (e_callback) &
+				((rdr_e_callback)(uintptr_t)((uintptr_t)(e_callback) &
 				  ~BBOX_CALLBACK_MASK)) (mod_id, logpath);
 			}
 		}
 		spin_lock(&__rdr_exception_list_lock);
 	}
 	spin_unlock(&__rdr_exception_list_lock);
-	if ((u64) (p_exce_info->e_callback) & ~BBOX_CALLBACK_MASK) {
+	if ((uintptr_t)(p_exce_info->e_callback) & ~BBOX_CALLBACK_MASK) {
 		BB_PRINT_PN("%s: call exception function.\n", __func__);
-		((rdr_e_callback)((u64) (p_exce_info->e_callback) &
+		((rdr_e_callback)(uintptr_t)((uintptr_t) (p_exce_info->e_callback) &
 		  ~BBOX_CALLBACK_MASK)) (mod_id, logpath);
 	}
 }

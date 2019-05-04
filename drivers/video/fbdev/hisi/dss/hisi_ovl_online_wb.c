@@ -65,8 +65,6 @@ static void hisifb_ovl_online_wb_init(struct hisi_fb_data_type *hisifd)
 /*lint -e429*/
 static int hisifb_ovl_online_wb_alloc_buffer(struct hisi_fb_data_type *hisifd)
 {
-	struct ion_client *client = NULL;
-	struct ion_handle *handle = NULL; //lint !e429
 	struct hisifb_writeback *wb_ctrl = NULL;
 	size_t buf_len = 0;
 	unsigned long buf_addr = 0;
@@ -81,42 +79,15 @@ static int hisifb_ovl_online_wb_alloc_buffer(struct hisi_fb_data_type *hisifd)
 		return 0;
 	}
 	buf_len = roundup(wb_ctrl->wb_buffer_size, PAGE_SIZE);
-
-	client = hisifd->ion_client;
-	if (IS_ERR_OR_NULL(client)) {
-		HISI_FB_ERR("fb%d failed to create ion client!\n", hisifd->index);
+	if (hisi_dss_alloc_cma_buffer(buf_len, (dma_addr_t *)&buf_addr,
+		(void **)&wb_ctrl->wb_buffer_base)) {
+		HISI_FB_ERR("fb%d failed to alloc cma buffert!\n", hisifd->index);
 		return -EINVAL;
 	}
 
-	//handle = ion_alloc(client, buf_len, PAGE_SIZE, ION_HEAP(ION_SYSTEM_HEAP_ID), 0); //lint !e429
-	handle = ion_alloc(client, buf_len, PAGE_SIZE, ION_HEAP(ION_GRALLOC_HEAP_ID), 0); //lint !e429
-	if (IS_ERR_OR_NULL(handle)) { //lint !e429
-		HISI_FB_ERR("fb%d failed to ion_alloc!\n", hisifd->index);
-		return -EINVAL;
-	}
-
-	wb_ctrl->wb_buffer_base = ion_map_kernel(client, handle);
-	if (!wb_ctrl->wb_buffer_base) {
-		HISI_FB_ERR("fb%d failed to ion_map_kernel!\n", hisifd->index);
-		ion_free(client, handle); //lint !e668
-		return -EINVAL;
-	}
-
-	if (hisifb_ion_phys(client, handle, &(hisifd->pdev->dev), &buf_addr, &buf_len)) {
-		HISI_FB_ERR("fb%d failed to get ion phys!\n", hisifd->index);
-		ion_unmap_kernel(client, handle);
-		ion_free(client, handle); //lint !e668
-		return -EINVAL;
-	}
-
-	wb_ctrl->wb_handle = handle;
 	wb_ctrl->wb_phys_addr = buf_addr;
-	wb_ctrl->buffer_alloced = true;
 	wb_ctrl->wb_buffer_size = buf_len;
-
-	HISI_FB_INFO("fb%d wb_handle=%p, wb_phys_addr=0x%x!\n",
-		hisifd->index, wb_ctrl->wb_handle, (uint32_t)wb_ctrl->wb_phys_addr);
-
+	wb_ctrl->buffer_alloced = true;
 	return 0;
 }
 /*lint +e429*/
@@ -136,12 +107,11 @@ static int hisifb_ovl_online_wb_free_buffer(struct hisi_fb_data_type *hisifd)
 		return 0;
 	}
 
-	if (hisifd->ion_client != NULL && wb_ctrl->wb_handle != NULL) {
-		//ion_unmap_iommu(hisifd->ion_client, wb_ctrl->wb_handle);
-		ion_unmap_kernel(hisifd->ion_client, wb_ctrl->wb_handle);
-		ion_free(hisifd->ion_client, wb_ctrl->wb_handle);
+	if (wb_ctrl->wb_buffer_base != 0) {
+		hisi_dss_free_cma_buffer(wb_ctrl->wb_buffer_size,
+			wb_ctrl->wb_phys_addr,
+			wb_ctrl->wb_buffer_base);
 
-		wb_ctrl->wb_handle = NULL;
 		wb_ctrl->wb_buffer_base = 0;
 		wb_ctrl->wb_phys_addr = 0;
 		wb_ctrl->buffer_alloced = false;
@@ -545,6 +515,7 @@ void hisifb_ovl_online_wb_register(struct platform_device *pdev)
 	wb_ctrl->mmu_enable = false;
 	wb_ctrl->compress_enable = false;
 	wb_ctrl->wb_clear_config = false;
+	wb_ctrl->wb_buffer_base = 0;
 
 	wb_ctrl->buffer_alloced = false;
 	wb_ctrl->ovl_idx = DSS_OVL0;

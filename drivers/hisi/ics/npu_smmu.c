@@ -5,7 +5,7 @@
 #include "soc_dmss_interface.h"
 #include "soc_acpu_baseaddr_interface.h"
 #include <linux/errno.h>
-#include <linux/hisi/hisi-iommu.h> //for struct iommu_domain_data
+#include <linux/hisi-iommu.h> //for struct iommu_domain_data
 #include <linux/iommu.h> //for struct iommu_domain
 #include <linux/mutex.h>
 #include <linux/list.h>
@@ -185,7 +185,7 @@ static void npu_free_iova(struct gen_pool *pool,
 		unsigned long iova, size_t size)
 {
 	if ((0 == iova)||(0 == size)) {
-		NPU_ERR("iova:%pK size:%ld", (void*)iova, size);
+		NPU_ERR("iova:%pK size:%ld", (void*)(uintptr_t)iova, size);
 		return;
 	}
 	gen_pool_free(pool, iova, size);
@@ -353,7 +353,7 @@ static int npu_mem_mngr_del(struct map_data *map) {
 		return 0;
 	} else {
 		NPU_ERR("FATAL: Unknow memory,fd=%d,iova_start=0x%pK,iova_size=0x%lx,prot=0x%x,ignore\n",
-			map->share_fd, (void *)map->format.iova_start, map->format.iova_size, map->format.prot);
+			map->share_fd, (void *)(uintptr_t)map->format.iova_start, map->format.iova_size, map->format.prot);
 		return -EINVAL;
 	}
 }
@@ -373,7 +373,7 @@ int npu_mem_mngr_check_valid(unsigned int inst_addr, unsigned int inst_size)
 			(inst_addr < (memory_node->map.format.iova_start + memory_node->map.format.iova_size))) {
 			if (((unsigned long)inst_addr + (unsigned long)inst_size) > (memory_node->map.format.iova_start + memory_node->map.format.iova_size)) {
 				NPU_ERR("invalid inst_size, addr/size = [0x%pK, 0x%x] not in [0x%pK, 0x%lx]",
-					(void *)(unsigned long)inst_addr, inst_size, (void *)memory_node->map.format.iova_start, memory_node->map.format.iova_size);
+					(void *)(uintptr_t)inst_addr, inst_size, (void *)memory_node->map.format.iova_start, memory_node->map.format.iova_size);
 				ret = -EINVAL;
 			}
 			mutex_unlock(&npu_mem_mngr_mutex);
@@ -462,8 +462,8 @@ static void npu_bandwidth_lmt_bc(unsigned int coreID, void *npu_irq_io_addr, uns
 	reg_bandwidth = ((noc_bandwidth_lmt & 0x1fff) << 16) + NPU_BANDWIDTH_SATURATION;
 	NPU_DEBUG("bandwidth=%d, bc_bandwidth=%d, ret=%d\n", bandwidth, noc_bandwidth_lmt, reg_bandwidth);
 
-	iowrite32(reg_bandwidth, (void *)SOC_ICS_BC_READ_LMT_ADDR((unsigned long)npu_irq_io_addr));
-	iowrite32(reg_bandwidth, (void *)SOC_ICS_BC_WRITE_LMT_ADDR((unsigned long)npu_irq_io_addr));
+	iowrite32(reg_bandwidth, (void *)SOC_ICS_BC_READ_LMT_ADDR((uintptr_t)npu_irq_io_addr));
+	iowrite32(reg_bandwidth, (void *)SOC_ICS_BC_WRITE_LMT_ADDR((uintptr_t)npu_irq_io_addr));
 	iowrite32(NPU_DMSS_NPU_MST_FLUX_CTRL_RW_PRI_EN, dmss_flux);
 }
 
@@ -480,13 +480,13 @@ static void npu_bandwidth_lmt_outstanding(unsigned int npu_rate, void *npu_irq_i
 	reg_bandwidth = (read_outstanding << 8) + write_outstanding;
 	NPU_DEBUG("read/write OSD=%u/%u\n", read_outstanding, write_outstanding);
 
-	iowrite32(reg_bandwidth, (void *)SOC_ICS_MAX_OSD_ADDR((unsigned long)npu_irq_io_addr));
+	iowrite32(reg_bandwidth, (void *)SOC_ICS_MAX_OSD_ADDR((uintptr_t)npu_irq_io_addr));
 }
 
 static void npu_bandwidth_lmt_noc_qos(unsigned int coreID, void *npu_irq_io_addr)
 {
 	void __iomem *vcodecbus_cfg = bandwidth_manager[coreID].noc_bus_io_addr;
-	unsigned long io_comm_base = (unsigned long)smmu_manager.common_io_addr[coreID];
+	uintptr_t io_comm_base = (uintptr_t)smmu_manager.common_io_addr[coreID];
 	SOC_SMMU_SCR_UNION smmu_comm_scr;
 	SOC_SMMU_SMRX_NS_UNION smmu_smrx_ns;
 	unsigned int smrx_cnt;
@@ -508,22 +508,22 @@ static void npu_bandwidth_lmt_noc_qos(unsigned int coreID, void *npu_irq_io_addr
 		}
 
 		/* set read/write bus bandwidth limit */
-		iowrite32(NPU_RD_BW_LMT, (void *)SOC_ICS_BC_READ_LMT_ADDR((unsigned long)npu_irq_io_addr));
-		iowrite32(NPU_WR_BW_LMT, (void *)SOC_ICS_BC_WRITE_LMT_ADDR((unsigned long)npu_irq_io_addr));
+		iowrite32(NPU_RD_BW_LMT, (void *)SOC_ICS_BC_READ_LMT_ADDR((uintptr_t)npu_irq_io_addr));
+		iowrite32(NPU_WR_BW_LMT, (void *)SOC_ICS_BC_WRITE_LMT_ADDR((uintptr_t)npu_irq_io_addr));
 
 		/* set qos working type as "fixed mode(0)" */
-		iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_FIXED_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((unsigned long)vcodecbus_cfg)));
+		iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_FIXED_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((uintptr_t)vcodecbus_cfg)));
 
 		/* set priority urgency level of read/write as 1 */
-		iowrite32(NPU_NOC_BUS_PRIORITY, (void *)(SOC_VCODEC_BUS_CNN_QOS_PRIORITY_ADDR((unsigned long)vcodecbus_cfg)));
+		iowrite32(NPU_NOC_BUS_PRIORITY, (void *)(SOC_VCODEC_BUS_CNN_QOS_PRIORITY_ADDR((uintptr_t)vcodecbus_cfg)));
 
 	} else {
-		iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_LIMITER_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((unsigned long)vcodecbus_cfg)));
+		iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_LIMITER_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((uintptr_t)vcodecbus_cfg)));
 	}
 
-	iowrite32(NPU_NOC_BUS_CONFIG_BANDWIDTH_FOR_NOC_QOS, (void *)(SOC_VCODEC_BUS_CNN_QOS_BANDWIDTH_ADDR((unsigned long)vcodecbus_cfg)));
-	iowrite32(NPU_NOC_BUS_CONFIG_SATURATION_NORMAL, (void *)(SOC_VCODEC_BUS_CNN_QOS_SATURATION_ADDR((unsigned long)vcodecbus_cfg)));
-	iowrite32(NPU_NOC_BUS_QOS_EXTCONTROL_ENABLE, (void *)(SOC_VCODEC_BUS_CNN_QOS_EXTCONTROL_ADDR((unsigned long)vcodecbus_cfg)));
+	iowrite32(NPU_NOC_BUS_CONFIG_BANDWIDTH_FOR_NOC_QOS, (void *)(SOC_VCODEC_BUS_CNN_QOS_BANDWIDTH_ADDR((uintptr_t)vcodecbus_cfg)));
+	iowrite32(NPU_NOC_BUS_CONFIG_SATURATION_NORMAL, (void *)(SOC_VCODEC_BUS_CNN_QOS_SATURATION_ADDR((uintptr_t)vcodecbus_cfg)));
+	iowrite32(NPU_NOC_BUS_QOS_EXTCONTROL_ENABLE, (void *)(SOC_VCODEC_BUS_CNN_QOS_EXTCONTROL_ADDR((uintptr_t)vcodecbus_cfg)));
 
 	NPU_DEBUG("coreID=%d done\n", coreID);
 }
@@ -569,9 +569,9 @@ void npu_bandwidth_lmt_reset(unsigned int coreID)
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
 	vcodecbus_cfg = bandwidth_manager[coreID].noc_bus_io_addr;
-	iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_LIMITER_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((unsigned long)vcodecbus_cfg)));
-	iowrite32(0, (void *)(SOC_VCODEC_BUS_CNN_QOS_BANDWIDTH_ADDR((unsigned long)vcodecbus_cfg)));
-	iowrite32(0, (void *)(SOC_VCODEC_BUS_CNN_QOS_SATURATION_ADDR((unsigned long)vcodecbus_cfg)));
+	iowrite32(NPU_NOC_BUS_CONFIG_QOS_TYPE_LIMITER_MODE, (void *)(SOC_VCODEC_BUS_CNN_QOS_MODE_ADDR((uintptr_t)vcodecbus_cfg)));
+	iowrite32(0, (void *)(SOC_VCODEC_BUS_CNN_QOS_BANDWIDTH_ADDR((uintptr_t)vcodecbus_cfg)));
+	iowrite32(0, (void *)(SOC_VCODEC_BUS_CNN_QOS_SATURATION_ADDR((uintptr_t)vcodecbus_cfg)));
 }
 
 static int npu_smmu_get_err_phy(struct device *dev)
@@ -625,7 +625,7 @@ error_exit:
 
 static void npu_smmu_mstr_init(unsigned int coreID)
 {
-	unsigned long io_mstr_base = (unsigned long)smmu_manager.master_io_addr[coreID];
+	uintptr_t io_mstr_base = (uintptr_t)smmu_manager.master_io_addr[coreID];
 
 	/* set input signal as "register" by config SMMU_MSTR_INPT_SEL */
 	if (smmu_manager.smmu_port_select) {
@@ -685,7 +685,7 @@ static void npu_smmu_comm_init(unsigned int coreID, unsigned long ttbr0, unsigne
 	SOC_SMMU_INTMASK_NS_UNION intr;
 	SOC_SMMU_CB_TTBCR_UNION cb_ttbcr;
 	SOC_SMMU_ADDR_MSB_UNION addr_msb;
-	unsigned long io_comm_base = (unsigned long)smmu_manager.common_io_addr[coreID];
+	uintptr_t io_comm_base = (uintptr_t)smmu_manager.common_io_addr[coreID];
 
 	smmu_scr.value = (unsigned int)ioread32((void *)SOC_SMMU_SCR_ADDR(io_comm_base));
 
@@ -748,13 +748,13 @@ void npu_smmu_init(unsigned int coreID)
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
 	npu_smmu_mstr_init(coreID);
-	npu_smmu_comm_init(coreID, smmu_manager.smmu_ttbr0, (unsigned long)smmu_manager.smmu_rw_err_virtual_addr);
+	npu_smmu_comm_init(coreID, smmu_manager.smmu_ttbr0, (uintptr_t)smmu_manager.smmu_rw_err_virtual_addr);
 }
 
 void npu_smmu_bypass_init(unsigned int coreID)
 {
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
-	iowrite32(SMMU_MSTR_GLB_BYPASS_BYPASS_MODE, (void *)SOC_SMMU_MSTR_GLB_BYPASS_ADDR((unsigned long)smmu_manager.master_io_addr[coreID]));
+	iowrite32(SMMU_MSTR_GLB_BYPASS_BYPASS_MODE, (void *)SOC_SMMU_MSTR_GLB_BYPASS_ADDR((uintptr_t)smmu_manager.master_io_addr[coreID]));
 }
 
 void npu_smmu_exit(unsigned int coreID)
@@ -762,9 +762,9 @@ void npu_smmu_exit(unsigned int coreID)
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
 	iowrite32(SMMU_MSTR_INTCLR_ALL_MASK,
-		(void *)SOC_SMMU_MSTR_INTMASK_ADDR((unsigned long)smmu_manager.master_io_addr[coreID]));
+		(void *)SOC_SMMU_MSTR_INTMASK_ADDR((uintptr_t)smmu_manager.master_io_addr[coreID]));
 	iowrite32(SMMU_COMMON_INTCLR_NS_ALL_MASK,
-		(void *)SOC_SMMU_INTMASK_NS_ADDR((unsigned long)smmu_manager.common_io_addr[coreID]));
+		(void *)SOC_SMMU_INTMASK_NS_ADDR((uintptr_t)smmu_manager.common_io_addr[coreID]));
 }
 
 static long npu_smmu_map_va(struct map_data *map)
@@ -857,7 +857,7 @@ static long npu_smmu_map_va(struct map_data *map)
 			(unsigned int)sg_nents(sgl), format->prot);
 
 	if (sg_size != iova_size) {
-		NPU_ERR("map failed!iova_start = 0x%pK, iova_size = 0x%lx\n", (void *)iova_start, iova_size);
+		NPU_ERR("map failed!iova_start = 0x%pK, iova_size = 0x%lx\n", (void *)(uintptr_t)iova_start, iova_size);
 
 		if (npu_iova_pool) {
 			npu_free_iova(npu_iova_pool, iova_start, iova_size);
@@ -894,7 +894,7 @@ long npu_smmu_map(struct map_data *map)
 	mutex_unlock(&npu_mem_mngr_mutex);
 
 	NPU_INFO("fd=%d,iova_start=0x%pK,iova_size=0x%lx,prot=%d\n",
-		map->share_fd, (void *)map->format.iova_start, map->format.iova_size, map->format.prot);
+		map->share_fd, (void *)(uintptr_t)map->format.iova_start, map->format.iova_size, map->format.prot);
 
 	return 0;
 }
@@ -935,7 +935,7 @@ static long npu_smmu_unmap_va(struct map_data *map)
 	ret = addr_in_gen_pool(npu_iova_pool, format->iova_start,
 			format->iova_size);
 	if(!ret) {
- 		NPU_ERR("illegal para!!iova=0x%pK, size=%ld\n", (void *)format->iova_start, format->iova_size);
+ 		NPU_ERR("illegal para!!iova=0x%pK, size=%ld\n", (void *)(uintptr_t)format->iova_start, format->iova_size);
 		return -EINVAL;
 	}
 
@@ -957,7 +957,7 @@ long npu_smmu_unmap_proc(struct map_data *map)
 	long ret_value;
 
 	NPU_INFO("fd=%d,iova_start=0x%pK,iova_size=0x%lx,prot=%d\n",
-		map->share_fd, (void*)map->format.iova_start, map->format.iova_size, map->format.prot);
+		map->share_fd, (void*)(uintptr_t)map->format.iova_start, map->format.iova_size, map->format.prot);
 
 	if (npu_mem_mngr_del(map)) {
 		NPU_ERR("invalid map data to unmap\n");
@@ -1133,16 +1133,16 @@ void npu_smmu_override_prefetch_addr(unsigned int coreID)
 {
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
-	iowrite32(smmu_manager.smmu_reset_va, (void *)SOC_SMMU_OPREF_ADDR_ADDR((unsigned long)smmu_manager.common_io_addr[coreID]));
-	iowrite32(SMMU_OPREF_CTRL_CONFIG_DUMMY, (void *)SOC_SMMU_OPREF_CTRL_ADDR((unsigned long)smmu_manager.common_io_addr[coreID]));
+	iowrite32(smmu_manager.smmu_reset_va, (void *)SOC_SMMU_OPREF_ADDR_ADDR((uintptr_t)smmu_manager.common_io_addr[coreID]));
+	iowrite32(SMMU_OPREF_CTRL_CONFIG_DUMMY, (void *)SOC_SMMU_OPREF_CTRL_ADDR((uintptr_t)smmu_manager.common_io_addr[coreID]));
 
 	NPU_DEBUG("done\n");
 }
 
 bool npu_smmu_interrupt_handler(unsigned int coreID)
 {
-	unsigned long mstr_io_addr;
-	unsigned long comm_io_addr;
+	uintptr_t mstr_io_addr;
+	uintptr_t comm_io_addr;
 	struct smmu_irq_count *irq_count = &smmu_manager.irq_count;
 	unsigned int reg_smmu_mstr_status;
 	unsigned int reg_smmu_comm_status;
@@ -1153,8 +1153,8 @@ bool npu_smmu_interrupt_handler(unsigned int coreID)
 		return false;
 	}
 
-	mstr_io_addr = (unsigned long)smmu_manager.master_io_addr[coreID];
-	comm_io_addr = (unsigned long)smmu_manager.common_io_addr[coreID];
+	mstr_io_addr = (uintptr_t)smmu_manager.master_io_addr[coreID];
+	comm_io_addr = (uintptr_t)smmu_manager.common_io_addr[coreID];
 
 	//fixme: if security/protect mode is needed, add code here
 	reg_smmu_comm_status = ioread32((void *)SOC_SMMU_INTRAW_NS_ADDR(comm_io_addr));
@@ -1235,7 +1235,7 @@ void npu_smmu_reset_statistic(unsigned int coreID)
 	void *dbg_port_in;
 
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
-	dbg_port_in = (void *)SOC_SMMU_MSTR_DBG_PORT_IN_0_ADDR((unsigned long)smmu_manager.master_io_addr[coreID]);
+	dbg_port_in = (void *)SOC_SMMU_MSTR_DBG_PORT_IN_0_ADDR((uintptr_t)smmu_manager.master_io_addr[coreID]);
 	memset(&smmu_manager.smmu_stat[coreID], 0, sizeof(smmu_manager.smmu_stat[coreID]));
 	smmu_manager.smmu_stat[coreID].coreID = coreID;
 
@@ -1284,12 +1284,12 @@ void npu_smmu_reset_statistic(unsigned int coreID)
 
 void npu_smmu_record_statistic(unsigned int coreID)
 {
-	unsigned long mstr_io_addr;
+	uintptr_t mstr_io_addr;
 	struct smmu_statistic *statistic;
 
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
-	mstr_io_addr = (unsigned long)smmu_manager.master_io_addr[coreID];
+	mstr_io_addr = (uintptr_t)smmu_manager.master_io_addr[coreID];
 	statistic = &smmu_manager.smmu_stat[coreID];
 
 	/* read channel cmd total count */
@@ -1351,13 +1351,13 @@ long npu_smmu_report_statistic(SMMU_STAT_S *statistic)
 this func will only call once before run */
 void npu_smmu_pte_update(unsigned int coreID)
 {
-	unsigned long mstr_io_addr;
-	unsigned long comm_io_addr;
+	uintptr_t mstr_io_addr;
+	uintptr_t comm_io_addr;
 
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
 
-	mstr_io_addr = (unsigned long)smmu_manager.master_io_addr[coreID];
-	comm_io_addr = (unsigned long)smmu_manager.common_io_addr[coreID];
+	mstr_io_addr = (uintptr_t)smmu_manager.master_io_addr[coreID];
+	comm_io_addr = (uintptr_t)smmu_manager.common_io_addr[coreID];
 
 	iowrite32(SMMU_MSTR_SMRX_START_ALL_STREAM, (void *)SOC_SMMU_MSTR_SMRX_START_0_ADDR(mstr_io_addr));
 
@@ -1383,11 +1383,11 @@ void npu_smmu_dump_strm(unsigned int coreID)
 	char *perr = register_info;
 	int dsm_offset = 0;
 
-	unsigned long mstr_io_addr;
+	uintptr_t mstr_io_addr;
 	struct npu_mstr_reg_s mstr_reg;
 
 	CHECK_COREID_INVALID_RETURN_VOID(coreID);
-	mstr_io_addr = (unsigned long)smmu_manager.master_io_addr[coreID];
+	mstr_io_addr = (uintptr_t)smmu_manager.master_io_addr[coreID];
 
 	for (i = 0; i < NPU_SMMU_MSTR_DEBUG_BASE_NUM; i++) {
 

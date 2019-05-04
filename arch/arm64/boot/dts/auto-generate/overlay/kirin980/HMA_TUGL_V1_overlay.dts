@@ -829,7 +829,7 @@
 				lp8556_eprom_cfg4 = <0x73>;
 				lp8556_eprom_cfg5 = <0x00>;
 				lp8556_eprom_cfg6 = <0x80>;
-				lp8556_eprom_cfg7 = <0xf4>;
+				lp8556_eprom_cfg7 = <0xf6>;
 				lp8556_eprom_cfg9 = <0x40>;
 				lp8556_eprom_cfgA = <0x0f>;
 				lp8556_eprom_cfgE = <0x0e>;
@@ -1103,6 +1103,12 @@
 	&huawei_smpl {
 		status = "ok";
 	};
+
+    &fastboot_pmic {
+                   hisilicon,init-reg-num = <1>;
+                   hisilicon,init-reg-addrs = <0x02E9>;
+                   hisilicon,init-reg-vals  = <0x06>;
+    };
 
 	&vbat_ovp {
 		status = "disabled";

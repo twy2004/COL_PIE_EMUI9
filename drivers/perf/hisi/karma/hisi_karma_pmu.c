@@ -39,7 +39,7 @@ static unsigned long karma_pmu_cpuhp_state;
  */
 static u32 karma_pmu_get_counter_offset(int cntr_idx)
 {
-	return (KARMA_CNTR0_OFFSET + (cntr_idx * 8));
+	return (u32)(KARMA_CNTR0_OFFSET + (cntr_idx * 8));
 }
 
 static u64 karma_pmu_read_counter(struct karma_pmu *karma_pmu,
@@ -60,7 +60,7 @@ static u64 karma_pmu_read_counter(struct karma_pmu *karma_pmu,
 
 	raw_spin_lock_irqsave(&karma_pmu->pmu_lock, flags);
 	/* Read 64-bits and the upper 32 bits are RAZ */
-	val =  readq(karma_pmu->base + karma_pmu_get_counter_offset(idx));
+	val = readq(karma_pmu->base + karma_pmu_get_counter_offset(idx));
 	raw_spin_unlock_irqrestore(&karma_pmu->pmu_lock, flags);
 
 	return val;
@@ -159,7 +159,7 @@ static void karma_pmu_disable_counter(struct karma_pmu *karma_pmu,
 static int karma_pmu_init_data(struct platform_device *pdev,
 				  struct karma_pmu *karma_pmu)
 {
-	karma_pmu->base =  devm_ioremap(&pdev->dev, KARMA_PMU_BASEADDR, KARMA_PMU_SIZE);
+	karma_pmu->base = devm_ioremap(&pdev->dev, KARMA_PMU_BASEADDR, KARMA_PMU_SIZE);
 	if (IS_ERR_OR_NULL(karma_pmu->base)) {
 		dev_err(&pdev->dev, "ioremap failed for karma_pmu resource\n");
 		return PTR_ERR(karma_pmu->base);
@@ -169,12 +169,13 @@ static int karma_pmu_init_data(struct platform_device *pdev,
 	spin_lock_init(&karma_pmu->fcm_idle_lock);
 
 	cpumask_copy(&karma_pmu->associated_cpus, cpu_online_mask);
-
 	return 0;
 }
 
+#ifdef CONFIG_HISI_KARMA_PMU_DEBUG
 static struct attribute *karma_pmu_format_attr[] = {
-	KARMA_PMU_FORMAT_ATTR(event, "config:0-31"),
+	// cppcheck-suppress *
+	KARMA_FORMAT_ATTR(event, "config:0-31"),
 	NULL,
 };
 
@@ -188,10 +189,9 @@ static const struct attribute_group karma_pmu_events_group = {
 	.attrs = karma_pmu_events_attr,
 };
 
-static DEVICE_ATTR(cpumask, 0440, karma_cpumask_sysfs_show, NULL);
-
 static struct attribute *karma_pmu_cpumask_attrs[] = {
-	&dev_attr_cpumask.attr,
+	KARMA_CPUMASK_ATTR(cpumask, KARMA_ACTIVE_CPU_MASK),
+	KARMA_CPUMASK_ATTR(associated_cpus, KARMA_ASSOCIATED_CPU_MASK),
 	NULL,
 };
 
@@ -200,30 +200,16 @@ static const struct attribute_group karma_pmu_cpumask_attr_group = {
 };
 
 static const struct attribute_group *karma_pmu_attr_groups[] = {
-	&karma_pmu_format_group,
-	&karma_pmu_events_group,
 	&karma_pmu_cpumask_attr_group,
+	&karma_pmu_events_group,
+	&karma_pmu_format_group,
 	NULL,
 };
-
-
-/*
- * PMU format attributes
- */
-ssize_t karma_format_sysfs_show(struct device *dev,
-			       struct device_attribute *attr, char *buf)
-{
-	struct dev_ext_attribute *eattr;
-
-	eattr = container_of(attr, struct dev_ext_attribute, attr);
-
-	return snprintf(buf, PAGE_SIZE, "%s\n", (char *)eattr->var);	/* unsafe_function_ignore: snprintf */
-}
 
 /*
  * PMU event attributes
  */
-ssize_t karma_event_sysfs_show(struct device *dev,
+ssize_t karma_pmu_sysfs_event_show(struct device *dev,
 			      struct device_attribute *attr, char *page)
 {
 	struct dev_ext_attribute *eattr;
@@ -234,15 +220,41 @@ ssize_t karma_event_sysfs_show(struct device *dev,
 }
 
 /*
- * sysfs cpumask attributes. For karma PMU, we only have a single CPU to show
+ * PMU format attributes
  */
-ssize_t karma_cpumask_sysfs_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+ssize_t karma_pmu_sysfs_format_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	struct dev_ext_attribute *eattr;
+
+	eattr = container_of(attr, struct dev_ext_attribute, attr);
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", (char *)eattr->var); /* unsafe_function_ignore: snprintf */
+}
+
+ssize_t karma_pmu_cpumask_show(struct device *dev,
+				    struct device_attribute *attr,
+				    char *buf)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(dev_get_drvdata(dev));
+	struct dev_ext_attribute *eattr = container_of(attr,
+					struct dev_ext_attribute, attr);
+	unsigned long mask_id = (unsigned long)eattr->var;
+	const cpumask_t *cpumask;
 
-	return snprintf(buf, PAGE_SIZE, "%d\n", karma_pmu->on_cpu);	/* unsafe_function_ignore: snprintf */
+	switch (mask_id) {
+	case KARMA_ACTIVE_CPU_MASK:
+		cpumask = &karma_pmu->active_cpu;
+		break;
+	case KARMA_ASSOCIATED_CPU_MASK:
+		cpumask = &karma_pmu->associated_cpus;
+		break;
+	default:
+		return 0;
+	}
+	return cpumap_print_to_pagebuf(true, buf, cpumask);
 }
+#endif
 
 static bool karma_validate_event_group(struct perf_event *event)
 {
@@ -283,7 +295,7 @@ int karma_pmu_counter_valid(struct karma_pmu *karma_pmu, int idx)
 	return idx >= 0 && idx < karma_pmu->num_counters;
 }
 
-int karma_pmu_get_event_idx(struct perf_event *event)
+static int karma_pmu_get_event_idx(struct perf_event *event)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	unsigned long *used_mask = karma_pmu->pmu_events.used_mask;
@@ -309,7 +321,7 @@ static void karma_pmu_clear_event_idx(struct karma_pmu *karma_pmu, int idx)
 	clear_bit(idx, karma_pmu->pmu_events.used_mask);
 }
 
-int karma_pmu_event_init(struct perf_event *event)
+static int karma_pmu_event_init(struct perf_event *event)
 {
 	struct hw_perf_event *hwc = &event->hw;
 	struct karma_pmu *karma_pmu;
@@ -359,18 +371,18 @@ int karma_pmu_event_init(struct perf_event *event)
 	if (event->attr.config > karma_pmu->check_event)
 		return -EINVAL;
 
-	if (karma_pmu->on_cpu == -1)
+	if (cpumask_empty(&karma_pmu->active_cpu))
 		return -EINVAL;
 	/*
 	 * We don't assign an index until we actually place the event onto
 	 * hardware. Use -1 to signify that we haven't decided where to put it
 	 * yet.
 	 */
-	hwc->idx		= -1;
-	hwc->config_base	= event->attr.config;
+	hwc->idx = -1;
+	hwc->config_base = event->attr.config;
 
 	/* Enforce to use the same CPU for all events in this PMU */
-	event->cpu = karma_pmu->on_cpu;
+	event->cpu = cpumask_first(&karma_pmu->active_cpu);
 
 	return 0;
 }
@@ -403,7 +415,7 @@ static void karma_pmu_disable_event(struct perf_event *event)
 	//karma_pmu->ops->disable_counter_int(karma_pmu, hwc);
 }
 
-void karma_pmu_set_event_period(struct perf_event *event)
+static void karma_pmu_set_event_period(struct perf_event *event)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	struct hw_perf_event *hwc = &event->hw;
@@ -422,7 +434,7 @@ void karma_pmu_set_event_period(struct perf_event *event)
 	karma_pmu_write_counter(karma_pmu, hwc, val);
 }
 
-void karma_pmu_event_update(struct perf_event *event)
+static void karma_pmu_event_update(struct perf_event *event)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	struct hw_perf_event *hwc = &event->hw;
@@ -442,7 +454,7 @@ void karma_pmu_event_update(struct perf_event *event)
 	local64_add(delta, &event->count);
 }
 
-void karma_pmu_start(struct perf_event *event, int flags)
+static void karma_pmu_start(struct perf_event *event, int flags)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	struct hw_perf_event *hwc = &event->hw;
@@ -464,7 +476,7 @@ void karma_pmu_start(struct perf_event *event, int flags)
 	perf_event_update_userpage(event);
 }
 
-void karma_pmu_stop(struct perf_event *event, int flags)
+static void karma_pmu_stop(struct perf_event *event, int flags)
 {
 	struct hw_perf_event *hwc = &event->hw;
 
@@ -480,7 +492,7 @@ void karma_pmu_stop(struct perf_event *event, int flags)
 	hwc->state |= PERF_HES_UPTODATE;
 }
 
-int karma_pmu_add(struct perf_event *event, int flags)
+static int karma_pmu_add(struct perf_event *event, int flags)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	struct hw_perf_event *hwc = &event->hw;
@@ -506,7 +518,7 @@ int karma_pmu_add(struct perf_event *event, int flags)
 	return 0;
 }
 
-void karma_pmu_del(struct perf_event *event, int flags)
+static void karma_pmu_del(struct perf_event *event, int flags)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(event->pmu);
 	struct hw_perf_event *hwc = &event->hw;
@@ -517,13 +529,13 @@ void karma_pmu_del(struct perf_event *event, int flags)
 	karma_pmu->pmu_events.hw_events[hwc->idx] = NULL;
 }
 
-void karma_pmu_read(struct perf_event *event)
+static void karma_pmu_read(struct perf_event *event)
 {
 	/* Read hardware counter and update the perf counter statistics */
 	karma_pmu_event_update(event);
 }
 
-void karma_pmu_enable(struct pmu *pmu)
+static void karma_pmu_enable(struct pmu *pmu)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(pmu);
 	int enabled = bitmap_weight(karma_pmu->pmu_events.used_mask,
@@ -535,13 +547,12 @@ void karma_pmu_enable(struct pmu *pmu)
 	karma_pmu_start_counters(karma_pmu);
 }
 
-void karma_pmu_disable(struct pmu *pmu)
+static void karma_pmu_disable(struct pmu *pmu)
 {
 	struct karma_pmu *karma_pmu = to_hisi_pmu(pmu);
 
 	karma_pmu_stop_counters(karma_pmu);
 }
-
 
 struct cpu_pm_karma_pmu_args {
 	struct karma_pmu	*karma_pmu;
@@ -550,7 +561,11 @@ struct cpu_pm_karma_pmu_args {
 	int		ret;
 };
 
+#ifdef CONFIG_HISI_MULTIDRV_CPUIDLE
 extern bool hisi_fcm_cluster_pwrdn(void);
+#else
+static inline bool hisi_fcm_cluster_pwrdn(void) {return 0;}
+#endif
 
 #ifdef CONFIG_CPU_PM
 static void cpu_pm_karma_pmu_setup(struct karma_pmu *karma_pmu, unsigned long cmd)
@@ -609,10 +624,10 @@ static void cpu_pm_karma_pmu_setup(struct karma_pmu *karma_pmu, unsigned long cm
 
 static void cpu_pm_karma_pmu_common(void *info)
 {
-	struct cpu_pm_karma_pmu_args *data	= info;
-	struct karma_pmu *karma_pmu		= data->karma_pmu;
-	unsigned long cmd		= data->cmd;
-	int cpu				= data->cpu;
+	struct cpu_pm_karma_pmu_args *data = info;
+	struct karma_pmu *karma_pmu = data->karma_pmu;
+	unsigned long cmd = data->cmd;
+	int cpu = data->cpu;
 	struct karma_pmu_hwevents *hw_events = &karma_pmu->pmu_events;
 	int enabled = bitmap_weight(hw_events->used_mask, karma_pmu->num_counters);
 	bool fcm_pwrdn = 0;
@@ -631,8 +646,8 @@ static void cpu_pm_karma_pmu_common(void *info)
 
 	switch (cmd) {
 	case CPU_PM_ENTER:
-		fcm_pwrdn = hisi_fcm_cluster_pwrdn();
 		spin_lock(&karma_pmu->fcm_idle_lock);
+		fcm_pwrdn = hisi_fcm_cluster_pwrdn();
 		if (fcm_pwrdn && (false == karma_pmu->fcm_idle)) {
 			karma_pmu->fcm_idle = true;
 			karma_pmu_disable(&karma_pmu->pmu);
@@ -662,9 +677,9 @@ static int cpu_pm_karma_pmu_notify(struct notifier_block *b, unsigned long cmd,
 			     void *v)
 {
 	struct cpu_pm_karma_pmu_args data = {
-		.karma_pmu	= container_of(b, struct karma_pmu, cpu_pm_nb),
-		.cmd	= cmd,
-		.cpu	= smp_processor_id(),
+		.karma_pmu = container_of(b, struct karma_pmu, cpu_pm_nb),
+		.cmd = cmd,
+		.cpu = smp_processor_id(),
 	};
 
 	cpu_pm_karma_pmu_common(&data);
@@ -688,7 +703,6 @@ static inline void cpu_pm_karma_pmu_unregister(struct karma_pmu *karma_pmu) { }
 static void cpu_pm_karma_pmu_common(void *info) { }
 #endif
 
-
 static int karma_pmu_dev_probe(struct platform_device *pdev,
 				  struct karma_pmu *karma_pmu)
 {
@@ -701,7 +715,6 @@ static int karma_pmu_dev_probe(struct platform_device *pdev,
 	karma_pmu->num_counters = KARMA_NR_COUNTERS;
 	karma_pmu->counter_bits = 32;
 	karma_pmu->dev = &pdev->dev;
-	karma_pmu->on_cpu = -1;
 	karma_pmu->check_event = KARMA_EV_ID_MAX;
 
 	return 0;
@@ -733,17 +746,19 @@ static int karma_pmu_probe(struct platform_device *pdev)
 	name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "%s_%u",
 			     PMUNAME, karma_pmu->index_id);
 	karma_pmu->pmu = (struct pmu) {
-		.name		= name,
+		.name			= name,
 		.task_ctx_nr	= perf_invalid_context,
-		.event_init	= karma_pmu_event_init,
-		.pmu_enable	= karma_pmu_enable,
+		.event_init		= karma_pmu_event_init,
+		.pmu_enable		= karma_pmu_enable,
 		.pmu_disable	= karma_pmu_disable,
-		.add		= karma_pmu_add,
-		.del		= karma_pmu_del,
-		.start		= karma_pmu_start,
-		.stop		= karma_pmu_stop,
-		.read		= karma_pmu_read,
+		.add			= karma_pmu_add,
+		.del			= karma_pmu_del,
+		.start			= karma_pmu_start,
+		.stop			= karma_pmu_stop,
+		.read			= karma_pmu_read,
+#ifdef CONFIG_HISI_KARMA_PMU_DEBUG
 		.attr_groups	= karma_pmu_attr_groups,
+#endif
 	};
 
 	ret = cpu_pm_karma_pmu_register(karma_pmu);
@@ -796,7 +811,12 @@ static struct platform_driver karma_pmu_driver = {
 	.remove = karma_pmu_remove,
 };
 
-int karma_pmu_online_cpu(unsigned int cpu, struct hlist_node *node)
+static void karma_pmu_set_active_cpu(int cpu, struct karma_pmu *karma_pmu)
+{
+	cpumask_set_cpu(cpu, &karma_pmu->active_cpu);
+}
+
+static int karma_pmu_online_cpu(unsigned int cpu, struct hlist_node *node)
 {
 	struct karma_pmu *karma_pmu = hlist_entry_safe(node, struct karma_pmu,
 						     node);
@@ -805,59 +825,50 @@ int karma_pmu_online_cpu(unsigned int cpu, struct hlist_node *node)
 		return 0;
 
 	/* If another CPU is already managing this PMU, simply return. */
-	if (karma_pmu->on_cpu != -1)
+	if (!cpumask_empty(&karma_pmu->active_cpu))
 		return 0;
 
-	/* Use this CPU in cpumask for event counting */
-	karma_pmu->on_cpu = cpu;
-
-	/* Overflow interrupt also should use the same CPU */
-	//WARN_ON(irq_set_affinity(karma_pmu->irq, cpumask_of(cpu)));
+	karma_pmu_set_active_cpu(cpu, karma_pmu);
 
 	return 0;
 }
 
-int karma_pmu_offline_cpu(unsigned int cpu, struct hlist_node *node)
+static int get_online_cpu_any_but(struct karma_pmu *karma_pmu, int cpu)
+{
+	struct cpumask online_supported;
+
+	cpumask_and(&online_supported,
+			 &karma_pmu->associated_cpus, cpu_online_mask);
+	return cpumask_any_but(&online_supported, cpu);
+}
+
+static int karma_pmu_offline_cpu(unsigned int cpu, struct hlist_node *node)
 {
 	struct karma_pmu *karma_pmu = hlist_entry_safe(node, struct karma_pmu,
 						     node);
-	cpumask_t pmu_online_cpus;
 	unsigned int target;
 
-	if (!karma_pmu || !cpumask_test_and_clear_cpu(cpu, &karma_pmu->associated_cpus))
+	if (!karma_pmu || !cpumask_test_and_clear_cpu(cpu, &karma_pmu->active_cpu))
 		return 0;
 
-	/* Nothing to do if this CPU doesn't own the PMU */
-	if (karma_pmu->on_cpu != cpu)
-		return 0;
-
-	/* Give up ownership of the PMU */
-	karma_pmu->on_cpu = -1;
-
-	/* Choose a new CPU to migrate ownership of the PMU to */
-	cpumask_and(&pmu_online_cpus, &karma_pmu->associated_cpus,
-		    cpu_online_mask);
-	target = cpumask_any_but(&pmu_online_cpus, cpu);
+	target = get_online_cpu_any_but(karma_pmu, cpu);
 	if (target >= nr_cpu_ids) /*lint !e574*/
 		return 0;
 
 	perf_pmu_migrate_context(&karma_pmu->pmu, cpu, target);
-	/* Use this CPU for event counting */
-	karma_pmu->on_cpu = target;
-	//WARN_ON(irq_set_affinity(karma_pmu->irq, cpumask_of(target)));
+	karma_pmu_set_active_cpu(target, karma_pmu);
 
 	return 0;
 }
-
 
 static int __init karma_pmu_module_init(void)
 {
 	int ret;
 
 	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN,
-				      DRVNAME,
-				      karma_pmu_online_cpu,
-				      karma_pmu_offline_cpu);
+					DRVNAME,
+					karma_pmu_online_cpu,
+					karma_pmu_offline_cpu);
 	if (ret < 0) {
 		pr_err("KARMA PMU: Error setup hotplug, ret = %d\n", ret);
 		return ret;

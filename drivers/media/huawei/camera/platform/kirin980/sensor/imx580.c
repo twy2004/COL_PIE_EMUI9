@@ -33,6 +33,7 @@
 #include "m25p80_norflash.h"
 
 #define I2S(i) container_of(i, sensor_t, intf)
+#define Sensor2Pdev(s) container_of((s).dev, struct platform_device, dev)
 #define OTP_REG_VENDOR      (0x0019)
 
 extern int strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count);
@@ -373,7 +374,7 @@ static int imx580_otp_get(
     case IRSENSOR_DEVICE_OTP:
         break;
     case IRSENSOR_ENTIRETY_OTP:
-        cam_info("%s otp->otp_buffer = 0x%p, otp->otp_buffer_size = 0x%x", __func__, otp->otp_buffer, otp->otp_buffer_size);
+        cam_info("%s otp->otp_buffer = 0x%pK, otp->otp_buffer_size = 0x%x", __func__, otp->otp_buffer, otp->otp_buffer_size);
         ret = m25p_get_array_part_content(IRSENSOR_ENTIRETY_OTP,
             otp->otp_buffer, otp->otp_buffer_size);
         break;
@@ -456,10 +457,8 @@ imx580_config(
         case SEN_CONFIG_READ_REG_SETTINGS:
             break;
         case SEN_CONFIG_ENABLE_CSI:
-            //ret = si->vtbl->csi_enable(si);
             break;
         case SEN_CONFIG_DISABLE_CSI:
-            //ret = si->vtbl->csi_disable(si);
             break;
         case SEN_CONFIG_MATCH_ID:
             ret = si->vtbl->match_id(si,argp);
@@ -536,7 +535,7 @@ static void __exit
 imx580_exit_module(void)
 {
     rpmsg_sensor_unregister((void*)&s_imx580);
-    hwsensor_unregister(&s_imx580.intf);
+    hwsensor_unregister(Sensor2Pdev(s_imx580));
     platform_driver_unregister(&s_imx580_driver);
 }
 

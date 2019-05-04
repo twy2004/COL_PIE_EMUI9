@@ -200,6 +200,7 @@ enum sensor_power_seq_type_t {
     SENSOR_BVDD, /* using for buck vdd voltage control */
     SENSOR_RXDPHY_CLK,
     SENSOR_LASER_XSHUT,/*xshut used for laser*/
+    SENSOR_MIPI_SW2,
 };
 
 enum sensor_power_pmic_type_t {
@@ -344,6 +345,7 @@ typedef enum {
     MIPI_EN,
     AFVDD_EN,/*used for power up afvdd gpio*/
     LASER_XSHUT,/*laser*/
+    MIPI_SW2, // used for 2nd mipisw
     IO_MAX,
 } gpio_t;
 
@@ -415,9 +417,14 @@ typedef struct _tag_hwsensor_board_info
     int ext_num;
     int adc_threshold[EXT_THRESHOLD_NUM];
     char ext_name[EXT_NAME_NUM][DEVICE_NAME_SIZE];
-    /* add for Txx rpc */
-    int need_rpc; // radio power ctl for radio frequency interference
+    /*add for Txx rpc*/
+    int need_rpc;//radio power ctl for radio frequency interference
     rpc_info_t rpc_info;
+    /* add for multi mipisw */
+    unsigned int dynamic_mipisw_num; // for dynamic mipisw in do_hw_reset
+    unsigned int mipisw_enable_value0;
+    unsigned int mipisw_enable_value1;
+    int lpm3_gpu_buck; // for the camera is disturbed by lpm3
 } hwsensor_board_info_t;
 
 struct hisi_sensor_awb_otp {

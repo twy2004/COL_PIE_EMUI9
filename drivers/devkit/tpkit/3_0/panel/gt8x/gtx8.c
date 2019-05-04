@@ -624,7 +624,9 @@ static int gtx8_read_cfg(u8 *config_data, u32 config_len)
 		TS_LOG_INFO("success read config, len:%d\n", ret);
 
 	/* clear command */
-	gtx8_send_cmd(GTX8_CMD_COMPLETED, 0, GTX8_NOT_NEED_SLEEP);
+	ret = gtx8_send_cmd(GTX8_CMD_COMPLETED, 0, GTX8_NOT_NEED_SLEEP);
+	if (ret)
+		TS_LOG_ERR("Failed send read config commandn");
 
 exit:
 	/*enable doze mode*/
@@ -1420,9 +1422,11 @@ static int gtx8_parse_cfg_data(const struct firmware *cfg_bin,
 #if defined (CONFIG_HUAWEI_DSM)
 	if (GTX8_NOT_EXIST == sid_is_exist) {
 		if (!dsm_client_ocuppy(ts_dclient)) {
-		       TS_LOG_ERR("%s: sensor_id (%d) is not exist  DSM_TP_FWUPDATE_ERROR_NO(%d)\n", __func__, sid , DSM_TP_FWUPDATE_ERROR_NO);
-		       dsm_client_record(ts_dclient, "config update result: sensor_id (%d) is not exist .\n", sid);
-		       dsm_client_notify(ts_dclient, DSM_TP_FWUPDATE_ERROR_NO);
+			TS_LOG_ERR("%s: DSM_TP_FWUPDATE_ERROR_NO %d\n",
+				__func__, DSM_TP_FWUPDATE_ERROR_NO);
+			dsm_client_record(ts_dclient,
+				"config update result: sensor_id  is not exist\n");
+			dsm_client_notify(ts_dclient, DSM_TP_FWUPDATE_ERROR_NO);
 		}
 	}
 #endif
@@ -1464,6 +1468,12 @@ static int gtx8_get_cfg_data(const struct firmware *cfg_bin , char *config_name,
 
 	TS_LOG_INFO("%s: %s  version:%d , size:%d\n",
 			__func__, config_name, cfg_data[0], cfg_len);
+
+	if ((cfg_len <= 0) || (cfg_len > GOODIX_CFG_MAX_SIZE)) {
+		TS_LOG_ERR("%s: cfg_len invalid\n", __func__);
+		ret = -EINVAL;
+		goto exit;
+	}
 	memcpy(config->data, cfg_data, cfg_len);
 	config->length = cfg_len;
 
@@ -2152,7 +2162,9 @@ static int gtx8_request_evt_handler(struct gtx8_ts_data *ts)
 	switch (rqst_data) {
 	case REQUEST_CONFIG:
 		TS_LOG_INFO("HW request config\n");
-		gtx8_send_cfg(&ts->normal_cfg);
+		ret = gtx8_send_cfg(&ts->normal_cfg);
+		if (ret < 0)
+			TS_LOG_ERR("%s: send_cfg fail\n", __func__);
 		goto clear_requ;
 		break;
 	case REQUEST_BAKREF:
@@ -2220,8 +2232,7 @@ static int gtx8_gesture_evt_handler(struct gtx8_ts_data *ts,
 
 	/* TODO: may need calculate checksum */
 	if (checksum_u8(buf, GTX8_GESTURE_PACKAGE_LEN)) {
-		TS_LOG_ERR("%s: easy wakeup event checksum error, %ph", __func__,
-			GTX8_GESTURE_PACKAGE_LEN, buf);
+		TS_LOG_ERR("%s: easy wakeup event checksum error", __func__);
 		goto clear_flag;
 	}
 	TS_LOG_DEBUG("0x%x = 0x%02X,0x%02X,0x%02X,0x%02X\n", GTP_REG_COOR,
@@ -2257,7 +2268,7 @@ clear_flag:
 static int gtx8_touch_evt_handler(struct gtx8_ts_data  *ts,
 				struct ts_cmd_node *out_cmd)
 {
-	u8 touch_data[4 + BYTES_PER_COORD * GTP_MAX_TOUCH] = {0};
+	u8 touch_data[TOUCH_DATA_LEN_4 + BYTES_PER_COORD * GTP_MAX_TOUCH] = {0};
 	u8 touch_num = 0, chksum = 0;
 	bool have_pen = false;
 	int i = 0;
@@ -2277,7 +2288,7 @@ static int gtx8_touch_evt_handler(struct gtx8_ts_data  *ts,
 	ts_pens = &out_cmd->cmd_param.pub_params.report_pen_info;
 
 	ret = gtx8_i2c_read_trans(ts->reg.coor,
-			touch_data, 4 + BYTES_PER_COORD);
+			touch_data, TOUCH_DATA_LEN_4 + BYTES_PER_COORD);
 	if (unlikely(ret))
 		goto exit;
 
@@ -2298,25 +2309,25 @@ static int gtx8_touch_evt_handler(struct gtx8_ts_data  *ts,
 		touch_num = -EINVAL;
 		goto exit;
 	} else if (unlikely(touch_num > 1)) {
-		ret = gtx8_i2c_read_trans(ts->reg.coor + 4 + BYTES_PER_COORD,/*TS_REG_COORDS_BASE*/
-				&touch_data[4 + BYTES_PER_COORD],
+		ret = gtx8_i2c_read_trans(ts->reg.coor + TOUCH_DATA_LEN_4 + BYTES_PER_COORD,/*TS_REG_COORDS_BASE*/
+				&touch_data[TOUCH_DATA_LEN_4 + BYTES_PER_COORD],
 				(touch_num - 1) * BYTES_PER_COORD);
 		if (unlikely(ret < 0))
 			goto exit;
 	}
 
 	chksum = checksum_u8(touch_data,
-				touch_num * BYTES_PER_COORD + 4);
+				touch_num * BYTES_PER_COORD + TOUCH_DATA_LEN_4);
 	if (unlikely(chksum != 0)) {
-		for (i = 0; i < touch_num * BYTES_PER_COORD + 4; i++)
-			TS_LOG_ERR("[0x%04X]:0x%02X\n", 0x4100 + i, touch_data[i]);
+		for (i = 0; i < touch_num * BYTES_PER_COORD + TOUCH_DATA_LEN_4; i++)
+			TS_LOG_ERR("[0x%04X]:0x%02X\n", GTP_REG_COOR + i, touch_data[i]);
 		TS_LOG_ERR("Checksum error:%X\n", chksum);
 		ret = -EINVAL;
 		goto exit;
 	}
 
 	/*if there is a pen, it's must be the last touch data; if trace id >= 0x80, it's a pen*/
-	if(touch_num >= 1 && touch_data[8 * (touch_num - 1) + 2] >= 0x80){
+	if(touch_num >= 1 && touch_data[BYTES_PER_COORD * (touch_num - 1) + DMNNY_BYTE_LEN_2] >= 0x80){
 		have_pen = true;
 		TS_LOG_DEBUG("gtx8-%s: have pen!\n", __func__);
 	} else {
@@ -2979,7 +2990,7 @@ static int gtx8_chip_get_capacitance_test_type(
 	case TS_ACTION_READ:
 		memcpy(info->tp_test_type,
 				gtx8_ts->dev_data->tp_test_type,
-				TS_CAP_TEST_TYPE_LEN);
+				TS_CAP_TEST_TYPE_LEN - 1);
 		TS_LOG_INFO("%s: test_type=%s\n", __func__, info->tp_test_type);
 		break;
 	case TS_ACTION_WRITE:
@@ -3008,7 +3019,7 @@ extern u8 gtx8_get_cfg_value(u8 *config, u8 *buf, u8 len, u8 sub_bag_num, u8 off
 	u8 *sub_bag_ptr = NULL;
 	u8 i = 0;
 	if(!config ||!buf ){
-		TS_LOG_ERR("%s:invalid input %d\n",__func__);
+		TS_LOG_ERR("%s:invalid input\n", __func__);
 		return -EINVAL;
 	}
 	sub_bag_ptr = &config[4];

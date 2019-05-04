@@ -1,7 +1,7 @@
 #include <linux/dma-mapping.h>
 #include <osl_malloc.h>
 #include "ipf_balong.h"
-#include <hi_ipf.h>
+#include "hi_ipf.h"
 #include <bsp_ddr.h>
 #include <mdrv_ipf_comm.h>
 #include <osl_malloc.h>
@@ -11,6 +11,17 @@
 #include <bsp_slice.h>
 #include <securec.h>
 #include <../../adrv/adrv.h>
+#include <linux/ip.h>
+#include <linux/byteorder/generic.h>
+#include <linux/in.h>
+#include <linux/printk.h>
+#include <linux/udp.h>
+#include <linux/tcp.h>
+#include <linux/icmp.h>
+#include <linux/ipv6.h>
+#include <linux/igmp.h>
+#include <bsp_print.h>
+#include <chipset_common/dubai/dubai.h>
 
 extern struct ipf_ctx g_ipf_ctx;
 
@@ -133,6 +144,7 @@ void ipf64_rd_h2s(IPF_RD_DESC_S* param, void* rd_base, unsigned int index)
 
 	memcpy_s(&tmp, sizeof(tmp), &rd[index], sizeof(ipf64_rd_s));
 	param->u16Attribute	= tmp.attribute.u16;
+	param->fc_head      = tmp.attribute.bits.fc_head;
 	param->u16PktLen	= tmp.pkt_len;
 	param->u16Result	= tmp.result;
 	param->InPtr		= (modem_phy_addr)(unsigned long)tmp.input_ptr.addr;
@@ -222,6 +234,70 @@ void __attribute__((weak)) ipf_get_waking_pkt(void* data, unsigned int len)
     return;
 };
 
+void ipf_print_pkt_info(unsigned char* data)
+{
+    struct iphdr* iph = (struct iphdr*)data;
+    struct udphdr *udph;
+    struct tcphdr *tcph;
+    struct icmphdr *icmph;
+    struct ipv6hdr *ip6h;
+    
+    pr_err("ipf dl wakeup, ip version=%d\n", iph->version);
+
+    if(iph->version == 4)
+    {
+        pr_err("src ip:%d.%d.%d.x, dst ip:%d.%d.%d.x\n", iph->saddr&0xff,
+            (iph->saddr>>8)&0xff, (iph->saddr>>16)&0xff, iph->daddr&0xff,
+            (iph->daddr>>8)&0xff, (iph->daddr>>16)&0xff);
+        if(iph->protocol == IPPROTO_UDP)
+        {
+            udph = (struct udphdr*)(data + sizeof(struct iphdr));
+            pr_err("UDP packet, src port:%d, dst port:%d.\n", 
+                ntohs(udph->source), ntohs(udph->dest));
+            dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP_UDP_V4", "port", ntohs(udph->dest));
+        }
+        else if(iph->protocol == IPPROTO_TCP)
+        {
+            tcph = (struct tcphdr*)(data + sizeof(struct iphdr));
+            pr_err("TCP packet, src port:%d, dst port:%d\n", \
+                ntohs(tcph->source), ntohs(tcph->dest));
+            dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP_TCP_V4", "port", ntohs(tcph->dest));
+        }
+        else if(iph->protocol == IPPROTO_ICMP)
+        {
+            icmph = (struct icmphdr*)(data + sizeof(struct iphdr));
+            pr_err("ICMP packet, type(%d):%s, code:%d.\n",     \
+                icmph->type, \
+                ((icmph->type == 0)?"ping reply":((icmph->type == 8)?"ping request":"other icmp pkt")), \
+                icmph->code);
+            dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP", "protocol", (int)iph->protocol);
+        }
+        else if(iph->protocol == IPPROTO_IGMP)
+        {
+            pr_err("ICMP packet\n");
+            dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP", "protocol", (int)iph->protocol);
+        } else {
+            pr_err("Other IPV4 packet\n");
+            dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP", "protocol", (int)iph->protocol);
+        }
+    }
+    else if(iph->version == 6)
+    {
+        ip6h = (struct ipv6hdr*)data;
+        pr_err("version: %d, payload length: %d, nh->nexthdr: %d. \n", \
+            ip6h->version, ntohs(ip6h->payload_len), ip6h->nexthdr);
+        pr_err("ipv6 src addr:%04x:%x:%xx:x:x:x:x:x  \n", \
+            ntohs(ip6h->saddr.in6_u.u6_addr16[7]), \
+            ntohs(ip6h->saddr.in6_u.u6_addr16[6]),
+            (ip6h->saddr.in6_u.u6_addr8[11]));
+        pr_err("ipv6 dst addr:%04x:%x:%xx:x:x:x:x:x \n", \
+            ntohs(ip6h->saddr.in6_u.u6_addr16[7]), \
+            ntohs(ip6h->saddr.in6_u.u6_addr16[6]),
+            (ip6h->saddr.in6_u.u6_addr8[11]));
+        dubai_log_packet_wakeup_stats("DUBAI_TAG_MODEM_PACKET_WAKEUP", "protocol", IPPROTO_IPV6);
+    }
+}
+
 void ipf_waking_pkt_pick(void *buf, size_t len)
 {
     struct sk_buff* skb = NULL;
@@ -247,6 +323,7 @@ void ipf_waking_pkt_pick(void *buf, size_t len)
 
         g_ipf_ctx.stax.pkt_dbg_in = bsp_get_slice_value();
         ipf_get_waking_pkt(skb->data, skb->len);
+        ipf_print_pkt_info(skb->data);
         g_ipf_ctx.stax.pkt_dbg_out = bsp_get_slice_value();
         
         g_ipf_ctx.stax.wakeup_irq++;

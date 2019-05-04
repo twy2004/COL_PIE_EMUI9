@@ -55,10 +55,10 @@
 #include <linux/of.h>
 #include <linux/dma-mapping.h>
 #include <linux/of_device.h>
+#include <linux/device.h>
 #include <asm/io.h>
 #include <linux/gfp.h>
 #include <linux/mm.h>
-#include "product_config.h"
 
 #include <securec.h>
 #include <bsp_slice.h>
@@ -74,12 +74,12 @@
 #include <bsp_reset.h>
 #include <bsp_sec_call.h>
 
-#include "dump_file.h"
+#include "dump_logs.h"
 #include "dump_config.h"
 #include "dump_sec_mem.h"
 
 
-#undef	THIS_MODU
+#undef  THIS_MODU
 #define THIS_MODU mod_dump
 
 int bsp_dump_sec_channel_free(DRV_RESET_CB_MOMENT_E eparam, s32 usrdata)
@@ -93,7 +93,6 @@ int dump_sec_init(void)
 void dump_sec_enable_trans(void)
 {
 }
-
 
 
 

@@ -1,5 +1,23 @@
-#ifndef _HW_BATT_VOL_H_
-#define _HW_BATT_VOL_H_
+/*
+ * battery_voltage.h
+ *
+ * battery boltage for power module
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
+#ifndef _BATTERY_VOLTAGE_H_
+#define _BATTERY_VOLTAGE_H_
 
 #ifdef CONFIG_HISI_COUL
 #include <linux/power/hisi/coul/hisi_coul_drv.h>
@@ -22,13 +40,21 @@ enum hw_batt_vol_sysfs_type {
 	HW_BATT_VOL_SYSFS_BAT_ID_MIN,
 };
 
-/* enum number must be fixed it is matched with DTS, new member must be added last line. */
+/*
+ * enum number must be matched with device tree,
+ * and new member must be added to last line.
+ */
 enum hw_batt_id {
 	BAT_ID_0 = 0,
 	BAT_ID_1 = 1,
 	BAT_ID_ALL = 2,
 	BAT_ID_MAX = 3,
 	BAT_ID_MIN = 4,
+};
+
+enum hw_batt_num {
+	HW_ONE_BAT = 1,
+	HW_TWO_SERIES_BAT = 2,
 };
 
 struct hw_batt_get_vol {
@@ -42,6 +68,7 @@ struct hw_batt_vol_info {
 	struct device *dev;
 	struct hw_batt_get_vol vol_buff[HW_BATT_VOL_NUM];
 	int total_vol;
+	int batt_series_num;
 };
 
 struct hw_batt_vol_ops {
@@ -49,9 +76,10 @@ struct hw_batt_vol_ops {
 };
 
 #ifdef CONFIG_HUAWEI_BATTERY_VOLTAGE
-extern int hw_battery_voltage(enum hw_batt_id batt_id);
-
-int hw_battery_voltage_ops_register(struct hw_batt_vol_ops* ops, char* ops_name);
+int hw_battery_voltage(enum hw_batt_id batt_id);
+int hw_battery_get_series_num(void);
+int hw_battery_voltage_ops_register(struct hw_batt_vol_ops *ops,
+	char *ops_name);
 
 #else
 
@@ -60,10 +88,16 @@ static inline int hw_battery_voltage(enum hw_batt_id batt_id)
 	return hisi_battery_voltage();
 }
 
-static inline int hw_battery_voltage_ops_register(struct hw_batt_vol_ops* ops, char* ops_name)
+static inline int hw_battery_get_series_num(void)
+{
+	return 1; /* default one battery */
+}
+
+static inline int hw_battery_voltage_ops_register(struct hw_batt_vol_ops *ops,
+	char *ops_name)
 {
 	return 0;
 }
-#endif /* end of CONFIG_HUAWEI_BATTERY_VOLTAGE */
+#endif /* CONFIG_HUAWEI_BATTERY_VOLTAGE */
 
-#endif /* end of _HW_BATT_VOL_H_ */
+#endif /* _BATTERY_VOLTAGE_H_ */

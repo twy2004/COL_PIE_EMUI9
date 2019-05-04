@@ -108,7 +108,7 @@ Output:         N/A
 Return:         0:success ; other: fail
 ************************************************************/
  /*lint -e429*/
-int bbox_diaginfo_register(unsigned int err_id, char* pdata, unsigned int data_len, u64 ts)
+int bbox_diaginfo_register(unsigned int err_id,const char* pdata, unsigned int data_len, u64 ts)
 {
 	struct bbox_diaginfo_param_s *p = NULL;//lint !e429
 	unsigned long flags;
@@ -127,7 +127,9 @@ int bbox_diaginfo_register(unsigned int err_id, char* pdata, unsigned int data_l
 		return BBOX_DIAGINFO_NO_MEM;
 	}
 
-	memcpy_s(&(p->diaginfo.msg), MAX_DIAGINFO_LEN - 1, pdata, data_len);
+	if (EOK !=memcpy_s(&(p->diaginfo.msg), MAX_DIAGINFO_LEN - 1, pdata, data_len)){
+		BB_PRINT_ERR("[%s] Memcpy fail pdata!\n", __func__);
+	}
 	p->diaginfo.len = data_len + 1;
 	p->diaginfo.errid = err_id;
 	p->diaginfo.ts = ts;
@@ -628,7 +630,7 @@ int bbox_diaginfo_init(void)
 		return -1;
 	}
 
-	rdr_ap_root = (AP_EH_ROOT *)g_hisiap_addr;
+	rdr_ap_root = (AP_EH_ROOT *)(uintptr_t)g_hisiap_addr;
 	g_bbox_diaginfo_buffer_addr = rdr_ap_root->hook_buffer_addr[HK_DIAGINFO];
 	bbox_ap_ipc_init();
 

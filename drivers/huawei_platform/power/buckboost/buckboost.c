@@ -273,7 +273,7 @@ static int max77813_probe(struct i2c_client *client,
 		goto max77813_fail_3;
 	}
 	#ifdef CONFIG_HUAWEI_HW_DEV_DCT
-	set_hw_dev_flag(DEV_I2C_BUCKBOOST_MAX77813);
+	set_hw_dev_flag(DEV_I2C_BUCKBOOST);
 	#endif
 	hwlog_info("max77813 probe ok!\n");
 	return 0;

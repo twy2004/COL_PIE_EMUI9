@@ -99,31 +99,24 @@
 #include "dump_cp_agent.h"
 #include "dump_apr.h"
 #include "dump_area.h"
-#include "dump_exc_type.h"
+#include "dump_exc_handle.h"
 #include "dump_lphy_tcm.h"
 #include "dump_cphy_tcm.h"
 #include "dump_easyrf_tcm.h"
 #include "dump_logs.h"
-#include "dump_exc_type.h"
 #include "dump_cp_core.h"
-#include "dump_sec_mem.h"
-#include "dump_log_save.h"
+#include "dump_mdmap_core.h"
+#include "dump_cp_logs.h"
 #include "dump_core.h"
+#include "dump_sec_mem.h"
+
 
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
 
-DUMP_CP_RESET_CTRL  g_dump_cp_reset_timestamp;
-
-void dump_reset_ctrl_int(void)
-{
-    /*coverity[secure_coding]*/
-    memset_s(&g_dump_cp_reset_timestamp,sizeof(g_dump_cp_reset_timestamp),0,sizeof(g_dump_cp_reset_timestamp));
-}
-
 /*****************************************************************************
-* 函 数 名  : dump_check_reset_timestamp
-* 功能描述  : modem 频繁单独复位的特殊处理
+* 函 数 名  : dump_mdmcp_init
+* 功能描述  : mdmcp 功能初始化
 *
 * 输入参数  :
 * 输出参数  :
@@ -131,43 +124,30 @@ void dump_reset_ctrl_int(void)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
 
-s32 dump_check_reset_timestamp(u32 modid)
+__init s32 dump_mdmcp_init(void)
 {
-    u32 diff = 0;
-    NV_DUMP_STRU* cfg = NULL;
-    cfg = dump_get_feature_cfg();
-    if( cfg!= NULL && cfg->dump_cfg.Bits.fetal_err == 0)
+    s32 ret = BSP_OK;
+
+    ret = dump_cp_agent_init();
+    if(BSP_OK != ret)
     {
-        return BSP_OK;
+        dump_error("fail to init mdmcp \n");
+        return BSP_ERROR;
     }
 
-    if(g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT == 0
-        && g_dump_cp_reset_timestamp.count !=0)
-    {
-        diff = (g_dump_cp_reset_timestamp.reset_time[DUMP_CP_REST_TIME_COUNT -1] - g_dump_cp_reset_timestamp.reset_time[0]);
-        if( diff < DUMP_CP_REST_TIME_COUNT*DUMP_CP_REST_TIME_SLICE)
-        {
-           dump_error("modem reset exceed default time\n ");
-           return BSP_ERROR;
-        }
-        /*coverity[secure_coding]*/
-        memset_s(&g_dump_cp_reset_timestamp,sizeof(g_dump_cp_reset_timestamp),0,sizeof(g_dump_cp_reset_timestamp));
-    }
-    if(modid != RDR_MODEM_CP_RESET_SIM_SWITCH_MOD_ID &&  modid != RDR_MODEM_CP_RESET_USER_RESET_MOD_ID)
-    {
-        g_dump_cp_reset_timestamp.reset_time[g_dump_cp_reset_timestamp.count % DUMP_CP_REST_TIME_COUNT] = bsp_get_slice_value();
-        g_dump_cp_reset_timestamp.count++;
-    }
+    dump_ok("dump mdmcp init ok\n");
+
     return BSP_OK;
-
 }
+
+
 /*****************************************************************************
-* 函 数 名  : dump_check_single_set
-* 功能描述  : modem 频繁单独复位的特殊处理
+* 函 数 名  : dump_check_single_reset_by_nv
+* 功能描述  : nv是否配置了单独复位的功能
 *
 * 输入参数  :
 * 输出参数  :
@@ -175,9 +155,10 @@ s32 dump_check_reset_timestamp(u32 modid)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
+
 s32 dump_check_single_reset_by_nv(void)
 {
 
@@ -185,16 +166,18 @@ s32 dump_check_single_reset_by_nv(void)
     cfg = dump_get_feature_cfg();
     if( cfg!= NULL && cfg->dump_cfg.Bits.sysErrReboot == 0)
     {
-        dump_error("close modem sigle reset\n");
+        dump_ok("close modem sigle reset\n");
         return BSP_ERROR;
     }
 
     dump_ok(" modem sigle reset open\n");
+
     return BSP_OK;
 }
+
 /*****************************************************************************
 * 函 数 名  : dump_check_single_reset_by_modid
-* 功能描述  : modem 判断错误码是否需要单独复位
+* 功能描述  : 当前的错误id是否支持单独复位
 *
 * 输入参数  :
 * 输出参数  :
@@ -202,7 +185,7 @@ s32 dump_check_single_reset_by_nv(void)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
 
@@ -226,7 +209,7 @@ s32 dump_check_single_reset_by_modid(u32 modid)
             || (RDR_MODEM_CP_NOC_MOD_ID == modid)
             || (RDR_MODEM_AP_DRV_MOD_ID == modid))
     {
-        dump_ok("need modem reset\n");
+        dump_ok("go to modem reset\n");
         return BSP_OK;
     }
     else
@@ -238,7 +221,7 @@ s32 dump_check_single_reset_by_modid(u32 modid)
 }
 /*****************************************************************************
 * 函 数 名  : dump_check_cp_reset
-* 功能描述  : 判断是否要执行单独复位流程
+* 功能描述  : 确认当期是否可以进行单独复位
 *
 * 输入参数  :
 * 输出参数  :
@@ -246,9 +229,10 @@ s32 dump_check_single_reset_by_modid(u32 modid)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
+
 
 s32 dump_check_cp_reset(u32 modid)
 {
@@ -265,18 +249,14 @@ s32 dump_check_cp_reset(u32 modid)
     if(BSP_ERROR == dump_check_single_reset_by_nv())
     {
         dump_ok("dump_check_single_reset_by_nv retun not support\n");
-        dump_set_exc_flag(false);
         return BSP_ERROR;
     }
 
     return BSP_OK;
 }
-
-
-
 /*****************************************************************************
-* 函 数 名  : modem_error_proc
-* 功能描述  : modem异常的特殊处理，主要针对dmss和noc异常
+* 函 数 名  : dump_mdmcp_reset
+* 功能描述  : 执行cp的单独复位
 *
 * 输入参数  :
 * 输出参数  :
@@ -284,143 +264,26 @@ s32 dump_check_cp_reset(u32 modid)
 * 返 回 值  :
 
 *
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+* 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
-void dump_callback_dmss_noc_proc(u32 modid)
-{
 
-
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_callback
-* 功能描述  : modem异常的回调处理函数
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-extern void bsp_modem_cold_patch_update_modem_fail_count(void);
-u32 dump_mdmcp_callback(u32 modid, u32 etype, u64 coreid, char* logpath, pfn_cb_dump_done fndone)
-{
-    bsp_modem_cold_patch_update_modem_fail_count();
-    if(fndone != NULL)
-    {
-        fndone(modid,coreid);
-    }
-    return BSP_OK;
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_reset_fail_proc
-* 功能描述  : 单独复位失败的处理
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_reset_fail_proc(u32 rdr_modid)
-{
-
-    rdr_system_error(rdr_modid, 0, 0);
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_reset_success_proc
-* 功能描述  : 单独复位成功处理
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_reset_success_proc(void)
-{
-    dump_set_exc_flag(false);
-
-}
-
-/*****************************************************************************
-* 函 数 名  : dump_reset
-* 功能描述  : modem 复位处理函数
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-void dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid)
+RESET_RESULT dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid)
 {
     s32 ret;
     dump_ok("enter dump reset, mod id:0x%x\n", modid);
-
-    dump_clear_cpboot_area();
     if(BSP_OK == dump_check_cp_reset(modid))
     {
         ret = bsp_cp_reset();
         if(ret == -1)
         {
-            dump_reset_fail_proc(RDR_MODEM_CP_RESET_REBOOT_REQ_MOD_ID);
-            return;
+            return RESET_NOT_SUPPORT;
         }
-
-
         if(!bsp_reset_is_successful(RDR_MODEM_CP_RESET_TIMEOUT))
         {
-            dump_reset_fail_proc(RDR_MODEM_CP_RESET_FAIL_MOD_ID);
+            return RESET_NOT_SUCCES;
         }
-        else
-        {
-            dump_reset_success_proc();
-        }
+        return RESET_SUCCES;
     }
-
-
+    return RESET_NOT_SUPPORT;
 }
-/*****************************************************************************
-* 函 数 名  : bsp_dump_init
-* 功能描述  : modem dump 初始化函数
-*
-* 输入参数  :
-* 输出参数  :
-
-* 返 回 值  :
-
-*
-* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
-*
-*****************************************************************************/
-s32 __init dump_mdmcp_init(void)
-{
-    s32 ret ;
-
-    ret = dump_cp_agent_init();
-    if(BSP_OK != ret)
-    {
-        dump_error("dump cp agent init fail\n");
-        return BSP_ERROR;
-    }
-    return BSP_OK;
-}
-
-EXPORT_SYMBOL(dump_callback_dmss_noc_proc);
-EXPORT_SYMBOL_GPL(system_error);

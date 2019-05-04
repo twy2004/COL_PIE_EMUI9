@@ -57,8 +57,8 @@
 #include <bsp_hardtimer.h>
 #include <bsp_slice.h>
 #include <bsp_version.h>
+#include <securec.h>
 #include "hardtimer_core.h"
-#include "securec.h"
 
 #undef THIS_MODU
 #define THIS_MODU mod_hardtimer

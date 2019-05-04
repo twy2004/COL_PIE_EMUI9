@@ -13,6 +13,82 @@ struct lcdkit_adapt_func lcdkit_adapt_func_array[] = {
     {"JDI_2LANE_NT36860 CUT2 5.88' CMD TFT 1440 x 2560", NULL, lcdkit_jdi_nt36860_5p88_reg_read_show}, // gamma calibration show
     {"JDI_NT36860 5.88' CMD TFT 1440 x 2560", NULL, lcdkit_jdi_nt36860_5p88_reg_read_show}, // gamma calibration show
 };
+
+static char *sence_array[SENCE_ARRAY_SIZE] = {
+	"LCD_INCOME0",   "MMI0",   "RUNNINGTEST0", "PROJECT_MENU0",
+	"LCD_INCOME1",   "MMI1",   "RUNNINGTEST1",  "PROJECT_MENU1",
+	"LCD_INCOME2",   "MMI2",   "RUNNINGTEST2",  "PROJECT_MENU2",
+	"LCD_INCOME3",   "MMI3",   "RUNNINGTEST3",  "PROJECT_MENU3",
+	"LCD_INCOME4",   "MMI4",   "RUNNINGTEST4",  "PROJECT_MENU4",
+	"LCD_INCOME5",   "MMI5",   "RUNNINGTEST5",  "PROJECT_MENU5",
+	"LCD_INCOME6",   "MMI6",   "RUNNINGTEST6",  "PROJECT_MENU6",
+	"LCD_INCOME7",   "MMI7",   "RUNNINGTEST7",  "PROJECT_MENU7",
+	"LCD_INCOME8",   "MMI8",   "RUNNINGTEST8",  "PROJECT_MENU8",
+	"LCD_INCOME9",   "MMI9",   "RUNNINGTEST9",  "PROJECT_MENU9",
+	"LCD_INCOME10",  "MMI10",  "RUNNINGTEST10",  "PROJECT_MENU10",
+	"LCD_INCOME11",  "MMI11",  "RUNNINGTEST11",  "PROJECT_MENU11",
+	"LCD_INCOME12",  "MMI12",  "RUNNINGTEST12",  "PROJECT_MENU12",
+	"LCD_INCOME13",  "MMI13",  "RUNNINGTEST13",  "PROJECT_MENU13",
+	"LCD_INCOME14",  "MMI14",  "RUNNINGTEST14",  "PROJECT_MENU14",
+	"LCD_INCOME15",  "MMI15",  "RUNNINGTEST15",  "PROJECT_MENU15",
+	"LCD_INCOME16",  "MMI16",  "RUNNINGTEST16",  "PROJECT_MENU16",
+	"LCD_INCOME17",  "MMI17",  "RUNNINGTEST17",  "PROJECT_MENU17",
+	"CURRENT1_0",    "CURRENT1_1", "CURRENT1_2",  "CURRENT1_3",
+	"CURRENT1_4",    "CURRENT1_5", "CHECKSUM1",  "CHECKSUM2",
+	"CHECKSUM3",     "CHECKSUM4", "BL_OPEN_SHORT",  "PCD_ERRORFLAG",
+	"DOTINVERSION",  "CHECKREG", "COLUMNINVERSION",   "POWERONOFF",
+	"BLSWITCH",};
+
+static char *cmd_array[SENCE_ARRAY_SIZE] = {
+	"CURRENT1_0",   "CURRENT1_0",  "CURRENT1_0",  "CURRENT1_0",
+	"CURRENT1_1",   "CURRENT1_1",  "CURRENT1_1",  "CURRENT1_1",
+	"CURRENT1_2",   "CURRENT1_2",  "CURRENT1_2",  "CURRENT1_2",
+	"CURRENT1_3",   "CURRENT1_3",  "CURRENT1_3",  "CURRENT1_3",
+	"CURRENT1_4",   "CURRENT1_4",  "CURRENT1_4",  "CURRENT1_4",
+	"CURRENT1_5",   "CURRENT1_5",  "CURRENT1_5",  "CURRENT1_5",
+	"CHECKSUM1",   "CHECKSUM1",   "CHECKSUM1", "CHECKSUM1",
+	"CHECKSUM2",   "CHECKSUM2",   "CHECKSUM2", "CHECKSUM2",
+	"CHECKSUM3",    "CHECKSUM3",   "CHECKSUM3", "CHECKSUM3",
+	"CHECKSUM4",   "CHECKSUM4",   "CHECKSUM4", "CHECKSUM4",
+	"BL_OPEN_SHORT",   "BL_OPEN_SHORT",   "BL_OPEN_SHORT", "BL_OPEN_SHORT",
+	"PCD_ERRORFLAG",   "PCD_ERRORFLAG",  "PCD_ERRORFLAG", "PCD_ERRORFLAG",
+	"DOTINVERSION",    "DOTINVERSION",  "DOTINVERSION", "DOTINVERSION",
+	"CHECKREG",    "CHECKREG",  "CHECKREG", "CHECKREG",
+	"COLUMNINVERSION", "COLUMNINVERSION", "COLUMNINVERSION",
+	"COLUMNINVERSION",
+	"POWERONOFF",   "POWERONOFF",  "POWERONOFF",  "POWERONOFF",
+	"BLSWITCH",    "BLSWITCH",  "BLSWITCH", "BLSWITCH",
+	"GPU_TEST",   "GPU_TEST",  "GPU_TEST", "GPU_TEST",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/ina231/ina231_0/ina231_set," \
+	"/sys/class/ina231/ina231_0/ina231_value," \
+	"1,9999999,1,9999999,1,99999",
+	"/sys/class/graphics/fb0/lcd_checksum",
+	"/sys/class/graphics/fb0/lcd_checksum",
+	"/sys/class/graphics/fb0/lcd_checksum",
+	"/sys/class/graphics/fb0/lcd_checksum",
+	"/sys/class/lm36923/lm36923/self_test",
+	"/sys/class/graphics/fb0/amoled_pcd_errflag_check",
+	"/sys/class/graphics/fb0/lcd_inversion_mode",
+	"/sys/class/graphics/fb0/lcd_check_reg",
+	"/sys/class/graphics/fb0/lcd_inversion_mode",
+	"/sys/class/graphics/fb0/lcd_check_reg",
+	"/sys/class/graphics/fb0/lcd_check_reg",};
+
 uint32_t checksum_start = LCDKIT_CHECKSUM_END;
 struct lcdkit_esd_error_info g_esd_error_info;
 extern int lcdkit_brightness_ddic_info;
@@ -974,8 +1050,19 @@ static ssize_t lcdkit_pcd_errflag_check(char* buf)
 	u8 result_value = 0;
 
 	if (lcdkit_info.panel_infos.gpio_pcd != 0) {
-		gpio_request(lcdkit_info.panel_infos.gpio_pcd,GPIO_LCDKIT_PCD_NAME);
-		gpio_direction_input(lcdkit_info.panel_infos.gpio_pcd);
+		rc = gpio_request(lcdkit_info.panel_infos.gpio_pcd,GPIO_LCDKIT_PCD_NAME);
+		if (rc != 0){
+			result_value = PCD_ERRFLAG_FAIL;
+			LCDKIT_ERR("gpio_err_flag[%d] request fail!\n",lcdkit_info.panel_infos.gpio_pcd);
+			goto err_out;
+		}
+		rc = gpio_direction_input(lcdkit_info.panel_infos.gpio_pcd);
+		if (rc != 0){
+			gpio_free(lcdkit_info.panel_infos.gpio_pcd);
+			result_value = PCD_ERRFLAG_FAIL;
+			LCDKIT_ERR("gpio_err_flag[%d] direction set fail!\n",lcdkit_info.panel_infos.gpio_pcd);
+			goto err_out;
+		}
 		pcd_gpio = gpio_get_value(lcdkit_info.panel_infos.gpio_pcd);
 		gpio_free(lcdkit_info.panel_infos.gpio_pcd);
 	}
@@ -1600,8 +1687,6 @@ static ssize_t lcdkit_reg_read_show(void* pdata, char *buf)
             } else {
                 snprintf(str_tmp, sizeof(str_tmp), "%d,", (read_value[i / 4] >> 24) & 0xFF);
             }
-            break;
-        default:
             break;
         }
         strncat(lcd_reg_buf, str_tmp, strlen(str_tmp));

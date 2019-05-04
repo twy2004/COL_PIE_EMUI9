@@ -66,6 +66,7 @@
 #include <securec.h>
 #include <osl_thread.h>
 #include <bsp_nvim.h>
+#include <bsp_version.h>
 #include <bsp_blk.h>
 #include <bsp_dump.h>
 #include <bsp_reset.h>
@@ -84,10 +85,29 @@
 
 #define THIS_MODU mod_nv
 
+#define CHIP_V5000    0x9500
+
 u32 g_flush_img_cnt = 0;
 u32 g_flush_bak_cnt = 0;
 
 struct nv_path_info_stru g_nv_path = {0};
+
+bool bsp_b5000_is_esl_emu_version(void)
+{
+    u16 chip_type;
+    u8 plat_type;
+
+    if(NULL == bsp_get_version_info())
+    {
+        nv_printf("bsp_get_version_info == NULL\n");
+        return false;
+    }
+
+    plat_type = bsp_get_version_info()->plat_type;
+    chip_type = bsp_get_version_info()->chip_type;
+
+    return (bool)(((PLAT_ESL == plat_type) || (PLAT_EMU == plat_type)) && (CHIP_V5000 == chip_type));
+}
 
 /************************************************************************
  函 数 名  : bsp_nvm_get_modem_num
@@ -290,6 +310,32 @@ u32 bsp_nvm_dcreadpart(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen)
     return nv_readEx(modem_id,itemid,offset,pdata,datalen);
 }
 
+void * bsp_nvm_get_addr(u32 modemid, u32 itemid)
+{
+    u32 ret;
+    nv_ctrl_info_s *ctrl_info = (nv_ctrl_info_s*)NV_GLOBAL_CTRL_INFO_ADDR;
+    nv_item_info_s *item_info;
+
+    if((modemid == 0) || (modemid > ctrl_info->modem_num))
+    {
+        nv_printf("invalid modemid!\n");
+        return NULL;
+    }
+
+    ret = nv_search_iteminfo(itemid, ctrl_info, &item_info);
+    if(ret)
+    {
+        nv_printf("not find nv id(0x%x)!\n", itemid);
+        return NULL;
+    }
+
+    if(modemid > item_info->modem_num)
+    {
+        modemid = 1;
+    }
+
+    return (nv_get_item_mdmbase(modemid, item_info, ctrl_info));
+}
 /************************************************************************
  函 数 名  : bsp_nvm_update_default
  功能描述  : 刷新nv镜像到工作分区
@@ -321,6 +367,36 @@ u32 bsp_nvm_update_default(void)
     }
 
     nv_record("^INFORBU: factory bakup end!\n");
+
+    return NV_OK;
+}
+/************************************************************************
+Function   :nv_flush_rwfile
+parameter  :
+
+detail     :
+*************************************************************************/
+u32 nv_flush_rwfile(void)
+{
+    u32 ret;
+    nv_global_info_s *ddr_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
+
+    ret = nv_img_rwbuf();
+    if (ret)
+    {
+        nv_printf("flush nvm img fail!");
+        return ret;
+    }
+
+    if(ddr_info->nminfo.is_need_flush_backup & RWNV_FILE_BIT)
+    {
+        ret = nv_bak_rwbuf();
+        if(ret)
+        {
+            nv_printf("flush modemnvm_back fail!");
+            return ret;
+        }
+    }
 
     return NV_OK;
 }
@@ -399,6 +475,10 @@ void bsp_nvm_icc_task(void* parm)
         switch (msg->msg_type) {
             case NV_TASK_MSG_WRITE2FILE:
                 ret = nv_write2file_handle();
+                break;
+
+            case NV_TASK_MSG_FLUSH_RWFILE:
+                ret = nv_flush_rwfile();
                 break;
 
             case NV_TASK_MSG_LOAD_BACKUP:
@@ -709,9 +789,8 @@ u32 bsp_nvm_kernel_dir_init(void)
     {
         strncat_s(g_nv_path.file_path[i], DRV_NAME_MAX, g_nv_path.root_dir, strlen(g_nv_path.root_dir));
         strncat_s(g_nv_path.file_path[i], DRV_NAME_MAX, nv_img_list[i], strlen(nv_img_list[i]));
-        nv_record("nv root dir i %d %s!.\n", i, g_nv_path.file_path[i]);
     }
-
+    nv_printf("nv root dir is %s \n", g_nv_path.root_dir);
     return NV_OK;
 }
 
@@ -740,6 +819,12 @@ s32 bsp_nvm_kernel_init(void)
     nv_record("Balong nv init  start!\n");
 
     (void)nv_debug_init();
+
+    if(bsp_b5000_is_esl_emu_version())
+    {
+        nv_printf("this is 5000 esl/emu config\n");
+        goto esl_nv_init;
+    }
 
     /* nv root dir init */
     ret = (u32)bsp_nvm_kernel_dir_init();
@@ -780,6 +865,7 @@ s32 bsp_nvm_kernel_init(void)
         goto out;
     }
 
+esl_nv_init:
     ret = bsp_nvm_core_init1();
     if(ret)
     {
@@ -809,6 +895,7 @@ void modem_nv_delay(void)
     u32  blk_size;
     char *blk_label;
     int i, ret = -1;
+
 
     /*最长等待时长10s*/
     for(i=0;i<10;i++)

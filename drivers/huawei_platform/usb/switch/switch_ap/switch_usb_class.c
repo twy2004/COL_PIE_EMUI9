@@ -247,7 +247,6 @@ static int create_switch_usb_class(void)
         hwlog_info("%s: switch_usb_class=NULL and class_create will start.\n", __func__);
         switch_usb_class = class_create(THIS_MODULE, "usbswitch");
         if (IS_ERR(switch_usb_class)){
-            hwlog_err("%s: class_create error!!! switch_usb_class=%p\n", __func__, switch_usb_class);
             return PTR_ERR(switch_usb_class);
         }
     }

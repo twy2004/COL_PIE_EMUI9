@@ -173,8 +173,11 @@ void reset_i2c_controller(struct dw_i2c_dev *dev)
 				 "pins are not configured from the driver\n");
 
 	hs_i2c_dw_reset_controller(dev);
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	i2c_dw_init_master(dev);
+#else
 	i2c_dw_init(dev);
+#endif
 
 	i2c_dw_disable_int(dev);
 
@@ -721,7 +724,11 @@ void hisi_dw_i2c_scl_recover_bus(struct i2c_adapter *adap)
 	if (ret < 0)
 		dev_warn(dev->dev,"pins are not configured to default\n");
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	i2c_dw_init_master(dev);
+#else
 	i2c_dw_init(dev);
+#endif
 
 	dev_info(dev->dev, "bus recovered completely!\n");
 }
@@ -998,9 +1005,11 @@ cs_gpio_err:
 
 	d->master_cfg =  DW_IC_CON_MASTER | DW_IC_CON_SLAVE_DISABLE |
 					 DW_IC_CON_RESTART_EN | speed_mode;
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	d->flags = ACCESS_32BIT;
+#else
 	d->accessor_flags = ACCESS_32BIT;
-
+#endif
 	hs_i2c_dw_reset_controller(d);
 
 	{
@@ -1017,7 +1026,11 @@ cs_gpio_err:
 	else
 		d->sda_hold_time= (input_clock_khz * 300)/1000000;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	r = i2c_dw_init_master(d);
+#else
 	r = i2c_dw_init(d);
+#endif
 	if (r)
 		goto err;
 
@@ -1170,7 +1183,11 @@ static int hs_dw_i2c_resume(struct device *dev)
 		return -EAGAIN;
 	}
 	hs_i2c_dw_reset_controller(i_dev);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	i2c_dw_init_master(i_dev);
+#else
 	i2c_dw_init(i_dev);
+#endif
 	i2c_dw_disable_int(i_dev);
 	clk_disable(i_dev->clk);
 

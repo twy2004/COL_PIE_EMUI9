@@ -49,6 +49,7 @@
 #include <bsp_dump.h>
 #include "icc_core.h"
 #include <securec.h>
+#include <linux/of_device.h>
 
 #undef THIS_MODU
 #define THIS_MODU mod_icc
@@ -116,6 +117,11 @@ s32 icc_channel_has_data(void)
 
 	return ICC_OK;
 }
+/*=====================BEGIN=====================*/
+
+
+/*=====================END=====================*/
+
 
 void icc_shared_sem_init(void)
 {
@@ -152,7 +158,7 @@ int icc_pm_notify(struct notifier_block *nb, unsigned long event, void *dummy)
 static void icc_pm_notify_init(void)
 {
 	/* coverity[secure_coding] */
-	memset_s(&g_icc_ctrl.pm_notify,sizeof(g_icc_ctrl.pm_notify), 0, sizeof(g_icc_ctrl.pm_notify));
+	memset_s(&g_icc_ctrl.pm_notify, sizeof(g_icc_ctrl.pm_notify), 0, sizeof(g_icc_ctrl.pm_notify));
 	g_icc_ctrl.pm_notify.notifier_call = icc_pm_notify;
 	register_pm_notifier(&g_icc_ctrl.pm_notify);
 }
@@ -174,7 +180,7 @@ extern s32 bsp_reset_ccpu_status_get(void);
 
 int icc_ccore_is_reseting(u32 cpuid)
 {
-	if ((0 == bsp_reset_ccpu_status_get()) && (ICC_CPU_MODEM == cpuid))
+       if ((0 == bsp_reset_ccpu_status_get()) && (ICC_CPU_MODEM == cpuid))
 	{
 		return 1;
 	}
@@ -226,7 +232,7 @@ void bsp_icc_channel_uninit(u32 real_channel_id)
 	if(!channel->mode.union_stru.ipc_shared)
 	{
         (void)bsp_ipc_int_disable((IPC_INT_LEV_E)channel->ipc_recv_irq_id);
-        (void)bsp_ipc_int_disconnect((IPC_INT_LEV_E)channel->ipc_recv_irq_id, (voidfuncptr)icc_ipc_isr, channel->id);
+        (void)bsp_ipc_int_disconnect((IPC_INT_LEV_E)channel->ipc_recv_irq_id);
 	}
 
 	icc_safe_free(channel->vector);

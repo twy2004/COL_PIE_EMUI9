@@ -152,6 +152,16 @@ extern "C" {
                 }\
             } while(0)
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+/* 正常业务报文上行队列 */
+#define LOW_PRIO_QUE                    (0)
+
+/* PC5报文上行队列 */
+#define HIGH_PRIO_QUE                   (1)
+
+/* PC5和正常业务报文上行发送的优先级配比为10:1 */
+#define ADS_UL_PC5_PKT_SEND_WEIGHT      (10)
+#endif
 
 /*****************************************************************************
   3 枚举定义
@@ -160,6 +170,9 @@ extern "C" {
 /*****************************************************************************
   4 全局变量声明
 *****************************************************************************/
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+extern VOS_UINT32 g_ulPc5NodeCnt;
+#endif
 
 /*****************************************************************************
   5 消息头定义
@@ -241,6 +254,15 @@ VOS_VOID ADS_UL_RcvTiSendExpired(
     VOS_UINT32                          ulTimerName
 );
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+VOS_INT ADS_Pc5DataIngress(IMM_ZC_STRU *pstImmZc);
+VOS_UINT32 ADS_UL_GetPrioQueue(VOS_VOID);
+VOS_VOID ADS_UL_PC5_FillIpfCfgParam(
+    IPF_CONFIG_ULPARAM_S               *pstUlCfgParam,
+    ADS_IPF_BD_BUFF_STRU               *pstUlBdBuff,
+    IMM_ZC_STRU                        *pstImmZc
+);
+#endif
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

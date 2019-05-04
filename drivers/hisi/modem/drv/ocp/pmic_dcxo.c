@@ -49,26 +49,28 @@
 #include <product_config.h>
 #include <linux/init.h>
 #include <nv_stru_drv.h>
-#include <nv_stru_msp_interface.h>
 #include <adrv.h>
 #include <bsp_nvim.h>
 #include <bsp_dump.h>
 #include <bsp_trace.h>
 
 #define  pmic_print_error(fmt, ...)    (bsp_trace(BSP_LOG_LEVEL_ERROR, BSP_MODU_PMU, "[pmu]: <%s> "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define  NV_Item_DCXO_C_TRIM  10023
+#define  NV_Item_DCXO_C2_FIX  10071
+
 int pmu_dcxo_set(uint16_t dcxo_ctrim, uint16_t dcxo_c2_fix);
 int pmu_dcxo_get(uint16_t *dcxo_ctrim, uint16_t *dcxo_c2_fix);
 
 int __init pmic_dcxo_init(void)
 {
-	u16 c1_value = 0;
-	u16 c2_value = 0;
+	u16 c1_value=0;
+	u16 c2_value=0;
 	int iret;
     u16 dcxo_ctrim = 0;
     u16 dcxo_c2_fix = 0;
 
-    iret = bsp_nvm_read(en_NV_Item_DCXO_C_TRIM, (u8*)&dcxo_ctrim, sizeof(dcxo_ctrim));
-    iret |= bsp_nvm_read(en_NV_Item_DCXO_C2_FIX, (u8*)&dcxo_c2_fix, sizeof(dcxo_c2_fix));
+    iret = bsp_nvm_read(NV_Item_DCXO_C_TRIM, (u8*)&dcxo_ctrim, sizeof(dcxo_ctrim));
+    iret |= bsp_nvm_read(NV_Item_DCXO_C2_FIX, (u8*)&dcxo_c2_fix, sizeof(dcxo_c2_fix));
 
     if(NV_OK != iret)
     {

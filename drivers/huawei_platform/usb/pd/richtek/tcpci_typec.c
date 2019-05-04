@@ -47,7 +47,10 @@ extern int support_smart_holder;
 #define RICHTEK_PD_COMPLIANCE_FAKE_AUDIO_ACC	/* For Rp3A */
 #define RICHTEK_PD_COMPLIANCE_FAKE_TRY_SNK_RP	/* For Rp3A */
 #define RICHTEK_PD_COMPLIANCE_FAKE_EMRAK_ONLY	/* For Rp3A */
-#define RICHTEK_PD_COMPLIANCE_DIRECT_CHARGE	/* For Direct Charge */ 
+#define RICHTEK_PD_COMPLIANCE_DIRECT_CHARGE	/* For Direct Charge */
+
+static struct tcpc_device *g_tcpc = NULL;
+
 enum TYPEC_WAIT_PS_STATE {
 	TYPEC_WAIT_PS_DISABLE = 0,
 	TYPEC_WAIT_PS_SNK_VSAFE5V,
@@ -61,7 +64,6 @@ enum TYPEC_ROLE_SWAP_STATE {
 	TYPEC_ROLE_SWAP_TO_SRC,
 };
 
-int tcpm_typec_notify_direct_charge(struct tcpc_device *tcpc_dev, bool dc);
 #if TYPEC_DBG_ENABLE
 static const char *const typec_wait_ps_name[] = {
 	"Disable",
@@ -340,7 +342,6 @@ static int typec_alert_attach_state_change(struct tcpc_device *tcpc_dev)
 /*
  * [BLOCK] NoRpSRC Entry
  */
-
 #ifdef CONFIG_TYPEC_CAP_NORP_SRC
 static void typec_notify_attached_vbus_only(void)
 {
@@ -349,6 +350,10 @@ static void typec_notify_attached_vbus_only(void)
 	TYPEC_DBG("%s + \n", __func__);
 	memset(&tc_state, 0, sizeof(tc_state));
 	tc_state.new_state = PD_DPM_TYPEC_ATTACHED_VBUS_ONLY;
+
+	if (g_tcpc)
+		tcpci_mask_vsafe0v(g_tcpc, 1);
+
 	pd_dpm_handle_pe_event(PD_DPM_PE_EVT_TYPEC_STATE, (void*)&tc_state);
 }
 
@@ -359,6 +364,10 @@ static void typec_notify_unattached_vbus_only(void)
 	TYPEC_DBG("%s + \n", __func__);
 	memset(&tc_state, 0, sizeof(tc_state));
 	tc_state.new_state = PD_DPM_TYPEC_UNATTACHED_VBUS_ONLY;
+
+	if (g_tcpc)
+		tcpci_mask_vsafe0v(g_tcpc, 0);
+
 	pd_dpm_handle_pe_event(PD_DPM_PE_EVT_TYPEC_STATE, (void*)&tc_state);
 }
 
@@ -729,13 +738,20 @@ static inline void typec_custom_src_attached_entry(
 	struct pd_dpm_typec_state typec_state;
 
 	memset(&typec_state, 0, sizeof(typec_state));
-	typec_state.new_state = TYPEC_ATTACHED_CUSTOM_SRC;
 
 	if (cc1 == TYPEC_CC_VOLT_SNK_DFT && cc2 == TYPEC_CC_VOLT_SNK_DFT) {
 		TYPEC_NEW_STATE(typec_attached_custom_src);
 		tcpc_dev->typec_attach_new = TYPEC_ATTACHED_CUSTOM_SRC;
+		typec_state.new_state = TYPEC_ATTACHED_CUSTOM_SRC;
 		pd_dpm_handle_pe_event(PD_DPM_PE_EVT_TYPEC_STATE, &typec_state);
 		return;
+	} else {
+#ifndef CONFIG_TYPEC_CAP_CUSTOM_SRC2
+		TYPEC_NEW_STATE(typec_attached_dbgacc_snk);
+		tcpc_dev->typec_attach_new = TYPEC_ATTACHED_DBGACC_SNK;
+		typec_state.new_state = TYPEC_ATTACHED_DBGACC_SNK;
+		pd_dpm_handle_pe_event(PD_DPM_PE_EVT_TYPEC_STATE, &typec_state);
+#endif /* CONFIG_TYPEC_CAP_CUSTOM_SRC */
 	}
 #ifdef CONFIG_TYPEC_CAP_CUSTOM_SRC2
 	if (support_smart_holder) {
@@ -2303,6 +2319,8 @@ int tcpc_typec_notify_direct_charge(struct tcpc_device *tcpc_dev, bool dc)
 	mutex_lock(&tcpc_dev->access_lock);
 	tcpc_dev->typec_during_direct_charge = dc;
 	mutex_unlock(&tcpc_dev->access_lock);
+
+	return 0;
 }
 int tcpc_typec_set_rp_level(struct tcpc_device *tcpc_dev, uint8_t res)
 {
@@ -2427,10 +2445,12 @@ static void tcpc_pd_dpm_hard_reset(void* client)
 }
 static bool tcpc_pd_dpm_get_hw_dock_svid_exist(void* client)
 {
-	int ret;
-	if (NULL == client)
+	struct tcpc_device *tcpc_dev;
+
+	if (!client)
 		return false;
-	struct tcpc_device* tcpc_dev = ((struct tcpc_device*)client);
+
+	tcpc_dev = ((struct tcpc_device *)client);
 	return tcpc_dev->huawei_dock_svid_exist;
 }
 
@@ -2443,7 +2463,7 @@ static void tcpc_pd_dpm_set_voltage(void* client, int set_voltage)
 	int ret, i;
 
 	struct tcpc_device* tcpc_dev = ((struct tcpc_device*)client);
-	struct local_sink_cap sink_cap_info[TCPM_PDO_MAX_SIZE] = {0};
+	struct local_sink_cap sink_cap_info[TCPM_PDO_MAX_SIZE] = {{0}};
 
 	TYPEC_INFO("%s++", __func__);
 	if (NULL == client)
@@ -2478,7 +2498,23 @@ static void tcpc_pd_dpm_set_voltage(void* client, int set_voltage)
 	TYPEC_INFO("%s--", __func__);
 }
 
-extern int tcpm_typec_notify_direct_charge(struct tcpc_device *tcpc_dev, bool dc);
+static int tcpc_pd_dpm_disable_pd(void *client, bool disable)
+{
+	TYPEC_INFO("%s disable:%d\n", __func__, disable);
+
+	if (!client){
+		TYPEC_INFO("%s client is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	if (disable) {
+		/* use PD_HW_CC_DETACHED event to complete pd policy disable */
+		pd_put_cc_detached_event(client);
+	}
+
+	return 0;
+}
+
 static struct pd_dpm_ops tcpc_device_pd_dpm_ops = {
 	.pd_dpm_hard_reset = tcpc_pd_dpm_hard_reset,
 	.pd_dpm_get_hw_dock_svid_exist = tcpc_pd_dpm_get_hw_dock_svid_exist,
@@ -2486,6 +2522,7 @@ static struct pd_dpm_ops tcpc_device_pd_dpm_ops = {
 	.pd_dpm_set_cc_mode = rt1711h_set_cc_mode,
 	.pd_dpm_set_voltage = tcpc_pd_dpm_set_voltage,
 	.pd_dpm_get_cc_state = rt1711h_get_cc_state,
+	.pd_dpm_disable_pd = tcpc_pd_dpm_disable_pd,
 };
 int tcpc_typec_init(struct tcpc_device *tcpc_dev, uint8_t typec_role)
 {
@@ -2530,6 +2567,7 @@ int tcpc_typec_init(struct tcpc_device *tcpc_dev, uint8_t typec_role)
 	tcpc_dev->typec_power_ctrl = true;
 #endif	/* CONFIG_TYPEC_POWER_CTRL_INIT */
 
+	g_tcpc = tcpc_dev;
 	typec_unattached_entry(tcpc_dev);
 	return ret;
 }

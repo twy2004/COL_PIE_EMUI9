@@ -82,7 +82,14 @@ oal_uint32 gul_dscr_fstphy_addr = 0;
     内存池统计信息全局变量，维测使用
 *******************************************************************************/
 OAL_STATIC oal_mem_stat g_st_mem_stat;
-oal_mempool_info_to_sdt_stru    g_st_mempool_info_etc = {0};
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+oal_mempool_info_to_sdt_stru    g_st_mempool_info_etc = {
+    .p_mempool_info_func  = NULL,
+    .p_memblock_info_func = NULL
+};
+#else
+oal_mempool_info_to_sdt_stru    g_st_mempool_info_etc = {NULL, NULL};
+#endif
 #ifdef _PRE_DEBUG_MODE
 OAL_STATIC oal_mempool_tx_dscr_addr    g_st_tx_dscr_addr_etc;
 #endif
@@ -490,7 +497,7 @@ OAL_STATIC oal_netbuf_stru* oal_mem_find_available_netbuf(oal_mem_subpool_stru *
     {
         us_top--;
         pst_netbuf = (oal_netbuf_stru *)pst_mem_subpool->ppst_free_stack[us_top];
-        if (1 == oal_atomic_read(&pst_netbuf->users))
+        if (1 == oal_netbuf_read_user(pst_netbuf))
         {
             break;
         }
@@ -608,7 +615,7 @@ OAL_STATIC oal_void  oal_mem_netbuf_release(oal_void)
         }
 
         /* 无论netbuf引用计数是多少，统一将其设置为1 */
-        oal_atomic_set(&g_pst_netbuf_base_addr[ul_loop]->users, 1);
+        oal_netbuf_set_user(g_pst_netbuf_base_addr[ul_loop], 1);
 
         oal_netbuf_free(g_pst_netbuf_base_addr[ul_loop]);
 
@@ -630,7 +637,7 @@ OAL_STATIC oal_void  oal_mem_sdt_netbuf_release(oal_void)
         }
 
         /* 无论netbuf引用计数是多少，统一将其设置为1 */
-        oal_atomic_set(&g_pst_sdt_netbuf_base_addr_etc[ul_loop]->users, 1);
+        oal_netbuf_set_user(g_pst_sdt_netbuf_base_addr_etc[ul_loop], 1);
 
         oal_netbuf_free(g_pst_sdt_netbuf_base_addr_etc[ul_loop]);
 

@@ -4,6 +4,12 @@
 #include <linux/types.h>
 #include <linux/cdev.h>
 #include <linux/platform_device.h>
+#include <linux/hisi-iommu.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-iommu.h>
+#include <linux/dma-buf.h>
+#include <linux/iommu.h>
+
 
 #include "drv_venc_osal.h"
 #include "drv_venc.h"
@@ -86,7 +92,7 @@ extern VeduEfl_IpCtx_S   VeduIpCtx;
 extern U_FUNC_VCPI_RAWINT  g_hw_done_type;
 extern VEDU_OSAL_EVENT   g_hw_done_event;
 extern HI_U32 gVencIsFPGA;
-
+struct platform_device *gPlatDev;
 static HI_S32 venc_drv_waithwdone(U_FUNC_VCPI_RAWINT *hw_done_type)
 {
 	HI_S32 Ret = HI_FAILURE;
@@ -301,7 +307,7 @@ static HI_S32 VENC_MemMapInfo(HI_S32 ShareFd, MEM_BUFFER_S *pMemBuffer)
 		HI_FATAL_VENC("invalid param, share fd is NULL\n");
 		return HI_FAILURE;
 	}
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	Ret = DRV_MEM_MapKernel(ShareFd, pMemBuffer);
 	if (Ret) {
 		HI_FATAL_VENC("share fd map failed\n");
@@ -309,6 +315,15 @@ static HI_S32 VENC_MemMapInfo(HI_S32 ShareFd, MEM_BUFFER_S *pMemBuffer)
 	}
 
 	DRV_MEM_UnmapKernel(pMemBuffer);  // TODO: judge return value?
+#else
+	Ret = DRV_MEM_GetMapInfo(ShareFd, pMemBuffer);
+	if (Ret) {
+		HI_FATAL_VENC("share fd map failed\n");
+		return HI_FAILURE;
+	}
+
+	DRV_MEM_PutMapInfo(pMemBuffer);  // TODO: judge return value?
+#endif
 
 	return HI_SUCCESS;
 }
@@ -355,9 +370,9 @@ static HI_S32 VENC_GetMemoryInfo(VENC_REG_INFO_S *pRegInfo, VENC_MEM_INFO *pMemM
 	return HI_SUCCESS;
 }
 
+#ifndef HIVCODECV500
 static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFER_S *pInternalbuffer)
 {
-#ifndef HIVCODECV500
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_YADDR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_CADDR,pInternalbuffer->u32Size);
@@ -570,9 +585,56 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[45].bits.va_end,pInternalbuffer->u32Size);
 #endif
-#endif
 	return HI_SUCCESS;
 }
+#else
+static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFER_S *pInternalbuffer)
+{
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_YADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_CADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_YH_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REC_CH_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFY_L0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFC_L0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFYH_L0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFCH_L0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMELD_L0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFY_L1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFC_L1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFYH_L1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_REFCH_L1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMELD_L1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMEST_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_NBI_MVST_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_NBI_MVLD_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMEINFO_ST_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMEINFO_LD0_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMEINFO_LD1_ADDR_L,pInternalbuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_QPGLD_INF_ADDR_L,pInternalbuffer->u32Size);
+
+	return HI_SUCCESS;
+}
+#endif
 
 static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFER_S *pImageBuffer)
 {
@@ -664,6 +726,22 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 		D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[26].bits.va_str,pImageBuffer->u32Size);
 
 		D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[26].bits.va_end,pImageBuffer->u32Size);
+	}
+#else
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_TUNLCELL_ADDR_L,pImageBuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_SRC_YADDR_L,pImageBuffer->u32Size);
+
+	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_SRC_CADDR_L,pImageBuffer->u32Size);
+
+	if (pAllReg->VEDU_VCPI_STRFMT.bits.vcpi_str_fmt == YUV420_PLANAR || pAllReg->VEDU_VCPI_STRFMT.bits.vcpi_str_fmt == YUV422_PLANAR) {
+		D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_SRC_VADDR_L,pImageBuffer->u32Size);
+	}
+
+	if (pAllReg->VEDU_VCPI_STRFMT.bits.vcpi_str_fmt == YUV420_SEMIPLANAR_CMP) {
+		D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_YH_ADDR_L,pImageBuffer->u32Size);
+
+		D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_CH_ADDR_L,pImageBuffer->u32Size);
 	}
 #endif
 	return HI_SUCCESS;
@@ -858,7 +936,9 @@ static long VENC_Ioctl(struct file *file, unsigned int ucmd, unsigned long uarg)
 	HI_VOID *arg = (HI_VOID *)uarg;
 	VENC_REG_INFO_S *regcfginfo =  NULL;
 	VENC_MEM_INFO VencMapInfo;
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	VencBufferRecord *bufnode = NULL;
+#endif
 	if (!arg) {
 		//HiVENC_UP_INTERRUPTIBLE(&g_VencMutex);
 		HI_FATAL_VENC("uarg is NULL\n");
@@ -888,6 +968,26 @@ static long VENC_Ioctl(struct file *file, unsigned int ucmd, unsigned long uarg)
 		VeduIpCtx.TaskRunning = 0;
 		HI_DBG_VENC("venc cfg reg info, Ret:%d\n", Ret);
 		break;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	case CMD_VENC_IOMMU_MAP:
+		bufnode= (VencBufferRecord *)arg;
+		Ret = DRV_MEM_IommuMap(bufnode, gPlatDev);
+		if (Ret != HI_SUCCESS) {
+			HI_ERR_VENC("%s: CMD_VENC_IOMMU_MAP failed\n", __func__);
+			return HI_FAILURE;
+		}
+		break;
+	case CMD_VENC_IOMMU_UNMAP:
+		bufnode= (VencBufferRecord *)arg;
+		Ret = DRV_MEM_IommuUnmap(bufnode->share_fd, bufnode->iova, gPlatDev);
+		if (Ret != HI_SUCCESS) {
+			HI_ERR_VENC("%s: CMD_VENC_IOMMU_UNMAP failed\n", __func__);
+			return HI_FAILURE;
+		}
+		break;
+#endif
+
 	default:
 		HI_ERR_VENC("venc cmd unknown:0x%x\n", ucmd);
 		Ret = HI_FAILURE;
@@ -1126,6 +1226,7 @@ static HI_S32 VENC_DRV_Probe(struct platform_device * pltdev)
 
 	//venc->venc_device_2 = &pltdev->dev;
 	platform_set_drvdata(pltdev, venc);
+	gPlatDev = pltdev;
 	g_vencDevDetected = HI_TRUE;
 
 	ret = Venc_Regulator_Init(pltdev);

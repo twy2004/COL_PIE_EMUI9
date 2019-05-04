@@ -1,6 +1,14 @@
-/* MD5: 26baaddacac8484b71f5ccb8fd96414f*/
+/* MD5: 4d37b99013f989b940900f92cb75dfb0*/
 #if !defined(__PRODUCT_CONFIG_GUCNAS_H__)
 #define __PRODUCT_CONFIG_GUCNAS_H__
+
+#ifndef FEATURE_ON
+#define FEATURE_ON 1 
+#endif 
+
+#ifndef FEATURE_OFF
+#define FEATURE_OFF 0 
+#endif 
 
 #ifndef NAS_NEW_ARCH
 #define NAS_NEW_ARCH 
@@ -50,16 +58,24 @@
 #define FEATURE_AGPS FEATURE_ON 
 #endif 
 
+#ifndef FEATURE_XPDS
+#define FEATURE_XPDS FEATURE_ON 
+#endif 
+
+#ifndef FEATURE_TC
+#define FEATURE_TC FEATURE_ON 
+#endif 
+
+#ifndef FEATURE_RSTRIGGER_SMS
+#define FEATURE_RSTRIGGER_SMS FEATURE_OFF 
+#endif 
+
 #ifndef FEATURE_AGPS_GPIO
 #define FEATURE_AGPS_GPIO FEATURE_ON 
 #endif 
 
 #ifndef FEATRUE_XML_PARSER
 #define FEATRUE_XML_PARSER FEATURE_ON 
-#endif 
-
-#ifndef NAS_FEATURE_SMS_NVIM_SMSEXIST
-#define NAS_FEATURE_SMS_NVIM_SMSEXIST FEATURE_ON 
 #endif 
 
 #ifndef NAS_FEATURE_SMS_FLASH_SMSEXIST
@@ -190,6 +206,10 @@
 #define FEATURE_LOGCAT_SINGLE_CHANNEL FEATURE_OFF 
 #endif 
 
+#ifndef FEATURE_DCXO_HI1102_SAMPLE_SHARE
+#define FEATURE_DCXO_HI1102_SAMPLE_SHARE FEATURE_OFF 
+#endif 
+
 #ifndef MODEM_LTO
 #define MODEM_LTO 
 #endif 
@@ -209,4 +229,8 @@
 #endif 
 
 #endif
+#ifndef FEATURE_PC5_DATA_CHANNEL
+#define FEATURE_PC5_DATA_CHANNEL FEATURE_OFF 
+#endif 
+
 #endif /*__PRODUCT_CONFIG_H__*/ 

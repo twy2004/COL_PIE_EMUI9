@@ -168,21 +168,13 @@ static const struct file_operations nv_fops = {
     .write     = madapt_dev_write,
 };
 
-#ifdef CONFIG_HISI_BALONG_MODEM
-#ifdef CONFIG_HISI_SECBOOT_IMG 
-static unsigned int mdrv_nv_writeex(unsigned int modemid,
-        unsigned int itemid, void *pdata, unsigned int ulLength)
-{
-    hwlog_err("mdrv_nv_writeex is null ,depend on FEATURE_NV_SEC_ON\n");
-    return 1;
-}
-#else
+#if defined(CONFIG_HISI_BALONG_MODEM) && !defined(CONFIG_HISI_SECBOOT_IMG)
 extern unsigned int mdrv_nv_writeex(unsigned int modemid,
         unsigned int itemid, void *pdata, unsigned int ulLength);
-#endif
 extern unsigned int mdrv_nv_readex(unsigned int modemid,
         unsigned int itemid, void *pdata, unsigned int ulLength);
 extern unsigned int mdrv_nv_get_length(unsigned int itemid, unsigned int *pulLength);
+
 #else
 static unsigned int mdrv_nv_writeex(unsigned int modemid,
         unsigned int itemid, void *pdata, unsigned int ulLength)
@@ -359,7 +351,8 @@ static int madapt_parse_and_writeatonv(char *ptr, int len)
         // modem id: 1<=id<=3
         if ( (nv_header.nv_modem_id < MADAPT_MIN_NV_MODEM_ID)
          || (nv_header.nv_modem_id > MADAPT_MAX_NV_MODEM_ID)
-         || (0 == nv_item_size)) {
+         || (0 == nv_item_size)
+         ||(nv_item_size >= MADAPT_MAX_NV_LENGTH_SIZE) ) {
              hwlog_err("madapt_parse_and_writeatonv, nv header: nv id: [%d], nv modemid: [%d], nv size: [%d].\n",
                     nv_header.nv_item_number,
                     nv_header.nv_modem_id,
@@ -402,7 +395,8 @@ static int madapt_parse_and_writeatonv(char *ptr, int len)
 	    }
 	    /*AR000AD08A sunjun/00290209 20180807 end*/
             //起始位加上修改字节的长度要小于该NV的总长度
-            if((nv_header.nv_item_byte_start+nv_item_size)<=nv_item_length
+            if(nv_header.nv_item_byte_start<MADAPT_MAX_NV_LENGTH_SIZE
+                    &&(nv_header.nv_item_byte_start+nv_item_size)<=nv_item_length
                     && nv_item_length<MADAPT_MAX_NV_LENGTH_SIZE
                     && ret==0){
                 //调用kernel的函数读取NV
@@ -594,17 +588,12 @@ static int parse_write_file(struct madapt_file_stru *file)
         ret = madapt_remove_mbn_carrirer_file();
     }
 
-    if (file->file) {
-        if (file->file == strstr(file->file, "/odm") ||
-            file->file == strstr(file->file, "/hw_odm") ||
-            file->file == strstr(file->file, "/data/cota")) {
-            hwlog_err("%s, file path valid\n", __func__);
-        } else {
-            hwlog_err("%s, file path invalid, return err\n", __func__);
-            return BSP_ERR_MADAPT_PARAM_ERR;
-        }
+    if (file->file == strstr(file->file, "/odm") ||
+        file->file == strstr(file->file, "/hw_odm") ||
+        file->file == strstr(file->file, "/data/cota")) {
+        hwlog_err("%s, file path valid\n", __func__);
     } else {
-        hwlog_err("%s, file->file is null, return err\n", __func__);
+        hwlog_err("%s, file path invalid, return err\n", __func__);
         return BSP_ERR_MADAPT_PARAM_ERR;
     }
 

@@ -126,8 +126,7 @@ enum AT_MN_MSGTYPE_ENUM
 
     TAF_CALL_APP_SEND_CUSTOM_DIAL_REQ,
 
-    MN_CALL_APP_CALL_MODIFY_REQ,                                                /* _H2ASN_MsgChoice MN_CALL_APP_REQ_MSG_STRU */
-    MN_CALL_APP_CALL_ANSWER_REMOTE_MODIFY_REQ,                                  /* _H2ASN_MsgChoice MN_CALL_APP_REQ_MSG_STRU */
+    /* 平移到CCM，使用新消息ID */
 
     TAF_CALL_APP_ECONF_DIAL_REQ,                                                /* _H2ASN_MsgChoice MN_CALL_APP_REQ_MSG_STRU */
     TAF_CALL_APP_GET_ECONF_CALLED_INFO_REQ,                                     /* _H2ASN_MsgChoice MN_CALL_APP_REQ_MSG_STRU */
@@ -138,7 +137,6 @@ enum AT_MN_MSGTYPE_ENUM
 
     TAF_CALL_APP_CCWAI_SET_REQ,
 
-    ID_TAF_APP_CHANNEL_INFO_QRY_REQ,
 
     /* AT与MSG模块间消息 */
     MN_APP_MSG_CLASS_MSG                                    = TAF_MSG_APP_MSG_BASE,

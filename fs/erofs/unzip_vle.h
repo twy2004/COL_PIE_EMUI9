@@ -37,6 +37,12 @@ static inline bool z_erofs_gather_if_stagingpage(struct list_head *page_pool,
 }
 
 /*
+ *  - 0x6A110C8D ('pallocated', Z_EROFS_MAPPING_PREALLOCATED) -
+ * preallocated cached pages, will be added into managed cache later
+ */
+#define Z_EROFS_MAPPING_PREALLOCATED	((void *)0x6A110C8D)
+
+/*
  * Structure fields follow one of the following exclusion rules.
  *
  * I: Modifiable by initialization/destruction paths and read-only

@@ -69,6 +69,8 @@ DIAG_APPLOG_CTRL g_DiagApplogCtrl =
     .ulChannelID = SOCP_CODER_SRC_AP_APP,
 };
 
+VOS_UINT32 diag_MspMsgProc(DIAG_FRAME_INFO_STRU *pData);
+
 /*****************************************************************************
  Function Name   : diag_AppLogMsgProc
  Description     : APPLOG  消息处理

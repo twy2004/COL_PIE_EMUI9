@@ -88,6 +88,7 @@
 #define COMMAND_0X7E 0x7E
 #define CHARGER_SWITCH_LENGTH 2
 #define IN_RECOVERY true
+#define XFER_ITME 2
 struct nvt_ts_data *nvt_ts;
 static DEFINE_MUTEX(ts_power_gpio_sem);
 extern struct ts_kit_platform_data g_ts_kit_platform_data;
@@ -99,8 +100,6 @@ struct nvt_lcd_data {
 	size_t size;
 	u8 *data;
 };
-static struct nvt_lcd_data nvt_lcd_data_entry;
-static struct nvt_lcd_data *lcd_data_entry = &nvt_lcd_data_entry;
 #if defined (CONFIG_TEE_TUI)
 extern struct ts_tui_data tee_tui_data;
 #endif
@@ -278,30 +277,27 @@ int32_t novatek_ts_kit_i2c_write(struct i2c_client *client, uint16_t i2c_addr, u
 i2c_err:
 	return ret;
 }
-
 int novatek_ts_kit_spi_read_transfer(u8* reg_addr, u16 reg_len, u8* buf, u16 len)
 {
 	int retval = NO_ERR;
 	struct spi_device *spi = nvt_ts->spi;
+	struct spi_transfer xfer[XFER_ITME] = { {0}, {0} };
 
 	if ((reg_addr == NULL) || (buf == NULL) || (len <= DUMMY_BYTES)) {
-		TS_LOG_ERR("%s: reg_addr or buf is NULL, or len less than one;len:%d\n", __func__, len);
+		TS_LOG_ERR("%s:reg_addr or buf is NULL,or len less than one,len:%u\n",
+			__func__, len);
 		return -ENOMEM;
 	}
-	struct spi_transfer xfer[] = {
-		{
-			.tx_buf = reg_addr,
-			.rx_buf = buf,
-			.len    = DUMMY_BYTES,
-			.cs_change = 0,
-			.bits_per_word = SPI_TRANSFER_BIT8,
-		},
-		{
-			.tx_buf = &buf[DUMMY_BYTES],
-			.rx_buf = &buf[DUMMY_BYTES],
-			.len    = len - DUMMY_BYTES,
-		},
-	};
+
+	xfer[0].tx_buf = reg_addr;
+	xfer[0].rx_buf = buf;
+	xfer[0].len    = DUMMY_BYTES;
+	xfer[0].cs_change = 0;
+	xfer[0].bits_per_word = SPI_TRANSFER_BIT8;
+
+	xfer[1].tx_buf = &buf[DUMMY_BYTES];
+	xfer[1].rx_buf = &buf[DUMMY_BYTES];
+	xfer[1].len    = len - DUMMY_BYTES;
 
 #if defined (CONFIG_TEE_TUI)
 	if (nvt_ts->chip_data->report_tui_enable) {
@@ -369,6 +365,7 @@ int32_t novatek_ts_kit_spi_read(struct spi_device *spi, uint8_t *buf, uint16_t l
 
 	if ((len + DUMMY_BYTES) > RBUF_LEN) {
 		TS_LOG_ERR("novatek_ts_kit_spi_read: len greater than buf length\n");
+		mutex_unlock(&nvt_ts->bus_mutex);
 		return -ENOMEM;
 	}
 
@@ -1552,7 +1549,6 @@ void novatek_kit_parse_specific_dts(struct ts_kit_device_data *chip_data)
 	struct device_node *device = NULL;
 	int retval = 0;
 	char *producer=NULL;
-	const char *str_value = NULL;
 	int read_val = 0;
 
 	if (NULL == chip_data || NULL == nvt_ts) {
@@ -2184,7 +2180,6 @@ static int novatek_chip_detect( struct ts_kit_platform_data *data)
 	int retval = NO_ERR;
 	uint8_t buf[8] = {0};
 	uint8_t tmp_spi_mode = SPI_MODE_0;
-	int isbulcked = 0;
 
 	TS_LOG_INFO("%s enter\n", __func__);
 
@@ -2525,7 +2520,6 @@ static void novatek_put_device_into_easy_wakeup(void)
 
 static void novatek_put_device_outof_easy_wakeup(void)
 {
-	int retval = 0;
 	struct ts_easy_wakeup_info *info = &nvt_ts->chip_data->easy_wakeup_info;
 
 	TS_LOG_DEBUG("novatek_put_device_outof_easy_wakeup  info->easy_wakeup_flag =%d\n", info->easy_wakeup_flag);
@@ -2792,12 +2786,11 @@ static void nova_report_dmd_state_report(void)
 {
 	int i = 0;
 	unsigned long abnormal_status;
-	int report_dmd_count = 0;
 	int count = 0;
 	static unsigned int report_index = 0;
 
 	abnormal_status = (unsigned long)nvt_ts->abnormal_status;
-	TS_LOG_INFO("%s, input value is %x  ",__func__, abnormal_status);
+	TS_LOG_INFO("%s, input value is %lu  ", __func__, abnormal_status);
 
 	for(i=0; i < BIT_MAX; i++) {
 		if(0xFF != nvt_report_priority[i] && BIT15_RESERVED >= nvt_report_priority[i]) {
@@ -3191,7 +3184,7 @@ static void novatek_status_resume(void)
 	struct ts_feature_info *info = &nvt_ts->chip_data->ts_platform_data->feature_info;
 	struct ts_roi_info roi_info;
 	struct ts_holster_info holster_info;
-	struct ts_glove_info glove_info;
+	struct ts_glove_info glove_info = {0};
 	struct ts_charger_info charger_info;
 
 	/*Glove Switch recovery*/
@@ -3514,10 +3507,6 @@ static u8 tp_type_cmd[TS_CHIP_TYPE_MAX_SIZE] = {0};
 static unsigned short novatek_get_oem_data_info(void){
 	return NVT_OEM_OPERATE_MAX_NUM;
 }
-#define	LCD_DATA_LEN 512
-static int32_t test_size=LCD_DATA_LEN;
-static uint8_t test_data[LCD_DATA_LEN]={0};
-
 static int novatek_get_oem_data(uint8_t *data, int32_t size)
 {
 	uint8_t buf[64] = {0};
@@ -4084,7 +4073,6 @@ static int novatek_get_NVstructure_cur_index(struct ts_oem_info_param *info, u8 
 {
 	int index = 0;
 	int latest_index = 0;
-	int flash_size = novatek_get_oem_data_info();
 
 	for ((TS_NV_STRUCTURE_REPAIR == type)? (index = TS_NV_STRUCTURE_REPAIR_OFFSET1) : (index = 1);
 		index < (TS_NV_STRUCTURE_REPAIR_OFFSET5+1); ++index) {
@@ -4102,7 +4090,6 @@ static int novatek_get_NVstructure_index(struct ts_oem_info_param *info, u8 type
 {
 	int index = 0;
 	int latest_index = 0;
-	int flash_size = novatek_get_oem_data_info();
 	int count = 0;
 
 	for ((TS_NV_STRUCTURE_REPAIR == type)? (index = TS_NV_STRUCTURE_REPAIR_OFFSET1) : (index = 1);
@@ -4686,7 +4673,7 @@ static void novatek_chip_touch_switch(void){
 				buf[1] = 0xFF;
 				error = novatek_ts_kit_read(I2C_FW_Address, buf, 2);
 				if (error < 0) {
-					TS_LOG_ERR("%s: read data from IC 0x5A fail\n", __func__, param);
+					TS_LOG_ERR("%s: read data from IC 0x5A fail\n", __func__);
 				} else {
 					if (NOVATEK_SCENE_DISABLE_CONFIRM == (buf[1] | NOVATEK_SCENE_DISABLE_CONFIRM))
 						TS_LOG_INFO("%s: exit scene mode successed\n", __func__);
@@ -4849,5 +4836,3 @@ module_exit(novatek_ts_module_exit);
 MODULE_AUTHOR("Huawei Device Company");
 MODULE_DESCRIPTION("Huawei TouchScreen Driver");
 MODULE_LICENSE("GPL");
-
-

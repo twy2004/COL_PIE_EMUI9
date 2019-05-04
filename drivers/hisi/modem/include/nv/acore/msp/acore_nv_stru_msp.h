@@ -97,7 +97,7 @@ typedef struct
 #define    CHR_FAULTID_CDMA_MIN     (0xA1)
 #define    CHR_FAULTID_CDMA_MAX     (0xFF)
 
-#define    CHR_FAULTID_NUM_MAX      (27)
+#define    CHR_FAULTID_NUM_MAX      (29)
 
 
 

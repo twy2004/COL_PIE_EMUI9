@@ -71,7 +71,6 @@ CPM_LOGIC_PORT_CFG_STRU                 g_astCPMLogicPortCfg[CPM_COMM_BUTT];
 
 /* 端口配置全局变量 */
 DIAG_CHANNLE_PORT_CFG_STRU                g_stPortCfg;
-
 /* 逻辑端口发送错误统计 */
 CPM_COM_PORT_SND_ERR_INFO_STRU          g_stCPMSndErrInfo = {0};
 
@@ -214,13 +213,13 @@ int CPM_PortAssociateInit(void)
         g_astCPMLogicPortCfg[i].enPhyPort = CPM_PORT_BUTT;
     }
 
-    /* Modified by h59254 for AP-Modem Personalisation Project, 2012/04/12, begin */
+    /* Modified for AP-Modem Personalisation Project, begin */
     /* 产品支持HSIC特性，直接返回成功，不做端口关联 */
     if (BSP_MODULE_SUPPORT == mdrv_misc_support_check(BSP_MODULE_TYPE_HSIC))
     {
         return BSP_OK;
     }
-    /* Modified by h59254 for AP-Modem Personalisation Project, 2012/04/12, end */
+    /* Modified for AP-Modem Personalisation Project, end */
 
     /* 读取OM的物理输出通道 */
     if (NV_OK != bsp_nvm_read(NV_ID_DRV_DIAG_PORT, (u8 *)&g_stPortCfg, sizeof(DIAG_CHANNLE_PORT_CFG_STRU)))
@@ -325,29 +324,26 @@ u32 CPM_ComRcv(CPM_PHY_PORT_ENUM_UINT32 enPhyPort, u8 *pucData, u32 ulLen)
     {
         g_stCPMRcvErrInfo.ulPortErr++;
         diag_PTR(EN_DIAG_PTR_CPM_ERR1, 0, 0, 0);
-
-        return (u32)BSP_ERROR;
+        return (u32)ERR_MSP_INVALID_PARAMETER;
     }
 
     if ((NULL == pucData) || (0 == ulLen))
     {
         g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort - CPM_IND_PORT].ulParaErr++;
         diag_PTR(EN_DIAG_PTR_CPM_ERR2, 0, 0, 0);
-
-        return (u32)BSP_ERROR;
+        return (u32)ERR_MSP_PARA_NULL;
     }
 
     if (NULL == CPM_PHY_RCV_FUNC(enPhyPort - CPM_IND_PORT))
     {
         diag_error("CPM_ComRcv The Phy Port %d Rec Func is NULL\n", (s32)enPhyPort);
-
         g_stCPMRcvErrInfo.astCPMRcvErrInfo[enPhyPort - CPM_IND_PORT].ulNullPtr++;
         diag_PTR(EN_DIAG_PTR_CPM_ERR3, 0, 0, 0);
 
-        return (u32)BSP_ERROR;
+        return (u32)ERR_MSP_DIAG_CB_NULL_ERR;
     }
 
-    diag_PTR(EN_DIAG_PTR_CPM_COMRCV, 0, 0, 0);
+    diag_PTR(EN_DIAG_PTR_CPM_COMRCV, ulLen, 0, 0);
 
     return CPM_PHY_RCV_FUNC(enPhyPort - CPM_IND_PORT)(pucData, ulLen);
 }
@@ -371,11 +367,11 @@ void CPM_Show(void)
     {
         enPhyPort = CPM_QueryPhyPort(enLogicPort);
 
-        if(CPM_OM_IND_COMM == enLogicPort) 
+        if(CPM_OM_IND_COMM == enLogicPort)
         {
             diag_crit("The Logic Port %d OM IND is connnect PHY ", enLogicPort);
         }
-        else if(CPM_OM_CFG_COMM == enLogicPort) 
+        else if(CPM_OM_CFG_COMM == enLogicPort)
         {
             diag_crit("The Logic Port %d OM CFG is connnect PHY ", enLogicPort);
         }
@@ -383,7 +379,7 @@ void CPM_Show(void)
         {
             diag_crit("The Logic Port %d        is connnect PHY ", enLogicPort);
         }
-        
+
         if((CPM_IND_PORT == enPhyPort) || (CPM_CFG_PORT == enPhyPort))
         {
             diag_crit("Port %d(USB Port).", enPhyPort);

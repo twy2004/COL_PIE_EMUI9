@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -354,6 +354,21 @@ int diag_RingBufferGet( OM_RING_ID rngId, char *buffer, int maxbytes )
 
     return (bytesgot);
 }
+
+/*******************************************************************************
+*
+* OM_RingBufferRemove - remove characters from a ring buffer
+*
+* This routine copies bytes from the ring buffer <rngId> into <buffer>.
+* It copies as many bytes as are available in the ring, up to <maxbytes>.
+* The bytes copied will be removed from the ring.
+*
+* RETURNS:
+* The number of bytes actually received from the ring buffer;
+* it may be zero if the ring buffer is empty at the time of the call.
+*
+* ERRNO: N/A.
+*******************************************************************************/
 
 /*******************************************************************************
 *

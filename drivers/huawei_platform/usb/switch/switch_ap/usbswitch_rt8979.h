@@ -1,3 +1,21 @@
+/*
+ * usbswitch_rt8979.h
+ *
+ * usbswitch with rt8979 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #ifndef _USBSWITCH_RT8979_H_
 #define _USBSWITCH_RT8979_H_
 
@@ -5,9 +23,9 @@
 #define BIT(x)          (1 << (x))
 #endif
 
-/******************************************************************************
-* Register addresses
-******************************************************************************/
+/*
+ * Register addresses
+ */
 
 /* reg=0x0d, RW, muic timing setting 2 */
 #define RT8979_REG_TIMING_SET_2                         (0x0d)
@@ -18,10 +36,12 @@
 #define RT8979_REG_TIMING_SET_2_DCD_TIMEOUT_SET_SHIFT   (4)
 #define RT8979_REG_TIMING_SET_2_CHGDET_ONTIME_MASK      (BIT(3))
 #define RT8979_REG_TIMING_SET_2_CHGDET_ONTIME_SHIFT     (3)
-#define RT8979_REG_TIMING_SET_2_PHONEOFF_WAITTIME_MASK  (BIT(2) | BIT(1) | BIT(0))
+#define RT8979_REG_TIMING_SET_2_PHONEOFF_WAITTIME_MASK  (BIT(2) | BIT(1) | \
+	BIT(0))
 #define RT8979_REG_TIMING_SET_2_PHONEOFF_WAITTIME_SHIFT (0)
 
-#define RT8979_REG_TIMING_SET_2_DCDTIMEOUT              (RT8979_REG_TIMING_SET_2_DCD_TIMEOUT_SET_MASK)
+#define RT8979_REG_TIMING_SET_2_DCDTIMEOUT \
+	(RT8979_REG_TIMING_SET_2_DCD_TIMEOUT_SET_MASK)
 
 #define RT8979_INTB_WATCHDOG_DISABLE                    (0)
 #define RT8979_INTB_WATCHDOG_250MS                      (1)
@@ -96,7 +116,8 @@
 /* reg=0x13, R, muic status 2 */
 #define RT8979_REG_MUIC_STATUS2                         (0x13)
 
-#define RT8979_REG_MUIC_STATUS2_USB_STATE_MASK          (BIT(6) | BIT(5) | BIT(4))
+#define RT8979_REG_MUIC_STATUS2_USB_STATE_MASK          (BIT(6) | BIT(5) | \
+	BIT(4))
 #define RT8979_REG_MUIC_STATUS2_USB_STATE_SHIFT         (4)
 #define RT8979_REG_MUIC_STATUS2_ID_STATUS_MASK          (BIT(1) | BIT(0))
 #define RT8979_REG_MUIC_STATUS2_ID_STATUS_SHIFT         (0)
@@ -104,7 +125,8 @@
 /* reg=0x18, R, adc value */
 #define RT8979_REG_ADC                                  (0x18)
 
-#define RT8979_REG_ADC_VALUE_MASK                       (BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define RT8979_REG_ADC_VALUE_MASK                       (BIT(4) | BIT(3) | \
+	BIT(2) | BIT(1) | BIT(0))
 #define RT8979_REG_ADC_VALUE_SHIFT                      (0)
 
 /* reg=0x40, RW, scp status */
@@ -174,4 +196,4 @@
 /* other defined */
 #define RT8979_FM8_MODE                                 (17)
 
-#endif /* end of _USBSWITCH_RT8979_H_ */
+#endif /* _USBSWITCH_RT8979_H_ */

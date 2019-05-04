@@ -153,10 +153,18 @@ static int get_datas(const char *buf, const int length,
 static struct reg_index_offset find_register_index(
 		const struct rt_regmap_device *rd, u32 reg)
 {
-	const rt_register_map_t *rm = rd->props.rm;
-	int register_num = rd->props.register_num;
+	const rt_register_map_t *rm = NULL;
+	int register_num = 0;
 	struct reg_index_offset rio = {0, 0};
 	int index = 0, i = 0, unit = RT_1BYTE_MODE;
+
+	if (NULL == rd || NULL == rd->props.rm) {
+		pr_err("invalid parameter, return default rio!!!\n");
+		return rio;
+	}
+
+	rm = rd->props.rm;
+	register_num = rd->props.register_num;
 
 	for (index = 0; index < register_num; index++) {
 		if (reg == rm[index]->addr) {
@@ -1437,13 +1445,27 @@ static int general_open(struct inode *inode, struct file *file)
 static ssize_t general_write(struct file *file, const char __user *ubuf,
 			     size_t count, loff_t *ppos)
 {
-	struct rt_debug_st *st = file->private_data;
-	struct rt_regmap_device *rd = st->info;
+	struct rt_debug_st *st = NULL;
+	struct rt_regmap_device *rd = NULL;
 	struct reg_index_offset rio;
 	long int param[5];
 	unsigned char reg_data[24] = { 0 };
 	int rc, size = 0;
 	char lbuf[128];
+
+	if (NULL == file || NULL == file->private_data) {
+		pr_err("invalid parameter, file or file->private_data is NULL!!!\n");
+		return -EFAULT;
+	}
+
+	st = file->private_data;
+
+	if (NULL == st->info) {
+		pr_err("invalid parameter, st->info is NULL!!!\n");
+		return -EFAULT;
+	}
+
+	rd = st->info;
 
 	if (count > sizeof(lbuf) - 1)
 		return -EFAULT;

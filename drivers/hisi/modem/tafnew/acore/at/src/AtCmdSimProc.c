@@ -250,44 +250,6 @@ VOS_UINT32 At_QrySIMSlotPara(VOS_UINT8 ucIndex)
 }
 
 
-VOS_UINT32 At_Base16Decode(VOS_CHAR *pcData, VOS_UINT32 ulDataLen, VOS_UINT8* pucDst)
-{
-    VOS_UINT32 ulLen    = ulDataLen;
-    VOS_UINT32 i        = 0;
-    VOS_CHAR   n[2] = {0};
-    VOS_UINT32 j;
-
-    while(i < ulLen)
-    {
-        for(j = 0; j < 2; j++)
-        {
-            if(pcData[(VOS_ULONG)(i+j)] >= '0' && pcData[(VOS_ULONG)(i+j)] <= '9')
-            {
-                n[(VOS_ULONG)j] = pcData[(VOS_ULONG)(i+j)] - '0';
-            }
-            else if(pcData[(VOS_ULONG)(i+j)] >= 'a' && pcData[(VOS_ULONG)(i+j)] <= 'f')
-            {
-                n[(VOS_ULONG)j] = pcData[(VOS_ULONG)(i+j)] - 'a' + 10;
-            }
-            else if(pcData[(VOS_ULONG)(i+j)] >= 'A' && pcData[(VOS_ULONG)(i+j)] <= 'F')
-            {
-                n[(VOS_ULONG)j] = pcData[(VOS_ULONG)(i+j)] - 'A' + 10;
-            }
-            else
-            {
-                ;
-            }
-        }
-
-        pucDst[i/2] = (VOS_UINT8)(n[0] * 16 + n[1]);
-
-        i += 2;
-    }
-
-    return (ulDataLen/2);
-}
-
-
 VOS_UINT32 At_SetHvsstPara(
     VOS_UINT8                           ucIndex
 )
@@ -434,6 +396,19 @@ VOS_UINT32 At_SetSilentPin(
 }
 
 
+VOS_VOID At_ClearPIN(VOS_UINT8 *pucMem, VOS_UINT8 ucLen)
+{
+    VOS_UINT32                          i;
+
+    for(i=0; i<ucLen; i++)
+    {
+        pucMem[i] = 0XFF;
+    }
+
+    return;
+}
+
+
 VOS_UINT32 At_SetSilentPinInfo(
     VOS_UINT8                           ucIndex
 )
@@ -470,6 +445,8 @@ VOS_UINT32 At_SetSilentPinInfo(
     ulResult = SI_PIH_GetSilentPinInfoReq(gastAtClientTab[ucIndex].usClientId,
                                           gastAtClientTab[ucIndex].opId,
                                           (VOS_VOID*)aucPin);
+    /* 敏感信息置0xFF */
+    At_ClearPIN(aucPin, TAF_PH_PINCODELENMAX);
 
     if (TAF_SUCCESS != ulResult)
     {
@@ -1176,41 +1153,6 @@ VOS_UINT32 At_ProcPihCcimiQryCnf(
 }
 
 
-/*****************************************************************************
- Prototype      : At_Hex2Base16
- Description    : 将16进制转换BASE64编码
- Input          : nptr --- 字符串
- Output         :
- Return Value   : 数据长度
- Calls          : ---
- Called By      : ---
-
- History        : ---
-  1.Date        : 2005-04-19
-    Author      : ---
-    Modification: Created function
-*****************************************************************************/
-VOS_UINT16 At_Hex2Base16(VOS_UINT32 MaxLength,VOS_CHAR *headaddr,VOS_CHAR *pucDst,VOS_UINT8 *pucSrc,VOS_UINT16 usSrcLen)
-{
-    VOS_UINT32          i;
-    VOS_CHAR            *pcData;
-
-    pcData = pucDst;
-
-    for(i=0; i<usSrcLen; i++)
-    {
-        At_sprintf((VOS_INT32)MaxLength,headaddr,pcData,"%X",((pucSrc[i]&0xF0)>>4));
-
-        pcData++;
-
-        At_sprintf((VOS_INT32)MaxLength,headaddr,pcData,"%X",(pucSrc[i]&0x0F));
-
-        pcData++;
-    }
-
-    return (VOS_UINT16)(usSrcLen*2);
-}
-
 
 VOS_UINT32 At_QryIccVsimVer(
     VOS_UINT8                           ucIndex
@@ -1711,6 +1653,67 @@ VOS_UINT32 At_CrlaParaUpdateRecordCheck (
 }
 
 
+VOS_UINT32 At_CrlaParaSearchRecordCheck (
+    SI_PIH_CRLA_STRU                   *pstCommand)
+{
+    /* Search Record命令至少要有8个参数 */
+    if (gucAtParaIndex < 7)
+    {
+        AT_ERR_LOG("At_CrlaParaSearchRecordCheck: Para less than 8.");
+
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 填写数据结构中的<P1><P2><P3> */
+    pstCommand->ucP1        =   (TAF_UINT8)gastAtParaList[3].ulParaValue;
+    pstCommand->ucP2        =   (TAF_UINT8)gastAtParaList[4].ulParaValue;
+    pstCommand->ucP3        =   (TAF_UINT8)gastAtParaList[5].ulParaValue;
+
+    /* 填写数据结构中的<fileid> */
+    pstCommand->usEfId      =   (TAF_UINT16)gastAtParaList[2].ulParaValue;
+
+    /* 填写数据结构中的<command> */
+    pstCommand->enCmdType   =   USIMM_SEARCH_RECORD;
+
+     /* 第七个参数输入的<data>字符串数据长度必须是2的倍数且不能为0 */
+    if ((0 != (gastAtParaList[6].usParaLen % 2))
+     || (0 == gastAtParaList[6].usParaLen))
+    {
+        AT_ERR_LOG("At_CrlaParaSearchRecordCheck: <data> error.");
+
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    if(AT_FAILURE == At_AsciiNum2HexString(gastAtParaList[6].aucPara, &gastAtParaList[6].usParaLen))
+    {
+        AT_ERR_LOG("At_CrlaParaSearchRecordCheck: At_AsciiNum2HexString fail.");
+
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 防止因为数据长度过长导致单板复位 */
+    if (gastAtParaList[6].usParaLen > sizeof(pstCommand->aucContent))
+    {
+        AT_ERR_LOG("At_CrlaParaSearchRecordCheck: gastAtParaList[6] too long");
+
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 设置<data>，其长度由<data>参数输入确定，P3参数照常下发，不关心<data>的长度是否和P3的值匹配 */
+    if (VOS_NULL_PTR == VOS_MemCpy_s((TAF_VOID*)pstCommand->aucContent,
+                                      sizeof(pstCommand->aucContent),
+                                     (TAF_VOID*)gastAtParaList[6].aucPara,
+                                      gastAtParaList[6].usParaLen))
+    {
+        AT_ERR_LOG("At_CrlaParaSearchRecordCheck: VOS_MemCpy_s fail");
+
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    return At_CrlaFilePathParse(pstCommand);
+}
+
+
 TAF_UINT32 At_SetCrlaPara(TAF_UINT8 ucIndex)
 {
     SI_PIH_CRLA_STRU                    stCommand;
@@ -1756,6 +1759,9 @@ TAF_UINT32 At_SetCrlaPara(TAF_UINT8 ucIndex)
             break;
         case USIMM_UPDATE_RECORD:
             ulResult = At_CrlaParaUpdateRecordCheck(&stCommand);
+            break;
+        case USIMM_SEARCH_RECORD:
+            ulResult = At_CrlaParaSearchRecordCheck(&stCommand);
             break;
         default:
             return AT_CME_INCORRECT_PARAMETERS;
@@ -1900,6 +1906,14 @@ TAF_UINT32 AT_SetPrfApp(
         return AT_ERROR;
     }
 
+    /* 防止NV数据异常导致越界访问 */
+    if (stAppInfo.ucAppNum > AT_ARRAY_SIZE(stAppInfo.aenAppList))
+    {
+        AT_WARN_LOG("AT_SetPrfApp: Get en_NV_Item_Usim_App_Priority_Cfg success, but ucAppNum invalid.");
+
+        return AT_ERROR;
+    }
+
     /* 设置CDMA应用优先 */
     for (i = 0; i < stAppInfo.ucAppNum; i++)
     {
@@ -2023,6 +2037,14 @@ TAF_UINT32 At_QryPrfAppPara(TAF_UINT8 ucIndex)
         return AT_ERROR;
     }
 
+    /* 防止NV数据异常导致越界访问 */
+    if (stAppInfo.ucAppNum > AT_ARRAY_SIZE(stAppInfo.aenAppList))
+    {
+        AT_WARN_LOG("At_QryPrfAppPara: Get en_NV_Item_Usim_App_Priority_Cfg success, but ucAppNum invalid.");
+
+        stAppInfo.ucAppNum = AT_ARRAY_SIZE(stAppInfo.aenAppList);
+    }
+
     ulCdmaHit = VOS_FALSE;
     ulGutlHit = VOS_FALSE;
 
@@ -2114,6 +2136,14 @@ TAF_UINT32 AT_SetUiccPrfApp(
     if (NV_OK != ulRslt)
     {
         AT_ERR_LOG("AT_SetUiccPrfApp: Get en_NV_Item_Usim_Uicc_App_Priority_Cfg fail.");
+
+        return AT_ERROR;
+    }
+
+    /* 防止NV数据异常导致越界访问 */
+    if (stAppInfo.ucAppNum > AT_ARRAY_SIZE(stAppInfo.aenAppList))
+    {
+        AT_WARN_LOG("AT_SetUiccPrfApp: Get en_NV_Item_Usim_Uicc_App_Priority_Cfg success, but ucAppNum invalid.");
 
         return AT_ERROR;
     }
@@ -2239,6 +2269,14 @@ TAF_UINT32 At_QryUiccPrfAppPara(TAF_UINT8 ucIndex)
         AT_ERR_LOG("At_QryUiccPrfAppPara: Get en_NV_Item_Usim_Uicc_App_Priority_Cfg fail.");
 
         return AT_ERROR;
+    }
+
+    /* 防止NV数据异常导致越界访问 */
+    if (stAppInfo.ucAppNum > AT_ARRAY_SIZE(stAppInfo.aenAppList))
+    {
+        AT_WARN_LOG("At_QryUiccPrfAppPara: Get en_NV_Item_Usim_Uicc_App_Priority_Cfg success, but ucAppNum invalid.");
+
+        stAppInfo.ucAppNum = AT_ARRAY_SIZE(stAppInfo.aenAppList);
     }
 
     ulCdmaHit = VOS_FALSE;

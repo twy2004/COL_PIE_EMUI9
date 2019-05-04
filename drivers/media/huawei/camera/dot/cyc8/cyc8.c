@@ -65,8 +65,6 @@ typedef enum {
     MAX_PIN,
 }dot_cyc8_pin_type_t;
 
-/*static const char* gpio_name[MAX_PIN]= {"dot-power-en"};*/ /*maybe use later*/
-
 typedef enum {
     FREED = 0,
     REQUESTED,
@@ -77,6 +75,7 @@ typedef struct _dot_cyc8_private_data_t {
 }dot_cyc8_private_data_t;
 
 static dot_t s_cyc8;
+static struct platform_device *s_pdev = NULL;
 static dot_cyc8_private_data_t s_cyc8_pdata;
 
 static int cyc8_get_dt_data(const hwdot_intf_t *intf, struct device_node *dev_node)
@@ -181,7 +180,6 @@ int cyc8_power_on(const hwdot_intf_t* intf)
     pdata = (dot_cyc8_private_data_t *)dot->pdata;
 
     cam_info("%s enter", __func__);
-    /*rc = dot_cyc8_set_pin(pdata, POWER_ENABLE, CYC8_GPIO_ENABLE);*/ /*control by fpga*/
 
     return rc;
 }
@@ -318,6 +316,7 @@ cyc8_platform_probe(
 {
     cam_notice("%s enter", __func__);
     register_camerafs_attr(&dev_attr_cyc8thermal);
+    s_pdev = pdev;
     return hwdot_register(pdev, &s_cyc8.intf, &s_cyc8.notify);
 }
 
@@ -338,7 +337,10 @@ static void __exit
 cyc8_exit_module(void)
 {
     platform_driver_unregister(&s_cyc8_driver);
-    hwdot_unregister(&s_cyc8.intf);
+    if (s_pdev) {
+	    hwdot_unregister(s_pdev);
+	    s_pdev = NULL;
+    }
 }
 
 module_init(cyc8_init_module);

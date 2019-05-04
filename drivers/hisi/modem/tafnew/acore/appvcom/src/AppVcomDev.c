@@ -704,11 +704,12 @@ ssize_t APP_VCOM_Read(
         return APP_VCOM_ERROR;
     }
 
+    /*lint -e730 ;cause:two thread will write global variables */
     if (wait_event_interruptible(pstVcomDev->Read_Wait, (pstVcomDev->current_len != 0)))
     {
         return -ERESTARTSYS;
     }
-
+    /*lint +e730 ;cause:two thread will write global variables */
 
     if (0 == pstVcomDev->current_len)
     {
@@ -1095,17 +1096,16 @@ VOS_VOID  APP_VCOM_ProcAgpsPortCache_InSend (
 VOS_VOID APP_VCOM_ShowDebugInfo(VOS_VOID)
 {
     int                                 i;
-    PS_PRINTF("App Vcom Debug Info:");
-    PS_PRINTF("Index Err: %d\r\n", g_stAppVcomDebugInfo.ulDevIndexErr);
+    PS_PRINTF_INFO("App Vcom Debug Info:\n");
+    PS_PRINTF_INFO("Index Err: %d\n", g_stAppVcomDebugInfo.ulDevIndexErr);
 
     for (i = 0; i < APP_VCOM_MAX_NUM; i++)
     {
-        PS_PRINTF("\r\n");
-        PS_PRINTF("AppVcom[%d] Callback Function Return Err Num: %d\r\n", i, g_stAppVcomDebugInfo.ulAtCallBackErr[i]);
-        PS_PRINTF("AppVcom[%d] Mem Full Num:                     %d\r\n", i, g_stAppVcomDebugInfo.ulMemFullErr[i]);
-        PS_PRINTF("AppVcom[%d] Read Data Length = 0 Num:         %d\r\n", i, g_stAppVcomDebugInfo.ulReadLenErr[i]);
-        PS_PRINTF("AppVcom[%d] Send Data Length = 0 Num:         %d\r\n", i, g_stAppVcomDebugInfo.ulSendLenErr[i]);
-        PS_PRINTF("AppVcom[%d] Get App Vcom Dev Entity Err Num:  %d\r\n", i, g_stAppVcomDebugInfo.ulVcomDevErr[i]);
+        PS_PRINTF_INFO("AppVcom[%d] Callback Function Return Err Num: %d\n", i, g_stAppVcomDebugInfo.ulAtCallBackErr[i]);
+        PS_PRINTF_INFO("AppVcom[%d] Mem Full Num:                     %d\n", i, g_stAppVcomDebugInfo.ulMemFullErr[i]);
+        PS_PRINTF_INFO("AppVcom[%d] Read Data Length = 0 Num:         %d\n", i, g_stAppVcomDebugInfo.ulReadLenErr[i]);
+        PS_PRINTF_INFO("AppVcom[%d] Send Data Length = 0 Num:         %d\n", i, g_stAppVcomDebugInfo.ulSendLenErr[i]);
+        PS_PRINTF_INFO("AppVcom[%d] Get App Vcom Dev Entity Err Num:  %d\n", i, g_stAppVcomDebugInfo.ulVcomDevErr[i]);
     }
 }
 

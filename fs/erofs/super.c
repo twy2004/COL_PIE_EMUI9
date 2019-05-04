@@ -344,6 +344,9 @@ static void managed_cache_invalidatepage(struct page *page,
 static const struct address_space_operations managed_cache_aops = {
 	.releasepage = managed_cache_releasepage,
 	.invalidatepage = managed_cache_invalidatepage,
+#ifdef CONFIG_MIGRATION
+	.migratepage = erofs_migrate_cached_page,
+#endif
 };
 
 static struct inode *erofs_init_managed_cache(struct super_block *sb)
@@ -359,7 +362,7 @@ static struct inode *erofs_init_managed_cache(struct super_block *sb)
 	inode->i_mapping->a_ops = &managed_cache_aops;
 	mapping_set_gfp_mask(inode->i_mapping,
 			     GFP_NOFS | __GFP_HIGHMEM |
-			     __GFP_MOVABLE |  __GFP_NOFAIL
+			     __GFP_MOVABLE
 #if defined(CONFIG_CMA) && defined(___GFP_CMA)
 			     | ___GFP_CMA
 #endif

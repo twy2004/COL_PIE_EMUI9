@@ -63,7 +63,7 @@ extern "C" {
 #include "vos.h"
 #include "msp.h"
 #include "diag_cfg.h"
-#include "diag_service.h"
+#include "diag_frame.h"
 #include "diag_api_comm.h"
 
 #pragma pack(push)
@@ -89,12 +89,6 @@ extern "C" {
 #define  DIAG_IS_POLOG_ON           ((g_ulDiagCfgInfo & (DIAG_CFG_INIT | DIAG_CFG_POWERONLOG)) == (DIAG_CFG_INIT | DIAG_CFG_POWERONLOG))
 
 
-#define DIAG_GET_MODEM_ID(id)               (id >> 24)
-#define DIAG_GET_MODE_ID(id)                ((id & 0x000F0000)>>16)
-#define DIAG_GET_PRINTF_LEVEL(id)           ((id & 0x0000F000)>>12)
-#define DIAG_GET_GROUP_ID(id)               ((id & 0x00000F00)>>8)
-#define DIAG_GET_MODULE_ID(id)              ( id & 0x00000FFF)
-
 /* 日志类型定义*/
 #define DIAG_CMD_LOG_CATETORY_PRINT_ID              (1<<15)
 #define DIAG_CMD_LOG_CATETORY_EVENT_ID              (1<<14)
@@ -103,7 +97,12 @@ extern "C" {
 #define DIAG_CMD_LOG_CATETORY_MSG_ID                (1<<10)
 #define DIAG_CMD_LOG_CATETORY_USERPLANE_ID          (1<<9)
 
-#define LTE_DIAG_PRINTF_PARAM_MAX_NUM       (6)
+/* 单帧最大长度 */
+#define DIAG_FRAME_MAX_LEN      (4*1024)
+/* 单消息最大帧个数 */
+#define DIAG_FRMAE_MAX_CNT      (16)
+/* 总长度最大值 */
+#define DIAG_FRAME_SUM_LEN      (DIAG_FRAME_MAX_LEN * DIAG_FRMAE_MAX_CNT)
 
 /*****************************************************************************
   3 Massage Declare
@@ -128,25 +127,6 @@ enum
 /*****************************************************************************
    5 STRUCT
 *****************************************************************************/
-typedef struct
-{
-    VOS_UINT32 ulPrintNum;
-    VOS_UINT32 ulAirNum;
-    VOS_UINT32 ulVoLTENum;
-    VOS_UINT32 ulTraceNum;
-    VOS_UINT32 ulUserNum;
-    VOS_UINT32 ulEventNum;
-    VOS_UINT32 ulTransNum;
-
-    VOS_SPINLOCK    ulPrintLock;
-    VOS_SPINLOCK    ulAirLock;
-    VOS_SPINLOCK    ulVoLTELock;
-    VOS_SPINLOCK    ulTraceLock;
-    VOS_SPINLOCK    ulUserLock;
-    VOS_SPINLOCK    ulEventLock;
-    VOS_SPINLOCK    ulTransLock;
-} DIAG_LOG_PKT_NUM_ACC_STRU;
-
 
 /*****************************************************************************
   6 UNION
@@ -156,13 +136,10 @@ typedef struct
 /*****************************************************************************
   7 Extern Global Variable
 *****************************************************************************/
-extern VOS_TRANSID_LEN g_ulTransId;
-extern DIAG_LOG_PKT_NUM_ACC_STRU g_DiagLogPktNum;
 
 /*****************************************************************************
   8 Fuction Extern
 *****************************************************************************/
-extern VOS_CHAR * diag_GetFileNameFromPath(VOS_CHAR* pcFileName);
 extern VOS_UINT32 diag_FailedCmdCnf(DIAG_FRAME_INFO_STRU *pData, VOS_UINT32 ulErrcode);
 
 /*****************************************************************************
@@ -177,6 +154,12 @@ VOS_UINT32 diag_LogPortSwich(VOS_UINT32 ulPhyPort, VOS_BOOL ulEffect);
 VOS_VOID DIAG_LayerMsgReport(VOS_VOID *pMsg);
 
 VOS_UINT32 DIAG_ErrorLog(VOS_CHAR * cFileName,VOS_UINT32 ulFileId, VOS_UINT32 ulLine, VOS_UINT32 ulErrNo, VOS_VOID * pBuf, VOS_UINT32 ulLen);
+VOS_UINT32 diag_GetPrintPowerOnCfg(VOS_UINT32 ulLevel);
+VOS_UINT32 diag_GetLayerMsgCfg(VOS_UINT32 ulCatId, VOS_UINT32 ulMsgId);
+VOS_UINT32 diag_GetLayerSrcCfg(VOS_UINT32 ulModuleId);
+VOS_UINT32 diag_GetLayerDstCfg(VOS_UINT32 ulModuleId);
+VOS_UINT32 diag_GetLayerCfg(VOS_UINT32 ulSrcModuleId, VOS_UINT32 ulDstModuleId, VOS_UINT32 ulMsgId);
+VOS_UINT32 diag_GetPrintCfg(VOS_UINT32 ulModuleId, VOS_UINT32 ulLevel);
 
 /*****************************************************************************
   10 OTHERS

@@ -54,7 +54,6 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 #include <asm/string.h>
-#include "product_config.h"
 #include "securec.h"
 #include "osl_types.h"
 #include "osl_bio.h"
@@ -64,14 +63,12 @@
 #include "bsp_dsp.h"
 #include "bsp_dump.h"
 #include "bsp_ddr.h"
-#include "dump_file.h"
 #include "dump_config.h"
+#include "dump_logs.h"
 #include <bsp_slice.h>
 #include <bsp_nvim.h>
 #include <dump_lphy_tcm.h>
+
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
 
-void dump_lphy_init(void)
-{
-}

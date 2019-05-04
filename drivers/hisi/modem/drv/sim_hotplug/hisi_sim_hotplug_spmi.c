@@ -945,7 +945,7 @@ static void hisi_sim_det_msg_to_ccore(struct hisi_sim_hotplug_info *info, u8 sim
         LOGE("sim%d invalid.\n", info->sim_id);
         return;
     }
-
+    
     send_det_msg_to_core(info, channel_id, sim_pluged);
 
 }
@@ -1579,7 +1579,7 @@ void notify_card_status(int32_t card_status)
             LOGE("card1 not present, so return\n");
             return;
         }
-
+    
         if (1 == sd2jtag_enable)
         {
             LOGE("sd2jtag_enable, so return\n");
@@ -1724,28 +1724,28 @@ static long simhotplug_ioctl(struct file *flip, unsigned int cmd, unsigned long 
 {
     int rc = -EFAULT;
     void __user *argp = (void __user *)arg;
-    int32_t card_status;
-
+    int32_t card_status; 
     if(NULL == argp)
     {
         LOGI("simhotplug_ioctl arg is null.\n");
         return rc;
     }
+
     switch (cmd)
     {
         case SIMHOTPLUG_IOC_INFORM_CARD_INOUT:
         {
             LOGI("simhotplug_ioctl card status inout.\n");
-
+    
             if (copy_from_user(&card_status, argp, sizeof(card_status)))
                 break;
 
             LOGI("simhotplug_ioctl card status card_status= %d.\n",card_status);
-
+    
             notify_card_status(card_status);
 
             rc = 0;
-
+    
             break;
         }
         default:
@@ -1807,7 +1807,7 @@ static int create_simhp_node(int sim_id)
     simhotplug_data.simhp_cdev.owner = THIS_MODULE;
 
     ret = cdev_add(&simhotplug_data.simhp_cdev, simhotplug_data.simhp_dev, SIMHP_DEVICES_NUMBER);
-    if (ret)
+    if (ret) 
     {
         LOGE("cdev_add failed\n");
         goto fail_cdev_add;
@@ -1881,7 +1881,7 @@ int sim_hotplug_sdmux_init(struct hisi_sim_hotplug_info *info)
             /*lint -e611 -esym(611,*)*/
             INIT_WORK(&info->sim_sci_msg_work, (void *)sim_sci_msg_proc);
             /*lint -e611 +esym(611,*)*/
-
+    
             ret = create_simhp_node(info->sim_id);
         }
     }

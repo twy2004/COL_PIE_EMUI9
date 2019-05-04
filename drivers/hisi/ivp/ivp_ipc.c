@@ -17,8 +17,10 @@
 #include <linux/atomic.h>
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include <linux/ion-iommu.h>
+#endif
 #include "ivp.h"
 #include "ivp_log.h"
 #include "ivp_core.h"
@@ -142,7 +144,7 @@ static struct ivp_ipc_packet *ivp_ipc_get_packet(struct ivp_ipc_queue *queue)
     return packet;
 }
 
-static int ivp_ipc_add_packet(struct ivp_ipc_queue *queue, void *data, size_t len)
+static int ivp_ipc_add_packet(struct ivp_ipc_queue *queue, const void *data, size_t len)
 {
     struct ivp_ipc_packet *new_packet = NULL;
     int ret = 0;
@@ -436,6 +438,7 @@ static ssize_t ivp_ipc_write(struct file *file,
         goto OUT;
     }
     //trans ion fd to phyaddr
+
     if (is_ivp_in_secmode()) {
         //the third char is ipc cmd,the first char is msg index
         if ((CMD_ALGORUN == (tmp_buff[3] & 0x7F)) && (0 == tmp_buff[0])) {
@@ -524,7 +527,7 @@ static long ivp_ipc_ioctl(struct file *fd, unsigned int cmd, unsigned long args)
 static long ivp_ipc_ioctl32(struct file *fd, unsigned int cmd, unsigned long args)
 {
     void *user_ptr = compat_ptr(args);
-    return ivp_ipc_ioctl(fd, cmd, (unsigned long)user_ptr);
+    return ivp_ipc_ioctl(fd, cmd, (uintptr_t)user_ptr);
 }
 
 static struct file_operations ivp_ipc_fops = {
@@ -607,5 +610,4 @@ static struct platform_driver ivp_ipc_driver = {
 }; //lint -e785
 
 module_platform_driver(ivp_ipc_driver); //lint -e528 -e64
-//MODULE_LICENSE("GPL");
 //lint -restore

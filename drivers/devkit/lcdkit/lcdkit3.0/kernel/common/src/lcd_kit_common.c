@@ -16,9 +16,13 @@
 #include "lcd_kit_parse.h"
 
 #if defined (CONFIG_HUAWEI_DSM)
-#include <dsm/dsm_pub.h>
 extern struct dsm_client* lcd_dclient;
 #endif
+#ifdef LV_GET_LCDBK_ON
+u32 mipi_level;
+#endif
+
+#define BL_MAX 256
 
 int lcd_kit_msg_level = MSG_LEVEL_INFO;
 /*common info*/
@@ -52,11 +56,13 @@ static char* sence_array[SENCE_ARRAY_SIZE] = {
 	"LCD_INCOME15",  "MMI15",  "RUNNINGTEST15",  "PROJECT_MENU15",
 	"LCD_INCOME16",  "MMI16",  "RUNNINGTEST16",  "PROJECT_MENU16",
 	"LCD_INCOME17",  "MMI17",  "RUNNINGTEST17",  "PROJECT_MENU17",
+	"LCD_INCOME18",  "MMI18",  "RUNNINGTEST18",  "PROJECT_MENU18",
 	"CURRENT1_0",    "CURRENT1_1", "CURRENT1_2",  "CURRENT1_3",
 	"CURRENT1_4",    "CURRENT1_5", "CHECKSUM1",  "CHECKSUM2",
 	"CHECKSUM3",     "CHECKSUM4", "BL_OPEN_SHORT",  "PCD_ERRORFLAG",
 	"DOTINVERSION",  "CHECKREG", "COLUMNINVERSION",   "POWERONOFF",
 	"BLSWITCH", "CURRENT_TEST_MODE", "OVER_CURRENT_DETECTION", "OVER_VOLTAGE_DETECTION",
+	"GENERAL_TEST",
 };
 
 static char* cmd_array[SENCE_ARRAY_SIZE] = {
@@ -78,6 +84,7 @@ static char* cmd_array[SENCE_ARRAY_SIZE] = {
 	"POWERONOFF",   "POWERONOFF",  "POWERONOFF",  "POWERONOFF",// power on/off test
 	"BLSWITCH",    "BLSWITCH",  "BLSWITCH", "BLSWITCH",// backlight switch test
 	"GPU_TEST",   "GPU_TEST",  "GPU_TEST", "GPU_TEST", //GPU SLT test
+	"GENERAL_TEST", "GENERAL_TEST", "GENERAL_TEST", "GENERAL_TEST",
 	"/sys/class/ina231/ina231_0/ina231_set," \
 	"/sys/class/ina231/ina231_0/ina231_value," \
 	"1,9999999,1,9999999,1,99999",
@@ -110,6 +117,7 @@ static char* cmd_array[SENCE_ARRAY_SIZE] = {
 	"LCD_CUR_DET_MODE",
 	"OVER_CURRENT_DETECTION",
 	"OVER_VOLTAGE_DETECTION",
+	"/sys/class/graphics/fb0/lcd_general_test",
 };
 
 int lcd_kit_adapt_register(struct lcd_kit_adapt_ops* ops)
@@ -398,6 +406,51 @@ static int lcd_kit_vsn_power_ctrl(int enable)
 	return ret;
 }
 
+int lcd_kit_aod_power_ctrl(int enable)
+{
+	struct lcd_kit_adapt_ops* adapt_ops = NULL;
+
+	adapt_ops = lcd_kit_get_adapt_ops();
+	if (!adapt_ops) {
+		LCD_KIT_ERR("can not get adapt_ops!\n");
+		return LCD_KIT_FAIL;
+	}
+	if (NULL == power_hdl->lcd_aod.buf){
+		LCD_KIT_ERR("can not get lcd lcd_aod!\n");
+		return LCD_KIT_FAIL;
+	}
+	switch (power_hdl->lcd_aod.buf[0]) {
+		case GPIO_MODE:
+			if (enable) {
+				if (adapt_ops->gpio_enable) {
+					adapt_ops->gpio_enable(LCD_KIT_AOD);
+				}
+			} else {
+				if (adapt_ops->gpio_disable) {
+					adapt_ops->gpio_disable(LCD_KIT_AOD);
+				}
+			}
+			break;
+		case REGULATOR_MODE:
+			if (enable) {
+				if (adapt_ops->regulator_enable) {
+					adapt_ops->regulator_enable(LCD_KIT_AOD);
+				}
+			} else {
+				if (adapt_ops->regulator_disable) {
+					adapt_ops->regulator_disable(LCD_KIT_AOD);
+				}
+			}
+			break;
+		case NONE_MODE:
+			LCD_KIT_DEBUG("lcd lcd_aod mode is none mode\n");
+			break;
+		default:
+			LCD_KIT_ERR("lcd lcd_aod mode is not normal\n");
+			return LCD_KIT_FAIL;
+	}
+	return LCD_KIT_OK;
+}
 int lcd_kit_set_bias_voltage(void)
 {
 	struct lcd_kit_bias_ops *bias_ops = NULL;
@@ -489,6 +542,25 @@ static int lcd_kit_on_cmds(void* hld)
 		LCD_KIT_ERR("can not register adapt_ops!\n");
 		return LCD_KIT_FAIL;
 	}
+	if(common_info->dsi1_cmd.support)
+	{
+		if (!(adapt_ops->daul_mipi_diff_cmd_tx)) {
+			LCD_KIT_ERR("daul_mipi_diff_cmd_tx can not register adapt_ops!\n");
+			return LCD_KIT_FAIL;
+		}
+		ret = adapt_ops->daul_mipi_diff_cmd_tx(hld, &common_info->panel_on_cmds,
+												&common_info->dsi1_cmd.on_cmds);
+		if (ret) {
+			LCD_KIT_ERR("send daul mipi panel on cmds error\n");
+		}
+		if (common_info->effect_on.support) {
+			ret = adapt_ops->mipi_tx(hld, &common_info->effect_on.cmds);
+			if (ret) {
+				LCD_KIT_ERR("send effect on cmds error\n");
+			}
+		}
+		return ret;
+	}
 	/*send panel on init code*/
 	if (adapt_ops->mipi_tx) {
 		ret = adapt_ops->mipi_tx(hld, &common_info->panel_on_cmds);
@@ -515,6 +587,19 @@ static int lcd_kit_off_cmds(void* hld)
 	if (!adapt_ops) {
 		LCD_KIT_ERR("can not register adapt_ops!\n");
 		return LCD_KIT_FAIL;
+	}
+	if(common_info->dsi1_cmd.support)
+	{
+		if (!(adapt_ops->daul_mipi_diff_cmd_tx)) {
+			LCD_KIT_ERR("daul_mipi_diff_cmd_tx can not register adapt_ops!\n");
+			return LCD_KIT_FAIL;
+		}
+		ret = adapt_ops->daul_mipi_diff_cmd_tx(hld, &common_info->panel_off_cmds,
+												&common_info->dsi1_cmd.off_cmds);
+		if (ret) {
+			LCD_KIT_ERR("send daul mipi panel on cmds error\n");
+		}
+		return ret;
 	}
 	/*send panel off code*/
 	if (adapt_ops->mipi_tx) {
@@ -554,7 +639,7 @@ static int lcd_kit_check_reg_report_dsm(void* hld,struct lcd_kit_check_reg_dsm *
 						LCD_KIT_ERR("read_value[%d] = 0x%x, but expect_ptr[%d] = 0x%x!\n",
 									i, read_value[i], i, expect_ptr[i]);
 #if defined (CONFIG_HUAWEI_DSM)
-						dsm_client_record(lcd_dclient,"read_value[%d] = 0x%x, but expect_ptr[%d] = 0x%x!\n",
+						dsm_client_record(lcd_dclient,"lcd register read_value[%d] = 0x%x, but expect_ptr[%d] = 0x%x!\n",
 									i, read_value[i], i, expect_ptr[i]);
 #endif
 						break;
@@ -576,9 +661,9 @@ static int lcd_kit_check_reg_report_dsm(void* hld,struct lcd_kit_check_reg_dsm *
 		if(check_reg_dsm->support_dsm_report) {
 #if defined (CONFIG_HUAWEI_DSM)
 			if (!dsm_client_ocuppy(lcd_dclient)) {
-			dsm_client_notify(lcd_dclient, DSM_LCD_STATUS_ERROR_NO);
-#endif
+				dsm_client_notify(lcd_dclient, DSM_LCD_STATUS_ERROR_NO);
 			}
+#endif
 		}
 	}
 	return ret;
@@ -854,6 +939,9 @@ int lcd_kit_event_handler(void* hld, uint32_t event, uint32_t data, uint32_t del
 			ret = lcd_kit_vdd_power_ctrl(data);
 			break;
 		}
+		case EVENT_AOD:
+			ret = lcd_kit_aod_power_ctrl(data);
+			break;
 		case EVENT_NONE:
 		{
 			LCD_KIT_INFO("none event\n");
@@ -868,7 +956,7 @@ int lcd_kit_event_handler(void* hld, uint32_t event, uint32_t data, uint32_t del
 	}
 	/*In the case of aod exit, no delay is required*/
 	if(0 == lcd_kit_panel_is_power_on()) {
-		LCD_KIT_DELAY(delay);
+		lcd_kit_delay(delay, LCD_KIT_WAIT_MS, true);
 	}
 	return ret;
 }
@@ -1074,8 +1162,10 @@ static int lcd_kit_hbm_set_level(void* hld, int level)
 	}
 	/*set hbm level*/
 	if (common_info->hbm.hbm_cmds.cmds != NULL) {
-		if (common_info->hbm.hbm_cmds.cmds[0].dlen == 2) {
-			common_info->hbm.hbm_cmds.cmds[0].payload[1] = level;
+		if (common_info->hbm.hbm_special_bit_ctrl == LCD_KIT_HIGH_12BIT_CTL_HBM_SUPPORT) {
+			/*Set high 12bit hbm level, low 4bit set zero*/
+			common_info->hbm.hbm_cmds.cmds[0].payload[1] = (level >> LCD_KIT_SHIFT_FOUR_BIT) & 0xff;
+			common_info->hbm.hbm_cmds.cmds[0].payload[2] = (level << LCD_KIT_SHIFT_FOUR_BIT) & 0xf0;
 		} else {
 			common_info->hbm.hbm_cmds.cmds[0].payload[1] = (level >> 8) & 0xf;
 			common_info->hbm.hbm_cmds.cmds[0].payload[2] = level & 0xff;
@@ -1131,6 +1221,25 @@ static int lcd_kit_hbm_dim_enable(void* hld)
 	return ret;
 }
 
+static int lcd_kit_hbm_enable_no_dimming(void* hld)
+{
+	int ret = LCD_KIT_OK;
+	struct lcd_kit_adapt_ops* adapt_ops = NULL;
+
+	adapt_ops = lcd_kit_get_adapt_ops();
+	if (!adapt_ops) {
+		LCD_KIT_ERR("can not register adapt_ops!\n");
+		return LCD_KIT_FAIL;
+	}
+	/*enable hbm and close dimming*/
+	if (common_info->hbm.enter_no_dim_cmds.cmds != NULL){
+		if (adapt_ops->mipi_tx) {
+			ret = adapt_ops->mipi_tx(hld, &common_info->hbm.enter_no_dim_cmds);
+		}
+	}
+	return ret;
+}
+
 static void lcd_kit_hbm_print_count(int last_hbm_level, int hbm_level)
 {
 	static int count = 0;
@@ -1147,6 +1256,19 @@ static void lcd_kit_hbm_print_count(int last_hbm_level, int hbm_level)
 	} else {
 		LCD_KIT_DEBUG("hbm_level=%d!\n", hbm_level);
 	}
+}
+
+static int check_if_fp_using_hbm(void)
+{
+	int ret = LCD_KIT_OK;
+
+	if(1 == common_info->hbm.hbm_fp_support) {
+		if(1 == common_info->hbm.hbm_if_fp_is_using) {
+			ret = LCD_KIT_FAIL;
+		}
+	}
+
+	return ret;
 }
 
 static int lcd_kit_hbm_set_handle(void* hld, int last_hbm_level, int hbm_dimming, int hbm_level)
@@ -1166,10 +1288,19 @@ static int lcd_kit_hbm_set_handle(void* hld, int last_hbm_level, int hbm_dimming
 	if (common_info->hbm.support) {
 		mutex_lock(&common_info->hbm.hbm_lock);
 		common_info->hbm.hbm_level_current = hbm_level;
+		if(check_if_fp_using_hbm() < 0) {
+			LCD_KIT_INFO("fp is using, exit!\n");
+			mutex_unlock(&common_info->hbm.hbm_lock);
+			return ret;
+		}
+
 		if(hbm_level > 0) {
 			if (last_hbm_level == 0) {
 				/*enable hbm*/
 				lcd_kit_hbm_enable(hld);
+				if (!hbm_dimming) {
+					lcd_kit_hbm_enable_no_dimming(hld);
+				}
 			} else {
 				lcd_kit_hbm_print_count(last_hbm_level, hbm_level);
 			}
@@ -1373,7 +1504,6 @@ static int lcd_kit_check_reg(void* hld, char* buf)
 	uint8_t read_value[MAX_REG_READ_COUNT] = {0};
 	int i = 0;
 	char* expect_ptr = NULL;
-	unsigned int count;
 	struct lcd_kit_adapt_ops* adapt_ops = NULL;
 
 	adapt_ops = lcd_kit_get_adapt_ops();
@@ -1739,6 +1869,10 @@ static int lcd_kit_set_mipi_backlight(void* hld, u32 level)
 		}
 	}
 	ret = adapt_ops->mipi_tx(hld, &common_info->backlight.bl_cmd);
+#ifdef LV_GET_LCDBK_ON
+	LCD_KIT_INFO("mipi bl_level = %d\n", level);
+	mipi_level = level;
+#endif
 	return ret;
 }
 
@@ -1865,13 +1999,21 @@ static void lcd_kit_panel_parse_running(struct device_node* np)
 	if (common_info->pt.support) {
 		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,pt-panel-ulps-support", &common_info->pt.panel_ulps_support, 0);
 	}
+	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,dsi1-cmd-support",
+				&common_info->dsi1_cmd.support, 0);
+	if (common_info->dsi1_cmd.support) {
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-dsi1-on-cmds",
+				"lcd-kit,panel-dsi1-on-cmds-state",
+				&(common_info->dsi1_cmd.on_cmds));
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-dsi1-off-cmds",
+				"lcd-kit,panel-dsi1-off-cmds-state",
+				&(common_info->dsi1_cmd.off_cmds));
+	}
 	return ;
 }
 
 static void lcd_kit_panel_parse_effect(struct device_node* np)
 {
-	int ret = 0;
-
 	/*effect color*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,effect-color-support", &common_info->effect_color.support, 0);
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,effect-color-mode", &common_info->effect_color.mode, 0);
@@ -1903,12 +2045,8 @@ static void lcd_kit_panel_parse_effect(struct device_node* np)
 	/*hbm*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-support", &common_info->hbm.support, 0);
 	if (common_info->hbm.support) {
-		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-fp-support", &common_info->hbm.hbm_fp_support, 0);
-		if(common_info->hbm.hbm_fp_support) {
-			OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-level-max", &common_info->hbm.hbm_level_max, 0);
-			lcd_kit_parse_dcs_cmds(np, "lcd-kit,hbm-fp-enter-cmds", "lcd-kit,hbm-fp-enter-cmds-state",
-									&common_info->hbm.fp_enter_cmds);
-		}
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,hbm-enter-no-dim-cmds", "lcd-kit,hbm-enter-no-dim-cmds-state",
+								&common_info->hbm.enter_no_dim_cmds);
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,hbm-enter-cmds", "lcd-kit,hbm-enter-cmds-state",
 								&common_info->hbm.enter_cmds);
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,hbm-prepare-cmds", "lcd-kit,hbm-prepare-cmds-state",
@@ -1941,6 +2079,24 @@ static void lcd_kit_panel_parse_effect(struct device_node* np)
 								&common_info->hbm.enter_dim_cmds);
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,exit-dim-cmds", "lcd-kit,exit-dim-cmds-state",
 								&common_info->hbm.exit_dim_cmds);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-special-bit-ctrl-support", &common_info->hbm.hbm_special_bit_ctrl, 0);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-set-elvss-dim-lp", &common_info->hbm.hbm_set_elvss_dim_lp, 0);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-elvss-dim-cmd-delay", &common_info->hbm.hbm_fp_elvss_cmd_delay, 0);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-hbm-elvss-prepare-cmds", "lcd-kit,panel-hbm-elvss-prepare-cmds-state ",
+								&common_info->hbm.elvss_prepare_cmds);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-hbm-elvss-read-cmds", "lcd-kit,panel-hbm-elvss-read-cmds-state",
+								&common_info->hbm.elvss_read_cmds);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-hbm-elvss-write-cmds", "lcd-kit,panel-hbm-elvss-write-cmds-state",
+								&common_info->hbm.elvss_write_cmds);
+		lcd_kit_parse_dcs_cmds(np, "lcd-kit,panel-hbm-elvss-post-cmds", "lcd-kit,panel-hbm-elvss-post-cmds-state",
+								&common_info->hbm.elvss_post_cmds);
+		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-fp-support", &common_info->hbm.hbm_fp_support, 0);
+		if(common_info->hbm.hbm_fp_support) {
+			OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-level-max", &common_info->hbm.hbm_level_max, 0);
+			lcd_kit_parse_dcs_cmds(np, "lcd-kit,hbm-fp-enter-cmds", "lcd-kit,hbm-fp-enter-cmds-state",
+									&common_info->hbm.fp_enter_cmds);
+			OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,hbm-elvss-dim-support", &common_info->hbm.hbm_fp_elvss_support, 0);
+		}
 	}
 	/*acl*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,acl-support", &common_info->acl.support, 0);
@@ -2066,6 +2222,7 @@ static void lcd_kit_parse_power(struct device_node* np)
 	lcd_kit_parse_array_data(np, "lcd-kit,tp-reset", &power_hdl->tp_rst);
 	/*vdd*/
 	lcd_kit_parse_array_data(np, "lcd-kit,lcd-vdd", &power_hdl->lcd_vdd);
+	lcd_kit_parse_array_data(np, "lcd-kit,lcd-aod", &power_hdl->lcd_aod);
 }
 
 static int lcd_kit_panel_parse_dt(struct device_node* np)
@@ -2196,6 +2353,29 @@ int lcd_dsm_client_record(struct dsm_client *lcd_dclient, char *record_buf, int 
 #endif
 }
 
+void lcd_kit_delay(int wait, int waittype, bool allow_sleep)
+{
+	if (wait) {
+		if (waittype == LCD_KIT_WAIT_US) {
+			udelay(wait);
+		}
+		else if (waittype == LCD_KIT_WAIT_MS) {
+			if (wait > 10 && allow_sleep) {
+				msleep(wait);
+			} else {
+				mdelay(wait);
+			}
+		}
+		else {
+			if (allow_sleep) {
+				msleep(wait * 1000);
+			} else {
+				mdelay(wait * 1000);
+			}
+		}
+	}
+}
+
 #define MAX_ERROR_TIMES 100000000		/*used to avoid a uint32_t happening overflow*/
 static void lcd_kit_mipi_check(void* pdata, char *panel_name, long display_on_record_time)
 {
@@ -2252,8 +2432,8 @@ static void lcd_kit_mipi_check(void* pdata, char *panel_name, long display_on_re
 			}
 			do_gettimeofday(&tv);
 			diskeeptime = tv.tv_sec - display_on_record_time;
-			ret = snprintf(record_buf, RECORD_BUFLEN, "%s:display_on_keep_time=%ds, reg_val[%d]=0x%x!\n",
-					panel_name,diskeeptime,common_info->mipi_check.cmds.cmds[i].payload[0],read_value[i]);
+			ret = snprintf(record_buf, RECORD_BUFLEN, "%s:display_on_keep_time=%lds, reg_val[%d]=0x%x!\n",
+					"lcd",diskeeptime,common_info->mipi_check.cmds.cmds[i].payload[0],read_value[i]);
 			if (ret < 0) {
 				LCD_KIT_ERR("snprintf happened error!\n");
 				continue;

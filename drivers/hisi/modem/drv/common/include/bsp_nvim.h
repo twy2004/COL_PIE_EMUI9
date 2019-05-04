@@ -60,7 +60,7 @@ extern "C" {
 #include "bsp_nvim_mem.h"
 #include "mdrv_nvim_comm.h"
 
-#if (defined(__KERNEL__) || defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) || (defined(__CMSIS_RTOS)))
+#if (defined(__KERNEL__) || defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__) || (defined(__CMSIS_RTOS)))
 #include "osl_common.h"
 #include "bsp_trace.h"
 #define BSP_ERR_NV_BASE                         BSP_DEF_ERR(BSP_MODU_NV, 0)
@@ -374,6 +374,12 @@ enum
 #define BSP_ERR_NV_INVALID_NVE_FIELD            (BSP_ERR_NV_BASE + 0x50)
 #define BSP_ERR_NV_WRITE_NVE_FAIL               (BSP_ERR_NV_BASE + 0x51)
 #define BSP_ERR_NV_READ_NVE_FAIL                (BSP_ERR_NV_BASE + 0x52)
+#define BSP_ERR_NV_OPEN_EICC_FAIL               (BSP_ERR_NV_BASE + 0x53)
+#define BSP_ERR_NV_READ_EICC_FAIL               (BSP_ERR_NV_BASE + 0x54)
+#define BSP_ERR_NV_INVALID_EICC_MSG_TYPE        (BSP_ERR_NV_BASE + 0x55)
+#define BSP_ERR_NV_INVALID_MEM_BUF              (BSP_ERR_NV_BASE + 0x56)
+#define BSP_ERR_NV_HAMC_CHECK_ERR               (BSP_ERR_NV_BASE + 0x57)
+
 
 
 #define NV_MID_PRI_LEVEL_NUM   7
@@ -532,8 +538,6 @@ struct nv_crc_flush_info_stru
 /* 此结构体的为A核C核公用的结构体
 请不要轻易添加或者删除结构体成员*/
 #ifdef FEATURE_NV_SEC_ON
-#define FLUSH_NVM_BACK    0x5A
-
 enum _file_type
 {
     NV_FILE_HEAH = 0x0,             // 不属于文件属性，只表示文件头
@@ -543,6 +547,21 @@ enum _file_type
     NV_FILE_ATTRIBUTE_MAX,
 };
 
+#define RSNV_FILE_BIT           (1 << NV_FILE_ATTRIBUTE_RESUM)
+#define RONV_FILE_BIT           (1 << NV_FILE_ATTRIBUTE_RDONLY)
+#define RWNV_FILE_BIT           (1 << NV_FILE_ATTRIBUTE_RDWR)
+#define ALL_FILE_MASK           (RSNV_FILE_BIT | RONV_FILE_BIT | RWNV_FILE_BIT)
+
+#define RSNV_FILE_MASK          (~(1 << NV_FILE_ATTRIBUTE_RESUM))
+#define RONV_FILE_MASK          (~(1 << NV_FILE_ATTRIBUTE_RDONLY))
+#define RWNV_FILE_MASK          (~(1 << NV_FILE_ATTRIBUTE_RDWR))
+
+struct nv_mem_buf_info
+{
+    u32 is_need_flush_backup;
+    u32 buf_size;
+    unsigned long mem_buf_addr;
+};
 typedef struct nv_global_ddr_info_stru
 {
     u32 ddr_read;                       /*whether ddr can to write #need delete */
@@ -561,6 +580,7 @@ typedef struct nv_global_ddr_info_stru
     debug_ctrl_union_t      debug_ctrl; /*debug控制*/
     nv_global_file_handle_s file_info[NV_FILE_MAX_NUM];  /*reg every file size&offset*/
     nv_fastboot_debug_s     fb_debug;
+    struct nv_mem_buf_info  nminfo;
 }nv_global_info_s;
 #else
 
@@ -590,6 +610,7 @@ typedef struct nv_global_ddr_info_stru
 enum _icc_msg_e_
 {
     NV_ICC_REQ_FLUSH = 0x40,
+    NV_ICC_REQ_FLUSH_RWNV,
     NV_ICC_REQ_LOAD_BACKUP,                         /*请求加载备份区的NV镜像*/
     NV_ICC_REQ_LOAD_CARRIER_CUST,                   /*请求加载mbn.bin镜像 */
     NV_ICC_REQ_LOAD_CARRIER_RESUM,                  /*请求加载mbn_comm.bin镜像 */
@@ -614,6 +635,12 @@ enum
 
 };
 
+/* eicc message type between NR and LR */
+enum
+{
+    NV_EICC_REQ_SYNC_PROPERTY_ZEOR = 0,
+    NV_EICC_REQ_ASYNC_PROPERTY_ONE = 1,
+};
 
 /*DDR中NV文件的长度*/
 #define NV_FILE_LEN               (((nv_global_info_s*)NV_GLOBAL_INFO_ADDR)->file_len)
@@ -623,6 +650,9 @@ enum
 
 u32 nv_readEx(u32 modem_id, u32 itemid, u32 offset, u8 * pdata, u32 datalen);
 u32 nv_writeEx(u32 modem_id, u32 itemid, u32 offset, u8 * pdata, u32 datalen);
+
+u32 nv_readEx_partition(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen, const s8* path);
+u32 nv_readEx_img(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen);
 u32 nv_readEx_factory(u32 modem_id,u32 itemid,u32 offset,u8* pdata,u32 datalen);
 
 #ifndef NV_NOT_INIT
@@ -686,6 +716,9 @@ static inline u32 bsp_nvm_mreset_load(void) {return 0;}
 
 /*将所有数据刷到文件系统中*/
 u32 bsp_nvm_flush(void);
+u32 bsp_nvm_flush_rwbuf(void);
+void bsp_nvm_wakeup_task(void);
+
 
 /*将内存中的数据刷到sys nv中*/
 u32 bsp_nvm_flushSys(void);
@@ -703,6 +736,8 @@ u32 bsp_nvm_xml_decode(void);
 
 u32 nvm_read_rand(u32 nvid);
 u32 nvm_read_randex(u32 nvid, u32 modem_id);
+u32 nvm_write_randex(u32 nvid,u32 modem_id);
+
 
 /* acore */
 u32 bsp_nvm_get_modem_num(void);

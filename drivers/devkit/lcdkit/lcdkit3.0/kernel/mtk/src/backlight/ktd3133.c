@@ -488,7 +488,7 @@ static int __init ktd3133_init(void)
 	ret = i2c_add_driver(&ktd3133_i2c_driver);
 	if (ret) {
 		LCD_KIT_ERR("Unable to register ktd3133 driver\n");
-	}
+    }
 	LCD_KIT_INFO("%s ok!\n",__func__);
 	return ret;
 }

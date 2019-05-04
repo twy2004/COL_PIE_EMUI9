@@ -118,7 +118,6 @@ static inline void icc_pm_om_log(struct icc_channel_packet *packet, read_cb_func
 	(void)memcpy_s((void *)&pm_om.packet, sizeof(*packet), (void *)packet, sizeof(*packet));
 	pm_om.read_cb      = read_cb;
 	pm_om.read_context = read_context;
-
 	(void)bsp_pm_log(PM_OM_AICC, sizeof(pm_om), (void *)&pm_om);
 }
 
@@ -388,10 +387,8 @@ void icc_debug_after_send(struct icc_channel *channel, struct icc_channel_packet
     	msg_tx.channel_id = packet->channel_id;
 	msg_tx.recv_task_id = 0;
 	msg_tx.duration_post = bsp_get_slice_value();
-
 	/* coverity[secure_coding] */
 	(void)memcpy_s((void *)msg_tx.data, ICC_MSG_RECORED_DATA_LEN, (void *)data, min(msg_tx.len, (u32)ICC_MSG_RECORED_DATA_LEN));
-
 	icc_send_msg_queue_in(&(g_icc_dbg.msg_stat.send), &msg_tx);
 	icc_channel_msg_stat(&(g_icc_dbg.channel_stat[GET_CHN_ID(msg_tx.channel_id)]->send.total), msg_tx.len, msg_tx.send_task_id);
 	icc_channel_msg_stat(&(g_icc_dbg.channel_stat[GET_CHN_ID(msg_tx.channel_id)]->send.sub_chn[GET_FUNC_ID(msg_tx.channel_id)]), msg_tx.len, msg_tx.send_task_id);

@@ -68,6 +68,8 @@
 
 #define MPTCP_HW_EXT_PORT_KEY_MAX_LEN 200
 
+#define HAG_MAX_BLACK_APP_NUM 50
+
 enum mptcp_hw_cmd {
 	MPTCP_HW_EXT_UID_CONF_MPTCP = 0x00000000, /* conf_value.i_val.mp_capability:
 		0 or 1 */
@@ -117,6 +119,11 @@ enum mptcp_hw_cmd {
 	MPTCP_HW_EXT_UID_SWITCH = 0x06000000,
 
 	MPTCP_HW_EXT_UID_FIRST_PATH = 0x07000000,
+
+	MPTCP_HW_EXT_SET_CONF_HAG = 0x08000000,
+	MPTCP_HW_EXT_SET_CONF_HAG_GW_INFO,
+	MPTCP_HW_EXT_SET_CONF_HAG_CONFIG,
+	MPTCP_HW_EXT_CMD_MAX_INVALID
 };
 
 /*carrier info*/
@@ -138,8 +145,23 @@ enum mptcp_hw_cmd {
 #define MPTCP_HW_EXT_MAX_CARRIER_ID	5
 #define MPTCP_HW_EXT_MAX_IP_IN_CARRIER	4
 
-/* mptcp proxy info */
+/* mptcp proxy info for wangsu*/
 #define MPTCP_PROXY_OP_LEN_OPT_SERVER_ADDR4          8
+
+#define MPTCP_FALLBACK_PROXY_INTERNAL_ERROR_MAX	255
+#define MPTCP_FALLBACK_PROXY_OPTLEN_OFR		256
+#define MPTCP_FALLBACK_PROXY_SYN_TIMEOUT	257
+#define MPTCP_FALLBACK_PROXY_SYN_RESET		258
+#define MPTCP_FALLBACK_PROXY_NORESPONSE		259
+#define MPTCP_FALLBACK_PROXY_NOMPTCP		260
+
+#define MPTCP_FALLBACK_PROXY_FAIL_OPTION_THRH		3
+#define MPTCP_FALLBACK_PROXY_FAIL_NORESPONSE_THRH	5
+#define MPTCP_FALLBACK_PROXY_FAIL_SYN_TIMEOUT_THRH	2
+
+#define MPTCP_FALLBACK_UNDO	0
+#define MPTCP_FALLBACK_AT_ONCE	1
+#define MPTCP_FALLBACK_PEND	2
 
 struct mptcp_proxy_server_addr {
 	__u8    kind;
@@ -150,8 +172,8 @@ struct mptcp_proxy_server_addr {
 
 struct mptcp_hw_ext_subflow_info {
 	__u8	loc_id;
-	__u32	total_send_bytes;
-	__u32	total_recv_bytes;
+	u64	total_send_bytes;
+	u64	total_recv_bytes;
 	struct tcp_info subflow;
 };
 
@@ -173,6 +195,22 @@ struct mptcp_hw_ext_first_path {
 	char if_name[IFNAMSIZ];
 };
 
+struct mptcp_hw_ext_hag_gw_info {
+	uint32_t lte_ip;
+	uint32_t wifi_ip;
+	uint16_t port;
+	uint32_t tunnel_id;
+	uint32_t ue_ip;
+	uint8_t  udp_enable;
+};
+
+struct mptcp_hw_ext_hag_config {
+	uint32_t heartbeat_interval;
+	uint32_t heartbeat_count;
+	uint32_t heartbeat_period;
+	uint8_t  black_list_num;
+	uint32_t black_app_list[HAG_MAX_BLACK_APP_NUM];
+};
 
 struct mptcp_hw_ext_subflow_prio {
 	char if_name[IFNAMSIZ];
@@ -227,6 +265,8 @@ struct mptcp_hw_ext {
 		struct mptcp_hw_pid_fd pid_fd;
 		struct mptcp_hw_dip_dport dip_dport;
 		struct mptcp_hw_carrier_info carrier_info;
+		struct mptcp_hw_ext_hag_gw_info hag_gw_info;
+		struct mptcp_hw_ext_hag_config hag_config;
 	} conf;
 
 	union mptcp_hw_ext_value conf_value;
@@ -236,6 +276,7 @@ enum mptcp_hw_ext_sock_cap {
     MPTCP_CAP_UID = 1,
     MPTCP_CAP_UID_DIP_DPORT,
     MPTCP_CAP_PID_FD,
+    MPTCP_CAP_ALL_APP,
 };
 
 struct mptcp_hw_ext_sock {
@@ -253,6 +294,11 @@ struct mptcp_hw_ext_sock_path_switch {
     char dst_path[IFNAMSIZ];
     int32_t src_rtt;
     int32_t dst_rtt;
+};
+
+struct mptcp_hw_ext_proxy_fallback {
+    int32_t uid;
+    int32_t reason;
 };
 
 struct mptcp_loc4 {
@@ -344,7 +390,7 @@ struct mptcp_options_received {
 	u16	data_len;
 
 	u8	mptcp_ver; /* MPTCP version */
-
+	u8	proxy_status;
 	/* Key inside the option (from mp_capable or fast_close) */
 	u64	mptcp_sender_key;
 	u64	mptcp_receiver_key;
@@ -389,7 +435,7 @@ struct mptcp_tcp_sock {
 	u8	loc_id;
 	u8	rem_id;
 
-#define MPTCP_SCHED_SIZE 16
+#define MPTCP_SCHED_SIZE 32
 	u8	mptcp_sched[MPTCP_SCHED_SIZE] __aligned(8);
 
 	int	init_rcv_wnd;
@@ -451,6 +497,10 @@ struct mptcp_sched_ops {
 						int *reinject,
 						struct sock **subsk,
 						unsigned int *limit);
+	void				(*rcv_skb)(struct sock *sk,
+						unsigned int len,
+						unsigned int end_seq,
+						bool valid);
 	void			(*init)(struct sock *sk);
 	void			(*release)(struct sock *sk);
 
@@ -544,6 +594,7 @@ struct mptcp_cb {
 	u8 next_path_index;
 
 	__u8	mptcp_ver;
+	u8	socks_sate;/*for socks proxy*/
 
 	/* Original snd/rcvbuf of the initial subflow.
 	 * Used for the new subflows on the server-side to allow correct
@@ -634,6 +685,13 @@ struct mptcp_cb {
 #define MPTCP_SUB_LEN_FCLOSE	12
 #define MPTCP_SUB_LEN_FCLOSE_ALIGN	12
 
+/* option teid for MP-GW */
+#define MPTCP_SUB_TEID         11
+#define MPTCP_SUB_LEN_TEID     7
+#define MPTCP_SUB_LEN_TEID_ALIGN     8
+
+
+/* proxy for CDN WANGSU */
 #define PROXY_MPTCP_OP_LEN_OPT_SERVER_ADDR4 8
 
 
@@ -661,6 +719,8 @@ extern bool mptcp_init_failed;
 #define OPTION_REMOVE_ADDR	(1 << 9)
 #define OPTION_MP_PRIO		(1 << 10)
 #define OPTION_MP_OTHER_PRIO	(1 << 11)
+#define OPTION_MP_OPT_TEID	(1 << 12)
+
 
 
 /* MPTCP flags: both TX and RX */
@@ -863,6 +923,22 @@ struct mp_prio {
 #endif
 	__u8	addr_id;
 } __attribute__((__packed__));
+
+/* teid for MP-GW */
+struct mp_option_teid {
+	__u8	kind;
+	__u8	len;
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8	rsv:4,
+		sub:4;
+#elif defined(__BIG_ENDIAN_BITFIELD)
+	__u8	sub:4,
+		rsv:4;
+#else
+#error	"Adjust your <asm/byteorder.h> defines"
+#endif
+	__u32 teid;
+} __attribute__((packed));
 
 static inline int mptcp_sub_len_dss(const struct mp_dss *m, const int csum)
 {
@@ -1137,9 +1213,9 @@ struct sock *get_available_subflow(struct sock *meta_sk, struct sk_buff *skb,
 				   bool zero_wnd_test);
 int mptcp_get_raddr_carrier_info(int32_t uid, __be32 raddr);
 uint8_t mptcp_hw_get_carrier_info_of_iface(const char *iface_name);
-bool mptcp_hw_ext_reset_rules_by_sk_fallback(struct sock *sk);
 
 extern struct mptcp_sched_ops mptcp_sched_default;
+extern struct mptcp_sched_ops mptcp_sched_default_adv;
 
 /* KEY type */
 #define MPTCP_HW_CONF_KEY_UID                   (0x00000000)
@@ -1150,10 +1226,10 @@ extern struct mptcp_sched_ops mptcp_sched_default;
 #define MPTCP_HW_CONF_KEY_CARRIER_INFO_RESET    (0x00000005)
 #define MPTCP_HW_CONF_KEY_UID_SWITCH            (0x00000006)
 #define MPTCP_HW_CONF_KEY_UID_FIRST_PATH        (0x00000007)
+#define MPTCP_HW_CONF_KEY_HAG_ALL_APP           (0x00000008)
 
-
-
-#define mptcp_hw_ext_get_cmd_type(cmd_type) ((cmd_type) >> 24)
+#define MPTCP_HW_EXT_MAX_VALUE_TYPE 24
+#define mptcp_hw_ext_get_cmd_type(cmd_type) ((cmd_type) >> MPTCP_HW_EXT_MAX_VALUE_TYPE)
 
 /* VALUE Type */
 #define MPTCP_HW_CONF_VALUE_MPTCP               (1 << 0)
@@ -1187,6 +1263,7 @@ void mptcp_init_sub_sock(struct sock *sk, bool master_sk);
 char *anonymousIPv4addr(__be32 ip, char *buf, size_t size);
 
 #define mptcp_is_primary_subflow(sk) (tcp_sk(sk)->mptcp_sched_prim_intf)
+int mptcp_proxy_fallback(struct sock *sk, int reason, bool is_add);
 
 static inline int mptcp_pi_to_flag(int pi)
 {
@@ -1597,12 +1674,16 @@ static inline bool mptcp_can_new_subflow(const struct sock *meta_sk)
 }
 
 /* MPTCP proxy functions */
-void mptcp_proxy_syn_options(const struct sock *sk, struct tcp_out_options *opts,
+void mptcp_hw_add_syn_options(const struct sock *sk, struct tcp_out_options *opts,
                        unsigned int *remaining);
-void mptcp_proxy_options_write(__be32 *ptr, struct tcp_sock *tp,
+void mptcp_hw_add_options_write(__be32 *ptr, struct tcp_sock *tp,
                          const struct tcp_out_options *opts,
                          struct sk_buff *skb);
-void mptcp_proxy_rewrite_dst_addr(struct sock *sk, struct sockaddr *uaddr);
+void mptcp_hw_add_rewrite_dst_addr(struct sock *sk, struct sockaddr *uaddr);
+
+/* EPC MPTCP proxy functions */
+void mptcp_hw_socks4_send(struct sock *sk);
+int mptcp_hw_socks_recv(struct sock *sk, struct sk_buff *skb);
 
 
 /* TCP and MPTCP mpc flag-depending functions */

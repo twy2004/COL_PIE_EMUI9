@@ -82,7 +82,8 @@ extern unsigned long memory_end;
 #define virt_to_page(addr)	pfn_to_page(virt_to_pfn(addr))
 
 #if defined(CONFIG_HISI_LB_DEBUG)
-#include <linux/hisi/hisi_lb_debug.h>
+extern void __lb_assert_page(struct page *pg);
+#define lb_assert_page  __lb_assert_page
 #endif
 
 #if defined(CONFIG_HISI_LB_DEBUG)

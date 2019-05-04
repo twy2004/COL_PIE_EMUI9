@@ -30,6 +30,9 @@
 typedef enum {
 	SLIMBUS_DEVICE_HI6402 = 0,
 	SLIMBUS_DEVICE_HI6403,
+#ifdef CONFIG_SND_SOC_HI6405
+	SLIMBUS_DEVICE_HI6405,
+#endif
 	SLIMBUS_DEVICE_NUM,
 
 } slimbus_device_type_t;

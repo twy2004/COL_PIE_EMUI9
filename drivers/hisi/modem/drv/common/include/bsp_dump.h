@@ -56,7 +56,7 @@ extern "C" {
 #include "osl_spinlock.h"
 #include "osl_common.h"
 #include "osl_list.h"
-#if defined(__KERNEL__) || defined(__VXWORKS__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#if defined(__KERNEL__) || defined(__VXWORKS__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "mdrv_om.h"
 #else
 #include "mdrv_om_common.h"
@@ -64,7 +64,7 @@ extern "C" {
 #include "drv_comm.h"
 #include "bsp_trace.h"
 #include "bsp_om.h"
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_task.h"
 #include "sre_exc.h"
 #endif
@@ -80,9 +80,9 @@ extern "C" {
 /*****************************************************************************
   1 宏定义
 *****************************************************************************/
-#define RDR_MODEM_NR_MOD_ID_START          0xb0000000
-#define RDR_MODEM_NR_MOD_ID_END            0xbfffffff
+
 #define OM_SYSCTRL_MAGIC        (0x5B5C5C5B)
+
 
 /* dump侵入内核修改 begin */
 #ifdef __KERNEL__
@@ -106,16 +106,20 @@ extern "C" {
 #define DUMP_TASK_INFO_STACK_SIZE           (DUMP_TASK_INFO_SIZE - 32*4)
 
 
+#define MODEM_DUMP_FILE_NAME_LENGTH         (128)
 
-#define DUMP_FIELD_CPUINFO_SIZE             1024
-#define TASK_NAME_LEN                       16
-#define ARM_REGS_NUM                        17
-#define DUMP_REG_SET_MAX                    0x1000
+#define DUMP_FIELD_CPUINFO_SIZE             (1024)
+#define TASK_NAME_LEN                       (16)
+#define ARM_REGS_NUM                        (17)
+#define DUMP_REG_SET_MAX                    (0x1000)
 
 /*****************************************************************************
   2 枚举定义
 *****************************************************************************/
 #define NVID_DUMP   (NV_ID_DRV_DUMP)
+
+#define EICC_PACKET_SIZE (0x20)
+
 
 
 typedef enum
@@ -164,14 +168,16 @@ typedef enum
 
 typedef enum _dump_reboot_cpu_e
 {
-    DUMP_CPU_APP     = 0x01000000,
-    DUMP_CPU_COMM    = 0x02000000,
-    DUMP_CPU_BBE     = 0x03000000,
-    DUMP_CPU_LPM3    = 0x04000000,
-    DUMP_CPU_IOM3    = 0x05000000,
-    DUMP_CPU_HIFI    = 0x06000000,
-    DUMP_CPU_TEEOS   = 0x07000000,
-    DUMP_CPU_BUTTON  = 0x08000000
+    DUMP_CPU_APP       = 0x01000000,
+    DUMP_CPU_LRCCPU    = 0x02000000,
+    DUMP_CPU_BBE       = 0x03000000,
+    DUMP_CPU_LPM3      = 0x04000000,
+    DUMP_CPU_IOM3      = 0x05000000,
+    DUMP_CPU_HIFI      = 0x06000000,
+    DUMP_CPU_NRCCPU    = 0x07000000,
+    DUMP_CPU_NRL2HAC   = 0x08000000,
+    DUMP_CPU_NRLL1C    = 0x09000000,
+    DUMP_CPU_BUTTON    = 0x0a000000
 
 }dump_reboot_cpu_t;
 
@@ -189,6 +195,7 @@ typedef enum _dump_reboot_reason_e
     DUMP_REASON_RST_NOT_SUPPORT  = 0x9,
     DUMP_REASON_DLOCK            = 0x10,
     DUMP_REASON_RST_FREQ         = 0x11,
+    DUMP_REASON_PDLOCK           = 0x12,
     DUMP_REASON_UNDEF            = 0xff
 }dump_reboot_reason_t;
 
@@ -218,7 +225,23 @@ typedef struct _dump_load_info_s
     u32 lpm3_tcm1;      /* LPM3 TCM1加载地址 */
     u32 mdm_ddr_saveoff;    /* MODEM DDR保存bin时的偏移(去掉text段)*/
     u32 mdm_share_ddr_size;    /* MODEM DDR保存bin时的偏移(去掉text段)*/
+
+    u32 nrccpu_ddr;        /* NRCCPU使用的DDR空间 */
+    u32 nr_share;          /* NR使用的共享内存空间 */
+    u32 nrccpu_llram;      /* nrccpu的llram空间 */
+    u32 nrl2hac_llram;      /* nrl2hac的llram空间 */
+    u32 nrl2hac_ddr;      /* nrl2hac的ddr空间 */
+    u32 reversed;      /* 字节对齐填充 */
 }dump_load_info_t;
+/*地址随机化需要将偏移offset记录到dump空间尾部*/
+typedef struct
+{
+    u32 start_magic;              /*0x5a5a5a5a*/
+    /*添加aslr需要按照逆序添加*/
+    u32 acpu_aslr_offset;
+    u32 ccpu_aslr_offset;
+    u32 end_magic;                /*0xa5a5a5a5*/
+}dump_aslr_info_t;
 
 /*RTOSck里任务结构体*/
 typedef struct tagListObject
@@ -246,10 +269,6 @@ typedef struct tagPublicTskCB
     VOID               *pTaskSem;                   // 任务Pend的信号量指针
     INT32               swFsemCount;                // 快速信号量计数
     UINT32              auwArgs[4];                 // 任务的参数
-#if (OS_HAVE_COPROCESSOR1 == YES)                   // 只有Tensilica平台才有该功能
-    VOID               *pCpSaveAreaA;               // 矢量寄存器缓存地址A
-    VOID               *pCpSaveAreaB;               // 矢量寄存器缓存地址B
-#endif
     TSK_PRIOR_T         usOrigPriority;             // 任务的原始优先级
     UINT16              usStackCfgFlg;              // 任务栈配置标记
     UINT16              usQNum;                     // 消息队列数
@@ -265,7 +284,7 @@ typedef struct tagPublicTskCB
     UINT32              uwLastErr;                  // 任务记录的最后一个错误码
     UINT32              uwReserved;                 // 增加一个PAD，保证TCB 8字节对齐
 } TSK_CB_S;
-#elif  defined(__OS_RTOSCK_SMP__)
+#elif  defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 typedef struct tagPushablTskList
 {
     UINT32 uwPrio;
@@ -367,6 +386,7 @@ typedef struct dump_baseinfo_head
     u8  compile_time[32];   /*0xB0 */
     u32 reboot_reason;      /*m3专用*/
 
+
 }dump_base_info_t;
 
 typedef struct
@@ -418,8 +438,6 @@ typedef struct
     u32 regSet[ARM_REGS_NUM];           /*寄存器信息*/
     u8  callstack[DUMP_FIELD_CPUINFO_SIZE - sizeof(dump_reboot_ctx_t) - sizeof(u32)- sizeof(u32)- TASK_NAME_LEN - sizeof(u32) * ARM_REGS_NUM];
 }dump_cpu_info_t;
-
-
 
 #define DUMP_QUEUE_MAGIC_NUM        (0xabcd6789)
 typedef struct
@@ -476,15 +494,14 @@ typedef enum
     DUMP_NR_SYS = 1,
 }DUMP_SYS;
 
-
 typedef enum
 {
     DUMP_SEC_MDM_DDR    = 0,
     DUMP_SEC_SEC_SHARED = 1,
     DUMP_SEC_LPHY_DUMP  = 2,
+    DUMP_SEC_NRPHY_DUMP = 3,
     DUMP_SEC_FILE_BUTT,
 }DUMP_SEC_FILE_ENUM;
-
 #define SUB_SYS_LR 0x01
 #define SUB_SYS_NR 0x10
 typedef void (*log_save_fun)(char* path);
@@ -502,6 +519,47 @@ typedef struct
     struct list_head           log_list;
 }dump_log_ctrl_s;
 
+
+typedef struct
+{
+    u32                    core;
+    u32                    mod_id;
+    u32                    rdr_mod_id;
+    u32                    arg1;
+    u32                    arg2;
+    char*                  data;
+    u32                    length;
+    u32                    voice;
+    u32                    int_no;
+    u32                    task_id;
+    dump_reboot_ctx_t      reboot_contex;
+    u32                    timestamp;
+    u32                    reason;
+    u8                     task_name[16];
+    u8                     exc_desc[48];
+    struct list_head       exception_list;
+
+}dump_exception_info_s;
+
+typedef enum
+{
+    STATE_IDLE,
+    STATE_BUSY,
+}DUMP_STATE;
+
+#if defined(__KERNEL__)
+typedef struct
+{
+    spinlock_t                 lock;
+    u32                        init_flag;
+    struct list_head           exception_list;
+    uintptr_t                  exception_task_id;
+    struct semaphore           sem_exception_task;
+    struct semaphore           sem_wait;
+}dump_exception_ctrl_s;
+#endif
+
+
 struct dump_ddr_trans_head_info
 {
     unsigned int magic;                 /*magic num  0x5678fedc */
@@ -512,7 +570,23 @@ struct dump_ddr_trans_head_info
     unsigned int resv;
 };
 
-#ifndef __OS_NRCCPU__
+typedef struct
+{
+    u32 mod_id;
+    u32 core;
+}NR_EXC_INFO;
+
+#define NR_EXCEPTION        (0xaa)
+#define MDMAP_EXCEPTION     (0xbb)
+#define L2HAC_EXCEPTION     (0xcc)
+#define NRRDR_EXCEPTION     (0xdd)
+
+typedef struct sub_sys
+{
+    unsigned int sysid;
+    char desc[32];
+}NR_EXCPITON_SUB_SYS;
+
 
 /*****************************************************************************
   3 函数声明
@@ -545,7 +619,7 @@ int bsp_dump_sec_file_trans(DUMP_SEC_FILE_ENUM dumpfile,void* addr,unsigned int 
 
 dump_product_type_t dump_get_product_type(void);
 
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 void bsp_dump_save_regs(void* reg_addr,u32 reg_size);
 BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo);
 #endif
@@ -554,10 +628,6 @@ s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* na
 void bsp_dump_log_notifer_callback(u32 modem_type,char* path);
 s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
 
-#ifndef  __CMSIS_RTOS
-void bsp_dump_get_avaiable_size(u32* size);
-#endif
-
 #endif
 #else
 
@@ -612,8 +682,6 @@ static void inline bsp_om_save_reboot_log(const char * func_name,  const void* c
     return;
 }
 
-
-
 static s32 inline dump_exc_register(exc_hook func)
 {
     return 0;
@@ -627,11 +695,7 @@ static inline void  bsp_dump_save_regs(void* reg_addr,u32 reg_size)
 {
     return;
 }
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
-static inline void bsp_dump_save_regs(void* reg_addr,u32 reg_size)
-{
-    return;
-}
+#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 static inline BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo)
 {
@@ -652,128 +716,14 @@ static inline void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
 {
     return;
 }
-static inline s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
+static inline s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun)
 {
     return 0;
 }
 #endif
 
-#ifndef __CMSIS_RTOS
-static inline void bsp_dump_get_avaiable_size(u32* size)
-{
-    if(size != NULL)
-    {
-        size = 0;
-    }
-}
 #endif
 
-
-#endif
-#else
-static void inline system_error (u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length)
-{
-    return ;
-}
-static s32 inline bsp_dump_init(void)
-{
-    return 0;
-}
-
-static dump_handle inline bsp_dump_register_hook(char * name, dump_hook func)
-{
-    return 0;
-}
-
-static s32 inline bsp_dump_unregister_hook(dump_handle handle)
-{
-    return 0;
-}
-
-static inline u8 * bsp_dump_register_field(u32 mod_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id)
-{
-    return BSP_NULL;
-}
-
-static inline u8 * bsp_dump_get_field_addr(u32 field_id)
-{
-    return 0;
-}
-
-static inline u8 * bsp_dump_get_field_phy_addr(u32 field_id)
-{
-    return 0;
-}
-
-
-
-static void inline bsp_dump_trace_stop(void)
-{
-    return;
-}
-
-static int inline bsp_dump_save_all_task_name(void)
-{
-    return 0;
-}
-
-static void inline bsp_om_save_reboot_log(const char * func_name,  const void* caller)
-{
-    return;
-}
-
-
-
-static s32 inline dump_exc_register(exc_hook func)
-{
-    return 0;
-}
-static void inline bsp_ccore_wdt_register_hook(void)
-{
-    return;
-}
-
-static inline void  bsp_dump_save_regs(void* reg_addr,u32 reg_size)
-{
-    return;
-}
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
-static inline BOOL bsp_rtosck_exc_hook(EXC_INFO_S *pstExcInfo)
-{
-    return true;
-}
-#endif
-static inline s32 bsp_dump_mark_voice(u32 flag)
-{
-    return 0;
-}
-#if defined(__KERNEL__)
-static inline s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name)
-{
-    return 0;
-}
-static inline void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
-{
-    return;
-}
-static inline s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun);
-{
-    return 0;
-}
-
-#endif
-
-#ifndef __CMSIS_RTOS
-static inline void bsp_dump_get_avaiable_size(u32* size)
-{
-    if(size != NULL)
-    {
-        size = 0;
-    }
-}
-#endif
-
-#endif
 
 /*****************************************************************************
   4 错误码声明

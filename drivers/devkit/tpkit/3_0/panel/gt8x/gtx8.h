@@ -71,6 +71,8 @@
 #define GTX8_MAX_PEN_PRESSURE			4096
 #define GTP_MAX_TOUCH   			TS_MAX_FINGER
 #define BYTES_PER_COORD 			8
+#define TOUCH_DATA_LEN_4 			4
+#define DMNNY_BYTE_LEN_2 			2
 #define GTX8_EDGE_DATA_SIZE			20
 
 #define GTX8_RESET_SLEEP_TIME			80

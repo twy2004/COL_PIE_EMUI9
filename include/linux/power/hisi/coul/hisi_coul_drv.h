@@ -132,6 +132,7 @@ struct hisi_coul_ops {
     int (*battery_unfiltered_capacity)(void);
     int (*battery_capacity)(void);
     int (*battery_temperature)(void);
+    int (*chip_temperature)(void);
 	int (*battery_temperature_for_charger)(void);
     int (*battery_rm)(void);
     int (*battery_fcc)(void);
@@ -220,6 +221,7 @@ extern int hisi_coul_convert_regval2temp(unsigned int reg_val);
 extern int hisi_coul_convert_mv2regval(int vol_mv);
 extern int hisi_coul_cal_uah_by_ocv(int ocv_uv, int *ocv_soc_uAh);
 extern int hisi_coul_convert_temp_to_adc(int temp);
+extern int hisi_coul_chip_temperature(void);
 extern int hisi_battery_cc_uah(void);
 extern int hisi_battery_removed_before_boot(void);
 extern int hisi_battery_get_qmax(void);

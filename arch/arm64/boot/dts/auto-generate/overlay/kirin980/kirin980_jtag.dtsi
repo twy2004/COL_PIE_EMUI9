@@ -14,11 +14,12 @@
         sdio-ldo = <&ldo9>;
         reg = <0x0 0xFFF0A854 0x0 0x1000>;
         value = <0x90000001>;
+        sim2jtag_value = <0x40000001>;
         mask = <0x9E0000FF>;
         sdcard_io_sel_reg = <0x0 0xFFF0A31c 0x0 0x1000>;
         sdcard_io_sel_value = <0x00400040>;
+        simcard_io_sel_value = <0x00300030>;
         sdcard_io_sel_mask = <0x00000000>;
-        sel0_pd_gpio = <0xAB>;
         testmode_pd_gpio = <0x1>;
     };
 
@@ -26,11 +27,12 @@
         compatible = "hisilicon,djtagtosd";
         reg = <0x0 0xFFF0A854 0x0 0x1000>;
         value = <0x90000002>;
+        sim2jtag_value = <0x40000002>;
         mask = <0x9E0000FF>;
         sdcard_io_sel_reg = <0x0 0xFFF0A31c 0x0 0x1000>;
         sdcard_io_sel_value = <0x00400040>;
+        simcard_io_sel_value = <0x00300030>;
         sdcard_io_sel_mask = <0x00000000>;
-        sel0_pd_gpio = <0xAB>;
         testmode_pd_gpio = <0x1>;
     };
 
@@ -38,11 +40,12 @@
         compatible = "hisilicon,uart6tosd";
         reg = <0x0 0xFFF0A854 0x0 0x1000>;
         value = <0x90000032>;
+        sim2jtag_value = <0x40000032>;
         mask = <0x9E0000FF>;
         sdcard_io_sel_reg = <0x0 0xFFF0A31c 0x0 0x1000>;
         sdcard_io_sel_value = <0x00400040>;
+        simcard_io_sel_value = <0x00300030>;
         sdcard_io_sel_mask = <0x00000000>;
-        sel0_pd_gpio = <0xAB>;
         testmode_pd_gpio = <0x1>;
     };
   };

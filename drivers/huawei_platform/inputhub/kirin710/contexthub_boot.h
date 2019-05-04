@@ -41,6 +41,7 @@
 #define TM_TPLCD (12)
 #define AUO_TPLCD (13)
 #define TCL_TPLCD 14
+#define CMI_TPLCD (15)
 
 #define DTS_COMP_LG_ER69006A "hisilicon,mipi_lg_eR69006A"
 #define DTS_COMP_JDI_NT35695_CUT3_1 "hisilicon,mipi_jdi_NT35695_cut3_1"
@@ -79,6 +80,14 @@
 #define DTS_COMP_INX_NT36682A "inx_nt36682a_6p59_1080p_video"
 #define DTS_COMP_TCL_NT36682A "tcl_nt36682a_6p59_1080p_video"
 #define DTS_COMP_TM_NT36682A "tm_nt36682a_6p59_1080p_video"
+
+#define DTS_COMP_CMI_NT36682A "cmi_nt36682a_6p15_1080p_video"
+#define DTS_COMP_JDI_TD4320 "jdi_td4320_6p15_1080p_video"
+#define DTS_COMP_BOE_TD4320 "boe_td4320_6p15_1080p_video"
+#define DTS_COMP_BOE_NT36682A "boe_nt36682a_6p15_1080p_video"
+#define DTS_COMP_TM_TD4320 "tm_td4320_6p15_1080p_video"
+#define DTS_COMP_TM_TD4330 "tm_td4330_6p15_1080p_video"
+
 
 enum SENSOR_POWER_CHECK {
 	SENSOR_POWER_STATE_OK = 0,

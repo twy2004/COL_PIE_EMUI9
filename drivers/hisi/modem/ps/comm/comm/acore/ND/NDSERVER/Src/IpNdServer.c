@@ -53,8 +53,11 @@
 #include "IpNdServer.h"
 #include "AdsNdisInterface.h"
 
+#include "ads_dev_i.h"
 #include "AdsDeviceInterface.h"
-
+#include "mdrv.h"
+#include "ps_tag.h"
+#define THIS_MODU ps_nd
 /*lint -e767*/
 #define    THIS_FILE_ID        PS_FILE_ID_IPNDSERVER_C
 /*lint +e767*/
@@ -135,10 +138,6 @@ VOS_VOID IP_NDSERVER_SaveTeDetectIp( const VOS_UINT8* pucTeGlobalAddr )
 
     if(g_astNdServerTeDetectBuf.ulHead == TTF_MOD_ADD(g_astNdServerTeDetectBuf.ulTail, 1, g_astNdServerTeDetectBuf.ulMaxNum))
     {
-        /*IP_LOG1_WARN("IP_NDSERVER_SaveTeDetectIp: OverWrite TeAddr!", g_astNdServerTeDetectBuf.astTeIpBuf[g_astNdServerTeDetectBuf.ulHead].ulValid);
- */
-        /*IP_PrintArray(IP_GET_IP_PRINT_BUF(), g_astNdServerTeDetectBuf.astTeIpBuf[g_astNdServerTeDetectBuf.ulHead].aucTeGlobalAddr, IP_IPV6_ADDR_LEN);
- */
         /* BUF满时覆盖最老的地址 */
         g_astNdServerTeDetectBuf.ulHead = TTF_MOD_ADD(g_astNdServerTeDetectBuf.ulHead, 1, g_astNdServerTeDetectBuf.ulMaxNum);
     }
@@ -543,7 +542,7 @@ VOS_VOID IP_NDSERVER_Init( VOS_VOID )
         ulRtn = LUP_CreateQue(NDIS_NDSERVER_PID, &(IP_NDSERVER_ADDRINFO_GET_DLPKTQUE(ulIndex)), ND_IPV6_WAIT_ADDR_RSLT_Q_LEN);
         if (PS_SUCC != ulRtn)
         {
-            vos_printf("IP_NDSERVER_Init, LUP_CreateQue DlPktQue fail.\n");
+            PS_PRINTF_ERR("IP_NDSERVER_Init, LUP_CreateQue DlPktQue fail.\n");
             return;
         }
     }
@@ -1952,8 +1951,6 @@ VOS_VOID IP_NDSERVER_RcvTeDetectionAddr
     }
 
     IPND_WARNING_LOG1(NDIS_NDSERVER_PID, "IP_NDSERVER_RcvTeDetectionAddr: Old Te Addr:", pstTeInfo->enTeAddrState);
-    /*IP_PrintArray(IP_GET_IP_PRINT_BUF(), pstTeInfo->aucTeGlobalAddr, IP_IPV6_ADDR_LEN);
- */
     IP_MEM_CPY_S( pstTeInfo->aucTeGlobalAddr,
                 IP_IPV6_ADDR_LEN,
                 aucIPAddr,
@@ -1961,8 +1958,6 @@ VOS_VOID IP_NDSERVER_RcvTeDetectionAddr
     pstTeInfo->enTeAddrState = IP_NDSERVER_TE_ADDR_INCOMPLETE;
 
     IPND_WARNING_LOG1(NDIS_NDSERVER_PID, "IP_NDSERVER_RcvTeDetectionAddr: New Te Addr:", pstTeInfo->enTeAddrState);
-    /*IP_PrintArray(IP_GET_IP_PRINT_BUF(), pstTeInfo->aucTeGlobalAddr, IP_IPV6_ADDR_LEN);
- */
 
     return;
 }
@@ -2240,8 +2235,6 @@ VOS_VOID IP_NDSERVER_UpdateTeAddrInfo
     pstTeInfo = IP_NDSERVER_ADDRINFO_GET_TEINFO(ulIndex);
 
     IPND_WARNING_LOG1(NDIS_NDSERVER_PID, "IP_NDSERVER_UpdateTeAddrInfo: Old Te Addr:", pstTeInfo->enTeAddrState);
-    /*IP_PrintArray(IP_GET_IP_PRINT_BUF(), pstTeInfo->aucTeGlobalAddr, IP_IPV6_ADDR_LEN);
- */
     IP_MEM_CPY_S( pstTeInfo->aucTeGlobalAddr,
                 IP_IPV6_ADDR_LEN,
                 aucGlobalIPAddr,
@@ -2277,9 +2270,6 @@ VOS_VOID IP_NDSERVER_UpdateTeAddrInfo
     pstTeInfo->enTeAddrState = IP_NDSERVER_TE_ADDR_REACHABLE;
 
     IPND_WARNING_LOG1(NDIS_NDSERVER_PID, "IP_NDSERVER_UpdateTeAddrInfo: New Te Addr:", pstTeInfo->enTeAddrState);
-    /*IP_PrintArray(IP_GET_IP_PRINT_BUF(), pstTeInfo->aucTeGlobalAddr, IP_IPV6_ADDR_LEN);
- */
-
     /*发送下行IP缓存队列中的数据包*/
     IP_NDSERVER_SendDlPkt(ulIndex);
 
@@ -2350,12 +2340,6 @@ VOS_VOID IP_NDSERVER_NaMsgProc
                                         pstNdMsgData->uNdMsgStru.stNa.aucTargetAddr,
                                         pstNdMsgData->uNdMsgStru.stNa.aucTargetLinkLayerAddr,
                                         pstNdMsgData->aucSrcIp);
-
-        /*MAC地址直接从ND SERVER实体里获得，不需要再配置APR模块*/
-        /*IP_NDSERVER_ConfigArpInfo(  ulIndex,
-                                    pstNdMsgData->uNdMsgStru.stNa.aucTargetAddr,
-                                    pstNdMsgData->uNdMsgStru.stNa.aucTargetLinkLayerAddr);*/
-
     }
 
     IP_NDSERVER_TimerStart(ulIndex, IP_ND_SERVER_TIMER_PERIODIC_NS);
@@ -2745,8 +2729,6 @@ VOS_UINT32  IP_NDSERVER_SendDhcp6Reply
 
     if ( usReqIp6PktLen <= ((IP_IPV6_HEAD_LEN + IP_UDP_HEAD_LEN) + IP_UDP_DHCP_HDR_SIZE))
     {
-        /*PS_LOG(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_WARNING,
-             "NDIS, TTF_NDIS_Ipv6RouterLanEthOutputDhcp6Reply, ERROR, No Option Len!");*/
         IPND_ERROR_LOG(NDIS_NDSERVER_PID, "IP_NDSERVER_SendDhcp6Reply, No Option Len!");
         return PS_FAIL;
     }
@@ -2795,8 +2777,6 @@ VOS_UINT32  IP_NDSERVER_SendDhcp6Reply
                 usDnsOptLen     = pstDnsSer->ucDnsSerNum;
                 if ( (0 == usDnsOptLen) || (IP_IPV6_MAX_DNS_NUM < usDnsOptLen) )
                 {
-                    /*PS_LOG(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_WARNING,
-                         "NDIS, TTF_NDIS_Ipv6RouterLanEthOutputDhcp6Reply, ERROR, DNS Option is err!");*/
                     IPND_ERROR_LOG(NDIS_NDSERVER_PID, "IP_NDSERVER_SendDhcp6Reply, DNS Option is err!");
                     return PS_FAIL;
                 }
@@ -2810,8 +2790,6 @@ VOS_UINT32  IP_NDSERVER_SendDhcp6Reply
 
     if ( usReplyUdpDataLen <= (IP_UDP_HEAD_LEN + IP_UDP_DHCP_HDR_SIZE + IP_IPV6_DHCP_OPT_CLIENT_ID_LEN))
     {
-        /*PS_LOG(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_ERROR,
-             "NDIS, TTF_NDIS_Ipv6RouterLanEthOutputDhcp6Reply, No content need to reply!");*/
         IPND_ERROR_LOG(NDIS_NDSERVER_PID, "IP_NDSERVER_SendDhcp6Reply, No content need to reply!");
         return PS_SUCC;
     }
@@ -3006,9 +2984,6 @@ VOS_VOID NdSer_DhcpV6PktProc(VOS_VOID *pRcvMsg)
 
     if ( (IP_IPV6_DHCP6_PC_PORT != VOS_NTOHS(usSrcPort)) || (IP_IPV6_DHCP6_UE_PORT != VOS_NTOHS(usDstPort)) )
     {
-        /*PS_LOG2(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_WARNING,
-            "NdSer_DhcpV6PktProc, WARNING, usSrcPort<1>, usDstPort<2> is err.",
-            usSrcPort, usDstPort);*/
         IP_NDSERVER_AddErrDhcpv6PktNum(ulIndex);
         IPND_WARNING_LOG2(NDIS_NDSERVER_PID, "NdSer_DhcpV6PktProc, usSrcPort, usDstPort is err!", usSrcPort, usDstPort);
         return;
@@ -3017,9 +2992,6 @@ VOS_VOID NdSer_DhcpV6PktProc(VOS_VOID *pRcvMsg)
     ucMsgType   = *(pucUdpData + IP_UDP_HEAD_LEN);
     if ( IP_IPV6_DHCP6_INFOR_REQ != ucMsgType )
     {
-        /*PS_LOG1(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_INFO,
-            "NdSer_DhcpV6PktProc, WARNING, ucMsgType<1> is err.",
-            ucMsgType);*/
         IP_NDSERVER_AddErrDhcpv6PktNum(ulIndex);
         IPND_WARNING_LOG1(NDIS_NDSERVER_PID, "NdSer_DhcpV6PktProc, ucMsgType is err!", ucMsgType);
         return;
@@ -3030,8 +3002,6 @@ VOS_VOID NdSer_DhcpV6PktProc(VOS_VOID *pRcvMsg)
     /* Nd Server没有DNS情况下收到Dhcpv6 information request,丢弃该报文 */
     if ( 0 == pstDnsSer->ucDnsSerNum )
     {
-        /*PS_LOG(WUEPS_PID_NDIS, PS_SUBMOD_NULL, PS_PRINT_INFO,
-            "NDIS, TTF_NDIS_Ipv6RouterLanEthInputDhcp6InfoReq, WARNING, No DNS information exists");*/
         IPND_WARNING_LOG(NDIS_NDSERVER_PID, "NdSer_DhcpV6PktProc, No DNS information exists");
         return;
     }
@@ -3344,7 +3314,7 @@ VOS_VOID APP_NdServer_PidMsgProc(const MsgBlock *pRcvMsg)
 {
     if (VOS_NULL_PTR == pRcvMsg)
     {
-        vos_printf("Error:APP_Ndis_DLPidMsgProc Parameter pRcvMsg is NULL!");
+        PS_PRINTF_INFO("Error:APP_Ndis_DLPidMsgProc Parameter pRcvMsg is NULL!");
         return ;
     }
     switch (pRcvMsg->ulSenderPid)
@@ -3362,13 +3332,13 @@ VOS_VOID APP_NdServer_PidMsgProc(const MsgBlock *pRcvMsg)
 
 VOS_VOID  IP_NDSERVER_CmdHelp( VOS_VOID )
 {
-    vos_printf("\r\n");
-    vos_printf("********************** IP NDSERVER 软调命令列表 *********************\r\n");
-    vos_printf("%-30s : %s\r\n","IP_NDSERVER_ShowLocalNwParamInfo","显示本地保存的网络参数信息");
-    vos_printf("%-30s : %s\r\n","IP_NDSERVER_ShowAddrInfo(index)","显示某实体地址参数信息(0)");
-    vos_printf("%-30s : %s\r\n","IP_NDSERVER_ShowStatInfo(index)","显示某实体报文统计信息(0)");
-    vos_printf("*******************************************************************\r\n");
-    vos_printf("\r\n");
+    PS_PRINTF_ERR("\r\n");
+    PS_PRINTF_ERR("********************** IP NDSERVER 软调命令列表 *********************\r\n");
+    PS_PRINTF_ERR("%-30s : %s\r\n","IP_NDSERVER_ShowLocalNwParamInfo","显示本地保存的网络参数信息");
+    PS_PRINTF_ERR("%-30s : %s\r\n","IP_NDSERVER_ShowAddrInfo(index)","显示某实体地址参数信息(0)");
+    PS_PRINTF_ERR("%-30s : %s\r\n","IP_NDSERVER_ShowStatInfo(index)","显示某实体报文统计信息(0)");
+    PS_PRINTF_ERR("*******************************************************************\r\n");
+    PS_PRINTF_ERR("\r\n");
 
     return;
 }
@@ -3376,18 +3346,18 @@ VOS_VOID  IP_NDSERVER_CmdHelp( VOS_VOID )
 
 VOS_VOID  IP_NDSERVER_ShowLocalNwParamInfo( VOS_VOID )
 {
-    vos_printf("************************本地保存的网络参数信息***********************\r\n");
-    vos_printf("管理地址配置标识: %d\r\n",g_ucMFlag);
-    vos_printf("其他有状态配置标识: %d\r\n",g_ucOFlag);
-    vos_printf("路由器生存期(秒): %d\r\n",g_usRouterLifetime);
-    vos_printf("可达时间(毫秒): %d\r\n",g_ulReachableTime);
-    vos_printf("重发定时器(毫秒): %d\r\n",g_ulRetransTimer);
-    vos_printf("邻居请求定时器时长(毫秒): %d\r\n",g_ulNsTimerLen);
-    vos_printf("邻居请求最大超时次数: %d\r\n",g_ulNsTimerMaxExpNum);
-    vos_printf("周期性邻居请求定时器时长(毫秒): %d\r\n",g_ulPeriodicNsTimerLen);
-    vos_printf("周期性路由公告定时器时长(毫秒): %d\r\n",g_ulPeriodicRaTimerLen);
-    vos_printf("收到重复地址检测后等待的定时器时长(毫秒): %d\r\n",g_ulFirstNsTimerLen);
-    vos_printf("收到重复地址检测前路由公告定时器时长(毫秒): %d\r\n",g_ulRaTimerLen);
+    PS_PRINTF_ERR("************************本地保存的网络参数信息***********************\r\n");
+    PS_PRINTF_ERR("管理地址配置标识: %d\r\n",g_ucMFlag);
+    PS_PRINTF_ERR("其他有状态配置标识: %d\r\n",g_ucOFlag);
+    PS_PRINTF_ERR("路由器生存期(秒): %d\r\n",g_usRouterLifetime);
+    PS_PRINTF_ERR("可达时间(毫秒): %d\r\n",g_ulReachableTime);
+    PS_PRINTF_ERR("重发定时器(毫秒): %d\r\n",g_ulRetransTimer);
+    PS_PRINTF_ERR("邻居请求定时器时长(毫秒): %d\r\n",g_ulNsTimerLen);
+    PS_PRINTF_ERR("邻居请求最大超时次数: %d\r\n",g_ulNsTimerMaxExpNum);
+    PS_PRINTF_ERR("周期性邻居请求定时器时长(毫秒): %d\r\n",g_ulPeriodicNsTimerLen);
+    PS_PRINTF_ERR("周期性路由公告定时器时长(毫秒): %d\r\n",g_ulPeriodicRaTimerLen);
+    PS_PRINTF_ERR("收到重复地址检测后等待的定时器时长(毫秒): %d\r\n",g_ulFirstNsTimerLen);
+    PS_PRINTF_ERR("收到重复地址检测前路由公告定时器时长(毫秒): %d\r\n",g_ulRaTimerLen);
 
     return;
 }
@@ -3402,20 +3372,20 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
     if (ulIndex >= IP_NDSERVER_ADDRINFO_MAX_NUM)
     {
         ulTmp = IP_NDSERVER_ADDRINFO_MAX_NUM;
-        vos_printf("IP_NDSERVER_ShowAddrInfo:输入参数的范围:0-%d\r\n", ulTmp-1);
+        PS_PRINTF_ERR("IP_NDSERVER_ShowAddrInfo:输入参数的范围:0-%d\r\n", ulTmp-1);
         return ;
     }
 
     pstInfoAddr = IP_NDSERVER_ADDRINFO_GET_ADDR(ulIndex);
 
-    vos_printf("**************************ND SERVER实体信息(%d)*************************\r\n", ulIndex);
-    vos_printf("有效标志: %d\r\n",pstInfoAddr->ucValidFlag);
-    vos_printf("承载号: %d\r\n",pstInfoAddr->ucEpsbId);
+    PS_PRINTF_ERR("**************************ND SERVER实体信息(%d)*************************\r\n", ulIndex);
+    PS_PRINTF_ERR("有效标志: %d\r\n",pstInfoAddr->ucValidFlag);
+    PS_PRINTF_ERR("承载号: %d\r\n",pstInfoAddr->ucEpsbId);
 
-    vos_printf("************网络配置参数************\r\n");
-    vos_printf("MTU: %d\r\n",pstInfoAddr->stIpv6NwPara.ulBitOpMtu?pstInfoAddr->stIpv6NwPara.ulMtu:0);
-    vos_printf("当前跳限制: %d\r\n",pstInfoAddr->stIpv6NwPara.ucCurHopLimit);
-    vos_printf("接口ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+    PS_PRINTF_ERR("************网络配置参数************\r\n");
+    PS_PRINTF_ERR("MTU: %d\r\n",pstInfoAddr->stIpv6NwPara.ulBitOpMtu?pstInfoAddr->stIpv6NwPara.ulMtu:0);
+    PS_PRINTF_ERR("当前跳限制: %d\r\n",pstInfoAddr->stIpv6NwPara.ucCurHopLimit);
+    PS_PRINTF_ERR("接口ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                 pstInfoAddr->stIpv6NwPara.aucInterfaceId[0],
                                 pstInfoAddr->stIpv6NwPara.aucInterfaceId[1],
                                 pstInfoAddr->stIpv6NwPara.aucInterfaceId[2],
@@ -3425,16 +3395,16 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
                                 pstInfoAddr->stIpv6NwPara.aucInterfaceId[6],
                                 pstInfoAddr->stIpv6NwPara.aucInterfaceId[7]);
 
-    vos_printf("************前缀列表************\r\n");
-    vos_printf("前缀数量: %d\r\n",pstInfoAddr->stIpv6NwPara.ulPrefixNum);
+    PS_PRINTF_ERR("************前缀列表************\r\n");
+    PS_PRINTF_ERR("前缀数量: %d\r\n",pstInfoAddr->stIpv6NwPara.ulPrefixNum);
     for (ulCnt = 0; ulCnt < pstInfoAddr->stIpv6NwPara.ulPrefixNum; ulCnt++)
     {
-        vos_printf("前缀长度: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitPrefixLen);
-        vos_printf("自治标志: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitA);
-        vos_printf("链路上标志: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitL);
-        vos_printf("有效生存期: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulValidLifeTime);
-        vos_printf("选用生存期: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulPreferredLifeTime);
-        vos_printf("前缀: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+        PS_PRINTF_ERR("前缀长度: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitPrefixLen);
+        PS_PRINTF_ERR("自治标志: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitA);
+        PS_PRINTF_ERR("链路上标志: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulBitL);
+        PS_PRINTF_ERR("有效生存期: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulValidLifeTime);
+        PS_PRINTF_ERR("选用生存期: %d\r\n",pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].ulPreferredLifeTime);
+        PS_PRINTF_ERR("前缀: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                     pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].aucPrefix[0],
                                     pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].aucPrefix[1],
                                     pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].aucPrefix[2],
@@ -3453,11 +3423,11 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
                                     pstInfoAddr->stIpv6NwPara.astPrefixList[ulCnt].aucPrefix[15]);
     }
 
-    vos_printf("************DNS SERVER列表************\r\n");
-    vos_printf("DNS SERVER数量: %d\r\n",pstInfoAddr->stIpv6NwPara.stDnsSer.ucDnsSerNum);
+    PS_PRINTF_ERR("************DNS SERVER列表************\r\n");
+    PS_PRINTF_ERR("DNS SERVER数量: %d\r\n",pstInfoAddr->stIpv6NwPara.stDnsSer.ucDnsSerNum);
     if (pstInfoAddr->stIpv6NwPara.stDnsSer.ucDnsSerNum >= 1)
     {
-        vos_printf("Prime DNS SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+        PS_PRINTF_ERR("Prime DNS SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucPriDnsServer[0],
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucPriDnsServer[1],
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucPriDnsServer[2],
@@ -3477,7 +3447,7 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
     }
     if (pstInfoAddr->stIpv6NwPara.stDnsSer.ucDnsSerNum >= 2)
     {
-        vos_printf("Second DNS SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+        PS_PRINTF_ERR("Second DNS SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucSecDnsServer[0],
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucSecDnsServer[1],
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucSecDnsServer[2],
@@ -3495,11 +3465,11 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucSecDnsServer[14],
                                     pstInfoAddr->stIpv6NwPara.stDnsSer.aucSecDnsServer[15]);
     }
-    vos_printf("************SIP SERVER列表************\r\n");
-    vos_printf("SIP SERVER数量: %d\r\n",pstInfoAddr->stIpv6NwPara.stSipSer.ucSipSerNum);
+    PS_PRINTF_ERR("************SIP SERVER列表************\r\n");
+    PS_PRINTF_ERR("SIP SERVER数量: %d\r\n",pstInfoAddr->stIpv6NwPara.stSipSer.ucSipSerNum);
     if (pstInfoAddr->stIpv6NwPara.stSipSer.ucSipSerNum >= 1)
     {
-        vos_printf("Prime SIP SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+        PS_PRINTF_ERR("Prime SIP SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucPriSipServer[0],
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucPriSipServer[1],
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucPriSipServer[2],
@@ -3519,7 +3489,7 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
     }
     if (pstInfoAddr->stIpv6NwPara.stSipSer.ucSipSerNum >= 2)
     {
-        vos_printf("Second SIP SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+        PS_PRINTF_ERR("Second SIP SERVER: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucSecSipServer[0],
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucSecSipServer[1],
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucSecSipServer[2],
@@ -3538,14 +3508,13 @@ VOS_VOID  IP_NDSERVER_ShowAddrInfo( VOS_UINT32 ulIndex )
                                     pstInfoAddr->stIpv6NwPara.stSipSer.aucSecSipServer[15]);
     }
 
-    vos_printf("************TE地址信息************\r\n");
-    vos_printf("TE地址状态: %d\r\n",pstInfoAddr->stTeAddrInfo.enTeAddrState);
+    PS_PRINTF_ERR("************TE地址信息************\r\n");
+    PS_PRINTF_ERR("TE地址状态: %d\r\n",pstInfoAddr->stTeAddrInfo.enTeAddrState);
 
-    vos_printf("************定时器状态************\r\n");
-    /*vos_printf("系统定时器地址: %p\r\n",pstInfoAddr->stTimerInfo.hTm);*/
-    vos_printf("定时器类型: %d\r\n",pstInfoAddr->stTimerInfo.ulName);
-    vos_printf("定时器超时次数: %d\r\n",pstInfoAddr->stTimerInfo.ucLoopTimes);
-    vos_printf("周期性路由公告时间计数: %d\r\n",g_aulPeriodicRaTimeCnt[ulIndex]);
+    PS_PRINTF_ERR("************定时器状态************\r\n");
+    PS_PRINTF_ERR("定时器类型: %d\r\n",pstInfoAddr->stTimerInfo.ulName);
+    PS_PRINTF_ERR("定时器超时次数: %d\r\n",pstInfoAddr->stTimerInfo.ucLoopTimes);
+    PS_PRINTF_ERR("周期性路由公告时间计数: %d\r\n",g_aulPeriodicRaTimeCnt[ulIndex]);
 
     return;
 }
@@ -3559,38 +3528,38 @@ VOS_VOID  IP_NDSERVER_ShowStatInfo( VOS_UINT32 ulIndex )
     if (ulIndex >= IP_NDSERVER_ADDRINFO_MAX_NUM)
     {
         ulTmp = IP_NDSERVER_ADDRINFO_MAX_NUM;
-        vos_printf("IP_NDSERVER_ShowStatInfo:输入参数的范围:0-%d\r\n", ulTmp-1);
+        PS_PRINTF_ERR("IP_NDSERVER_ShowStatInfo:输入参数的范围:0-%d\r\n", ulTmp-1);
         return ;
     }
 
     pstPktStatInfo = IP_NDSERVER_GET_STATINFO_ADDR(ulIndex);
 
-    vos_printf("****************************报文统计信息(%d)****************************\r\n", ulIndex);
-    vos_printf("收到报文总数:           %d\r\n", pstPktStatInfo->ulRcvPktTotalNum);
-    vos_printf("丢弃报文数:             %d\r\n", pstPktStatInfo->ulDiscPktNum);
-    vos_printf("收到NS报文数:           %d\r\n", pstPktStatInfo->ulRcvNsPktNum);
-    vos_printf("收到NA报文数:           %d\r\n", pstPktStatInfo->ulRcvNaPktNum);
-    vos_printf("收到RS报文数:           %d\r\n", pstPktStatInfo->ulRcvRsPktNum);
-    vos_printf("收到ECHO REQ报文数:     %d\r\n", pstPktStatInfo->ulRcvEchoPktNum);
-    vos_printf("收到IPV6超长报文数:     %d\r\n", pstPktStatInfo->ulRcvTooBigPktNum);
-    vos_printf("收到DHCPV6报文数:       %d\r\n", pstPktStatInfo->ulRcvDhcpv6PktNum);
-    vos_printf("收到错误NS报文数:       %d\r\n", pstPktStatInfo->ulErrNsPktNum);
-    vos_printf("收到错误NA报文数:       %d\r\n", pstPktStatInfo->ulErrNaPktNum);
-    vos_printf("收到错误RS报文数:       %d\r\n", pstPktStatInfo->ulErrRsPktNum);
-    vos_printf("收到错误ECHO REQ报文数: %d\r\n", pstPktStatInfo->ulErrEchoPktNum);
-    vos_printf("收到错误IPV6超长报文数: %d\r\n", pstPktStatInfo->ulErrTooBigPktNum);
-    vos_printf("收到错误DHCPV6报文数:   %d\r\n", pstPktStatInfo->ulErrDhcpv6PktNum);
-    vos_printf("发送报文总数:           %d\r\n", pstPktStatInfo->ulTransPktTotalNum);
-    vos_printf("发送报文失败数:         %d\r\n", pstPktStatInfo->ulTransPktFailNum);
-    vos_printf("发送NS报文数:           %d\r\n", pstPktStatInfo->ulTransNsPktNum);
-    vos_printf("发送NA报文数:           %d\r\n", pstPktStatInfo->ulTransNaPktNum);
-    vos_printf("发送RA报文数:           %d\r\n", pstPktStatInfo->ulTransRaPktNum);
-    vos_printf("发送ECHO REPLY报文数:   %d\r\n", pstPktStatInfo->ulTransEchoPktNum);
-    vos_printf("发送超长包响应报文数:   %d\r\n", pstPktStatInfo->ulTransTooBigPktNum);
-    vos_printf("发送DHCPV6 REPLY报文数: %d\r\n", pstPktStatInfo->ulTransDhcpv6PktNum);
-    vos_printf("下行IP包发送时PC MAC地址无效的统计量: %d\r\n", pstPktStatInfo->ulMacInvalidPktNum);
-    vos_printf("下行成功缓存的IP包个数:               %d\r\n", pstPktStatInfo->ulEnquePktNum);
-    vos_printf("下行成功发送缓存的IP包个数:           %d\r\n", pstPktStatInfo->ulSendQuePktNum);
+    PS_PRINTF_ERR("****************************报文统计信息(%d)****************************\r\n", ulIndex);
+    PS_PRINTF_ERR("收到报文总数:           %d\r\n", pstPktStatInfo->ulRcvPktTotalNum);
+    PS_PRINTF_ERR("丢弃报文数:             %d\r\n", pstPktStatInfo->ulDiscPktNum);
+    PS_PRINTF_ERR("收到NS报文数:           %d\r\n", pstPktStatInfo->ulRcvNsPktNum);
+    PS_PRINTF_ERR("收到NA报文数:           %d\r\n", pstPktStatInfo->ulRcvNaPktNum);
+    PS_PRINTF_ERR("收到RS报文数:           %d\r\n", pstPktStatInfo->ulRcvRsPktNum);
+    PS_PRINTF_ERR("收到ECHO REQ报文数:     %d\r\n", pstPktStatInfo->ulRcvEchoPktNum);
+    PS_PRINTF_ERR("收到IPV6超长报文数:     %d\r\n", pstPktStatInfo->ulRcvTooBigPktNum);
+    PS_PRINTF_ERR("收到DHCPV6报文数:       %d\r\n", pstPktStatInfo->ulRcvDhcpv6PktNum);
+    PS_PRINTF_ERR("收到错误NS报文数:       %d\r\n", pstPktStatInfo->ulErrNsPktNum);
+    PS_PRINTF_ERR("收到错误NA报文数:       %d\r\n", pstPktStatInfo->ulErrNaPktNum);
+    PS_PRINTF_ERR("收到错误RS报文数:       %d\r\n", pstPktStatInfo->ulErrRsPktNum);
+    PS_PRINTF_ERR("收到错误ECHO REQ报文数: %d\r\n", pstPktStatInfo->ulErrEchoPktNum);
+    PS_PRINTF_ERR("收到错误IPV6超长报文数: %d\r\n", pstPktStatInfo->ulErrTooBigPktNum);
+    PS_PRINTF_ERR("收到错误DHCPV6报文数:   %d\r\n", pstPktStatInfo->ulErrDhcpv6PktNum);
+    PS_PRINTF_ERR("发送报文总数:           %d\r\n", pstPktStatInfo->ulTransPktTotalNum);
+    PS_PRINTF_ERR("发送报文失败数:         %d\r\n", pstPktStatInfo->ulTransPktFailNum);
+    PS_PRINTF_ERR("发送NS报文数:           %d\r\n", pstPktStatInfo->ulTransNsPktNum);
+    PS_PRINTF_ERR("发送NA报文数:           %d\r\n", pstPktStatInfo->ulTransNaPktNum);
+    PS_PRINTF_ERR("发送RA报文数:           %d\r\n", pstPktStatInfo->ulTransRaPktNum);
+    PS_PRINTF_ERR("发送ECHO REPLY报文数:   %d\r\n", pstPktStatInfo->ulTransEchoPktNum);
+    PS_PRINTF_ERR("发送超长包响应报文数:   %d\r\n", pstPktStatInfo->ulTransTooBigPktNum);
+    PS_PRINTF_ERR("发送DHCPV6 REPLY报文数: %d\r\n", pstPktStatInfo->ulTransDhcpv6PktNum);
+    PS_PRINTF_ERR("下行IP包发送时PC MAC地址无效的统计量: %d\r\n", pstPktStatInfo->ulMacInvalidPktNum);
+    PS_PRINTF_ERR("下行成功缓存的IP包个数:               %d\r\n", pstPktStatInfo->ulEnquePktNum);
+    PS_PRINTF_ERR("下行成功发送缓存的IP包个数:           %d\r\n", pstPktStatInfo->ulSendQuePktNum);
 
     return;
 }

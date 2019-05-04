@@ -79,7 +79,14 @@ extern "C" {
 /*****************************************************************************
   4 结构体定义
 *****************************************************************************/
-
+typedef struct
+{
+    u32 UsbSendTime;
+    u32 UsbCallbackDiagTime;
+    u32 UsbMaxSendTime;
+    u32 UsbMaxCallBackTime;
+    u32 UsbCallbackCount;
+}PPM_USB_DEBUG_INFO_STRU;
 
 
 /*****************************************************************************
@@ -99,7 +106,11 @@ void   PPM_UsbCfgPortOpen(void);
 
 void   PPM_UsbIndStatusCB(ACM_EVT_E enPortState);
 
-void   PPM_UsbIndWriteDataCB(u8* pucVirData, u8* pucPhyData, s32 lLen);
+#ifdef BSP_CONFIG_PHONE_TYPE
+void PPM_UsbIndWriteDataCB(u8* pucVirData, u8* pucPhyData, s32 lLen);
+#else
+void   PPM_UsbIndWriteDataCB(ACM_WRITE_INFO *AcmWriteInfo);
+#endif
 
 void   PPM_UsbIndPortOpen(void);
 
@@ -111,7 +122,15 @@ u32 PPM_UsbCfgPortInit(void);
 
 u32 PPM_UsbIndPortInit(void);
 
+#ifdef DIAG_SYSTEM_A_PLUS_B_CP
+static inline u32 PPM_UsbPortInit(void){return 0;}
+static inline void PPM_QueryUsbInfo(void *PpmUsbInfoStru, u32 len){return;}
+static inline void PPM_ClearUsbTimeInfo(void){return;}
+#else
 u32 PPM_UsbPortInit(void);
+void PPM_QueryUsbInfo(void *PpmUsbInfoStru, u32 len);
+void PPM_ClearUsbTimeInfo(void);
+#endif
 /*****************************************************************************
   5 全局变量声明
 *****************************************************************************/

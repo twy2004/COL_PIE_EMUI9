@@ -581,7 +581,7 @@ static int mxt_check_reg_init(struct mxt_data *data)
 			byte_offset = reg + i - cfg_start_ofs;
 
 			if ((byte_offset >= 0)
-			    && (byte_offset <= config_mem_size)) {
+			    && (byte_offset < config_mem_size)) {
 				*(config_mem + byte_offset) = val;
 #if defined(CONFIG_MXT_UPDATE_BY_OBJECT)
 				*(object_offset++) = val;

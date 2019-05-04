@@ -127,8 +127,6 @@ enum APS_L4A_MSG_ID_ENUM
 {
 
 
-    ID_APS_L4A_IPV6_INFO_NOTIFY_IND     = 0x00010299,                           /* _H2ASN_MsgChoice APS_L4A_IPV6_INFO_NOTIFY_IND_STRU */
-    ID_APS_L4A_ABORT_REQ                = 0x0001029A,                           /* _H2ASN_MsgChoice APS_L4A_ABORT_REQ_STRU */
 
     ID_APS_L4A_GET_LTE_CS_REQ           = 0x000102A4,                           /* _H2ASN_MsgChoice APS_L4A_GET_LTE_CS_REQ_STRU */
     ID_APS_L4A_GET_CEMODE_REQ           = 0x000102A6,
@@ -136,7 +134,7 @@ enum APS_L4A_MSG_ID_ENUM
 
 
     ID_L4A_APS_GET_LTE_CS_CNF           = 0x1018,                               /* _H2ASN_MsgChoice APS_L4A_GET_LTE_CS_CNF_STRU */
-    ID_L4A_APS_GET_CEMODE_CNF           = 0x101d,                               /* _H2ASN_MsgChoice APS_L4A_GET_LTE_CS_CNF_STRU */
+    ID_L4A_APS_GET_CEMODE_CNF           = 0x101d,                               /* _H2ASN_MsgChoice APS_L4A_GET_CEMODE_CNF_STRU */
 
 
     ID_APS_L4A_MSG_BUTT
@@ -815,29 +813,6 @@ typedef struct
     VOS_UINT32                          ulErrorCode;                            /* 错误码     */
 
 } APS_L4A_SET_AUTHDATA_CNF_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    APS_L4A_MSG_ID_ENUM_UINT32          enMsgId;                                /* _H2ASN_Skip */
-
-    VOS_UINT8                           ucRabId;
-    VOS_UINT8                           ucIpv6PrefixNum;                        /* IPv6地址前缀数量 */
-    VOS_UINT8                           aucReserved[2];
-    APS_L4A_PDP_IPV6_PREFIX_STRU        astIpv6PrefixArray[APS_L4A_MAX_IPV6_PREFIX_NUM];
-
-} APS_L4A_IPV6_INFO_NOTIFY_IND_STRU;
-
-
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    APS_L4A_MSG_ID_ENUM_UINT32          enMsgId;                                /* _H2ASN_Skip */
-
-    VOS_UINT8                           ucCid;
-    VOS_UINT8                           aucReserved[3];
-} APS_L4A_ABORT_REQ_STRU;
 
 
 typedef struct

@@ -84,9 +84,10 @@
 
 typedef enum
 {
-    EFUSE_READ  = 0,
-    EFUSE_WRITE = 1
-
+    EFUSE_READ      = 0,
+    EFUSE_WRITE     = 1,
+    EFUSE_SEC_READ  = 2,
+    EFUSE_SEC_WRITE = 3,
 }EFUSE_OPT;
 
 typedef struct
@@ -122,6 +123,7 @@ typedef struct
 *
 *****************************************************************************/
 int bsp_efuse_read(u32* pbuffer, u32 group, u32 count);
+int bsp_efuse_sec_read(u32* pbuffer, u32 group, u32 count);
 
 /*****************************************************************************
 * 函 数 名  : bsp_efuse_write
@@ -156,6 +158,10 @@ int bsp_efuse_write(u32 *pbuffer, u32 group, u32 count);
 *****************************************************************************/
 int efuse_init(void);
 
+int bsp_efuse_get_dieid(u32 *buffer, u32 length);
+
+
+
 /* Attention:
  * This Vector will write efuse, so please test it on SOCKET board!!!
  */
@@ -183,6 +189,8 @@ void bsp_efuse_ops_complete(void);
 
 int bsp_efuse_write_prepare(void);
 void bsp_efuse_write_complete(void);
+int bsp_efuse_sec_read(u32* pbuffer, u32 group, u32 count);
+
 #else
 static inline int __attribute__((unused)) bsp_efuse_ops_prepare(void)
 {
@@ -198,6 +206,7 @@ static inline __attribute__((unused)) int bsp_efuse_write_prepare(void)
 static inline __attribute__((unused)) void bsp_efuse_write_complete(void)
 {
 }
+
 #endif
 #endif
 
@@ -236,6 +245,11 @@ static inline __attribute__((unused)) void bsp_efuse_write_complete(void)
 {
 }
 static inline __attribute__((unused)) int bsp_efuse_ate_vector(void)
+{
+    return 0;
+}
+static inline __attribute__((unused)) int bsp_efuse_get_dieid(u32 *pbuffer __attribute__((unused)),
+    u32 length __attribute__((unused)))
 {
     return 0;
 }

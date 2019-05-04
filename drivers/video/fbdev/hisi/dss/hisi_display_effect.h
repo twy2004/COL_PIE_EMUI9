@@ -60,8 +60,8 @@
 #define HIACE_GAMMA_RANK			(8)
 #define HIACE_GHIST_RANK			(32)
 #define HIACE_FNA_RANK				(1)
-#define CE_SIZE_HIST				HIACE_GHIST_RANK * 2 + YBLOCKNUM * XBLOCKNUM * HIACE_LHIST_RANK + YBLOCKNUM * XBLOCKNUM * HIACE_FNA_RANK + 1
-#define CE_SIZE_LUT					YBLOCKNUM * XBLOCKNUM * HIACE_GAMMA_RANK
+#define CE_SIZE_HIST				(HIACE_GHIST_RANK * 2 + YBLOCKNUM * XBLOCKNUM * HIACE_LHIST_RANK + YBLOCKNUM * XBLOCKNUM * HIACE_FNA_RANK + 1)
+#define CE_SIZE_LUT					(YBLOCKNUM * XBLOCKNUM * HIACE_GAMMA_RANK)
 #define DETAIL_WEIGHT_SIZE          (9)
 #define LOG_LUM_EOTF_LUT_SIZE       (32)
 #define LUMA_GAMA_LUT_SIZE          (21)
@@ -286,8 +286,8 @@ typedef struct acm_reg_table {
 /*******************************************************************************
 ** FUNCTIONS PROTOTYPES
 */
-extern int g_enable_effect;
-extern int g_debug_effect;
+extern uint32_t g_enable_effect;
+extern uint32_t g_debug_effect;
 extern int g_factory_gamma_enable;
 
 void hisi_effect_init(struct hisi_fb_data_type *hisifd);
@@ -297,12 +297,14 @@ int hisifb_ce_service_blank(int blank_mode, struct fb_info *info);
 int hisifb_ce_service_get_support(struct fb_info *info, void __user *argp);
 int hisifb_ce_service_get_limit(struct fb_info *info, void __user *argp);
 int hisifb_ce_service_get_param(struct fb_info *info, void __user *argp);
-int hisifb_ce_service_set_param(struct fb_info *info, void __user *argp);
-int hisifb_ce_service_enable_hiace(struct fb_info *info, void __user *argp);
+int hisifb_ce_service_set_param(struct fb_info *info, const void __user *argp);
+int hisifb_ce_service_enable_hiace(struct fb_info *info, const void __user *argp);
 int hisifb_ce_service_get_hist(struct fb_info *info, void __user *argp);
-int hisifb_ce_service_set_lut(struct fb_info *info, void __user *argp);
+int hisifb_ce_service_set_lut(struct fb_info *info, const void __user *argp);
 int hisifb_ce_service_set_HDR10_lut(struct fb_info *info, void __user *argp);
 int hisifb_get_reg_val(struct fb_info *info, void __user *argp);
+int hisifb_display_engine_register(struct hisi_fb_data_type *hisifd);
+int hisifb_display_engine_unregister(struct hisi_fb_data_type *hisifd);
 int hisifb_display_engine_blank(int blank_mode, struct fb_info *info);
 int hisifb_display_engine_init(struct fb_info *info, void __user *argp);
 int hisifb_display_engine_deinit(struct fb_info *info, void __user *argp);

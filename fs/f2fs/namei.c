@@ -25,7 +25,7 @@
 
 #ifdef CONFIG_ACM
 #include <linux/acm_f2fs.h>
-#include <log/log_usertype/log-usertype.h>
+#include <log/log_usertype.h>
 #define ACM_PHOTO	1
 #define ACM_VIDEO	2
 #define ACM_PHOTO_HWBK	3
@@ -538,7 +538,7 @@ static int __recover_dot_dentries(struct inode *dir, nid_t pino)
 		err = PTR_ERR(page);
 		goto out;
 	} else {
-		err = __f2fs_add_link(dir, &dot, NULL, dir->i_ino, S_IFDIR);
+		err = __f2fs_add_link(dir, NULL, &dot, NULL, dir->i_ino, S_IFDIR);
 		if (err)
 			goto out;
 	}
@@ -550,7 +550,7 @@ static int __recover_dot_dentries(struct inode *dir, nid_t pino)
 	} else if (IS_ERR(page)) {
 		err = PTR_ERR(page);
 	} else {
-		err = __f2fs_add_link(dir, &dotdot, NULL, pino, S_IFDIR);
+		err = __f2fs_add_link(dir, NULL, &dotdot, NULL, pino, S_IFDIR);
 	}
 out:
 	if (!err)
@@ -662,6 +662,9 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 	struct inode *inode = d_inode(dentry);
 	struct f2fs_dir_entry *de;
 	struct page *page;
+#ifdef CONFIG_ACM
+	int logusertype = get_logusertype_flag();
+#endif
 	int err = -ENOENT;
 
 	trace_f2fs_unlink_enter(dir, dentry);
@@ -678,7 +681,6 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 
 
 #ifdef CONFIG_ACM
-	int logusertype = get_logusertype_flag();
 	/* oversea users do not need monitor*/
 	if (logusertype != OVERSEA_USER && logusertype != OVERSEA_COMMERCIAL_USER) {
 		struct task_struct *tsk, *p_tsk = NULL, *pp_tsk = NULL;
@@ -1058,7 +1060,7 @@ static int __f2fs_tmpfile(struct inode *dir, struct dentry *dentry,
 	if (err)
 		goto out;
 
-	err = f2fs_do_tmpfile(inode, dir);
+	err = f2fs_do_tmpfile(inode, dentry, dir);
 	if (err)
 		goto release_out;
 

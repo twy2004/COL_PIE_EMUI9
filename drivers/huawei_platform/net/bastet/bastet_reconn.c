@@ -41,12 +41,12 @@ void bastet_reconn_init(void)
 
 void bastet_reconn_config(struct sock *sk, int val)
 {
+	struct bastet_reconn *reconn = NULL;
+
 	if (IS_ERR_OR_NULL(sk)) {
 		BASTET_LOGE("invalid parameter");
 		return;
 	}
-
-	struct bastet_reconn *reconn;
 
 	BASTET_LOGI("val=%d", val);
 	if (sk->reconn) {

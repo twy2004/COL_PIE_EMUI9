@@ -29,6 +29,7 @@
 #include <linux/workqueue.h>
 #include <linux/wakelock.h>
 #include <linux/version.h>
+#include <rdr_hisi_audio_adapter.h>
 
 #include "slimbus_drv.h"
 #include "slimbus.h"
@@ -1553,7 +1554,7 @@ exit:
 
 	if (cur_cg != cg) {
 		pr_err("[%s:%d] cur_cg %d, cg %d\n", __FUNCTION__, __LINE__, cur_cg, cg);
-		BUG_ON(true);
+		rdr_system_error(RDR_AUDIO_SLIMBUS_LOSTSYNC_MODID, 0, 0);
 	}
 	mutex_unlock(&slimbus_mutex);
 

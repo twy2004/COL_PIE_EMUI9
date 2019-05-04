@@ -3500,7 +3500,9 @@ exit:
 	retval = synaptics_rmi4_irq_enable(IRQ_ON);
 	sysfs_is_busy = true;
 	f54->rmi4_data->reset_device(rmi4_data);
-	strcat(g_mmi_buf_f54test_result, "0F-software_reason");
+	if (g_mmi_buf_f54test_result) {
+		strcat(g_mmi_buf_f54test_result, "0F-software_reason");
+	}
 	TS_LOG_ERR("%s: Failed to run mmi test\n", __func__);
 	atomic_set(&g_ts_data.state, TS_WORK);
 	return 0;
@@ -4762,6 +4764,15 @@ error_exit:
 	return retval;
 }
 
+static void syna_rmi4_f54_status_work_func(struct work_struct *work)
+{
+	int ret;
+
+	ret = synaptics_rmi4_f54_status_work(work);
+	if (ret < 0)
+		TS_LOG_ERR("%s: can not get data\n", __func__);
+}
+
 static int synaptics_rmi4_f54_attention(void)
 {
 	return synaptics_rmi4_f54_status_work(NULL);
@@ -5107,7 +5118,7 @@ pdt_done:
 #endif
 	f54->status_workqueue =
 	    create_singlethread_workqueue("f54_status_workqueue");
-	INIT_DELAYED_WORK(&f54->status_work, synaptics_rmi4_f54_status_work);
+	INIT_DELAYED_WORK(&f54->status_work, syna_rmi4_f54_status_work_func);
 
 #ifdef WATCHDOG_HRTIMER
 	/* Watchdog timer to catch unanswered get report commands */

@@ -93,11 +93,11 @@ typedef enum _mdrv_errno_e
     DRV_ERROR_USER_RESET        = 0x1078,    /* 用户发起的复位*/
     DRV_ERRNO_PAN_RPC           = 0x1080,   /* PAN_RPC 初始化失败复位 */
     DRV_ERRNO_NV_CRC_ERR        = 0x1081,   /* 读取NV文件错误 */
-    DRV_ERRNO_IPF_OUT_REG		= 0x1082,	/* ipf 数传越界*/
-    DRV_ERRNO_PSAM_OUT_REG		= 0x1083,	/* PSAM 数传越界*/
+    DRV_ERRNO_IPF_OUT_REG       = 0x1082,   /* ipf 数传越界*/
+    DRV_ERRNO_PSAM_OUT_REG      = 0x1083,   /* PSAM 数传越界*/
     DRV_ERRNO_NV_LIST_FULL      = 0x1084,   /* NV 本地写NV list满  */
     DRV_ERRNO_CLK_EXCEPT        = 0x1085,   /* PLL停止异常 & PLL变慢异常*/
-	DRV_ERRNO_MODEM_RST_FAIL    = 0x1086,   /*Modem 单独复位中,回调DRV失败*/
+    DRV_ERRNO_MODEM_RST_FAIL    = 0x1086,   /*Modem 单独复位中,回调DRV失败*/
     DRV_ERRNO_BBP_IPC_TIMEOUT   = 0x1087,   /* BBP获取核间锁超时 */
     DRV_ERRNO_DLOCK             = 0x1088,   /* dlock触发复位*/
     DRV_ERRNO_DDRSEC            = 0x1089,   /* mbb ddr安全触发复位 */
@@ -108,19 +108,34 @@ typedef enum _mdrv_errno_e
     DRV_ERRNO_NOC               = 0x1094,   /* modem访问ap NOC异常触发复位 */
     DRV_ERRNO_MEMREPAIR_TIMEOUT = 0x1095,   /* modem memrepair等待超时异常触发复位 */
     DRV_ERRNO_SCM_ERROR         = 0x1096,   /* diag软解码创建ringbuff 失败复位 */
+
     DRV_ERRNO_USB_SEND_ERROR    = 0x1097,   /* diag向USB发送数据失败复位 */
     DRV_ERRNO_PM_MASK_ERROR     = 0x1098,   /* pm check online mask error*/
-    DRV_ERRNO_LTE0_FORCE_AWAKE_TIMEOUT = 0x1099,
-    DRV_ERRNO_LTE1_FORCE_AWAKE_TIMEOUT = 0x109a,
-    DRV_ERRNO_TDS_FORCE_AWAKE_TIMEOUT  = 0x109b,
-    DRV_ERRNO_NXP_FORCE_AWAKE_TIMEOUT  = 0x109c,
-    DRV_ERRNO_CDMA_FORCE_AWAKE_TIMEOUT  = 0x109d,
-	DRV_ERRNO_DMSS              = 0x109e,
-	DRV_ERRNO_REGULATOR_TIMEOUT = 0x109f, /* 调压过程中等待ready状态超时 */
-	DRV_ERRNO_ACPU_SLAVE_UP_FAIL = 0x10a0,
-    DRV_ERRNO_NOC_DSPSLAVE_PD_FAIL = 0x10a1,    /*dsp下电后noc dsp slave握手失败*/
-    DRV_ERRNO_LTEV_FORCE_AWAKE_TIMEOUT  = 0x10a2,
-    DRV_ERRNO_BUTT              = 0x1FFF
+    DRV_ERRNO_LTE0_FORCE_AWAKE_TIMEOUT   = 0x1099,
+    DRV_ERRNO_LTE1_FORCE_AWAKE_TIMEOUT   = 0x109a,
+    DRV_ERRNO_TDS_FORCE_AWAKE_TIMEOUT    = 0x109b,
+    DRV_ERRNO_NXP_FORCE_AWAKE_TIMEOUT    = 0x109c,
+    DRV_ERRNO_CDMA_FORCE_AWAKE_TIMEOUT   = 0x109d,
+    DRV_ERRNO_DMSS                       = 0x109e,
+    DRV_ERRNO_REGULATOR_TIMEOUT          = 0x109f, /* 调压过程中等待ready状态超时 */
+    DRV_ERRNO_ACPU_SLAVE_UP_FAIL         = 0x10a0,
+    DRV_ERRNO_NOC_DSPSLAVE_PD_FAIL       = 0x10a1,    /*dsp下电后noc dsp slave握手失败*/
+    DRV_ERRNO_LTEV_FORCE_AWAKE_TIMEOUT   = 0x10a2,
+    DRV_ERRNO_DIAG_OVERFLOW              = 0x10a3,   /* 外部传入DIAG参数越界 */
+    DRV_ERRNO_NOC_PHONE                  = 0x10a4,    /*手机平台，sys noc处理的modem 错误专用*/
+    DRV_ERRNO_DMSS_PHONE                 = 0x10a5,    /*手机平台，dmss处理的modem 错误专用*/
+    DRV_ERRNO_RST_FAIL                   = 0x10a6,   /*专用，其他组件的需要增加到之前*/
+
+    DRV_ERRNO_NR_PDLOCK_ERR              = 0x10a7,   /* NR pdlock触发复位 */
+    DRV_ERRNO_NR_NOC_ERR                 = 0x10a8,   /* NR noc触发复位 */ 
+    DRV_ERRNO_SYS_PDLOCK_ERR             = 0x10a9,   /* sys pdlock触发复位 */
+    DRV_ERRNO_NR_FORCE_AWAKE_TIMEOUT     = 0x10aa,   /*nrphy唤醒超时*/
+    DRV_ERRNO_NRDSP_FORCE_AWAKE_TIMEOUT  = 0x10ab,   /*nrdsp core唤醒超时*/
+    DRV_ERRNO_NOC_NRDSPSLAVE_PD_FAIL     = 0x10ac,   /*nrdsp下电后noc dsp slave握手失败*/
+	DRV_ERRNO_MIPI                       = 0x10ad,   /*mipi 触发复位 */
+	DRV_ERRNO_TSENSOR                    = 0x10ae,   /*tsensor 高温触发复位*/
+    DRV_ERRNO_DDR_TMON_EXC               = 0x10af,  /*DDR 超温异常*/
+    DRV_ERRNO_BUTT                       = 0x1FFF
 }mdrv_errno_enum;
 
 #ifdef _cplusplus

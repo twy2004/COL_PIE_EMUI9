@@ -81,7 +81,8 @@ enum CPUFREQ_MSG_TYPE{
 enum CPUFREQ_SOURCE{
 	CPUFREQ_ACORE = 0,
 	CPUFREQ_CCORE,
-	CPUFREQ_MCORE
+	CPUFREQ_MCORE,
+	CPUFREQ_NRCCORE = 7,  //后续和ddr source 统一添加到同一头文件中
 };
 
 /*content 低4BIT 上调下调 高4BIT 哪个profile*/
@@ -127,6 +128,18 @@ typedef enum
     DFS_PROFILE_UNLOCKFREQ = 1,
 	DFS_PROFILE_NOCHANGE = 10,
 } DFS_PROFILE_STATE_ENUM;
+
+
+
+#define DDR_DFS_FREQ4   (1333 * 1000)
+#define DDR_DFS_FREQ3  (1066 * 1000)
+#define DDR_DFS_FREQ2  (800 * 1000)
+#define DDR_DFS_FREQ1  (400 * 1000)
+#define DDR_DFS_FREQ0  (266 * 1000)
+
+#define DDR_DFS_MIN_FREQ  DDR_DFS_FREQ0
+#define DDR_DFS_MAX_FREQ DDR_DFS_FREQ4
+
 
 
 struct cpufreq_query {

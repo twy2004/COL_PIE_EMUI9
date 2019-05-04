@@ -163,7 +163,7 @@ s32 bsp_ipc_int_connect(IPC_INT_LEV_E ulLvl, voidfuncptr routine, u32 parameter)
 }
 
  
-s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl,voidfuncptr routine, u32 parameter)
+s32 bsp_ipc_int_disconnect(IPC_INT_LEV_E ulLvl)
 {
 	unsigned long flags = 0;
 	if (ulLvl >= INTSRC_NUM)

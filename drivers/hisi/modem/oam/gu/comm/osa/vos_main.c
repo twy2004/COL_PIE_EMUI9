@@ -90,6 +90,8 @@
 #include "v_int.h"
 #include "NVIM_Interface.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /* LINUX 不支持 */
 
@@ -99,6 +101,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_VOS_MAIN_C
+#define    THIS_MODU           mod_pam_osa
 
 typedef struct
 {
@@ -147,7 +150,7 @@ VOS_VOID V_LogRecord(VOS_UINT32 ulIndex, VOS_UINT32 ulValue)
  *****************************************************************************/
 MODULE_EXPORTED VOS_VOID root( VOS_VOID)
 {
-    Print1("%s", "\n!!!!! VOS_Startup Begin !!!!!\n");
+    mdrv_err("<root> VOS_Startup Begin !\n");
 
 
     /* 2016.03.14:底软接口修改，先调用register函数申请内存，后面使用get field函数获取内存地址 */
@@ -157,30 +160,30 @@ MODULE_EXPORTED VOS_VOID root( VOS_VOID)
 
     if ( VOS_OK != VOS_Startup( VOS_STARTUP_INIT_DOPRA_SOFEWARE_RESOURCE ) )
     {
-        Print1("%s", "VOS_Startup Phase 0: Error.\n");
+        mdrv_err("<root> VOS_Startup Phase 0: Error.\n");
     }
 
     if ( VOS_OK != VOS_Startup( VOS_STARTUP_SET_TIME_INTERRUPT ) )
     {
-        Print1("%s", "VOS_Startup Phase 1: Error.\n");
+        mdrv_err("<root> VOS_Startup Phase 1: Error.\n");
     }
 
     if ( VOS_OK != VOS_Startup( VOS_STARTUP_CREATE_TICK_TASK ) )
     {
-        Print1("%s", "VOS_Startup Phase2: Error.\n");
+        mdrv_err("<root> VOS_Startup Phase2: Error.\n");
     }
 
     if( VOS_OK != VOS_Startup( VOS_STARTUP_CREATE_ROOT_TASK ) )
     {
-        Print1("%s", "VOS_Startup Phase 3: Error\n");
+        mdrv_err("<root> VOS_Startup Phase 3: Error\n");
     }
 
     if ( VOS_OK != VOS_Startup( VOS_STARTUP_SUSPEND_MAIN_TASK ) )
     {
-        Print1("%s", "VOS_Startup Phase 4: Error\n");
+        mdrv_err("<root> VOS_Startup Phase 4: Error\n");
     }
 
-    Print1("%s", "\n!!!!! VOS_Startup End !!!!!\n");
+    mdrv_err("<root> VOS_Startup End !\n");
 
     return;
 }
@@ -287,15 +290,6 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
         case VOS_STARTUP_CREATE_ROOT_TASK:
             vos_StartUpStage = 0x00080000;
             V_LogRecord(0, 0x00080000);
-            /*
-            if ( VOS_OK !=
-                    VOS_StartCallBackRelTimer(&g_VosProtectInitTimer,
-                        DOPRA_PID_TIMER, 20000, 0, 0,
-                        VOS_RELTIMER_NOLOOP, VOS_ProtectInit, VOS_TIMER_PRECISION_5) )
-            {
-                ulStartUpFailStage |= 0x0001;
-            }
-            */
 
             g_ulVosStartStep = 0x0000;
             V_LogRecord(1, 0x0000);
@@ -350,8 +344,6 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
             V_LogRecord(1, 0x0008);
 
             /* stop protect timer */
-            /*VOS_StopRelTimer(&g_VosProtectInitTimer);*/
-
 
             break;
 
@@ -364,7 +356,7 @@ VOS_UINT32 VOS_Startup( enum VOS_STARTUP_PHASE ph )
     {
         ulReturnValue = vos_StartUpStage;
         ulReturnValue |= ulStartUpFailStage;
-        Print1("startup retuen value is %x.\r\n",ulReturnValue);
+        mdrv_err("<VOS_Startupstartup> return value=%x.\n",ulReturnValue);
 
         /* reboot */
         VOS_ProtectionReboot(OSA_INIT_ERROR, (VOS_INT)ulReturnValue,

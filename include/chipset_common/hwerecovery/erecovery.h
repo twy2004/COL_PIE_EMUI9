@@ -16,6 +16,19 @@ extern "C" {
 #define ERECOVERY_MSG_LEN_MAX (15 * 1024)
 #define ERECOVERY_CMD_INVALID (0xFF)
 
+typedef enum {
+    EVENT_BEGIN = 0,
+    EVENT_END,
+    EVENT_REQUEST,
+    EVENT_RESULT,
+} ErecEventType;
+
+typedef enum {
+    EVENT_SUCCESS = 0,
+    EVENT_FAIL,
+    EVENT_PENDING,
+} EventStatus;
+
 typedef struct {
     long erecovery_id;
     long fault_id;
@@ -23,8 +36,8 @@ typedef struct {
     char process_name[MAX_PROCESSNAME_LENGTH];
     char fingerprint[MAX_FINGERPRINT_LENGTH];
     long time;
-    long state;
-    long result;
+    long state;   //ErecEventType
+    long result;  //EventStatus
     char reason[MAX_REASON_LENGTH];
     char Reserved[MAX_RESERVED_LENGTH];
 } erecovery_eventobj;

@@ -59,7 +59,7 @@
 #include <osl_thread.h>
 #include "softtimer_balong.h"
 #include <bsp_print.h>
-#include "securec.h"
+#include <securec.h>
 
 #undef THIS_MODU
 #define THIS_MODU mod_softtimer

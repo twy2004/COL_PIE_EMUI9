@@ -30,14 +30,15 @@
 #include <linux/kthread.h>
 #include <global_ddr_map.h>
 #include <linux/iommu.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/miscdevice.h>
 #include "hisp_internel.h"
 #include "isp_ddr_map.h"
+#include <linux/hisi/rdr_hisi_platform.h>
 
 #define ISP_MEM_SIZE    0x10000
 #define TMP_SIZE        0x1000
-#define MAX_SIZE        64
+#define NONSEC_MAX_SIZE        64
 
 #define CRGPERIPH_PERPWRSTAT_ADDR       (0X158)
 
@@ -60,6 +61,8 @@ struct hisi_isp_nsec {
     struct hisp_pwr_ops *isp_ops;
     struct regulator *clockdep_supply;
     struct regulator *ispcore_supply;
+    struct regulator *ispcpu_supply;
+    unsigned int ispcpu_supply_flag;
     unsigned int clock_num;
     struct clk *ispclk[ISP_CLK_MAX];
     unsigned int ispclk_value[ISP_CLK_MAX];
@@ -307,6 +310,7 @@ static int hisp_clock_down(struct hisi_isp_nsec *dev, int clk, int clkdown)
         switch (type) {
             case HISP_CLK_TURBO:
             case HISP_CLK_NORMINAL:
+            case HISP_CLK_LOWSVS:
             case HISP_CLK_SVS:
             case HISP_CLK_DISDVFS:
                 stat_machine ++;
@@ -318,6 +322,10 @@ static int hisp_clock_down(struct hisi_isp_nsec *dev, int clk, int clkdown)
 
         ispclk = (unsigned long)dev->clkdn[type][clk];
         pr_info("[%s] Clock Down %lu.%lu MHz\n", __func__, ispclk/1000000, ispclk%1000000);
+        if (ispclk == 0)
+        {
+            continue;
+        }
         if ((ret = clk_set_rate(dev->ispclk[clk], (unsigned long)ispclk)) < 0) {
             pr_err("[%s] Failed: clk_set_rate.%d, %d > %d try clock down ...\n", __func__, ret, type, stat_machine );
             goto try_clock_down;
@@ -344,7 +352,7 @@ static int hisp_clock_enable(struct hisi_isp_nsec *dev, int clk)
         return -EINVAL;
 
     ispclock = (unsigned long)dev->ispclk_value[clk];
-    if(ISP_SYS_CLK == clk) {
+    if (!strncmp(dev->clk_name[clk], "isp_sys", strlen("isp_sys"))) {/*lint !e64 */
         if ((ret = clk_prepare_enable(dev->ispclk[clk])) < 0) {
             pr_err("[%s] Failed: %d.%s.clk_prepare_enable.%d\n", __func__, clk, dev->clk_name[clk], ret);
             return -EINVAL;
@@ -386,6 +394,11 @@ static void hisp_clock_disable(struct hisi_isp_nsec *dev, int clk)
             case ISPFUNC2_CLK:
             case ISPFUNC3_CLK:
             case ISPFUNC4_CLK:
+            case ISP_SYS_CLK:
+                if (!strncmp(dev->clk_name[clk], "isp_sys", strlen("isp_sys"))) {/*lint !e64 */
+                    pr_info("[%s] %d.%s.clk_disable_unprepare\n", __func__, clk, dev->clk_name[clk]);
+                    break;
+                }
                 ispclock = (unsigned long)dev->clkdis_need_div[clk];
                 if (ispclock != 0) {
                     if ((ret = clk_set_rate(dev->ispclk[clk], ispclock)) < 0) {
@@ -401,9 +414,6 @@ static void hisp_clock_disable(struct hisi_isp_nsec *dev, int clk)
                 }
                 rproc_set_shared_clk_value(clk,(unsigned int)ispclock);
                 pr_info("[%s] %d.%s.clk_set_rate.%d.%d M\n", __func__, clk, dev->clk_name[clk], (int)ispclock/1000000, (int)ispclock%1000000);
-                break;
-            case ISP_SYS_CLK:
-                pr_info("[%s] %d.%s.clk_disable_unprepare\n", __func__, clk, dev->clk_name[clk]);
                 break;
             default:
                 break;
@@ -513,6 +523,16 @@ int hisp_powerup(void)
         goto err_ispclk;
     }
 
+    if (dev->ispcpu_supply_flag)
+    {
+        if ((ret = regulator_enable(dev->ispcpu_supply)) != 0) {
+            dump_media1_regs();
+            pr_err("[%s] Failed: ispcpu regulator_enable.%d\n", __func__, ret);
+            goto err_ispclk;
+        }
+    }
+    if ( hisp_mntn_dumpregs() < 0)
+        pr_err("Failed : get_ispcpu_cfg_info");
     if ((ret = isptop_power_up(dev->useisptop)) < 0) {
         pr_err("[%s] Failed: isptop_power_up.%d, dev->useisptop.%d\n", __func__, ret, dev->useisptop);
         goto err_isptop;
@@ -560,8 +580,14 @@ int hisp_powerdn(void)
     if ((ret = isptop_power_down(dev->useisptop)) != 0)
         pr_err("[%s] Failed: isptop_power_down.%d useisptop.%d\n", __func__, ret, dev->useisptop);
 
+    if (dev->ispcpu_supply_flag)
+    {
+        if ((ret = regulator_disable(dev->ispcpu_supply)) != 0) {
+            pr_err("[%s] Failed: ispcpu regulator_disable.%d\n", __func__, ret);
+        }
+    }
     if ((ret = regulator_disable(dev->ispcore_supply)) != 0) {
-        pr_err("[%s] Failed: ispsrt regulator_disable.%d\n", __func__, ret);
+        pr_err("[%s] Failed: ispcore regulator_disable.%d\n", __func__, ret);
     }
 
     for (index = 0; index < (int)dev->clock_num; index ++)
@@ -569,7 +595,7 @@ int hisp_powerdn(void)
 
     if (dev->useclockdep) {
         if ((ret = regulator_disable(dev->clockdep_supply)) != 0)
-            pr_err("[%s] Failed: isp regulator_disable.%d\n", __func__, ret);
+            pr_err("[%s] Failed: isp clockdep regulator_disable.%d\n", __func__, ret);
     }
 
     ops->refs_isp--;
@@ -803,13 +829,13 @@ int nonsec_isp_device_disable(void)
 
     mutex_lock(&ops->lock);
     if ((ret = ops->a7dn(ops)) != 0)
-        pr_err("[%s] a7dn faled, ret.%d\n", __func__, ret);
+        pr_err("[%s] a7dn failed, ret.%d\n", __func__, ret);
 
     if ((ret = ops->ispexit(ops)))
-        pr_err("[%s] jpegdn faled, ret.%d\n", __func__, ret);
+        pr_err("[%s] jpegdn failed, ret.%d\n", __func__, ret);
 
     if ((ret = ops->ispdn(ops)) != 0)
-        pr_err("[%s] ispdn faled, ret.%d\n", __func__, ret);
+        pr_err("[%s] ispdn failed, ret.%d\n", __func__, ret);
 
     pr_info("[%s] refs_a7.0x%x, refs_isp.0x%x, refs_ispinit.0x%x\n", __func__,
             ops->refs_a7, ops->refs_isp, ops->refs_ispinit);
@@ -912,6 +938,9 @@ static int hisi_isp_nsec_getdts_dvfs(struct device_node *np, struct hisi_isp_nse
             return -EINVAL;
         }
 
+        if ((ret = of_property_read_u32_array(np, "clkdn-lowsvs", dev->clkdn[HISP_CLK_LOWSVS], dev->clock_num)) < 0) {
+            pr_err("[%s] Failed: LOW SVS of_property_read_u32_array.%d\n", __func__, ret);
+        }
         if ((ret = of_property_read_u32_array(np, "clkdis-dvfs", dev->clkdn[HISP_CLK_DISDVFS], dev->clock_num)) < 0) {
             pr_err("[%s] Failed: SVS of_property_read_u32_array.%d\n", __func__, ret);
             return -EINVAL;
@@ -943,6 +972,17 @@ static int hisi_isp_nsec_getdts(struct platform_device *pdev, struct hisi_isp_ns
     if (IS_ERR(dev->ispcore_supply)) {
         pr_err("[%s] Failed : isp-core devm_regulator_get.%pK\n", __func__, dev->ispcore_supply);
         return -EINVAL;
+    }
+    if ((ret = of_property_read_u32(np, "ispcpu-supply-flag", (unsigned int *)(&dev->ispcpu_supply_flag))) < 0 ) {
+        dev->ispcpu_supply_flag = 0;
+        pr_err("[%s] Failed: ispcpu-supply-flag of_property_read_u32.%d\n", __func__, ret);
+    }
+    if (dev->ispcpu_supply_flag)
+    {
+        dev->ispcpu_supply = devm_regulator_get(device, "isp-cpu");
+        if (IS_ERR(dev->ispcpu_supply)) {
+            pr_err("[%s] Failed : isp-cpu devm_regulator_get.%pK\n", __func__, dev->ispcpu_supply);
+        }
     }
     dev->remap_addr = dev->isp_dma;
     set_a7mem_pa(dev->remap_addr);
@@ -1063,6 +1103,7 @@ int hisi_isp_nsec_probe(struct platform_device *pdev)
     dev->device = &pdev->dev;
     dev->isp_pdev = pdev;
     dev->isp_ops = ops;
+    dev->ispcpu_supply_flag = 0;
 
     if ((ret = isp_remap_rsc(dev)) != 0) {
         pr_err("[%s] failed, isp_remap_src.%d\n", __func__, ret);

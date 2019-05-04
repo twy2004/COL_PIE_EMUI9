@@ -50,6 +50,8 @@
   1 头文件包含
 *****************************************************************************/
 
+#include "mdrv.h"
+#include "ps_tag.h"
 #include "RnicCtx.h"
 #include "RnicEntity.h"
 #include "PsCommonDef.h"
@@ -139,15 +141,17 @@ VOS_VOID RNIC_InitCtx(VOS_VOID)
 {
     RNIC_CTX_STRU                      *pstRnicCtx;
     TAF_NV_RNIC_NAPI_CFG_STRU           stNapiCfg;
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU        stNapiLbCfg;
     VOS_UINT32                          ulIndex;
 
     TAF_MEM_SET_S(&g_stRnicCtx, sizeof(RNIC_CTX_STRU), 0x00, sizeof(RNIC_CTX_STRU));
     TAF_MEM_SET_S(&stNapiCfg, sizeof(TAF_NV_RNIC_NAPI_CFG_STRU), 0x00, sizeof(TAF_NV_RNIC_NAPI_CFG_STRU));
+    TAF_MEM_SET_S(&stNapiLbCfg, sizeof(TAF_NV_RNIC_NAPI_LB_CFG_STRU), 0x00, sizeof(TAF_NV_RNIC_NAPI_LB_CFG_STRU));
 
     pstRnicCtx = RNIC_GET_RNIC_CTX_ADR();
 
     /* 读取NV中的NAPI配置 */
-    RNIC_ReadNapiCfg(&stNapiCfg);
+    RNIC_ReadNapiCfg(&stNapiCfg, &stNapiLbCfg);
 
     for (ulIndex = 0 ; ulIndex < RNIC_NET_ID_MAX_NUM ; ulIndex++)
     {
@@ -157,7 +161,7 @@ VOS_VOID RNIC_InitCtx(VOS_VOID)
         RNIC_InitPdnInfo(&(pstRnicCtx->astIfaceCtx[ulIndex].stPsIfaceInfo));
 
         /* 初始化设备NAPI配置 */
-        RNIC_InitNapiCfg((VOS_UINT8)ulIndex, &stNapiCfg);
+        RNIC_InitNapiCfg((VOS_UINT8)ulIndex, &stNapiCfg, &stNapiLbCfg);
 
     }
 
@@ -191,7 +195,8 @@ VOS_VOID RNIC_InitPdnInfo(RNIC_PS_IFACE_INFO_STRU *pstPdnInfo)
 
 VOS_VOID RNIC_InitNapiCfg(
     RNIC_DEV_ID_ENUM_UINT8              enRmNetId,
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 )
 {
     /* 3GPP域7张网卡按照NV配置，其他网卡关闭NAPI */
@@ -212,11 +217,31 @@ VOS_VOID RNIC_InitNapiCfg(
         RNIC_SET_NAPI_WEIGHT_LEVEL2(enRmNetId, pstNapiCfg->stNapiWeightDynamicAdjCfg.stNapiWeightLevel.ucNapiWeightLevel2);
         RNIC_SET_NAPI_WEIGHT_LEVEL3(enRmNetId, pstNapiCfg->stNapiWeightDynamicAdjCfg.stNapiWeightLevel.ucNapiWeightLevel3);
         RNIC_SET_NAPI_WEIGHT_LEVEL4(enRmNetId, pstNapiCfg->stNapiWeightDynamicAdjCfg.stNapiWeightLevel.ucNapiWeightLevel4);
+
+        /* NAPI负载均衡配置, 如果NAPI特性关闭，则直接关闭NAPI负载均衡 */
+        if (RNIC_FEATURE_OFF == RNIC_GET_NAPI_FEATURE(enRmNetId))
+        {
+            RNIC_SET_NAPI_LB_FEATURE(enRmNetId, RNIC_FEATURE_OFF);
+        }
+        else
+        {
+            RNIC_SET_NAPI_LB_FEATURE(enRmNetId, pstNapiLbCfg->ucNapiLbEnable);
+            RNIC_SET_NAPI_LB_CPUMASK(enRmNetId, pstNapiLbCfg->usNapiLbCpumask);
+            /* 默认为档位0 */
+            RNIC_SET_NAPI_LB_CUR_LEVEL(enRmNetId, 0);
+
+            TAF_MEM_CPY_S(g_stRnicCtx.astIfaceCtx[enRmNetId].stFeatureCfg.stNapiLbCfg.astNapiLbLevelCfg,
+                       sizeof(RNIC_NAPI_LB_LEVEL_CFG_STRU) * RNIC_NVIM_NAPI_LB_MAX_LEVEL,
+                       pstNapiLbCfg->astNapiLbLevelCfg,
+                       sizeof(RNIC_NAPI_LB_LEVEL_CFG_STRU) * RNIC_NVIM_NAPI_LB_MAX_LEVEL);
+        }
+
     }
     else
     {
         RNIC_SET_NAPI_FEATURE(enRmNetId, RNIC_FEATURE_OFF);
         RNIC_SET_GRO_FEATURE(enRmNetId, RNIC_FEATURE_OFF);
+        RNIC_SET_NAPI_LB_FEATURE(enRmNetId, RNIC_FEATURE_OFF);
     }
 
     return;
@@ -267,19 +292,20 @@ VOS_VOID RNIC_InitResetSem(VOS_VOID)
     /* 分配二进制信号量 */
     if (VOS_OK != VOS_SmBCreate( "RNIC", 0, VOS_SEMA4_FIFO, &g_stRnicCtx.hResetSem))
     {
-        PS_PRINTF("Create rnic acpu cnf sem failed!\r\n");
+        PS_PRINTF_WARNING("Create rnic acpu cnf sem failed!\n");
 
         return;
     }
 
-    PS_PRINTF("Create rnic acpu cnf sem success!\r\n");
+    PS_PRINTF_INFO("Create rnic acpu cnf sem success!\n");
 
     return;
 }
 
 
-VOS_VOID RNIC_CheckNetIfCfgValid(
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+VOS_VOID RNIC_CheckNapiCfgValid(
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 )
 {
     if (pstNapiCfg->ucNapiEnable >= RNIC_FEATURE_BUTT)
@@ -309,12 +335,18 @@ VOS_VOID RNIC_CheckNetIfCfgValid(
         pstNapiCfg->enNapiWeightAdjMode = NAPI_WEIGHT_ADJ_STATIC_MODE;
     }
 
+    if (pstNapiLbCfg->ucNapiLbEnable >= RNIC_FEATURE_BUTT)
+    {
+        pstNapiLbCfg->ucNapiLbEnable = RNIC_FEATURE_OFF;
+    }
+
     return;
 }
 
 
 VOS_VOID RNIC_ReadNapiCfg(
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 )
 {
     TAF_NV_ADS_IPF_MODE_CFG_STRU        stIpfMode;
@@ -333,6 +365,14 @@ VOS_VOID RNIC_ReadNapiCfg(
         pstNapiCfg->ucGroEnable         = RNIC_FEATURE_OFF;
     }
 
+    if (NV_OK != TAF_ACORE_NV_READ(MODEM_ID_0,
+                                   en_NV_Item_Rnic_Napi_Lb_Cfg,
+                                   pstNapiLbCfg,
+                                   (VOS_UINT32)sizeof(TAF_NV_RNIC_NAPI_LB_CFG_STRU)))
+    {
+        pstNapiLbCfg->ucNapiLbEnable = RNIC_FEATURE_OFF;
+    }
+
     if (NV_OK == TAF_ACORE_NV_READ(MODEM_ID_0,
                                    en_NV_Item_ADS_IPF_MODE_CFG,
                                    &stIpfMode,
@@ -346,7 +386,7 @@ VOS_VOID RNIC_ReadNapiCfg(
         }
     }
 
-    RNIC_CheckNetIfCfgValid(pstNapiCfg);
+    RNIC_CheckNapiCfgValid(pstNapiCfg, pstNapiLbCfg);
     return;
 }
 

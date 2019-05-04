@@ -212,9 +212,11 @@ bool PPM_SockIsEnable(void);
 u32 PPM_SocketGetUdpInfo(void);
 u32 PPM_SockInitTask(void);
 u32 PPM_SocketAtRevFun(u8  *pucData, u32 ulLen);
+#ifdef DIAG_SYSTEM_A_PLUS_B_CP
+static inline void PPM_SocketRevFunReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc){return;}
+#else
 void PPM_SocketRevFunReg(CPM_LOGIC_PORT_ENUM_UINT32 enLogicPort, CPM_RCV_FUNC pRcvFunc);
-
-
+#endif
 #pragma pack(pop)
 
 #ifdef __cplusplus

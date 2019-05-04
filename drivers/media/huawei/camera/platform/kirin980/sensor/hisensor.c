@@ -12,13 +12,20 @@
 #include "hwsensor.h"
 #include "sensor_commom.h"
 #include "hw_csi.h"
+#include <asm/io.h>
 
 #define I2S(i) container_of(i, sensor_t, intf)
+#define Sensor2Pdev(s) container_of((s).dev, struct platform_device, dev)
 #define SENSOR_REG_SETTING_DELAY_1_MS 1
 #define GPIO_LOW_STATE    (0)
 #define GPIO_HIGH_STATE   (1)
 #define CTL_RESET_HOLD    (0)
 #define CTL_RESET_RELEASE (1)
+
+#define LPM3_GPU_BUCK_ADDR       (0xFFF0A45C)
+#define LPM3_GPU_BUCK_MAP_BYTE (8)
+
+unsigned int *lpm3 = NULL;
 
 extern struct hw_csi_pad hw_csi_pad;
 extern int strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count);
@@ -47,6 +54,56 @@ char const* hisensor_get_name(hwsensor_intf_t* si)
 	}
 
 	return sensor->board_info->name;
+}
+static int hisensor_do_hw_fpccheck(hwsensor_intf_t* si, void * data)
+{
+    int status = -1;
+    int ret = 0;
+    sensor_t* sensor = NULL;
+    hwsensor_board_info_t *b_info = NULL;
+    struct sensor_cfg_data *cdata = NULL;
+    unsigned int gpio_num = 0;
+    if (NULL == si || NULL == data) {
+        cam_err("%s. si or data is NULL.", __func__);
+        return -EINVAL;
+    }
+
+    sensor = I2S(si);
+    if (NULL == sensor || NULL == sensor->board_info || NULL == sensor->board_info->name) {
+        cam_err("%s. sensor or board_info->name is NULL.", __func__);
+        return -EINVAL;
+    }
+    b_info = sensor->board_info;
+
+    cam_info("%s enter.",__func__);
+    cdata = (struct sensor_cfg_data *)data;
+    gpio_num = b_info->gpios[FSIN].gpio;
+    cam_info("%s. check gpio[%d]",__func__,gpio_num);
+    if(gpio_num <= 0){
+        cam_err("%s.gpio get failed!",__func__);
+        return status;
+    }
+    ret = gpio_request(gpio_num,NULL);
+    if(ret < 0){
+        cam_err("%s request gpio[%d] failed",__func__,gpio_num);
+        return ret;
+    }
+    ret = gpio_direction_input(gpio_num);
+    if(ret < 0){
+        cam_err("%s gpio_direction_input failed",__func__);
+        return ret;
+    }
+    status = gpio_get_value(gpio_num);
+    cdata->data = status;
+    if(GPIO_LOW_STATE == status){
+        cam_info("%s.gpio[%d] status is %d, camera fpc is ok!",__func__,gpio_num,status);
+    } else if (GPIO_HIGH_STATE == status){
+        cam_err("%s.gpio[%d] status is %d,camera fpc is broken!",__func__,gpio_num,status);
+    } else {
+        cam_err("%s.gpio[%d] status is %d,camera gpio_get_value is wrong!",__func__,gpio_num,status);
+    }
+    gpio_free(gpio_num);
+    return status;
 }
 
 int hisensor_power_up(hwsensor_intf_t* si)
@@ -219,19 +276,18 @@ enum camera_metadata_enum_android_hw_dual_primary_mode{
 static void hisensor_deliver_camera_status(struct work_struct *work)
 {
 	rpc_info_t *rpc_info = NULL;
-
-	if (work == NULL) {
+	if (NULL == work) {
 		cam_err("%s work is null", __func__);
 		return;
 	}
 
 	rpc_info = container_of(work, rpc_info_t, rpc_work);
-	if (rpc_info == NULL) {
+	if (NULL == rpc_info) {
 		cam_err("%s rpc_info is null", __func__);
 		return;
 	}
 
-	if (rpc_status_change_for_camera(rpc_info->camera_status)) {
+	if(rpc_status_change_for_camera(rpc_info->camera_status)) {
 		cam_err("%s set_rpc %d fail", __func__, rpc_info->camera_status);
 	} else {
 		cam_info("%s set_rpc %d success", __func__, rpc_info->camera_status);
@@ -257,15 +313,15 @@ static int hisensor_do_hw_reset(hwsensor_intf_t* si, int ctl, int id)
 	}
 	cam_info("reset_type = %d ctl %d id %d", b_info->reset_type, ctl, id);
 
-	// camera radio power ctl for radio frequency interference
+	//camera radio power ctl for radio frequency interference
 	if (b_info->need_rpc == 1) {
 		if (ctl == CTL_RESET_RELEASE) {
-			b_info->rpc_info.camera_status = 1; // set rpc
+			b_info->rpc_info.camera_status = 1;//set rpc
 		} else {
 			b_info->rpc_info.camera_status = 0;
 		}
 
-		if (b_info->rpc_info.rpc_work_queue != NULL) {
+		if (NULL != b_info->rpc_info.rpc_work_queue) {
 			queue_work(b_info->rpc_info.rpc_work_queue, &(b_info->rpc_info.rpc_work));
 		}
 	}
@@ -351,6 +407,56 @@ static int hisensor_do_hw_reset(hwsensor_intf_t* si, int ctl, int id)
 	} else {
 		cam_info("%s: set reset state=%d, mode=%d", __func__, ctl, id);
 	}
+
+	//lint -restore
+	return ret;
+}
+
+static int hisensor_do_hw_mipisw(hwsensor_intf_t* si)
+{
+	//lint -save -e826 -e778 -e774 -e747
+	sensor_t* sensor = NULL;
+	hwsensor_board_info_t *b_info = NULL;
+	int ret = 0;
+	int index = 0;
+	struct sensor_power_setting_array *power_setting_array = NULL;
+	struct sensor_power_setting *power_setting = NULL;
+	if (NULL == si) {
+		cam_err("%s si is null.\n", __func__);
+		return -EINVAL;
+	}
+
+	sensor = I2S(si);
+	if (NULL == sensor) {
+		cam_err("%s sensor is null.\n", __func__);
+		return -EINVAL;
+	}
+
+	b_info = sensor->board_info;
+	if (NULL == b_info) {
+		cam_warn("%s invalid sensor board info", __func__);
+		return 0;
+	}
+
+	cam_info("%s enter.", __func__);
+	power_setting_array = &sensor->power_setting_array;//SENSOR_MIPI_SW
+
+	for (index = 0; index < power_setting_array->size; index++) { /*lint !e574 */
+		power_setting = &power_setting_array->power_setting[index];
+		if(SENSOR_MIPI_SW == power_setting->seq_type)
+		break;
+	}
+
+	ret  = gpio_request(b_info->gpios[MIPI_SW].gpio, NULL);
+	if (ret) {
+		cam_err("%s requeset reset pin failed", __func__);
+		return ret;
+	}
+
+	ret  = gpio_direction_output(b_info->gpios[MIPI_SW].gpio, (power_setting->config_val + 1) % 2);
+	cam_info("mipi_sw = gpio[%d], config_val = %d, index = %d", b_info->gpios[MIPI_SW].gpio, power_setting->config_val, index);
+
+	gpio_free(b_info->gpios[MIPI_SW].gpio);
 
 	//lint -restore
 	return ret;
@@ -453,6 +559,13 @@ int hisensor_config(hwsensor_intf_t* si, void *argp)
 			ret = hisensor_do_hw_reset(si, CTL_RESET_RELEASE, data->mode);
 		break;
 
+		case SEN_CONFIG_MIPI_SWITCH:
+			ret = hisensor_do_hw_mipisw(si);
+		break;
+
+		case SEN_CONFIG_FPC_CHECK:
+			ret = hisensor_do_hw_fpccheck(si,argp);
+		break;
 		default:
 			cam_err("%s cfgtype(%d) is error", __func__, data->cfgtype);
 		break;
@@ -481,7 +594,6 @@ static int32_t hisensor_platform_probe(struct platform_device* pdev)
 		return -ENOMEM;
 	}
 
-	cam_info("%s:%d s_ctrl: %p", __func__, __LINE__, s_ctrl);
 	rc = hw_sensor_get_dt_data(pdev, s_ctrl);
 	if (rc < 0) {
 		cam_err("%s:%d no dt data rc %d", __func__, __LINE__, rc);
@@ -516,19 +628,37 @@ static int32_t hisensor_platform_probe(struct platform_device* pdev)
 	rc = rpmsg_sensor_register(pdev, (void*)s_ctrl);
 	if (0 != rc) {
 		cam_err("%s:%d rpmsg_sensor_register fail.\n", __func__, __LINE__);
-		hwsensor_unregister(&(s_ctrl->intf));
+		hwsensor_unregister(pdev);
 		goto hisensor_probe_fail;
 	}
 
 	b_info = s_ctrl->board_info;
-	if ((b_info != NULL) && (b_info->need_rpc == 1)) {
+	if ((NULL != b_info) && (1 == b_info->need_rpc))
+	{
 		b_info->rpc_info.rpc_work_queue = create_singlethread_workqueue("camera_radio_power_ctl");
-		if (b_info->rpc_info.rpc_work_queue == NULL) {
-			cam_err("%s - create workqueue error", __func__);
+		if (NULL == b_info->rpc_info.rpc_work_queue) {
+			cam_err("%s - create workqueue error",__func__);
 		} else {
 			INIT_WORK(&(b_info->rpc_info.rpc_work), hisensor_deliver_camera_status);
 			cam_info("%s - create workqueue success",__func__);
 		}
+	}
+
+	/* this code just for the bug at elle, this config is lpm3_gpu_buck in dts*/
+	if (s_ctrl->board_info->lpm3_gpu_buck == 1) {
+		if (!lpm3) {
+			lpm3 = ioremap(LPM3_GPU_BUCK_ADDR, LPM3_GPU_BUCK_MAP_BYTE);
+			if (!lpm3)
+				cam_err("%s:ioremap failed!", __func__);
+			else
+				cam_info("%s:ioremap success!", __func__);
+		}
+		else {
+			cam_info("%s:lpm3 is not NULL,continue!", __func__);
+		}
+	}
+	else {
+		cam_info("%s:do not set lpm3_gpu_buck!", __func__);
 	}
 
 	return rc;
@@ -572,8 +702,23 @@ static int32_t hisensor_platform_remove(struct platform_device* pdev)
 		return 0;
 	}
 
+	if (s_ctrl->board_info->lpm3_gpu_buck == 1) {
+		if (lpm3) {
+			iounmap(lpm3);
+			lpm3 = NULL;
+			cam_info("%s:iounmap success!", __func__);
+		}
+		else {
+			cam_info("%s:lpm3 is NULL, do not iounmap!", __func__);
+		}
+	}
+	else {
+		cam_info("%s:do not lpm3 iounmap!", __func__);
+	}
+
 	b_info = s_ctrl->board_info;
-	if ((b_info != NULL) && (b_info->need_rpc == 1) && (b_info->rpc_info.rpc_work_queue != NULL)) {
+	if ((NULL != b_info) && (1 == b_info->need_rpc) && (NULL != b_info->rpc_info.rpc_work_queue))
+	{
 		destroy_workqueue(b_info->rpc_info.rpc_work_queue);
 		b_info->rpc_info.rpc_work_queue = NULL;
 		cam_info("%s - destroy workqueue success",__func__);
@@ -581,7 +726,7 @@ static int32_t hisensor_platform_remove(struct platform_device* pdev)
 
 	rpmsg_sensor_unregister((void*)s_ctrl);
 
-	hwsensor_unregister(&(s_ctrl->intf));
+	hwsensor_unregister(pdev);
 
 	if (NULL != s_ctrl->power_setting_array.power_setting) {
 		kfree(s_ctrl->power_setting_array.power_setting);

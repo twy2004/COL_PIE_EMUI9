@@ -60,6 +60,7 @@
 #include "scm_cnf_dst.h"
 #include "scm_debug.h"
 #include "diag_system_debug.h"
+#include "scm_rate_ctrl.h"
 
 u32 scm_src_buff_init(void)
 {
@@ -153,6 +154,12 @@ int scm_init(void)
 {
     u32 ulRet = 0;
 
+    ulRet = scm_rate_ctrl_init();
+    if(ulRet)
+    {
+        diag_error("rate ctrl init fail\n");
+    }
+
     ulRet = scm_dst_mem_init();
     if(ulRet)
     {
@@ -185,4 +192,5 @@ int scm_init(void)
 
     return BSP_OK;
 }
+
 

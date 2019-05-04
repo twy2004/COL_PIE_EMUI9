@@ -65,7 +65,10 @@
 #include "nv_stru_gucnas.h"
 #include "acore_nv_stru_gucnas.h"
 #include "NdisDrv.h"
-
+#include "PsIfaceGlobalDef.h"
+#include "mdrv.h"
+#include "ps_tag.h"
+#define THIS_MODU ps_ndis
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -152,11 +155,11 @@ VOS_UINT32 Ndis_SndMsgToAt(const VOS_UINT8 *pucBuf,VOS_UINT16 usMsgLen,VOS_UINT3
     MsgBlock                     *pstMsgBlock   = VOS_NULL_PTR;
     MSG_HEADER_STRU              *pstMsgHeader  = VOS_NULL_PTR;
 
-   
+
     /*lint -e516 -esym(516,*)*/
     pstMsgBlock = (MsgBlock*)PS_ALLOC_MSG(NDIS_TASK_PID, usMsgLen - VOS_MSG_HEAD_LENGTH);
     /*lint -e516 +esym(516,*)*/
-   
+
 
     if (VOS_NULL_PTR == pstMsgBlock)
     {
@@ -213,6 +216,51 @@ VOS_INT Ndis_DlAdsDataRcv(VOS_UINT8 ucExRabId, IMM_ZC_STRU *pData, ADS_PKT_TYPE_
         IMM_ZcFree(pData);
         /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_DlAdsDataRcv, Ndis_DlSendNcm fail!");
+        return PS_FAIL;
+    }
+
+    return PS_SUCC;
+}
+
+
+VOS_INT Ndis_DlAdsDataRcvV2(unsigned long ulUserData, IMM_ZC_STRU *pData)
+{
+    ADS_PKT_TYPE_ENUM_UINT8         enPktType;
+
+    if (VOS_NULL_PTR == pData)
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_DlAdsDataRcvV2, recv NULL PTR!");
+        return PS_FAIL;
+    }
+
+    if ((PS_SUCC != Ndis_ChkRabIdValid((VOS_UINT8)ulUserData)))
+    {
+        /*lint -e522*/
+        IMM_ZcFree(pData);
+        /*lint +e522*/
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_DlAdsDataRcvV2, recv RabId or PktType fail!", ulUserData);
+        NDIS_STAT_DL_DISCARD_ADSPKT(1);
+        return PS_FAIL;
+    }
+
+    /*增加从ADS接收到的数据包个数统计*/
+    NDIS_STAT_DL_RECV_ADSPKT_SUCC(1);
+
+    Ndis_LomTraceRcvDlData();
+    if (IP_PAYLOAD == IMM_ZcGetProtocol(pData))
+    {
+        enPktType = ADS_PKT_TYPE_IPV4;
+    }
+    else
+    {
+        enPktType = ADS_PKT_TYPE_IPV6;
+    }
+    if (PS_SUCC != Ndis_DlSendNcm((VOS_UINT8)ulUserData, enPktType, pData))
+    {
+        /*lint -e522*/
+        IMM_ZcFree(pData);
+        /*lint +e522*/
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_DlAdsDataRcvV2, Ndis_DlSendNcm fail!");
         return PS_FAIL;
     }
 
@@ -306,7 +354,6 @@ VOS_UINT32 AppNdis_SpeReadCb(VOS_INT32 lSpePort, VOS_VOID *pPktNode)
         IMM_ZcFree(pstImmZc);
         /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, IMM_ZcGetDataPtr fail!");
-       // NDIS_STAT_UL_DISCARD_USBPKT(1);
         return PS_FAIL;
     }
 
@@ -333,11 +380,8 @@ VOS_UINT32 AppNdis_SpeReadCb(VOS_INT32 lSpePort, VOS_VOID *pPktNode)
         IMM_ZcFree(pstImmZc);
         /*lint +e522*/
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_UlNcmFrmProc, Ndis_ChkRabIdValid fail!");
-        //NDIS_STAT_UL_DISCARD_USBPKT(1);
         return PS_FAIL;
     }
-
-    //NDIS_STAT_UL_RECV_USBPKT_SUCC(1);
 
     Ndis_LomTraceRcvUlData();
     Ndis_UlNcmFrmProc(ucExRabId, pstImmZc);
@@ -374,7 +418,7 @@ VOS_UINT32 Ndis_NvItemInit(VOS_VOID)
                                     sizeof(NDIS_NV_DHCP_LEASE_HOUR_STRU));
     if (PS_SUCC != ulRtn)
     {
-        PS_PRINTF("Ndis_NvItemInit, Fail to read NV DHCP_LEASE_TIME: %d\n", ulRtn);
+        PS_PRINTF_ERR("Ndis_NvItemInit, Fail to read NV DHCP_LEASE_TIME: %d\n", ulRtn);
         stNdisDhcpLeaseHour.ulDhcpLeaseHour = TTF_NDIS_DHCP_DEFAULT_LEASE_HOUR;
     }
 
@@ -396,7 +440,7 @@ VOS_UINT32 Ndis_NvItemInit(VOS_VOID)
 
     if (PS_SUCC != ulRtn)
     {
-        PS_PRINTF( "Ndis_NvItemInit, Fail to read NV IPV6_MTU: %d\n!", ulRtn);
+        PS_PRINTF_ERR( "Ndis_NvItemInit, Fail to read NV IPV6_MTU: %d\n!", ulRtn);
         stNdisIPv6Mtu.ulIpv6RouterMtu = TTF_NDIS_IPV6_MTU_DEFAULT;
     }
 
@@ -428,7 +472,7 @@ VOS_UINT32 Ndis_Init( VOS_VOID )
 
     if (VOS_NULL_PTR == pucMacAddr)
     {
-        PS_PRINTF("Ndis_Init, Ndis_GetMacAddr Fail!\n");
+        PS_PRINTF_ERR("Ndis_Init, Ndis_GetMacAddr Fail!\n");
         return PS_FAIL;
     }
 
@@ -453,7 +497,7 @@ VOS_UINT32 Ndis_Init( VOS_VOID )
 
     if (PS_SUCC != Ndis_NvItemInit())             /*NV项初始化*/
     {
-        PS_PRINTF("Ndis_Init, Ndis_NvItemInit Fail!\n");
+        PS_PRINTF_ERR("Ndis_Init, Ndis_NvItemInit Fail!\n");
         return PS_FAIL;
     }
 
@@ -464,7 +508,6 @@ VOS_UINT32 Ndis_DlSendNcm(VOS_UINT8 ucExRabId, ADS_PKT_TYPE_ENUM_UINT8 ucPktType
 {
     VOS_UINT32                     ulResult;
     NDIS_ENTITY_STRU              *pstNdisEntity;
-    //UDI_HANDLE                     ulHandle;
 
         /*使用ExRabId获取NDIS实体*/
     pstNdisEntity = NDIS_GetEntityByRabId(ucExRabId);
@@ -473,8 +516,6 @@ VOS_UINT32 Ndis_DlSendNcm(VOS_UINT8 ucExRabId, ADS_PKT_TYPE_ENUM_UINT8 ucPktType
         NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_DlSendNcm, NDIS_GetEntityByRabId fail!");
         return PS_FAIL;
     }
-
-   // ulHandle      = pstNdisEntity->ulHandle;
 
     ulResult = Ndis_DlUsbSendNcm(ucExRabId, ucPktType, pstImmZc);
     return ulResult;
@@ -890,7 +931,7 @@ VOS_UINT32  APP_Ndis_Pid_InitFunc( enum VOS_INIT_PHASE_DEFINE ePhase)
 
             if (PS_SUCC != ulResult)
             {
-                PS_PRINTF("APP_Ndis_Pid_InitFunc, Ndis_Init fail!\n");
+                PS_PRINTF_ERR("APP_Ndis_Pid_InitFunc, Ndis_Init fail!\n");
                 return VOS_ERR;
             }
             break;
@@ -1208,10 +1249,16 @@ VOS_VOID Ndis_StopARPTimer(NDIS_ARP_PERIOD_TIMER_STRU *pstArpPeriodTimer)
 }
 
 
+int ads_iface_register_rx_handler(VOS_UINT8 iface_id,
+                                       struct ads_iface_rx_handler_s *rx_handler)
+{
+    return PS_SUCC;
+}
+
 VOS_UINT32 Ndis_ChkRabIdValid(VOS_UINT8 ucExRabId)
 {
     VOS_UINT16 usModemId;
-    VOS_UINT8 ucRabId;
+    VOS_UINT8  ucRabId;
 
     usModemId = NDIS_GET_MODEMID_FROM_EXBID(ucExRabId);
     if (usModemId >= MODEM_ID_BUTT)
@@ -1227,7 +1274,6 @@ VOS_UINT32 Ndis_ChkRabIdValid(VOS_UINT8 ucExRabId)
 
     return PS_SUCC;
 }
-
 
 
 NDIS_ENTITY_STRU* NDIS_GetEntityByRabId(VOS_UINT8 ucExRabId)
@@ -1466,7 +1512,6 @@ VOS_VOID Ndis_PdnInfoCfgProc(const AT_NDIS_PDNINFO_CFG_REQ_STRU *pstNasNdisInfo)
 
     pstNdisEntity->lSpePort = NDIS_INVALID_SPEPORT;
 
-    /*NR版本上暂不编译该部分，待NR Ndis迭代开始后再调整该部分*/
     /*向ADS注册下行回调:只注册一次*/
     if (VOS_OK != (ADS_DL_RegDlDataCallback(ucExRabId, Ndis_DlAdsDataRcv, 0)))
     {
@@ -1548,6 +1593,184 @@ VOS_VOID Ndis_PdnRel(const AT_NDIS_PDNINFO_REL_REQ_STRU *pstNasNdisRel)
     /*NDIS向AT回复释放确认原语*/
     stRelCnf.enResult  = AT_NDIS_SUCC;
     (VOS_VOID)Ndis_SndMsgToAt((VOS_UINT8*)&stRelCnf,sizeof(AT_NDIS_PDNINFO_REL_CNF_STRU),ID_AT_NDIS_PDNINFO_REL_CNF);
+
+    return;
+}
+
+
+
+VOS_VOID Ndis_ATIfaceUpCfgTransToPdnInfoCfg(const	AT_NDIS_IFACE_UP_CONFIG_IND_STRU *pstNdisIFaceInfo,
+                                            AT_NDIS_PDNINFO_CFG_REQ_STRU             *pstNdisPdnInfo)
+{
+    NDIS_MEM_SET_S((VOS_UINT8*)pstNdisPdnInfo,
+                    sizeof(AT_NDIS_PDNINFO_CFG_REQ_STRU),
+                    0,
+                    sizeof(AT_NDIS_PDNINFO_CFG_REQ_STRU));
+
+    pstNdisPdnInfo->ulMsgId             = pstNdisIFaceInfo->ulMsgId;
+    pstNdisPdnInfo->bitOpIpv4PdnInfo    = pstNdisIFaceInfo->bitOpIpv4PdnInfo;
+    pstNdisPdnInfo->bitOpIpv6PdnInfo    = pstNdisIFaceInfo->bitOpIpv6PdnInfo;
+    pstNdisPdnInfo->enModemId           = NDIS_GET_MODEMID_FROM_EXBID(pstNdisIFaceInfo->ucIfaceId);/*将Iface ID转成ModemId+RabId*/
+    pstNdisPdnInfo->ucRabId             = NDIS_GET_BID_FROM_EXBID(pstNdisIFaceInfo->ucIfaceId);    /*将Iface ID转成ModemId+RabId*/
+    pstNdisPdnInfo->ulHandle            = pstNdisIFaceInfo->ulHandle;
+    NDIS_MEM_CPY_S(&pstNdisPdnInfo->stIpv4PdnInfo,
+                   sizeof(AT_NDIS_IPV4_PDN_INFO_STRU),
+                   &pstNdisIFaceInfo->stIpv4PdnInfo,
+                   sizeof(AT_NDIS_IPV4_PDN_INFO_STRU));
+    NDIS_MEM_CPY_S(&pstNdisPdnInfo->stIpv6PdnInfo,
+                   sizeof(AT_NDIS_IPV6_PDN_INFO_STRU),
+                   &pstNdisIFaceInfo->stIpv6PdnInfo,
+                   sizeof(AT_NDIS_IPV6_PDN_INFO_STRU));
+
+    return;
+}
+
+
+VOS_VOID Ndis_IfaceUpCfgProc(const AT_NDIS_IFACE_UP_CONFIG_IND_STRU *pstIfacInfo)
+{
+    VOS_UINT8                       ucExRabId;
+    UDI_HANDLE                      ulHandle;
+    NDIS_ENTITY_STRU               *pstNdisEntity;
+    VOS_UINT32                      ulV4Ret;
+    VOS_UINT32                      ulV6Ret;
+    AT_NDIS_PDNINFO_CFG_REQ_STRU    stPdnInfo;
+    struct ads_iface_rx_handler_s   stIfaceRxHandle;
+
+    NDIS_INFO_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc entered!");
+
+    /*长度异常检查*/
+    if ((sizeof(AT_NDIS_IFACE_UP_CONFIG_IND_STRU) - VOS_MSG_HEAD_LENGTH) > pstIfacInfo->ulLength)
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc: input msg length less than struc", pstIfacInfo->ulMsgId);
+        return;
+    }
+
+    /*生成扩展的RabId*/
+    ucExRabId  = pstIfacInfo->ucIfaceId;
+    ulHandle   = pstIfacInfo->ulHandle;
+
+    /*ExRabId参数范围有效性检查。若检查失败，则直接向AT回复配置失败*/
+    if (PS_SUCC != Ndis_ChkRabIdValid(ucExRabId))
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc,  Ndis_ChkRabIdValid fail!");
+        return;
+    }
+
+    /*如果根据ExRabId查找不到NDIS实体，则分配一个空闲的NDIS实体*/
+    pstNdisEntity = NDIS_GetEntityByRabId(ucExRabId);
+    if(VOS_NULL_PTR == pstNdisEntity)
+    {
+        /*如果分配不到空闲的NDIS实体，则返回*/
+        pstNdisEntity = NDIS_AllocEntity();
+        if(VOS_NULL_PTR == pstNdisEntity)
+        {
+            NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc,  NDIS_AllocEntity failed!");
+            return;
+        }
+
+        /*该承载之前没有对应的NDIS实体，故填无效值*/
+        pstNdisEntity->ucRabType= NDIS_RAB_NULL;
+        pstNdisEntity->ulHandle = NDIS_INVALID_HANDLE;
+        pstNdisEntity->lSpePort = NDIS_INVALID_SPEPORT;
+        pstNdisEntity->ulSpeIpfFlag= PS_FALSE;
+    }
+
+    Ndis_ATIfaceUpCfgTransToPdnInfoCfg(pstIfacInfo, &stPdnInfo);
+    ulV4Ret = Ndis_PdnV4PdnCfg(&stPdnInfo,pstNdisEntity);
+    ulV6Ret = Ndis_PdnV6PdnCfg(&stPdnInfo,pstNdisEntity);
+
+    if ((PS_FAIL == ulV6Ret) && (PS_FAIL == ulV4Ret))   /*如果IPV4和IPV6配置指示信息都无效，也认为配置失败*/
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc,  Ipv4 and Ipv6 Cfg all fail!");
+        return;
+    }
+
+    pstNdisEntity->enUsed = PS_TRUE;      /*设置该NDIS实体为使用状态*/
+    pstNdisEntity->ucRabId  = ucExRabId;  /*将扩展RabId存到对应NDIS实体中*/
+    pstNdisEntity->ulHandle = ulHandle;   /*保存Handle到NDIS实体中*/
+    pstNdisEntity->lSpePort = 0;          /*保存SPE Port到NDIS实体中*/
+    pstNdisEntity->ulSpeIpfFlag = 0;
+
+    /*启动周期发送ARP的定时器*/
+    if (PS_SUCC != Ndis_StartARPTimer(pstNdisEntity))
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc StartTmr Failed!");
+        return;
+    }
+
+    pstNdisEntity->lSpePort = NDIS_INVALID_SPEPORT;
+
+    stIfaceRxHandle.user_data       = ucExRabId;
+    stIfaceRxHandle.rx_func         = Ndis_DlAdsDataRcvV2;
+    stIfaceRxHandle.rx_cmplt_func   = VOS_NULL_PTR;
+
+    /*向ADS注册下行回调*/
+    if (VOS_OK != ads_iface_register_rx_handler(ucExRabId, &stIfaceRxHandle))
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc, ADS_DL_RegDlDataCallback fail!");
+        return;
+    }
+
+    /*lint -e718*/
+    if (VOS_OK != NDIS_UDI_IOCTL (pstNdisEntity->ulHandle, NCM_IOCTL_REG_UPLINK_RX_FUNC, AppNdis_UsbReadCb))
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_IfaceUpCfgProc, regist AppNdis_UsbReadCb fail!");
+        return;
+    }
+    /*lint +e718*/
+
+    return;
+}
+
+
+VOS_VOID Ndis_IfaceDownCfgProc(const AT_NDIS_IFACE_DOWN_CONFIG_IND_STRU *pstIfacInfo)
+
+{
+    VOS_UINT8                      ucExRabId;
+    NDIS_ENTITY_STRU              *pstNdisEntity;
+    NDIS_ARP_PERIOD_TIMER_STRU    *pstArpPeriodTimer;
+
+    NDIS_INFO_LOG(NDIS_TASK_PID, "Ndis_IfaceDownCfgProc entered!");
+
+    /*长度异常检查*/
+    if ((sizeof(AT_NDIS_IFACE_DOWN_CONFIG_IND_STRU) - VOS_MSG_HEAD_LENGTH) > pstIfacInfo->ulLength)
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_IfaceDownCfgProc: input msg length less than struc", pstIfacInfo->ulMsgId);
+        return;
+    }
+
+    ucExRabId = pstIfacInfo->ucIfaceId;
+    if (PS_SUCC != Ndis_ChkRabIdValid(ucExRabId))
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "pstIfacInfo,  Ndis_ChkRabIdValid fail!");
+        return;
+    }
+
+    pstNdisEntity = NDIS_GetEntityByRabId(ucExRabId);
+    if(VOS_NULL_PTR == pstNdisEntity)
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "pstIfacInfo,  NDIS_GetEntityByRabId failed!");
+        return;
+    }
+
+    pstArpPeriodTimer = &(pstNdisEntity->stIpV4Info.stArpPeriodTimer);
+
+    /*如果周期性ARP定时器还在运行，则停掉*/
+    Ndis_StopARPTimer(pstArpPeriodTimer);
+
+    /*调用ND SERVER API 释放该RabId对应ND SERVER实体*/
+    if (NDIS_ENTITY_IPV6 == (pstNdisEntity->ucRabType & NDIS_ENTITY_IPV6))
+    {
+        NdSer_Ipv6PdnRel(ucExRabId);
+    }
+
+    /*更新该RabId对应NDIS实体为空*/
+    pstNdisEntity->ucRabType = NDIS_RAB_NULL;
+    pstNdisEntity->ucRabId   = NDIS_INVALID_RABID;
+    pstNdisEntity->ulHandle  = NDIS_INVALID_HANDLE;
+    pstNdisEntity->enUsed    = PS_FALSE;
+    pstNdisEntity->lSpePort = NDIS_INVALID_SPEPORT;
+    pstNdisEntity->ulSpeIpfFlag = PS_FALSE;
 
     return;
 }
@@ -1647,6 +1870,14 @@ VOS_VOID Ndis_AtMsgProc( const MsgBlock *pMsgBlock )
             Ndis_PdnRel((AT_NDIS_PDNINFO_REL_REQ_STRU *)(VOS_VOID*)pMsgBlock);
             break;
 
+        case ID_AT_NDIS_IFACE_UP_CONFIG_IND:
+            Ndis_IfaceUpCfgProc((AT_NDIS_IFACE_UP_CONFIG_IND_STRU *)(VOS_VOID*)pMsgBlock);
+            break;
+
+        case ID_AT_NDIS_IFACE_DOWN_CONFIG_IND:
+            Ndis_IfaceDownCfgProc((AT_NDIS_IFACE_DOWN_CONFIG_IND_STRU *)(VOS_VOID*)pMsgBlock);
+            break;
+
         default:
             NDIS_WARNING_LOG(NDIS_TASK_PID, "Ndis_AtMsgProc:Error Msg!");
             break;
@@ -1659,10 +1890,6 @@ VOS_VOID Ndis_AtMsgProc( const MsgBlock *pMsgBlock )
 VOS_VOID Ndis_AdsMsgProc(const MsgBlock* pMsgBlock )
 {
     ADS_NDIS_DATA_IND_STRU  *pstAdsNdisMsg  = (ADS_NDIS_DATA_IND_STRU*)(VOS_VOID*)pMsgBlock;
-
-    /*begin: 鹰眼插桩*/
-    COVERITY_TAINTED_SET(pMsgBlock->aucValue);
-    /*end: 鹰眼插桩*/
 
     if ( sizeof(ADS_NDIS_DATA_IND_STRU) - VOS_MSG_HEAD_LENGTH > pMsgBlock->ulLength )
     {
@@ -1710,11 +1937,110 @@ VOS_VOID Ndis_AdsMsgProc(const MsgBlock* pMsgBlock )
 }
 
 
+VOS_VOID Ndis_AdsV2MsgTransToV1Msg(ADS_NDIS_DATA_IND_V2_STRU    *pstV2Msg,
+                                              ADS_NDIS_DATA_IND_STRU       *pstV1Msg)
+{
+    NDIS_MEM_SET_S(pstV1Msg,
+                   sizeof(ADS_NDIS_DATA_IND_STRU),
+                   0,
+                   sizeof(ADS_NDIS_DATA_IND_STRU));
+
+    pstV1Msg->ulMsgId           = ID_ADS_NDIS_DATA_IND;
+    pstV1Msg->enModemId         = NDIS_GET_MODEMID_FROM_EXBID(pstV2Msg->ucIfaceId);
+    pstV1Msg->ucRabId           = NDIS_GET_BID_FROM_EXBID(pstV2Msg->ucIfaceId);
+    pstV1Msg->enIpPacketType    = pstV2Msg->enIpPacketType;
+    pstV1Msg->pstData           = pstV2Msg->pstData;
+
+    return;
+}
+
+
+VOS_VOID Ndis_AdsMsgProcV2(const MsgBlock* pMsgBlock )
+{
+    ADS_NDIS_DATA_IND_V2_STRU  *pstAdsNdisMsg  = (ADS_NDIS_DATA_IND_V2_STRU*)(VOS_VOID*)pMsgBlock;
+    ADS_NDIS_DATA_IND_STRU      stAdsNdisV1Msg;
+
+    if ( sizeof(ADS_NDIS_DATA_IND_V2_STRU) - VOS_MSG_HEAD_LENGTH > pMsgBlock->ulLength )
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_AdsMsgProcV2, input msg length less than struc", pMsgBlock->ulLength);
+        return;
+    }
+    if (VOS_NULL_PTR == pstAdsNdisMsg->pstData)
+    {
+        NDIS_ERROR_LOG(NDIS_TASK_PID, "Ndis_AdsMsgProcV2 recv NULL PTR!");
+        return;
+    }
+
+    Ndis_AdsV2MsgTransToV1Msg(pstAdsNdisMsg, &stAdsNdisV1Msg);
+
+    switch (stAdsNdisV1Msg.enIpPacketType)
+    {
+        case ADS_NDIS_IP_PACKET_TYPE_DHCPV4:                                     /*DHCP包*/
+             Ndis_DHCPPkt_Proc(&stAdsNdisV1Msg);
+             break;
+        case ADS_NDIS_IP_PACKET_TYPE_DHCPV6:                                     /*DHCPV6包*/
+             NdSer_DhcpV6PktProc(&stAdsNdisV1Msg);
+             break;
+        case ADS_NDIS_IP_PACKET_TYPE_ICMPV6:                                     /*ND和ECHO REQUEST包*/
+             NdSer_NdAndEchoPktProc(&stAdsNdisV1Msg);
+             break;
+
+        default:
+             NDIS_WARNING_LOG1(NDIS_TASK_PID, "Ndis_AdsMsgProcV2:Other Msg!", stAdsNdisV1Msg.enIpPacketType);
+             break;
+    }
+
+     /*处理完成后释放ImmZc*/
+     /*lint -e522*/
+     IMM_ZcFree(pstAdsNdisMsg->pstData);
+     /*lint +e522*/
+
+    return;
+}
+
+
+
+VOS_VOID Ndis_AdsMsgDispatch(const MsgBlock* pMsgBlock )
+{
+    AT_NDIS_MSG_ID_ENUM_UINT32      ulMsgId;
+
+    /*begin: 鹰眼插桩*/
+    COVERITY_TAINTED_SET(pMsgBlock->aucValue);
+    /*end: 鹰眼插桩*/
+
+    /*长度异常保护*/
+    if (sizeof(MSG_HEADER_STRU) - VOS_MSG_HEAD_LENGTH > pMsgBlock->ulLength )
+    {
+        NDIS_ERROR_LOG1(NDIS_TASK_PID, "Ndis_AdsMsgDispatch: input msg length less than struc MSG_HEADER_STRU", pMsgBlock->ulLength);
+        return;
+    }
+
+    ulMsgId  = ((MSG_HEADER_STRU *)(VOS_VOID*)pMsgBlock)->ulMsgName;
+
+    switch (ulMsgId)
+    {
+        case ID_ADS_NDIS_DATA_IND :/*根据消息的不同处理AT不同的请求*/
+            Ndis_AdsMsgProc(pMsgBlock);
+            break;
+
+        case ID_ADS_NDIS_DATA_IND_V2 :
+            Ndis_AdsMsgProcV2(pMsgBlock);
+            break;
+
+        default:
+            NDIS_WARNING_LOG(NDIS_TASK_PID, "Ndis_AdsMsgDispatch:Error Msg!");
+            break;
+    }
+
+    return;
+}
+
+
 VOS_VOID APP_Ndis_PidMsgProc(const MsgBlock* pMsgBlock )
 {
     if (VOS_NULL_PTR == pMsgBlock)
     {
-        PS_PRINTF("Error:APP_Ndis_DLPidMsgProc Parameter pRcvMsg is NULL!");
+        PS_PRINTF_INFO("Error:APP_Ndis_DLPidMsgProc Parameter pRcvMsg is NULL!");
         return ;
     }
 
@@ -1731,7 +2057,7 @@ VOS_VOID APP_Ndis_PidMsgProc(const MsgBlock* pMsgBlock )
             break;
 
         case ACPU_PID_ADS_UL:          /*ADS通过OSA消息发送DHCP和ND SERVER包给NDIS模块*/
-            Ndis_AdsMsgProc(pMsgBlock);
+            Ndis_AdsMsgDispatch(pMsgBlock);
             break;
 
         default:
@@ -1758,7 +2084,7 @@ VOS_UINT32 APP_NDIS_FidInit(enum VOS_INIT_PHASE_DEFINE enPhase)
                                            (Msg_Fun_Type)APP_Ndis_PidMsgProc);
             if (VOS_OK != ulResult)
             {
-                PS_PRINTF("APP_NDIS_FidInit, register NDIS PID fail!\n");
+                PS_PRINTF_ERR("APP_NDIS_FidInit, register NDIS PID fail!\n");
                 return VOS_ERR;
             }
 
@@ -1768,36 +2094,14 @@ VOS_UINT32 APP_NDIS_FidInit(enum VOS_INIT_PHASE_DEFINE enPhase)
                                                        (Msg_Fun_Type)APP_NdServer_PidMsgProc);
             if (VOS_OK != ulResult)
             {
-                PS_PRINTF("APP_NDIS_FidInit, register NDSERVER PID fail!\n");
-                return VOS_ERR;
-            }
-
-            /*注册DIPC PID*/
-            ulResult = VOS_RegisterPIDInfo(PS_PID_APP_DIPC,
-                        (Init_Fun_Type)DIPC_Pid_InitFunc,
-                        (Msg_Fun_Type)DIPC_AtMsgProc);
-
-            if (VOS_OK != ulResult)
-            {
-                PS_PRINTF("APP_NDIS_FidInit, register DIPC PID fail!\n");
-                return VOS_ERR;
-            }
-
-            /*注册MUX PID*/
-            ulResult = VOS_RegisterPIDInfo(PS_PID_APP_MUX,
-                        (Init_Fun_Type)MUX_Pid_InitFunc,
-                        (Msg_Fun_Type)MUX_AtMsgProc);
-
-            if (VOS_OK != ulResult)
-            {
-                PS_PRINTF("APP_NDIS_FidInit, register MUX PID fail!\n");
+                PS_PRINTF_ERR("APP_NDIS_FidInit, register NDSERVER PID fail!\n");
                 return VOS_ERR;
             }
 
             ulResult = VOS_RegisterMsgTaskPrio(NDIS_TASK_FID, VOS_PRIORITY_P4);
             if( VOS_OK != ulResult )
             {
-                PS_PRINTF("APP_NDIS_FidInit, register priority fail!\n");
+                PS_PRINTF_ERR("APP_NDIS_FidInit, register priority fail!\n");
                 return VOS_ERR;
             }
             break;
@@ -1859,26 +2163,26 @@ VOS_VOID GU_NDIS_OM_SWITCH_OFF(VOS_VOID)
 
 VOS_VOID Ndis_ShowStat(VOS_VOID)
 {
-    PS_PRINTF("上行丢弃的数据包个数:                %d\n", g_stNdisStatStru.ulDicardUsbFrmNum);
-    PS_PRINTF("上行成功收到USB的包个数:             %d\n", g_stNdisStatStru.ulRecvUsbPktSuccNum);
-    PS_PRINTF("上行发送到ADS成功的包个数:           %d\n", g_stNdisStatStru.ulSendPktToAdsSucNum);
-    PS_PRINTF("下行丢弃的ADS业务数据包个数:         %d\n", g_stNdisStatStru.ulDicardAdsPktNum);
-    PS_PRINTF("下行成功收到ADS业务数据包个数:       %d\n", g_stNdisStatStru.ulRecvAdsPktSuccNum);
-    PS_PRINTF("下行获取IPV6 MAC帧头失败个数:        %d\n", g_stNdisStatStru.ulGetIpv6MacFailNum);
-    PS_PRINTF("下行数据包类型和承载类型不一致个数:  %d\n", g_stNdisStatStru.ulDlPktDiffRabNum);
-    PS_PRINTF("下行添加MAC头失败个数:               %d\n", g_stNdisStatStru.ulAddMacHdrFailNum);
-    PS_PRINTF("下行发送业务数据包失败个数:          %d\n", g_stNdisStatStru.ulDlSendPktFailNum);
-    PS_PRINTF("下行发送业务数据包成功个数:          %d\n", g_stNdisStatStru.ulDlSendPktSuccNum);
+    PS_PRINTF_ERR("上行丢弃的数据包个数:                %d\n", g_stNdisStatStru.ulDicardUsbFrmNum);
+    PS_PRINTF_ERR("上行成功收到USB的包个数:             %d\n", g_stNdisStatStru.ulRecvUsbPktSuccNum);
+    PS_PRINTF_ERR("上行发送到ADS成功的包个数:           %d\n", g_stNdisStatStru.ulSendPktToAdsSucNum);
+    PS_PRINTF_ERR("下行丢弃的ADS业务数据包个数:         %d\n", g_stNdisStatStru.ulDicardAdsPktNum);
+    PS_PRINTF_ERR("下行成功收到ADS业务数据包个数:       %d\n", g_stNdisStatStru.ulRecvAdsPktSuccNum);
+    PS_PRINTF_ERR("下行获取IPV6 MAC帧头失败个数:        %d\n", g_stNdisStatStru.ulGetIpv6MacFailNum);
+    PS_PRINTF_ERR("下行数据包类型和承载类型不一致个数:  %d\n", g_stNdisStatStru.ulDlPktDiffRabNum);
+    PS_PRINTF_ERR("下行添加MAC头失败个数:               %d\n", g_stNdisStatStru.ulAddMacHdrFailNum);
+    PS_PRINTF_ERR("下行发送业务数据包失败个数:          %d\n", g_stNdisStatStru.ulDlSendPktFailNum);
+    PS_PRINTF_ERR("下行发送业务数据包成功个数:          %d\n", g_stNdisStatStru.ulDlSendPktSuccNum);
 
-    PS_PRINTF("\n收到DHCP包个数:                      %d\n", g_stNdisStatStru.ulRecvDhcpPktNum);
-    PS_PRINTF("收到ARP Request包个数:               %d\n", g_stNdisStatStru.ulRecvArpReq);
-    PS_PRINTF("收到ARP Reply  包个数:               %d\n", g_stNdisStatStru.ulRecvArpReply);
-    PS_PRINTF("处理错误 ARP   包个数:               %d\n", g_stNdisStatStru.ulProcArpError);
-    PS_PRINTF("发送ARP Request包成功个数:           %d\n", g_stNdisStatStru.ulSendArpReqSucc);
-    PS_PRINTF("发送ARP Request包失败个数:           %d\n", g_stNdisStatStru.ulSendArpReqFail);
-    PS_PRINTF("发送ARP Req未收到ARP Reply个数:      %d\n", g_stNdisStatStru.ulArpReplyNotRecv);
-    PS_PRINTF("发送ARP Reply包 个数:                %d\n", g_stNdisStatStru.ulSendArpReply);
-    PS_PRINTF("发送ARP或DHCP或ND包失败个数:         %d\n", g_stNdisStatStru.ulSendArpDhcpNDFailNum);
+    PS_PRINTF_ERR("\n收到DHCP包个数:                      %d\n", g_stNdisStatStru.ulRecvDhcpPktNum);
+    PS_PRINTF_ERR("收到ARP Request包个数:               %d\n", g_stNdisStatStru.ulRecvArpReq);
+    PS_PRINTF_ERR("收到ARP Reply  包个数:               %d\n", g_stNdisStatStru.ulRecvArpReply);
+    PS_PRINTF_ERR("处理错误 ARP   包个数:               %d\n", g_stNdisStatStru.ulProcArpError);
+    PS_PRINTF_ERR("发送ARP Request包成功个数:           %d\n", g_stNdisStatStru.ulSendArpReqSucc);
+    PS_PRINTF_ERR("发送ARP Request包失败个数:           %d\n", g_stNdisStatStru.ulSendArpReqFail);
+    PS_PRINTF_ERR("发送ARP Req未收到ARP Reply个数:      %d\n", g_stNdisStatStru.ulArpReplyNotRecv);
+    PS_PRINTF_ERR("发送ARP Reply包 个数:                %d\n", g_stNdisStatStru.ulSendArpReply);
+    PS_PRINTF_ERR("发送ARP或DHCP或ND包失败个数:         %d\n", g_stNdisStatStru.ulSendArpDhcpNDFailNum);
 
     return;
 }
@@ -1888,7 +2192,7 @@ VOS_VOID Ndis_PrintIpv4Addr(const VOS_UINT8 *pIpaddr)
 {
     if ((pIpaddr[0] == 0) && (pIpaddr[1] == 0) && (pIpaddr[2] == 0) && (pIpaddr[3] == 0) )
     {
-         PS_PRINTF("                      地址未配置\n");
+         PS_PRINTF_ERR("                      地址未配置\n");
          return;
     }
 
@@ -1906,17 +2210,17 @@ VOS_VOID Ndis_ShowValidEntity(VOS_UINT16 usModemId, VOS_UINT8 ucRabId)
     pstEntity  =  NDIS_GetEntityByRabId(ucExRabId);
     if(VOS_NULL_PTR == pstEntity)
     {
-        PS_PRINTF("             没有对应的NDIS实体    \n");
+        PS_PRINTF_ERR("             没有对应的NDIS实体    \n");
         return;
     }
 
-    PS_PRINTF("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
-    PS_PRINTF("                 EPS承载ID:  %d\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
-    PS_PRINTF("             ARP已获得标志:  %d\n", pstEntity->stIpV4Info.ulArpInitFlg);
-    PS_PRINTF(" ARP请求发送后收到回复标志:  %d\n", pstEntity->stIpV4Info.ulArpRepFlg);
+    PS_PRINTF_ERR("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
+    PS_PRINTF_ERR("                 EPS承载ID:  %d\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
+    PS_PRINTF_ERR("             ARP已获得标志:  %d\n", pstEntity->stIpV4Info.ulArpInitFlg);
+    PS_PRINTF_ERR(" ARP请求发送后收到回复标志:  %d\n", pstEntity->stIpV4Info.ulArpRepFlg);
 
 
-    PS_PRINTF("\n======================================================\n");
+    PS_PRINTF_ERR("\n======================================================\n");
 
 }
 
@@ -1931,47 +2235,22 @@ VOS_VOID Ndis_ShowAllEntity(VOS_VOID)
         pstEntity  =  &g_pstNdisEntity[ulLoop];
         if (PS_FALSE == pstEntity->enUsed)
         {
-            PS_PRINTF("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
-            PS_PRINTF("                 EPS承载ID %d 未激活\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
+            PS_PRINTF_ERR("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
+            PS_PRINTF_ERR("                 EPS承载ID %d 未激活\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
             continue;
         }
 
-        PS_PRINTF("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
-        PS_PRINTF("                 EPS承载ID:  %d\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
-        PS_PRINTF("             ARP已获得标志:  %d\n", pstEntity->stIpV4Info.ulArpInitFlg);
-        PS_PRINTF(" ARP请求发送后收到回复标志:  %d\n", pstEntity->stIpV4Info.ulArpRepFlg);
+        PS_PRINTF_ERR("                 ModemID:  %d\n", NDIS_GET_MODEMID_FROM_EXBID(pstEntity->ucRabId));
+        PS_PRINTF_ERR("                 EPS承载ID:  %d\n", NDIS_GET_BID_FROM_EXBID(pstEntity->ucRabId));
+        PS_PRINTF_ERR("             ARP已获得标志:  %d\n", pstEntity->stIpV4Info.ulArpInitFlg);
+        PS_PRINTF_ERR(" ARP请求发送后收到回复标志:  %d\n", pstEntity->stIpV4Info.ulArpRepFlg);
 
 
-        PS_PRINTF("\n======================================================\n");
+        PS_PRINTF_ERR("\n======================================================\n");
     }
 }
 
 
-
-
-/*****************************************************************************
- Function Name  : lpsver
- Discription    : 查询版本信息
- Input          : None
- Output         : None
- Return         : None
-
- History:
-      1. Lishangfeng 55206   2010-05-20  初稿
-
-*****************************************************************************/
-/*VOS_VOID lpsver (VOS_VOID)
-{
-    PS_PRINTF("************^U^*************\r\n");
-    PS_PRINTF("Version :APP PS V%dR%03dC%02dB%03d\r\n", 700,
-                                                          1,
-                                                          10,
-                                                          60
-                                    );
-    PS_PRINTF("Date    : %s \r\n", (VOS_UINT8 *)__DATE__);
-    PS_PRINTF("Time    : %s \r\n", (VOS_UINT8 *)__TIME__);
-    PS_PRINTF("************^U^*************\r\n");
-}*/
 
 
 VOS_VOID NDIS_OpenLatency(VOS_VOID)

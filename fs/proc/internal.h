@@ -14,6 +14,9 @@
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
 #include <linux/binfmts.h>
+#ifdef CONFIG_HISI_SWAP_ZDATA
+#include <linux/mm.h>
+#endif
 
 struct ctl_table_header;
 struct mempolicy;
@@ -65,7 +68,7 @@ struct proc_inode {
 	struct proc_dir_entry *pde;
 	struct ctl_table_header *sysctl;
 	struct ctl_table *sysctl_entry;
-	struct list_head sysctl_inodes;
+	struct hlist_node sysctl_inodes;
 	const struct proc_ns_operations *ns_ops;
 	struct inode vfs_inode;
 };

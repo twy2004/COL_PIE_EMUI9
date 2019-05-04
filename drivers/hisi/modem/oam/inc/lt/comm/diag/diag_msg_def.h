@@ -71,10 +71,15 @@ extern "C" {
 #define     DIAG_MSG_BSP_A_TRANS_C_REQ          0x00000004
 #define     DIAG_MSG_BBP_A_TRANS_C_REQ          0x00000005
 #define     DIAG_MSG_PHY_A_TRANS_C_REQ          0x00000006
+#define     DIAG_MSG_MSP_AUTH_REQ               0x00000007      /* DIAG_AUTH_STRU */
+#define     DIAG_MSG_MSP_AUTH_FINISH_REQ        0x00000008
 #define     DIAG_MSG_MSP_A_DEBUG_C_REQ          0x00000009      /* 通知C核保存debug信息 */
 #define     DIAG_MSG_BSP_NV_AUTH_REQ            0x0000000A      /* 通知A核鉴权信息 */
 #define     DIAG_MSG_HIFI_A_TRANS_C_REQ         0x0000000B
 #define     DIAG_MSG_BSP_CMD_LIST_REQ           0x0000000C
+
+/* msgid ----------LRM->AP */
+#define     DIAG_MSG_MSP_AUTH_CNF               (DIAG_MSG_MSP_AUTH_REQ) /* DIAG_AUTH_CNF_STRU */
 
 /* msgid ----------AP->NRM*/
 #define     DIAG_MSG_MSP_A_TRANS_NRM_REQ        (DIAG_MSG_MSP_CONN_REQ)

@@ -231,6 +231,12 @@ void sdhci_mshc_dumpregs(struct sdhci_host *host)
 	pr_info(DRIVER_NAME ": LHEN_IN: 0x%08x | LHEN_INB: 0x%08x\n",
 		sdhci_mmc_sys_readl(host,EMMC_SYS_LHEN_IN),
 		sdhci_mmc_sys_readl(host,EMMC_SYS_LHEN_INB));
+	pr_err(DRIVER_NAME ": sctrl scctrl : 0x%08x\n",
+		sdhci_sctrl_readl(host, SCTRL_SCCTRL));
+	pr_err(DRIVER_NAME ": sctrl div9 : 0x%08x\n",
+		sdhci_sctrl_readl(host, SCTRL_CLKDIV9));
+	pr_err(DRIVER_NAME ": sctrl SCUFS_AUTODIV : 0x%08x\n",
+		sdhci_sctrl_readl(host, SCTRL_AUTODIV));
 
 	if (!(host->quirks2 & SDHCI_QUIRK2_HISI_COMBO_PHY_TC)) {
 		pr_info(DRIVER_NAME ": PHY init ctrl: 0x%08x | init stat: 0x%08x\n",
@@ -1134,6 +1140,25 @@ u32 sdhci_mshc_get_max_timeout_count(struct sdhci_host *host)
 	return 1 << 29;
 }
 
+void sdhci_mshc_set_clk_gt(struct sdhci_host *host, bool enable)
+{
+	if (enable) {
+		/* enable emmc gate*/
+		sdhci_sctrl_writel(host, GT_CLK_EMMC, SCTRL_PEREN1);
+	} else {
+		/* disable emmc clk in emmc_sys_ctrl */
+		 sdhci_sctrl_writel(host, GT_CLK_EMMC, SCTRL_PERDIS1);
+	}
+}
+
+void sdhci_libra_sqscmd_idle_tmr(struct cmdq_host *cq_host)
+{
+	/*CIT 0x100 means set cmd13 polling time period 256*clk
+	 **CBC 0x1 means that STATUS command is to be sent during
+	 **the last block of the
+	 **/
+	cmdq_writel(cq_host, 0x10100, CQSSC1);
+}
 
 static struct sdhci_ops sdhci_mshc_ops = {
 	.get_min_clock = sdhci_mshc_get_min_clock,
@@ -1154,6 +1179,8 @@ static struct sdhci_ops sdhci_mshc_ops = {
 	.dumpregs = sdhci_mshc_dumpregs,
 	.delay_measurement = sdhci_combo_phy_delay_measurement,
 	.get_max_timeout_count = sdhci_mshc_get_max_timeout_count,
+	.set_clk_emmc_gt = sdhci_mshc_set_clk_gt,
+	.sqscmd_idle_tmr = sdhci_libra_sqscmd_idle_tmr,
 };
 
 static struct sdhci_pltfm_data sdhci_mshc_pdata = {
@@ -1453,7 +1480,7 @@ int sdhci_coldboot_rdr_regester(void)
 	u32 ret;
 
 	/*本模块初始化失败异常注册. */
-	memset(&einfo, 0, sizeof(struct rdr_exception_info_s)); /*unsafe_function_ignore: memset*/
+	memset(&einfo, 0, sizeof(struct rdr_exception_info_s));
 	/*初始化失败RDR_MODID_MMC_COLDBOOT */
 	einfo.e_modid = RDR_MODID_MMC_COLDBOOT;
 	einfo.e_modid_end = RDR_MODID_MMC_COLDBOOT;
@@ -1473,8 +1500,8 @@ int sdhci_coldboot_rdr_regester(void)
 	/* 异常发生在EMMC. */
 	einfo.e_from_core = RDR_EMMC;
 	einfo.e_upload_flag = (u32)RDR_UPLOAD_NO;
-	memcpy(einfo.e_from_module, "RDR_MMC_COLDBOOT", sizeof("RDR_MMC_COLDBOOT")); /*unsafe_function_ignore: memcpy*/
-	memcpy(einfo.e_desc, "RDR_MMC_RESET fail.", sizeof("RDR_MMC_RESET fail.")); /*unsafe_function_ignore: memcpy*/
+	memcpy(einfo.e_from_module, "RDR_MMC_COLDBOOT", sizeof("RDR_MMC_COLDBOOT"));
+	memcpy(einfo.e_desc, "RDR_MMC_RESET fail.", sizeof("RDR_MMC_RESET fail."));
 
 	ret = rdr_register_exception(&einfo);
 	if (ret != RDR_MODID_MMC_COLDBOOT) {

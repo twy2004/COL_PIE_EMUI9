@@ -52,7 +52,6 @@ typedef struct _tag_hwfpga
     struct mutex                                lock;//stub
     const hwfpga_intf_t*                        hw;
     hwcam_data_table_t*                         cfg;//stub:maybe no use
-    struct ion_handle*                          cfg_hdl;//stub:maybe no use
     hwfpga_notify_intf_t                        notify;//stub:maybe no use
 } hwfpga_t;
 
@@ -87,7 +86,6 @@ hwfpga_v4l2_close(
     struct v4l2_subdev* sd,
     struct v4l2_subdev_fh* fh)
 {
-    struct ion_handle* hdl = NULL;
     hwfpga_t* s = SD2HWFPGA(sd);
     hwfpga_config_data_t edata;
     hwcam_data_table_t* cfg = NULL;
@@ -104,12 +102,7 @@ hwfpga_v4l2_close(
     hwfpga_subdev_config(s, &edata);
     mutex_unlock(&fpga_fd_lock);
 
-    swap(s->cfg_hdl, hdl);
     swap(s->cfg, cfg);
-    if (hdl) {
-        HWCAM_CFG_ERR("release fpag driver data table!");
-        hwcam_cfgdev_release_data_table(hdl);
-    }
 
     HWCAM_CFG_INFO("fpga_fd_open_times = %d.", fpga_fd_open_times);
     return 0;
@@ -131,51 +124,6 @@ hwfpga_subdev_get_info(
          HWFPGA_NAME_SIZE);
     HWCAM_CFG_INFO("fpga name(%s)\n", info->name);
     return 0;
-}
-
-static long
-hwfpga_subdev_mount_buf(
-    hwfpga_t* s,
-    hwcam_buf_info_t* bi)
-{
-     long rc = -EINVAL;
-     switch (bi->kind)
-     {
-         case HWCAM_BUF_KIND_PIPELINE_PARAM:
-             if (!s->cfg) {
-                 s->cfg = hwcam_cfgdev_import_data_table(
-                         "hwfpga_drv_cfg", bi, &s->cfg_hdl);
-                 if (s->cfg) { rc = 0; }
-             }
-             break;
-         default:
-             HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-             break;
-     }
-
-     return rc;
-}
-
-static long
-hwfpga_subdev_unmount_buf(
-    hwfpga_t* s,
-    hwcam_buf_info_t* bi)
-{
-    long rc = -EINVAL;
-    switch (bi->kind)
-    {
-        case HWCAM_BUF_KIND_PIPELINE_PARAM:
-            hwcam_cfgdev_release_data_table(s->cfg_hdl);
-            s->cfg_hdl = NULL;
-            s->cfg = NULL;
-            rc = 0;
-            break;
-        default:
-            HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-        break;
-    }
-
-    return rc;
 }
 
 static long
@@ -232,12 +180,6 @@ hwfpga_subdev_ioctl(
     {
         case HWFPGA_IOCTL_GET_INFO:
             rc = hwfpga_subdev_get_info(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_MOUNT_BUF:
-            rc = hwfpga_subdev_mount_buf(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_UNMOUNT_BUF:
-            rc = hwfpga_subdev_unmount_buf(s, arg);
             break;
         case HWFPGA_IOCTL_CONFIG:
             HWCAM_CFG_INFO("%s CMD(%u)!", __func__, cmd);
@@ -367,13 +309,11 @@ alloc_fail:
 
 /*added for memory hwfpga_t leak  **/
 void
-hwfpga_unregister(hwfpga_intf_t* intf)
+hwfpga_unregister(struct platform_device *pdev)
 {
     hwfpga_t* fpga = NULL;
-    struct v4l2_subdev* subdev = NULL;
-
-    fpga = container_of(intf, hwfpga_t, hw);
-    subdev  = &fpga->subdev;
+    struct v4l2_subdev* subdev = platform_get_drvdata(pdev);
+    fpga = SD2HWFPGA(subdev);
     media_entity_cleanup(&subdev->entity);
     hwcam_cfgdev_unregister_subdev(subdev);
 

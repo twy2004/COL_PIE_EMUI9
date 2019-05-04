@@ -704,6 +704,13 @@ int cos_image_upgrade_func(void *buf, int para)
 	int ret;
 	char buf_para[MAX_CMD_BUFF_PARAM_LEN] = {0};
 
+	/* check hisee is powered on */
+	if (hisee_get_power_status() != HISEE_POWER_STATUS_ON) {
+		pr_err("%s hisee is not poweron\n", __func__);
+		set_errno_and_return(HISEE_POWERCTRL_FLOW_ERROR); /*lint !e1058*/
+	}
+
+
 	/*if the @buf parameters is NULL ,need do all cos image upagrade while multicos scenario*/
 	if (HISEE_CHAR_NEWLINE == *(char *)buf || '\0' == *(char *)buf) {
 		buf_para[0] = HISEE_CHAR_SPACE;

@@ -53,7 +53,6 @@ static int erecovery_write_from_kernel(uint32_t pos, void* k_data, uint32_t len)
     uint32_t part_len;
 
     if (NULL == k_data || pos >= ERECOVERY_RING_BUF_SIZE_MAX) {
-        ERECOVERY_ERROR("pos: %d, dst:%p, len:0x%x\n", pos, k_data, len);
         return -1;
     }
     part_len = min((size_t)len, (size_t)(ERECOVERY_RING_BUF_SIZE_MAX - pos));
@@ -112,11 +111,13 @@ static int erecovery_read_one_event(void __user *u_data)
 static long erecovery_write_event_internal(void* kernel_event)
 {
     int ret;
+    erecovery_write_event *we;
+
     if (!kernel_event) {
         ERECOVERY_ERROR("param error\n");
         return -1;
     }
-    erecovery_write_event *we = kernel_event;
+    we = kernel_event;
     if(mutex_lock_interruptible(&erecovery_mutex)) {
         return -1;
     }
@@ -205,9 +206,7 @@ static int __init erecovery_trans_init(void)
         goto _error;
     }
     memset(erecovery_trans_buf, 0, ERECOVERY_TOTAL_BUF_SIZE);
-    ERECOVERY_INFO("malloc buf: %p, size: 0x%x\n", erecovery_trans_buf, ERECOVERY_TOTAL_BUF_SIZE);
     erecovery_pos = (erecovery_trans_pos*)(erecovery_trans_buf+ERECOVERY_TOTAL_BUF_SIZE-sizeof(erecovery_trans_pos));
-    ERECOVERY_INFO("pos: %p\n", erecovery_pos);
     init_waitqueue_head(&erecovery_wq);
     return 0;
 

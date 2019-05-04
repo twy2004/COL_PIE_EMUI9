@@ -94,8 +94,6 @@ int g_debug_ovl_credit_step = 0;
 
 int g_debug_layerbuf_sync = 0;
 
-int g_debug_offline_layerbuf_sync = 0;
-
 int g_debug_fence_timeline = 0;
 
 int g_enable_dss_idle = 1;
@@ -103,6 +101,8 @@ int g_enable_dss_idle = 1;
 unsigned int g_dss_smmu_outstanding = DSS_SMMU_OUTSTANDING_VAL + 1;
 
 int g_debug_dump_mmbuf = 0;
+
+int g_debug_dump_iova = 0;
 
 uint32_t g_underflow_stop_perf_stat = 0;
 
@@ -160,7 +160,7 @@ void dss_underflow_debug_func(struct work_struct *work)
 		underflow_timestamp[UNDERFLOW_EXPIRE_COUNT - 1] = ktime_get();
 		underflow_msecs = ktime_to_ms(underflow_timestamp[UNDERFLOW_EXPIRE_COUNT - 1]) - ktime_to_ms(underflow_timestamp[0]);
 		for(i = 0; i < UNDERFLOW_EXPIRE_COUNT - 1; i ++)
-			underflow_timestamp[i] = underflow_timestamp[i+1];
+			underflow_timestamp[i] = underflow_timestamp[i+1]; //lint !e679
 	}
 
 	ddr_clk = clk_get(NULL, "clk_ddrc_freq");

@@ -24,6 +24,10 @@
 #include "dvfs/peri_volt_poll.h"
 #include "clk-kirin-common.h"
 
+#ifdef CONFIG_HISI_CLK_DEBUG
+#include "../hisi-clk-debug.h"
+#endif
+
 #ifndef CONFIG_HISI_CLK_ALWAYS_ON
 /*lint -e750 -esym(750,*)*/
 #define hi3xxx_CLK_GATE_DISABLE_OFFSET		0x4
@@ -351,18 +355,41 @@ static void __iomem *hi3xxx_clkgate_get_reg(struct clk_hw *hw)
 	return ret;
 }
 
-static int hi3xxx_dumpgate(struct clk_hw *hw, char* buf)
+static int hi3xxx_dumpgate(struct clk_hw *hw, char* buf, struct seq_file *s)
 {
 	struct hi3xxx_periclk *pclk;
 	void __iomem	*ret = NULL;
+	long unsigned int clk_base_addr = 0;
+	unsigned int clk_bit = 0;
+	u32 index = 0;
 	u32 val = 0;
+
 	pclk = container_of(hw, struct hi3xxx_periclk, hw);
 
-	if (pclk->enable && buf) {
+	if (pclk->enable && buf && !s) {
 		ret = pclk->enable + hi3xxx_CLK_GATE_STATUS_OFFSET;
 		val = readl(ret);
-		snprintf(buf, DUMP_CLKBUFF_MAX_SIZE, "[%s] : regAddress = 0x%pK, regval = 0x%x\n", __clk_get_name(hw->clk), ret, val);
+		snprintf(buf, DUMP_CLKBUFF_MAX_SIZE, "[%s] : regAddress = 0x%pK, regval = 0x%x\n", \
+			__clk_get_name(hw->clk), ret, val);
 	}
+
+	if(!buf && s) {
+		if(pclk->enable) {
+			clk_base_addr = (uintptr_t)pclk->enable & CLK_ADDR_HIGH_MASK;
+			clk_bit = (uintptr_t)pclk->enable & CLK_ADDR_LOW_MASK;
+			val = pclk->ebits;
+			while(val) {
+				val = val >> 1;
+				if(val)
+					index++;
+			}
+			seq_printf(s, "    %-15s    %-15s    0x%03X    bit-%-2d", \
+				hs_base_addr_transfer(clk_base_addr), "gate", clk_bit, index);
+		} else {
+			seq_printf(s, "    %-15s    %-15s", "NONE", "fixed-gate");
+		}
+	}
+
 	return 0;
 }
 #endif

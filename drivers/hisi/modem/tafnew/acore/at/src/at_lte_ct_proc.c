@@ -72,9 +72,13 @@
 
 #include "AtCtx.h"
 
+#include "AtMtCommFun.h"
+
 /*lint -e767 Ô­Òò:Log´òÓ¡*/
 #define    THIS_FILE_ID        MSP_FILE_ID_AT_LTE_CT_PROC_C
 /*lint +e767 */
+
+extern AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl;
 
 /******************************************************************************
  */
@@ -471,9 +475,7 @@ VOS_UINT32 atSetFCHANPara(VOS_UINT8 ucClientId)
     stFCHANSetReq.ulChannel = (gastAtParaList[2].ulParaValue);
 
     stFCHANSetReq.usListeningPathFlg = (VOS_UINT16)(gastAtParaList[3].ulParaValue);
-
     (VOS_VOID)AT_SetGlobalFchan((VOS_UINT8)(gastAtParaList[0].ulParaValue));
-
 
     
     ulRst = atSendFtmDataMsg(I0_MSP_SYS_FTM_PID, ID_MSG_FTM_SET_FCHAN_REQ,ucClientId, (VOS_VOID*)(&stFCHANSetReq), sizeof(stFCHANSetReq));
@@ -1044,7 +1046,7 @@ VOS_UINT32 AT_GetLteFeatureInfo(AT_FEATURE_SUPPORT_ST*pstFeATure)
  */
     VOS_UINT32 ulRst  = 0;
 
-    VOS_UINT8 ucBandStr[64] = {0};
+    VOS_UINT8 ucBandStr[AT_FEATURE_BAND_STR_LEN_MAX] = {0};
     VOS_UINT8 ucBandFlag = 0;
 
     VOS_UINT32 ulStrlen1=0;
@@ -1070,9 +1072,9 @@ VOS_UINT32 AT_GetLteFeatureInfo(AT_FEATURE_SUPPORT_ST*pstFeATure)
         return ERR_MSP_FAILURE;
     }
 
-    /*RRC_MAX_NUM_OF_BANDS
- */
+    /* RRC_MAX_NUM_OF_BANDS */
 
+    pstEutraCap->stRfPara.usCnt = AT_MIN(pstEutraCap->stRfPara.usCnt, RRC_MAX_NUM_OF_BANDS);
     for( i = 0; i < pstEutraCap->stRfPara.usCnt; i++ )
     {
         if( pstEutraCap->stRfPara.astSuppEutraBandList[i].ucEutraBand > 0 )
@@ -1104,7 +1106,7 @@ VOS_UINT32 AT_GetLteFeatureInfo(AT_FEATURE_SUPPORT_ST*pstFeATure)
     {
         if( ulBandNum[i] == 1 )
         {
-            ulStrlen1 +=(VOS_UINT32) At_sprintf(64,(VOS_CHAR* )ucBandStr,(VOS_CHAR* )(ucBandStr+ulStrlen1),"B%d,",i);
+            ulStrlen1 +=(VOS_UINT32) At_sprintf(AT_FEATURE_BAND_STR_LEN_MAX,(VOS_CHAR* )ucBandStr,(VOS_CHAR* )(ucBandStr+ulStrlen1),"B%d,",i);
             /*ucBandNum[i]=2;
  */
         }
@@ -1280,6 +1282,5 @@ VOS_UINT32 At_ProcLteTxCltInfoReport(VOS_VOID *pMsgBlock)
 
     return VOS_TRUE;
 }
-
 
 

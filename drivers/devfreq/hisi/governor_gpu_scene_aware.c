@@ -310,7 +310,7 @@ static int extract_sub_para(const char *buf,
 	return 0;
 }
 
-static inline int check_tokens(int *ntokens_sub)
+static inline int check_tokens(const int *ntokens_sub)
 {
 	return (!(ntokens_sub[1] & 0x1) || ntokens_sub[1] > SURPORT_NTARGET_LOAD_MAX || ntokens_sub[0] != MAX_PARA);
 }

@@ -50,8 +50,10 @@
 #define __MDRV_PRINT_H__
 
 #ifdef __cplusplus
+#if __cplusplus
 extern "C"
 {
+#endif
 #endif
 #include <product_config.h>
 
@@ -66,24 +68,20 @@ typedef enum{
 	MDRV_LEVEL_SUM
 }MDRV_LOG_LEVEL;
 
-
-#ifdef ENABLE_BUILD_OM
 void mdrv_print(unsigned int level, char *fmt, ...);
-#else
-void mdrv_print(unsigned int level, char *fmt, ...)
-{
-    return ;
-}
-#endif
+
 
 //Method2: char tag
-#define mdrv_fatal(fmt,...)     (mdrv_print(MDRV_P_FATAL, "[%s]:"fmt, THIS_MODU, ##__VA_ARGS__))
-#define mdrv_err(fmt,...)       (mdrv_print(MDRV_P_ERR, "[%s]:"fmt, THIS_MODU, ##__VA_ARGS__))
-#define mdrv_wrn(fmt,...)       (mdrv_print(MDRV_P_WRN, "[%s]:"fmt, THIS_MODU, ##__VA_ARGS__))
-#define mdrv_info(fmt,...)      (mdrv_print(MDRV_P_INFO, "[%s]:"fmt, THIS_MODU, ##__VA_ARGS__))
-#define mdrv_debug(fmt,...)     (mdrv_print(MDRV_P_DEBUG, "[%s]:"fmt, THIS_MODU, ##__VA_ARGS__))
+#define mdrv_fatal(fmt,...)     (mdrv_print(MDRV_P_FATAL, "[%s]:" fmt, THIS_MODU, ##__VA_ARGS__))
+#define mdrv_err(fmt,...)       (mdrv_print(MDRV_P_ERR, "[%s]:" fmt, THIS_MODU, ##__VA_ARGS__))
+#define mdrv_wrn(fmt,...)       (mdrv_print(MDRV_P_WRN, "[%s]:" fmt, THIS_MODU, ##__VA_ARGS__))
+#define mdrv_info(fmt,...)      (mdrv_print(MDRV_P_INFO, "[%s]:" fmt, THIS_MODU, ##__VA_ARGS__))
+#define mdrv_debug(fmt,...)     (mdrv_print(MDRV_P_DEBUG, "[%s]:" fmt, THIS_MODU, ##__VA_ARGS__))
 
 #ifdef __cplusplus
+#if __cplusplus
 }
 #endif
+#endif
+
 #endif

@@ -315,7 +315,7 @@ static int system_reg_prase(char *dir_path, s8 *file_name, u64 log_addr, u32 log
 
 	rdr_cleartext_print(fp, &error, "offset      val\n");
 	for(i = 0; i < log_len; i = i + 4) {
-		rdr_cleartext_print(fp, &error, "0x%03x       0x%08x\n", i, *((u32 volatile *)(log_addr + i)));
+		rdr_cleartext_print(fp, &error, "0x%03x       0x%08x\n", i, *((u32 volatile *)(uintptr_t)(log_addr + i)));
 	}
 
 	bbox_cleartext_end_filep(fp, dir_path, file_name);
@@ -348,7 +348,7 @@ static int head_info_prase(char *dir_path, s8 *file_name, u64 log_addr, u32 log_
 
 	rdr_cleartext_print(fp, &error, "=================HEAD INFO START================\n");
 
-	head = (struct rdr_buf_head *)log_addr;
+	head = (struct rdr_buf_head *)(uintptr_t)log_addr;
 	for (cpu_idx = 0; cpu_idx < CPU_CORE_NUM; cpu_idx++) {
 		pc_info[PC_INFO_STR_MAX_LENGTH - 1] = '\0';
 
@@ -399,7 +399,7 @@ static int lpm3_exc_special_prase(char *dir_path, s8 *file_name, u64 log_addr, u
 		return -1;
 	}
 
-	p_lpm3_exc_special = (EXC_SPECIAL_BACKUP_DATA_STRU *)(log_addr);
+	p_lpm3_exc_special = (EXC_SPECIAL_BACKUP_DATA_STRU *)(uintptr_t)(log_addr);
 
 	rdr_cleartext_print(fp, &error, "==============LPM3 EXC SPECIAL START================\n");
 	rdr_cleartext_print(fp, &error, "\n");
@@ -446,7 +446,7 @@ static int lpm3_core_reg_prase(char *dir_path, s8 *file_name, u64 log_addr, u32 
 	rdr_cleartext_print(fp, &error, "\n");
 
 	for(reason_idx = 0; reason_idx < RDR_REG_BACKUP_IDEX_MAX; reason_idx++) {
-		p_lpm3_core_reg = (RDR_REG_BACKUP_DATA_STRU *)(log_addr + reason_idx * sizeof(RDR_REG_BACKUP_DATA_STRU));
+		p_lpm3_core_reg = (RDR_REG_BACKUP_DATA_STRU *)(uintptr_t)(log_addr + reason_idx * sizeof(RDR_REG_BACKUP_DATA_STRU));
 
 		rdr_cleartext_print(fp, &error, "****REGION %d****\n", reason_idx);
 		rdr_cleartext_print(fp, &error, "R0:        0x%x\n", p_lpm3_core_reg->Reg0);
@@ -500,9 +500,9 @@ static int lpm3_nvic_reg_prase(char *dir_path, s8 *file_name, u64 log_addr, u32 
 		return -1;
 	}
 
-	p_lpm3_nvic_reg = (NVIC_Type *)(log_addr + NVIC_TYPE_OFFSET);
-	p_lpm3_scb_reg = (SCB_Type *)(log_addr + SCB_TYPE_OFFSET);
-	p_lpm3_core_debug_reg = (CoreDebug_Type *)(log_addr + CORE_DEBUG_TYPE_OFFSET);
+	p_lpm3_nvic_reg = (NVIC_Type *)(uintptr_t)(log_addr + NVIC_TYPE_OFFSET);
+	p_lpm3_scb_reg = (SCB_Type *)(uintptr_t)(log_addr + SCB_TYPE_OFFSET);
+	p_lpm3_core_debug_reg = (CoreDebug_Type *)(uintptr_t)(log_addr + CORE_DEBUG_TYPE_OFFSET);
 
 	rdr_cleartext_print(fp, &error, "==============LPM3 NVIC REGS START================\n");
 	rdr_cleartext_print(fp, &error, "\n");
@@ -570,7 +570,7 @@ static int lpm3_log_prase(char *dir_path, s8 *file_name, u64 log_addr, u32 log_l
 		return -1;
 	}
 
-	if (memcpy_s((void *)log_buff, log_len, (void *)(log_addr), log_len)) {
+	if (memcpy_s((void *)log_buff, log_len, (void *)(uintptr_t)(log_addr), log_len)) {
 		BB_PRINT_ERR("memcpy fail for lpm3_log\n");
 		ret = -1;
 		goto out;
@@ -608,8 +608,8 @@ static int rdr_hisi_lpm3_cleartext_print(char *dir_path, u64 log_addr, u32 log_l
 	s8 *log_name_creat;
 	s32 ret = 0;
 
-	if (IS_ERR_OR_NULL(dir_path) || IS_ERR_OR_NULL((void *)log_addr)) {
-		BB_PRINT_ERR("%s() error:dir_path 0x%pK log_addr 0x%pK.\n", __func__, dir_path, (void *)log_addr);
+	if (IS_ERR_OR_NULL(dir_path) || IS_ERR_OR_NULL((void *)(uintptr_t)log_addr)) {
+		BB_PRINT_ERR("%s() error:dir_path 0x%pK log_addr 0x%pK.\n", __func__, dir_path, (void *)(uintptr_t)log_addr);
 		return -1;
 	}
 

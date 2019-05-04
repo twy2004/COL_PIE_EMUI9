@@ -370,7 +370,7 @@ int hisi_pl011_probe_reset_func_enable(struct amba_device *dev, struct uart_amba
 	}
 	return ret;
 }
-void hisi_pl011_probe_console_enable(struct amba_device *dev, struct uart_amba_port *uap, char* amba_console_name) {
+void hisi_pl011_probe_console_enable(struct amba_device *dev, struct uart_amba_port *uap, const char* amba_console_name) {
 	u32 console_fifo_size = 0;
 	int console_fifo_cpuon = 0;
 	char console_uart_name[8] = "";

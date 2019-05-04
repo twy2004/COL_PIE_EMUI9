@@ -92,7 +92,7 @@ extern "C"{
 #define PAM_LOG_PATH                     MODEM_LOG_ROOT"/PAM"
 #define PAM_FILE_EXIST                   (0)
 
-#define PAM_STR_MAX_LEN                  (64*1024)
+#define PAM_STR_MAX_LEN                  (256)
 
 /*****************************************************************************
   3 Ã¶¾Ù¶¨Òå
@@ -362,21 +362,18 @@ typedef struct
 #define PAM_MEM_CPY_S(pDestBuffer, ulDestLen,  pSrcBuffer, ulCount) { \
         if (VOS_NULL_PTR == VOS_MemCpy_s( pDestBuffer, ulDestLen,  pSrcBuffer, ulCount)) \
         {\
-            /*mdrv_om_system_error(PAM_REBOOT_MEMCPY_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 );*/ \
         }\
     }
 
 #define PAM_MEM_SET_S(pDestBuffer, ulDestLen, ucData, ulCount) { \
         if (VOS_NULL_PTR == VOS_MemSet_s( pDestBuffer, ulDestLen, (VOS_CHAR)(ucData), ulCount )) \
         { \
-            /*mdrv_om_system_error(PAM_REBOOT_MEMSET_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 );*/ \
         } \
     }
 
 #define PAM_MEM_MOVE_S(pDestBuffer, ulDestLen, pucSrcBuffer, ulCount) { \
         if (VOS_NULL_PTR == VOS_MemMove_s( pDestBuffer, ulDestLen, pucSrcBuffer, ulCount )) \
         { \
-            /*mdrv_om_system_error(PAM_REBOOT_MEMMOVE_MEM, 0, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__), 0, 0 );*/ \
         } \
     }
 #endif

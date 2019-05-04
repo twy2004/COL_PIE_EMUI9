@@ -15,6 +15,12 @@
 
 #include <linux/types.h>
 #include <linux/errno.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+#include <linux/dma-fence.h>
+#else
+#include <linux/fence.h>
+#endif
 
 #define HISI_DSS_SYNC_NAME_SIZE             64
 
@@ -23,6 +29,12 @@ enum {
 	HISI_DSS_RETIRE_FENCE,
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+typedef struct dma_fence dss_dma_fence_t;
+#else
+typedef struct fence dss_dma_fence_t;
+#endif
+
 /**
  * struct hisi_dss_fence - sync fence context
  * @base: base sync fence object
@@ -30,7 +42,7 @@ enum {
  * @fence_list: linked list of outstanding sync fence
  */
 struct hisi_dss_fence {
-	struct fence base;
+	dss_dma_fence_t base;
 	char name[HISI_DSS_SYNC_NAME_SIZE];
 	struct list_head fence_list;
 };

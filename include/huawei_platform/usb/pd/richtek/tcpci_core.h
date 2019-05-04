@@ -75,6 +75,7 @@ struct tcpc_desc {
 	uint8_t role_def;
 	uint8_t rp_lvl;
 	int notifier_supply_num;
+	int vcon_ocp_enable;
 	char *name;
 };
 

@@ -68,9 +68,9 @@ extern "C" {
   2 macro
 *****************************************************************************/
 /* socp数采通道打开时间默认为 1min58s */
-#define SOCP_DSSTOP_TIMEOUT                      118000 
+#define SOCP_DSSTOP_TIMEOUT                      118000
 /*数采命令等待回复超时时间*/
-#define DS_CMD_REPLY_WAIT_TIMER_LEN              (1*1000)
+#define DS_CMD_REPLY_WAIT_TIMER_LEN              (2*1000)
 
 #define SOCP_STOP_CMD                            0   /* 收到工具下发finish命令停止socp数采通道 */
 #define SOCP_STOP_TIMER                          1   /* SOCP数采通道定时器超时停止 */
@@ -92,8 +92,8 @@ extern "C" {
 typedef enum
 {
     DS_SAMPLE_GEN_CMD_OPS_START = 0,
-    DS_SAMPLE_GEN_CMD_OPS_QUERY,     
-    DS_SAMPLE_GEN_CMD_OPS_STOP, 
+    DS_SAMPLE_GEN_CMD_OPS_QUERY,
+    DS_SAMPLE_GEN_CMD_OPS_STOP,
     DS_SAMPLE_GEN_CMD_OPS_CLEAR,
     DS_SAMPLE_GEN_CMD_OPS_ONE_ROUND,
     DS_SAMPLE_GEN_CMD_OPS_FINISH,

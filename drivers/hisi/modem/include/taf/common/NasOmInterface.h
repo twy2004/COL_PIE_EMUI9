@@ -109,7 +109,8 @@
 #define NAS_OM_FUNCTION_TYPE_MODEM_MASK   (0xc0)
 #define NAS_OM_FUNCTION_TYPE_VALUE_MASK   (0x3f)
 #define NAS_MAX_TIMER_EVENT               (100)
-
+#define MN_MSG_MAX_BCD_SC_NUM_LEN         (10)
+typedef VOS_UINT8   MN_MSG_SC_NUM_TYPE_T;
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
@@ -148,13 +149,13 @@ typedef enum
     NAS_OM_EVENT_PLMN_SELECTION_SUCCESS     = 29,
     NAS_OM_EVENT_PLMN_SELECTION_FAILURE     = 30,
     NAS_OM_EVENT_COVERAGE_LOST              = 31,
-    NAS_OM_EVENT_SMS_RECEIVE                = 32,
-    NAS_OM_EVENT_SMS_SENT                   = 33,
+    NAS_OM_EVENT_SMS_RECEIVE                = 32,            /*_H2ASN_MsgChoice NAS_OM_SMS_MT_RECEIVE_REPORT_STRU*/
+    NAS_OM_EVENT_SMS_SENT                   = 33,            /*_H2ASN_MsgChoice NAS_OM_SMS_SENT_REPORT_STRU*/
     /*短消息发送确认    */
-    NAS_OM_EVENT_SMS_MO_SUCC                = 34,            /*_H2ASN_MsgChoice NAS_OM_SMS_MO_REPORT_STRU*/
+    NAS_OM_EVENT_SMS_MO_SUCC                = 34,            /*_H2ASN_MsgChoice NAS_OM_SMS_MO_SUCC_REPORT_STRU*/
     NAS_OM_EVENT_SMS_MO_FAIL                = 35,            /*_H2ASN_MsgChoice NAS_OM_SMS_MO_REPORT_STRU*/
     /*短消息状态报告    */
-    NAS_OM_EVENT_SMS_MT_NOTIFY              = 36,
+    NAS_OM_EVENT_SMS_MT_NOTIFY              = 36,            /*_H2ASN_MsgChoice NAS_OM_SMS_MT_NOTIFY_REPORT_STRU*/
     /*短消息存储状态报告*/
     NAS_OM_EVENT_SMS_STATICS                = 37,            /*_H2ASN_MsgChoice NAS_OM_SMS_STATICS_STRU*/
     NAS_OM_EVENT_READY_TIMER_START          = 38,
@@ -202,7 +203,7 @@ typedef enum
 
     NAS_OM_EVENT_PA_STAR_ABNORMAL           = 78,
 
-    NAS_OM_EVENT_SMS_MT_FAIL                = 79,
+    NAS_OM_EVENT_SMS_MT_FAIL                = 79,            /*_H2ASN_MsgChoice NAS_OM_SMS_MT_FAIL_STRU*/
 
     NAS_OM_EVENT_1X_SYS_ACQUIRE_SUCCESS     = 80,
     NAS_OM_EVENT_1X_SYS_LOST                = 81,
@@ -218,6 +219,7 @@ typedef enum
     NAS_OM_EVENT_RADIO_RESOURCE_CHECK_EXCEPTION          = 91,
 
     NAS_OM_EVENT_SEARCHED_PLMN_NUM_MAX = 92,
+    NAS_OM_EVENT_SMS_MT_SUCC                = 93,
     NAS_OM_EVENT_ID_BUTT
 }NAS_OM_EVENT_ID_ENUM;
 
@@ -609,6 +611,17 @@ typedef enum
     NAS_OTA_MSG_NRSM_5GSM_STATUS_UP                            = 0x070F,
     NAS_OTA_MSG_NRSM_5GSM_STATUS_DOWN                          = 0x0710,
 
+    NAS_OTA_MSG_PCF_MANAGE_UE_POLICY_COMMAND                   = 0x0721,
+    NAS_OTA_MSG_PCF_MANAGE_UE_POLICY_COMPLETE                  = 0x0722,
+    NAS_OTA_MSG_PCF_MANAGE_UE_POLICY_REJECT                    = 0x0723,
+    NAS_OTA_MSG_PCF_UPSI_LIST_TRANSPORT                        = 0x0724,
+
+
+    NAS_OTA_MSG_EAP_REQUEST                                    = 0x0741,
+    NAS_OTA_MSG_EAP_RESPONSE                                   = 0x0742,
+    NAS_OTA_MSG_EAP_SUCCESS                                    = 0x0743,
+    NAS_OTA_MSG_EAP_FAILURE                                    = 0x0744,
+  
     NAS_OTA_MSG_NRMM_REGISTRATION_REQUEST                      = 0x0800,
     NAS_OTA_MSG_NRMM_REGISTRATION_ACCEPT                       = 0x0801,
     NAS_OTA_MSG_NRMM_REGISTRATION_COMPLETE                     = 0x0802,
@@ -693,12 +706,81 @@ typedef VOS_UINT8 NAS_OM_SERVICE_TYPE_ENUM_UINT8;
 /*****************************************************************************
   7 STRUCT定义
 *****************************************************************************/
+
 typedef struct
 {
-    VOS_UINT8                           ucSmsMr;
-    VOS_UINT8                           aucReserve[3];
-    VOS_UINT32                          ulCause;
+    VOS_UINT8                           ucBcdLen;
+    MN_MSG_SC_NUM_TYPE_T                addrType;                               /*bcd number type*/
+    VOS_UINT8                           aucBcdNum[MN_MSG_MAX_BCD_SC_NUM_LEN];   /*bcd                               number array*/
+} MN_MSG_BCD_SC_NUM_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucYear;                                 /*0x00-0x99*/
+    VOS_UINT8                           ucMonth;                                /*0x01-0x12*/
+    VOS_UINT8                           ucDay;                                  /*0x01-0x31*/
+    VOS_UINT8                           ucHour;                                 /*0x00-0x23*/
+    VOS_UINT8                           ucMinute;                               /*0x00-0x59*/
+    VOS_UINT8                           ucSecond;                               /*0x00-0x59*/
+    VOS_INT8                            cTimezone;                              /*+/-, [-48,+48] number of 15 minutes*/
+    VOS_UINT8                           aucReserve1[1];
+} MN_MSG_SMS_TIMESTAMP_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucSmsTpmr;
+    VOS_UINT8                           ucTpDataFo;
+    VOS_UINT8                           ucSmsMoType;
+    VOS_UINT8                           ucSendDomain;
+    MN_MSG_BCD_SC_NUM_STRU              stDestAddr;
+}NAS_OM_SMS_SENT_REPORT_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucSmsTpMr;
+    VOS_UINT8                           ucTpFcs;
+    VOS_UINT8                           ucTpFcsExistFlg;
+    VOS_UINT8                           aucReserve[1];
+    VOS_UINT32                          ulErrorCause;
 }NAS_OM_SMS_MO_REPORT_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucTpFcsExistFlg;
+    VOS_UINT8                           ucTpFcs;
+    VOS_UINT8                           aucReserve[2];
+    VOS_UINT32                          ulErrorCause;
+}NAS_OM_SMS_MT_FAIL_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucSmsTpmr;
+    VOS_UINT8                           aucReserve[3];
+}NAS_OM_SMS_MO_SUCC_REPORT_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucTpDataFo;
+    VOS_UINT8                           aucReserve[3];
+    MN_MSG_BCD_SC_NUM_STRU              stRpOa;
+    MN_MSG_SMS_TIMESTAMP_STRU           stTimeStamp;
+}NAS_OM_SMS_MT_RECEIVE_REPORT_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucSmsTpmr;
+    VOS_UINT8                           ucTpDataFo;
+    VOS_UINT8                           aucReserve[2];
+    MN_MSG_BCD_SC_NUM_STRU              stRpOa;
+    MN_MSG_SMS_TIMESTAMP_STRU           stTimeStamp;
+}NAS_OM_SMS_MT_NOTIFY_REPORT_STRU;
 
 typedef struct
 {
@@ -719,19 +801,6 @@ typedef struct
     ****************************************************************************/
 
 }NAS_OM_EVENT_IND_STRUCT;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #define NAS_OM_DATA_PTR_LEN          4                                          /* NAS_OM之间传输数据的指针长度*/

@@ -68,7 +68,6 @@
 #include "TafAppMma.h"
 #include "TafAppSsa.h"
 #include "Taf_Tafm_Remote.h"
-#include "AtMuxInterface.h"
 #include "AtCtxPacket.h"
 #include "AtTimer.h"
 #include "AtInternalMsg.h"
@@ -164,17 +163,6 @@ typedef TAF_UINT8 AT_CMEE_TYPE;
 #define AT_CMEE_ERROR_CODE                1
 #define AT_CMEE_ERROR_CONTENT             2
 
-/* AP-Modem 中，目前规格支持最大8个MUX AT通道 */
-#define AT_MUX_AT_CHANNEL_MAX           (8)
-
-#define AT_MUX_AT_CHANNEL_INDEX_1       (0)
-#define AT_MUX_AT_CHANNEL_INDEX_2       (1)
-#define AT_MUX_AT_CHANNEL_INDEX_3       (2)
-#define AT_MUX_AT_CHANNEL_INDEX_4       (3)
-#define AT_MUX_AT_CHANNEL_INDEX_5       (4)
-#define AT_MUX_AT_CHANNEL_INDEX_6       (5)
-#define AT_MUX_AT_CHANNEL_INDEX_7       (6)
-#define AT_MUX_AT_CHANNEL_INDEX_8       (7)
 #define AT_OCTET_MOVE_FOUR_BITS    (0x04)  /* 将一个字节移动4位 */
 #define AT_OCTET_MOVE_EIGHT_BITS   (0x08)  /* 将一个字节移动8位 */
 #define AT_OCTET_LOW_FOUR_BITS     (0x0f)  /* 获取一个字节中的低4位 */
@@ -386,6 +374,16 @@ typedef VOS_UINT8 AT_CGREG_TYPE;
 #define  AT_CONST_HUNDRED_THOUSAND      (100000)
 #define  AT_CONST_MILLION               (1000000)
 
+
+/* S-NSSAI中SD的最大位数为6 */
+#define  AT_S_NSSAI_SD_MAX_DIGIT_NUM    (6)
+/* S-NSSAI编码中最多有4个数值 */
+#define  AT_S_NSSAI_MAX_DIGIT_NUM       (4)
+/* S-NSSAI字符串中最多有3个分隔符 */
+#define  AT_S_NSSAI_MAX_PUNC_NUM        (3)
+
+#define  AT_WIFI_CHANNEL_MAX_NUM        (14)                /* 802.11bgn制式支持最大信道号 */
+
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
@@ -422,16 +420,6 @@ enum AT_IO_LEVEL_ENUM
     AT_IO_LEVEL_BUTT
 };
 typedef VOS_UINT8 AT_IO_LEVEL_ENUM_UINT8;
-
-/* 与AT^APRPTPORTSEL命令配合使用，标识指定HSIC AT通道是否允许AT命令主动上报 */
-enum AT_HSIC_REPORT_TYPE_ENUM
-{
-    AT_HSIC_REPORT_ON,                  /* 允许主动上报 */
-    AT_HSIC_REPORT_OFF,                 /* 不允许主动上报 */
-
-    AT_HSIC_REPORT_BUTT
-};
-typedef VOS_UINT32 AT_HSIC_REPORT_TYPE_ENUM_UINT32;
 /*********************************PROT End*****************************/
 
 /*********************************CTRL Begin*****************************/
@@ -502,6 +490,17 @@ enum AT_CEREG_TYPE_ENUM
 typedef VOS_UINT8 AT_CEREG_TYPE_ENUM_UINT8;
 
 
+enum AT_C5GREG_TYPE_ENUM
+{
+    AT_C5GREG_RESULT_CODE_NOT_REPORT_TYPE,    /* 禁止+C5GREG 的主动上报 */
+    AT_C5GREG_RESULT_CODE_BREVITE_TYPE,       /* 网络注册状态发生改变时，使用+C5GREG: <stat>的主动上报方式进行上报*/
+    AT_C5GREG_RESULT_CODE_ENTIRE_TYPE,        /* 小区信息发生改变时，使用+C5GREG:<stat>[,<tac>,<ci>[,<AcT>]][<Allowed_NSSAI_length>,<Allowed_NSSAI>]的主动上报方式进行上报*/
+    AT_C5GREG_RESULT_CODE_TYPE_BUTT
+};
+typedef VOS_UINT8 AT_C5GREG_TYPE_ENUM_UINT8;
+
+
+
 enum AT_CERSSI_REPORT_TYPE_ENUM
 {
     AT_CERSSI_REPORT_TYPE_NOT_REPORT,               /* 禁止^CERSSI的主动上报 */
@@ -556,6 +555,7 @@ enum AT_RPT_CMD_INDEX_ENUM
     AT_RPT_CMD_CUUS1U,
     AT_RPT_CMD_CGREG,
     AT_RPT_CMD_CEREG,
+    AT_RPT_CMD_C5GREG,
 
     AT_RPT_CMD_BUTT
 };
@@ -1187,6 +1187,10 @@ typedef struct
     VOS_UINT32                          ulNwSecond;
     VOS_UINT8                           ucReserve3[4];
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    AT_C5GREG_TYPE_ENUM_UINT8           ucC5gregType;
+    VOS_UINT8                           ucReserve4[7];
+#endif
 }AT_MODEM_NET_CTX_STRU;
 
 
@@ -1226,36 +1230,6 @@ typedef struct
     VOS_UINT8                           aucRsv[1];
 }AT_CLIENT_CONFIGURATION_STRU;
 /*********************************Client CTX End*****************************/
-
-/*********************************COMM CTX Begin*****************************/
-
-typedef struct
-{
-    RCV_UL_DLCI_DATA_FUNC               pReadDataCB;                            /* 注册给MUX的接口，用于获取MUX发送给协议栈的AT码流 */
-
-    AT_HSIC_REPORT_TYPE_ENUM_UINT32     enRptType;                              /* MUX通道都是复用HSIC通道。指定HSIC AT通道是否允许AT命令主动上报，
-                                                                                   ^APRPTPORTSEL命令配套使用，上电时默认为AT_HSIC_REPORT_ON*/
-
-    AT_CLIENT_ID_ENUM_UINT16            enAtClientId;                           /* MUX AT通道所对应的AT CLIENT ID*/
-
-    AT_CLIENT_TAB_INDEX_UINT8           enAtClientTabIdx;                       /* MUX所使用的gastAtClientTab的index索引 */
-
-    AT_USER_TYPE                        ucMuxUser;                              /* MUX AT通道所对应的AT USER type */
-
-    AT_PORT_NO                          ucMuxPort;                              /* MUX AT通道所对应的AT PORT NO */
-
-    AT_MUX_DLCI_TYPE_ENUM_UINT8         enDlci;                                 /* 目前MUX AT通道所用的通道ID*/
-
-    VOS_UINT8                           aucRsv[6];
-}AT_MUX_CLIENT_TAB_STRU;
-
-typedef struct
-{
-    AT_MUX_CLIENT_TAB_STRU              astMuxClientTab[AT_MUX_AT_CHANNEL_MAX]; /* MUX 8个通道表 */
-    VOS_UINT8                           ucMuxSupportFlg;                        /* 是否支持MUX特性 */
-    VOS_UINT8                           aucRsv[7];
-}AT_MUX_CTX_STRU;
-/*********************************COMM CTX End*****************************/
 
 
 typedef struct
@@ -1454,7 +1428,6 @@ typedef struct
     VOS_UINT8                           ucSystemAppConfigAddr;                  /* 保存后台版本 */
     VOS_UINT8                           aucReserve[7];
 
-    AT_MUX_CTX_STRU                     stMuxCtx;                               /* MUX AT通道上下文 */
     AT_COMM_PS_CTX_STRU                 stPsCtx;                                /* PS域相关的公共上下文 */
     AT_UART_CTX_STRU                    stUartCtx;                              /* UART相关上下文 */
     AT_PORT_BUFF_CFG_STRU               stPortBuffCfg;

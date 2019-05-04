@@ -46,7 +46,6 @@ typedef struct _tag_hwdriveric
     struct mutex                                lock;
     const hwdriveric_intf_t*                    hw;
     hwcam_data_table_t*                         cfg;
-    struct ion_handle*                          cfg_hdl;
     hwdriveric_notify_intf_t                    notify;
 } hwdriveric_t;
 
@@ -76,7 +75,6 @@ hwdriveric_v4l2_close(
     struct v4l2_subdev* sd,
     struct v4l2_subdev_fh* fh)
 {
-    struct ion_handle* hdl = NULL;
     hwdriveric_t* s = SD2HWDRIVERIC(sd);
     hwdriveric_config_data_t edata;
     hwcam_data_table_t* cfg = NULL;
@@ -85,13 +83,7 @@ hwdriveric_v4l2_close(
     edata.cfgtype = HWCAM_DRIVERIC_POWEROFF;
     hwdriveric_subdev_config(s, &edata);
 
-    swap(s->cfg_hdl, hdl);
     swap(s->cfg, cfg);
-    if (hdl) {
-        HWCAM_CFG_ERR("release driver ic data table!");
-        hwcam_cfgdev_release_data_table(hdl);
-    }
-
     return 0;
 }
 
@@ -122,51 +114,6 @@ hwdriveric_subdev_get_info(
         info->name, info->i2c_idx, info->position);
 
     return 0;
-}
-
-static long
-hwdriveric_subdev_mount_buf(
-    hwdriveric_t* s,
-    hwcam_buf_info_t* bi)
-{
-     long rc = -EINVAL;
-     switch (bi->kind)
-     {
-         case HWCAM_BUF_KIND_PIPELINE_PARAM:
-             if (!s->cfg) {
-                 s->cfg = hwcam_cfgdev_import_data_table(
-                         "hwdriveric_drv_cfg", bi, &s->cfg_hdl);
-                 if (s->cfg) { rc = 0; }
-             }
-             break;
-         default:
-             HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-             break;
-     }
-
-     return rc;
-}
-
-static long
-hwdriveric_subdev_unmount_buf(
-    hwdriveric_t* s,
-    hwcam_buf_info_t* bi)
-{
-    long rc = -EINVAL;
-    switch (bi->kind)
-    {
-        case HWCAM_BUF_KIND_PIPELINE_PARAM:
-            hwcam_cfgdev_release_data_table(s->cfg_hdl);
-            s->cfg_hdl = NULL;
-            s->cfg = NULL;
-            rc = 0;
-            break;
-        default:
-            HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-        break;
-    }
-
-    return rc;
 }
 
 static long
@@ -205,12 +152,6 @@ hwdriveric_subdev_ioctl(
     {
         case HWDRIVERIC_IOCTL_GET_INFO:
             rc = hwdriveric_subdev_get_info(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_MOUNT_BUF:
-            rc = hwdriveric_subdev_mount_buf(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_UNMOUNT_BUF:
-            rc = hwdriveric_subdev_unmount_buf(s, arg);
             break;
         case HWDRIVERIC_IOCTL_CONFIG:
             rc = hwdriveric_subdev_config(s, arg);
@@ -343,13 +284,12 @@ alloc_fail:
 
 /*added for memory hwdriveric_t leak  **/
 void
-hwdriveric_unregister(hwdriveric_intf_t* intf)
+hwdriveric_unregister(struct platform_device* pdev)
 {
+    struct v4l2_subdev *subdev = platform_get_drvdata(pdev);
     hwdriveric_t* driveric = NULL;
-    struct v4l2_subdev* subdev = NULL;
 
-    driveric = container_of(intf, hwdriveric_t, hw);
-    subdev  = &driveric->subdev;
+    driveric = SD2HWDRIVERIC(subdev);
     media_entity_cleanup(&subdev->entity);
     hwcam_cfgdev_unregister_subdev(subdev);
 

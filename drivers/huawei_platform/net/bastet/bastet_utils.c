@@ -29,6 +29,10 @@
 #include <net/tcp.h>
 #include <huawei_platform/net/bastet/bastet_utils.h>
 #include <huawei_platform/net/bastet/bastet.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/mm.h>
+#include <linux/sched/task.h>
+#endif
 
 #define BASTET_WAKE_LOCK				"bastet_wl"
 #define BASTET_DEFAULT_NET_DEV			"rmnet0"
@@ -42,6 +46,12 @@
 #define SCREEN_OFF			0
 
 #define CHANNEL_OCCUPIED_TIMEOUT			(5 * HZ)
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#ifndef tcp_jiffies32
+#define tcp_jiffies32 tcp_time_stamp
+#endif
+#endif
 
 static void channel_occupied_timeout(unsigned long data);
 
@@ -570,7 +580,7 @@ void bastet_get_sock_prop(struct sock *sk, struct bst_sock_sync_prop *prop)
 	prop->rx = 0;
 
 	if (likely(tp->rx_opt.tstamp_ok)) {
-		prop->ts_current = tcp_time_stamp + tp->tsoffset;
+		prop->ts_current = tcp_jiffies32 + tp->tsoffset;
 		prop->ts_recent = tp->rx_opt.ts_recent;
 		prop->ts_recent_tick = 0;
 	}
@@ -590,9 +600,15 @@ struct sock *get_sock_by_comm_prop(struct bst_sock_comm_prop *guide)
 
 	net = dev_net(dev);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	return __inet_lookup_established(net,
+		&tcp_hashinfo, guide->remote_ip, guide->remote_port,
+		guide->local_ip, ntohs(guide->local_port), dev->ifindex, 0);
+#else
 	return __inet_lookup_established(net,
 		&tcp_hashinfo, guide->remote_ip, guide->remote_port,
 		guide->local_ip, ntohs(guide->local_port), dev->ifindex);
+#endif
 }
 
 /*
@@ -811,7 +827,9 @@ int unbind_local_ports(u16 local_port)
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 		atomic_dec(&hashinfo->bsockets);
 #endif
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 		tb->num_owners--;
+#endif
 		sk = hlist_entry(tb->owners.first, struct sock, sk_bind_node);
 		if (NULL != sk){
 			__sk_del_bind_node(sk);
@@ -821,7 +839,9 @@ int unbind_local_ports(u16 local_port)
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 		atomic_dec(&hashinfo->bsockets);
 #endif
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 		extb->num_owners--;
+#endif
 		exsk = hlist_entry(extb->owners.first,
 			struct sock, sk_bind_node);
 		if (NULL != exsk){

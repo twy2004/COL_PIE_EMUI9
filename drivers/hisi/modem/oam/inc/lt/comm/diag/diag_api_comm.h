@@ -60,8 +60,6 @@ extern "C" {
   1 Include Headfile
 *****************************************************************************/
 #include <vos.h>
-#include <mdrv.h>
-#include "diag_service_comm.h"
 #include "diag_cfg_comm.h"
 /*****************************************************************************
   2 macro
@@ -74,12 +72,7 @@ extern "C" {
 
 #define LTE_DIAG_PRINTF_PARAM_MAX_NUM       (6)
 
-#ifdef DIAG_SYSTEM_5G
-#define VOS_TRANSID_LEN  VOS_UINT16
-#else
-#define VOS_TRANSID_LEN  VOS_UINT32
-#endif
-
+#define LAYER_MSG_MIN_LEN                   (4)
 /*****************************************************************************
   3 Enum
 *****************************************************************************/
@@ -90,159 +83,6 @@ extern "C" {
 /*****************************************************************************
   5 struct
 *****************************************************************************/
-/* ==============消息应答上报接口参数====================================== */
-
-/*diag printV最大允许字节数,包括前面文件名和行号长度，-1是预留\0结束符*/
-#define DIAG_PRINTF_MAX_LEN 	(1000-1)
-
-typedef struct
-{
-    VOS_UINT32 ulModule;                        /* 打印信息所在的模块ID */
-    VOS_UINT32 ulLevel;                         /* 输出级别 */
-    VOS_UINT32 ulNo;                            /* IND标号 */
-    VOS_CHAR   szText[DIAG_PRINTF_MAX_LEN+1];   /* 所有打印文本内容，可能包括文件和行号,以'\0'结尾 */
-} DIAG_CMD_LOG_PRINT_RAW_TXT_IND_STRU;
-
-
-/* diag event report上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulNo;      /* 序号*/
-    VOS_UINT32 ulId;      /* 消息或者事件ID,主要针对消息,空口,事件,普通打印输出时该成员为零*/
-    VOS_UINT32 ulModule;  /* 打印信息所在的模块ID */
-    VOS_INT8   aucDta[0]; /* 用户数据缓存区*/    /*lint !e43 */
-} DIAG_CMD_LOG_EVENT_IND_STRU;
-
-/* diag air report上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulModule;     /* 源模块ID*/
-    VOS_UINT32 ulSide;       /* 1: NET-->UE, 2: UE-->NET*/
-    VOS_UINT32 ulNo;         /* 序号*/
-    VOS_UINT32 ulId;         /* ID*/
-    VOS_INT8 aucDta[0];     /* 用户数据缓存区*/  /*lint !e43 */
-} DIAG_CMD_LOG_AIR_IND_STRU;
-
-/* diag volte report上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulModule;     /* 源模块ID*/
-    VOS_UINT32 ulSide;       /* 1: NET-->UE, 2: UE-->NET*/
-    VOS_UINT32 ulNo;         /* 序号*/
-    VOS_UINT32 ulId;         /* ID*/
-    VOS_INT8   aucDta[0];    /* 用户数据缓存区*/     /*lint !e43 */
-} DIAG_CMD_LOG_VOLTE_IND_STRU;
-
-
-/* diag userplane report上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulModule;     /* 源模块ID*/
-    VOS_UINT32 ulNo;         /* 序号*/
-    VOS_UINT32 ulId;         /* ID*/
-    VOS_INT8 aucDta[0];     /* 用户数据缓存区*/  /*lint !e43 */
-} DIAG_CMD_LOG_USERPLANE_IND_STRU;
-
-
-/* diag 结构化数据上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulModule;     /* 源模块ID*/
-    VOS_UINT32 ulMsgId;      /* ID*/
-    VOS_UINT32 ulNo;         /* 序号*/
-    VOS_INT8   aucDta[0];    /* 用户数据缓存区*/     /*lint !e43 */
-} DIAG_CMD_TRANS_IND_STRU;
-
-
-/* diag trace report上报信息的结构体 */
-typedef struct
-{
-    VOS_UINT32 ulModule;     /* 源模块ID*/
-    VOS_UINT32 ulDestMod;    /* 目的模块ID*/
-    VOS_UINT32 ulNo;         /* 序号*/
-    VOS_UINT32 ulId;         /* ID*/
-    VOS_INT8 aucDta[0];     /* 用户数据缓存区*/  /*lint !e43 */
-} DIAG_CMD_LOG_LAYER_IND_STRU;
-
-/* ======================================================================== */
-
-/* CNF类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-}DIAG_API_CNF_HEADER_STRU;
-
-/* 打点类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-}DIAG_SRV_LOG_ID_HEADER_STRU;
-
-/* 打印类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-}DIAG_SRV_LOG_HEADER_STRU;
-
-/* trans 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_TRANS_IND_STRU         trans_header;
-}DIAG_SRV_TRANS_HEADER_STRU;
-
-/* event 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_EVENT_IND_STRU     event_header;
-}DIAG_SRV_EVENT_HEADER_STRU;
-
-/* air 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_AIR_IND_STRU       air_header;
-}DIAG_SRV_AIR_HEADER_STRU;
-
-/* volte 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_VOLTE_IND_STRU     volte_header;
-}DIAG_SRV_VOLTE_HEADER_STRU;
-
-/* trace 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_LAYER_IND_STRU     trace_header;
-}DIAG_SRV_TRACE_HEADER_STRU;
-
-/* layer 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_LAYER_IND_STRU     layer_header;
-}DIAG_SRV_LAYER_HEADER_STRU;
-
-/* user 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-    DIAG_CMD_LOG_USERPLANE_IND_STRU user_header;
-}DIAG_SRV_USER_HEADER_STRU;
-
 
 /*****************************************************************************
   6 Extern Global Variable

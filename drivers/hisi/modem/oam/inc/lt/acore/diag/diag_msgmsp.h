@@ -60,8 +60,8 @@ extern "C" {
 /*****************************************************************************
   1 Include Headfile
 *****************************************************************************/
-#include  "vos.h"
-#include  "msp_errno.h"
+#include  <vos.h>
+#include  <msp.h>
 #include  "diag_cfg.h"
 #include  "blist.h"
 #include  "diag_msgmsp_comm.h"
@@ -69,12 +69,9 @@ extern "C" {
   2 macro
 *****************************************************************************/
 
-
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
-
-
 
 /*****************************************************************************
   4 Enum
@@ -84,16 +81,12 @@ extern "C" {
 /*****************************************************************************
    5 STRUCT
 *****************************************************************************/
-
-
-
 typedef struct
 {
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
+	VOS_UINT32 ulAuid;			/* 原AUID*/
+	VOS_UINT32 ulSn;			/* HSO分发，插件命令管理*/
+	VOS_UINT32 ulRc;			/* 结果码*/
 } DIAG_CMD_GTR_SET_CNF_STRU;
-
 
 /*****************************************************************************
   6 UNION
@@ -114,10 +107,12 @@ typedef struct
 *****************************************************************************/
 extern VOS_UINT32 diag_ConnMsgProc(MsgBlock* pMsgBlock);
 extern VOS_UINT32 diag_AppTransMspProc(MsgBlock* pMsgBlock);
+VOS_UINT32 diag_GtrProcEntry(VOS_UINT8* pstReq);
+VOS_UINT32 diag_GuGtrProcEntry(VOS_UINT8* pstReq);
+#ifdef DIAG_SYSTEM_5G
+VOS_UINT32 diag_5GGtrProcEntry(VOS_UINT8* pstReq);
+#endif
 
-extern VOS_UINT32 diag_GtrProcEntry(VOS_UINT8* pstReq);
-extern VOS_UINT32 diag_GuGtrProcEntry(VOS_UINT8* pstReq);
-VOS_UINT32 diag_MspMsgProc(DIAG_FRAME_INFO_STRU *pData);
 
 #ifdef __cplusplus
     #if __cplusplus

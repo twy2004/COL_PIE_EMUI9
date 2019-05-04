@@ -28,6 +28,21 @@
     board_id = <8911>;
 };
 
+&firmware {
+    android {
+        fstab {
+            vendor {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+            odm {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+        };
+    };
+};
+
 &hisi_peripheral_tm {
     compatible = "hisi,hisi-peripheral-tm";
     hisi,peripheral_sensors = <13>;
@@ -1132,7 +1147,7 @@
 				clock-names = "clk_out0";
 				clocks = <&clk_gate_out0>;
 				nfc_chip_type = "pn553";
-				nfc_single_channel = "true";
+				nfc_single_channel = "false";
 				nfc_ese_type = "hisee";
 			};
 
@@ -1291,9 +1306,9 @@
 				producer = "SUM";
 				compatible = "synaptics-TONY500910";
 				supported_func_indicater = <0>;
-				roi_data_addr = <0x0402>;
+				roi_data_addr = <0x0401>;
 				roi_control_bit = <0>;
-				roi_control_addr = <0x0405>;
+				roi_control_addr = <0x0403>;
 				glove_switch_bit = <0>;
 				glove_switch_addr = <0>;
 				touch_game_reg = <0>;
@@ -1301,7 +1316,7 @@
 				charger_switch_bit = <5>;
 				charger_switch_addr = <0x000e>;
 				screenoff_status_support = <1>;
-				screenoff_status_reg = <0x40f>;
+				screenoff_status_reg = <0x0404>;
 				screenoff_status_switch = <2>;
 				//adv_width and is_multi_protocal is a couple for new_wx_wy fuk
 				adv_width = "000";
@@ -1315,10 +1330,13 @@
 				noise_state_reg = <0>;
 				//ic_status_reg = <0x0006>;
 				touch_switch_flag = <4>; // 1-doze 2-game 4-scene
-				touch_scene_reg = <0x293>;
+				touch_scene_reg = <0x0405>;
 				touch_switch_reg = <0>;
 				//touch switch bit = <2> write code to not changed
 				touch_switch_hold_off_reg = <0>;
+				face_dct_support = <1>;
+				face_dct_en_reg = <0x041A>;
+				face_dct_data_reg = <0x0402>;
 				test_enhance_raw_data_capacitance = <0>;
 				huawei,test_capacitance_via_csvfile = <1>;
 				//csv file at /product mark 1 at /odm mark 2
@@ -2623,7 +2641,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;
@@ -2641,11 +2658,11 @@
 			sensor_list_info_id = <24>;
 			sensor_type = "rpc";
 			sensorlist_name = "rpc";
-			mask = <0xFFFF 0x200 0x200 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+			mask = <0xFFFF 0x600 0x600 0x600 0x600 0xFFFF 0xFFFF 0xFFFF
 				0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
 				0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
 				0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF>;
-			table = <0xFFFF 0x200 0x0 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+			table = <0xFFFF 0x200 0x0 0x600 0x400 0xFFFF 0xFFFF 0xFFFF
 				 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
 				 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
 				 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF>;
@@ -2875,7 +2892,7 @@
 			"sensor_iovdd",
 			"sensor_mclk", "sensor_mclk",
 			"sensor_rst", "sensor_rst2";
-		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1100000 1800000 0 0 0 0>;
+		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1145000 1800000 0 0 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 1 0xFF 0xFF>;
 		huawei,cam-power-seq-delay = <1 0 0 0 0 0 1 0 0 0 0>;
 
@@ -2887,7 +2904,7 @@
 			"sensor_avdd2_en", "sensor_avdd1_en",
 			"sensor_mipi_sw",
 			"sensor_vcm_avdd";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1100000 1100000 0 0 0 2950000>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1145000 1100000 0 0 0 2950000>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 1 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 0 0 0 1 0 0 0 0 1 0>;
 
@@ -2935,7 +2952,7 @@
 			"sensor_iovdd",
 			"sensor_mclk", "sensor_mclk",
 			"sensor_rst", "sensor_rst2";
-		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1100000 1800000 0 0 0 0>;
+		huawei,cam-power-seq-cfg-val = <2950000 0 0 0 1100000 1145000 1800000 0 0 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 1 0xFF 0xFF>;
 		huawei,cam-power-seq-delay = <1 0 0 0 0 0 1 0 0 0 0>;
 
@@ -2947,7 +2964,7 @@
 			"sensor_avdd2_en", "sensor_avdd1_en",
 			"sensor_mipi_sw",
 			"sensor_vcm_avdd";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1100000 1100000 0 0 0 2950000>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1145000 1100000 0 0 0 2950000>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 1 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 0 0 0 1 0 0 0 0 1 0>;
 
@@ -2978,19 +2995,19 @@
 		huawei,phyclk = <80000000>;
 		phy-clock-num = <4>;
 		huawei,mclk = <19200000>;
-		dvdd-supply = <&ldo38>;
+		dvdd2-supply = <&ldo38>;
 		iovdd-supply = <&ldo21>;
-		huawei,ldo-names = "dvdd", "iovdd";
+		huawei,ldo-names = "dvdd2", "iovdd";
 		gpios = <&gpio32 0 0 &gpio1 6 0>;
 		huawei,gpio-ctrl-types = "avdd1_en", "reset";
 		module_type = <0>;
 		huawei,cam-power-seq-type =
 			"sensor_avdd1_en",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_iovdd",
 			"sensor_mclk",
 			"sensor_rst";
-		huawei,cam-power-seq-cfg-val = <0 1100000 1800000 0 0>;
+		huawei,cam-power-seq-cfg-val = <0 1145000 1800000 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 2 0xFF>;
 		huawei,cam-power-seq-delay = <1 1 0 1 0>;
 
@@ -2998,9 +3015,9 @@
 			"sensor_rst",
 			"sensor_mclk",
 			"sensor_iovdd",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_avdd1_en";
-		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1100000 0>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1145000 0>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 2 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 1 0 1 1>;
 
@@ -3031,19 +3048,20 @@
 		huawei,phyclk = <80000000>;
 		phy-clock-num = <4>;
 		huawei,mclk = <19200000>;
-		dvdd-supply = <&ldo38>;
+		dvdd2-supply = <&ldo38>;
 		iovdd-supply = <&ldo21>;
-		huawei,ldo-names = "dvdd", "iovdd";
+		huawei,ldo-names = "dvdd2", "iovdd";
 		gpios = <&gpio32 0 0 &gpio1 6 0>;
 		huawei,gpio-ctrl-types = "avdd1_en", "reset";
 		module_type = <0>;
+		need_rpc = <1>;//for radio frequency interference
 		huawei,cam-power-seq-type =
 			"sensor_avdd1_en",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_iovdd",
 			"sensor_mclk",
 			"sensor_rst";
-		huawei,cam-power-seq-cfg-val = <0 1100000 1800000 0 0>;
+		huawei,cam-power-seq-cfg-val = <0 1145000 1800000 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 2 0xFF>;
 		huawei,cam-power-seq-delay = <1 1 0 1 0>;
 
@@ -3051,9 +3069,9 @@
 			"sensor_rst",
 			"sensor_mclk",
 			"sensor_iovdd",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_avdd1_en";
-		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1100000 0>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1145000 0>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 2 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <0 1 0 1 1>;
 
@@ -3083,19 +3101,20 @@
 		huawei,phyclk = <80000000>;
 		phy-clock-num = <4>;
 		huawei,mclk = <19200000>;
-		dvdd-supply = <&ldo38>;
+		dvdd2-supply = <&ldo38>;
 		iovdd-supply = <&ldo21>;
-		huawei,ldo-names = "dvdd", "iovdd";
+		huawei,ldo-names = "dvdd2", "iovdd";
 		gpios = <&gpio32 0 0 &gpio1 6 0>;
 		huawei,gpio-ctrl-types = "avdd1_en", "reset";
 		module_type = <0>;
+		need_rpc = <1>;//for radio frequency interference
 		huawei,cam-power-seq-type =
 			"sensor_avdd1_en",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_iovdd",
 			"sensor_rst",
 			"sensor_mclk";
-		huawei,cam-power-seq-cfg-val = <0 1100000 1800000 0 0>;
+		huawei,cam-power-seq-cfg-val = <0 1145000 1800000 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 2>;
 		huawei,cam-power-seq-delay = <1 1 0 5 0>;
 
@@ -3103,9 +3122,9 @@
 			"sensor_mclk",
 			"sensor_rst",
 			"sensor_iovdd",
-			"sensor_dvdd",
+			"sensor_dvdd2",
 			"sensor_avdd1_en";
-		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1100000 0>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1145000 0>;
 		huawei,cam-power-down-seq-sensor-index = <2 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <1 0 0 1 1>;
 
@@ -3141,6 +3160,7 @@
 		huawei,ldo-names = "dvdd", "iovdd";
 		gpios = <&gpio9 3 0 &gpio2 1 0>;
 		huawei,gpio-ctrl-types = "avdd1_en", "reset";
+		need_rpc = <1>;//for radio frequency interference
 
 		huawei,cam-power-seq-type =
 			"sensor_avdd1_en",
@@ -3194,6 +3214,7 @@
 		huawei,ldo-names = "dvdd", "iovdd";
 		gpios = <&gpio9 3 0 &gpio2 1 0>;
 		huawei,gpio-ctrl-types = "avdd1_en", "reset";
+		need_rpc = <1>;//for radio frequency interference
 
 		huawei,cam-power-seq-type =
 			"sensor_avdd1_en",

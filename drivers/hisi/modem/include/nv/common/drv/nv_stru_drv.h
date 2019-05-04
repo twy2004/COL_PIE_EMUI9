@@ -60,14 +60,14 @@ extern "C" {
 
 #ifndef __u8_defined
 #define __u8_defined
-typedef signed char          s8;
-typedef unsigned char        u8;
-typedef signed short         s16;
-typedef unsigned short       u16;
-typedef signed int           s32;
-typedef unsigned int         u32;
-typedef signed long long     s64;
-typedef unsigned long long   u64;
+typedef signed char          s8;//lint !e761
+typedef unsigned char        u8;//lint !e761
+typedef signed short         s16;//lint !e761
+typedef unsigned short       u16;//lint !e761
+typedef signed int           s32;//lint !e761
+typedef unsigned int         u32;//lint !e761
+typedef signed long long     s64;//lint !e761
+typedef unsigned long long   u64;//lint !e761
 #endif
 /*lint --e{959}*/
 /*****************************************************************************
@@ -141,6 +141,41 @@ typedef struct ST_PWC_SWITCH_STRU_S {
     u32 drx_abb_reserved2:1;
     u32 reserved2        :14; /*bit18-31 未用*/
 }ST_PWC_SWITCH_STRU;
+
+typedef struct ST_PWC_NR_POWERCTRL_STRU_S {
+
+    /*以下NV用于NR低功耗的整体控制，其中有些BIT暂时未用，做他用时，请更正为准确的名称*/
+    u8 nrcpudeepsleep;/*lixiaojie*/
+    u8 l2hacdeepsleep;/*lixiaojie*/
+    u8 cpubusdfs;/*yangqiang*/
+    u8 hotplug;/*lixiaojie*/
+    u8 tickless;/*lixiaojie*/
+    u8 drxnrbbpinit;/*ningzhaoke*/
+    u8 dxrbbppwr;/*ningzhaoke*/
+    u8 drxnrbbpclk;/*ningzhaoke*/
+    u8 drxnrbbppll;/*ningzhaoke*/
+    u8 drxnrbbppmu;/*ningzhaoke*/
+    u8 drxbbainit;/*ningzhaoke*/
+    u8 drxbbapwr;/*ningzhaoke*/
+    u8 drxbbaclk;/*ningzhaoke*/
+    u8 drxbbapll;/*ningzhaoke*/
+    u8 drxbbapmu;/*ningzhaoke*/
+    u8 drxl1c;/*chenquan*/
+    u8 drxl1cpll;/*chenquan*/
+    u8 reserved;
+}ST_PWC_NR_POWERCTRL_STRU;
+
+typedef struct ST_DDR_TMON_PROTECT_STRU_S{
+	u32 ddr_tmon_protect_on :1;
+	u32 ddr_vote_dvfs_alone  :1;
+	u32 reserved1 : 6;
+	u32 ddr_tmon_protect_enter_threshold :3; //温保进入的threshold
+	u32 ddr_tmon_protect_exit_threshold :3; //温保退出threshold
+	u32 ddr_tmon_protect_freq_threshold:2;//进入温保后DDR的最大工作频点
+	u32 ddr_tmon_protect_upper:3; //ddr 高温复位门限
+	u32 ddr_tmon_protect_downer:3; //ddr低温复位门限
+	u32 reserved2:10;
+}ST_DDR_TMON_PROTECT_STRU;
 
 typedef struct ST_CHR_REPORT_STRU_S {
     u32 pm_monitor_time;/*pm monitor time,Unit:minute,1 means if cp not sleep ,CHR will report the pm state*/
@@ -301,6 +336,31 @@ typedef struct
 }DRV_WATCHPOINT_CFG_STRU;
 /* watchpoint = 0xd148 end */
 
+/* 0xD194, for tsensor start*/
+#define TSENSOR_ID_MAX 4
+struct DRV_TSENSOR_NV_TEMP_UNIT {
+    s32 high_temp;
+    s32 low_temp;
+};
+
+struct DRV_TSENSOR_NV_TEMP_INFO {
+    u32 temp_unit_nums;                                     /*高温温度阈值实际单元数*/
+    struct DRV_TSENSOR_NV_TEMP_UNIT temp_threshold_init[5]; /*最多支持5组高温度阈值*/
+};
+
+typedef struct
+{
+    u32 enable_reset_hreshold;                                         /*使能复位门限标志,0,去使能；1,使能*/
+    u32 reset_threshold_temp;                                          /*复位温度阈值*/
+    u32 timer_value_s;                                                 /*定时器超时值*/
+    u32 enable_print_temp;                                             /*使能10s打印一次温度*/
+    u32 enable_htemp_protect;                                          /*高温温保使能标志, 0, 去使能;  1, 使能*/
+    struct DRV_TSENSOR_NV_TEMP_INFO htemp_threshold[TSENSOR_ID_MAX];  /*高温温保阈值*/
+    u32 enable_ltemp_protect;                                          /*低温温保使能标志, 0, 去使能;  1, 使能*/
+    struct DRV_TSENSOR_NV_TEMP_INFO ltemp_threshold[TSENSOR_ID_MAX];  /*低温温保阈值*/
+}DRV_TSENSOR_TEMP_PROTECT_CONTROL_NV_STRU;
+/* 0xD194, for tsensor end*/
+
 typedef struct
 {
     u32 DialupEnableCFG;
@@ -397,6 +457,25 @@ typedef struct
     u8  cswNRMPDE;      /* Range:[0,3] *//* 5G Modem PDE开机log profile */
     u8  cReserved[6];   /* 保留字段 */
 }DRV_NV_POWER_ON_LOG_SWITCH_STRU;
+
+
+typedef struct
+{
+    s32 temperature;
+    u16 code;
+    u16 reserved;
+} DRV_CONVERT_TABLE_TYPE;
+#define XO_TABLE_SIZE 166
+typedef struct
+{
+    DRV_CONVERT_TABLE_TYPE convert_table[XO_TABLE_SIZE];
+} DRV_XO_CONVERT_TABLE;
+#define PA_TABLE_SIZE 32
+typedef struct
+{
+    DRV_CONVERT_TABLE_TYPE convert_table[PA_TABLE_SIZE];
+} DRV_PA_CONVERT_TABLE;
+
 
 #ifndef LPHY_UT_MODE//lint !e553
 typedef struct convert_table

@@ -715,7 +715,7 @@ static void ffs_epfile_io_complete(struct usb_ep *_ep, struct usb_request *req)
 	}
 }
 
-static ssize_t ffs_copy_to_iter(void *data, int data_len, struct iov_iter *iter)
+static ssize_t ffs_copy_to_iter(const void *data, int data_len, struct iov_iter *iter)
 {
 	ssize_t ret = copy_to_iter(data, data_len, iter);
 	if (likely(ret == data_len))
@@ -847,7 +847,7 @@ static ssize_t __ffs_epfile_read_buffered(struct ffs_epfile *epfile,
 
 /* Assumes epfile->mutex is held. */
 static ssize_t __ffs_epfile_read_data(struct ffs_epfile *epfile,
-				      void *data, int data_len,
+				      const void *data, int data_len,
 				      struct iov_iter *iter)
 {
 	struct ffs_buffer *buf;

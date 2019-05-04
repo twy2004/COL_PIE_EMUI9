@@ -197,7 +197,7 @@ int ftm_create_dir(char *path)
         fd  = sys_mkdir(path, 0660);
         if(fd < 0)
         {
-            PS_PRINTF("[%s line %d]create ftm dump log dir failed! ret = %d\n",__FUNCTION__,__LINE__, fd);
+            PS_PRINTF_WARNING("<%s> line %d create ftm dump log dir failed! ret = %d\n",__FUNCTION__,__LINE__, fd);
             return fd;
         }
     }

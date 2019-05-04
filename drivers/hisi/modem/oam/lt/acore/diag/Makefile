@@ -1,4 +1,4 @@
--include $(srctree)/drivers/hisi/modem/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
+-include $(srctree)/drivers/hisi/modem/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 ifeq ($(strip $(llt_gcov)),y)
 GCOV_PROFILE := y
@@ -16,7 +16,6 @@ obj-y	+= diag_msgmsp.o
 obj-y   += diag_msg_easyrf.o
 obj-y	+= diag_msgphy.o
 obj-y	+= diag_msgps.o
-obj-y	+= diag_service.o
 obj-y	+= diag_connect.o
 obj-y	+= diag_msglrm.o
 ifeq ($(strip $(CFG_DIAG_SYSTEM_5G)),YES)
@@ -26,7 +25,7 @@ endif
 obj-y	+= diag_time_stamp.o
 endif
 
-ifeq ($(strip $(CFG_CONFIG_DIAG_NRM)),YES)
+ifeq ($(strip $(CFG_CONFIG_BBIT_SOCP_NRM)),YES)
 obj-y	+= diag_msgbbp_nr_fpga.o
 else
 obj-y	+= diag_msgbbp.o

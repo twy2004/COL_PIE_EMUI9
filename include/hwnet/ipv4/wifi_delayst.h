@@ -12,6 +12,9 @@
 #include<linux/timer.h>
 #include<linux/timex.h>
 #include<linux/rtc.h>
+#include<linux/jump_label.h>
+#include <linux/version.h>
+
 
 #define DELAY_FILTER_NAME_MAX   30
 #define DELAY_NORMAL_TIME          (30*1000)                  /*30ms*/
@@ -45,11 +48,9 @@ typedef struct delay_stat{
 	uint32_t T_TotalPkts[TP_SKB_MAX_ENTRY];
 }DELAY_STAT_T;
 
-typedef enum{
-	flag_auto =0,
-	flag_on,
-	flag_off,
-}dp_switch_enum;
+#define flag_off  0
+#define flag_on  1
+#define flag_auto 2
 
 typedef enum{
 	mode_stat =0,
@@ -57,10 +58,10 @@ typedef enum{
 }dp_mode_enum;
 
 typedef struct dp_setting{     /*delay_print settings for users*/
-	dp_switch_enum        dp_switch;
 	dp_mode_enum          dp_mode;
-	unsigned int              print_interval;
+	unsigned int               print_interval;
 	unsigned int 		   android_uid;
+	u8                            dp_switch;
 }DP_SETTINGS_T;
 
 typedef enum{
@@ -90,7 +91,11 @@ typedef struct delayskbcb{
 #define DELAYST_SKB_CB(__skb)     ((DELAYSKB_CB_T *)&((__skb)->cb[48]))
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 #define IS_NEED_RECORD_DELAY(__skb, __index)   (0 != (skbprobe_get_skbtime(__skb,__index).tv64))
+#else
+#define IS_NEED_RECORD_DELAY(__skb, __index)   (0 != skbprobe_get_skbtime(__skb,__index))
+#endif
 
 #define PACKET_IS_ENOUGH_FOR_PRINT(__DIRECT, __index)     \
 	(__DIRECT.T_TotalPkts[__index] >= Settings.print_interval) //packet is enough for print
@@ -102,32 +107,23 @@ typedef struct delayskbcb{
 #define MEMCPY_SKB_CB(__to, __from)   (memcpy(__to->cb,__from->cb,96))
 #endif
 
+extern char tcp_delay_filter[DELAY_FILTER_NAME_MAX] ;
+extern DP_SETTINGS_T Settings;
+extern DELAY_STAT_T Delay_S;
+extern DELAY_STAT_T RcvDelay_S;
+extern u8 delayst_switch;
+extern struct static_key wifi_delay_statistic_key;
+
 #define IS_DIRECT(__skb, __direct)                      (__direct  ==  skbprobe_get_direct(__skb))
-#define IS_DELAY_SWITCH_DISABLE                    (Settings.dp_switch == flag_off )
 #define IS_DELAY_SWITCH_AUTO                       (Settings.dp_switch == flag_auto)
 #define GET_TIME_FROM_SKB(__skb,__index)    (ktime_to_us(skbprobe_get_skbtime(__skb,__index)))
-
-#define DIRECT_RETURN_IF_SWITCH_OFF         \
-	do {                                    \
-		if(IS_DELAY_SWITCH_DISABLE)  {      \
-			return;                         \
-		}                                   \
-	}while(0)
-
+#define  DELAY_STATISTIC_SWITCH_ON                   (static_key_enabled(&wifi_delay_statistic_key))
 
 #define CLEAN_DELAY_RECORD  \
 	do{                                               \
 		memset(&RcvDelay_S,0,sizeof(DELAY_STAT_T));   \
 		memset(&Delay_S,0,sizeof(DELAY_STAT_T));      \
 	}while(0)
-
-extern char tcp_delay_filter[DELAY_FILTER_NAME_MAX] ;
-extern DP_SETTINGS_T Settings;
-
-extern DELAY_STAT_T Delay_S;
-extern DELAY_STAT_T RcvDelay_S;
-
-extern u8 delayst_switch;
 
 /*get time gap from DELAY_STAT_T*/
 #define GET_RCV_UPLOAD(__index)      (RcvDelay_S.T_gap[TP_SKB_HMAC_UPLOAD][__index])
@@ -155,8 +151,6 @@ extern u8 delayst_switch;
 #define GET_XMIT_ALL        GET_SND_XMIT(0), GET_SND_XMIT(1), GET_SND_XMIT(2), GET_SND_XMIT(3), GET_SND_XMIT(4)
 #define GET_TX_ALL            GET_SND_TX(0), GET_SND_TX(1), GET_SND_TX(2), GET_SND_TX(3), GET_SND_TX(4)
 #define GET_DMAC_ALL       GET_SND_DMAC(0), GET_SND_DMAC(1), GET_SND_DMAC(2), GET_SND_DMAC(3), GET_SND_DMAC(4)
-
-
 
 #define TP_STORE_ADDR_PORTS_V4(__entry, inet, sk)                   \
 	do {                                                            \

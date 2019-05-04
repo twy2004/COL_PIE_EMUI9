@@ -127,12 +127,23 @@ struct nv_global_ctrl_stru
 
 #include "ptable_com.h"
 
+#ifndef CONFIG_NV_AB_FEATURE
 #define NV_DLOAD_SEC_NAME              PTABLE_NVDLOAD_NM
 #define NV_DLOAD_CUST_SEC_NAME         PTABLE_NVCUST_NM
 #define NV_BACK_SEC_NAME               PTABLE_NVBACK_NM
 #define NV_DEF_SEC_NAME                PTABLE_NVDEFAULT_NM
+#else
+#define NV_BACK_SEC_NAME               "modemnvm_backup"
+#define NV_DLOAD_SEC_NAME              "modemnvm_update"
+#define NV_DLOAD_CUST_SEC_NAME         "modemnvm_cust"
+#define NV_DEF_SEC_NAME                "modemnvm_factory"
+#endif
 
+#ifdef CONFIG_NR_NVIM
+#define NV_SEC_VRL_SIZE                0
+#else
 #define NV_SEC_VRL_SIZE                0x1000
+#endif
 #endif
 
 #if defined(FEATURE_NV_FLASH_ON)

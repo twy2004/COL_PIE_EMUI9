@@ -95,6 +95,7 @@
 #include "VosTaskPrioDef.h"
 #include "vos.h"
 #include "v_private.h"
+#include "pam_tag.h"
 
 
 /* LINUX 不支持 */
@@ -106,6 +107,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_TIMER_C
+#define    THIS_MODU           mod_pam_osa
 
 
 /* the state of Timer */
@@ -260,7 +262,7 @@ VOS_VOID VOS_26MDualTimerIsrEntry(VOS_UINT32 ulElapsedCycles)
         ulTempCount++;
         if ( vos_TimerCtrlBlkNumber < ulTempCount )
         {
-            LogPrint2("# OSA Timer list error.Max %d Count %d.\r\n",
+            mdrv_err("<VOS_26MDualTimerIsrEntry> OSA Timer list exceed, Max=%d Count=%d.\n",
                 (VOS_INT)vos_TimerCtrlBlkNumber, (VOS_INT)ulTempCount);
             return;
         }
@@ -268,7 +270,6 @@ VOS_VOID VOS_26MDualTimerIsrEntry(VOS_UINT32 ulElapsedCycles)
         vos_TimerCtrlBlkCurrent = head_Ptr;
 
         *(head_Ptr->phTm) = VOS_NULL_PTR;
-        /*head_Ptr->State = VOS_TIMER_CTRL_BLK_STOP;*/
 
         head_Ptr = vos_TimerCtrlBlkCurrent->next;
 
@@ -323,7 +324,6 @@ VOS_INT32 VOS_26MDualTimerIsr(VOS_INT lPara)
     VOS_UINT32                   ulElapsedCycles;
     VOS_ULONG                    ulLockLevel;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     g_st26MSocTimerInfo.ulExpireCount++;
@@ -337,7 +337,6 @@ VOS_INT32 VOS_26MDualTimerIsr(VOS_INT lPara)
 
     VOS_26MDualTimerIsrEntry(ulElapsedCycles);
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     return 0;
@@ -449,7 +448,6 @@ VOS_UINT32 VOS_TimerCtrlBlkInit(VOS_VOID)
         vos_TimerCtrlBlk[i].phTm         = VOS_NULL_PTR;
         vos_TimerCtrlBlk[i].CallBackFunc = VOS_NULL_PTR;
         vos_TimerCtrlBlk[i].previous     = VOS_NULL_PTR;
-        /* vos_TimerCtrlBlk[i].message_Ptr  = VOS_NULL_PTR; */
         /*lint -e679*/
         vos_TimerCtrlBlk[i].next         = &(vos_TimerCtrlBlk[i+1]);
         /*lint +e679*/
@@ -462,7 +460,6 @@ VOS_UINT32 VOS_TimerCtrlBlkInit(VOS_VOID)
     vos_TimerCtrlBlk[vos_TimerCtrlBlkNumber-1].phTm = VOS_NULL_PTR;
     vos_TimerCtrlBlk[vos_TimerCtrlBlkNumber-1].CallBackFunc = VOS_NULL_PTR;
     vos_TimerCtrlBlk[vos_TimerCtrlBlkNumber-1].previous = VOS_NULL_PTR;
-    /* vos_TimerCtrlBlk[vos_TimerCtrlBlkNumber-1].message_Ptr = VOS_NULL_PTR; */
     vos_TimerCtrlBlk[vos_TimerCtrlBlkNumber-1].next = VOS_NULL_PTR;
 
     vos_TimerMinTimerIdUsed             = vos_TimerCtrlBlkNumber;
@@ -493,15 +490,10 @@ VOS_UINT32 VOS_TimerCtrlBlkInit(VOS_VOID)
 VOS_TIMER_CONTROL_BLOCK *VOS_TimerCtrlBlkGet(VOS_UINT32 ulFileID,
                                              VOS_INT32 usLineNo )
 {
-    /*int                      intLockLevel;*/
     VOS_TIMER_CONTROL_BLOCK  *temp_Timer_Ctrl_Ptr;
-
-    /*intLockLevel = VOS_SplIMP();*/
 
     if( 0 == vos_TimerIdleCtrlBlkNumber )
     {
-        /*VOS_Splx(intLockLevel);*/
-
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_SYSTIMER_FULL);
 
         return((VOS_TIMER_CONTROL_BLOCK*)VOS_NULL_PTR);
@@ -514,8 +506,6 @@ VOS_TIMER_CONTROL_BLOCK *VOS_TimerCtrlBlkGet(VOS_UINT32 ulFileID,
         temp_Timer_Ctrl_Ptr->ulUsedFlag = VOS_USED;
         vos_TimerIdleCtrlBlk = vos_TimerIdleCtrlBlk->next;
     }
-
-    /*VOS_Splx(intLockLevel);*/
 
     /* record the usage of timer control block */
     if ( vos_TimerIdleCtrlBlkNumber < vos_TimerMinTimerIdUsed )
@@ -543,20 +533,14 @@ VOS_TIMER_CONTROL_BLOCK *VOS_TimerCtrlBlkGet(VOS_UINT32 ulFileID,
  *****************************************************************************/
 VOS_UINT32 VOS_TimerCtrlBlkFree(VOS_TIMER_CONTROL_BLOCK *Ptr, VOS_UINT8 ucTag )
 {
-    /*int             intLockLevel;*/
-
     if ( (VOS_UINT_PTR)Ptr < (VOS_UINT_PTR)vos_TimerCtrlBlkBegin
         || (VOS_UINT_PTR)Ptr > (VOS_UINT_PTR)vos_TimerCtrlBlkEnd )
     {
         return VOS_ERR;
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
-
     if ( VOS_NOT_USED == Ptr->ulUsedFlag )
     {
-        /*VOS_Splx(intLockLevel);*/
-
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_FREE_RECEPTION);
 
         return VOS_ERRNO_RELTM_FREE_RECEPTION;
@@ -568,8 +552,6 @@ VOS_UINT32 VOS_TimerCtrlBlkFree(VOS_TIMER_CONTROL_BLOCK *Ptr, VOS_UINT8 ucTag )
     vos_TimerIdleCtrlBlk = Ptr;
 
     vos_TimerIdleCtrlBlkNumber++;
-
-    /*VOS_Splx(intLockLevel);*/
 
     return VOS_OK;
 }
@@ -673,7 +655,7 @@ VOS_VOID VOS_TimerTaskFunc( VOS_UINT32 Para0, VOS_UINT32 Para1,
                     if(VOS_OK != VOS_SendMsg( DOPRA_PID_TIMER,
                         pstExpireMsg ))
                     {
-                        Print1("%s", "# OSA Timer task Send Msg Error.\r\n");
+                        mdrv_err("<VOS_TimerTaskFunc> OSA Timer task Send Msg Fail.\n");
                     }
                 }
             }
@@ -687,8 +669,6 @@ VOS_VOID VOS_TimerTaskFunc( VOS_UINT32 Para0, VOS_UINT32 Para1,
             OM_RecordInfoEnd(VOS_EXC_DUMP_MEM_NUM_4);
 
             vos_Timer_expire_head_Ptr = vos_Timer_expire_head_Ptr->next;
-
-            /* head_Ptr->message_Ptr = VOS_NULL_PTR; */
 
             VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
@@ -726,7 +706,7 @@ REL_TIMER_MSG *VOS_TimerPreAllocMsg( VOS_PID Pid )
     pMsg = (REL_TIMER_MSG*)VOS_AllocTimerMsg(Pid, REL_TIMER_MESSAGE_LENGTH );
     if( VOS_NULL_PTR == pMsg )
     {
-        LogPrint("# VOS_TimerPreAllocMsg Malloc Error.\r\n");
+        mdrv_err("<VOS_TimerPreAllocMsg> Malloc Fail.\n");
         return VOS_NULL_PTR;
     }
 
@@ -770,10 +750,7 @@ VOS_VOID Add_Timer_To_List( VOS_TIMER_CONTROL_BLOCK  *Timer)
 {
     VOS_TIMER_CONTROL_BLOCK  *temp_Ptr;
     VOS_TIMER_CONTROL_BLOCK  *pre_temp_Ptr;
-    /*int                      intLockLevel;*/
     VOS_UINT32               ElapsedCycles = 0;
-
-    /*intLockLevel = VOS_SplIMP();*/
 
     if ( VOS_NULL_PTR == vos_Timer_head_Ptr )
     {
@@ -830,7 +807,6 @@ VOS_VOID Add_Timer_To_List( VOS_TIMER_CONTROL_BLOCK  *Timer)
         VOS_Start26MHardTimer(Timer->TimeOutValueInTicks);
     }
 
-    /*VOS_Splx(intLockLevel);*/
 }
 
 
@@ -878,7 +854,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_START_INPUTMODEINVALID);
 
-        LogPrint2( "# VOS_StartRelTimer Error: ucMode.F %d L %d.\r\n",
+        mdrv_err("<V_StartRelTimer> ucMode.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_FLASE_MODE);
@@ -888,7 +864,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
 
     if ( VOS_NULL_PTR == phTm )
     {
-        LogPrint2( "# VOS_StartRelTimer Error: phTm null.F %d L %d.\r\n",
+        mdrv_err("<VOS_StartRelTimer Error> phTm null.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_NULL);
@@ -898,7 +874,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
 
     if ( ulLength > VOS_TIMER_MAX_LENGTH )
     {
-        LogPrint2("# Timer's length is too big.F %d L %d.\r\n",
+        mdrv_err("<VStartRelTimer> Timer's length is too big.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_TOO_BIG);
@@ -908,7 +884,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
 
     if ( VOS_TIMER_PRECISION_BUTT <= enPrecision )
     {
-        LogPrint2("# Timer's Precision is too big.F %d L %d.\r\n",
+        mdrv_err("<VStartRelTimer> Timer's Precision is too big.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_PRECISION_TOO_BIG);
@@ -919,7 +895,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
     if ((VOS_TIMER_PRECISION_100 == enPrecision)
         && (VOS_RELTIMER_LOOP == ucMode))
     {
-        LogPrint2("# Timer's para is wrong.F %d L %d.\r\n",
+        mdrv_err("<VStartRelTimer> Timer's para is wrong.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         return VOS_ERR;
@@ -932,7 +908,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT3
 
     if ((Pid < VOS_PID_DOPRAEND) || (Pid >= VOS_PID_BUTT))
     {
-        LogPrint2("# Timer's pid is not belong to local cpu.F %d L %d.\r\n",
+        mdrv_err("<VStartRelTimer> Timer's pid is not belong to local cpu.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_RELTIMER_WRONG_CPUPID);
@@ -1005,7 +981,6 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
     VOS_ULONG                ulLockLevel;
 
     /* stop the timer if exists */
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     if( VOS_NULL_PTR != *phTm )
@@ -1014,7 +989,6 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
         {
             if ( VOS_OK != V_Stop26MRelTimer(phTm, ulFileID, usLineNo, VOS_NULL_PTR) )
             {
-                /*VOS_Splx(intLockLevel);*/
                 VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
                 VOS_SIMPLE_FATAL_ERROR(START_26M_RELTIMER_FAIL_TO_STOP);
@@ -1028,7 +1002,6 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
 
     if( VOS_NULL_PTR == Timer )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_START_MSGNOTINSTALL);
@@ -1037,11 +1010,6 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
 
         return(VOS_ERRNO_RELTM_START_MSGNOTINSTALL);
     }
-
-    /*if( VOS_NULL_PTR != phTm )
-    {
-        *phTm = (HTIMER)(&(Timer->TimerId));
-    }*/
 
     Timer->Pid                          = Pid;
     Timer->Name                         = ulName;
@@ -1052,16 +1020,13 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
 
     Timer->TimeOutValueInTicks = (VOS_UINT32)RTC_MUL_32_DOT_768(ulLength, ulFileID, usLineNo);
 
-    /*Timer->State                        = VOS_TIMER_CTRL_BLK_RUNNIG;*/
     Timer->CallBackFunc                 = VOS_NULL_PTR;
-    /*Timer->next                         = VOS_NULL_PTR;*/
 
     *phTm = (HTIMER)(&(Timer->TimerId));
 
     /* add the timer to the running list */
     Add_Timer_To_List( Timer );
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     return(VOS_OK);
@@ -1077,9 +1042,6 @@ VOS_UINT32 V_Start26MRelTimer( HTIMER *phTm, VOS_PID Pid, VOS_UINT32 ulLength,
 VOS_VOID Del_Timer_From_List( VOS_TIMER_CONTROL_BLOCK  *Timer)
 {
      VOS_BOOL                  bIsHead = VOS_FALSE;
-    /*int                      intLockLevel;*/
-
-    /*intLockLevel = VOS_SplIMP();*/
 
     /* deletet this timer from list */
     if ( Timer == vos_Timer_head_Ptr )
@@ -1125,7 +1087,6 @@ VOS_VOID Del_Timer_From_List( VOS_TIMER_CONTROL_BLOCK  *Timer)
         VOS_Stop26MHardTimer();
     }
 
-    /*VOS_Splx(intLockLevel);*/
 }
 
 /*****************************************************************************
@@ -1138,21 +1099,14 @@ VOS_UINT32 V_Stop26MRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VOS_INT32 lLine
 {
     VOS_UINT32               TimerId = 0;
     VOS_TIMER_CONTROL_BLOCK  *Timer;
-    /*int                      intLockLevel;*/
-
-    /*intLockLevel = VOS_SplIMP();*/
 
     if( VOS_NULL_PTR == *phTm )
     {
-        /*VOS_Splx(intLockLevel);*/
-
         return VOS_OK;
     }
 
     if ( VOS_OK != VOS_CheckTimer( phTm, &TimerId, ulFileID, lLineNo ) )
     {
-        /*VOS_Splx(intLockLevel);*/
-
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_STOP_TIMERINVALID);
         return(VOS_ERRNO_RELTM_STOP_TIMERINVALID);
     }
@@ -1175,10 +1129,6 @@ VOS_UINT32 V_Stop26MRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VOS_INT32 lLine
         pstEvent->enPrecision = VOS_TIMER_NO_PRECISION;
     }
 
-    /*VOS_Splx(intLockLevel);*/
-
-    /*Timer->State = VOS_TIMER_CTRL_BLK_STOP;*/
-
     return VOS_TimerCtrlBlkFree(Timer, THE_SECOND_TIMER_TAG);
 }
 
@@ -1200,7 +1150,6 @@ MODULE_EXPORTED VOS_UINT32 V_StopRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VO
         return(VOS_ERRNO_RELTM_STOP_INPUTISNULL);
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     stTimerEvent.ulHTimerAddress = *phTm;
@@ -1214,7 +1163,6 @@ MODULE_EXPORTED VOS_UINT32 V_StopRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID, VO
         ulReturn = V_Stop26MRelTimer(phTm, ulFileID, usLineNo, &stTimerEvent);
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     stTimerEvent.ucAction = VOS_TIMER_OM_STOP;
@@ -1247,7 +1195,7 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
 
     if( VOS_NULL_PTR == phTm )
     {
-        Print1("%s", "# VOS_RestartRelTimer Error: phTm null.");
+        mdrv_err("<V_RestartRelTimer> phTm is null.");
 
         VOS_SIMPLE_FATAL_ERROR(RESTART_RELTIMER_NULL);
 
@@ -1255,7 +1203,6 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
         return(VOS_ERRNO_RELTM_RESTART_INPUTISNULL);
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
 
@@ -1264,7 +1211,6 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
     {
         ulReturn = R_Restart32KRelTimer(phTm, ulFileID, usLineNo);
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         return ulReturn;
@@ -1272,7 +1218,6 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
 
     if( VOS_NULL_PTR == *phTm )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_RESTART_TIMERINVALID);
@@ -1284,7 +1229,6 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
 
     if ( VOS_OK != VOS_CheckTimer( phTm, &TimerId, ulFileID, usLineNo ) )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_RESTART_TIMERINVALID);
@@ -1307,7 +1251,6 @@ VOS_UINT32 V_RestartRelTimer( HTIMER *phTm, VOS_UINT32 ulFileID,
     /* add the new timer to list */
     Add_Timer_To_List( Timer );
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     stTimerEvent.ucAction        = VOS_TIMER_OM_RESTART;
@@ -1341,14 +1284,13 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
 
     if( VOS_NULL_PTR == phTm )
     {
-        Print2("# VOS_GetRelTmRemainTime Error: phTm null.F %d L %d.\r\n",
+        mdrv_err("<VOS_GetRelTmRemainTime> phTm null.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_STOP_INPUTISNULL);
         return(VOS_ERRNO_RELTM_STOP_INPUTISNULL);
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
 
@@ -1359,14 +1301,12 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
         {
             *pulTick = ulTempTick/MILLISECONDS_PER_TICK;
 
-            /*VOS_Splx(intLockLevel);*/
             VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
             return VOS_OK;
 
         }
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         return VOS_ERR;
@@ -1374,7 +1314,6 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
 
     if( VOS_NULL_PTR == *phTm )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_STOP_INPUTISNULL);
@@ -1383,7 +1322,6 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
 
     if ( VOS_OK != VOS_CheckTimer( phTm, &TimerId, ulFileID, usLineNo ) )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_STOP_TIMERINVALID);
@@ -1402,7 +1340,6 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
 
     if ( (VOS_NULL_PTR == head_Ptr) || ( head_Ptr->TimerId != TimerId) )
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         return VOS_ERR;
@@ -1416,7 +1353,6 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
         *pulTick
             = (VOS_UINT32)(RTC_DIV_32_DOT_768((remain_value - ulTempTick), ulFileID, usLineNo)/MILLISECONDS_PER_TICK);
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         return(VOS_OK);
@@ -1432,19 +1368,11 @@ MODULE_EXPORTED VOS_UINT32 V_GetRelTmRemainTime( HTIMER * phTm, VOS_UINT32 * pul
  *****************************************************************************/
 VOS_BOOL VOS_Is26MTimer( HTIMER *phTm )
 {
-    /*int                      intLockLevel;*/
-
-    /*intLockLevel = VOS_SplIMP();*/
-
     if ( ((VOS_UINT_PTR)*phTm >= (VOS_UINT_PTR)vos_TimerCtrlBlkBegin)
         && ((VOS_UINT_PTR)*phTm < (VOS_UINT_PTR)vos_TimerCtrlBlkEnd) )
     {
-        /*VOS_Splx(intLockLevel);*/
-
         return VOS_TRUE;
     }
-
-    /*VOS_Splx(intLockLevel);*/
 
     return VOS_FALSE;
 }
@@ -1849,7 +1777,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_START_INPUTMODEINVALID);
 
-        LogPrint2( "# VOS_StartCallBackRelTimer Error: ucMode.F %d L %d.\r\n",
+        mdrv_err("<V_StartCallBackRelTimer> ucMode.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_FALSE_MODE);
@@ -1859,7 +1787,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
     if ( VOS_NULL_PTR == phTm )
     {
-        LogPrint2( "# VOS_StartCallBackRelTimer Error: phTm null.F %d L %d.\r\n",
+        mdrv_err("<V_StartCallBackRelTimer>  phTm null.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_NULL);
@@ -1869,7 +1797,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
     if ( ulLength > VOS_TIMER_MAX_LENGTH )
     {
-        LogPrint2("# Timer's length is too big.F %d L %d.\r\n",
+        mdrv_err("<V_StartCallBackRelTimer> Timer's length is too big.F=%d L=%d.\n",
             (VOS_INT)ulFileID,usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_TOO_BIG);
@@ -1879,7 +1807,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
     if ( VOS_NULL_PTR == TimeOutRoutine )
     {
-        LogPrint2("# Timer no callback.F %d L %d.\r\n",
+        mdrv_err("<V_StartCallBackRelTimer> Timer no callback.F=%d L=%d.\n",
             (VOS_INT)ulFileID,usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_FUN_NULL);
@@ -1889,7 +1817,7 @@ MODULE_EXPORTED VOS_UINT32 V_StartCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
     if ( VOS_TIMER_PRECISION_BUTT <= enPrecision )
     {
-        LogPrint2("# Timer's Precision is too big.F %d L %d.\r\n",
+        mdrv_err("<V_StartCallBackRelTimer> Timer's Precision is too big.F=%d L=%d.\n",
             (VOS_INT)ulFileID, usLineNo);
 
         VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_PRECISION_TOO_BIG);
@@ -1968,7 +1896,6 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     VOS_ULONG                ulLockLevel;
 
     /* stop the timer if exists */
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     if( VOS_NULL_PTR != *phTm )
@@ -1977,7 +1904,6 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
         {
             if ( VOS_OK != V_Stop26MRelTimer(phTm, ulFileID, usLineNo, VOS_NULL_PTR) )
             {
-                /*VOS_Splx(intLockLevel);*/
                 VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
                 VOS_SIMPLE_FATAL_ERROR(START_CALLBACK_RELTIMER_FAIL_TO_STOP);
@@ -1990,7 +1916,6 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
     Timer = VOS_TimerCtrlBlkGet(ulFileID, usLineNo);
     if(Timer == VOS_NULL_PTR)
     {
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_RELTM_START_MSGNOTINSTALL);
@@ -1999,11 +1924,6 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
         return(VOS_ERRNO_RELTM_START_MSGNOTINSTALL);
     }
-
-    /*if(phTm != VOS_NULL_PTR)
-    {
-        *phTm = (HTIMER)(&(Timer->TimerId));
-    }*/
 
     Timer->Pid                          = Pid;
     Timer->Name                         = ulName;
@@ -2014,16 +1934,12 @@ VOS_UINT32 V_Start26MCallBackRelTimer( HTIMER *phTm, VOS_PID Pid,
 
     Timer->TimeOutValueInTicks = (VOS_UINT32)RTC_MUL_32_DOT_768(ulLength, ulFileID, usLineNo);
 
-    /*Timer->State                        = VOS_TIMER_CTRL_BLK_RUNNIG;*/
     Timer->CallBackFunc                 = TimeOutRoutine;
-    /* Timer->message_Ptr                  = VOS_NULL_PTR; */
-    /*Timer->next                         = VOS_NULL_PTR;*/
 
     *phTm = (HTIMER)(&(Timer->TimerId));
 
     Add_Timer_To_List( Timer );
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     return(VOS_OK);
@@ -2296,8 +2212,7 @@ VOS_UINT32 VOS_Is26MTimerRunning( VOS_VOID )
  *****************************************************************************/
 MODULE_EXPORTED VOS_VOID VOS_show_Timer_info( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("[PAM][VOS] %s: Max be used timer is %x.\r\n", __FUNCTION__,
-        vos_TimerCtrlBlkNumber - vos_TimerMinTimerIdUsed);
+    mdrv_debug("<VOS_show_Timer_info> Max be used timer is %x.\n", vos_TimerCtrlBlkNumber - vos_TimerMinTimerIdUsed);
 }
 
 /*****************************************************************************
@@ -2331,15 +2246,14 @@ MODULE_EXPORTED VOS_VOID VOS_ShowUsed26MTimerInfo( VOS_VOID )
     VOS_ULONG                    ulLockLevel;
     VOS_TIMER_CONTROL_BLOCK     *pstTimer;
 
-    LogPrint("# VOS_ShowUsed26MTimerInfo:");
+    mdrv_debug("<VOS_ShowUsed26MTimerInfo> ");
 
-    /*nIntLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     pstTimer = vos_Timer_head_Ptr;
     while( VOS_NULL_PTR != pstTimer )
     {
-        LogPrint6("# F %d L %d P %d N %d R %d T %d.\r\n",
+        mdrv_debug("<VOS_ShowUsed26MTimerInfo> F=%d L=%d P=%d N=%d R=%d T=%d.\n",
                (VOS_INT)pstTimer->ulFileID,
                (VOS_INT)pstTimer->ulLineNo,
                (VOS_INT)pstTimer->Pid,
@@ -2350,7 +2264,6 @@ MODULE_EXPORTED VOS_VOID VOS_ShowUsed26MTimerInfo( VOS_VOID )
         pstTimer = pstTimer->next;
     }
 
-    /*VOS_Splx(nIntLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     return;
@@ -2382,7 +2295,6 @@ VOS_VOID VOS_TimerDump(VOS_INT lModId, VOS_UINT32 ulFileID, VOS_UINT32 ulLineNo)
         return;
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTimerSpinLock, ulLockLevel);
 
     pstTimer = vos_Timer_head_Ptr;
@@ -2395,7 +2307,6 @@ VOS_VOID VOS_TimerDump(VOS_INT lModId, VOS_UINT32 ulFileID, VOS_UINT32 ulLineNo)
         pstTimer = pstTimer->next;
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTimerSpinLock, ulLockLevel);
 
     VOS_ProtectionReboot(lModId, (VOS_INT)ulFileID, (VOS_INT)ulLineNo,
@@ -2413,19 +2324,19 @@ VOS_VOID VOS_TimerDump(VOS_INT lModId, VOS_UINT32 ulFileID, VOS_UINT32 ulLineNo)
  *****************************************************************************/
 MODULE_EXPORTED VOS_VOID Show26MTimerLog( VOS_VOID )
 {
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStartCount =: %d. (call DRV Start timer num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulStartCount=%d. (call DRV Start timer num)\n",
                 g_st26MSocTimerInfo.ulStartCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStopCount =:  %d. (call DRV Stop timer num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulStopCount=%d. (call DRV Stop timer num)\n",
                 g_st26MSocTimerInfo.ulStopCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulExpireCount =: %d. (receive DRV ISR of DualTimer num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulExpireCount=%d. (receive DRV ISR of DualTimer num)\n",
                 g_st26MSocTimerInfo.ulExpireCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStartErrCount =: %d. (call DRV Stop timer err num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulStartErrCount=%d. (call DRV Stop timer err num)\n",
                 g_st26MSocTimerInfo.ulStartErrCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulStopErrCount =: %d. (call DRV Start timer err num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulStopErrCount=%d. (call DRV Start timer err num)\n",
                 g_st26MSocTimerInfo.ulStopErrCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulElapsedErrCount =: %d. (call DRV get rest timer num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulElapsedErrCount=%d. (call DRV get rest timer num)\n",
                 g_st26MSocTimerInfo.ulElapsedErrCount);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: g_st26MSocTimerInfo.ulElapsedContentErrCount =: %d. (call DRV get rest timer err num)\r\n", __FUNCTION__,
+    mdrv_debug("<Show26MTimerLog> g_st26MSocTimerInfo.ulElapsedContentErrCount=%d. (call DRV get rest timer err num)\n",
                 g_st26MSocTimerInfo.ulElapsedContentErrCount);
 }
 

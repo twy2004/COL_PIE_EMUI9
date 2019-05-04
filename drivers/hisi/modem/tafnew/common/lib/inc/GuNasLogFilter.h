@@ -124,9 +124,6 @@ VOS_VOID* GUNAS_FilterGasToMmMsg(
     PS_MSG_HEADER_STRU                 *pstMsg
 );
 
-VOS_VOID* GUNAS_FilterTafToSsMsg(
-    PS_MSG_HEADER_STRU                 *pstMsg
-);
 
 VOS_VOID* GUNAS_FilterMmaToUsimMsg(
     PS_MSG_HEADER_STRU                 *pstMsg
@@ -159,13 +156,7 @@ VOS_VOID* GUNAS_FilterAtToPihMsg(
     PS_MSG_HEADER_STRU                 *pstMsg
 );
 
-VOS_VOID* GUNAS_FilterAtToTafMsg(
-    PS_MSG_HEADER_STRU                 *pstMsg
-);
 
-VOS_VOID* GUNAS_FilterTafToAtMsg(
-    PS_MSG_HEADER_STRU                 *pstMsg
-);
 
 VOS_VOID* GUNAS_FilterLayerMsg(
     struct MsgCB                       *pstMsg

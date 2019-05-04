@@ -639,8 +639,7 @@ SINT32 VDMHAL_IMP_CheckCfgAddress(OMXVDH_REG_CFG_S *pVdhRegCfg, MEM_BUFFER_S* pV
 		u32EndStreamPhyAddr = (pVdhMemMap[index].startPhyAddr
 					+ pVdhMemMap[index].u32Size);
 		vdhCfg = ((STREAM_BASE_ADDR *)(&(pVdhRegCfg->VdhStreamBaseAddr)))->stream_base_addr;
-		/* VDH_CHECK_CFG_ADDR_RETURN(((STREAM_BASE_ADDR *)(&(pVdhRegCfg->VdhStreamBaseAddr)))->stream_base_addr,
-					"stream base", u32StartStreamPhyAddr, u32EndStreamPhyAddr); */
+
 
 		 if ((vdhCfg != 0) && (vdhCfg >= u32StartStreamPhyAddr)
 		 		&& (vdhCfg <= u32EndStreamPhyAddr)) {

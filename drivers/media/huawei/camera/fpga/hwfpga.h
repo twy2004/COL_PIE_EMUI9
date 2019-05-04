@@ -110,6 +110,6 @@ hwfpga_intf_notify_error(hwfpga_notify_intf_t *i, hwfpga_event_t *fpga_ev)
 }
 
 extern int32_t hwfpga_register(struct platform_device* pdev, const hwfpga_intf_t* i,hwfpga_notify_intf_t** notify);
-void hwfpga_unregister(hwfpga_intf_t* fpga_intf);
+void hwfpga_unregister(struct platform_device *pdev);
 #endif // __HW_ALAN_KERNEL_FPGA_INTERFACE_H__
 

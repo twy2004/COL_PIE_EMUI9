@@ -38,8 +38,12 @@
 #include <asm/tlbflush.h>
 
 #include "ion.h"
-#include "ion_priv.h"
 #include "hisi/ion_sec_priv.h"
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include "ion_priv.h"
+#else
+#include "hisi_ion_priv.h"
+#endif
 
 static inline void free_alloc_list(struct list_head *head)
 {
@@ -74,7 +78,11 @@ static struct page *__secsg_cma_alloc(struct ion_secsg_heap *secsg_heap,
 	unsigned long offset = 0;
 
 	if (!secsg_heap->static_cma_region)
+#if (KERNEL_VERSION(4, 14, 0) > LINUX_VERSION_CODE)
 		return cma_alloc(secsg_heap->cma, count, align);
+#else
+		return cma_alloc(secsg_heap->cma, count, align, GFP_KERNEL);
+#endif
 
 	offset = gen_pool_alloc(secsg_heap->static_cma_region,
 				size);
@@ -230,13 +238,8 @@ static int secsg_cma_alloc(struct ion_secsg_heap *secsg_heap,
 	if (secsg_heap->flag & ION_FLAG_SECURE_BUFFER) {
 		ion_flush_all_cpus_caches();
 		virt = (unsigned long)__va(alloc->addr);/*lint !e648*/
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-		create_mapping_late(alloc->addr, virt, size,
-				    __pgprot(PROT_DEVICE_nGnRE));
-#else
 		change_secpage_range(alloc->addr, virt, size,
 				     __pgprot(PROT_DEVICE_nGnRE));
-#endif
 		flush_tlb_all();
 		if (cons_phys_struct(secsg_heap, 1,
 				     &secsg_heap->allocate_head,
@@ -246,7 +249,7 @@ static int secsg_cma_alloc(struct ion_secsg_heap *secsg_heap,
 			goto err_out2;
 		}
 	} else {
-		memset(page_address(pg), 0x0, size);
+		memset(page_address(pg), 0x0, size);/* unsafe_function_ignore: memset */
 		ion_flush_all_cpus_caches();
 	}
 	gen_pool_free(secsg_heap->pool, page_to_phys(pg), size);
@@ -254,13 +257,8 @@ static int secsg_cma_alloc(struct ion_secsg_heap *secsg_heap,
 		    __func__, size / SZ_1M, ret);
 	return 0;/*lint !e429*/
 err_out2:
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-	create_mapping_late(alloc->addr, virt, size,
-			    PAGE_KERNEL);
-#else
 	change_secpage_range(alloc->addr, virt, size,
 			     PAGE_KERNEL);
-#endif
 	flush_tlb_all();
 	list_del(&alloc->list);
 	kfree(alloc);
@@ -319,14 +317,9 @@ static void __secsg_pool_release(struct ion_secsg_heap *secsg_heap)
 			}
 			virt = (unsigned long)__va(addr);/*lint !e648*/
 			if (secsg_heap->flag & ION_FLAG_SECURE_BUFFER) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-				create_mapping_late(addr, virt, size,
-						    PAGE_KERNEL);
-#else
 				change_secpage_range(addr, virt, size,
 						     PAGE_KERNEL);
 				flush_tlb_all();
-#endif
 			}
 
 			__secsg_cma_release(secsg_heap, phys_to_page(addr),
@@ -352,14 +345,10 @@ static void __secsg_pool_release(struct ion_secsg_heap *secsg_heap)
 
 			virt = (unsigned long)__va(addr);/*lint !e648*/
 			if (secsg_heap->flag & ION_FLAG_SECURE_BUFFER) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-				create_mapping_late(addr, virt, size,
-						    PAGE_KERNEL);
-#else
+
 				change_secpage_range(addr, virt, size,
 						     PAGE_KERNEL);
 				flush_tlb_all();
-#endif
 			}
 			__secsg_cma_release(secsg_heap, phys_to_page(addr),
 					    size >> PAGE_SHIFT, size);
@@ -382,6 +371,7 @@ int __secsg_alloc_contig(struct ion_secsg_heap *secsg_heap,
 	int ret = 0;
 	unsigned long offset = 0;
 	struct sg_table *table;
+	struct page *page;
 
 	table = kzalloc(sizeof(*table), GFP_KERNEL);
 	if (!table)
@@ -405,12 +395,13 @@ int __secsg_alloc_contig(struct ion_secsg_heap *secsg_heap,
 			goto err_out2;
 		}
 	}
-	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(offset)), size, 0);
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-	buffer->priv_virt = table;
-#else
+
+	page = pfn_to_page(PFN_DOWN(offset));
+	if (secsg_heap->heap_attr == HEAP_NORMAL)
+		(void)ion_heap_pages_zero(page, size,
+					  pgprot_writecombine(PAGE_KERNEL));
+	sg_set_page(table->sgl, page, size, 0);
 	buffer->sg_table = table;
-#endif
 	if (secsg_heap->heap_attr == HEAP_SECURE)
 		pr_info("__secsg_alloc sec buffer phys %lx, size %lx\n",
 			offset, size);
@@ -429,7 +420,7 @@ static void __secsg_free_pool(struct ion_secsg_heap *secsg_heap,
 			      struct ion_buffer *buffer)
 {
 	struct page *page = sg_page(table->sgl);
-	ion_phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
+	phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
 	struct platform_device *hisi_ion_dev = get_hisi_ion_platform_device();
 
 	if (!(buffer->flags & ION_FLAG_SECURE_BUFFER)) {
@@ -441,7 +432,7 @@ static void __secsg_free_pool(struct ion_secsg_heap *secsg_heap,
 	gen_pool_free(secsg_heap->pool, paddr, buffer->size);
 	if (secsg_heap->heap_attr == HEAP_SECURE)
 		pr_info("__secsg_free sec buffer phys %lx, size %zx\n",
-			paddr, buffer->size);
+			(unsigned long)paddr, buffer->size);
 
 	sg_free_table(table);
 	kfree(table);
@@ -487,7 +478,7 @@ int __secsg_fill_watermark(struct ion_secsg_heap *secsg_heap)
 	alloc->size = size;
 	list_add_tail(&alloc->list, &secsg_heap->allocate_head);
 
-	memset(page_address(pg), 0x0, size);
+	memset(page_address(pg), 0x0, size);/* unsafe_function_ignore: memset */
 	gen_pool_free(secsg_heap->pool, page_to_phys(pg), size);
 	secsg_debug("out %s %llu MB memory.\n",
 		    __func__, (size) / SZ_1M);
@@ -500,11 +491,7 @@ err:
 void __secsg_free_contig(struct ion_secsg_heap *secsg_heap,
 			 struct ion_buffer *buffer)
 {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
-	struct sg_table *table = buffer->priv_virt;
-#else
 	struct sg_table *table = buffer->sg_table;
-#endif
 
 	__secsg_free_pool(secsg_heap, table, buffer);
 	WARN_ON(secsg_heap->alloc_size < buffer->size);

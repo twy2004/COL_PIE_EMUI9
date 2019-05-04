@@ -73,7 +73,7 @@ typedef struct
 } OSM_MSG_TIMER_STRU;
 
 
-#define HAL_SDMLOG  PS_PRINTF
+#define HAL_SDMLOG  PS_PRINTF_WARNING
 #define MSP_MEMCPY(dst, dst_size, src, count)   TAF_STD_MemCpy_s(dst, dst_size, src, count, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__))
 #define MSP_MEMSET(dst, dst_size, val, count)   TAF_STD_MemSet_s(dst, dst_size, val, count, (VOS_INT)((THIS_FILE_ID << 16) | __LINE__))
 

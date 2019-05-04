@@ -24,6 +24,7 @@
 #include <linux/wakelock.h>
 #include <huawei_platform/log/hw_log.h>
 #include <linux/workqueue.h>
+#include "port.h"
 #include "../Platform_Linux/platform_helpers.h"
 #include "moisture_detection.h"
 #include "core.h"
@@ -35,7 +36,6 @@
 
 #define FUSB3601_MUS_INTERRUPT_MASK 0xd4
 static int detect_finish_flag = 1;
-static struct delayed_work m_work;
 #define HWLOG_TAG moisture_detection
 HWLOG_REGIST();
 /****************************************************************************

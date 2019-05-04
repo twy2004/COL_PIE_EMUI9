@@ -59,6 +59,8 @@
 #include "AtTestParaCmd.h"
 #include "TafAppMma.h"
 
+#include "AtDataProc.h"
+
 
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
@@ -69,6 +71,23 @@
   2 全局变量定义
 *****************************************************************************/
 
+#define AT_LTEPWRCTRL_MAX_DELETE_CA_NUM                     (-8)
+#define AT_LTEPWRCTRL_MAX_ADD_CA_NUM                        (8)
+
+#define AT_LTEPWRCTRL_DISABLE_REDUCE_RI                     (0)
+#define AT_LTEPWRCTRL_ENABLE_REDUCE_RI                      (1)
+
+#define AT_LTEPWRCTRL_MIN_SUPPORT_BSR_NUM                   (0)
+#define AT_LTEPWRCTRL_MAX_SUPPORT_BSR_NUM                   (63)
+
+enum AT_LTEPWRCTRL_MODE_TYPE_ENUM
+{
+    AT_LTEPWRCTRL_MODE_CC_NUM_CTR      = 0,
+    AT_LTEPWRCTRL_MODE_RI_NUM_CTR      = 1,
+    AT_LTEPWRCTRL_MODE_BSR_NUM_CTR     = 2,
+    AT_LTEPWRCTRL_MODE_BUTT            = 3,
+};
+typedef  VOS_UINT32  AT_LTEPWRCTRL_MODE_TYPE_ENUM_UINT32;
 
 /*****************************************************************************
   3 函数实现
@@ -171,12 +190,12 @@ VOS_UINT32 At_QryLogCfgPara(VOS_UINT8 ucIndex)
 {
     VOS_UINT16                          usLength;
     VOS_UINT32                          ulAtLogCfg;
-   
+
     usLength                            = 0;
-    PS_PRINTF("at^logcfg?!\n");
+    PS_PRINTF_INFO("at^logcfg?!\n");
 
     (void)mdrv_socp_get_cfg_ind_mode(&ulAtLogCfg);
-      
+
     usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                        (VOS_CHAR*)pgucAtSndCodeAddr,
                                        (VOS_CHAR*)pgucAtSndCodeAddr,
@@ -208,9 +227,9 @@ VOS_UINT32 At_QryLogCpsPara(VOS_UINT8 ucIndex)
     VOS_UINT16                          usLength;
     VOS_UINT32                          ulAtLogCps;
     usLength                            = 0;
-    
-    PS_PRINTF("at^logcps?!\n");
-   
+
+    PS_PRINTF_INFO("at^logcps?!\n");
+
     (void)mdrv_socp_get_cps_ind_mode(&ulAtLogCps);
 
     usLength  = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
@@ -257,78 +276,6 @@ VOS_UINT32 At_SetDpdtTestFlagPara(VOS_UINT8 ucIndex)
     if (AT_SUCCESS == ulRst)
     {
         gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_DPDTTEST_SET;
-        return AT_WAIT_ASYNC_RETURN;
-    }
-    else
-    {
-        return AT_ERROR;
-    }
-}
-
-
-VOS_UINT32 At_SetDpdtPara(VOS_UINT8 ucIndex)
-{
-    AT_MTA_SET_DPDT_VALUE_REQ_STRU      stAtCmd;
-    VOS_UINT32                          ulRst;
-
-    /* 参数检查 */
-    if (2 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    /* AT发送至MTA的消息结构赋值 */
-    TAF_MEM_SET_S(&stAtCmd, sizeof(stAtCmd), 0x00, sizeof(AT_MTA_SET_DPDT_VALUE_REQ_STRU));
-    stAtCmd.enRatMode   = (AT_MTA_CMD_RATMODE_ENUM_UINT8)gastAtParaList[0].ulParaValue;
-    stAtCmd.ulDpdtValue = gastAtParaList[1].ulParaValue;
-
-    /* 发送消息给C核处理 */
-    ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
-                                   0,
-                                   ID_AT_MTA_SET_DPDT_VALUE_REQ,
-                                   &stAtCmd,
-                                   sizeof(AT_MTA_SET_DPDT_VALUE_REQ_STRU),
-                                   I0_UEPS_PID_MTA);
-
-    if (AT_SUCCESS == ulRst)
-    {
-        gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_DPDT_SET;
-        return AT_WAIT_ASYNC_RETURN;
-    }
-    else
-    {
-        return AT_ERROR;
-    }
-
-}
-
-
-VOS_UINT32 At_SetQryDpdtPara(VOS_UINT8 ucIndex)
-{
-    AT_MTA_QRY_DPDT_VALUE_REQ_STRU      stAtCmd;
-    VOS_UINT32                          ulRst;
-
-    /* 参数检查 */
-    if (1 != gucAtParaIndex)
-    {
-        return AT_CME_INCORRECT_PARAMETERS;
-    }
-
-    /* AT发送至MTA的消息结构赋值 */
-    TAF_MEM_SET_S(&stAtCmd, sizeof(stAtCmd), 0x00, sizeof(AT_MTA_QRY_DPDT_VALUE_REQ_STRU));
-    stAtCmd.enRatMode = (AT_MTA_CMD_RATMODE_ENUM_UINT8)gastAtParaList[0].ulParaValue;
-
-    /* 发送消息给C核处理 */
-    ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
-                                   0,
-                                   ID_AT_MTA_QRY_DPDT_VALUE_REQ,
-                                   &stAtCmd,
-                                   sizeof(AT_MTA_QRY_DPDT_VALUE_REQ_STRU),
-                                   I0_UEPS_PID_MTA);
-
-    if (AT_SUCCESS == ulRst)
-    {
-        gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_DPDTQRY_SET;
         return AT_WAIT_ASYNC_RETURN;
     }
     else
@@ -1861,13 +1808,13 @@ VOS_UINT32 AT_CheckJDCfgGsmPara(VOS_VOID)
     }
 
     /* 配置参数范围检查 */
-    if ((0 == gastAtParaList[1].usParaLen) 
+    if ((0 == gastAtParaList[1].usParaLen)
         || (AT_JAM_DETECT_GSM_THRESHOLD_MAX < gastAtParaList[1].ulParaValue))
     {
         return VOS_ERR;
     }
 
-    if ((0 == gastAtParaList[2].usParaLen) 
+    if ((0 == gastAtParaList[2].usParaLen)
         || (AT_JAM_DETECT_GSM_FREQNUM_MAX < gastAtParaList[2].ulParaValue))
     {
         return VOS_ERR;
@@ -1994,7 +1941,7 @@ VOS_UINT32 AT_CheckJDCfgPara(VOS_VOID)
             ulRst = AT_CheckJDCfgWcdmaPara();
             break;
 
-        case AT_MTA_CMD_RATMODE_LTE:     
+        case AT_MTA_CMD_RATMODE_LTE:
             ulRst = AT_CheckJDCfgLtePara();
             break;
 
@@ -2009,7 +1956,7 @@ VOS_UINT32 AT_CheckJDCfgPara(VOS_VOID)
 VOS_UINT32 AT_ProcJDCfgPara(AT_MTA_SET_JAM_DETECT_REQ_STRU *pstAtCmd)
 {
     /* 获取GUL制式下，干扰检测配置参数 */
-    pstAtCmd->ucMode = AT_MTA_JAM_DETECT_MODE_UPDATE;          
+    pstAtCmd->ucMode = AT_MTA_JAM_DETECT_MODE_UPDATE;
     pstAtCmd->ucRat  = (AT_MTA_CMD_RATMODE_ENUM_UINT8)gastAtParaList[0].ulParaValue;
 
     switch ((AT_MTA_CMD_RATMODE_ENUM_UINT8)gastAtParaList[0].ulParaValue)
@@ -2052,18 +1999,18 @@ VOS_UINT32 AT_SetJDCfgPara(VOS_UINT8 ucIndex)
     }
 
     /* 参数有效性检查 */
-    ulRst = AT_CheckJDCfgPara(); 
+    ulRst = AT_CheckJDCfgPara();
 
     if (VOS_OK != ulRst)
-    {    
+    {
         AT_ERR_LOG("AT_SetJDCfgPara: AT_CheckJDCfgPara error.");
         return AT_CME_INCORRECT_PARAMETERS;
     }
 
-    TAF_MEM_SET_S(&stAtCmd, sizeof(stAtCmd), 0x00, sizeof(AT_MTA_SET_JAM_DETECT_REQ_STRU));  
+    TAF_MEM_SET_S(&stAtCmd, sizeof(stAtCmd), 0x00, sizeof(AT_MTA_SET_JAM_DETECT_REQ_STRU));
 
     /* 获取干扰检测配置参数 */
-    ulRst = AT_ProcJDCfgPara(&stAtCmd); 
+    ulRst = AT_ProcJDCfgPara(&stAtCmd);
 
     if (VOS_OK != ulRst)
     {
@@ -2151,7 +2098,7 @@ VOS_UINT32 AT_TestJDCfgPara(VOS_UINT8 ucIndex)
 
 VOS_UINT32 AT_SetJDSwitchPara(VOS_UINT8 ucIndex)
 {
-    AT_MTA_SET_JAM_DETECT_REQ_STRU      stAtCmd = {0};   
+    AT_MTA_SET_JAM_DETECT_REQ_STRU      stAtCmd = {0};
     VOS_UINT32                          ulRst   = TAF_SUCCESS;
 
     if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
@@ -2241,7 +2188,7 @@ VOS_UINT32 AT_RcvMtaSetJamDetectCnf(VOS_VOID *pMsg)
     }
 
     /* 当前AT是否在等待该命令返回 */
-    if ((AT_CMD_JDCFG_SET != gastAtClientTab[ucIndex].CmdCurrentOpt) 
+    if ((AT_CMD_JDCFG_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
         && (AT_CMD_JDSWITCH_SET != gastAtClientTab[ucIndex].CmdCurrentOpt))
     {
         AT_WARN_LOG("AT_RcvMtaSetJamDetectCfgCnf : Current Option is not AT_CMD_JDCFG_SET or AT_CMD_JDSWITCH_SET.");
@@ -2271,7 +2218,7 @@ VOS_UINT32 AT_RcvMtaQryJamDetectCnf(VOS_VOID *pMsg)
 {
     AT_MTA_MSG_STRU                *pstRcvMsg = VOS_NULL_PTR;
     MTA_AT_QRY_JAM_DETECT_CNF_STRU *pstQryCnf = VOS_NULL_PTR;
-    VOS_UINT8                       ucIndex   = 0;   
+    VOS_UINT8                       ucIndex   = 0;
     VOS_UINT16                      usLength  = 0;
 
     /* 初始化 */
@@ -2369,7 +2316,7 @@ VOS_UINT32 AT_RcvMtaQryJamDetectCnf(VOS_VOID *pMsg)
                                                "%s: %d,%d",
                                                g_stParseContext[ucIndex].pstCmdElement->pszCmdName,
                                                pstQryCnf->ucLteJamMode,
-                                               AT_MTA_CMD_RATMODE_LTE); 
+                                               AT_MTA_CMD_RATMODE_LTE);
 
             gstAtSendData.usBufLen = usLength;
 
@@ -2645,7 +2592,7 @@ VOS_UINT32 AT_RcvMmaEmRssiCfgQryCnf(
                                            TAF_MMA_RAT_GSM,
                                            pstEmRssiCfgQryCnf->stEmRssiCfgPara.ucEmRssiCfgGsmThreshold,
                                            gaucAtCrLf);
-        
+
         /* WCDMA EMRSSICFG输出 */
         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                            (VOS_CHAR *)pgucAtSndCodeAddr,
@@ -2655,7 +2602,7 @@ VOS_UINT32 AT_RcvMmaEmRssiCfgQryCnf(
                                            TAF_MMA_RAT_WCDMA,
                                            pstEmRssiCfgQryCnf->stEmRssiCfgPara.ucEmRssiCfgWcdmaThreshold,
                                            gaucAtCrLf);
-        
+
         /* LTE EMRSSICFG输出 */
         usLength += (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
                                            (VOS_CHAR *)pgucAtSndCodeAddr,
@@ -2868,5 +2815,185 @@ VOS_UINT32 AT_RcvMmaEmRssiRptInd(VOS_VOID *pstMsg)
 
     return VOS_OK;
 }
+
+
+
+LOCAL VOS_UINT32 AT_LtePwrDissParaCheck(AT_MTA_LTEPWRDISS_SET_REQ_STRU  *pstAtCmd)
+{
+    VOS_INT32                           lVal;
+    VOS_UINT32                          ulRst;
+
+    lVal = 0;
+    if (VOS_ERR == AT_AtoInt(gastAtParaList[1].aucPara, &lVal))
+    {
+        return VOS_ERR;
+    }
+
+    ulRst = VOS_ERR;
+    switch ((AT_LTEPWRCTRL_MODE_TYPE_ENUM_UINT32)gastAtParaList[0].ulParaValue)
+    {
+        case AT_LTEPWRCTRL_MODE_CC_NUM_CTR:
+        {
+            if ((lVal >= AT_LTEPWRCTRL_MAX_DELETE_CA_NUM)
+             && (lVal <= AT_LTEPWRCTRL_MAX_ADD_CA_NUM))
+            {
+                ulRst = VOS_OK;
+            }
+            break;
+        }
+        case AT_LTEPWRCTRL_MODE_RI_NUM_CTR:
+        {
+            if ((lVal == AT_LTEPWRCTRL_DISABLE_REDUCE_RI)
+             || (lVal == AT_LTEPWRCTRL_ENABLE_REDUCE_RI))
+            {
+                ulRst = VOS_OK;
+            }
+            break;
+        }
+        case AT_LTEPWRCTRL_MODE_BSR_NUM_CTR:
+        {
+            if ((lVal >= AT_LTEPWRCTRL_MIN_SUPPORT_BSR_NUM)
+             && (lVal <= AT_LTEPWRCTRL_MAX_SUPPORT_BSR_NUM))
+            {
+                ulRst = VOS_OK;
+            }
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    if (VOS_ERR == ulRst)
+    {
+        return VOS_ERR;
+    }
+
+    pstAtCmd->ucMode = (VOS_UINT8)gastAtParaList[0].ulParaValue;
+    pstAtCmd->sPara  = (VOS_INT16)lVal;
+
+    return VOS_OK;
+}
+
+
+VOS_UINT32 AT_SetLtePwrDissPara(VOS_UINT8 ucIndex)
+{
+    AT_MTA_LTEPWRDISS_SET_REQ_STRU      stAtCmd;
+    VOS_UINT32                          ulRst;
+
+    if (AT_CMD_OPT_SET_PARA_CMD != g_stATParseCmd.ucCmdOptType)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数个数检查 */
+    if (2 != gucAtParaIndex)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数1和参数2的长度不能为0*/
+    if ((0 == gastAtParaList[0].usParaLen)
+     || (0 == gastAtParaList[1].usParaLen))
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /* 参数2的输入最大范围为(-8~63),长度不能大于2*/
+    if (gastAtParaList[1].usParaLen > 2)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    TAF_MEM_SET_S(&stAtCmd, sizeof(AT_MTA_LTEPWRDISS_SET_REQ_STRU), 0, sizeof(AT_MTA_LTEPWRDISS_SET_REQ_STRU));
+
+    ulRst = AT_LtePwrDissParaCheck(&stAtCmd);
+
+    if (VOS_ERR == ulRst)
+    {
+        return AT_CME_INCORRECT_PARAMETERS;
+    }
+
+    /*下发参数更新请求消息给C核处理 */
+    ulRst = AT_FillAndSndAppReqMsg(gastAtClientTab[ucIndex].usClientId,
+                                   0,
+                                   ID_AT_MTA_SET_LTEPWRDISS_REQ,
+                                   &stAtCmd,
+                                   sizeof(AT_MTA_LTEPWRDISS_SET_REQ_STRU),
+                                   I0_UEPS_PID_MTA);
+
+    if (TAF_SUCCESS == ulRst)
+    {
+        gastAtClientTab[ucIndex].CmdCurrentOpt = AT_CMD_LTEPWRDISS_SET;
+
+        return AT_WAIT_ASYNC_RETURN;
+    }
+
+    return AT_ERROR;
+}
+
+
+VOS_UINT32 AT_TestLtePwrDissPara(VOS_UINT8 ucIndex)
+{
+    gstAtSendData.usBufLen = (TAF_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                                    (TAF_CHAR*)pgucAtSndCodeAddr,
+                                                    (TAF_CHAR*)pgucAtSndCodeAddr,
+                                                    "%s: (0-2),(-8-63)",
+                                                    g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
+    return AT_OK;
+}
+
+
+VOS_UINT32 AT_RcvMtaAtLtePwrDissSetCnf(VOS_VOID *pMsg)
+{
+    AT_MTA_MSG_STRU                    *pstRcvMsg                = VOS_NULL_PTR;
+    AT_MTA_LTEPWRDISS_SET_CNF_STRU     *pstMtaAtLtePwrDissSetCnf = VOS_NULL_PTR;
+    VOS_UINT8                           ucIndex;
+
+    /* 初始化 */
+    pstRcvMsg                = (AT_MTA_MSG_STRU *)pMsg;
+    pstMtaAtLtePwrDissSetCnf = (AT_MTA_LTEPWRDISS_SET_CNF_STRU *)pstRcvMsg->aucContent;
+
+    /* 通过clientid获取index */
+    if (AT_FAILURE == At_ClientIdToUserId(pstRcvMsg->stAppCtrl.usClientId, &ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaAtLtePwrDissSetCnf:WARNING:AT INDEX NOT FOUND!");
+
+        return VOS_ERR;
+    }
+
+    if (AT_IS_BROADCAST_CLIENT_INDEX(ucIndex))
+    {
+        AT_WARN_LOG("AT_RcvMtaAtLtePwrDissSetCnf:AT_BROADCAST_INDEX.");
+
+        return VOS_ERR;
+    }
+
+    /* 当前AT是否在等待该命令返回 */
+    if (AT_CMD_LTEPWRDISS_SET != gastAtClientTab[ucIndex].CmdCurrentOpt)
+    {
+        AT_WARN_LOG("AT_RcvMtaAtLtePwrDissSetCnf:Current Option is not AT_CMD_LTEPWRDISS_SET.");
+
+        return VOS_ERR;
+    }
+
+    /* 复位AT状态 */
+    AT_STOP_TIMER_CMD_READY(ucIndex);
+
+    if (MTA_AT_RESULT_NO_ERROR != pstMtaAtLtePwrDissSetCnf->enResult)
+    {
+        At_FormatResultData(ucIndex, AT_ERROR);
+    }
+    else
+    {
+        At_FormatResultData(ucIndex, AT_OK);
+    }
+
+    return VOS_OK;
+}
+
+
+
 
 

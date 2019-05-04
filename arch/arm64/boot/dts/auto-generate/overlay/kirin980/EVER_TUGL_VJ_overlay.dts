@@ -21,3 +21,7 @@
 		hisi,boardname = "EVER_TUGL_VJ";
 		hisi,modem_id = <0x37021000>;
 	};
+	&huawei_lcd_panel {
+		compatible = "huawei,lcd_panel_type";
+		board_version = <1000>;
+	};

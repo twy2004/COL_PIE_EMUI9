@@ -120,6 +120,7 @@ typedef struct _nv_icc_msg_single_stru_
 enum _task_msg_type_e_
 {
     NV_TASK_MSG_WRITE2FILE = 0x1,       /*写NV请求*/
+    NV_TASK_MSG_FLUSH_RWFILE,
     NV_TASK_MSG_LOAD_CARRIER,           /*加载运行商定制NV*/
     NV_TASK_MSG_LOAD_CARRIER_COMM,      /*加载运行商定制恢复NV*/
     NV_TASK_MSG_LOAD_BACKUP,            /*重加载镜像*/

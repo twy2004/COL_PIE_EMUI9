@@ -145,12 +145,15 @@ VOS_UINT32 IPS_MNTN_GetPktLenByTraceCfg
     VOS_UINT32                     *pulDataLen
 )
 {
-    VOS_UINT32                      ulTraceDataLen;
+    VOS_UINT32                          ulTraceDataLen;
+    IPS_MNTN_TRACE_CHOSEN_ENUM_UINT32   enChoice = pstTraceCfg->ulChoice;
 
     *pulDataLen    =   0;
 
+    enChoice = PS_MIN(enChoice, IPS_MNTN_TRACE_MSG_HEADER_CHOSEN);
+
     /*判断定时器是否启动*/
-    switch ( pstTraceCfg->ulChoice )
+    switch (enChoice)
     {
         case IPS_MNTN_TRACE_NULL_CHOSEN:
             return PS_FALSE;
@@ -271,6 +274,8 @@ VOS_VOID IPS_MNTN_PktInfoCB
         }
     }
 
+    /*  user版本下脱敏IP地址 */
+    TTF_TraceMaskIpAddr(ACPU_PID_NFEXT, pstTraceMsg->aucData + MAC_HEADER_LENGTH, (VOS_UINT16)ulDataLen);
     if (VOS_OK != IPS_MNTN_TransMsg(pucTraceData, ulTransDataLen, enType))
     {
         NF_EXT_MEM_FREE(ACPU_PID_NFEXT, pucTraceData);

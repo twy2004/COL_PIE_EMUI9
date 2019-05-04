@@ -134,7 +134,7 @@ static int focal_fw_update_boot(char *file_name);
 static int focal_fw_update_boot_resume(void);
 static int focal_fw_update_boot_recovery(void);
 static int focal_chip_get_info(struct ts_chip_info_param *info);
-static int focal_set_info_flag(struct ts_kit_device_data *info);
+static int focal_set_info_flag(struct ts_kit_platform_data *info);
 static int focal_after_resume(void *feature_info);
 static int focal_wakeup_gesture_enable_switch(
 	struct ts_wakeup_gesture_enable_info *info);
@@ -488,7 +488,6 @@ int focal_ft5x46_chip_reset(void)
 {
 	int ret = 0;
 	int reset_gpio = 0;
-	int reset_enable_delay = 0;
 	reset_gpio = g_focal_dev_data->ts_platform_data->reset_gpio;
 
 	udelay(FT5X46_RESET_KEEP_LOW_TIME);
@@ -727,7 +726,7 @@ int focal_strtolow(char *src_str, size_t size)
 }
 
 static int focal_diff_flag = FTS_GET_DBG_ON;
-static int _focal_print_bulk(u8 * head, u8 * buf, u32 len, u8 width)
+static int _focal_print_bulk(const u8 *head, u8 *buf, u32 len, u8 width)
 {
 	int i = 0;
 	int n = 0;
@@ -1137,8 +1136,9 @@ static int focal_esdcheck_tp_reset( void )
 	}
 
 	ret = focal_status_resume();
-	if(ret < 0){
-		TS_LOG_ERR("%s: failed to resume status\n",__func__, ret);
+	if (ret < 0) {
+		TS_LOG_ERR("%s: failed to resume status, ret = %d\n",
+			__func__, ret);
 		return -EINVAL;
 	}
 
@@ -1147,7 +1147,7 @@ static int focal_esdcheck_tp_reset( void )
 	if((g_focal_dev_data->easy_wakeup_info.sleep_mode == TS_GESTURE_MODE)
 		&&(fts_esdcheck_data.suspend == true)){
 		focal_gesture_recovery();
-    	}
+	}
 
 	return 0;
 }
@@ -1671,11 +1671,10 @@ static int focal_irq_bottom_half(struct ts_cmd_node *in_cmd,
 	int ewy = 0;
 	int xer = 0;
 	int yer = 0;
-
 	int i = 0;
 	int ret = 0;
 	int touch_count = 0;
-	int roi_package_num= 0; 
+	u8 roi_package_num = 0;
 	struct ts_event st_touch_data;
 	struct algo_param *algo_p = NULL;
 	struct ts_fingers *info = NULL;
@@ -1899,7 +1898,7 @@ static int focal_chip_get_info(struct ts_chip_info_param *info)
 	return NO_ERR;
 }
 
-static int focal_set_info_flag(struct ts_kit_device_data *info)
+static int focal_set_info_flag(struct ts_kit_platform_data *info)
 {
 	return NO_ERR;
 }
@@ -2058,18 +2057,6 @@ static int focal_suspend(void)
 		g_focal_pdata->fw_is_running = false;
 	}
 	TS_LOG_INFO("Suspend end");
-
-	return NO_ERR;
-}
-
-static int focal_sleep_mode_out(void)
-{
-	int retval = 0;
-
-	retval = focal_hardware_reset_to_normal_model();
-	if(retval != NO_ERR){
-		TS_LOG_ERR("%s: have error\n", __func__);
-	}
 
 	return NO_ERR;
 }
@@ -2235,7 +2222,11 @@ static int focal_after_resume(void *feature_info)
 	u8 reg_val=0;
 	u8 cmd= FTS_REG_CHIP_ID_H;
 	u8 chipid_high =(g_focal_pdata->chip_id >>8 )&0xff;
-
+	struct timeval time_duration;
+	struct timeval time_start;
+	struct timeval time_end;
+	unsigned int fw_update_duration_check =
+		g_focal_pdata->fw_update_duration_check;
 	if (FOCAL_FT5X46 == g_focal_dev_data->ic_type || FOCAL_FT5422U == g_focal_dev_data->ic_type || FOCAL_FT3528 == g_focal_dev_data->ic_type) {
 		msleep(FTS_SLEEP_TIME_220);
 	}
@@ -2243,8 +2234,6 @@ static int focal_after_resume(void *feature_info)
 	if(FOCAL_FT8201 == g_focal_dev_data->ic_type){
 		msleep(FTS_SLEEP_TIME_265);
 	}
-	struct timeval time_duration, time_start, time_end;
-	unsigned int fw_update_duration_check = g_focal_pdata->fw_update_duration_check;
 
 	if (TS_BUS_SPI == g_focal_dev_data->ts_platform_data->bops->btype) {
 		gpio_direction_output(g_ts_kit_platform_data.cs_gpio, GPIO_HIGH);
@@ -2269,7 +2258,7 @@ static int focal_after_resume(void *feature_info)
 			TS_LOG_ERR("%s:fw update from resume fail,ret=%d", __func__, ret);
 			return ret;
 		}
-		TS_LOG_INFO("%s:fw update from resume for sip, check_threshold(%ld ums).duration(%d.%d) = %ld ums\n",
+		TS_LOG_INFO("%s:fw update from resume for sip, check_threshold(%u ums).duration(%ld.%ld) = %ld ums\n",
 				__func__, fw_update_duration_check * 1000,
 				time_duration.tv_sec, time_duration.tv_usec,
 				time_duration.tv_sec * 1000000 + time_duration.tv_usec);
@@ -2293,9 +2282,9 @@ static int focal_after_resume(void *feature_info)
 		return -EINVAL;
 	}
 	ret = focal_status_resume();
-	if(ret < 0)
+	if (ret < 0)
 	{
-		TS_LOG_ERR("%s: failed to resume status\n",__func__, ret);
+		TS_LOG_ERR("%s: failed to resume status\n", __func__);
 		return -EINVAL;
 	}
 
@@ -2442,7 +2431,7 @@ static int focal_get_glove_switch(u8 *glove_switch)
 
 	u8 cmd = 0;
 	u8 glove_value = 0;
-	u8 glove_enable_addr = 0;;
+	u8 glove_enable_addr = 0;
 
 	struct ts_glove_info *glove_info = NULL;
 
@@ -3228,9 +3217,9 @@ static int focal_get_fwname(struct focal_platform_data *focal_pdata){
 	}
 
 	/*firmware name [product_name][ic_name][module][vendor]*/
-	strncat(fwname, ts_platform_data->product_name, MAX_STR_LEN);
+	strncat(fwname, ts_platform_data->product_name, MAX_STR_LEN - 1);
 	strncat(fwname, &joint_chr, sizeof(char));
-	strncat(fwname, ts_platform_data->chip_data->chip_name, MAX_STR_LEN);
+	strncat(fwname, ts_platform_data->chip_data->chip_name, MAX_STR_LEN - 1);
 	strncat(fwname, &joint_chr, sizeof(char));
 	TS_LOG_INFO("%s fw name prefix:%s", __func__, fwname);
 	return 0;
@@ -3350,7 +3339,7 @@ free_focal_pdata:
 static int focal_power_on(void)
 {
 	int ret = 0;
-	int rc = 0;
+	int retval = 0;
 
 	TS_LOG_INFO("%s:called\n", __func__);
 
@@ -3377,10 +3366,9 @@ static int focal_power_on(void)
 	return 0;
 
 enable_vddd_failed:
-	rc = regulator_disable(g_focal_pdata->vdda);
-	if (rc < 0) {
-		TS_LOG_ERR("%s: regulator disable fail\n", __func__);
-	}
+	retval = regulator_disable(g_focal_pdata->vdda);
+	if (retval < 0)
+		TS_LOG_ERR("%s: failed to disable regulator vdda.\n", __func__);
 enable_vdda_failed:
 	return ret;
 }
@@ -3585,19 +3573,14 @@ static int focal_chip_detect(struct ts_kit_platform_data *pdata)
 
 		strncpy(g_focal_dev_data->chip_name, FTS_CHIP_NAME, MAX_STR_LEN);
 	}
-	   
-	
 	TS_LOG_INFO("%s:focal chip detect success\n", __func__);
 
 	return 0;
 
 exit_power_off:
 	focal_pinctrl_release();
-pinctrl_get_err:
 	focal_power_off();
 	focal_regulator_put();
-exit_free_reset_gpio:
-	//gpio_free(g_focal_dev_data->reset_gpio);
 exit:
 	if(g_focal_dev_data) {
 		kfree(g_focal_dev_data);

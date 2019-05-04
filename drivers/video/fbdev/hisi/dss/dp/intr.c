@@ -25,6 +25,7 @@
 
 /*lint -save -e* */
 #define EDID_NUM 256
+#define MST_MSG_BUF_LENGTH 256
 #define SAFE_MODE_TIMING_HACTIVE 640
 #define SAFE_MODE_TIMING_PIXEL_CLOCK 2517  /*The pixel clock of 640 * 480 = 25175. The saving pixel clock need 1/10.*/
 #define DPTX_CHECK_TIME_PERIOD 2000
@@ -39,8 +40,10 @@ enum dp_event_type
 	DP_LINK_STATE_GOOD = 1
 };
 
+extern u16 usb31phy_cr_write(uint32_t addr, u16 value);
+#if CONFIG_DP_ENABLE
 extern void dp_send_event(enum dp_event_type event);
-
+#endif
 static enum hrtimer_restart dptx_detect_hrtimer_fnc(struct hrtimer *timer)
 {
 	struct dp_ctrl *dptx = NULL;
@@ -179,12 +182,13 @@ static void dptx_err_count_check_wq_handler(struct work_struct *work)
 		dptx->detect_times ++;
 	}
 
+#if CONFIG_DP_ENABLE
 	if (dptx->detect_times == 4) {
 		dp_send_event(DP_LINK_STATE_BAD);
 		dptx->detect_times = 1;
 		HISI_FB_INFO("\n [DP] ERR count upload!");
 	}
-
+#endif
 	return;
 }
 
@@ -297,6 +301,7 @@ static int dptx_resolution_switch(struct hisi_fb_data_type *hisifd, enum dptx_ho
 		return -1;
 	}
 
+
 	HISI_FB_INFO("[DP] xres=%d\n"
 		"yres=%d\n"
 		"h_back_porch=%d\n"
@@ -402,7 +407,7 @@ static int handle_test_link_training(struct dp_ctrl *dptx)
 	return retval;
 }
 
-static int handle_test_link_video_timming(struct dp_ctrl *dptx)
+static int handle_test_link_video_timming(struct dp_ctrl *dptx, int stream)
 {
 	int retval, i;
 	uint8_t test_h_total_lsb, test_h_total_msb, test_v_total_lsb,
@@ -649,7 +654,7 @@ static int handle_test_link_video_timming(struct dp_ctrl *dptx)
 		return retval;
 	/* MMCM */
 	dptx_resolution_switch(dptx->hisifd, Hot_Plug_TEST);
-	dptx_video_timing_change(dptx);
+	dptx_video_timing_change(dptx, 0);
 fail:
 	return retval;
 
@@ -657,9 +662,10 @@ fail:
 
 static int handle_test_link_audio_pattern(struct dp_ctrl *dptx)
 {
-	int retval, freq_id;
+	int retval;
 	uint8_t test_audio_mode, test_audio_smaple_range, test_audio_ch_count,
 	   audio_ch_count, orig_sample_freq, sample_freq;
+	uint32_t audio_clock_freq;
 	struct audio_params *aparams;
 
 	if (dptx == NULL) {
@@ -724,43 +730,43 @@ static int handle_test_link_audio_pattern(struct dp_ctrl *dptx)
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_32\n");
 		orig_sample_freq = 12;
 		sample_freq = 3;
-		freq_id = 0;
+		audio_clock_freq = 320;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_44_1:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_44_1\n");
 		orig_sample_freq = 15;
 		sample_freq = 0;
-		freq_id = 1;
+		audio_clock_freq = 441;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_48:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_48\n");
 		orig_sample_freq = 13;
 		sample_freq = 2;
-		freq_id = 2;
+		audio_clock_freq = 480;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_88_2:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_88_2\n");
 		orig_sample_freq = 7;
 		sample_freq = 8;
-		freq_id = 3;
+		audio_clock_freq = 882;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_96:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_96\n");
 		orig_sample_freq = 5;
 		sample_freq = 10;
-		freq_id = 4;
+		audio_clock_freq = 960;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_176_4:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_176_4\n");
 		orig_sample_freq = 3;
 		sample_freq = 12;
-		freq_id = 5;
+		audio_clock_freq = 1764;
 		break;
 	case DP_TEST_AUDIO_SAMPLING_RATE_192:
 		HISI_FB_INFO("[DP] DP_TEST_AUDIO_SAMPLING_RATE_192\n");
 		orig_sample_freq = 1;
 		sample_freq = 14;
-		freq_id = 6;
+		audio_clock_freq = 1920;
 		break;
 	default:
 		HISI_FB_INFO("[DP] Invalid TEST_AUDIO_SAMPLING_RATE\n");
@@ -768,6 +774,7 @@ static int handle_test_link_audio_pattern(struct dp_ctrl *dptx)
 	}
 	HISI_FB_INFO("[DP] sample_freq = %d\n", sample_freq);
 	HISI_FB_INFO("[DP] orig_sample_freq = %d\n", orig_sample_freq);
+
 	aparams->iec_samp_freq = sample_freq;
 	aparams->iec_orig_samp_freq = orig_sample_freq;
 
@@ -777,7 +784,7 @@ static int handle_test_link_audio_pattern(struct dp_ctrl *dptx)
 	return retval;
 }
 
-static int handle_test_link_video_pattern(struct dp_ctrl *dptx)
+static int handle_test_link_video_pattern(struct dp_ctrl *dptx, int stream)
 {
 	int retval;
 	uint8_t misc, pattern, bpc, bpc_map, dynamic_range,
@@ -900,9 +907,11 @@ static int handle_test_link_video_pattern(struct dp_ctrl *dptx)
 	HISI_FB_INFO("[DP] Change pixel encoding to %d\n", color_format_map);
 
 	vparams->bpc = bpc_map;
-	dptx_video_bpc_change(dptx);
+
+	dptx_video_bpc_change(dptx, stream);
 	HISI_FB_INFO("[DP] Change bits per component to %d\n", bpc_map);
-	dptx_video_ts_change(dptx);
+
+	dptx_video_ts_change(dptx, stream);
 
 	switch (pattern) {
 	case DP_TEST_PATTERN_NONE:
@@ -926,7 +935,7 @@ static int handle_test_link_video_pattern(struct dp_ctrl *dptx)
 		return -EINVAL;
 	}
 
-	retval = handle_test_link_video_timming(dptx);
+	retval = handle_test_link_video_timming(dptx, stream);
 	if (retval)
 		return retval;
 
@@ -1031,7 +1040,7 @@ static int handle_automated_test_request(struct dp_ctrl *dptx)
 		dptx->hisifd->hpd_release_sub_fnc(dptx->hisifd->fbi);
 		dp_send_cable_notification(dptx, Hot_Plug_TEST_OUT);
 
-		retval = handle_test_link_video_pattern(dptx);
+		retval = handle_test_link_video_pattern(dptx, 0);
 		if (retval)
 			return retval;
 	}
@@ -1125,51 +1134,9 @@ static int handle_sink_request(struct dp_ctrl *dptx)
 	if (vector & DP_CP_IRQ) {
 		HISI_FB_WARNING("[DP] %s: DP_CP_IRQ", __func__);
 		//retval = dptx_write_dpcd(dptx, DP_DEVICE_SERVICE_IRQ_VECTOR, DP_CP_IRQ);
-        dp_imonitor_set_param(DP_PARAM_HDCP_VERSION, &g_hdcp_mode);
-        if (g_hdcp_mode == 3)   //hdcp1.3
-        {
-            uint8_t bstatus=0;
-            uint32_t temp_value = 0;
-            int ret;
-
-            if(dptx->hisifd->secure_ctrl.hdcp_reg_get)
-                temp_value = dptx->hisifd->secure_ctrl.hdcp_reg_get(DPTX_HDCP_OBS);
-            //HISI_FB_INFO("DPTX_HDCP_OBS: 0x%x\n", temp_value);
-
-            if ((temp_value & 0xFFFF) == REPEATER_STATE)
-            {
-                HISI_FB_INFO("[DP] CP_IRQ in REPEATER_STATE!\n");
-                ret = dptx_read_dpcd(dptx, 0x68029, &bstatus); //1B-02 need
-                if (ret)
-                    return ret;
-                HISI_FB_INFO("[DP] bstatus is 0x%x\n", bstatus);
-                if (bstatus & 0x4)
-                {
-                    link_error_count ++;
-                    HISI_FB_ERR("[DP] link_error %d times!!\n", link_error_count);
-                    if(link_error_count >= MAX_LINK_ERROR_COUNT)
-                    {
-                        HISI_FB_ERR("[DP] re-auth HDCP1.3!\n");
-                        link_error_count=0;
-                        //dptx_writel(dptx, 0xE00, 0);
-                        HDCP13_enable(dptx, 0);
-                        msleep(10);
-                        //dptx_writel(dptx, 0xE00, 0x106);    //patch for auto re-auth
-                        HDCP13_enable(dptx, 1);
-                    }
-                }
-            }
-            else if ((temp_value & 0xF0) == 0x40)
-            {
-                if(dptx->hisifd->secure_ctrl.hdcp_cp_irq)
-                    dptx->hisifd->secure_ctrl.hdcp_cp_irq();
-            }
-        }
-        else    //hdcp2.2 ot other
-        {
-            if(dptx->hisifd->secure_ctrl.hdcp_cp_irq)
-				dptx->hisifd->secure_ctrl.hdcp_cp_irq();
-        }
+        //dp_imonitor_set_param(DP_PARAM_HDCP_VERSION, &g_hdcp_mode);
+        if(dptx->hisifd->secure_ctrl.hdcp_cp_irq)
+			dptx->hisifd->secure_ctrl.hdcp_cp_irq();
 		if (retval)
 			return retval;
 		/* TODO Check Re-authentication Request and Link integrity
@@ -1260,7 +1227,6 @@ int dptx_triger_media_transfer(struct dp_ctrl *dptx, bool benable)
 int handle_hotunplug(struct hisi_fb_data_type *hisifd)
 {
 	struct dp_ctrl *dptx;
-	int ret = 0;
 
 	if (!hisifd) {
 		HISI_FB_ERR("[DP] hisifd is NULL!\n");
@@ -1272,6 +1238,7 @@ int handle_hotunplug(struct hisi_fb_data_type *hisifd)
 	dptx = &(hisifd->dp);
 	dptx->video_transfer_enable = false;
 	dptx->max_edid_timing_hactive = 0;
+	dptx->dummy_dtds_present = false;
 
 	dptx_cancel_detect_work(dptx);
 	dptx_video_params_reset(&dptx->vparams);
@@ -1283,7 +1250,7 @@ int handle_hotunplug(struct hisi_fb_data_type *hisifd)
 		hisifd->hpd_release_sub_fnc(hisifd->fbi);
 
 	/*Disable DPTX*/
-	dptx_disable_default_video_stream(dptx);
+	dptx_disable_default_video_stream(dptx, 0);
 	/* Clear xmit enables */
 	dptx_phy_enable_xmit(dptx, 4, false);
 	/* Power down all lanes */
@@ -1298,7 +1265,6 @@ int handle_hotunplug(struct hisi_fb_data_type *hisifd)
 
 	dp_imonitor_set_param(DP_PARAM_TIME_STOP, NULL);
 	HISI_FB_INFO("[DP] -.\n");
-
 	return 0;
 }
 
@@ -1403,7 +1369,13 @@ edid_retry:
 		}
 	}
 
-	ext_blocks = dptx->edid[126];
+	if (dptx->edid[126] > 4)
+		/* Workaround for QD equipment */
+		/* TODO investigate corruptions of EDID blocks */
+		ext_blocks = 2;
+	else
+		ext_blocks = dptx->edid[126];
+
 	if((ext_blocks > MAX_EXT_BLOCKS) || !dptx_check_edid_header(dptx)){
 		edid_try_count += 1;
 		if(edid_try_count <= dptx->edid_try_count) {
@@ -1432,7 +1404,7 @@ edid_retry:
 	dptx->edid = kzalloc(128 * ext_blocks + 128, GFP_KERNEL);
 	if (!dptx->edid) {
 		HISI_FB_ERR("[DP] Allocate edid buffer error!\n");
-		return -EINVAL;
+		goto fail;
 	}
 
 	memcpy(dptx->edid, first_edid_block, 128);
@@ -1454,33 +1426,6 @@ fail:
 
 	return retval;
 }
-/*
-static int dptx_check_edid(struct dp_ctrl *dptx)
-{
-	int i;
-	uint32_t edid_sum = 0;
-
-	if (dptx == NULL) {
-		HISI_FB_ERR("NULL Pointer\n");
-		return -EINVAL;
-	}
-
-	if (!(dptx->edid)) {
-		HISI_FB_ERR("edid is NULL!\n");
-		return -EINVAL;
-	}
-
-	for (i = 0; i < 128; i++)
-		edid_sum += dptx->edid[i];
-
-	if (edid_sum & 0xFF) {
-		HISI_FB_ERR("Invalid EDID checksum\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-*/
 
 int dptx_choose_edid_timing(struct dp_ctrl *dptx, bool *bsafemode)
 {
@@ -1490,6 +1435,11 @@ int dptx_choose_edid_timing(struct dp_ctrl *dptx, bool *bsafemode)
 
 	uint32_t default_hactive;
 	uint64_t default_pixel_clock;
+
+	if ((dptx == NULL) || (bsafemode == NULL)) {
+		HISI_FB_ERR("[DP] NULL Pointer\n");
+		return -EINVAL;
+	}
 
 	mdtd = &dptx->vparams.mdtd;
 	per_timing_info = dptx_timing_node = _node_ = NULL;
@@ -1569,7 +1519,6 @@ int dptx_choose_edid_timing(struct dp_ctrl *dptx, bool *bsafemode)
 
 	return 0;
 }
-
 int handle_hotplug(struct hisi_fb_data_type *hisifd)
 {
 	uint8_t rev = 0;
@@ -1577,7 +1526,6 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	uint8_t vector;
 	uint8_t checksum = 0;
 	uint8_t blocks = 0;
-	//uint8_t preferred_vic[18] = {0};
 	uint8_t test = 0;
 	uint32_t edid_info_size = 0;
 	struct video_params *vparams;
@@ -1586,9 +1534,8 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	struct dp_ctrl *dptx;
 	char *monitor_name_info;
 	bool bsafe_mode;
-
 	if (!hisifd) {
-		HISI_FB_ERR("[DP] hisifd is NULL!\n");
+		HISI_FB_ERR("hisifd is NULL!\n");
 		return -EINVAL;
 	}
 
@@ -1597,23 +1544,24 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	dptx = &(hisifd->dp);
 
 	if (dptx == NULL) {
-		HISI_FB_ERR("[DP] NULL Pointer\n");
+		HISI_FB_ERR("NULL Pointer\n");
 		return -EINVAL;
 	}
 
 	if (!dptx->dptx_enable) {
-		HISI_FB_ERR("[DP] dptx has already off.\n");
+		HISI_FB_ERR("dptx has already off.\n");
 		return -EINVAL;
 	}
 
 	dp_imonitor_set_param(DP_PARAM_TIME_START, NULL);
 	bsafe_mode = false;
+
 	vparams = &dptx->vparams;
 	hparams = &dptx->hparams;
 
 	dptx_video_params_reset(&dptx->vparams);
 	dptx_audio_params_reset(&dptx->aparams);
-	dptx_video_config(dptx);
+	dptx_video_config(dptx, 0);
 
 	dptx_soft_reset(dptx,
 		DPTX_SRST_CTRL_PHY | DPTX_SRST_CTRL_HDCP | DPTX_SRST_CTRL_AUX);
@@ -1628,6 +1576,7 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 		return retval;
 	}
 	mdelay(1);
+
 
 	retval = dptx_read_dpcd(dptx, DP_DEVICE_SERVICE_IRQ_VECTOR, &vector);
 	if (retval) {
@@ -1644,28 +1593,8 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	} else {
 		edid_info_size = retval;
 	}
-/*
-	retval = dptx_check_edid(dptx);
-	if (retval) {
-		vparams->video_format = VCEA;
-		dptx_dtd_fill(&mdtd, 1, vparams->refresh_rate,
-			      vparams->video_format);
-	} else {
-		memcpy(preferred_vic, dptx->edid + 0x36, 0x12);
-		retval = dptx_dtd_parse(dptx, &mdtd, preferred_vic);
-		if (retval) {
-			vparams->video_format = VCEA;
-			dptx_dtd_fill(&mdtd, 1, vparams->refresh_rate,
-				      vparams->video_format);
-		}
-	}
-*/
-	if (g_fpga_flag == 1) {
-		retval = -1;
-	} else {
-		retval = parse_edid(dptx, edid_info_size);
-	}
 
+	retval = parse_edid(dptx, edid_info_size);
 	if (retval) {
 		HISI_FB_ERR("[DP] EDID Parser fail, display safe mode\n");
 		bsafe_mode = true;
@@ -1688,7 +1617,7 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 		HISI_FB_ERR("[DP] failed to dptx_read_dpcd DP_DPCD_REV, retval=%d.\n", retval);
 		return retval;
 	}
-	HISI_FB_DEBUG("[DP] DP Revision %x.%x .\n", (rev & 0xf0) >> 4, rev & 0xf);
+	HISI_FB_DEBUG("[DP] Revision %x.%x .\n", (rev & 0xf0) >> 4, rev & 0xf);
 
 	memset(dptx->rx_caps, 0, DPTX_RECEIVER_CAP_SIZE);
 	retval = dptx_read_bytes_from_dpcd(dptx, DP_DPCD_REV,
@@ -1698,6 +1627,7 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 		return retval;
 	}
 	dp_imonitor_set_param(DP_PARAM_DPCD_RX_CAPS, dptx->rx_caps);
+
 
 	/*
 	* The TEST_EDID_READ is asserted on HOTPLUG. Check for it and
@@ -1732,6 +1662,7 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	/* TODO No other IRQ should be set on hotplug */
 	retval = dptx_link_training(dptx, dptx->max_rate, dptx->max_lanes);
 	if (retval) {
+
 		HISI_FB_ERR("[DP] failed to  dptx_link_training, retval=%d.\n", retval);
 		dp_imonitor_set_param(DP_PARAM_LINK_TRAINING_FAILED, &retval);
 		return retval;
@@ -1741,13 +1672,13 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 		dptx_choose_edid_timing(dptx, &bsafe_mode);
 	}
 
-	if (bsafe_mode) {
+	if ((bsafe_mode) || (g_fpga_flag)) {
 		dp_imonitor_set_param(DP_PARAM_SAFE_MODE, &bsafe_mode);
 		if (edid_info_size) {
 			uint8_t code = 1; // resolution: 640*480
 			vparams->video_format = VCEA;
 			dp_imonitor_set_param_resolution(&code, &(vparams->video_format));
-			dptx_dtd_fill(&mdtd, code, vparams->refresh_rate, vparams->video_format);
+			dptx_dtd_fill(&mdtd, code, vparams->refresh_rate, vparams->video_format);/*If edid is parsed error, DP transfer 640*480 firstly!.*/
 		} else {
 			vparams->video_format = DMT;
 			dptx_dtd_fill(&mdtd, 16, vparams->refresh_rate, vparams->video_format); /*If edid can't be got, DP transfer 1024*768 firstly!*/
@@ -1764,11 +1695,17 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 				dp_imonitor_set_param(DP_PARAM_BASIC_AUDIO, &(dptx->edid_info.Audio.basicAudio));
 			}
 		}
+
+		if (g_fpga_flag) {
+			vparams->video_format = VCEA;
+			dptx_dtd_fill(&mdtd, 3, vparams->refresh_rate, vparams->video_format); /*Fpga only display 720*480.*/
+		}
 		memcpy(&(dptx->vparams.mdtd), &mdtd, sizeof(mdtd));
 	}
 
 	retval = dptx_video_ts_calculate(dptx, dptx->link.lanes,
 		dptx->link.rate, vparams->bpc, vparams->pix_enc, vparams->mdtd.pixel_clock);
+
 	if (retval) {
 		HISI_FB_INFO("[DP] Can't change to the preferred video mode: frequency = %llu\n",
 						vparams->mdtd.pixel_clock);
@@ -1778,8 +1715,9 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 
 		/* MMCM */
 	}
-
 	/*DP update device to HWC and configue DSS*/
+
+
 	if (dptx->dptx_vr) {
 		if (dptx_check_low_temperature(dptx)) {
 			HISI_FB_ERR("[DP] VR device can't work on low temperature!\n");
@@ -1802,6 +1740,7 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 		}
 	}
 
+#if CONFIG_DP_ENABLE
 	// for factory test
 	if (dp_factory_mode_is_enable()) {
 		if (!dp_factory_is_4k_60fps(dptx->max_rate, dptx->max_lanes,
@@ -1813,9 +1752,13 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 			return -ECONNREFUSED;
 		}
 	}
+#endif
+
 
 	/*Update DP reg configue*/
-	dptx_video_timing_change(dptx);	/*dptx video reg depends on dss pixel clock.*/
+	dptx_video_timing_change(dptx, 0);	/*dptx video reg depends on dss pixel clock.*/
+	//dptx_video_timing_change(dptx, 1);	/*dptx video reg depends on dss pixel clock.*/
+
 	dptx_audio_config(dptx);	/*dptx audio reg depends on phy status(P0)*/
 
 	dptx->current_link_rate = dptx->link.rate;
@@ -1832,15 +1775,46 @@ int handle_hotplug(struct hisi_fb_data_type *hisifd)
 	return 0;
 }
 
+static void hdcp22_gpio_intr_clear(bool keep_intr, struct dp_ctrl *dptx, uint32_t hdcpobs)
+{
+	uint32_t reg_mask = 0;
+
+	if(keep_intr) { //mask interrupt: DPTX_HDCP22_GPIOINT
+		HISI_FB_DEBUG("HDCP2.2 register mask.\n");
+		if(dptx->hisifd->secure_ctrl.hdcp_reg_get) {
+			reg_mask = dptx->hisifd->secure_ctrl.hdcp_reg_get(DPTX_HDCP_API_INT_MSK);
+		} else {
+			HISI_FB_ERR("[HDCP] ATF:hdcp_reg_get is NULL\n");
+		}
+		reg_mask |= DPTX_HDCP22_GPIOINT;
+
+		if(dptx->hisifd->secure_ctrl.hdcp_int_mask) {
+			dptx->hisifd->secure_ctrl.hdcp_int_mask(reg_mask);
+		} else {
+			HISI_FB_ERR("[HDCP] ATF:hdcp_int_mask is NULL\n");
+		}
+		//clear HDCP22 interrupt except authen_success/failed
+		hdcpobs &= (~(DPTX_HDCP22_AUTH_SUCCESS | DPTX_HDCP22_AUTH_FAILED));
+	}
+	HISI_FB_DEBUG("HDCP2.2 register clear. DPTX_HDCP_OBS=0x%x.\n", hdcpobs);
+	if(dptx->hisifd->secure_ctrl.hdcp_obs_set) {
+		dptx->hisifd->secure_ctrl.hdcp_obs_set(hdcpobs);
+	} else {
+		HISI_FB_ERR("[HDCP] ATF:hdcp_obs_set is NULL\n");
+	}
+}
+
 static void handle_hdcp22_gpio_intr(struct dp_ctrl *dptx)
 {
 	uint32_t hdcpobs;
+	bool keep_intr = false;
 
 	if (dptx == NULL) {
 		HISI_FB_ERR("[DP] NULL Pointer\n");
 		return;
 	}
 
+	hdcpobs = 0;
 	//hdcpobs = dptx_readl(dptx, DPTX_HDCP_OBS);
 	if(dptx->hisifd->secure_ctrl.hdcp_reg_get)
 		hdcpobs = dptx->hisifd->secure_ctrl.hdcp_reg_get(DPTX_HDCP_OBS);
@@ -1859,11 +1833,13 @@ static void handle_hdcp22_gpio_intr(struct dp_ctrl *dptx)
 	}
 
 	if (hdcpobs & DPTX_HDCP22_AUTH_SUCCESS) {
+		keep_intr = true;
 		HISI_FB_NOTICE("[HDCP22] the authentication is succeded.\n");
 		dp_imonitor_set_param(DP_PARAM_HDCP_KEY_S, NULL);
 	}
 
 	if (hdcpobs & DPTX_HDCP22_AUTH_FAILED) {
+		keep_intr = true;
 		HISI_FB_NOTICE("[HDCP22] the authentication is failed.\n");
 		dp_imonitor_set_param(DP_PARAM_HDCP_KEY_F, NULL);
 	}
@@ -1871,11 +1847,36 @@ static void handle_hdcp22_gpio_intr(struct dp_ctrl *dptx)
 	if (hdcpobs & DPTX_HDCP22_RE_AUTH_REQ)
 		HISI_FB_WARNING("[HDCP22] the sink has requested a re-authentication.\n");
 
-	//dptx_writel(dptx, DPTX_HDCP_OBS, hdcpobs);
-	if(dptx->hisifd->secure_ctrl.hdcp_obs_set)
-		dptx->hisifd->secure_ctrl.hdcp_obs_set(hdcpobs);
-	else
-		HISI_FB_ERR("[HDCP] ATF:hdcp_obs_set is NULL\n");
+	hdcp22_gpio_intr_clear(keep_intr, dptx, hdcpobs);
+}
+
+static void hdcp_intr_clear(bool keep_intr, struct dp_ctrl *dptx, uint32_t hdcpintsts)
+{
+	uint32_t reg_mask = 0;
+
+	if(keep_intr) { //mask interrupt: (DPTX_HDCP_ENGAGED | DPTX_HDCP_FAILED)
+		HISI_FB_DEBUG("HDCP1.3 register mask.\n");
+		if(dptx->hisifd->secure_ctrl.hdcp_reg_get) {
+			reg_mask = dptx->hisifd->secure_ctrl.hdcp_reg_get(DPTX_HDCP_API_INT_MSK);
+		} else {
+			HISI_FB_ERR("[HDCP] ATF:hdcp_reg_get is NULL\n");
+		}
+		reg_mask |= (DPTX_HDCP_ENGAGED | DPTX_HDCP_FAILED);
+
+		if(dptx->hisifd->secure_ctrl.hdcp_int_mask) {
+			dptx->hisifd->secure_ctrl.hdcp_int_mask(reg_mask);
+		} else {
+			HISI_FB_ERR("[HDCP] ATF:hdcp_int_mask is NULL\n");
+		}
+		//clear HDCP interrupt except hdcp_engaged/failed
+		hdcpintsts &= (~(DPTX_HDCP_ENGAGED | DPTX_HDCP_FAILED));
+	}
+	HISI_FB_DEBUG("HDCP1.3 and 2.2 register clear. DPTX_HDCP_INT_STS=0x%x\n", hdcpintsts);
+	if(dptx->hisifd->secure_ctrl.hdcp_int_clr) {
+		dptx->hisifd->secure_ctrl.hdcp_int_clr(hdcpintsts);
+	} else {
+		HISI_FB_ERR("[HDCP] ATF:hdcp_int_clr is NULL\n");
+	}
 }
 
 static void handle_hdcp_intr(struct dp_ctrl *dptx)
@@ -1883,12 +1884,15 @@ static void handle_hdcp_intr(struct dp_ctrl *dptx)
 	uint32_t hdcpintsts;
 	uint32_t hdcpobs;
 	struct hdcp_params *hparams;
+	bool keep_intr = false;
 
 	if (dptx == NULL) {
 		HISI_FB_ERR("[DP] NULL Pointer\n");
 		return;
 	}
 
+	hdcpintsts = 0;
+	hdcpobs = 0;
 	hparams = &dptx->hparams;
 
 	//hdcpintsts = dptx_readl(dptx, DPTX_HDCP_INT_STS);
@@ -1909,38 +1913,33 @@ static void handle_hdcp_intr(struct dp_ctrl *dptx)
 
 	if (hdcpintsts & DPTX_HDCP_KSV_SHA1)
 	{
-	    HISI_FB_DEBUG("SHA1 verification has been done\n");
+		HISI_FB_DEBUG("SHA1 verification has been done\n");
 	}
 
 	if (hdcpintsts & DPTX_HDCP_AUX_RESP_TIMEOUT) {
-		HDCP_Stop_Polling_task(1);
-		HDCP13_enable(dptx, 0);
-		if(dptx->hisifd->secure_ctrl.hdcp_enc_mode)
-			dptx->hisifd->secure_ctrl.hdcp_enc_mode(1);
+		HDCP_SendNotification((uint32_t)Hot_Plug_HDCP13_TIMEOUT);
+		keep_intr = true;
 		HISI_FB_WARNING("DPTX_HDCP_AUX_RESP_TIMEOUT\n");
 	}
 
 	if (hdcpintsts & DPTX_HDCP_FAILED) {
-		if(!(hdcpobs & BIT(18)))    //TE is receiver, not repeater
-			HDCP_Stop_Polling_task(1);
 		hparams->auth_fail_count++;
 		if (hparams->auth_fail_count > DPTX_HDCP_MAX_AUTH_RETRY) {
-			HDCP13_enable(dptx, 0);
-			if(dptx->hisifd->secure_ctrl.hdcp_enc_mode)
-				dptx->hisifd->secure_ctrl.hdcp_enc_mode(1);
+			HDCP_SendNotification((uint32_t)Hot_Plug_HDCP13_FAIL);
+			keep_intr = true;
 			HISI_FB_ERR("Reach max allowed retries count=%d.\n", hparams->auth_fail_count);
 		}
 		else
 		{
-		    link_error_count = MAX_LINK_ERROR_COUNT;   //flag to re-auth
-		    HISI_FB_INFO("HDCP authentication process was failed!\n");
+			HISI_FB_INFO("HDCP authentication process was failed!\n");
 			dp_imonitor_set_param(DP_PARAM_HDCP_KEY_F, NULL);
 		}
 	}
 
 	if (hdcpintsts & DPTX_HDCP_ENGAGED) {
 		hparams->auth_fail_count = 0;
-		HDCP_Stop_Polling_task(1);
+		HDCP_SendNotification((uint32_t)Hot_Plug_HDCP13_SUCCESS);
+		keep_intr = true;
 		HISI_FB_NOTICE("HDCP authentication process was successful.\n");
 		dp_imonitor_set_param(DP_PARAM_HDCP_KEY_S, NULL);
 	}
@@ -1950,11 +1949,7 @@ static void handle_hdcp_intr(struct dp_ctrl *dptx)
 		handle_hdcp22_gpio_intr(dptx);
 	}
 
-	//dptx_writel(dptx, DPTX_HDCP_INT_CLR, hdcpintsts);
-	if(dptx->hisifd->secure_ctrl.hdcp_int_clr)
-		dptx->hisifd->secure_ctrl.hdcp_int_clr(hdcpintsts);
-	else
-		HISI_FB_ERR("[HDCP] ATF:hdcp_int_clr is NULL\n");
+	hdcp_intr_clear(keep_intr, dptx, hdcpintsts);
 }
 
 static void handle_aux_reply(struct dp_ctrl *dptx)
@@ -2207,7 +2202,6 @@ irqreturn_t dptx_irq(int irq, void *dev)
 
 		if (hpdsts & DPTX_HPDSTS_HOT_PLUG) {
 			dptx_writel(dptx, DPTX_HPDSTS, DPTX_HPDSTS_HOT_PLUG);
-
 			/* if (hpdsts & DPTX_HPDSTS_STATUS) { */
 			if (1) {
 				atomic_set(&dptx->aux.abort, 1);
@@ -2221,7 +2215,6 @@ irqreturn_t dptx_irq(int irq, void *dev)
 
 		if (hpdsts & DPTX_HPDSTS_HOT_UNPLUG) {
 			dptx_writel(dptx, DPTX_HPDSTS, DPTX_HPDSTS_HOT_UNPLUG);
-
 			/* if (!(hpdsts & DPTX_HPDSTS_STATUS)) { */
 			if (1) {
 				atomic_set(&dptx->aux.abort, 1);

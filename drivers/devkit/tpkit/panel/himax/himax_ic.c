@@ -190,7 +190,7 @@ static void himax_rawdata_proc_printf_mutual_data(struct seq_file *m,
 static void himax_rawdata_proc_printf_self_data(struct seq_file *m,
 		struct ts_rawdata_info *info, int tx_num, int rx_num, int *valid_data_len, int *offset)
 {
-	int i = 0, j = 0;
+	int i;
 	for (i = 0; i < tx_num + rx_num; i++) {
 		seq_printf(m, "%4d", info->buff[*offset + i]);	/*print oneline*/
 		if(i == rx_num - 1) {
@@ -208,7 +208,6 @@ static int himax_rawdata_proc_printf(struct seq_file *m, struct ts_rawdata_info 
 {
 	int rx_num = 0;
 	int tx_num = 0;
-	int i = 0, j = 0;
 	int offset = 0;
 	int mutual_data_size = 0;
 	int self_data_size = 0;
@@ -794,6 +793,7 @@ static int himax_parse_sensor_id_dts(struct device_node *device, struct ts_kit_d
 	retval =of_property_read_string(child, "project_id", &projectid);
 	if (retval) {
 		strncpy(himax_product_id, PRODUCE_ID, HX_PROJECT_ID_LEN);
+		himax_product_id[HX_PROJECT_ID_LEN] = '\0';
 		TS_LOG_ERR("Not define product id in Dts, use default\n");
 	}
 	else{
@@ -983,7 +983,6 @@ void himax_get_rawdata_from_event(int RawDataLen,int hx_touch_info_size, int mul
 	int i = 0;
 	int m=0;
 	int n=0;
-	int cnt = 0;
 	int rawdata_frame_size = 0;
 
 	if(NULL == buf) {
@@ -1069,10 +1068,14 @@ int himax_start_get_rawdata_from_event(int hx_touch_info_size,int RawDataLen,uin
 		return retval;
 }
 #define RAWDATA_READY_VAL 254
+#define HX_STACK_DIAG_SHIFT_MASK 4
+#define HX_STACK_DIAG_MASK 0xF0
+#define HX_RAWDATA_BUF_LEN 128
 void himax_get_rawdata_work(void)
 {
 	int ret = 0;
-	uint8_t buf[128], finger_num, hw_reset_check[2];
+	uint8_t buf[HX_RAWDATA_BUF_LEN];
+	uint8_t hw_reset_check[2];
 	int32_t loop_i;
 	unsigned char check_sum_cal = 0;
 	int RawDataLen = 0;
@@ -1086,6 +1089,7 @@ void himax_get_rawdata_work(void)
 	int 	self_num;
 	int 	index = 0;
 	int  	temp1, temp2;
+	int now_frame_diag_val = 0;
 
 	memset(buf, 0x00, sizeof(buf));
 	memset(hw_reset_check, 0x00, sizeof(hw_reset_check));
@@ -1135,6 +1139,14 @@ void himax_get_rawdata_work(void)
 		}
 	}
 
+	TS_LOG_INFO("now buf[HX_TOUCH_INFO_POINT_CNT]:0x%02X,HX_TOUCH_INFO_POINT_CNT:%d",buf[HX_TOUCH_INFO_POINT_CNT],HX_TOUCH_INFO_POINT_CNT);
+	now_frame_diag_val = ((buf[HX_TOUCH_INFO_POINT_CNT] & HX_STACK_DIAG_MASK) >> HX_STACK_DIAG_SHIFT_MASK);
+	if(now_frame_diag_val == diag_cmd)
+		TS_LOG_INFO("%s:Same type,now_frame_diag_val=%d,diag_cmd=%d\n", __func__, now_frame_diag_val, diag_cmd);
+	else {
+		TS_LOG_INFO("%s:Not Same type need to get new one,now_frame_diag_val=%d,diag_cmd=%d\n", __func__, now_frame_diag_val, diag_cmd);
+		return;
+	}
 	//touch monitor raw data fetch
 	if (diag_cmd >= 1 && diag_cmd <= 7)
 	{
@@ -1455,8 +1467,10 @@ void himax_parse_coords(int hx_touch_info_size,int hx_point_num,struct ts_finger
 
 static void gest_pt_log_coordinate(int rx,int tx)
 {
-	gest_pt_x[gest_pt_cnt] = rx*HX_X_RES/MAX_RAW_VAL;
-	gest_pt_y[gest_pt_cnt] = tx*HX_Y_RES/MAX_RAW_VAL;
+	if ((gest_pt_cnt >= 0) && (gest_pt_cnt < GEST_PT_MAX_NUM)) {
+		gest_pt_x[gest_pt_cnt] = rx * HX_X_RES / MAX_RAW_VAL;
+		gest_pt_y[gest_pt_cnt] = tx * HX_Y_RES / MAX_RAW_VAL;
+	}
 }
 static int easy_wakeup_gesture_report_coordinate(unsigned int reprot_gesture_point_num, struct ts_fingers *info,uint8_t* buf)
 {
@@ -2069,16 +2083,21 @@ static int himax_parse_dts(struct device_node *device, struct ts_kit_device_data
 	const char *modulename = NULL;
 	const char *projectid = NULL;
 	const char *tptesttype = NULL;
+	unsigned int value;
 	const char *chipname = NULL;
 	int read_val = 0;
 	TS_LOG_INFO("%s: parameter init begin\n", __func__);
 	if(NULL == device||NULL == chip_data) {
 		return -1;
 	}
-	retval = of_property_read_u32(device, "reg", &chip_data->ts_platform_data->client->addr);
+	retval = of_property_read_u32(device, "reg",
+		&value);
 	if (retval) {
 		chip_data->ts_platform_data->client->addr = SLAVE_I2C_ADRR;
 		TS_LOG_INFO("Not define reg in Dts, use default\n");
+	} else {
+		chip_data->ts_platform_data->client->addr =
+			(unsigned short)value;
 	}
 	TS_LOG_INFO("get himax reg = 0x%02x\n", chip_data->ts_platform_data->client->addr);
 
@@ -2248,7 +2267,6 @@ static void himax_chip_touch_switch(void)
 	unsigned int stype = 0, soper = 0, time = 0;
 	int error = 0;
 	unsigned int i = 0, cnt = 0;
-	u8 param =0;
 	TS_LOG_INFO("%s enter\n", __func__);
 
 	if (NULL == g_himax_ts_data || !g_himax_ts_data->tskit_himax_data ||
@@ -2643,7 +2661,6 @@ static int himax_power_rst_init(void)
 {
 	struct himax_ts_data *ts = NULL;
 	uint8_t data[SLEEP_ON_BUF_LEN] = {0};
-	memset(data, 0x00, sizeof(data));
 	int retval = 0;
 
 	TS_LOG_INFO("%s: enter \n", __func__);
@@ -2858,7 +2875,6 @@ static int himax_core_resume(void)
 	int t=0;
 #endif
 	struct himax_ts_data *ts;
-	uint8_t data[12] = {0};
 	int retval=0;
 	struct ts_easy_wakeup_info *info = &g_himax_ts_data->tskit_himax_data->easy_wakeup_info;
 

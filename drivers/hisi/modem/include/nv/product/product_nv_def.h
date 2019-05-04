@@ -84,6 +84,11 @@ typedef struct
     u32 rsv;
 }NV_WORKSTATION_INFO_STRU;
 
+typedef struct
+{
+    NV_CRC_CHECK_RESULT_STRU astCRCResultTemp[6];
+}NV_CRCRESULT_TEMP_STRU;
+
 /*****************************************************************************
  结构名    : CHG_BATTERY_LOW_TEMP_PROTECT_NV
  结构说明  : CHG_BATTERY_LOW_TEMP_PROTECT_NV结构 ID=52005

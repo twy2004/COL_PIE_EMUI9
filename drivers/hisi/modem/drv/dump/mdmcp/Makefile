@@ -1,3 +1,4 @@
+
 #
 # Makefile for the memory technology device drivers.
 #
@@ -13,4 +14,6 @@ obj-y				+= dump_cphy_tcm.o
 obj-y				+= dump_easyrf_tcm.o 
 obj-y				+= dump_lphy_tcm.o 
 obj-y				+= dump_cp_wdt.o
+obj-y				+= dump_cp_logs.o
 obj-y				+= dump_sec_mem.o
+

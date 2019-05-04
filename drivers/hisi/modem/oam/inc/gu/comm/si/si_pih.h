@@ -550,7 +550,7 @@ typedef struct
 {
     SI_PIH_MSG_HEADER_STRU              stMsgHeader;                            /* PIH消息头 */
     VOS_UINT32                          ulAIDLen;                               /* AID的长度 */
-    VOS_UINT8                           aucADFName[2*USIMM_AID_LEN_MAX];        /* 考虑到中移动不对AID长度检测的需求将长度增大1倍 */
+    VOS_UINT8                           aucADFName[USIMM_AID_LEN_MAX];          /* 考虑到中移动不对AID长度检测的需求将长度增大1倍(和usimm代码不匹配) */
 }SI_PIH_CCHO_SET_REQ_STRU;
 
 
@@ -558,7 +558,7 @@ typedef struct
 {
     SI_PIH_MSG_HEADER_STRU              stMsgHeader;                            /* PIH消息头 */
     VOS_UINT32                          ulAIDLen;                               /* AID的长度 */
-    VOS_UINT8                           aucADFName[2*USIMM_AID_LEN_MAX];        /* 考虑到中移动不对AID长度检测的需求将长度增大1倍 */
+    VOS_UINT8                           aucADFName[USIMM_AID_LEN_MAX];          /* 考虑到中移动不对AID长度检测的需求将长度增大1倍(和usimm代码不匹配) */
     VOS_UINT8                           ucAPDUP2;                               /* APDU命令的P2参数 */
     VOS_UINT8                           ucRsv[3];
 }SI_PIH_CCHP_SET_REQ_STRU;

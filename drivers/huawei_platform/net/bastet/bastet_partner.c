@@ -29,8 +29,11 @@
 #include <net/ip.h>
 
 #include <huawei_platform/net/bastet/bastet_utils.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/task.h>
+#endif
 
-#define UID_APP				10000
+#define BASTET_UID_APP 10000
 
 struct bastet_partner_sock {
 	struct list_head list;
@@ -52,7 +55,7 @@ static struct list_head partner_uids_head;
 static inline bool invalid_uid(uid_t uid)
 {
 	/* if uid less than 10000, it is not an Android apk */
-	return (uid < UID_APP);
+	return (uid < BASTET_UID_APP);
 }
 
 static int add_sock_info(struct list_head *socks_head,
@@ -423,7 +426,7 @@ static void del_socks(struct list_head *socks_head)
 			sock_node = list_entry(p,
 				struct bastet_partner_sock, list);
 			list_del(&sock_node->list);
-			BASTET_LOGI("kfree struct bastet_partner_sock, uid=%d", sock_i_uid(sock_node->sk));
+			BASTET_LOGI("kfree struct bastet_partner_sock, uid=%d", from_kuid(&init_user_ns, sock_i_uid(sock_node->sk)));
 			kfree(sock_node);
 		}
 	}

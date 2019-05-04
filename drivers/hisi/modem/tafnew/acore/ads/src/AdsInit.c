@@ -74,7 +74,7 @@ extern VOS_MSG_HOOK_FUNC                vos_MsgHook;
   3 º¯ÊýÊµÏÖ
 *****************************************************************************/
 
-int ADS_UL_SetAffinity(VOS_VOID)
+VOS_LONG ADS_UL_SetAffinity(VOS_VOID)
 {
     cpumask_var_t           mask;
     VOS_LONG                ret;

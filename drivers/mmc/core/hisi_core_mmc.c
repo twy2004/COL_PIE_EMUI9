@@ -2,8 +2,6 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/pm_runtime.h>
-
-
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
@@ -11,9 +9,8 @@
 #include <linux/hisi/rdr_pub.h>
 #include <linux/reboot.h>
 #include <linux/hisi/mmc_trace.h>
-
+#include <linux/hisi/rdr_hisi_platform.h>
 #include <linux/version.h>
-
 #include "core.h"
 #include "bus.h"
 #include "host.h"
@@ -23,6 +20,9 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include "card.h"
+#endif
 
 extern void mmc_set_ios(struct mmc_host *host);
 extern void mmc_bus_get(struct mmc_host *host);
@@ -469,6 +469,16 @@ err_handle:
 }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
+
+void mmc_process_ap_err(struct mmc_card *card)
+{
+	/*mmc removed card will reset fail when operate card,so just print warning*/
+	if (mmc_card_removable_mmc(card))
+		WARN_ON(1);
+	else
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
+}
+
 int hisi_mmc_reset(struct mmc_host *host)
 {
 	int ret;
@@ -508,7 +518,7 @@ int hisi_mmc_reset(struct mmc_host *host)
 			machine_restart("AP_S_EMMC_COLDBOOT");
 #endif
 		} else {
-			BUG_ON(1);
+			mmc_process_ap_err(card);
 		}
 	}
 
@@ -532,13 +542,15 @@ static int __mmc_send_status_direct(struct mmc_card *card, u32 *status,
 	struct mmc_request mrq = {NULL};
 	struct mmc_host *host;
 
-	BUG_ON(!card);
-	BUG_ON(!card->host);
+	if (!card)
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
+	if (!card->host)/*lint !e613*/
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
 
-	host = card->host;
+	host = card->host;/*lint !e613*/
 	cmd.opcode = MMC_SEND_STATUS;
-	if (!mmc_host_is_spi(card->host))
-		cmd.arg = card->rca << 16;
+	if (!mmc_host_is_spi(card->host))/*lint !e613*/
+		cmd.arg = card->rca << 16;/*lint !e613*/
 	cmd.flags = MMC_RSP_SPI_R2 | MMC_RSP_R1 | MMC_CMD_AC;
 	if (ignore_crc)
 		cmd.flags &= ~MMC_RSP_CRC;
@@ -576,9 +588,11 @@ int mmc_switch_irq_safe(struct mmc_card *card, u8 set, u8 index, u8 value)
 	u32 status = 0;
 	u32 cmd_retries = 10;
 
-	BUG_ON(!card);
-	BUG_ON(!card->host);
-	host = card->host;
+	if (!card)
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
+	if (!card->host)/*lint !e613*/
+		rdr_syserr_process_for_ap((u32)MODID_AP_S_PANIC_Storage, 0ull, 0ull);
+	host = card->host;/*lint !e613*/
 
 	cmd.opcode = MMC_SWITCH;
 	cmd.arg = (MMC_SWITCH_MODE_WRITE_BYTE << 24) |

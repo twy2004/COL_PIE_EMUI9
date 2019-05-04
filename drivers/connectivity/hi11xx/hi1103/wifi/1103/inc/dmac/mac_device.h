@@ -33,6 +33,7 @@ extern "C" {
 #define MAC_NET_DEVICE_NAME_LENGTH          16
 #define MAC_BAND_CAP_NAME_LENGTH            16
 
+#define MAC_DATARATES_80211B_NUM            4
 #define MAC_DATARATES_PHY_80211G_NUM        12
 
 #define MAC_RX_BA_LUT_BMAP_LEN             ((HAL_MAX_RX_BA_LUT_SIZE + 7) >> 3)
@@ -1242,11 +1243,8 @@ typedef struct
     oal_bool_enum_uint8                 en_ht_stbc;                         /* 是否支持stbc */
     oal_uint8                           uc_wapi;
     oal_uint8                           en_vendor_novht_capable;            /* 私有vendor中不需再携带 */
-#ifdef _PRE_WLAN_1103_DDC_BUGFIX
-    oal_bool_enum_uint8                 en_ddc_whitelist_chip_oui;
-#else
-    oal_uint8                           uc_resv0;
-#endif
+    oal_bool_enum_uint8                 en_atheros_chip_oui;
+
     oal_bool_enum_uint8                 en_btcoex_blacklist_chip_oui;       /* ps机制one pkt帧类型需要修订为self-cts等 */
     oal_uint32                          ul_timestamp;                       /* 更新此bss的时间戳 */
 #ifdef _PRE_WLAN_FEATURE_11K_EXTERN

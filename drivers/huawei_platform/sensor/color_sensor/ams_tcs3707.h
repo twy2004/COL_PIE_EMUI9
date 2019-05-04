@@ -350,7 +350,7 @@ extern "C" {
 #define ASIEN                           (0x01 << 7)
 
 //CONTROL_REG @0xFA
-#define CLEAR_FIFO                		(0x01 << 0)
+#define CLEAR_FIFO                      (0x01 << 1)
 #define ALS_MANUAL_AZ                   (0x01 << 2)
 
 
@@ -373,7 +373,7 @@ extern "C" {
 #define FD_GAIN_256X                      (0x09 << 3)
 #define FD_GAIN_512X                      (0x0A << 3)
 #define FD_GAIN_MASK                      (0x1F << 3)
-#define FD_TIME_HIGH_3_BIT                (0x07 << 0)
+#define FD_TIME_HIGH_3_BIT_MASK           (0x07 << 0)
 
 
 
@@ -390,7 +390,10 @@ extern "C" {
 #define ALS_PERSIST(p)                  (uint8_t)(((p) & 0x0F) << 0)
 #define PROX_PERSIST(p)                 (uint8_t)(((p) & 0x0F) << 4)
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+#ifndef ARRAY_SIZE
+    #define ARRAY_SIZE(x) ((sizeof(x)) / (sizeof((x)[0])))
+#endif
+
 
 
 #define AMS_TCS3707_DEVICE_ID 0x18
@@ -413,22 +416,24 @@ extern "C" {
 #define AMS_TCS3707_CLAMP_MAX			1
 
 #define AMS_TCS3707_GAIN_SCALE	  (1000)
-#define AMS_TCS3707_ITIME_DEFAULT       50
-#define AMS_TCS3707_AGAIN_DEFAULT       (128 * AMS_TCS3707_GAIN_SCALE)
-#define AMS_TCS3707_GAIN_OF_GOLDEN       256
-#define AMS_TCS3707_FD_GAIN_OF_GOLDEN    128
+#define AMS_TCS3707_ITIME_DEFAULT       100
+
+#define AMS_TCS3707_GAIN_OF_GOLDEN       128
+#define AMS_TCS3707_FD_GAIN_OF_GOLDEN    512
 
 #define AMS_REPORT_LOG_COUNT_NUM         20
 
-#define AMS_TCS3707_ITIME_FOR_FIRST_DATA       10
-#define AMS_TCS3707_AGAIN_FOR_FIRST_DATA       (128 * AMS_TCS3707_GAIN_SCALE)
+#define AMS_TCS3707_ITIME_FOR_FIRST_DATA       3
+#define AMS_TCS3707_AGAIN_FOR_FIRST_DATA       (4 * AMS_TCS3707_GAIN_SCALE)
 
 
 #define ONE_BYTE_LENGTH_8_BITS  (8)
 
-#define GAIN_QUICKLY_FIX_LEVEL_1 720
-#define GAIN_QUICKLY_FIX_LEVEL_2 1440
-#define GAIN_QUICKLY_FIX_LEVEL_3 3600
+#define GAIN_QUICKLY_FIX_LEVEL_1 13
+#define GAIN_QUICKLY_FIX_LEVEL_2 50
+#define GAIN_QUICKLY_FIX_LEVEL_3 200
+#define GAIN_QUICKLY_FIX_LEVEL_4 800
+
 
 
 #define AMS_PORT_portHndl   struct i2c_client
@@ -460,57 +465,65 @@ extern "C" {
 #define AMS_TCS3707_UINT_MAX_VALUE      (-1)
 #endif
 
-#define CHOOSE_GAIN_0         0
-#define CHOOSE_GAIN_1         1
-#define CHOOSE_GAIN_2         2
-#define CHOOSE_GAIN_4         4 
-#define CHOOSE_GAIN_8         8//use1
-#define CHOOSE_GAIN_16        16
-#define CHOOSE_GAIN_32        32 //use4
-#define CHOOSE_GAIN_64        64
-#define CHOOSE_GAIN_128       128//use16
-#define CHOOSE_GAIN_256       256//use64
-#define CHOOSE_GAIN_512       512//use128
+#define GAIN_LEVEL_1      1   //CHOOSE_GAIN_8 // CHOOSE_GAIN_1
+#define GAIN_LEVEL_2      4  //CHOOSE_GAIN_32// CHOOSE_GAIN_4
+#define GAIN_LEVEL_3      16 //CHOOSE_GAIN_128// CHOOSE_GAIN_16
+#define GAIN_LEVEL_4      64 //CHOOSE_GAIN_256// CHOOSE_GAIN_64
+#define GAIN_LEVEL_5      256 //CHOOSE_GAIN_512// CHOOSE_GAIN_256
+
+#define GAIN_CALI_LEVEL_1      1
+#define GAIN_CALI_LEVEL_2      4
+#define GAIN_CALI_LEVEL_3      16
+#define GAIN_CALI_LEVEL_4      64
+#define GAIN_CALI_LEVEL_5      256//use 128x gain to calibrate for the k for 256x gain
 
 
-#define CHOOSE_FD_GAIN_0         0
-#define CHOOSE_FD_GAIN_1         1
-#define CHOOSE_FD_GAIN_2         2
-#define CHOOSE_FD_GAIN_4         4 
-#define CHOOSE_FD_GAIN_8         8//use1
-#define CHOOSE_FD_GAIN_16        16
-#define CHOOSE_FD_GAIN_32        32 //use4
-#define CHOOSE_FD_GAIN_64        64
-#define CHOOSE_FD_GAIN_128       128//use16
-#define CHOOSE_FD_GAIN_256       256//use64
-#define CHOOSE_FD_GAIN_512       512//use128
+#define FD_GAIN_LEVEL_1   1
+#define FD_GAIN_LEVEL_2   4
+#define FD_GAIN_LEVEL_3   32
+#define FD_GAIN_LEVEL_4   128
+#define FD_GAIN_LEVEL_5   512
 
-#define FD_POLLING_TIME   100
-#define FD_CLOCK_CALIBRATE_TIME   20
+#define ALS_GAIN_VALUE_1    0//actual gain is 0.5
+#define ALS_GAIN_VALUE_2	1
+#define ALS_GAIN_VALUE_3	2
+#define ALS_GAIN_VALUE_4	4
+#define ALS_GAIN_VALUE_5	8
+#define ALS_GAIN_VALUE_6	16
+#define ALS_GAIN_VALUE_7	32
+#define ALS_GAIN_VALUE_8	64
+#define ALS_GAIN_VALUE_9	128
+#define ALS_GAIN_VALUE_10	256
+#define ALS_GAIN_VALUE_11	512
 
-
-#define default_astep_us    1670
-#define ASTEP_LOW_BYTE   (uint8_t)(ASTEP_US(default_astep_us) & 0xff)
-#define ASTEP_HIGH_BYTE  (uint8_t)((ASTEP_US(default_astep_us) >> 8) & 0xff)
-
-#define fd_gain_default 32
-#define fd_time_default_multiply_10  5//the actual fd time is 0.5ms, this multiply 10 to forbid float type, so the frequency is 2000hz
-#define fd_time_scale 10
-#define fd_ratio_scale 1000
+#define FIFO_LEVEL_RATIO   2
+#define TCS3707_GETBUF_LEN 32
+#define FD_POLLING_TIME    22
 
 
-#define AMS_REPORT_DATA_LEN         	(5)
-#define AMS_TCS3707_ADC_BYTES		(10)
+#define DEFAULT_ASTEP    2780
+#define ASTEP_LOW_BYTE   (uint8_t)((ASTEP_US(DEFAULT_ASTEP) & 0xff) - 1)
+#define ASTEP_HIGH_BYTE  (uint8_t)((ASTEP_US(DEFAULT_ASTEP) >> 8) & 0xff)
+#define CONFIG_AMS_FLICKER_DETECT
+
+#define DEFAULT_FD_GAIN 4
+#define FD_TIME_RATIO  1000
+#define FD_RATIO_SCL 10000
+#define MAX_AMS_CALI_THRESHOLD 500000
+
+
+#define AMS_REPORT_DATA_LEN          (5)
+#define AMS_TCS3707_ADC_BYTES        (10)
 #define RGBAP_CALI_DATA_NV_NUM       383
-#define RGBAP_CALI_DATA_SIZE          96
-#define AMS_TCS3707_FLOAT_TO_FIX	(10000)
-#define FLOAT_TO_FIX_LOW	         100
-#define AMS_TCS3707_CAL_THR           2
+#define RGBAP_CALI_DATA_SIZE         96
+#define AMS_TCS3707_FLOAT_TO_FIX     (10000)
+#define FLOAT_TO_FIX_LOW             100
+#define AMS_TCS3707_CAL_THR          2
 #define AP_COLOR_DMD_DELAY_TIME_MS   30000
 
-#define AMS_TCS3707_LOW_LEVEL       100
-#define AMS_TCS3707_FD_LOW_LEVEL     50
-
+#define AMS_TCS3707_LOW_LEVEL        1000
+#define AMS_TCS3707_FD_LOW_LEVEL     30
+#define SATURATION_CHECK_PCT    8
 
 #ifndef TRUE
 #define TRUE    1
@@ -519,6 +532,10 @@ extern "C" {
 
 #define AMSDRIVER_ALS_ENABLE 1
 #define AMSDRIVER_ALS_DISABLE 0
+
+#define AMSDRIVER_FD_ENABLE 1
+#define AMSDRIVER_FD_DISABLE 0
+
 
 #define LOG_ERR             1
 #define LOG_WRN             1
@@ -532,24 +549,25 @@ extern "C" {
 //#define AMS_MUTEX_DEBUG
 
 #ifdef AMS_MUTEX_DEBUG
-#define AMS_MUTEX_LOCK(m) {						\
-		printk(KERN_ERR "%s: AMS Mutex Lock\n", __func__);         \
-		mutex_lock(m);						\
-	}
+#define AMS_MUTEX_LOCK(m) {                                             \
+        mutex_lock(m);                      \
+        printk(KERN_ERR "%s: AMS Mutex Lock\n", __func__);         \
+    }
 #define AMS_MUTEX_UNLOCK(m) {                                           \
-		printk(KERN_ERR "%s: AMS Mutex Unlock\n", __func__);       \
-		mutex_unlock(m);					\
-	}
+        mutex_unlock(m);                    \
+        printk(KERN_ERR "%s: AMS Mutex Unlock\n", __func__);       \
+    }
 #else
 #define AMS_MUTEX_LOCK(m) {                           \
-		mutex_lock(m);			      \
-	}
+        mutex_lock(m);                \
+    }
 #define AMS_MUTEX_UNLOCK(m) {                         \
-		mutex_unlock(m);		      \
-	}
+        mutex_unlock(m);              \
+    }
 #endif
-
-#define CONFIG_AMS_DEBUG_LOG
+#ifndef CONFIG_AMS_DEBUG_LOG
+    #define CONFIG_AMS_DEBUG_LOG
+#endif
 #ifdef CONFIG_AMS_DEBUG_LOG
 #define AMS_PORT_log(x)                 printk(KERN_ERR "AMS_Driver: " x)
 #define AMS_PORT_log_1(x, a)            printk(KERN_ERR "AMS_Driver: " x, a)
@@ -656,7 +674,7 @@ struct adc_data { /* do not change the order of elements */
     UINT16 r;
     UINT16 g;
     UINT16 b; 
-	UINT16 w;
+    UINT16 w;
 };
 typedef struct adc_data ams_tcs3707_adc_data_t;
 #if 0
@@ -667,7 +685,7 @@ struct als_xyz_data {
     float chromaticity_x;
     float chromaticity_y;
     float lux;
-	float ir;
+    float ir;
     UINT32 cct;
 #endif
 };
@@ -687,6 +705,14 @@ typedef struct _amsAlsDataSet {
     UINT8 status;
 } ams_tcs3707_AlsDataSet_t;
 
+#ifdef CONFIG_AMS_FLICKER_DETECT
+typedef struct _Fd_DataSet {
+    UINT32 fd_gain;
+    UINT16 fd_time_ms;
+    bool first_fd_inte;
+} ams_tcs3707_Fd_DataSet_t;
+#endif
+
 typedef struct _amsAlsContext {
     ams_tcs3707_AlsDataSet_t als_data;
  //   ams_tcs3707_als_xyz_data_t results;
@@ -695,7 +721,7 @@ typedef struct _amsAlsContext {
 
 typedef enum _deviceIdentifier_e {
     AMS_UNKNOWN_DEVICE,
-    AMS_TCS3707_REV0,   
+    AMS_TCS3707_REV0,
     AMS_TCS3707_LAST_DEVICE
 } ams_tcs3707_deviceIdentifier_e;
 
@@ -722,17 +748,6 @@ typedef enum _3707_feature {
     AMS_TCS3707_FEATURE_LAST
 }ams_tcs3707_configureFeature_t;
 
-typedef enum _3707_config_options {
-    AMS_TCS3707_CONFIG_ENABLE,
-    AMS_TCS3707_CONFIG_LAST
-}ams_tcs3707_deviceConfigOptions_t;
-
-typedef enum _3707_mode {
-    AMS_TCS3707_MODE_OFF            = (0),
-    AMS_TCS3707_MODE_ALS            = (1 << 0),
-    AMS_TCS3707_MODE_UNKNOWN    /* must be in last position */
-} ams_tcs3707_ams_mode_t;
-
 typedef struct _calibrationData {
     UINT32 timeBase_us;
     coefficients_t calibbrationData;
@@ -741,13 +756,14 @@ typedef struct _calibrationData {
 typedef struct _3707Context {
     ams_tcs3707_deviceIdentifier_e deviceId;
     AMS_PORT_portHndl * portHndl;
-    ams_tcs3707_ams_mode_t mode;
     ams_tcs3707_calibrationData_t * systemCalibrationData;
     ams_tcs3707_calibrationData_t defaultCalibrationData;
     ams_tcs3707_AlsContext_t algCtx;
     UINT32 updateAvailable;
-	bool first_inte;
-	bool first_fd_inte;
+    bool first_inte;
+#ifdef CONFIG_AMS_FLICKER_DETECT
+    ams_tcs3707_Fd_DataSet_t fd_data;
+#endif
 }ams_tcs3707_deviceCtx_t;
 
 typedef struct _deviceInfo {
@@ -762,7 +778,6 @@ int amsdriver_resume(struct device *dev);
 int amsdriver_suspend(struct device *dev);
 int amsdriver_probe(struct i2c_client *client,	const struct i2c_device_id *idp);
 static bool ams_tcs3707_getDeviceInfo(ams_tcs3707_deviceInfo_t * info);
-static bool ams_tcs3707_deviceInit(ams_tcs3707_deviceCtx_t * ctx, AMS_PORT_portHndl * portHndl);
 static bool ams_tcs3707_deviceEventHandler(ams_tcs3707_deviceCtx_t * ctx, bool inCalMode);
 static ams_tcs3707_deviceIdentifier_e ams_tcs3707_testForDevice(AMS_PORT_portHndl * portHndl);
 static bool ams_tcs3707_getDeviceInfo(ams_tcs3707_deviceInfo_t * info);

@@ -48,11 +48,17 @@
 
 
 
+#include <product_config.h>
+#include <mdrv.h>
 #include <soc_socp_adapter.h>
 #include "diag_common.h"
 #include "msp_diag_comm.h"
 #include "diag_cfg.h"
 #include "diag_debug.h"
+#include "diag_connect.h"
+#include "diag_cmdid_def.h"
+#include "diag_frame.h"
+#include "diag_api.h"
 
 #define    THIS_FILE_ID        MSP_FILE_ID_DIAG_MESSAGE_C
 
@@ -122,7 +128,7 @@ VOS_UINT32 diag_MessageProc(DIAG_FRAME_INFO_STRU *pData);
 *****************************************************************************/
 VOS_VOID diag_MessageInit(VOS_VOID)
 {
-    diag_ServiceProcReg(diag_MessageProc);
+    mdrv_diag_ServiceProcReg((DRV_DIAG_SERVICE_FUNC)diag_MessageProc);
 }
 
 
@@ -138,6 +144,7 @@ VOS_UINT32 diag_MessageProc(DIAG_FRAME_INFO_STRU *pData)
 {
     VOS_UINT32 ulRet = VOS_ERR;
     DIAG_MESSAGE_TYPE_U32 ulMsgType;
+    VOS_UINT32 ulCmdid = 0;
 
     mdrv_diag_PTR(EN_DIAG_PTR_MESSAGE_IN, 0, 0, 0);
 
@@ -161,10 +168,25 @@ VOS_UINT32 diag_MessageProc(DIAG_FRAME_INFO_STRU *pData)
         ulMsgType = ((MSP_DIAG_STID_STRU *)((VOS_UINT8*)pData + DIAG_4G_FRAME_HEAD_LEN))->pri4b;
     }
 
+    ulCmdid = DIAG_GET_CONNECT_CMDID(pData);
+
+    if(g_ulAuthState != DIAG_AUTH_TYPE_SUCCESS)
+    {
+        if((ulCmdid != DIAG_CMD_HOST_CONNECT)&&(ulCmdid != DIAG_CMD_HOST_DISCONNECT))
+        {
+            diag_error("auth not success, can not deal with command, ulCmdid:0x%x\n", ulCmdid);
+            diag_FailedCmdCnf(pData, ERR_MSP_CONNECT_AUTH_FAIL);
+            return ERR_MSP_SUCCESS;
+        }
+    }
     if((ulMsgType < DIAG_MSG_TYPE_BUTT) && (g_aFnMsgTbl[ulMsgType].fnMsgProc))
     {
         mdrv_diag_PTR(EN_DIAG_PTR_MESSAGE_PROC, 1, pData->ulCmdId, 0);
         ulRet = g_aFnMsgTbl[ulMsgType].fnMsgProc(pData);
+    }
+    else
+    {
+        diag_error("ulMsgType:0x%x error\n", ulMsgType);
     }
 
     return ulRet;
@@ -201,8 +223,6 @@ VOS_UINT32 DIAG_MsgProcReg (DIAG_MESSAGE_TYPE_U32 ulMsgType, DIAG_MESSAGE_FUNC p
 *****************************************************************************/
 VOS_UINT32 DIAG_MsgReport (MSP_DIAG_CNF_INFO_STRU *pstDiagInfo, VOS_VOID *pstData, VOS_UINT32 ulLen)
 {
-    DIAG_SRV_CNF_HEADER_STRU    stCnfHeader;
-    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
 
     /*检查DIAG是否初始化且HSO是否连接上*/
     if(!DIAG_IS_CONN_ON)
@@ -218,21 +238,7 @@ VOS_UINT32 DIAG_MsgReport (MSP_DIAG_CNF_INFO_STRU *pstDiagInfo, VOS_VOID *pstDat
 
     mdrv_diag_PTR(EN_DIAG_PTR_MESSAGE_REPORT, 1, pstDiagInfo->ulMsgType, pstDiagInfo->ulSubType);
 
-    diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stCnfHeader);
-    DIAG_SRV_SET_MODEM_ID(&stCnfHeader.frame_header, pstDiagInfo->ulModemid);
-    DIAG_SRV_SET_TRANS_ID(&stCnfHeader.frame_header, pstDiagInfo->ulTransId);
-    DIAG_SRV_SET_COMMAND_ID(&stCnfHeader.frame_header, (pstDiagInfo->ulMsgType & 0xf), (pstDiagInfo->ulMode & 0xf), (pstDiagInfo->ulSubType & 0x1f), (pstDiagInfo->ulMsgId & 0x7ffff));
-    DIAG_SRV_SET_MSG_LEN(&stCnfHeader.frame_header, ulLen);
-
-    stDiagHead.ulHeaderSize     = sizeof(stCnfHeader);
-    stDiagHead.pHeaderData      = &stCnfHeader;
-    stDiagHead.ulDataSize       = ulLen;
-    stDiagHead.pData            = pstData;
-
-    diag_LNR(EN_DIAG_LNR_MESSAGE_RPT, stCnfHeader.frame_header.ulCmdId, VOS_GetSlice());
-
-    return diag_ServicePackCnfData(&stDiagHead);
-
+    return mdrv_diag_report_cnf((DRV_DIAG_CNF_INFO_STRU *)pstDiagInfo, pstData, ulLen);
 }
 
 

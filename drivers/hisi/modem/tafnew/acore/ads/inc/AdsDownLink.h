@@ -270,6 +270,11 @@ VOS_VOID ADS_DL_SendNdClientDataInd(IMM_ZC_STRU *pstImmZc);
 VOS_VOID ADS_DL_SendDhcpClientDataInd(IMM_ZC_STRU *pstImmZc);
 VOS_VOID ADS_DL_RcvTiCcoreResetDelayExpired(VOS_UINT32 ulParam, VOS_UINT32 ulTimerName);
 VOS_VOID ADS_DL_RcvPacketErrorInd(MsgBlock* pMsg);
+
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+VOS_VOID ADS_DL_ProcPc5Pkt(IMM_ZC_STRU *pstImmZc);
+#endif
+
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else

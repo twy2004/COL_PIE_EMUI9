@@ -4,6 +4,7 @@
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
 /*lint -e750 -e679*/
+#include <linux/hisi/hi64xx/hi6405.h>
 
 static struct utils_config *s_utils_config = NULL;
 static unsigned int cdc_type = HI64XX_CODEC_TYPE_BUTT;
@@ -65,6 +66,9 @@ EXPORT_SYMBOL(hi64xx_utils_deinit);
 
 int hisi_codec_get_dieid(char *dieid, unsigned int len)
 {
+	if (cdc_type == HI64XX_CODEC_TYPE_6405) {
+		return hi6405_codec_get_dieid(dieid, len);
+	}
 	return -1;
 }
 

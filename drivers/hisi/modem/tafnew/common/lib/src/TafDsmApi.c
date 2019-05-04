@@ -63,6 +63,10 @@
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_TAF_DSM_API_C
 
+/* Log Print Module Define */
+#ifndef THIS_MODU
+#define THIS_MODU    ps_nas
+#endif
 
 /*****************************************************************************
    2 全局变量定义
@@ -86,6 +90,7 @@ VOS_UINT32 TAF_PS_SndDsmMsg(
     TAF_PS_MSG_STRU                    *pstMsg   = VOS_NULL_PTR;
     VOS_UINT32                          ulSendPid;
     VOS_UINT32                          ulRcvPid;
+    VOS_UINT32                          ulResult;
 
     switch (usModemId)
     {
@@ -105,7 +110,7 @@ VOS_UINT32 TAF_PS_SndDsmMsg(
             break;
 
         default:
-            PS_PRINTF("TAF_PS_SndDsmMsg: ModemId is Error!");
+            PS_PRINTF_WARNING("<TAF_PS_SndDsmMsg> ModemId is error!\n");
             return VOS_ERR;
     }
 
@@ -126,7 +131,12 @@ VOS_UINT32 TAF_PS_SndDsmMsg(
     TAF_MEM_CPY_S(pstMsg->aucContent, ulLength, pData, ulLength);
 
     /* 发送消息 */
-    (VOS_VOID)PS_SEND_MSG(ulSendPid, pstMsg);
+    ulResult = PS_SEND_MSG(ulSendPid, pstMsg);
+
+    if (VOS_OK != ulResult)
+    {
+        return VOS_ERR;
+    }
 
     return VOS_OK;
 }
@@ -881,6 +891,7 @@ VOS_UINT32 TAF_PS_GetDynamicTftInfo(
 }
 
 
+
 VOS_UINT32 TAF_PS_SetEpsQosInfo(
     VOS_UINT32                          ulModuleId,
     VOS_UINT16                          usExClientId,
@@ -1454,7 +1465,7 @@ MODULE_EXPORTED VOS_UINT32 TAF_PS_GetUnusedCid(
 
     if (enModemId >= MODEM_ID_BUTT)
     {
-        PS_PRINTF("TAF_PS_GetUnusedCid: ModemId is Error!");
+        PS_PRINTF_WARNING("<TAF_PS_GetUnusedCid> ModemId is error!");
 
         return VOS_ERR;
     }
@@ -1563,5 +1574,30 @@ VOS_UINT32 TAF_PS_SetApnThrotInfo(
                                 sizeof(stSetApnThrotInfoReq));
 
     return ulResult;
+}
+
+
+VOS_UINT32 TAF_PS_GetLteAttchInfo(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usExClientId,
+    VOS_UINT8                           ucOpId
+)
+{
+    TAF_PS_GET_LTE_ATTACH_INFO_REQ_STRU stGetLteAttchInfoReq;
+
+    /* 初始化 */
+    TAF_MEM_SET_S(&stGetLteAttchInfoReq, sizeof(stGetLteAttchInfoReq), 0x00, sizeof(TAF_PS_GET_LTE_ATTACH_INFO_REQ_STRU));
+
+    /* 构造ID_MSG_TAF_PS_GET_LTE_ATTACH_ESM_INFO_REQ消息 */
+    stGetLteAttchInfoReq.stCtrl.ulModuleId = ulModuleId;
+    stGetLteAttchInfoReq.stCtrl.usClientId = TAF_PS_GET_CLIENTID_FROM_EXCLIENTID(usExClientId);
+    stGetLteAttchInfoReq.stCtrl.ucOpId     = ucOpId;
+
+    /* 发送消息 */
+    return TAF_PS_SndDsmMsg(TAF_PS_GET_MODEMID_FROM_EXCLIENTID(usExClientId),
+                            ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_REQ,
+                            &stGetLteAttchInfoReq,
+                            sizeof(TAF_PS_GET_LTE_ATTACH_INFO_REQ_STRU));
+
 }
 

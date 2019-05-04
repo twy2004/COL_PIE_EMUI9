@@ -62,7 +62,6 @@
 #include "diag_system_debug.h"
 
 
-#define SOCP_CODER_SRC_PS_IND    SOCP_CODER_SRC_LOM_IND1
 
 /* ****************************************************************************
   2 全局变量定义
@@ -135,7 +134,6 @@ u32 scm_create_ind_src_buff(u8 **pBufVir, u8 **pBufPhy, u32 ulLen)
 
 u32 scm_ind_src_chan_init(void)
 {
-
     if (BSP_OK != scm_ind_src_chan_cfg(&g_astSCMIndCoderSrcCfg))
     {
         diag_error("cfg ind src fail\n");
@@ -143,7 +141,6 @@ u32 scm_ind_src_chan_init(void)
 
         return (u32)BSP_ERROR;/* 返回失败 */
     }
-
     if(BSP_OK != bsp_socp_start(g_astSCMIndCoderSrcCfg.enChannelID))
     {
         diag_error("start ind src fail\n");
@@ -151,7 +148,6 @@ u32 scm_ind_src_chan_init(void)
 
         return ERR_MSP_SCM_START_SOCP_FAIL;/* 返回失败 */
     }
-
     g_astSCMIndCoderSrcCfg.enInitState = SCM_CHANNEL_INIT_SUCC;     /* 记录通道初始化配置错误 */
 
     return BSP_OK;/* 返回成功 */

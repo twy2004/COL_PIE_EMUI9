@@ -193,12 +193,14 @@ void FUSB3601_requestDpConfig(struct Port *port)
 
 void FUSB3601_WriteDpControls(struct Port *port, FSC_U8* data)
 {
-  IN_FUNCTION
   FSC_BOOL en = FALSE;
   FSC_BOOL ame_en = FALSE;
   FSC_U32 m = 0;
   FSC_U32 v = 0;
   FSC_U32 stat = 0;
+
+  IN_FUNCTION
+
   en = *data++ ? TRUE : FALSE;
   stat = (FSC_U32)(*data++ );
   stat |= ((FSC_U32)(*data++ ) << 8);
@@ -441,13 +443,16 @@ void FUSB3601_informStatus(struct Port *port, DisplayPortStatus_t stat)
    * This function should be called to inform the 'system' of the DP status of
    * the port partner.
    */
+#ifdef CONFIG_CONTEXTHUB_PD
+	struct pd_dpm_combphy_event event;
+#endif
 
-  IN_FUNCTION
 	int ret =0;
 	port->display_port_data_.DpPpStatus.word = stat.word;
 
+	IN_FUNCTION
+
 	#ifdef CONFIG_CONTEXTHUB_PD
-    struct pd_dpm_combphy_event event;
 	if(port->display_port_data_.DpPpConfig.word != 0) {
 		event.dev_type = TCA_DP_IN;
 		event.irq_type = TCA_IRQ_HPD_IN;
@@ -490,8 +495,15 @@ void FUSB3601_informConfigResult(struct Port *port, FSC_BOOL success)
    * TODO: 'system' should implement this
    * Called when a config message is either ACKd or NAKd by the other side
    */
+#ifdef CONFIG_CONTEXTHUB_PD
+	FSC_U8 fsc_polarity = 0;
+	FSC_U32 pin_assignment = 0;
+	enum aux_switch_channel_type channel_type= get_aux_switch_channel();
+	int ret = 0;
+	struct pd_dpm_combphy_event event;
+#endif
 
-  IN_FUNCTION
+	IN_FUNCTION
 	if (success == TRUE) {
 		port->display_port_data_.DpPpConfig.word =
 			port->display_port_data_.DpPpRequestedConfig.word;
@@ -499,11 +511,6 @@ void FUSB3601_informConfigResult(struct Port *port, FSC_BOOL success)
 		pr_info("\n %s,%d\n",__func__,__LINE__);
 
 		#ifdef CONFIG_CONTEXTHUB_PD
-		FSC_U8 fsc_polarity = 0;
-		FSC_U32 pin_assignment = 0;
-		enum aux_switch_channel_type channel_type= get_aux_switch_channel(); 
-		int ret = 0;
-
 		fsc_polarity = port->registers_.TcpcCtrl.ORIENT;
 		dp_aux_switch_op(fsc_polarity);
 		dp_aux_uart_switch_enable();
@@ -536,7 +543,6 @@ void FUSB3601_informConfigResult(struct Port *port, FSC_BOOL success)
 		    g_mux_type = TCPC_USB31_AND_DP_2LINE;
 		}
 
-		struct pd_dpm_combphy_event event;
 			event.dev_type = TCA_ID_RISE_EVENT;
 			event.irq_type = TCA_IRQ_HPD_OUT;
 			event.mode_type = TCPC_NC;

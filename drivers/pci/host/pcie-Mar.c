@@ -4,7 +4,7 @@
 
 #include "pcie-kirin.h"
 #include "pcie-kirin-common.h"
-#include "pcie_phy_firmware.h"
+#include "pcie_phy_firmware_mar.h"
 
 /*lint -e438 -e550 -e715 -e732 -e747 -e750 -e838 -esym(438,*) -esym(550,*) -esym(715,*) -esym(732,*) -esym(747,*) -esym(750,*) -esym(838,*) */
 
@@ -20,105 +20,24 @@
 
 
 #define GT_CLK_PCIE_HP			(0x1 << 6)
-#define GT_CLK_PCIE_DEBOUNCE	(0x1 << 8)
+#define GT_CLK_PCIE_DEBOUNCE		(0x1 << 8)
 
-#define OE_SOFT_VOLT	(0x1 << 6)
-#define OE_POLAR		(0x1 << 9)
-#define OE_HW_BYPASS	(0x1 << 11)
-#define IE_HW_BYPASS	(0x1 << 27)
-#define IE_SOFT_VOLT	(0x1 << 28)
-#define IE_POLAR		(0x1 << 29)
+#define OE_SOFT_VOLT			(0x1 << 6)
+#define OE_POLAR			(0x1 << 9)
+#define OE_HW_BYPASS			(0x1 << 11)
+#define IE_HW_BYPASS			(0x1 << 27)
+#define IE_SOFT_VOLT			(0x1 << 28)
+#define IE_POLAR			(0x1 << 29)
 
-#define PLL_UNLOCK_DETECT_INTR_BYPSS		0x924
+#define PLL_UNLOCK_DETECT_INTR_BYPSS	0x924
 
-enum {
-	PLL_TYPE_FN = 1,
-	PLL_TYPE_HP = 2,
-};
-
-enum {
-	REFCLK_FROM_PHY = 1,
-	REFCLK_FROM_PLL = 2,
-};
-
-static void kirin_pcie_voltage_ctrl(struct kirin_pcie *pcie)
+/* Load FW for PHY Fix */
+static int pcie_phy_fw_fix_mar(void *data)
 {
-	u32 reg_val;
-
-	if (pcie->dtsinfo.chip_type == CHIP_TYPE_CS)
-		return;
-
-	PCIE_PR_DEBUG("Adjust PHY voltage");
-
-	/* RAWAONLANEN_DIG_RX_ADPT_DFE_TAP4[0]--0x1 */
-	reg_val = kirin_natural_phy_readl(pcie, 0x401f);
-	reg_val |= 0x1;
-	kirin_natural_phy_writel(pcie, reg_val, 0x401f);
-
-	/* RAWAONLANEN_DIG_RX_ADPT_DFE_TAP3[0]--0x1 */
-	reg_val = kirin_natural_phy_readl(pcie, 0x401e);
-	reg_val |= 0x1;
-	kirin_natural_phy_writel(pcie, reg_val, 0x401e);
-}
-
-static int pcie_phy_fw_fix(void *data)
-{
-	u32 index;
-	u32 reg_addr, reg_val;
 	struct kirin_pcie *pcie = (struct kirin_pcie *)data;
 
-	/*lint -e679 -esym(679,*) -e661 -esym(661,*) -e662 -esym(662,*) */
-	for (index = 0; index < (sizeof(g_pcie_phy_data)/sizeof(g_pcie_phy_data[0])/2); index++) {
-		reg_addr = g_pcie_phy_data[2 * index];
-		reg_val = g_pcie_phy_data[2 * index + 1];
-		if (!reg_addr) {
-			PCIE_PR_INFO("Update done: %d", index);
-			break;
-		}
-		reg_addr -= 0xC000;
-		kirin_sram_phy_writel(pcie, reg_val, reg_addr);
-	}
-	/*lint -e679 +esym(679,*) -e661 +esym(661,*) -e662 +esym(662,*) */
-
-	/* adjust voltage */
-	 kirin_pcie_voltage_ctrl(pcie);
-
-	/* Vboost */
-	reg_val = kirin_natural_phy_readl(pcie, 0x21);
-	reg_val &= ~0xFFFF;
-	reg_val |= 0xB5;
-	kirin_natural_phy_writel(pcie, reg_val, 0x21);
-
-	/* cdr_legacy_en */
-	reg_val = kirin_apb_phy_readl(pcie, 0x258);
-	reg_val |= 0x1;
-	kirin_apb_phy_writel(pcie, reg_val, 0x258);
-
-	pcie->plat_ops->cal_alg_adjust(pcie, false);
-
-	return 0;
-}
-
-static void pcie_get_clk_source(struct kirin_pcie *pcie,
-			struct platform_device *pdev)
-{
-	int ret;
-	struct kirin_pcie_dtsinfo *dtsinfo;
-	struct device_node *np = pdev->dev.of_node;
-
-	dtsinfo = &pcie->dtsinfo;
-
-	ret = of_property_read_u32(np, "pll_source", &dtsinfo->pll_source);
-	if (ret)
-		dtsinfo->pll_source = PLL_TYPE_FN;
-
-	ret = of_property_read_u32(np, "ioref_clk_source", &dtsinfo->ioref_clk_source);
-	if (ret)
-		dtsinfo->ioref_clk_source = REFCLK_FROM_PLL;
-
-	PCIE_PR_DEBUG("Pll source:%s, Refclk from:%s",
-			dtsinfo->pll_source == PLL_TYPE_FN ? "FN_pll": "HP_pll",
-			dtsinfo->ioref_clk_source == REFCLK_FROM_PLL ? "FromPll": "FromPhy");
+	return pcie_phy_fw_update(pcie, g_pcie_phy_data_mar,
+			sizeof(g_pcie_phy_data_mar)/sizeof(g_pcie_phy_data_mar[0]));
 }
 
 static void get_phy_cal_flag(struct kirin_pcie *pcie,
@@ -140,10 +59,11 @@ static void get_phy_cal_flag(struct kirin_pcie *pcie,
 #define FNPLL_BP_CFG_BIT	(0x1 << 1)
 #define FNPLL_LOCK_STAT_BIT	(0x1 << 0)
 #define FNPLL_EN_STAT_BIT	(0x1 << 1)
+#define FNPLL_LOCK_TIMEOUT	200
 static int kirin_pcie_fnpll_ctrl(struct kirin_pcie *pcie, bool enable)
 {
 	u32 reg_val;
-	int index;
+	u32 index = FNPLL_LOCK_TIMEOUT;
 
 	if (pcie->dtsinfo.board_type == BOARD_FPGA)
 		return 0;
@@ -207,10 +127,9 @@ static int kirin_pcie_fnpll_ctrl(struct kirin_pcie *pcie, bool enable)
 		writel(reg_val, pcie->crg_base + MMC1_PLL_CTRL0_SYSCTRL);
 
 		reg_val = readl(pcie->crg_base + MMC1_PCIEPLL_STAT_SYSCTRL);
-		index = 200;
 		while(index) {
 			if (reg_val & FNPLL_LOCK_STAT_BIT) {
-				PCIE_PR_INFO("fnpll locked(%d)", index);
+				PCIE_PR_INFO("FNPLL lock in %d us", (FNPLL_LOCK_TIMEOUT - index));
 
 				/* clear Bypass bit */
 				reg_val = readl(pcie->crg_base + MMC1_PLL_CTRL0_SYSCTRL);
@@ -224,7 +143,7 @@ static int kirin_pcie_fnpll_ctrl(struct kirin_pcie *pcie, bool enable)
 			reg_val = readl(pcie->crg_base + MMC1_PCIEPLL_STAT_SYSCTRL);
 		}
 
-		PCIE_PR_ERR("Failed to wait fnpll lock");
+		PCIE_PR_ERR("Failed to wait fnpll lock(%d us)", FNPLL_LOCK_TIMEOUT);
 		return -1;
 	}
 
@@ -235,10 +154,11 @@ static int kirin_pcie_fnpll_ctrl(struct kirin_pcie *pcie, bool enable)
 #define HPPLL_BP_CFG_BIT	(0x1 << 1)
 #define HPPLL_LOCK_STAT_BIT	(0x1 << 4)
 #define HPPLL_EN_STAT_BIT	(0x1 << 5)
+#define HPPLL_LOCK_TIMEOUT	200
 static int kirin_pcie_hppll_ctrl(struct kirin_pcie *pcie, bool enable)
 {
 	u32 reg_val;
-	int index;
+	u32 index = HPPLL_LOCK_TIMEOUT;
 
 	if (pcie->dtsinfo.board_type == BOARD_FPGA)
 		return 0;
@@ -348,10 +268,9 @@ static int kirin_pcie_hppll_ctrl(struct kirin_pcie *pcie, bool enable)
 		udelay(1);
 
 		reg_val = readl(pcie->crg_base + MMC1_PCIEPLL_STAT_SYSCTRL);
-		index = 200;
 		while(index) {
 			if (reg_val & HPPLL_LOCK_STAT_BIT) {
-				PCIE_PR_INFO("hppll locked(%d)", index);
+				PCIE_PR_INFO("HPPLL lock in %d us", (HPPLL_LOCK_TIMEOUT - index));
 
 				/* clear Bypass bit */
 				reg_val = readl(pcie->crg_base + MMC1_FNPLL_CFG6_SYSCTRL);
@@ -365,7 +284,7 @@ static int kirin_pcie_hppll_ctrl(struct kirin_pcie *pcie, bool enable)
 			reg_val = readl(pcie->crg_base + MMC1_PCIEPLL_STAT_SYSCTRL);
 		}
 
-		PCIE_PR_ERR("Failed to wait hppll lock");
+		PCIE_PR_ERR("Failed to wait hppll lock(%d us)", HPPLL_LOCK_TIMEOUT);
 		return -1;
 	}
 
@@ -589,10 +508,9 @@ static int kirin_pcie_refclk_ctrl(struct kirin_pcie *pcie, bool clk_on)
 	return 0;
 }
 
-static int kirin_pcie_turn_on(struct pcie_port *pp, enum rc_power_status on_flag)
+static int kirin_pcie_turn_on(struct kirin_pcie *pcie, enum rc_power_status on_flag)
 {
 	int ret = 0;
-	struct kirin_pcie *pcie = to_kirin_pcie(pp);
 
 	PCIE_PR_INFO("+ON+");
 
@@ -663,7 +581,7 @@ static int kirin_pcie_turn_on(struct pcie_port *pp, enum rc_power_status on_flag
 		PCIE_PR_ERR("PHY init Failed");
 		goto PHY_INIT;
 	}
-	PCIE_PR_DEBUG("PHY init Done");
+	PCIE_PR_INFO("PHY init Done");
 
 	/* unrst EP */
 	PCIE_PR_INFO("Device +");
@@ -714,13 +632,12 @@ MUTEX_UNLOCK:
 	return ret;
 }
 
-static int kirin_pcie_turn_off(struct pcie_port *pp, enum rc_power_status on_flag)
+static int kirin_pcie_turn_off(struct kirin_pcie *pcie, enum rc_power_status on_flag)
 {
-	struct kirin_pcie *pcie = to_kirin_pcie(pp);
 	u32 val;
 	int ret = 0;
 
-	PCIE_PR_DEBUG("+OFF+");
+	PCIE_PR_INFO("+OFF+");
 
 	mutex_lock(&pcie->power_lock);
 
@@ -735,12 +652,11 @@ static int kirin_pcie_turn_off(struct pcie_port *pp, enum rc_power_status on_fla
 	if (ret)
 		PCIE_PR_ERR("Failed to set noc idle");
 
-	PCIE_PR_DEBUG("Device +");
+	PCIE_PR_INFO("Device +");
 	if (pcie->callback_poweroff && pcie->callback_poweroff(pcie->callback_data)) {
 		PCIE_PR_ERR("Failed: Device callback");
-		ret = -1;
 	}
-	PCIE_PR_DEBUG("Device -");
+	PCIE_PR_INFO("Device -");
 
 	/* rst controller perst_n */
 	val = kirin_elb_readl(pcie, SOC_PCIECTRL_CTRL12_ADDR);
@@ -768,7 +684,7 @@ static int kirin_pcie_turn_off(struct pcie_port *pp, enum rc_power_status on_fla
 
 	kirin_pcie_iso_ctrl(pcie, ENABLE);
 
-	PCIE_PR_DEBUG("-OFF-");
+	PCIE_PR_INFO("-OFF-");
 
 MUTEX_UNLOCK:
 	mutex_unlock(&pcie->power_lock);
@@ -830,7 +746,7 @@ static void phy_cal_adjust(void *data, bool restore)
 
 
 struct pcie_platform_ops plat_ops = {
-	.sram_ext_load = pcie_phy_fw_fix,
+	.sram_ext_load = pcie_phy_fw_fix_mar,
 	.plat_on = kirin_pcie_turn_on,
 	.plat_off = kirin_pcie_turn_off,
 	.cal_alg_adjust = phy_cal_adjust,
@@ -840,7 +756,6 @@ int pcie_plat_init(struct platform_device *pdev, struct kirin_pcie *pcie)
 {
 	struct device_node *np;
 
-	pcie_get_clk_source(pcie, pdev);
 	get_phy_cal_flag(pcie, pdev);
 
 	np = of_find_compatible_node(NULL, NULL, "hisilicon,mmc1_sysctrl");

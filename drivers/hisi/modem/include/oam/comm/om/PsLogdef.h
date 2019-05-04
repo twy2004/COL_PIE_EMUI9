@@ -159,12 +159,11 @@ typedef enum
     ENCODIX_TEAM_FILE_ID      = 0x6400,
     NRRC_TEAM_FILE_ID         = 0x6800,
     NL2_TEAM_FILE_ID          = 0x6C00,
-	NRNAS_TEAM_FILE_ID        = 0x7000,
+    NRNAS_TEAM_FILE_ID        = 0x7000,
 
     /* 后续组件继续添加 */
     TEAM_FILE_ID_BUTT         = 0xfc00
 }FILE_ID_TEAM_ENUM;
-
 
 #if (VOS_OS_VER == VOS_WIN32)
 #define LPS_LOG(ModulePID, SubMod, Level, pcString) \
@@ -853,10 +852,17 @@ typedef enum
 
     PS_FILE_ID_IMSAPROCESMMSG_C,
     PS_FILE_ID_IMSAPROCSTKMSG_C,
+    PS_FILE_ID_IMSAPROCCAPADAPTOR_C,
     PS_FILE_ID_NASEMMREGMMSGPROC_C,
     PS_FILE_ID_IMSAPROCLMMMSG_C,
     PS_FILE_ID_IMSANVIM_C,
     PS_FILE_ID_NASETCLRRCMSGPROC_C,
+    PS_FILE_ID_IMSAPROCADSMSG_C,
+    PS_FILE_ID_NASTCTHROTMSGPROC_C,
+    PS_FILE_ID_NASTCNRMMMSGPROC_C,
+    PS_FILE_ID_NASTCSDAPMSGPROC_C,
+    PS_FILE_ID_NASESMNRSMMSGPROC_C,
+    PS_FILE_ID_NASEMMNRMMMSGPROC_C,
     LNAS_FILE_ID_BUTT
 }LNAS_FILE_ID_DEFINE_ENUM;
 
@@ -921,126 +927,128 @@ typedef enum
 typedef enum
 {
     /*mac*/
-    PS_FILE_ID_L_MACRLCDLENTRY_C = LL2_TEAM_FILE_ID,
-    PS_FILE_ID_L_MACRLCULENTRY_C,
-    PS_FILE_ID_L_MACULCOM_C,
-    PS_FILE_ID_L_MACENTITY_C,
-    PS_FILE_ID_L_MACULSCH_C,
-    PS_FILE_ID_L_MACCTRL_C,
-    PS_FILE_ID_L_MACRANDOM_C,
-    PS_FILE_ID_L_MACDLSCH_C,
-    PS_FILE_ID_L_MACDLCOM_C,
-    PS_FILE_ID_L_MACTIME_C,
-    PS_FILE_ID_L_MACSEND_C,
-    PS_FILE_ID_L_MACPHYPROC_C,
-    PS_FILE_ID_L_MACSTUB_C,/*对通测试使用*/
+    PS_FILE_ID_L_MACRLCDLENTRY_C = LL2_TEAM_FILE_ID,    /*0x3000*/
+    PS_FILE_ID_L_MACRLCULENTRY_C,                       /*0x3001*/
+    PS_FILE_ID_L_MACULCOM_C,                            /*0x3002*/
+    PS_FILE_ID_L_MACENTITY_C,                           /*0x3003*/
+    PS_FILE_ID_L_MACULSCH_C,                            /*0x3004*/
+    PS_FILE_ID_L_MACCTRL_C,                             /*0x3005*/
+    PS_FILE_ID_L_MACRANDOM_C,                           /*0x3006*/
+    PS_FILE_ID_L_MACDLSCH_C,                            /*0x3007*/
+    PS_FILE_ID_L_MACDLCOM_C,                            /*0x3008*/
+    PS_FILE_ID_L_MACTIME_C,                             /*0x3009*/
+    PS_FILE_ID_L_MACSEND_C,                             /*0x300a*/
+    PS_FILE_ID_L_MACPHYPROC_C,                          /*0x300b*/
+    PS_FILE_ID_L_MACSTUB_C,/*对通测试使用*/             /*0x300c*/
     /*rlc*/
-    PS_FILE_ID_L_RLC_C,
-    PS_FILE_ID_L_RLCCOMM_C,
-    PS_FILE_ID_L_RLCTIMER_C,
-    PS_FILE_ID_L_RLCMACINTERF_C,
+    PS_FILE_ID_L_RLC_C,                                 /*0x300d*/
+    PS_FILE_ID_L_RLCCOMM_C,                             /*0x300e*/
+    PS_FILE_ID_L_RLCTIMER_C,                            /*0x300f*/
+    PS_FILE_ID_L_RLCMACINTERF_C,                        /*0x3010*/
 
-    PS_FILE_ID_L_RLCPDCPINTERF_C,
-    PS_FILE_ID_L_RLCUMTRANS_C,
-    PS_FILE_ID_L_RLCTMRECV_C,
-    PS_FILE_ID_L_RLCUMRECV_C,
-    PS_FILE_ID_L_RLCAMRECV_C,
+    PS_FILE_ID_L_RLCPDCPINTERF_C,                       /*0x3011*/
+    PS_FILE_ID_L_RLCUMTRANS_C,                          /*0x3012*/
+    PS_FILE_ID_L_RLCTMRECV_C,                           /*0x3013*/
+    PS_FILE_ID_L_RLCUMRECV_C,                           /*0x3014*/
+    PS_FILE_ID_L_RLCAMRECV_C,                           /*0x3015*/
 
-    PS_FILE_ID_L_RLCAMTRANS_C,
-    PS_FILE_ID_L_RLCDLCONFIG_C,
-    PS_FILE_ID_L_RLCULCONFIG_C,
-    PS_FILE_ID_L_RLCDEBUG_C,
+    PS_FILE_ID_L_RLCAMTRANS_C,                          /*0x3016*/
+    PS_FILE_ID_L_RLCDLCONFIG_C,                         /*0x3017*/
+    PS_FILE_ID_L_RLCULCONFIG_C,                         /*0x3018*/
+    PS_FILE_ID_L_RLCDEBUG_C,                            /*0x3019*/
 
     /*pdcp*/
-    PS_FILE_ID_L_PDCPDLPROC_C,
+    PS_FILE_ID_L_PDCPDLPROC_C,                          /*0x301a*/
 
-    PS_FILE_ID_L_PDCPDLINTEGRITYVERI_C,
-    PS_FILE_ID_L_PDCPSECURITY_C,
-    PS_FILE_ID_L_PDCPDLUNCOMPRESS_C,
-    PS_FILE_ID_L_PDCPENTRY_C,
-    PS_FILE_ID_L_PDCPULPROC_C,
-    PS_FILE_ID_L_PDCPULHCODE_C,
+    PS_FILE_ID_L_PDCPDLINTEGRITYVERI_C,                 /*0x301b*/
+    PS_FILE_ID_L_PDCPSECURITY_C,                        /*0x301c*/
+    PS_FILE_ID_L_PDCPDLUNCOMPRESS_C,                    /*0x301d*/
+    PS_FILE_ID_L_PDCPENTRY_C,                           /*0x301e*/
+    PS_FILE_ID_L_PDCPULPROC_C,                          /*0x301f*/
+    PS_FILE_ID_L_PDCPULHCODE_C,                         /*0x3020*/
 
-    PS_FILE_ID_L_PDCPULCIPHER_C,
-    PS_FILE_ID_L_PDCPULCOMPRESS_C,
-    PS_FILE_ID_L_PDCPULINTEGRITYPROT_C,
-    PS_FILE_ID_L_PDCP_C,
+    PS_FILE_ID_L_PDCPULCIPHER_C,                        /*0x3021*/
+    PS_FILE_ID_L_PDCPULCOMPRESS_C,                      /*0x3022*/
+    PS_FILE_ID_L_PDCPULINTEGRITYPROT_C,                 /*0x3023*/
+    PS_FILE_ID_L_PDCP_C,                                /*0x3024*/
 
     /*stub files*/
-    PS_FILE_ID_L_PDCPDDEBUG_C,
-    PS_FILE_ID_L_MACDEBUG_C,
+    PS_FILE_ID_L_PDCPDDEBUG_C,                          /*0x3025*/
+    PS_FILE_ID_L_MACDEBUG_C,                            /*0x3026*/
 
     /*L2 loopback test*/
-    PS_FILE_ID_L_PDCP_LOOPBACK_C,
-    PS_FILE_ID_L_RLCMBMS_C,
+    PS_FILE_ID_L_PDCP_LOOPBACK_C,                       /*0x3027*/
+    PS_FILE_ID_L_RLCMBMS_C,                             /*0x3028*/
 
     /*added by z103912 2012-2-2 for ROHC*/
-    PS_FILE_ID_L_ROHC_CONSTRUCT_PKT,
-    PS_FILE_ID_L_ROHC_COMP_PROF0_C,
-    PS_FILE_ID_L_ROHC_COMP_PROF1_C,
-    PS_FILE_ID_L_ROHC_COMP_PROF2_C,
-    PS_FILE_ID_L_ROHC_COMP_PROF3_C,
-    PS_FILE_ID_L_ROHC_COMP_PROF4_C,
-    PS_FILE_ID_L_ROHC_COM_C,
-    PS_FILE_ID_L_ROHC_ADAPTER_C,
-    PS_FILE_ID_L_ROHC_MEMMNG_C,
-    PS_FILE_ID_L_ROHC_FEEDBACK_PROC_C,
-    PS_FILE_ID_L_ROHC_REFORM_PKT_C,
-    PS_FILE_ID_L_ROHC_DECOMP_PROF0_C,
-    PS_FILE_ID_L_ROHC_DECOMP_PROF1_C,
-    PS_FILE_ID_L_ROHC_DECOMP_PROF2_C,
-    PS_FILE_ID_L_ROHC_DECOMP_PROF3_C,
-    PS_FILE_ID_L_ROHC_DECOMP_PROF4_C,
-    PS_FILE_ID_L_ROHC_DECOMP_MODE_TRANS_C,
-    PS_FILE_ID_L_ROHC_DECOMP_IRIRDYN_PROC_C,
-    PS_FILE_ID_L_ROHC_DECOMP_FEEDBAK_C,
-    PS_FILE_ID_L_ROHC_DECOMP_C,
-    PS_FILE_ID_L_ROHC_CRC_C,
+    PS_FILE_ID_L_ROHC_CONSTRUCT_PKT,                    /*0x3029*/
+    PS_FILE_ID_L_ROHC_COMP_PROF0_C,                     /*0x302a*/
+    PS_FILE_ID_L_ROHC_COMP_PROF1_C,                     /*0x302b*/
+    PS_FILE_ID_L_ROHC_COMP_PROF2_C,                     /*0x302c*/
+    PS_FILE_ID_L_ROHC_COMP_PROF3_C,                     /*0x302d*/
+    PS_FILE_ID_L_ROHC_COMP_PROF4_C,                     /*0x302e*/
+    PS_FILE_ID_L_ROHC_COM_C,                            /*0x302f*/
+    PS_FILE_ID_L_ROHC_ADAPTER_C,                        /*0x3030*/
+    PS_FILE_ID_L_ROHC_MEMMNG_C,                         /*0x3031*/
+    PS_FILE_ID_L_ROHC_FEEDBACK_PROC_C,                  /*0x3032*/
+    PS_FILE_ID_L_ROHC_REFORM_PKT_C,                     /*0x3033*/
+    PS_FILE_ID_L_ROHC_DECOMP_PROF0_C,                   /*0x3034*/
+    PS_FILE_ID_L_ROHC_DECOMP_PROF1_C,                   /*0x3035*/
+    PS_FILE_ID_L_ROHC_DECOMP_PROF2_C,                   /*0x3036*/
+    PS_FILE_ID_L_ROHC_DECOMP_PROF3_C,                   /*0x3037*/
+    PS_FILE_ID_L_ROHC_DECOMP_PROF4_C,                   /*0x3038*/
+    PS_FILE_ID_L_ROHC_DECOMP_MODE_TRANS_C,              /*0x3039*/
+    PS_FILE_ID_L_ROHC_DECOMP_IRIRDYN_PROC_C,            /*0x303a*/
+    PS_FILE_ID_L_ROHC_DECOMP_FEEDBAK_C,                 /*0x303b*/
+    PS_FILE_ID_L_ROHC_DECOMP_C,                         /*0x303c*/
+    PS_FILE_ID_L_ROHC_CRC_C,                            /*0x303d*/
 
     /*LTE用户面可维可测*/
-    PS_FILE_ID_CDS_OMITF_C,
-    PS_FILE_ID_LPDCP_OM_ITF_C,
-    PS_FILE_ID_LRLC_OM_ITF_C,
-    PS_FILE_ID_LMAC_OM_ITF_C,
-    PS_FILE_ID_LUP_DT_ITF_C,
-    PS_FILE_ID_LUP_ERRLOG_ITF_C,
-    PS_FILE_ID_LUP_DCM_ITF_C,
+    PS_FILE_ID_CDS_OMITF_C,                             /*0x303e*/
+    PS_FILE_ID_LPDCP_OM_ITF_C,                          /*0x303f*/
+    PS_FILE_ID_LRLC_OM_ITF_C,                           /*0x3040*/
+    PS_FILE_ID_LMAC_OM_ITF_C,                           /*0x3041*/
+    PS_FILE_ID_LUP_DT_ITF_C,                            /*0x3042*/
+    PS_FILE_ID_LUP_ERRLOG_ITF_C,                        /*0x3043*/
+    PS_FILE_ID_LUP_DCM_ITF_C,                           /*0x3044*/
 
     /*L2 TTF QUEUE events appITF OMITF*/
-    PS_FILE_ID_L_TTFQUEUE_C ,
-    PS_FILE_ID_L2APPITF_C,
-    PS_FILE_ID_L2EVENTS_C,
-    PS_FILE_ID_L2OMITF_C,
+    PS_FILE_ID_L_TTFQUEUE_C ,                           /*0x3045*/
+    PS_FILE_ID_L2APPITF_C,                              /*0x3046*/
+    PS_FILE_ID_L2EVENTS_C,                              /*0x3047*/
+    PS_FILE_ID_L2OMITF_C,                               /*0x3048*/
 
     /*LTE硬件接口*/
-    PS_FILE_ID_LUP_HARDWIRE_ITF_C,
+    PS_FILE_ID_LUP_HARDWIRE_ITF_C,                      /*0x3049*/
 
     /*CDS*/
-    PS_FILE_ID_CDS_UL_PROC_C,
-    PS_FILE_ID_CDS_DL_PROC_C,
-    PS_FILE_ID_CDS_MSG_PROC_C,
-    PS_FILE_ID_CDS_IPF_CTRL_C,
-    PS_FILE_ID_CDS_ENTITY_C,
-    PS_FILE_ID_CDS_DEBUG_C,
-    PS_FILE_ID_CDS_IP_FRAGMENT_PROC_C,
-    PS_FILE_ID_CDS_SOFT_FILTER_C,
-    PS_FILE_ID_CDS_IMS_PROC_C,
-    PS_FILE_ID_CDS_DSM_PROC_C,
+    PS_FILE_ID_CDS_UL_PROC_C,                           /*0x304a*/
+    PS_FILE_ID_CDS_DL_PROC_C,                           /*0x304b*/
+    PS_FILE_ID_CDS_MSG_PROC_C,                          /*0x304c*/
+    PS_FILE_ID_CDS_IPF_CTRL_C,                          /*0x304d*/
+    PS_FILE_ID_CDS_ENTITY_C,                            /*0x304e*/
+    PS_FILE_ID_CDS_DEBUG_C,                             /*0x304f*/
+    PS_FILE_ID_CDS_IP_FRAGMENT_PROC_C,                  /*0x3050*/
+    PS_FILE_ID_CDS_SOFT_FILTER_C,                       /*0x3051*/
+    PS_FILE_ID_CDS_IMS_PROC_C,                          /*0x3052*/
+    PS_FILE_ID_CDS_DSM_PROC_C,                          /*0x3053*/
     /*FC*/
-    PS_FILE_ID_FC_FLOWCTRL_MANA_C,
-    PS_FILE_ID_QOS_FC_OM_C,
-    PS_FILE_ID_QOS_FC_CHANNEL_FLOWCTRL_C,
-    PS_FILE_ID_QOS_FC_RAB_STATUS_C,
-    PS_FILE_ID_QOS_FC_STATUS_C,
+    PS_FILE_ID_FC_FLOWCTRL_MANA_C,                      /*0x3054*/
+    PS_FILE_ID_QOS_FC_OM_C,                             /*0x3055*/
+    PS_FILE_ID_QOS_FC_CHANNEL_FLOWCTRL_C,               /*0x3056*/
+    PS_FILE_ID_QOS_FC_RAB_STATUS_C,                     /*0x3057*/
+    PS_FILE_ID_QOS_FC_STATUS_C,                         /*0x3058*/
 
     /*NDCLIENT*/
-    PS_FILE_ID_IPCOMM_C,
-    PS_FILE_ID_IPNDCLIENT_C,
-    PS_FILE_ID_IPNDSERVER_C,
-    PS_FILE_ID_PSNDIS_C,
+    PS_FILE_ID_IPCOMM_C,                                /*0x3059*/
+    PS_FILE_ID_IPNDCLIENT_C,                            /*0x305a*/
+    PS_FILE_ID_IPNDSERVER_C,                            /*0x305b*/
+    PS_FILE_ID_PSNDIS_C,                                /*0x305c*/
     /*added for L2 VOLTE analyze 2016-08-23 */
-    PS_FILE_ID_LUP_AUTO_ANALYSIS_C,
-    PS_FILE_ID_LUP_COM_DEPEND_C,
+    PS_FILE_ID_LUP_AUTO_ANALYSIS_C,                     /*0x305d*/
+    PS_FILE_ID_LUP_COM_DEPEND_C,                        /*0x305e*/
+    PS_FILE_ID_PSUP_COM_MEM_C,                          /*0x305f*/
+    PS_FILE_ID_LUPFC_C                                  /*0x3060*/
 
 }LL2_FILE_ID_DEFINE_ENUM;
 
@@ -2075,9 +2083,13 @@ typedef enum
 /* 15649 */    PS_FILE_ID_NAS_REGM_PROC_NR_REG_RSLT_C,
 
 /* 15649 */    PS_FILE_ID_NAS_MMC_SND_THROT_C,
+/* 15651 */    PS_FILE_ID_NAS_SMS_LOG_PRIVACY_C,
 
 /* 15650 */    PS_FILE_ID_NAS_REGM_SND_NRMM_C,
 /* 15651 */    PS_FILE_ID_NAS_REGM_DISABLE_NR_PROC_C,
+
+/* 15652 */    PS_FILE_ID_GMM_PROC_NR_RESULT_C,
+/* 15653 */    PS_FILE_ID_MM_PROC_NR_RESULT_C,
 
 /* 0x3FFF */    PS_FILE_ID_NAS_BUTT                        = TAF_TEAM_FILE_ID - 1
 }PS_NAS_FILE_ID_DEFINE_ENUM;
@@ -2343,7 +2355,7 @@ typedef enum
 /* 16639 */     PS_FILE_ID_TAF_MMA_PROC_USIM_C,
 /* 16640 */     PS_FILE_ID_TAF_MMA_SND_TAF_C,
 /* 16641 */     PS_FILE_ID_TAF_MMA_SND_XSMS_C,
-/* 16642 */     PS_FILE_ID_MN_CALL_IMSA_PROC_C,
+/* 16642 */     PS_FILE_ID_MN_CALL_CCM_PROC_C,
 /* 16643 */     PS_FILE_ID_TAF_MMA_SND_UPHY_C,
 /* 16644 */     PS_FILE_ID_MTC_COMM_C,
 /* 16645 */     PS_FILE_ID_MTC_CTX_C,
@@ -2572,6 +2584,25 @@ typedef enum
 /* 16843 */     PS_FILE_ID_ADS_MAIN_C,
 /* 16844 */     PS_FILE_ID_ADS_TIMER_C,
 /* 16845 */     PS_FILE_ID_ADS_MSG_PROC_C,
+/* 16846 */     PS_FILE_ID_TAF_CCM_PREPROC_TBL_C,
+/* 16847 */     PS_FILE_ID_TAF_CCM_PREPROC_ACT_C,
+/* 16848 */     PS_FILE_ID_TAF_CCM_FSM_MAIN_C,
+/* 16849 */     PS_FILE_ID_TAF_CCM_FSM_MAIN_TBL_C,
+/* 16850 */     PS_FILE_ID_TAF_CCM_CTX_C,
+/* 16851 */     PS_FILE_ID_TAF_CCM_TIMERMGMT_C,
+/* 16852 */     PS_FILE_ID_TAF_CCM_MAIN_C,
+/* 16853 */     PS_FILE_ID_TAF_CCM_SND_IMSA_C,
+/* 16854 */     PS_FILE_ID_TAF_CCM_SND_GUCALL_C,
+/* 16855 */     PS_FILE_ID_TAF_CCM_SND_APP_C,
+/* 16856 */     PS_FILE_ID_TAF_CCM_API_C,
+
+/* 16857 */     PS_FILE_ID_EDA_LOG_PRIVACY_C,
+/* 16858 */     PS_FILE_ID_TAF_MNTN_C,
+/* 16859 */     PS_FILE_ID_TAF_MNTN_DUMP_C,
+
+
+/* 16857 */     PS_FILE_ID_AT_MT_MSG_PROC_C,
+/* 16858 */     PS_FILE_ID_AT_MT_COMM_FUN_C,
 
 /* 17407 */     PS_FILE_ID_TAF_BUTT                        = CNAS_TEAM_FILE_ID - 1,
 }TAF_FILE_ID_DEFINE_ENUM;
@@ -3021,6 +3052,8 @@ typedef enum
 
                   PS_FILE_ID_CNAS_HSM_LOG_PRIVACY_C,
 
+                  PS_FILE_ID_CNAS_HSD_LOG_PRIVACY_C,
+
                   PS_FILE_ID_CBT_FUNC_C,
                   PS_FILE_ID_CBT_RL_C,
                   PS_FILE_ID_APP_CBT_FUNC_C,
@@ -3098,6 +3131,28 @@ typedef enum
                   PS_FILE_ID_BST_PAL_LOG_C,
                   PS_FILE_ID_BST_PAL_EMCOM_C,
                   PS_FILE_ID_MN_BASTET_C,
+                  PS_FILE_ID_BST_OL_MSGPROC_C,
+                  PS_FILE_ID_BST_OL_TLV_C,
+                  PS_FILE_ID_BST_OL_STRUCTURINGSTREAM_C,
+                  PS_FILE_ID_BST_OL_STRINGLIB_C,
+                  PS_FILE_ID_BST_OL_STDLIB_C,
+                  PS_FILE_ID_BST_POLICYCFG_C,
+                  PS_FILE_ID_BST_POLICYSET_C,
+                  PS_FILE_ID_BST_OL_DOL_MANAGER_C,
+                  PS_FILE_ID_BST_OL_DOL_UNSOL_C,
+                  PS_FILE_ID_BST_OL_DOL_PLCY_AUTH_MANAGER_C,
+                  PS_FILE_ID_BST_OL_DOL_PLCY_ALGO_C,
+                  PS_FILE_ID_BST_OL_DOL_PLCY_MANAGER_C,
+                  PS_FILE_ID_BST_OL_DOL_PLCY_COMM_C,
+                  PS_FILE_ID_BST_OL_DOL_RRM_CONTROL_C,
+                  PS_FILE_ID_BST_OL_DOL_RRM_MANAGER_C,
+                  PS_FILE_ID_BST_OL_PAL_MODEM_INFO_C,
+                  PS_FILE_ID_BST_OL_PAL_MODEM_PROXY_C,
+                  PS_FILE_ID_BST_OL_PAL_MODEM_AUTH_C,
+                  PS_FILE_ID_BST_OL_PAL_MODEM_COMM_C,
+                  PS_FILE_ID_BST_OL_PAL_GENERAL_MSG_PROXY_C,
+                  PS_FILE_ID_BST_OL_DOL_INFO_CTRL_MANAGER_C,
+                  PS_FILE_ID_BST_OL_TIMER_C,
 
                   PS_FILE_ID_CNAS_XCC_SND_CSMS_C,
                   PS_FILE_ID_CNAS_XCC_SND_XPDS_C,
@@ -3266,6 +3321,7 @@ typedef enum
 
                   PS_FILE_ID_NRNOSIG_FUNC_C,
                   PS_FILE_ID_NRCBT_FUNC_C,
+                  PS_FILE_ID_NRNOSIGCOMM_FUNC_C,
 
                   PS_FILE_ID_BUTT
 
@@ -3414,6 +3470,7 @@ typedef enum
     PS_FILE_ID_AS_COMM_LOG_C                    = CTTF_TEAM_FILE_ID + 0x0084,
     PS_FILE_ID_CTTF_MNTN_COMM_C                 = CTTF_TEAM_FILE_ID + 0x0085,
     PS_FILE_ID_CTTF_1X_VOICECUST_C              = CTTF_TEAM_FILE_ID + 0x0086,
+    PS_FILE_ID_MD5_ADAPTER_C                    = CTTF_TEAM_FILE_ID + 0x0087,
     PS_FILE_ID_CTTF_BUTT
     /* CDMA L2 , 2013-9-4 end*/
 }CTTF_FILE_ID_DEFINE_ENUM;
@@ -3570,6 +3627,8 @@ typedef enum
     PS_FILE_ID_RRM_NODE_MEM_C                   = TTFCOMM_TEAM_FILE_ID + 0x0089,
     PS_FILE_ID_NODE_MEM_MNTN_C                  = TTFCOMM_TEAM_FILE_ID + 0x008A,
     PS_FILE_ID_RRM_DSDS3_C                      = TTFCOMM_TEAM_FILE_ID + 0x008b,
+
+    PS_FILE_ID_PPP_RAND_C                       = TTFCOMM_TEAM_FILE_ID + 0x008C,
 
     PS_FILE_ID_TTFCOMM_BUTT
 }TTFCOMM_FILE_ID_DEFINE_ENUM;
@@ -4058,6 +4117,7 @@ typedef enum
     PS_FILE_ID_CPROC_1X_RFA_C,
     PS_FILE_ID_CPROC_1X_SM_RELEASE_ALL_C,
     PS_FILE_ID_CPROC_1x_UTIL_NV_C,
+    PS_FILE_ID_CPROC_1X_GUC_PHY_NV_C,
     PS_FILE_ID_CPROC_1X_DM_C,
     PS_FILE_ID_CPROC_1X_DM_RULE_OF_ACCESS_C,
     PS_FILE_ID_CPROC_1X_DM_RULE_OF_FER_C,
@@ -4287,9 +4347,34 @@ typedef enum
     PS_FILE_ID_NRRC_CONNCTRL_SAVE_IE_L1RS_C     = NRRC_TEAM_FILE_ID + 95,
     PS_FILE_ID_NRRC_IMM_EVA_C                   = NRRC_TEAM_FILE_ID + 96,
     PS_FILE_ID_NRRC_UECAP_BC_PROC_C             = NRRC_TEAM_FILE_ID + 97,
-    PS_FILE_ID_NRRC_UECAP_CA_TBL_C              = NRRC_TEAM_FILE_ID + 98,
+    PS_FILE_ID_NRRC_UECAP_NR_CA_TBL_C           = NRRC_TEAM_FILE_ID + 98,
     PS_FILE_ID_NRRC_CONNCTRL_LTE_ENABLE_C       = NRRC_TEAM_FILE_ID + 99,
-
+    PS_FILE_ID_NRRC_UECAP_ENDC_CA_TBL_C         = NRRC_TEAM_FILE_ID + 100,
+    PS_FILE_ID_NRRC_CONNCTRL_CHR_C              = NRRC_TEAM_FILE_ID + 101,
+    PS_FILE_ID_NRRC_CONNCTRL_DT_C               = NRRC_TEAM_FILE_ID + 102,
+    PS_FILE_ID_NRRC_CONNCTRL_MNTN_C             = NRRC_TEAM_FILE_ID + 103,
+    PS_FILE_ID_NRRC_CONNCTRL_SYS_CFG_C          = NRRC_TEAM_FILE_ID + 104,
+    PS_FILE_ID_NRRC_CCB_UECAP_C                 = NRRC_TEAM_FILE_ID + 105,
+    PS_FILE_ID_NRRC_COMM_TIMER_C                = NRRC_TEAM_FILE_ID + 106,
+    PS_FILE_ID_NRRC_COMM_CHR_C                  = NRRC_TEAM_FILE_ID + 107,
+    PS_FILE_ID_NRRC_COMM_DSDS_C                 = NRRC_TEAM_FILE_ID + 108,
+    PS_FILE_ID_NRRC_IDLECTRL_OM_C               = NRRC_TEAM_FILE_ID + 109,
+    PS_FILE_ID_NRRC_CONNCTRL_DSDS_C             = NRRC_TEAM_FILE_ID + 110,
+    PS_FILE_ID_NRRC_IDLECTRL_PAGING_C           = NRRC_TEAM_FILE_ID + 111,
+    PS_FILE_ID_NRRC_UECAP_NR_BW_TBL_C           = NRRC_TEAM_FILE_ID + 112,
+    PS_FILE_ID_NRRC_CONNCTRL_NSA_ENTRY_C        = NRRC_TEAM_FILE_ID + 113,
+    PS_FILE_ID_NRRC_CONNCTRL_NSA_COMM_C         = NRRC_TEAM_FILE_ID + 114,
+    PS_FILE_ID_NRRC_UECAP_MNTN_C                = NRRC_TEAM_FILE_ID + 115,
+    PS_FILE_ID_NRRC_UECAP_POLICY_C              = NRRC_TEAM_FILE_ID + 116,
+    PS_FILE_ID_NRRC_IDLECTRL_PREEST_C           = NRRC_TEAM_FILE_ID + 117,
+    PS_FILE_ID_NRRC_IDLECTRL_REL_ALL_C          = NRRC_TEAM_FILE_ID + 118,
+    PS_FILE_ID_NRRC_IDLECTRL_SYSINFO_UPDATE_C   = NRRC_TEAM_FILE_ID + 119,
+    PS_FILE_ID_NRRC_IDLECTRL_MTA_C              = NRRC_TEAM_FILE_ID + 120,
+    PS_FILE_ID_NRRC_IDLECTRL_TC_C               = NRRC_TEAM_FILE_ID + 121,
+    PS_FILE_ID_NRRC_IDLECTRL_REEST_C            = NRRC_TEAM_FILE_ID + 122,
+	PS_FILE_ID_NRRC_IDLECTRL_IRAT_C             = NRRC_TEAM_FILE_ID + 123,
+    PS_FILE_ID_NRRC_CONNCTRL_SMC_MNTN_C         = NRRC_TEAM_FILE_ID + 124,
+    PS_FILE_ID_NRRC_CONNCTRL_IMSA_C             = NRRC_TEAM_FILE_ID + 125,
     PS_FILE_ID_NRRC_BUTT
 }NRRC_FILE_ID_DEFINE_ENUM;
 typedef unsigned long  NRRC_FILE_ID_DEFINE_ENUM_UINT32;
@@ -4321,6 +4406,9 @@ typedef enum
     PS_FILE_ID_LUP_RT_EICC_ENTITY_C         = NL2_TEAM_FILE_ID + 19,
     PS_FILE_ID_NPDCP_LTE_COMM_C             = NL2_TEAM_FILE_ID + 20,
     PS_FILE_ID_NPDCP_UL_IPF_PROC_C          = NL2_TEAM_FILE_ID + 21,
+    PS_FILE_ID_NPDCP_UL_COMPRESS_C          = NL2_TEAM_FILE_ID + 22,
+    PS_FILE_ID_NPDCP_DL_DECOMPRESS_C        = NL2_TEAM_FILE_ID + 23,
+    PS_FILE_ID_ROHC_OM_ITF_C                = NL2_TEAM_FILE_ID + 24,
 
     /*L2MA*/
     PS_FILE_ID_L2MA_ENTITY_C                = NL2_TEAM_FILE_ID + 100,
@@ -4329,6 +4417,7 @@ typedef enum
     PS_FILE_ID_L2MA_PDCP_MSG_PROC_C         = NL2_TEAM_FILE_ID + 103,
     PS_FILE_ID_L2MA_SDAP_MSG_PROC_C         = NL2_TEAM_FILE_ID + 104,
     PS_FILE_ID_L2MA_DEBUG_C                 = NL2_TEAM_FILE_ID + 105,
+    PS_FILE_ID_L2MA_CDS_MSG_PROC_C          = NL2_TEAM_FILE_ID + 106,
 
     /*NRLC*/
     PS_FILE_ID_NRLC_COMM_C                  = NL2_TEAM_FILE_ID + 200,
@@ -4381,6 +4470,9 @@ typedef enum
     PS_FILE_ID_NRLC_NRT_OM_ITF_C            = NL2_TEAM_FILE_ID + 414,
     PS_FILE_ID_NRLC_RT_OM_ITF_C             = NL2_TEAM_FILE_ID + 415,
     PS_FILE_ID_NUP_RT_DEBUG_C               = NL2_TEAM_FILE_ID + 416,
+    PS_FILE_ID_NUP_RT_SLEEP_C               = NL2_TEAM_FILE_ID + 417,
+    PS_FILE_ID_NUP_NRT_SLEEP_C              = NL2_TEAM_FILE_ID + 418,
+    PS_FILE_ID_NUP_RTFC_C                   = NL2_TEAM_FILE_ID + 419,
 
     /*SDAP*/
     PS_FILE_ID_SDAP_ENTITY_C                = NL2_TEAM_FILE_ID + 500,
@@ -4391,7 +4483,7 @@ typedef enum
     PS_FILE_ID_SDAP_IP_PKT_PARSE_C          = NL2_TEAM_FILE_ID + 505,
     PS_FILE_ID_SDAP_IP_MSG_PROC_C           = NL2_TEAM_FILE_ID + 506,
     PS_FILE_ID_SDAP_TASK_C                  = NL2_TEAM_FILE_ID + 507,
-
+    PS_FILE_ID_SDAP_LOOPBACK_C              = NL2_TEAM_FILE_ID + 508,
     /*LTE和NR公共文件, 放到最后,从900开始*/
     PS_FILE_ID_L2_GLB_MEM_C                 = NL2_TEAM_FILE_ID + 900,
     PS_FILE_ID_L2_ZEOR_COPY_C               = NL2_TEAM_FILE_ID + 901,
@@ -4403,73 +4495,119 @@ typedef unsigned long  NL2_FILE_ID_DEFINE_ENUM_UINT32;
 
 typedef enum
 {
-/* 27648 */    PS_FILE_ID_NAS_NRMM_CIPHER_API_C                     = NRNAS_TEAM_FILE_ID,
-/* 27649 */    PS_FILE_ID_NAS_NRMM_CM_FSM_C                         = NRNAS_TEAM_FILE_ID + 1,
-/* 27650 */    PS_FILE_ID_NAS_NRMM_CM_FSM_TBL_C                     = NRNAS_TEAM_FILE_ID + 2,
-/* 27651 */    PS_FILE_ID_NAS_NRMM_CM_MAIN_C                        = NRNAS_TEAM_FILE_ID + 3,
-/* 27652 */    PS_FILE_ID_NAS_NRMM_COM_FUNC_C                       = NRNAS_TEAM_FILE_ID + 4,
-/* 27653 */    PS_FILE_ID_NAS_NRMM_CTX_C                            = NRNAS_TEAM_FILE_ID + 5,
-/* 27654 */    PS_FILE_ID_NAS_NRMM_DECODE_C                         = NRNAS_TEAM_FILE_ID + 6,
-/* 27655 */    PS_FILE_ID_NAS_NRMM_ENCODE_C                         = NRNAS_TEAM_FILE_ID + 7,
-/* 27656 */    PS_FILE_ID_NAS_NRMM_INT_MSG_MGMT_C                   = NRNAS_TEAM_FILE_ID + 8,
-/* 27657 */    PS_FILE_ID_NAS_NRMM_IW_FSM_C                         = NRNAS_TEAM_FILE_ID + 9,
-/* 27658 */    PS_FILE_ID_NAS_NRMM_IW_FSM_TBL_C                     = NRNAS_TEAM_FILE_ID + 10,
-/* 27659 */    PS_FILE_ID_NAS_NRMM_IW_MAIN_C                        = NRNAS_TEAM_FILE_ID + 11,
-/* 27660 */    PS_FILE_ID_NAS_NRMM_MAIN_C                           = NRNAS_TEAM_FILE_ID + 12,
-/* 15661 */    PS_FILE_ID_NAS_NRMM_MAIN_CTRL_C                      = NRNAS_TEAM_FILE_ID + 13,
-/* 27662 */    PS_FILE_ID_NAS_NRMM_MNTN_C                           = NRNAS_TEAM_FILE_ID + 14,
-/* 27663 */    PS_FILE_ID_NAS_NRMM_NWS_FSM_C                        = NRNAS_TEAM_FILE_ID + 15,
-/* 27664 */    PS_FILE_ID_NAS_NRMM_NWS_FSM_TBL_C                    = NRNAS_TEAM_FILE_ID + 16,
-/* 27665 */    PS_FILE_ID_NAS_NRMM_NWS_MAIN_C                       = NRNAS_TEAM_FILE_ID + 17,
-/* 27666 */    PS_FILE_ID_NAS_NRMM_PROC_NVIM_C                      = NRNAS_TEAM_FILE_ID + 18,
-/* 27667 */    PS_FILE_ID_NAS_NRMM_PWR_FSM_C                        = NRNAS_TEAM_FILE_ID + 19,
-/* 27668 */    PS_FILE_ID_NAS_NRMM_PWR_FSM_TBL_C                    = NRNAS_TEAM_FILE_ID + 20,
-/* 27669 */    PS_FILE_ID_NAS_NRMM_PWR_MAIN_C                       = NRNAS_TEAM_FILE_ID + 21,
-/* 27670 */    PS_FILE_ID_NAS_NRMM_REG_FSM_C                        = NRNAS_TEAM_FILE_ID + 22,
-/* 27671 */    PS_FILE_ID_NAS_NRMM_REG_FSM_TBL_C                    = NRNAS_TEAM_FILE_ID + 23,
-/* 27672 */    PS_FILE_ID_NAS_NRMM_REG_MAIN_C                       = NRNAS_TEAM_FILE_ID + 24,
-/* 27673 */    PS_FILE_ID_NAS_NRMM_SEC_FSM_C                        = NRNAS_TEAM_FILE_ID + 25,
-/* 27674 */    PS_FILE_ID_NAS_NRMM_SEC_FSM_TBL_C                    = NRNAS_TEAM_FILE_ID + 26,
-/* 27675 */    PS_FILE_ID_NAS_NRMM_SEC_MAIN_C                       = NRNAS_TEAM_FILE_ID + 27,
-/* 27676 */    PS_FILE_ID_NAS_NRMM_SND_LMM_C                        = NRNAS_TEAM_FILE_ID + 28,
-/* 27677 */    PS_FILE_ID_NAS_NRMM_SND_MMC_C                        = NRNAS_TEAM_FILE_ID + 29,
-/* 27678 */    PS_FILE_ID_NAS_NRMM_SND_NRMM_C                       = NRNAS_TEAM_FILE_ID + 30,
-/* 27679 */    PS_FILE_ID_NAS_NRMM_SND_NRRC_C                       = NRNAS_TEAM_FILE_ID + 31,
-/* 27680 */    PS_FILE_ID_NAS_NRMM_SND_NRSM_C                       = NRNAS_TEAM_FILE_ID + 32,
-/* 27681 */    PS_FILE_ID_NAS_NRMM_SND_REGM_C                       = NRNAS_TEAM_FILE_ID + 33,
-/* 27682 */    PS_FILE_ID_NAS_NRMM_SND_SDAP_C                       = NRNAS_TEAM_FILE_ID + 34,
-/* 27683 */    PS_FILE_ID_NAS_NRMM_SND_SMS_C                        = NRNAS_TEAM_FILE_ID + 35,
-/* 27684 */    PS_FILE_ID_NAS_NRMM_SND_USIM_C                       = NRNAS_TEAM_FILE_ID + 36,
-/* 27685 */    PS_FILE_ID_NAS_NRMM_TIMER_MGMT_C                     = NRNAS_TEAM_FILE_ID + 37,
-/* 27686 */    PS_FILE_ID_NAS_NR_ASN_COMMENT_CODE_TBL_C             = NRNAS_TEAM_FILE_ID + 38,
-/* 27687 */    PS_FILE_ID_NAS_NRMM_SEC_API_C                        = NRNAS_TEAM_FILE_ID + 39,
+/* 28672 */    PS_FILE_ID_NAS_NRMM_CIPHER_API_C                       = NRNAS_TEAM_FILE_ID,
+/* 28673 */    PS_FILE_ID_NAS_NRMM_CM_FSM_C                           = NRNAS_TEAM_FILE_ID + 1,
+/* 28674 */    PS_FILE_ID_NAS_NRMM_CM_FSM_TBL_C                       = NRNAS_TEAM_FILE_ID + 2,
+/* 28675 */    PS_FILE_ID_NAS_NRMM_CM_MAIN_C                          = NRNAS_TEAM_FILE_ID + 3,
+/* 28676 */    PS_FILE_ID_NAS_NRMM_COM_FUNC_C                         = NRNAS_TEAM_FILE_ID + 4,
+/* 28677 */    PS_FILE_ID_NAS_NRMM_CTX_C                              = NRNAS_TEAM_FILE_ID + 5,
+/* 28678 */    PS_FILE_ID_NAS_NRMM_DECODE_C                           = NRNAS_TEAM_FILE_ID + 6,
+/* 28679 */    PS_FILE_ID_NAS_NRMM_ENCODE_C                           = NRNAS_TEAM_FILE_ID + 7,
+/* 28680 */    PS_FILE_ID_NAS_NRMM_INT_MSG_MGMT_C                     = NRNAS_TEAM_FILE_ID + 8,
+/* 28681 */    PS_FILE_ID_NAS_NRMM_IW_FSM_C                           = NRNAS_TEAM_FILE_ID + 9,
+/* 28682 */    PS_FILE_ID_NAS_NRMM_IW_FSM_TBL_C                       = NRNAS_TEAM_FILE_ID + 10,
+/* 28683 */    PS_FILE_ID_NAS_NRMM_IW_MAIN_C                          = NRNAS_TEAM_FILE_ID + 11,
+/* 28684 */    PS_FILE_ID_NAS_NRMM_MAIN_C                             = NRNAS_TEAM_FILE_ID + 12,
+/* 28685 */    PS_FILE_ID_NAS_NRMM_MAIN_CTRL_C                        = NRNAS_TEAM_FILE_ID + 13,
+/* 28686 */    PS_FILE_ID_NAS_NRMM_MNTN_C                             = NRNAS_TEAM_FILE_ID + 14,
+/* 28687 */    PS_FILE_ID_NAS_NRMM_NWS_FSM_C                          = NRNAS_TEAM_FILE_ID + 15,
+/* 28688 */    PS_FILE_ID_NAS_NRMM_NWS_FSM_TBL_C                      = NRNAS_TEAM_FILE_ID + 16,
+/* 28689 */    PS_FILE_ID_NAS_NRMM_NWS_MAIN_C                         = NRNAS_TEAM_FILE_ID + 17,
+/* 28690 */    PS_FILE_ID_NAS_NRMM_PROC_NVIM_C                        = NRNAS_TEAM_FILE_ID + 18,
+/* 28691 */    PS_FILE_ID_NAS_NRMM_PWR_FSM_C                          = NRNAS_TEAM_FILE_ID + 19,
+/* 28692 */    PS_FILE_ID_NAS_NRMM_PWR_FSM_TBL_C                      = NRNAS_TEAM_FILE_ID + 20,
+/* 28693 */    PS_FILE_ID_NAS_NRMM_PWR_MAIN_C                         = NRNAS_TEAM_FILE_ID + 21,
+/* 28694 */    PS_FILE_ID_NAS_NRMM_REG_FSM_C                          = NRNAS_TEAM_FILE_ID + 22,
+/* 28695 */    PS_FILE_ID_NAS_NRMM_REG_FSM_TBL_C                      = NRNAS_TEAM_FILE_ID + 23,
+/* 28696 */    PS_FILE_ID_NAS_NRMM_REG_MAIN_C                         = NRNAS_TEAM_FILE_ID + 24,
+/* 28697 */    PS_FILE_ID_NAS_NRMM_SEC_FSM_C                          = NRNAS_TEAM_FILE_ID + 25,
+/* 28698 */    PS_FILE_ID_NAS_NRMM_SEC_FSM_TBL_C                      = NRNAS_TEAM_FILE_ID + 26,
+/* 28699 */    PS_FILE_ID_NAS_NRMM_SEC_MAIN_C                         = NRNAS_TEAM_FILE_ID + 27,
+/* 28700 */    PS_FILE_ID_NAS_NRMM_SND_LMM_C                          = NRNAS_TEAM_FILE_ID + 28,
+/* 28701 */    PS_FILE_ID_NAS_NRMM_SND_MMC_C                          = NRNAS_TEAM_FILE_ID + 29,
+/* 28702 */    PS_FILE_ID_NAS_NRMM_SND_NRMM_C                         = NRNAS_TEAM_FILE_ID + 30,
+/* 28703 */    PS_FILE_ID_NAS_NRMM_SND_NRRC_C                         = NRNAS_TEAM_FILE_ID + 31,
+/* 28704 */    PS_FILE_ID_NAS_NRMM_SND_NRSM_C                         = NRNAS_TEAM_FILE_ID + 32,
+/* 28705 */    PS_FILE_ID_NAS_NRMM_SND_REGM_C                         = NRNAS_TEAM_FILE_ID + 33,
+/* 28706 */    PS_FILE_ID_NAS_NRMM_SND_SDAP_C                         = NRNAS_TEAM_FILE_ID + 34,
+/* 28707 */    PS_FILE_ID_NAS_NRMM_SND_SMS_C                          = NRNAS_TEAM_FILE_ID + 35,
+/* 28708 */    PS_FILE_ID_NAS_NRMM_SND_USIM_C                         = NRNAS_TEAM_FILE_ID + 36,
+/* 28709 */    PS_FILE_ID_NAS_NRMM_TIMER_MGMT_C                       = NRNAS_TEAM_FILE_ID + 37,
+/* 28710 */    PS_FILE_ID_NAS_NRMM_SEC_API_C                          = NRNAS_TEAM_FILE_ID + 38,
+/* 28711 */    PS_FILE_ID_NAS_NRMM_PROC_USIM_C                        = NRNAS_TEAM_FILE_ID + 39,
+/* 28712 */    PS_FILE_ID_NAS_NRMM_REG_FS_CTX_C                       = NRNAS_TEAM_FILE_ID + 40,
+/* 28713 */    PS_FILE_ID_NAS_NRMM_SND_PCF_C                          = NRNAS_TEAM_FILE_ID + 41,
+/* 28714 */    PS_FILE_ID_NAS_NRMM_SND_IMSA_C                         = NRNAS_TEAM_FILE_ID + 42,
+/* 28715 */    PS_FILE_ID_NAS_NRMM_SND_NREAP_C                        = NRNAS_TEAM_FILE_ID + 43,
 
-/* 27688 */    PS_FILE_ID_NAS_NRSM_COM_FUNC_C                       = NRNAS_TEAM_FILE_ID + 40,
-/* 27689 */    PS_FILE_ID_NAS_NRSM_TIMER_MGMT_C                     = NRNAS_TEAM_FILE_ID + 41,
-/* 27690 */    PS_FILE_ID_NAS_NRSM_CTX_C                            = NRNAS_TEAM_FILE_ID + 42,
-/* 27691 */    PS_FILE_ID_NAS_NRSM_SAVE_IE_C                        = NRNAS_TEAM_FILE_ID + 43,
-/* 27692 */    PS_FILE_ID_NAS_NRSM_ENCODE_IE_C                      = NRNAS_TEAM_FILE_ID + 44,
-/* 27693 */    PS_FILE_ID_NAS_NRSM_MNTN_C                           = NRNAS_TEAM_FILE_ID + 45,
-/* 27694 */    PS_FILE_ID_NAS_NRSM_SND_NRMM_C                       = NRNAS_TEAM_FILE_ID + 46,
-/* 27695 */    PS_FILE_ID_NAS_NRSM_SND_APS_C                        = NRNAS_TEAM_FILE_ID + 47,
-/* 27696 */    PS_FILE_ID_NAS_NRSM_MAIN_C                           = NRNAS_TEAM_FILE_ID + 48,
-/* 27697 */    PS_FILE_ID_NAS_NRSM_MAIN_CTRL_C                      = NRNAS_TEAM_FILE_ID + 49,
-/* 27698 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_ESTING_C         = NRNAS_TEAM_FILE_ID + 50,
-/* 27699 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_ESTING_TBL_C     = NRNAS_TEAM_FILE_ID + 51,
-/* 27700 */    PS_FILE_ID_NAS_NRSM_FSM_MAIN_TBL_C                   = NRNAS_TEAM_FILE_ID + 52,
-/* 27701 */    PS_FILE_ID_NAS_NRSM_FSM_MAIN_C                       = NRNAS_TEAM_FILE_ID + 53,
-/* 27702 */    PS_FILE_ID_NAS_NRSM_SND_INTERNAL_MSG_C               = NRNAS_TEAM_FILE_ID + 54,
-/* 27703 */    PS_FILE_ID_NAS_NRSM_GET_PDU_SESSION_CTX_INDEX_LIST_C = NRNAS_TEAM_FILE_ID + 55,
+/* 28716 */    PS_FILE_ID_NAS_NRSM_COM_FUNC_C                         = NRNAS_TEAM_FILE_ID + 44,
+/* 28717 */    PS_FILE_ID_NAS_NRSM_TIMER_MGMT_C                       = NRNAS_TEAM_FILE_ID + 45,
+/* 28718 */    PS_FILE_ID_NAS_NRSM_CTX_C                              = NRNAS_TEAM_FILE_ID + 46,
+/* 28719 */    PS_FILE_ID_NAS_NRSM_SAVE_IE_C                          = NRNAS_TEAM_FILE_ID + 47,
+/* 28720 */    PS_FILE_ID_NAS_NRSM_ENCODE_IE_C                        = NRNAS_TEAM_FILE_ID + 48,
+/* 28721 */    PS_FILE_ID_NAS_NRSM_MNTN_C                             = NRNAS_TEAM_FILE_ID + 49,
+/* 28722 */    PS_FILE_ID_NAS_NRSM_SND_NRMM_C                         = NRNAS_TEAM_FILE_ID + 50,
+/* 28723 */    PS_FILE_ID_NAS_NRSM_SND_APS_C                          = NRNAS_TEAM_FILE_ID + 51,
+/* 28724 */    PS_FILE_ID_NAS_NRSM_MAIN_C                             = NRNAS_TEAM_FILE_ID + 52,
+/* 28725 */    PS_FILE_ID_NAS_NRSM_MAIN_CTRL_C                        = NRNAS_TEAM_FILE_ID + 53,
+/* 28726 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_ESTING_C           = NRNAS_TEAM_FILE_ID + 54,
+/* 28727 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_ESTING_TBL_C       = NRNAS_TEAM_FILE_ID + 55,
+/* 28728 */    PS_FILE_ID_NAS_NRSM_FSM_MAIN_TBL_C                     = NRNAS_TEAM_FILE_ID + 56,
+/* 28729 */    PS_FILE_ID_NAS_NRSM_FSM_MAIN_C                         = NRNAS_TEAM_FILE_ID + 57,
+/* 28730 */    PS_FILE_ID_NAS_NRSM_SND_INTERNAL_MSG_C                 = NRNAS_TEAM_FILE_ID + 58,
+/* 28731 */    PS_FILE_ID_NAS_NRSM_GET_PDU_SESSION_CTX_INDEX_LIST_C   = NRNAS_TEAM_FILE_ID + 59,
+/* 28732 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_RELEASE_C          = NRNAS_TEAM_FILE_ID + 60,
+/* 28733 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_RELEASE_TBL_C      = NRNAS_TEAM_FILE_ID + 61,
+/* 28734 */    PS_FILE_ID_NAS_NRSM_AIR_MSG_RETRANSMIT_STRATEGY_C      = NRNAS_TEAM_FILE_ID + 62,
+/* 28735 */    PS_FILE_ID_NAS_NRSM_PROC_NVIM_C                        = NRNAS_TEAM_FILE_ID + 63,
+/* 28736 */    PS_FILE_ID_NAS_NRSM_PROC_NW_CAUSE_C                    = NRNAS_TEAM_FILE_ID + 64,
+/* 28737 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_AUTHENTICATE_C     = NRNAS_TEAM_FILE_ID + 65,
+/* 28738 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_AUTHENTICATE_TBL_C = NRNAS_TEAM_FILE_ID + 66,
+/* 28739 */    PS_FILE_ID_NAS_NRSM_SND_NREAP_C                        = NRNAS_TEAM_FILE_ID + 67,
+/* 28740 */    PS_FILE_ID_NAS_NRSM_FSM_INTERSYS_RESUME_TBL_C          = NRNAS_TEAM_FILE_ID + 68,
+/* 28741 */    PS_FILE_ID_NAS_NRSM_FSM_INTERSYS_RESUME_C              = NRNAS_TEAM_FILE_ID + 69,
+/* 28742 */    PS_FILE_ID_NAS_NRSM_SND_ESM_C                          = NRNAS_TEAM_FILE_ID + 70,
+/* 28743 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_MODIFY_C           = NRNAS_TEAM_FILE_ID + 71,
+/* 28744 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_MODIFY_TBL_C       = NRNAS_TEAM_FILE_ID + 72,
 
-/* 27706 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_RELEASE_C        = NRNAS_TEAM_FILE_ID + 56,
-/* 27707 */    PS_FILE_ID_NAS_NRSM_FSM_PDU_SESSION_RELEASE_TBL_C    = NRNAS_TEAM_FILE_ID + 57,
-/* 27708 */    PS_FILE_ID_NAS_NRSM_AIR_MSG_RETRANSMIT_STRATEGY_C    = NRNAS_TEAM_FILE_ID + 58,
-/* 27709 */    PS_FILE_ID_NRNAS_MNTN_C                              = NRNAS_TEAM_FILE_ID + 59,
-/* 27710 */    PS_FILE_ID_NAS_NRSM_PROC_NVIM_C                      = NRNAS_TEAM_FILE_ID + 60,
+/* 28745 */    PS_FILE_ID_NRNAS_EAP_CTX_C                             = NRNAS_TEAM_FILE_ID + 73,
+/* 28746 */    PS_FILE_ID_NRNAS_EAP_MAIN_C                            = NRNAS_TEAM_FILE_ID + 74,
+/* 28747 */    PS_FILE_ID_NRNAS_EAP_MAIN_CTRL_C                       = NRNAS_TEAM_FILE_ID + 75,
+/* 28748 */    PS_FILE_ID_NRNAS_EAP_AKA_C                             = NRNAS_TEAM_FILE_ID + 76,
+/* 28749 */    PS_FILE_ID_NRNAS_EAP_PROC_NAS_C                        = NRNAS_TEAM_FILE_ID + 77,
+/* 28750 */    PS_FILE_ID_NRNAS_EAP_PROC_TIMER_C                      = NRNAS_TEAM_FILE_ID + 78,
+/* 28751 */    PS_FILE_ID_NRNAS_EAP_PROC_NVIM_C                       = NRNAS_TEAM_FILE_ID + 79,
+/* 28752 */    PS_FILE_ID_NRNAS_EAP_PROC_USIM_C                       = NRNAS_TEAM_FILE_ID + 80,
+/* 28753 */    PS_FILE_ID_NRNAS_EAP_SHA1_C                            = NRNAS_TEAM_FILE_ID + 81,
+/* 28754 */    PS_FILE_ID_NRNAS_EAP_SHA256_C                          = NRNAS_TEAM_FILE_ID + 82,
+/* 28755 */    PS_FILE_ID_NRNAS_EAP_UTILITY_C                         = NRNAS_TEAM_FILE_ID + 83,
+/* 28756 */    PS_FILE_ID_NRNAS_EAP_TIMER_MGMT_C                      = NRNAS_TEAM_FILE_ID + 84,
+/* 28757 */    PS_FILE_ID_NRNAS_EAP_AES_C                             = NRNAS_TEAM_FILE_ID + 85,
+/* 28758 */    PS_FILE_ID_NRNAS_EAP_COM_FUNC_C                        = NRNAS_TEAM_FILE_ID + 86,
+/* 28759 */    PS_FILE_ID_NRNAS_EAP_SND_USIMM_C                       = NRNAS_TEAM_FILE_ID + 87,
+/* 28760 */    PS_FILE_ID_NRNAS_EAP_SND_NAS_C                         = NRNAS_TEAM_FILE_ID + 88,
+/* 28761 */    PS_FILE_ID_NRNAS_EAP_MNTN_C                            = NRNAS_TEAM_FILE_ID + 89,
+/* 28762 */    PS_FILE_ID_NRNAS_EAP_PEER_C                            = NRNAS_TEAM_FILE_ID + 90,
 
-/* 27711 */    PS_FILE_ID_NAS_NRSM_PROC_NW_CAUSE_C                  = NRNAS_TEAM_FILE_ID + 61,
-/* 27712 */    PS_FILE_ID_NAS_NRMM_PROC_USIM_C                      = NRNAS_TEAM_FILE_ID + 62,
-/* 27713 */    PS_FILE_ID_NAS_NRMM_REG_FS_CTX_C                     = NRNAS_TEAM_FILE_ID + 63,               PS_FILE_ID_NRNAS_BUTT
+/* 28763 */    PS_FILE_ID_NAS_PCF_DECODE_C                            = NRNAS_TEAM_FILE_ID + 91,
+/* 28764 */    PS_FILE_ID_NAS_PCF_ENCODE_C                            = NRNAS_TEAM_FILE_ID + 92,
+/* 28765 */    PS_FILE_ID_NAS_PCF_MAIN_C                              = NRNAS_TEAM_FILE_ID + 93,
+/* 28766 */    PS_FILE_ID_NAS_PCF_CTX_C                               = NRNAS_TEAM_FILE_ID + 94,
+/* 28767 */    PS_FILE_ID_NAS_PCF_SND_DSM_C                           = NRNAS_TEAM_FILE_ID + 95,
+/* 28768 */    PS_FILE_ID_NAS_PCF_SND_NRMM_C                          = NRNAS_TEAM_FILE_ID + 96,
+
+
+/* 28769 */    PS_FILE_ID_NRNAS_MNTN_C                                = NRNAS_TEAM_FILE_ID + 97,
+/* 28770 */    PS_FILE_ID_NRNAS_MNTN_DUMP_C                           = NRNAS_TEAM_FILE_ID + 98,
+
+/* 28771 */    PS_FILE_ID_NAS_NR_ASN_COMMENT_CODE_TBL_C               = NRNAS_TEAM_FILE_ID + 99,
+/* 28772 */    PS_FILE_ID_NAS_NRMM_SND_RRM_C                          = NRNAS_TEAM_FILE_ID + 100,
+/* 28773 */    PS_FILE_ID_NAS_NRSM_SND_RRM_C                          = NRNAS_TEAM_FILE_ID + 101,
+/* 28774 */    PS_FILE_ID_NRNAS_ERRLOG_CTX                            = NRNAS_TEAM_FILE_ID + 102,
+/* 28775 */    PS_FILE_ID_NRNAS_ERRLOG_REPORT                         = NRNAS_TEAM_FILE_ID + 103,
+/* 28776 */    PS_FILE_ID_NAS_NRMM_SND_TC_C                           = NRNAS_TEAM_FILE_ID + 104,
+
+               PS_FILE_ID_NRNAS_BUTT
 }NRNAS_FILE_ID_DEFINE_ENUM;
 typedef unsigned long  NRNAS_FILE_ID_DEFINE_ENUM_UINT32;
 
@@ -4524,6 +4662,7 @@ typedef enum
 /*****************************************************************************
   5 OTHERS定义
 *****************************************************************************/
+
 
 #ifdef __cplusplus
 #if __cplusplus

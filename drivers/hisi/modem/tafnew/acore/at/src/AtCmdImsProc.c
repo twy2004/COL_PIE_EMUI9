@@ -148,8 +148,9 @@ const AT_IMSA_MSG_PRO_FUNC_STRU g_astAtImsaMsgTab[]=
 *****************************************************************************/
 
 
-VOS_VOID AT_ProcImsaMsg(AT_IMSA_MSG_STRU *pstMsg)
+VOS_VOID AT_ProcImsaMsg(VOS_VOID *pMsg)
 {
+    AT_IMSA_MSG_STRU                   *pstMsg = VOS_NULL_PTR;
     VOS_UINT32                          i;
     VOS_UINT32                          ulMsgCnt;
     VOS_UINT32                          ulMsgId;
@@ -157,6 +158,7 @@ VOS_VOID AT_ProcImsaMsg(AT_IMSA_MSG_STRU *pstMsg)
 
     /*从g_astAtProcMsgFromImsaTab中获取消息个数*/
     ulMsgCnt = sizeof(g_astAtImsaMsgTab)/sizeof(AT_IMSA_MSG_PRO_FUNC_STRU);
+    pstMsg   = (AT_IMSA_MSG_STRU*)pMsg;
 
     /*从消息包中获取MSG ID*/
     ulMsgId  = pstMsg->ulMsgId;

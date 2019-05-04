@@ -53,6 +53,10 @@
 #define BATT_BRAND_STRING_MAX        (32)
 #define BATT_BRAND_NUM_MAX           (5)
 
+#define CCAFC_RUN_DEFAULT	0
+#define CCAFC_RUN_FIRST		1
+#define CCAFC_RUN_ALREADY	2
+
 /*************************struct define area***************************/
 enum vdpm_para_info {
 	VDPM_PARA_CAP_MIN = 0,

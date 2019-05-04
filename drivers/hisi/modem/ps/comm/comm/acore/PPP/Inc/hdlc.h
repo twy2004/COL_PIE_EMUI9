@@ -46,6 +46,7 @@ extern "C" {
 #endif
 
 
+
 /*
  *  Definition for Async HDLC
  */
@@ -127,8 +128,8 @@ extern VOS_UINT16 hdlc_Fcs(VOS_CHAR *, VOS_UINT32);
 extern PPP_ZC_STRU *hdlc_LayerPull(struct link *l, PPP_ZC_STRU *pstMem, VOS_UINT16 *proto);
 
 #if (FEATURE_ON == FEATURE_HARDWARE_HDLC_FUNC)
-#define     PPP_HDLC_CACHE_INVALID(data, len)                   dma_map_single(0, data, len, DMA_FROM_DEVICE)
-#define     PPP_HDLC_CACHE_FLUSH(data, len)                     dma_map_single(0, data, len, DMA_TO_DEVICE)
+#define     PPP_HDLC_CACHE_INVALID(data, len)                   dma_map_single(g_pstHdlcDev, data, len, DMA_FROM_DEVICE)
+#define     PPP_HDLC_CACHE_FLUSH(data, len)                     dma_map_single(g_pstHdlcDev, data, len, DMA_TO_DEVICE)
 #endif
 
 

@@ -79,7 +79,7 @@ typedef struct
 
 typedef struct
 {
-    DIAG_CMD_TRANS_IND_STRU stTransInfo;
+    DIAG_TRANS_IND_STRU     stTransInfo;
     DIAG_IND_HIGH_TS_STRU   stHighTs;
 }DIAG_TIME_STAMP_T;
 
@@ -92,6 +92,8 @@ VOS_UINT32 diag_HighTsCfgProc(VOS_UINT8* pstReq);
 static inline VOS_VOID diag_PushHighTs(VOS_VOID){}
 static inline VOS_VOID diag_StopHighTsTimer(VOS_VOID){}
 static inline VOS_UINT32 diag_HighTsCfgProc(VOS_UINT8* pstReq){return 0;}
+static inline VOS_VOID diag_StartHighTsTimer(VOS_VOID){return;}
+
 #endif
 #ifdef __cplusplus
     #if __cplusplus

@@ -14,7 +14,6 @@
 #include <linux/list.h>
 #include <linux/platform_device.h>
 #include <huawei_platform/log/hw_log.h>
-#include <huawei_platform/power/batt_info.h>
 
 /* onewire common interface */
 typedef struct {

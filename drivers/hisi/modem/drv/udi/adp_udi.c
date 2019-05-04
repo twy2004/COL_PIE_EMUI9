@@ -55,6 +55,7 @@
 #include "udi_balong.h"
 
 
+
 #include <securec.h>
 #include "bsp_print.h"
 
@@ -68,7 +69,6 @@ static int udiAdpAcmInit(void);
 #define UDI_USB_NCM_NDIS_CAPA   (UDI_CAPA_READ_CB | UDI_CAPA_BUFFER_LIST)
 #define UDI_USB_NCM_CTRL_CAPA   (UDI_CAPA_READ_CB | UDI_CAPA_CTRL_OPT)
 #define UDI_UART_CAPA           (UDI_CAPA_BLOCK_READ | UDI_CAPA_BLOCK_WRITE)
-
 
 /* 各模块初始化函数定义 */
 void* g_udiInitFuncTable[(unsigned int)UDI_DEV_MAX+1] =
@@ -94,6 +94,7 @@ void* g_udiInitFuncTable[(unsigned int)UDI_DEV_MAX+1] =
     NULL
 };
 
+
 /*** eric **/
 static int udiAcmAdpOpen(UDI_OPEN_PARAM_S *param, UDI_HANDLE handle)
 {
@@ -104,8 +105,7 @@ static int udiAcmAdpOpen(UDI_OPEN_PARAM_S *param, UDI_HANDLE handle)
 	UDI_UNUSED_PARAM(handle);
 
 	u32Type = UDI_GET_DEV_TYPE(param->devid);
-	filep = bsp_acm_open(u32Type);
-
+    filep = bsp_acm_open(u32Type);
 	if (!filep)
 	{
 		return (-1);
@@ -114,6 +114,8 @@ static int udiAcmAdpOpen(UDI_OPEN_PARAM_S *param, UDI_HANDLE handle)
 	(void)BSP_UDI_SetPrivate(param->devid, filep);
 	return 0;
 }
+
+
 /*lint -e429 -esym(429,*)*/
 static int udiAdpAcmInit(void)
 {
@@ -131,7 +133,7 @@ static int udiAdpAcmInit(void)
 
 	/* 只设置需要实现的几个接口 */
 	pDrvInterface->udi_open_cb = udiAcmAdpOpen;
-	pDrvInterface->udi_close_cb = (UDI_CLOSE_CB_T)bsp_acm_close;
+    pDrvInterface->udi_close_cb = (UDI_CLOSE_CB_T)bsp_acm_close;
 	pDrvInterface->udi_write_cb = (UDI_WRITE_CB_T)bsp_acm_write;
 	pDrvInterface->udi_read_cb = (UDI_READ_CB_T)bsp_acm_read;
 	pDrvInterface->udi_ioctl_cb = (UDI_IOCTL_CB_T)bsp_acm_ioctl;
@@ -146,6 +148,7 @@ static int udiAdpAcmInit(void)
 	return 0;
 }
 /*lint -e429 +esym(429,*)*/
+
 
 
 

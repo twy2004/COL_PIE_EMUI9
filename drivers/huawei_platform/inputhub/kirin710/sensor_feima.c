@@ -64,6 +64,8 @@ extern const char *get_str_begin(const char *cmd_buf);
 extern const char *get_str_end(const char *cmd_buf);
 extern bool get_arg(const char *str, int *arg);
 
+static bool camera_set_rpc_flag = false;
+
 static int rpc_commu(unsigned int cmd, unsigned int pare, uint16_t motion)
 {
 	int ret = -1;
@@ -179,6 +181,40 @@ static int rpc_status_change(void)
 	}
 	return ret;
 }
+
+/*
+*add for Txx front&wide camera radio frequency interference
+*status:1--enable camera
+*status:0--disable camera
+*/
+int rpc_status_change_for_camera(unsigned int status)
+{
+	int ret = 0;
+
+	if (status == 1) {
+		sar_service_info = sar_service_info | 0x400;// set bit10
+		camera_set_rpc_flag = true;
+	} else if (status == 0) {
+		sar_service_info = sar_service_info & 0xFBFF;// release bit10
+		camera_set_rpc_flag = false;
+	} else {
+		camera_set_rpc_flag = false;
+		hwlog_err("error status\n");
+		return ret;
+	}
+
+	hwlog_info("status %d, sar_service_info is %lu\n", status, sar_service_info);
+	ret = rpc_status_change();
+	if (ret) {
+		hwlog_err("rpc status change fail: %d\n", ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+EXPORT_SYMBOL_GPL(rpc_status_change_for_camera);
+
 static ssize_t store_rpc_motion_req(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	unsigned long value = 0;
@@ -209,6 +245,10 @@ static ssize_t store_rpc_sar_service_req(struct device *dev, struct device_attri
 		return size;
 	}
 	hwlog_info("%s: rpc sar service request val (%lu), buf is %s.\n", __FUNCTION__, sar_service, buf);
+	if (camera_set_rpc_flag) {
+		sar_service = sar_service | 0x400;// camera set bit10
+		hwlog_info("%s: camera_set_rpc_flag, rpc sar service val (%lu).\n", __func__, sar_service);
+	}
 	sar_service_info = sar_service;
 	rpc_status_change();
 	return size;

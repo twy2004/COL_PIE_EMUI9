@@ -75,6 +75,7 @@ typedef struct
 typedef struct
 {
     unsigned short u16Attribute;
+    unsigned short fc_head;
     unsigned short u16PktLen;
     modem_phy_addr InPtr;
     modem_phy_addr OutPtr;

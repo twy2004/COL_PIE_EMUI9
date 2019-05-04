@@ -90,7 +90,7 @@ extern "C"
 #define IPF_DLAD1_DESC_SIZE        (32*(1 << IPF_DL_ADQ_LEN_EXP))   /* 下行ADQ1中AD个数 */
 
 #define IPF_DLCD_DESC_SIZE         /*lint -save -e506 */ ((IPF_DLBD_DESC_SIZE>1024)?IPF_DLBD_DESC_SIZE:1024)/*lint -restore */
-#define IPF_FILTER_CHAIN_MAX_NUM   (8)    /* IPF过滤器链最大个数 */
+#define IPF_FILTER_CHAIN_MAX_NUM   (16)    /* IPF过滤器链最大个数 */
 
 /*ADQ使能枚举值*/
 typedef enum tagIPF_ADQEN_E
@@ -175,6 +175,8 @@ typedef enum tagIPF_FILTER_CHAIN_TYPE_E
 	IPF_MODEM1_DLFC,
     IPF_MODEM2_DLFC,
     IPF_1XHRPD_ULFC,
+    IPF_LTEV_DLFC,
+    IPF_LTEV_ULFC,
 	IPF_MODEM_MAX,
 }IPF_FILTER_CHAIN_TYPE_E;
 

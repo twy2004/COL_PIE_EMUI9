@@ -68,6 +68,14 @@ extern "C" {
 #include "plat_pm_wlan.h"
 #endif
 
+#ifdef _PRE_WLAN_PKT_TIME_STAT
+#include  <hwnet/ipv4/wifi_delayst.h>
+#endif
+
+#ifdef _PRE_WLAN_FEATURE_SNIFFER
+#include <hwnet/ipv4/sysctl_sniffer.h>
+#endif
+
 #undef  THIS_FILE_ID
 #define THIS_FILE_ID OAM_FILE_ID_HMAC_TX_DATA_C
 /*
@@ -1176,7 +1184,6 @@ oal_void  hmac_tx_tcp_ack_buf_switch(oal_uint32 ul_rx_throughput_mbps)
     {
         return;
     }
-
     ul_ret = mac_device_find_up_vap_etc(pst_mac_device, &pst_mac_vap);
     if ((OAL_SUCC != ul_ret) || (OAL_PTR_NULL == pst_mac_vap))
     {
@@ -1247,22 +1254,26 @@ oal_void  hmac_tx_tcp_ack_buf_switch(oal_uint32 ul_rx_throughput_mbps)
     {
         return;
     }
-    if (ul_rx_throughput_mbps > ul_limit_throughput_high)
+
+    g_st_tcp_ack_buf_switch.us_tcp_ack_smooth_throughput >>= 1;
+    g_st_tcp_ack_buf_switch.us_tcp_ack_smooth_throughput += (ul_rx_throughput_mbps >> 1);
+    if (g_st_tcp_ack_buf_switch.us_tcp_ack_smooth_throughput > ul_limit_throughput_high)
     {
-        /* 高于上门限,打开tcp ack buf */
+        /* 高于上门限,打开tcp ack buf*/
         en_tcp_ack_buf = OAL_TRUE;
     }
-    else if (ul_rx_throughput_mbps < ul_limit_throughput_low)
+    else if (g_st_tcp_ack_buf_switch.us_tcp_ack_smooth_throughput < ul_limit_throughput_low)
     {
         /* 低于下门限,关闭tcp ack buf */
         en_tcp_ack_buf = OAL_FALSE;
     }
     else
     {
-        /* 介于上下门限之间, 不作切换 */
+        /* 介于上下门限之间， 不作切换 */
         return;
     }
 
+     /* 未发生变化 ,不处理 */
     if (g_st_tcp_ack_buf_switch.uc_cur_tcp_ack_buf_en == en_tcp_ack_buf)
     {
         return;
@@ -1294,6 +1305,7 @@ oal_void  hmac_tx_ampdu_switch(oal_uint32 ul_tx_throughput_mbps)
     oal_uint32                       ul_limit_throughput_low = 0;
     oal_uint32                       ul_ret;
     oal_bool_enum_uint8              en_ampdu_hw;
+    hmac_user_stru                   *pst_hmac_user;
     /* 如果定制化不支持硬件聚合 */
     if (OAL_FALSE == g_st_ampdu_hw.uc_ampdu_hw_en)
     {
@@ -1369,6 +1381,21 @@ oal_void  hmac_tx_ampdu_switch(oal_uint32 ul_tx_throughput_mbps)
         if (WLAN_BAND_WIDTH_80PLUSPLUS > pst_mac_vap->st_channel.en_bandwidth)
         {
             return;
+        }
+        /* 黑名单内AP不进行硬件聚合切换 */
+        if(IS_LEGACY_STA(pst_mac_vap))
+        {
+            pst_hmac_user = mac_res_get_hmac_user_etc(pst_mac_vap->us_assoc_vap_id);
+            if (OAL_PTR_NULL == pst_hmac_user)
+            {
+                OAM_ERROR_LOG0(pst_mac_vap->uc_vap_id, OAM_SF_M2S, "hmac_tx_ampdu_switch: pst_hmac_user is null ptr.");
+                return;
+            }
+            if(pst_hmac_user->en_user_ap_type & MAC_AP_TYPE_AGGR_BLACKLIST)
+            {
+                return;
+            }
+
         }
     }
     else
@@ -1798,6 +1825,11 @@ oal_uint32  hmac_tx_encap_etc(hmac_vap_stru *pst_vap, hmac_user_stru *pst_user, 
         /* 进行分片处理 */
         ul_ret = hmac_frag_process(pst_vap, pst_buf, pst_tx_ctl, (oal_uint32)uc_ic_header, ul_threshold);
     }
+
+#ifdef _PRE_WLAN_FEATURE_SNIFFER
+	proc_sniffer_write_file((const oal_uint8*)pst_head, MAC_80211_QOS_FRAME_LEN,
+	                      (const oal_uint8 *)oal_netbuf_data(pst_buf), OAL_NETBUF_LEN(pst_buf), 1);
+#endif
 
     return ul_ret;
 }
@@ -2319,6 +2351,13 @@ OAL_INLINE oal_uint32  hmac_tx_lan_to_wlan_no_tcp_opt_etc(mac_vap_stru *pst_vap,
             hmac_tx_lan_mpdu_info(pst_vap, uc_data_type, pst_buf, pst_tx_ctl);
         }
 
+#ifdef _PRE_WLAN_PKT_TIME_STAT
+    if (DELAY_STATISTIC_SWITCH_ON && IS_NEED_RECORD_DELAY(pst_buf,TP_SKB_HMAC_XMIT))
+        {
+            skbprobe_record_time(pst_buf, TP_SKB_HMAC_TX);
+        }
+#endif
+
         /* 抛事件，传给DMAC */
         pst_event_mem = FRW_EVENT_ALLOC(OAL_SIZEOF(dmac_tx_event_stru));
         if (OAL_UNLIKELY(OAL_PTR_NULL == pst_event_mem))
@@ -2718,6 +2757,12 @@ oal_net_dev_tx_enum  hmac_bridge_vap_xmit_etc(oal_netbuf_stru *pst_buf, oal_net_
         OAM_INFO_LOG0(pst_vap->uc_vap_id, OAM_SF_TX, "{hmac_bridge_vap_xmit_etc::the unshare netbuf = OAL_PTR_NULL!}\r\n");
         return OAL_NETDEV_TX_OK;
     }
+ #ifdef _PRE_WLAN_PKT_TIME_STAT
+    if(DELAY_STATISTIC_SWITCH_ON && IS_NEED_RECORD_DELAY(pst_buf,TP_SKB_IP))
+    {
+        skbprobe_record_time(pst_buf, TP_SKB_HMAC_XMIT);
+    }
+ #endif
 
     /* 将以太网过来的帧上报SDT */
     hmac_tx_report_eth_frame_etc(pst_vap, pst_buf);
@@ -2796,7 +2841,11 @@ oal_net_dev_tx_enum  hmac_bridge_vap_xmit_etc(oal_netbuf_stru *pst_buf, oal_net_
     OAL_NETBUF_NEXT(pst_buf) = OAL_PTR_NULL;
     OAL_NETBUF_PREV(pst_buf) = OAL_PTR_NULL;
 
+#ifdef _PRE_WLAN_PKT_TIME_STAT
+    OAL_MEMZERO(OAL_NETBUF_CB(pst_buf), OAL_NETBUF_CB_ORIGIN);
+#else
     OAL_MEMZERO(OAL_NETBUF_CB(pst_buf), OAL_NETBUF_CB_SIZE());
+#endif
 
 #ifdef _PRE_WLAN_FEATURE_PROXYSTA
     /* ARP、DHCP、ICMPv6等数据包的地址转换 (只有proxy STA的发送的包才需要地址转换)*/

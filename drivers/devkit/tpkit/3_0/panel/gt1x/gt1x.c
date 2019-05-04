@@ -47,10 +47,11 @@
 #define GT1X_EXIST				1
 #define GT1X_NOT_EXIST			0
 
-#define GT1X_RESET_SLEEP_TIME	80	/* 80ms */
-#define GT1X_RESET_PIN_D_U_TIME	150	/* 150us */
-#define GT1X_DELAY_10	10	/* 10ms */
-#define GT1X_DELAY_80	80	/* 10ms */
+#define GT1X_RESET_SLEEP_TIME	80 /* 80ms */
+#define GT1X_RESET_PIN_D_U_TIME	150 /* 150us */
+#define GT1X_DELAY_10	10 /* 10ms */
+#define GT1X_DELAY_80	80 /* 80ms */
+#define GT1X_DELAY_INIT 55 /* 55ms */
 
 #define GT1X_ROI_SRC_STATUS_INDEX		2
 #define GT1X_BIT_AND_0x0F		0x0f
@@ -1052,8 +1053,8 @@ static void gt1x_double_tap_event(struct gt1x_ts_data *ts, struct ts_fingers *in
 		return;
 	}
 
-	memset(ts->dev_data->ts_platform_data->chip_data->easy_wakeup_info.easywake_position, 
-			0, MAX_POSITON_NUMS);
+	memset(ts->dev_data->ts_platform_data->chip_data->easy_wakeup_info.
+		easywake_position, 0, MAX_POSITION_NUMS);
 	for (i = 0; i < GT1X_DOUBLE_TAB_POINT_NUM; i++) {
 		x = -1;
 		y = -1;
@@ -1540,6 +1541,18 @@ int gt1x_read_version(struct gt1x_hw_info * hw_info)
 
 static int gt1x_prepar_parse_dts(struct ts_kit_platform_data *pdata)
 {
+	int ret;
+	struct gt1x_ts_data *ts = gt1x_ts;
+	struct ts_kit_device_data *chip_data = ts->dev_data;
+
+	ret = of_property_read_u32(pdata->chip_data->cnode, GT1X_INIT_DELAY,
+		&ts->init_delay);
+	if (ret) {
+		TS_LOG_INFO("%s: init_delay use default value\n", __func__);
+		ts->init_delay = false;
+	}
+	TS_LOG_INFO("%s:init_delay value: [%d]\n", __func__, ts->init_delay);
+
 	return NO_ERR;
 }
 
@@ -2570,7 +2583,10 @@ static void gt1x_select_addrs(void)
 	if (ret < 0){
 		TS_LOG_ERR("%s:Set reset output to 1 fail:%d\n", __func__, ret);
 	}
-	msleep(GT1X_DELAY_80);
+	if (gt1x_ts->init_delay)
+		msleep(GT1X_DELAY_INIT);
+	else
+		msleep(GT1X_DELAY_80);
 	ret = pinctrl_select_state(gt1x_ts->pinctrl, gt1x_ts->pinctrl_state_as_int);
 	if (ret < 0){
 		TS_LOG_ERR("%s:Set pinctrl_state_as_int fail:%d\n", __func__, ret);

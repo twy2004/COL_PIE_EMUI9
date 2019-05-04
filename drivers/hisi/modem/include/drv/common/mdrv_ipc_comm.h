@@ -127,7 +127,7 @@ int mdrv_ipc_int_connect (IPC_INT_LEV_E ulLvl,VOIDFUNCPTR routine, unsigned int 
  *                           其他	操作失败。
  *
  ******************************************************************************/
-int mdrv_ipc_int_disconnect (IPC_INT_LEV_E ulLvl,VOIDFUNCPTR routine, unsigned int parameter);
+int mdrv_ipc_int_disconnect (IPC_INT_LEV_E ulLvl);
 
 /*****************************************************************************
  *  函 数 名  : mdrv_ipc_int_send

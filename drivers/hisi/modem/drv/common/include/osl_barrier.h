@@ -53,9 +53,12 @@
 #define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
 #define cpu_relax() __asm__ __volatile__("": : :"memory")
 
-#ifdef __OS_RTOSCK_SMP__
+#if defined(__OS_RTOSCK_SMP__)
 
 #define smp_mb()	 __asm__ __volatile__("dmb": : :"memory")
+
+#elif defined(__OS_RTOSCK_TSP__)||defined(__OS_RTOSCK_TVP__)
+#define smp_mb() ;
 
 #elif defined(__OS_RTOSCK__)
  #define smp_mb()	 __asm__ __volatile__("": : :"memory")

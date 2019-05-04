@@ -15,9 +15,9 @@
 /include/ "usb_short_circuit_protect_dto.dtsi"
 /include/ "lcdkit3.0/default/devkit_lcd_kit.dtsi"
 /include/ "lcdkit3.0/ever_tugl/devkit_lcd_kit.dtsi"
-/include/ "desayatl_4900_39k_4400.dtsi"
-/include/ "sunwodamurata_4900_110k_4400.dtsi"
-/include/ "scudguangyu_4900_22k_4400.dtsi"
+/include/ "desayatl_4900_39k_4400_24.dtsi"
+/include/ "sunwodamurata_4900_110k_4400_38.dtsi"
+/include/ "scudguangyu_4900_22k_4400_32.dtsi"
 
 / {
     board_id = <8452>;
@@ -228,9 +228,9 @@
 };
 
 &fastboot_pmic {
-	hisilicon,init-reg-num = <3>;
-	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E>;
-	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4>;
+	hisilicon,init-reg-num = <4>;
+	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E 0x02E9>;
+	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4 0x06>;
 };
 
 	&rootparam {
@@ -425,7 +425,7 @@
 	};
 
 	&hisi_battery {
-		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400 &scudguangyu_4900_22k_4400>;
+		batt_name = <&desayatl_4900_39k_4400_24 &sunwodamurata_4900_110k_4400_38 &scudguangyu_4900_22k_4400_32>;
 		status = "ok";
 	};
 
@@ -689,8 +689,8 @@
 		t_perst2access = <7000 8000>;
 		t_perst2rst = <10000 11000>;
 
-		/* slt test connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
-		slt_device_type = <0x1>;
+		/* connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
+		ep_device_type = <0x1>;
 	};
 
 
@@ -1233,7 +1233,7 @@
 				clock-names = "clk_out0";
 				clocks = <&clk_gate_out0>;
 				nfc_chip_type = "pn80t";
-				nfc_single_channel = "true";
+				nfc_single_channel = "false";
 				nfc_ese_type = "p61";
 			};
 
@@ -2353,7 +2353,7 @@
 				ps_calib_3cm_threshold=<500>;
 				gpio_int1=<&gpio27 1 0>;
 				poll_interval = <80>;
-				ps_oily_threshold = <3>;
+				ps_oily_threshold = <6>;
 				oily_max_near_pdata=<1000>;
 				max_oily_add_pdata=<100>;
 				max_near_pdata_loop=<3>;
@@ -2790,7 +2790,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;
@@ -3021,28 +3020,28 @@
 		iovdd-supply = <&ldo21>;
 		huawei,ldo-names = "dvdd","dvdd2", "iovdd";
 
-		gpios = <&gpio1 4 0 &gpio0 7 0>;
-		huawei,gpio-ctrl-types = "reset", "reset2";
+		gpios = <&gpio1 4 0 &gpio0 7 0 &gpio4 3 0>;
+		huawei,gpio-ctrl-types = "reset", "reset2", "laser_xshut";  /*laser_xshut need to configed to avoid i2c conflict with pmic. need to take carefully*/
 
-		huawei,cam-power-seq-type = "sensor_pmic", "sensor_pmic", "sensor_pmic",
+		huawei,cam-power-seq-type = "laser_xshut","sensor_pmic", "sensor_pmic", "sensor_pmic",
 		"sensor_pmic", "sensor_dvdd2",
 		"sensor_dvdd", "sensor_iovdd",
 		"sensor_mclk", "sensor_mclk",
 		"sensor_rst", "sensor_rst2";
-		huawei,cam-power-seq-cfg-val = <2850000 2800000 2800000 1800000 1100000 1140000 1800000 0 0 0 0>;
-		huawei,cam-power-seq-val = <5 0 1 2 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
-		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 2 0xFF 0xFF>;
-		huawei,cam-power-seq-delay = <0 0 0 0 0 0 0 1 1 1 1>;
+		huawei,cam-power-seq-cfg-val = <0 2850000 2800000 2800000 1800000 1100000 1140000 1800000 0 0 0 0>;
+		huawei,cam-power-seq-val = <0xFF 5 0 1 2 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
+		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0 2 0xFF 0xFF>;
+		huawei,cam-power-seq-delay = <1 0 0 0 0 0 0 0 1 1 1 1>;
 
 		huawei,cam-power-down-seq-type ="sensor_rst2", "sensor_rst", "sensor_mclk",
 		"sensor_mclk", "sensor_iovdd",
 		"sensor_dvdd", "sensor_dvdd2",
 		"sensor_pmic", "sensor_pmic",
-		"sensor_pmic", "sensor_pmic";
-		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1140000 1100000 1800000 2800000 2800000 2850000>;
-		huawei,cam-power-down-seq-val = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 2 1 0 5>;
-		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 2 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
-		huawei,cam-power-down-seq-delay = <1 1 1 1 0 0 0 0 0 0 0>;
+		"sensor_pmic", "sensor_pmic", "laser_xshut";
+		huawei,cam-power-down-seq-cfg-val = <0 0 0 0 1800000 1140000 1100000 1800000 2800000 2800000 2850000 0>;
+		huawei,cam-power-down-seq-val = <0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 2 1 0 5 0xFF>;
+		huawei,cam-power-down-seq-sensor-index = <0xFF 0xFF 2 0 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF>;
+		huawei,cam-power-down-seq-delay = <1 1 1 1 0 0 0 0 0 0 0 1>;
 
 		status = "ok";
 };
@@ -3166,6 +3165,8 @@
 		fingerprint,extern_ldo_num = <34>;
 		fingreprint_ldo-supply = <&ldo34>;
 		fingerprint,extern_vol = <3300000>;
+		fingerprint,custom_timing_scheme = <3>; /*1:vdd->1ms->rst/cs; 2:vdd->10ms->rst/cs; 3:vdd->10ms->cs->600us->rst; 4:vdd->rst1/cs1/rst/cs0*/
+		fingerprint,poweroff_scheme = <2>; /*1:close ldo ;2:close loadswitch(gpio)*/
 	};
 
     &gps_power {

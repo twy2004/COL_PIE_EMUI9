@@ -14,19 +14,23 @@
 #include <linux/errno.h>
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/hisi/hisi_load_image.h>
 #include <linux/kthread.h>
 #include <linux/cpumask.h>
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/completion.h>
+#include <linux/version.h>
 #include <teek_client_id.h>
 #include "ivp_log.h"
 #include "ivp_core.h"
 #include "ivp_platform.h"
 #include "ivp_sec.h"
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include <linux/ion-iommu.h>
+#endif
 
 struct ivp_sec_device ivp_sec_dev;
 struct ivp_sec_ion_s *ivp_secmem_ion = NULL;

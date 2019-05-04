@@ -42,6 +42,7 @@
 #define FI_HYXD_ACK_OFFSET          16          /* 荒野行动ack字段在报文中的偏移 */
 #define FI_UPPKT_WAIT               200         /* 将上行报文作为200ms的定时器 */
 #define FI_ACK_MAX                  60000U      /* 用于判断ack反转 */
+#define FI_RETRANS_PKT              2000        /* 用于判断报文重传 */
 #define FI_ACK_MAX_WAIT             (10*1000)   /* 等待ack的最长时间10s */
 #define FI_TCP_OPT_HDR_LEN          2           /* tcp选项首部的长度 */
 #define FI_TCP_OPT_MPTCP            30          /* tcp选项类型 mptcp */
@@ -50,6 +51,17 @@
 #define FI_GAME_UU_RTT              10          /* 如果一个游戏在使用uu，那么他算出的rtt小于10ms */
 #define FI_UU_BASE_RTT              25          /* UU rtt的基础上加上一个base */
 #define FI_UU_CACHE_NUM             8           /* UU rtt的基础上加上一个base */
+
+#define FI_BH3_SEQ_CACHE_NUM        4           /* 崩坏3: 缓存的上行报文的个数 */
+#define FI_BH3_KEY_WORD             0xFF        /* 崩坏3: 关键字 */
+#define FI_BH3_KEY_OFFSET_UP        9           /* 崩坏3: 上行报文关键字的偏移 */
+#define FI_BH3_KEY_OFFSET_DOWN      7           /* 崩坏3: 下行报文关键字的偏移 */
+#define FI_BH3_SEQ_OFFSET_UP        10          /* 崩坏3: 上行报文提取seq的位置 */
+#define FI_BH3_ACK_OFFSET_DOWN      8           /* 崩坏3: 下行报文提取ack的位置 */
+#define FI_BH3_VRF_OFFSET_UP        2           /* 崩坏3: 上行报文提取verify的位置 */
+#define FI_BH3_VRF_OFFSET_DOWN      12          /* 崩坏3: 下行报文提取verify的位置 */
+#define FI_BH3_UP_LEN               12          /* 崩坏3: 上行带seq报文长度 */
+#define FI_BH3_DOWN_LEN             14          /* 崩坏3: 下行带ack报文长度 */
 
 #define FI_BATTLE_ONGOING           4           /* 判断对战是否还在进行：上行报文频率不低于4个/s */
 #define FI_BATTLE_START_PORT_MIN    1025        /* 通过端口筛选对战报文，端口小于1025的不处理 */
@@ -75,6 +87,7 @@
 #define FI_APPID_QJCJ               4           /* 全军出击appid */
 #define FI_APPID_CYHX               5           /* 穿越火线appid */
 #define FI_APPID_QQFC               6           /* QQ飞车appid */
+#define FI_APPID_BH3                7           /* 崩坏3appid */
 #define FI_APPID_UU                 11          /* UU加速器 */
 #define FI_APPID_XUNYOU             12          /* 迅游加速器 */
 #define FI_APPID_MAX                16          /* appid上限 */
@@ -113,6 +126,11 @@
 #define FI_APP_NAME_HYXD           "com.netease.hyxd"           /* app名称: 荒野行动 */
 #define FI_APP_NAME_CYHX           "com.tencent.tmgp.cf"        /* app名称: 穿越火线 */
 #define FI_APP_NAME_QQFC           "com.tencent.tmgp.speedmobile"/* app名称: QQ飞车 */
+#define FI_APP_NAME_BH3            "com.miHoYo.bh3.huawei"      /* app名称: 崩坏3 */
+#define FI_APP_NAME_BH3_2          "com.miHoYo.bh3.qihoo"       /* app名称: 崩坏3 */
+#define FI_APP_NAME_BH3_3          "com.miHoYo.bh3.uc"          /* app名称: 崩坏3 */
+#define FI_APP_NAME_BH3_4          "com.tencent.tmgp.bh3"       /* app名称: 崩坏3 */
+#define FI_APP_NAME_BH3_5          "com.miHoYo.enterprise.NGHSoD" /* app名称: 崩坏3 */
 #define FI_APP_NAME_UU             "com.netease.uu"             /* app名称: UU加速器 */
 #define FI_APP_NAME_XUNYOU         "cn.wsds.gamemaster"         /* app名称: 迅游加速器 */
 
@@ -178,13 +196,16 @@ typedef struct fi_pkt_t
 {
 	uint8_t     *data;          /* payload data */
 
-	uint16_t    len;            /* payload data len */
+	uint16_t    len;            /* 负载的总长度，包括bufdatalen + 非线性链表中的负载的长度 */
+	uint16_t    bufdatalen;     /* 线性连续空间中的负载的长度 */
 	uint16_t    sport;          /* network byte order, big-endian */
 	uint16_t    dport;          /* network byte order, big-endian */
+
 	uint8_t     proto;          /* tcp or udp */
 	uint8_t     dir : 2;        /* SA_DIR_UP or SA_DIR_DOWN */
 	uint8_t     mptcp : 1;      /* mptcp or not */
 	uint8_t     rev : 5;
+	uint8_t     rev2[6];
 
 	uint32_t    sip;            /* network byte order, big-endian */
 	uint32_t    dip;            /* network byte order, big-endian */
@@ -195,6 +216,14 @@ typedef struct fi_pkt_t
 	/* only for netdelay calculate */
 	int64_t     msec;           /* time stamp of this pkt, millisecond */
 } fi_pkt;
+
+/* 崩坏3每条流私有的数据: 记录上行报文的序列号 */
+typedef struct fi_flow_bh3_t
+{
+	uint16_t    seq;                /* 报文的序列号 */
+	uint16_t    verify;             /* 校验码 */
+	uint32_t    time;               /* 时间戳 */
+} fi_flow_bh3;
 
 /* 每个流结点中保存的与rtt相关的缓存 */
 typedef struct fi_flowctx_st
@@ -217,6 +246,11 @@ typedef struct fi_flowctx_st
 
 	int64_t     flowstarttime;      /* time stamp of the first pkt of this flow, ms */
 	int64_t     uppkttime;          /* 上行报文的时间戳 */
+
+	union
+	{                                                    /* 特定游戏相关私有数据 */
+		fi_flow_bh3 flow_bh3[FI_BH3_SEQ_CACHE_NUM];      /* 崩坏3私有的数据 */
+	};
 } fi_flowctx;
 
 /* 流结点 */
@@ -394,6 +428,7 @@ extern void *fi_malloc(uint32_t size);
 extern void  fi_rtt_status(uint32_t appid, uint32_t status);
 extern void  fi_rtt_judge_reconn(fi_pkt *pktinfo, fi_gamectx *gamectx);
 extern int   fi_rtt_judge_battle_stop(fi_gamectx *gamectx, fi_app_info *appinfo);
+extern void  fi_rtt_cal_bh3(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx);
 extern int   fi_rtt_entrance(fi_pkt *pktinfo, fi_flowctx *flowctx, uint32_t appid);
 unsigned int fi_hook_out(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 unsigned int fi_hook_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);

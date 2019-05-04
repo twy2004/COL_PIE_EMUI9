@@ -49,15 +49,31 @@
 #define __DUMP_MDMAP_CORE_H__
 #include <product_config.h>
 #include "osl_types.h"
+#ifdef BSP_CONFIG_PHONE_TYPE
+#include "../../adrv/adrv.h"
+#else
+#include <linux/hisi/rdr_pub.h>
+#endif
+
+
+#define DUMP_STATUS_FILE  "dump_status.txt"
+#define PATH_ROOT         "/data/hisi_logs/"
+
+/*modem ap flag ?¡§¨°?*/
+#define DUMP_INIT_FLAG_CONFIG                 (0x5B5B0000)
+#define DUMP_INIT_FLAG_BASEINFO               (0x5B5B0001)
+#define DUMP_INIT_FLAG_SAVETASK               (0x5B5B0002)
+#define DUMP_INIT_FLAG_RDR_REG                (0x5B5B0003)
+#define DUMP_INIT_FLAG_MDMAP                  (0x5B5B0004)
+#define DUMP_INIT_FLAG_MDMCP                  (0x5B5B0005)
+#define DUMP_INIT_FLAG_APR                    (0x5B5B0005)
+#define DUMP_INIT_FLAG_DONE                   (0x5B5B0006)
 
 __init s32 dump_mdmap_init(void);
+void dump_save_mdm_mandatory_logs(char* dir_name);
+s32 dump_mdmap_callback(u32 modid, u32 etype, u64 coreid, char* logpath, pfn_cb_dump_done fndone);
+void dump_notify_save_done(char * path);
 
-void dump_show_stack(u32 modid,u32 reason);
-void dump_save_usr_data(char *data, u32 length);
-s32 dump_check_status(void);
-void dump_save_mdm_log(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length,u32 rdr_mod_id);
-void dump_save_reg(void);
-void dump_self_use_field_init(void);
 #endif
 
 

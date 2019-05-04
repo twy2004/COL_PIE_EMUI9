@@ -79,7 +79,6 @@ VOS_UINT32                              g_ulAtUsbDebugFlag = VOS_FALSE;
 
 extern VOS_UINT32 CBTCPM_NotifyChangePort(AT_PHY_PORT_ENUM_UINT32 enPhyPort);
 
-
 /* AT/DIAG通道的链路索引 */
 VOS_UINT8                               gucOmDiagIndex    = AT_MAX_CLIENT_NUM;
 
@@ -184,7 +183,7 @@ VOS_VOID AT_VcomCmdStreamEcho(
       && (AT_CLIENT_TAB_APP24_INDEX != ucIndex)
     )
     {
-        APP_VCOM_Send(gastAtClientTab[ucIndex].ucPortNo, pData, usLen);
+        APP_VCOM_SEND(gastAtClientTab[ucIndex].ucPortNo, pData, usLen);
     }
 
     return;
@@ -208,12 +207,7 @@ VOS_VOID AT_CmdStreamEcho(
     VOS_UINT16                          usLen
 )
 {
-    VOS_UINT32                          ulMuxUserFlg;
-    VOS_UINT32                          ulHsicUserFlg;
     VOS_UINT16                          usEchoLen;
-
-    ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-    ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
 
     /* 判断pData码流的结尾是否为<CR><LF>形式，代码中2为回车换行两个字符长度 */
     if ((usLen > 2) && (ucAtS3 == pData[usLen - 2]) && (ucAtS4 == pData[usLen - 1]))
@@ -264,14 +258,6 @@ VOS_VOID AT_CmdStreamEcho(
         /* NDIS AT口无需回显 */
         AT_WARN_LOG("AT_CmdStreamEcho:WARNING: NDIS AT");
     }
-    else if (VOS_TRUE == ulHsicUserFlg)
-    {
-    }
-    else if (VOS_TRUE == ulMuxUserFlg)
-    {
-        /* MUX user */
-        AT_MuxCmdStreamEcho(ucIndex, pData, usEchoLen);
-    }
     else
     {
         AT_LOG1("AT_CmdStreamEcho:WARNING: Abnormal UserType,ucIndex:",ucIndex);
@@ -291,7 +277,7 @@ VOS_UINT32 At_CmdStreamPreProc(VOS_UINT8 ucIndex, VOS_UINT8* pData, VOS_UINT16 u
 
     if (VOS_TRUE == g_ulAtUsbDebugFlag)
     {
-        PS_PRINTF("At_CmdStreamPreProc: AtEType = %d, UserType = %d, ucAtS3 = %d\r\n",
+        PS_PRINTF_INFO("<At_CmdStreamPreProc> AtEType = %d, UserType = %d, ucAtS3 = %d\n",
                    gucAtEType, gastAtClientTab[ucIndex].UserType, ucAtS3);
     }
 
@@ -316,6 +302,7 @@ VOS_UINT32 At_CmdStreamPreProc(VOS_UINT8 ucIndex, VOS_UINT8* pData, VOS_UINT16 u
                 if((g_aucAtDataBuff[ucIndex].ulBuffLen + usCount) >= AT_COM_BUFF_LEN)
                 {
                     g_aucAtDataBuff[ucIndex].ulBuffLen = 0;
+                    AT_WARN_LOG("At_CmdStreamPreProc: buff is full at split char!");
                     return AT_FAILURE;
                 }
                 TAF_MEM_CPY_S(&g_aucAtDataBuff[ucIndex].aucDataBuff[g_aucAtDataBuff[ucIndex].ulBuffLen],
@@ -341,6 +328,7 @@ VOS_UINT32 At_CmdStreamPreProc(VOS_UINT8 ucIndex, VOS_UINT8* pData, VOS_UINT16 u
         if((g_aucAtDataBuff[ucIndex].ulBuffLen + (usLen - usTotal)) >= AT_COM_BUFF_LEN)
         {
             g_aucAtDataBuff[ucIndex].ulBuffLen = 0;
+            AT_WARN_LOG("At_CmdStreamPreProc: buff is full after split char!");
             return AT_FAILURE;
         }
         TAF_MEM_CPY_S(&g_aucAtDataBuff[ucIndex].aucDataBuff[g_aucAtDataBuff[ucIndex].ulBuffLen],
@@ -1495,7 +1483,7 @@ VOS_VOID AT_UsbModemClose(VOS_VOID)
 
         g_alAtUdiHandle[ucIndex] = UDI_INVALID_HANDLE;
 
-        PS_PRINTF("AT_UsbModemClose....\n");
+        PS_PRINTF_INFO("<AT_UsbModemClose>\n");
     }
 
     return;
@@ -1517,12 +1505,10 @@ VOS_INT At_RcvFromUsbCom(
 {
     VOS_UINT8                           ucIndex;
     VOS_UINT32                          ulRet;
-    VOS_UINT32                          ulMuxUserFlg;
-    VOS_UINT32                          ulHsicUserFlg;
 
     if (VOS_TRUE == g_ulAtUsbDebugFlag)
     {
-        PS_PRINTF("At_RcvFromUsbCom: PortNo = %d, length = %d, data = %s\r\n", ucPortNo, uslength, pData);
+        PS_PRINTF_INFO("<At_RcvFromUsbCom> PortNo = %d, length = %d, data = %s\n", ucPortNo, uslength, pData);
     }
 
     if (VOS_NULL_PTR == pData)
@@ -1540,15 +1526,10 @@ VOS_INT At_RcvFromUsbCom(
     /*PCUI和CTRL共用*/
     for (ucIndex = 0; ucIndex < AT_MAX_CLIENT_NUM; ucIndex++)
     {
-        ulMuxUserFlg = AT_CheckMuxUser(ucIndex);
-        ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-
         if ((AT_USBCOM_USER == gastAtClientTab[ucIndex].UserType)
          || (AT_CTR_USER == gastAtClientTab[ucIndex].UserType)
          || (AT_PCUI2_USER == gastAtClientTab[ucIndex].UserType)
-         || (AT_UART_USER == gastAtClientTab[ucIndex].UserType)
-         || (VOS_TRUE == ulMuxUserFlg)
-         || (VOS_TRUE == ulHsicUserFlg))
+         || (AT_UART_USER == gastAtClientTab[ucIndex].UserType))
         {
             if (AT_CLIENT_NULL != gastAtClientTab[ucIndex].ucUsed)
             {
@@ -1562,7 +1543,7 @@ VOS_INT At_RcvFromUsbCom(
 
     if (VOS_TRUE == g_ulAtUsbDebugFlag)
     {
-        PS_PRINTF("At_RcvFromUsbCom: ucIndex = %d\r\n", ucIndex);
+        PS_PRINTF_INFO("<At_RcvFromUsbCom> ucIndex = %d\n", ucIndex);
     }
 
     if (ucIndex >= AT_MAX_CLIENT_NUM)
@@ -1573,7 +1554,7 @@ VOS_INT At_RcvFromUsbCom(
 
     if (VOS_TRUE == g_ulAtUsbDebugFlag)
     {
-        PS_PRINTF("At_RcvFromUsbCom: CmdMode = %d\r\n", gastAtClientTab[ucIndex].Mode);
+        PS_PRINTF_INFO("<At_RcvFromUsbCom> CmdMode = %d\n", gastAtClientTab[ucIndex].Mode);
     }
 
     if (AT_CMD_MODE == gastAtClientTab[ucIndex].Mode)
@@ -2166,8 +2147,7 @@ VOS_INT32 AT_AppComEst(VOS_VOID)
         g_stParseContext[ucIndex].ucClientStatus = AT_FW_CLIENT_STATUS_READY;
 
         /* 注册回调函数 */
-        APP_VCOM_RegDataCallback(gastAtClientTab[ucIndex].ucPortNo, (SEND_UL_AT_FUNC)AT_RcvFromAppCom);
-
+        APP_VCOM_REG_DATA_CALLBACK(gastAtClientTab[ucIndex].ucPortNo, (SEND_UL_AT_FUNC)AT_RcvFromAppCom);
     }
 
     return VOS_OK;
@@ -2452,6 +2432,8 @@ VOS_INT AT_RcvFromNdisCom(
 
 VOS_UINT32 AT_UsbNdisEst(VOS_VOID)
 {
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity   = VOS_NULL_PTR;
+    VOS_UINT32                          ulCallId;
     VOS_UINT8                           ucIndex;
 
     ucIndex = AT_CLIENT_TAB_NDIS_INDEX;
@@ -2476,7 +2458,11 @@ VOS_UINT32 AT_UsbNdisEst(VOS_VOID)
     g_stParseContext[ucIndex].ucClientStatus = AT_FW_CLIENT_STATUS_READY;
 
     /*初始化NDIS ADDR参数*/
-    TAF_MEM_SET_S(&gstAtNdisAddParam, sizeof(gstAtNdisAddParam), 0x00, sizeof(AT_DIAL_PARAM_STRU));
+    for (ulCallId = AT_PS_NDIS_CALL_ID_BEGIN; ulCallId <= AT_PS_NDIS_CALL_ID_END; ulCallId++)
+    {
+        pstCallEntity   = AT_PS_GetCallEntity(ucIndex, (VOS_UINT8)ulCallId);
+        TAF_MEM_SET_S(&(pstCallEntity->stUsrDialParam), sizeof(AT_DIAL_PARAM_STRU), 0x00, sizeof(AT_DIAL_PARAM_STRU));
+    }
 
     return VOS_OK;
 }
@@ -2532,84 +2518,6 @@ VOS_VOID AT_CloseUsbNdis(VOS_VOID)
 }
 
 
-VOS_UINT8 AT_GetMuxSupportFlg(VOS_VOID)
-{
-    return AT_GetCommCtxAddr()->stMuxCtx.ucMuxSupportFlg;
-}
-
-
-VOS_VOID AT_SetMuxSupportFlg(VOS_UINT8 ucMuxSupportFlg)
-{
-    AT_COMM_CTX_STRU                   *pstCommCtx = VOS_NULL_PTR;
-
-    pstCommCtx = AT_GetCommCtxAddr();
-
-    pstCommCtx->stMuxCtx.ucMuxSupportFlg = ucMuxSupportFlg;
-}
-
-
-VOS_UINT32 AT_CheckMuxDlci(AT_MUX_DLCI_TYPE_ENUM_UINT8 enDlci)
-{
-    /* 此次开发只支持8个通道，DLCI从1到8。在1-8范围的返回VOS_OK，否则返回VOS_ERR */
-    if ((enDlci >= AT_MUX_DLCI1_ID)
-     && (enDlci < (AT_MUX_DLCI1_ID + AT_MUX_AT_CHANNEL_MAX)))
-    {
-        return VOS_OK;
-    }
-
-    return VOS_ERR;
-}
-
-
-VOS_UINT32 AT_CheckMuxUser(VOS_UINT8 ucIndex)
-{
-    return VOS_FALSE;
-}
-
-
-VOS_UINT32 AT_IsHsicOrMuxUser(VOS_UINT8 ucIndex)
-{
-    VOS_UINT32                          ulHsicUserFlg;
-    VOS_UINT32                          ulMuxUserFlg;
-
-    ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-    ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
-
-    /* 既不是HSIC端口，也不是MUX端口 */
-    if ((VOS_FALSE == ulHsicUserFlg)
-     && (VOS_FALSE == ulMuxUserFlg))
-    {
-        return VOS_FALSE;
-    }
-
-    return VOS_TRUE;
-}
-
-
-VOS_UINT32 AT_GetMuxDlciFromClientIdx(
-    VOS_UINT8                           ucIndex,
-    AT_MUX_DLCI_TYPE_ENUM_UINT8        *penDlci
-)
-{
-    VOS_UINT8                           ucLoop;
-
-    for (ucLoop = 0; ucLoop < AT_MUX_AT_CHANNEL_MAX; ucLoop++)
-    {
-        if (ucIndex == AT_GetCommCtxAddr()->stMuxCtx.astMuxClientTab[ucLoop].enAtClientTabIdx)
-        {
-            *penDlci = AT_GetCommCtxAddr()->stMuxCtx.astMuxClientTab[ucLoop].enDlci;
-            break;
-        }
-    }
-
-    if (ucLoop >= AT_MUX_AT_CHANNEL_MAX)
-    {
-        return VOS_FALSE;
-    }
-
-    return VOS_TRUE;
-}
-
 VOS_UINT32 AT_CheckPcuiCtrlConcurrent(
     VOS_UINT8                           ucIndexOne,
     VOS_UINT8                           ucIndexTwo
@@ -2650,32 +2558,12 @@ VOS_UINT32 AT_IsConcurrentPorts(
     VOS_UINT8                           ucIndexTwo
 )
 {
-    VOS_UINT32                          ulMuxUserFlg1;
-    VOS_UINT32                          ulHsicUserFlg1;
     VOS_UINT32                          ulAppUserFlg1;
-    VOS_UINT32                          ulMuxUserFlg2;
-    VOS_UINT32                          ulHsicUserFlg2;
     VOS_UINT32                          ulAppUserFlg2;
 
     /* 同一个通道不支持并发，由外层函数保证 */
-    ulMuxUserFlg1  = AT_CheckMuxUser(ucIndexOne);
-    ulHsicUserFlg1 = AT_CheckHsicUser(ucIndexOne);
     ulAppUserFlg1  = AT_CheckAppUser(ucIndexOne);
-
-    ulMuxUserFlg2  = AT_CheckMuxUser(ucIndexTwo);
-    ulHsicUserFlg2 = AT_CheckHsicUser(ucIndexTwo);
     ulAppUserFlg2  = AT_CheckAppUser(ucIndexTwo);
-
-    /* 通道1是HSIC通道或MUX通道,通道2也是HSIC通道或MUX通道 */
-    if ((VOS_TRUE == ulMuxUserFlg1)
-     || (VOS_TRUE == ulHsicUserFlg1))
-    {
-        if ((VOS_TRUE == ulMuxUserFlg2)
-         || (VOS_TRUE == ulHsicUserFlg2))
-        {
-            return VOS_TRUE;
-        }
-    }
 
     /* 通道1是APP通道,通道2也是APP通道 */
     if (VOS_TRUE == ulAppUserFlg1)
@@ -2699,194 +2587,10 @@ VOS_UINT32 AT_IsConcurrentPorts(
 }
 
 
-VOS_VOID AT_MuxCmdStreamEcho(
-    VOS_UINT8                           ucIndex,
-    VOS_UINT8                          *pData,
-    VOS_UINT16                          usLen
-)
-{
-    AT_MUX_DLCI_TYPE_ENUM_UINT8         enDlci;
-    VOS_UINT32                          ulRslt;
-
-    enDlci = AT_MUX_DLCI_TYPE_BUTT;
-
-    ulRslt = AT_GetMuxDlciFromClientIdx(ucIndex, &enDlci);
-
-    if (VOS_TRUE != ulRslt)
-    {
-        return;
-    }
-
-    MUX_DlciDlDataSend(enDlci, pData, usLen);
-    AT_MNTN_TraceCmdResult(ucIndex, pData, usLen);
-
-    return;
-}
-
-
-
-VOS_UINT32 AT_SendMuxSelResultData(
-    VOS_UINT8                           ucIndex,
-    VOS_UINT8                          *pData,
-    VOS_UINT16                          usLen
-)
-{
-    VOS_UINT8                           ucLoop;
-    AT_COMM_CTX_STRU                   *pCommCtx = VOS_NULL_PTR;
-
-    pCommCtx = AT_GetCommCtxAddr();
-
-    /* 匹配是否为MUX的index */
-    for (ucLoop = 0; ucLoop < AT_MUX_AT_CHANNEL_MAX; ucLoop++)
-    {
-        if (ucIndex == pCommCtx->stMuxCtx.astMuxClientTab[ucLoop].enAtClientTabIdx)
-        {
-            break;
-        }
-    }
-
-    if (ucLoop >= AT_MUX_AT_CHANNEL_MAX)
-    {
-        return VOS_ERR;
-    }
-
-    /* 该通道不允许主动上报AT命令 */
-    if (AT_HSIC_REPORT_OFF == pCommCtx->stMuxCtx.astMuxClientTab[ucLoop].enRptType)
-    {
-        return VOS_ERR;
-    }
-
-    AT_SendMuxResultData(ucIndex, pData, usLen);
-
-    return VOS_OK;
-}
-
-
-
-VOS_UINT32 AT_SendMuxResultData(
-    VOS_UINT8                           ucIndex,
-    VOS_UINT8                          *pData,
-    VOS_UINT16                          usLen
-)
-{
-    AT_MUX_DLCI_TYPE_ENUM_UINT8         enDlci;
-    VOS_UINT32                          ulRslt;
-
-    enDlci = AT_MUX_DLCI_TYPE_BUTT;
-
-    /* MUX特性是否支持，不支持直接返回失败 */
-    if (VOS_TRUE != AT_GetMuxSupportFlg())
-    {
-        return AT_FAILURE;
-    }
-
-    /* 获取Dlci */
-    ulRslt = AT_GetMuxDlciFromClientIdx(ucIndex, &enDlci);
-
-    if (VOS_TRUE != ulRslt)
-    {
-        return AT_FAILURE;
-    }
-
-    AT_MNTN_TraceCmdResult(ucIndex, pData, usLen);
-
-    /* 向MUX发送数据 */
-    MUX_DlciDlDataSend(enDlci, pData, usLen);
-
-    return AT_SUCCESS;
-}
-
-
-
-VOS_VOID AT_SndDipcPdpActInd(
-    VOS_UINT16                          usClientId,
-    VOS_UINT8                           ucCid,
-    VOS_UINT8                           ucRabId
-)
-{
-    VOS_UINT32                      ulLength;
-    AT_DIPC_PDP_ACT_STRU           *pstAtDipcPdpAct;
-    AT_MODEM_PS_CTX_STRU           *pstPsModemCtx = VOS_NULL_PTR;
-
-    ulLength        = sizeof( AT_DIPC_PDP_ACT_STRU ) - VOS_MSG_HEAD_LENGTH;
-    pstAtDipcPdpAct = ( AT_DIPC_PDP_ACT_STRU *)PS_ALLOC_MSG( WUEPS_PID_AT, ulLength );
-
-    if ( VOS_NULL_PTR == pstAtDipcPdpAct )
-    {
-        /*打印出错信息---申请消息包失败:*/
-        AT_WARN_LOG( "AT_SndDipcPdpActInd:ERROR:Allocates a message packet for AT_DIPC_PDP_ACT_STRU FAIL!" );
-        return;
-    }
-
-    pstPsModemCtx = AT_GetModemPsCtxAddrFromClientId(usClientId);
-
-    /*填写消息头:*/
-    pstAtDipcPdpAct->ulSenderCpuId   = VOS_LOCAL_CPUID;
-    pstAtDipcPdpAct->ulSenderPid     = WUEPS_PID_AT;
-    pstAtDipcPdpAct->ulReceiverCpuId = VOS_LOCAL_CPUID;
-    pstAtDipcPdpAct->ulReceiverPid   = PS_PID_APP_DIPC;
-    pstAtDipcPdpAct->ulLength        = ulLength;
-    /*填写消息体:*/
-    pstAtDipcPdpAct->enMsgType       = ID_AT_DIPC_PDP_ACT_IND;
-    pstAtDipcPdpAct->ucRabId         = ucRabId;
-    pstAtDipcPdpAct->enUdiDevId      = (UDI_DEVICE_ID_E)pstPsModemCtx->astChannelCfg[ucCid].ulRmNetId;
-
-    /*发送该消息:*/
-    if ( VOS_OK != PS_SEND_MSG( WUEPS_PID_AT, pstAtDipcPdpAct ) )
-    {
-        /*打印警告信息---发送消息失败:*/
-        AT_WARN_LOG( "AT_SndDipcPdpActInd:WARNING:SEND AT_DIPC_PDP_ACT_STRU msg FAIL!" );
-    }
-
-    return;
-}
-
-
-
-
-VOS_VOID AT_SndDipcPdpDeactInd(
-    VOS_UINT8                           ucRabId
-)
-{
-    VOS_UINT32                      ulLength;
-    AT_DIPC_PDP_DEACT_STRU         *pstAtDipcPdpDeact;
-
-    ulLength          = sizeof( AT_DIPC_PDP_DEACT_STRU ) - VOS_MSG_HEAD_LENGTH;
-    pstAtDipcPdpDeact = ( AT_DIPC_PDP_DEACT_STRU *)PS_ALLOC_MSG( WUEPS_PID_AT, ulLength );
-
-    if ( VOS_NULL_PTR == pstAtDipcPdpDeact )
-    {
-        /*打印出错信息---申请消息包失败:*/
-        AT_WARN_LOG( "AT_SndDipcPdpDeactInd:ERROR:Allocates a message packet for AT_DIPC_PDP_DEACT_STRU FAIL!" );
-        return;
-    }
-
-    /*填写消息头:*/
-    pstAtDipcPdpDeact->ulSenderCpuId   = VOS_LOCAL_CPUID;
-    pstAtDipcPdpDeact->ulSenderPid     = WUEPS_PID_AT;
-    pstAtDipcPdpDeact->ulReceiverCpuId = VOS_LOCAL_CPUID;
-    pstAtDipcPdpDeact->ulReceiverPid   = PS_PID_APP_DIPC;
-    pstAtDipcPdpDeact->ulLength        = ulLength;
-    /*填写消息体:*/
-    pstAtDipcPdpDeact->enMsgType       = ID_AT_DIPC_PDP_REL_IND;
-    pstAtDipcPdpDeact->ucRabId         = ucRabId;
-
-    /*发送该消息:*/
-    if ( VOS_OK != PS_SEND_MSG( WUEPS_PID_AT, pstAtDipcPdpDeact ) )
-    {
-        /*打印警告信息---发送消息失败:*/
-        AT_WARN_LOG( "AT_SndDipcPdpDeactInd:WARNING:SEND AT_DIPC_PDP_DEACT_STRU msg FAIL!" );
-    }
-
-    return;
-}
-
-
-
 VOS_VOID AT_SetAtChdataCidActStatus(
     VOS_UINT16                          usClientId,
-    VOS_UINT8                           ucCid,
-    VOS_UINT32                          ulIsCidAct
+    VOS_UINT8                           ucCallId,
+    VOS_UINT8                           ucCid
 )
 {
     AT_MODEM_PS_CTX_STRU               *pstPsModemCtx = VOS_NULL_PTR;
@@ -2900,13 +2604,14 @@ VOS_VOID AT_SetAtChdataCidActStatus(
 
     pstPsModemCtx = AT_GetModemPsCtxAddrFromClientId(usClientId);
 
-    /* 清除CID与数传通道的映射关系 */
-    pstPsModemCtx->astChannelCfg[ucCid].ulRmNetActFlg = ulIsCidAct;
+    /* 有动态分配的情况下才需要置上，否则不需要置上标志 */
+    if (VOS_TRUE == pstPsModemCtx->astChannelCfg[ucCid].ulUsed)
+    {
+        pstPsModemCtx->astChannelCfg[ucCid].ulRmNetActFlg = VOS_TRUE;
+    }
 
     return;
 }
-
-
 
 
 VOS_VOID AT_CleanAtChdataCfg(
@@ -2917,6 +2622,7 @@ VOS_VOID AT_CleanAtChdataCfg(
 )
 {
     AT_MODEM_PS_CTX_STRU               *pstPsModemCtx = VOS_NULL_PTR;
+    AT_PS_CALL_ENTITY_STRU             *pstCallEntity = VOS_NULL_PTR;
 
     /* 检查CID合法性 */
     if ( ucCid > TAF_MAX_CID_NV)
@@ -2925,34 +2631,30 @@ VOS_VOID AT_CleanAtChdataCfg(
         return;
     }
 
-    pstPsModemCtx = AT_GetModemPsCtxAddrFromClientId(usClientId);
-
     if (ucCallId < AT_PS_MAX_CALL_NUM)
     {
-        if (VOS_FALSE == AT_PS_IsNeedClearCurrCall(usClientId, ucCallId, enDataSys))
+        pstCallEntity = AT_PS_GetCallEntity(usClientId, ucCallId);
+
+        if (VOS_FALSE == AT_PS_IsNeedClearCurrCall(pstCallEntity, enDataSys))
         {
-            AT_NORM_LOG("AT_PS_FreeCallEntity: not need FreeCallEntity!");
+            AT_NORM_LOG("AT_CleanAtChdataCfg: not need FreeCallEntity!");
             return;
         }
     }
 
+    pstPsModemCtx       = AT_GetModemPsCtxAddrFromClientId(usClientId);
+
     /* 清除CID与数传通道的映射关系 */
     pstPsModemCtx->astChannelCfg[ucCid].ulUsed      = VOS_FALSE;
     pstPsModemCtx->astChannelCfg[ucCid].ulRmNetId   = AT_PS_INVALID_RMNET_ID;
-    pstPsModemCtx->astChannelCfg[ucCid].ulIfaceld   = AT_PS_INVALID_IFACE_ID;
+    pstPsModemCtx->astChannelCfg[ucCid].ulIfaceId   = AT_PS_INVALID_IFACE_ID;
     /* 将指定CID的PDP的激活状态设置为未激活态 */
     pstPsModemCtx->astChannelCfg[ucCid].ulRmNetActFlg = VOS_FALSE;
 
     return;
 }
 
-
-VOS_UINT32 AT_CheckHsicUser(VOS_UINT8 ucIndex)
-{
-    return VOS_FALSE;
-
-}
-
+/* Added by l60609 for AP适配项目 ，2012-09-10 Begin */
 
 VOS_UINT32 AT_CheckAppUser(VOS_UINT8 ucIndex)
 {
@@ -3228,38 +2930,26 @@ TAF_UINT32 At_SendCmdMsg (TAF_UINT8 ucIndex,TAF_UINT8* pData, TAF_UINT16 usLen,T
 
 VOS_UINT32 AT_IsApPort(VOS_UINT8 ucIndex)
 {
-    VOS_UINT32                          ulHsicUserFlg;
-    VOS_UINT32                          ulMuxUserFlg;
     VOS_UINT32                          ulVcomUserFlg;
     VOS_UINT8                          *pucSystemAppConfig;
 
     if (0 == g_stAtDebugInfo.ucUnCheckApPortFlg)
     {
         /* 初始化 */
-        pucSystemAppConfig                  = AT_GetSystemAppConfigAddr();
-
-        ulHsicUserFlg = AT_CheckHsicUser(ucIndex);
-        ulMuxUserFlg  = AT_CheckMuxUser(ucIndex);
-        ulVcomUserFlg = AT_CheckAppUser(ucIndex);
+        pucSystemAppConfig  = AT_GetSystemAppConfigAddr();
+        ulVcomUserFlg       = AT_CheckAppUser(ucIndex);
 
         if (SYSTEM_APP_ANDROID == *pucSystemAppConfig)
         {
             /* 如果是手机形态，需要判断HSIC端口，MUX端口，VCOM端口 */
-            if ((VOS_FALSE == ulHsicUserFlg)
-             && (VOS_FALSE == ulMuxUserFlg)
-             && (VOS_FALSE == ulVcomUserFlg))
+            if ((VOS_FALSE == ulVcomUserFlg))
             {
                 return VOS_FALSE;
             }
         }
         else
         {
-            /* 如果非手机形态，需要判断HSIC端口，MUX端口 */
-            if ((VOS_FALSE == ulHsicUserFlg)
-             && (VOS_FALSE == ulMuxUserFlg))
-            {
-                return VOS_FALSE;
-            }
+            return VOS_FALSE;
         }
     }
 

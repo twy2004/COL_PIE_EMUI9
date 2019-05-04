@@ -174,26 +174,6 @@ enum ENUM_DIAG_CFG_SWT
 };
 typedef VOS_UINT8 ENUM_DIAG_CFG_SWT_U8;
 
-
-/*****************************************************************************
-   5 STRUCT
-*****************************************************************************/
-/* 断开连接 */
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID*/
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理*/
-    VOS_UINT32 ulRc;            /* 结果码*/
-} DIAG_CMD_HOST_DISCONNECT_CNF_STRU;
-
-/* 获取单板信息 */
-typedef struct
-{
-    VOS_UINT32 ulAuid;          /* 原AUID */
-    VOS_UINT32 ulSn;            /* HSO分发，插件命令管理 */
-    VOS_UINT32 ulInfo;          /* 查询信息 */
-} DIAG_CMD_GET_MDM_INFO_REQ_STRU;
-
 /*****************************************************************************
  描述 : 针对模块的打印开关命令,支持多个命令参数
 ID   : DIAG_CMD_REPLAY_SET_CNF_STRU
@@ -306,6 +286,7 @@ VOS_UINT32 diag_PrintCfgProc(VOS_UINT8* pstReq);
 VOS_UINT32 diag_UsrPlaneCfgProc(VOS_UINT8* pstReq);
 VOS_UINT32 diag_AirCfgProc (VOS_UINT8* pstReq);
 VOS_VOID diag_AppAgentTimeOutProcEntry(VOS_VOID* pstPara);
+VOS_VOID diag_BbpEnableSocpChan(VOS_VOID);
 VOS_UINT32 diag_TransCfgProc(VOS_UINT8* pstReq);
 VOS_UINT32 diag_UserPlaneCfgProc(VOS_UINT8* pstReq);
 

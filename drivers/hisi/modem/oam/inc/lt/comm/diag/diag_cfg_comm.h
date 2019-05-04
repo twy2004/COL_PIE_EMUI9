@@ -60,6 +60,7 @@ extern "C" {
 *****************************************************************************/
 #include "vos.h"
 
+#pragma pack(push)
 #pragma pack(4)
 /*****************************************************************************
   2 macro
@@ -201,12 +202,6 @@ typedef struct
     VOS_UINT32 ulRc;            /* 结果码*/
 }DIAG_CMD_LOG_CAT_TIMESTAMP_CNF_STRU;
 
-/* diag debug switch */
-typedef struct
-{
-    VOS_UINT32 ulSwitch;        /* 1 打开 0关闭 */
-}DIAG_CMD_LOG_DIAG_MNTN_REQ_STRU;
-
 typedef struct
 {
     VOS_UINT32 ulAuid;          /* 原AUID*/
@@ -223,7 +218,7 @@ typedef struct
 *****************************************************************************/
 
 
-#pragma pack()
+#pragma pack(pop)
 
 #ifdef __cplusplus
     #if __cplusplus

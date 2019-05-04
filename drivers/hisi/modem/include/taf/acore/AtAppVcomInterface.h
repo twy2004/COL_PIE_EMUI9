@@ -60,6 +60,10 @@
 #include "product_config.h"
 
 
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+#include "mdrv_vcom_agent.h"
+#endif
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -161,6 +165,14 @@ enum APP_VCOM_DEV_INDEX
 };
 typedef VOS_UINT8 APP_VCOM_DEV_INDEX_UINT8;
 
+
+#if (defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
+#define APP_VCOM_REG_DATA_CALLBACK(ucDevIndex,pFunc) mdrv_com_txcb_reg((enum com_id_e)ucDevIndex,pFunc)
+
+#define APP_VCOM_SEND(ucDevIndex,pData,uslength) mdrv_com_write((enum com_id_e)ucDevIndex,pData,uslength)
+
+#else
+
 enum APP_VCOM_EVT
 {
     APP_VCOM_EVT_RELEASE   = 0,     /* 端口关闭事件 */
@@ -213,6 +225,8 @@ typedef int (*EVENT_FUNC)(APP_VCOM_EVT_UINT32 event);
              -1：操作失败。
 *****************************************************************************/
 extern VOS_UINT32 APP_VCOM_RegDataCallback(VOS_UINT8 ucDevIndex, SEND_UL_AT_FUNC pFunc);
+#define APP_VCOM_REG_DATA_CALLBACK(ucDevIndex,pFunc) APP_VCOM_RegDataCallback(ucDevIndex,pFunc)
+
 /*****************************************************************************
  函 数 名  : APP_VCOM_RegEvtCallback
  功能描述  : VCOM为外部模块提供的注册端口事件处理函数接口。
@@ -239,12 +253,13 @@ extern VOS_UINT32 APP_VCOM_Send (VOS_UINT8 ucDevIndex, VOS_UINT8 *pData, VOS_UIN
 #define APP_VCOM_SEND(ucDevIndex,pData,uslength) APP_VCOM_Send(ucDevIndex,pData,uslength)
 
 
+#endif
+
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else
 #pragma pack(0)
 #endif
-
 
 #ifdef __cplusplus
     #if __cplusplus

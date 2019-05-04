@@ -31,7 +31,9 @@
 #include <asm/ptrace.h>
 #include <chipset_common/security/root_scan.h>
 #include <asm/livepatch-hhee.h>
-
+#ifdef CONFIG_TEE_KERNEL_MEASUREMENT_API
+#include <../../../../drivers/hisi/tzdriver/ca_antiroot/rootagent.h>
+#endif
 static inline bool offset_in_range(unsigned long pc, unsigned long addr,
 		long range)
 {
@@ -139,14 +141,12 @@ void notrace klp_walk_stackframe(struct stackframe *frame,
 		struct task_struct *tsk, void *data)
 {
 	struct pt_regs *regs;
-	unsigned long high, low;
+	unsigned long sp, high, low;
 	low = (unsigned long)task_stack_page(tsk);
 	high = low + THREAD_SIZE;
 
 	while (1) {
 		int ret;
-		if (!frame->fp || !frame->sp)
-			break;
 		if (fn(frame, data))
 			break;
 		ret = unwind_frame(NULL, frame);
@@ -154,13 +154,13 @@ void notrace klp_walk_stackframe(struct stackframe *frame,
 			break;
 
 		if (in_entry_text(frame->pc)) {
-			regs = (struct pt_regs *)frame->sp;
+			sp = frame->fp + 0x10;/*0x10 for sp2fp size*/
+			regs = (struct pt_regs *)sp;
 			if (regs->sp < low || regs->sp > high -0x18)/*0x18 for sp2pc size */
 				break;
 			frame->pc = regs->pc;
 			if (fn(frame, data))
 				break;
-			frame->sp = regs->sp;
 			frame->fp = regs->regs[29];/*the 29th regs for fp pointer*/
 			frame->pc = regs->regs[30];/*the 30th regs for pc pointer*/
 		}
@@ -181,7 +181,6 @@ int klp_check_calltrace(struct klp_patch *patch, int enable)
 
 	do_each_thread(g, t) {
 		frame.fp = thread_saved_fp(t);
-		frame.sp = thread_saved_sp(t);
 		frame.pc = thread_saved_pc(t);
 		klp_walk_stackframe(&frame, klp_check_activeness_func, t, &args);
 		if (args.ret) {
@@ -222,14 +221,23 @@ void  arch_klp_code_modify_prepare(void)
 #ifdef CONFIG_HW_ROOT_SCAN
     (void) root_scan_pause(D_RSOPID_KCODE,NULL);
 #endif
+
+#ifdef CONFIG_TEE_KERNEL_MEASUREMENT_API
+    (void) pause_measurement();
+#endif
     return;
 }
 
 void  arch_klp_code_modify_post_process(void)
 {
+#ifdef CONFIG_TEE_KERNEL_MEASUREMENT_API
+    (void)resume_measurement();
+#endif
+
 #ifdef CONFIG_HW_ROOT_SCAN
     (void)root_scan_resume(D_RSOPID_KCODE,NULL);
 #endif
+
     return;
 }
 

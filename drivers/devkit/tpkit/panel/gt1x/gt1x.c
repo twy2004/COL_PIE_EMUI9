@@ -364,15 +364,15 @@ static int gt1x_switch_wrokmode(int wrokmode)
 static int gt1x_feature_switch(struct gt1x_ts_data *ts,
 		enum gt1x_ts_feature fea, int on)
 {
-	struct ts_feature_info *info = &ts->dev_data->ts_platform_data->feature_info;
 	struct gt1x_ts_config *config = NULL;
+	struct ts_feature_info *info = NULL;
 	int ret = 0;
 
-	if (!ts || !info){
+	if ((ts == NULL) || (ts->dev_data->ts_platform_data == NULL)) {
 		TS_LOG_ERR("%s:invalid param\n", __func__);
 		return -EINVAL;
 	}
-
+	info = &ts->dev_data->ts_platform_data->feature_info;
 	if (on == SWITCH_ON) {
 		switch (fea) {
 		case TS_FEATURE_NONE:
@@ -636,8 +636,10 @@ static int gt1x_cache_roidata_device(struct gt1x_ts_roi *roi)
 		TS_LOG_ERR("%s:roi is not support or invalid parameter\n", __func__);
 		return -EINVAL;
 	}
+	mutex_lock(&roi->mutex);
 
 	roi->data_ready = false;
+	mutex_unlock(&roi->mutex);
 
 	ret = gt1x_i2c_read(ts->gt1x_roi_data_add, status, ROI_HEAD_LEN);
 	if (ret) {
@@ -831,7 +833,9 @@ static int gt1x_request_evt_handler(struct gt1x_ts_data *ts)
 		break;
 	case GTP_RQST_RESET:
 		TS_LOG_INFO("%s: Request Reset.\n", __func__);
-		gt1x_i2c_read(0x5097, &rqst_data, 1);
+		ret = gt1x_i2c_read(0x5097, &rqst_data, 1);
+		if (ret)
+			TS_LOG_ERR("Failed read rqst_data.\n");
 		TS_LOG_INFO("%s: Reason code[0x5097]:0x%02x\n", __func__, rqst_data);
 		gt1x_chip_reset();
 		gt1x_feature_resume(ts);
@@ -875,7 +879,6 @@ static int gt1x_touch_evt_handler(struct gt1x_ts_data  *ts,
 				struct ts_fingers *info)
 {
 	u8 touch_data[1 + 8 * GTP_MAX_TOUCH + 2] = {0};
-	cur_index = 0;
 	u8 touch_num;
 	u8 *coor_data = NULL;
 	u8 check_sum = 0;
@@ -883,10 +886,10 @@ static int gt1x_touch_evt_handler(struct gt1x_ts_data  *ts,
 	int xer = 0;
 	int yer = 0;
 	int ret = -1;
-	int res = 0;
 	u8 touch_ewxy[GT1X_EDGE_DATA_SIZE] = {0};
 	u8 touch_wxy[GT1X_EDGE_DATA_SIZE] = {0};
 
+	cur_index = 0;
 	ret = gt1x_i2c_read(GTP_READ_COOR_ADDR, &touch_data[0], 1 + 8 + 2);
 	if (unlikely(ret))
 		goto exit;
@@ -1282,19 +1285,27 @@ static void gt1x_put_regulators(void)
 
 static void gt1x_power_on_gpio_set(void)
 {
+	int ret;
 	struct gt1x_ts_data *ts = gt1x_ts;
 
 	gt1x_pinctrl_select_normal();
-	gpio_direction_input(ts->dev_data->ts_platform_data->irq_gpio);
+	ret = gpio_direction_input(ts->dev_data->ts_platform_data->irq_gpio);
+	if (ret)
+		TS_LOG_ERR("%s: set irq gpio direction input error\n",
+			__func__);
 	gpio_direction_output(ts->dev_data->ts_platform_data->reset_gpio, 1);
 }
 
 static void gt1x_power_off_gpio_set(void)
 {
+	int ret;
 	struct gt1x_ts_data *ts = gt1x_ts;
 
 	gt1x_pinctrl_select_suspend();
-	gpio_direction_input(ts->dev_data->ts_platform_data->irq_gpio);
+	ret = gpio_direction_input(ts->dev_data->ts_platform_data->irq_gpio);
+	if (ret)
+		TS_LOG_ERR("%s: set irq gpio direction input error\n",
+			__func__);
 	gpio_direction_output(ts->dev_data->ts_platform_data->reset_gpio, 0);
 }
 /**
@@ -1496,68 +1507,6 @@ static int gt1x_pinctrl_select_gesture(void)
 	}
 	
 	return ret;
-}
-
-static unsigned int gt1x_get_chip_id(u8 *chip_name)
-{
-	int chip_id = 0;
-
-	if(!memcmp(chip_name, GT1X_1151Q_CHIP_ID, GT1X_PRODUCT_ID_LEN)){ /* GT1151Q */
-		chip_id = GT_1151Q_ID;
-	}else{
-		TS_LOG_ERR("%s:invalid chip id failed[%s]!\n", __func__,chip_name);
-		chip_id = GT_DEFALT_ID;
-	}
-
-	return chip_id;
-}
-
-static void gt1x_get_vendor_name(unsigned int vendor_id)
-{
-	char vendor_name[MAX_STR_LEN] ={0};
-	struct gt1x_ts_data *ts = gt1x_ts;
-
-	switch (vendor_id) {
-		case MODULE_OFILM_ID:
-			strncpy(vendor_name, "ofilm", MAX_STR_LEN);
-			break;
-		case MODULE_EELY_ID:
-			strncpy(vendor_name, "eely", MAX_STR_LEN);
-			break;
-		case MODULE_TRULY_ID:
-			strncpy(vendor_name, "truly", MAX_STR_LEN);
-			break;  
-		default:
-			TS_LOG_ERR("%s:user default string!\n", __func__);
-			strncpy(vendor_name, "default", MAX_STR_LEN);
-	}
-
-	memset(ts->dev_data->module_name, 0, MAX_STR_LEN);
-	strncpy(ts->dev_data->module_name, vendor_name, MAX_STR_LEN -1);
-}
-
-/**
- * gt1x_creat_project_id - get project_id.
- * @value: 0 is create project_id, other is use default project
- */
-static void gt1x_creat_project_id(void)
-{
-	struct gt1x_ts_data *ts = gt1x_ts;
-	unsigned int chip_id = 0;
-
-	if(ts->create_project_id_supported && !ts->fw_damage_flag){
-		memset(ts->project_id, 0, sizeof(ts->project_id));
-
-		chip_id = gt1x_get_chip_id(ts->hw_info.product_id);
-		snprintf(ts->project_id, MAX_STR_LEN, "%s%02d%02d0",
-				ts->dev_data->ts_platform_data->product_name,
-				chip_id, ts->dev_data->ts_platform_data->panel_id);
-	}else{
-		TS_LOG_INFO("%s: no support create_project_id, use default project_id\n", __func__);
-	}
-
-	TS_LOG_INFO("%s: project_id = %s\n", __func__, ts->project_id);
-	return; 
 }
 
 /**
@@ -1780,7 +1729,7 @@ static int gt1x_get_lcd_hide_module_name(char *module_name)
 
 	ret = snprintf(comp_name, MAX_STR_LEN+GT1X_OF_NAME_LEN+1, "%s-%s", GT1X_OF_NAME, module_name);
 	if (ret >= MAX_STR_LEN+GT1X_OF_NAME_LEN+1) {
-		TS_LOG_INFO("%s:%s, ret=%d, size=%lu\n", __func__,
+		TS_LOG_INFO("%s:%s, ret=%d, size=%d\n", __func__,
 			"compatible_name out of range", ret, MAX_STR_LEN+GT1X_OF_NAME_LEN+1);
 		return -EINVAL;
 	}
@@ -2187,7 +2136,7 @@ static int gt1x_parse_specific_dts(void)
 	u8 sid_is_exist = GT1X_NOT_EXIST;
 	
 	if (getU32(cfg_bin->data) + BIN_CFG_START_LOCAL != cfg_bin->size) {
-		TS_LOG_ERR("%s:Bad firmware!(file length: %d, header define: %d)\n", 
+		TS_LOG_ERR("%s:Bad firmware!(file length: %lu, header define: %d)\n",
 			__func__, cfg_bin->size, getU32(cfg_bin->data));
 		goto exit;
 	}
@@ -2319,11 +2268,12 @@ static int gt1x_get_cfg_parms(struct gt1x_ts_data *ts, const char *filename)
 	
 	// compare file length with the length field in the firmware header
 	if ((cfg_bin->size) < CFG_BIN_SIZE_MIN || cfg_bin->data == NULL) {
-		TS_LOG_ERR("%s:Bad firmware!(config firmware sizle: %u)\n", __func__, cfg_bin->size);
+		TS_LOG_ERR("%s:Bad firmware!(config firmware sizle: %lu)\n",
+			__func__, cfg_bin->size);
 		goto exit;
 	}
 
-	TS_LOG_INFO("%s: cfg_bin_size=%u\n", __func__, cfg_bin->size);
+	TS_LOG_INFO("%s: cfg_bin_size=%lu\n", __func__, cfg_bin->size);
 	/* parse normal config data */
 	ret = gt1x_get_cfg_data(cfg_bin,GT1X_NORMAL_CONFIG, &ts->normal_config);
 	if (ret < 0) {
@@ -2818,16 +2768,22 @@ static void goodix_reset_select_addr(void)
  */
 int gt1x_chip_reset(void)
 {
-	int reset_gpio = 0;
+	int ret;
+	int irq_gpio;
+	int reset_gpio;
 
 	reset_gpio = gt1x_ts->dev_data->ts_platform_data->reset_gpio;
+	irq_gpio = gt1x_ts->dev_data->ts_platform_data->irq_gpio;
 	TS_LOG_INFO("%s: Chip reset\n", __func__);
 	/* chip select for 0x14 slave address */
 	if(gt1x_ts->qcom_adapter_flag)
 	{
 		goodix_reset_select_addr();
 		msleep(80); /* chip initialize */
-		gpio_direction_input(gt1x_ts->dev_data->ts_platform_data->irq_gpio);
+		ret = gpio_direction_input(irq_gpio);
+		if (ret)
+			TS_LOG_ERR("%s: set irq gpio direction input error\n",
+				__func__);
 	}
 	else
 	{
@@ -3323,8 +3279,8 @@ static void gt1x_chip_touch_switch(void)
 	int error = 0;
 	unsigned int i = 0, cnt = 0;
 	struct gt1x_ts_data *ts = gt1x_ts;
-	struct ts_feature_info *info = &ts->dev_data->ts_platform_data->feature_info;
 	struct gt1x_ts_config *config = NULL;
+	struct ts_feature_info *info = NULL;
 
 	TS_LOG_INFO("%s enter\n", __func__);
 
@@ -3332,7 +3288,7 @@ static void gt1x_chip_touch_switch(void)
 		TS_LOG_ERR("%s, error chip data\n",__func__);
 		goto out;
 	}
-
+	info = &ts->dev_data->ts_platform_data->feature_info;
 	/* SWITCH_OPER,ENABLE_DISABLE,PARAM */
 	memcpy(in_data, ts->dev_data->touch_switch_info, MAX_STR_LEN -1);
 	TS_LOG_INFO("%s, in_data:%s\n",__func__, in_data);

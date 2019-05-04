@@ -336,6 +336,8 @@ extern "C" {
 #define MAC_IS_TPINK_941N_AP(puc_bssid)      ((0x50 == puc_bssid[0]) && (0xfa == puc_bssid[1]) && (0x84 == puc_bssid[2]))
 #define MAC_IS_TPINK_5510_AP(puc_bssid)      ((0x80 == puc_bssid[0]) && (0x89 == puc_bssid[1]) && (0x17 == puc_bssid[2]))
 //#define MAC_IS_TPINK_5660_AP(puc_bssid)      ((0x78 == puc_bssid[0]) && (0x44 == puc_bssid[1]) && (0xfd == puc_bssid[2]))
+#define MAC_IS_LINKSYS_EA8500_AP(puc_bssid)      ((0xc0 == puc_bssid[0]) && (0x56 == puc_bssid[1]) && (0x27 == puc_bssid[2]))
+
 
 #define MAC_IS_360_AP0(puc_bssid)           ((0xb0 == puc_bssid[0]) && (0xd5 == puc_bssid[1]) && (0x9d == puc_bssid[2]))
 #define MAC_IS_360_AP1(puc_bssid)           ((0xc8 == puc_bssid[0]) && (0xd5 == puc_bssid[1]) && (0xfe == puc_bssid[2]))
@@ -419,6 +421,8 @@ typedef enum
     MAC_AP_TYPE_M2S                 = BIT6,
     MAC_AP_TYPE_ROAM                = BIT7,
     MAC_AP_TYPE_160M_OP_MODE        = BIT8,
+    MAC_AP_TYPE_AGGR_BLACKLIST      = BIT9,
+    MAC_AP_TYPE_MIMO_BLACKLIST      = BIT10,
     MAC_AP_TYPE_BUTT
 } mac_ap_type_enum;
 typedef oal_uint16 mac_ap_type_enum_uint16;

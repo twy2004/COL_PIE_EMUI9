@@ -50,6 +50,8 @@
 /*****************************************************************************
   1 头文件包含
 **************************************************************************** */
+#include <product_config.h>
+#include <mdrv_usb.h>
 #include "scm_ind_src.h"
 #include "scm_ind_dst.h"
 #include "scm_cnf_src.h"
@@ -58,6 +60,7 @@
 #include "diag_system_debug.h"
 #include "OmCommonPpm.h"
 #include "OmUsbPpm.h"
+#include <securec.h>
 
 
 /* ****************************************************************************
@@ -133,15 +136,26 @@ void PPM_UsbIndStatusCB(ACM_EVT_E enPortState)
     return;
 }
 
+PPM_USB_DEBUG_INFO_STRU g_strPpmUsbDebugInfo = {0};
+
+static inline u32 Max_UsbProcTime(u32 oldtime, u32 newtime)
+{
+	return (oldtime >= newtime? oldtime : newtime);
+}
+void PPM_QueryUsbInfo(void *PpmUsbInfoStru, u32 len)
+{
+    memcpy_s(PpmUsbInfoStru, len, &g_strPpmUsbDebugInfo, sizeof(PPM_USB_DEBUG_INFO_STRU));
+}
+void PPM_ClearUsbTimeInfo(void)
+{
+    memset_s(&g_strPpmUsbDebugInfo, sizeof(PPM_USB_DEBUG_INFO_STRU), 0, sizeof(PPM_USB_DEBUG_INFO_STRU));
+}
 
 void PPM_UsbIndWriteDataCB(u8* pucVirData, u8* pucPhyData, s32 lLen)
 {
-
-    PPM_PortWriteAsyCB(OM_USB_IND_PORT_HANDLE, pucVirData, lLen);
-
-    return;
+	PPM_PortWriteAsyCB(OM_USB_IND_PORT_HANDLE, pucVirData, lLen);
+	return;
 }
-
 
 void PPM_UsbIndPortOpen(void)
 {
@@ -150,7 +164,7 @@ void PPM_UsbIndPortOpen(void)
                             NULL,
                             PPM_UsbIndWriteDataCB,
                             PPM_UsbIndStatusCB);
-    
+
     diag_crit("usb ind port open\n");
     return;
 }

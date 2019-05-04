@@ -129,7 +129,7 @@ struct spmi_controller_dev {
 };
 
 static int spmi_controller_wait_for_done(struct spmi_controller_dev *ctrl_dev,
-				  void __iomem *base, u8 sid, u16 addr)
+				  const void __iomem *base, u8 sid, u16 addr)
 {
 	u32 status = 0;
 	u32 timeout = SPMI_CONTROLLER_TIMEOUT_US;

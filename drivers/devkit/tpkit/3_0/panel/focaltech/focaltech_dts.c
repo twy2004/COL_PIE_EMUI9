@@ -99,12 +99,15 @@ static void focal_of_property_read_u16_default(
 	u16 default_value)
 {
 	int ret = 0;
+	u32 value = 0;
 
-	ret = of_property_read_u16(np, prop_name, out_value);
+	ret = of_property_read_u32(np, prop_name, &value);
 	if (ret) {
 		TS_LOG_INFO("%s:%s not set in dts, use default\n",
 			__func__, prop_name);
 		*out_value = default_value;
+	} else {
+		*out_value = (u16)value;
 	}
 }
 
@@ -115,12 +118,15 @@ static void focal_of_property_read_u8_default(
 	u8 default_value)
 {
 	int ret = 0;
+	u32 value = 0;
 
-	ret = of_property_read_u8(np, prop_name, out_value);
+	ret = of_property_read_u32(np, prop_name, &value);
 	if (ret) {
 		TS_LOG_INFO("%s:%s not set in dts, use default\n",
 			__func__, prop_name);
 		*out_value = default_value;
+	} else {
+		*out_value = (u8)value;
 	}
 }
 

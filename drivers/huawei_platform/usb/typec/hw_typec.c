@@ -701,6 +701,10 @@ struct typec_device_info *typec_chip_register(struct typec_device_info *device_i
 {
     int ret = 0;
     struct typec_device_info *di = g_typec_dev;
+#ifdef CONFIG_DUAL_ROLE_USB_INTF
+    struct dual_role_phy_desc *desc;
+    struct dual_role_phy_instance *dual_role;
+#endif
 
     typec_class = class_create(THIS_MODULE, "hw_typec");
     if (IS_ERR(typec_class)) {
@@ -709,9 +713,6 @@ struct typec_device_info *typec_chip_register(struct typec_device_info *device_i
     }
 
 #ifdef CONFIG_DUAL_ROLE_USB_INTF
-    struct dual_role_phy_desc *desc;
-    struct dual_role_phy_instance *dual_role;
-
     if(!ops || !ops->clean_int_mask || !ops->detect_attachment_status
     || !ops->detect_cc_orientation || !ops->detect_input_current
     || !ops->detect_port_mode || !ops->ctrl_output_current

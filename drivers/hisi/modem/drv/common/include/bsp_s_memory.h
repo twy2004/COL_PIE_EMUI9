@@ -82,13 +82,14 @@ static inline struct reserve_mem_node*  bsp_reserve_mem_mperf_get(const char* na
 
 static inline void * bsp_mem_remap_uncached(unsigned long phys_addr, unsigned int size) {return NULL;}
 
-static inline void  bsp_mem_unmap_uncached(void* virt_addr){return ;}
+static inline void  bsp_mem_unmap_uncached(void* virt_addr){return;}
 
 #endif
 
 struct mperf_info {
 	u32 inited;
 	u32 nr_cpus;
+	u32 lr_cpus;
 };
 
 struct mperf_info*  bsp_mem_get_mperf_info(void);

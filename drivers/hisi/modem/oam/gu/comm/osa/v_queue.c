@@ -84,6 +84,8 @@
 #include "vos_Id.h"
 #include "v_int.h"
 #include "v_blkMem.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 /* LINUX 不支持 */
 
@@ -94,7 +96,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_QUEUE_C
-
+#define    THIS_MODU           mod_pam_osa
 
 
 /* the state of control block */
@@ -214,7 +216,6 @@ VOS_UINT32 VOS_QueueCtrlBlkGet(VOS_VOID)
     VOS_UINT32      i;
     VOS_ULONG       ulLockLevel;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosQueueSpinLock, ulLockLevel);
 
     for(i=0; i<vos_QueueCtrlBlcokNumber; i++)
@@ -227,7 +228,6 @@ VOS_UINT32 VOS_QueueCtrlBlkGet(VOS_VOID)
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
     if( i < vos_QueueCtrlBlcokNumber)
@@ -243,7 +243,7 @@ VOS_UINT32 VOS_QueueCtrlBlkGet(VOS_VOID)
     }
     else
     {
-        LogPrint("# VOS_QueueCtrlBlkGet no Idle.\r\n");
+        mdrv_err("<VOS_QueueCtrlBlkGet> no Idle.\n");
 
         VOS_SetErrorNo(VOS_ERRNO_QUEUE_FULL);
 
@@ -266,16 +266,14 @@ VOS_UINT32 VOS_QueueCtrlBlkFree(VOS_UINT32 Qid)
     {
         if(vos_QueueCtrlBlcok[Qid].Flag == VOS_QUEUE_CTRL_BLK_IDLE)
         {
-            Print1("%s", "# VOS_QueueCtrlBlkFree free Idle Queue.\r\n");
+            mdrv_debug("<OS_QueueCtrlBlkFree> free Idle Queue.\n");
         }
         else
         {
-            /*intLockLevel = VOS_SplIMP();*/
             VOS_SpinLockIntLock(&g_stVosQueueSpinLock, ulLockLevel);
 
             vos_QueueCtrlBlcok[Qid].Flag = VOS_QUEUE_CTRL_BLK_IDLE;
 
-            /*VOS_Splx(intLockLevel);*/
             VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
         }
 
@@ -283,7 +281,7 @@ VOS_UINT32 VOS_QueueCtrlBlkFree(VOS_UINT32 Qid)
     }
     else
     {
-        Print1("%s", "# VOS_QueueGetCtrlBlkInit Error.\r\n");
+        mdrv_err("<OS_QueueCtrlBlkFree> Qid exceed vos_QueueCtrlBlcokNumber.\n");
 
         return VOS_ERR;
     }
@@ -365,7 +363,6 @@ VOS_UINT32 VOS_FixedQueueCreate( VOS_UINT32 ulLength,
     }
 
     /* which should be del when only one FID exists */
-    /* for (i=0; i<VOS_MAX_PID_PRI; i++) */
     for (i=0; i<(VOS_INT)ulQueueNum; i++)
     {
         vos_QueueCtrlBlcok[iQid].Q[i].QStart\
@@ -374,12 +371,8 @@ VOS_UINT32 VOS_FixedQueueCreate( VOS_UINT32 ulLength,
 
         if(VOS_NULL_PTR == vos_QueueCtrlBlcok[iQid].Q[i].QStart)
         {
-            Print1("%s", "# VOS_FixedQueueCreate alloc mem Error.\r\n");
+            mdrv_err("<VOS_FixedQueueCreatealloc> static mem alloc fail.\n");
 
-            /*for (j=0;j<i;j++)
-            {
-                free(vos_QueueCtrlBlcok[iQid].Q[j].QStart);
-            }*/
             (VOS_VOID)VOS_QueueCtrlBlkFree( iQid );
             return(VOS_ERR);
         }
@@ -397,11 +390,6 @@ VOS_UINT32 VOS_FixedQueueCreate( VOS_UINT32 ulLength,
         != VOS_SmCCreate("tmp", 0, iQueueOption, &vos_QueueCtrlBlcok[iQid].Sem_ID))
     {
         /* which should be del when only one FID exists */
-        /* for ( i=0; i<VOS_MAX_PID_PRI; i++ ) */
-        /*for ( i=0; i<(VOS_INT)ulQueueNum; i++ )
-        {
-            free( vos_QueueCtrlBlcok[iQid].Q[i].QStart );
-        }*/
         (VOS_VOID)VOS_QueueCtrlBlkFree( iQid );
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_QUEUE_CREATE_OSALFAIL);
         return( VOS_ERRNO_QUEUE_CREATE_OSALFAIL );
@@ -440,13 +428,11 @@ VOS_UINT32 VOS_AddQueue(VOS_UINT32 ulQueueID, int suffix,
     VOS_UINT_PTR       *pulTmpAddr;
     VOS_UINT_PTR        ulTmpValue;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosQueueSpinLock, ulLockLevel);
 
     if ( vos_QueueCtrlBlcok[ulQueueID].Q[suffix].QEntries
         >= vos_QueueCtrlBlcok[ulQueueID].Q[suffix].QSize )
     {
-         /*VOS_Splx(intLockLevel);*/
          VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
          return VOS_ERR;
@@ -510,7 +496,6 @@ VOS_UINT32 VOS_AddQueue(VOS_UINT32 ulQueueID, int suffix,
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
     return VOS_OK;
@@ -558,7 +543,7 @@ VOS_UINT32 VOS_FixedQueueWrite( VOS_UINT32 ulQueueID, VOS_VOID * pBufferAddr,
 
     if (VOS_ERR == ulReturn )
     {
-        LogPrint1("# Queue ID %d is full.\r\n",(int)ulQueueID);
+        mdrv_err("<VOS_FixedQueueWrite> Queue ID %d is full.\n",(int)ulQueueID);
 
         return VOS_ERR;
     }
@@ -567,7 +552,7 @@ VOS_UINT32 VOS_FixedQueueWrite( VOS_UINT32 ulQueueID, VOS_VOID * pBufferAddr,
 
         if ( VOS_OK != VOS_SmV( vos_QueueCtrlBlcok[ulQueueID].Sem_ID) )
         {
-            LogPrint("# VOS_SmV error.\r\n");
+            mdrv_err("<VOS_FixedQueueWrite> VOS_SmV Fail.\n");
 
             return VOS_ERR;
         }
@@ -601,14 +586,14 @@ VOS_UINT32 VOS_FixedQueueWriteDirect( VOS_UINT32 ulQueueID, VOS_VOID * pBufferAd
 
     if (VOS_ERR == ulReturn )
     {
-        LogPrint1("# Queue ID %d is full.\r\n",(int)ulQueueID);
+        mdrv_err("<VOS_FixedQueueWriteDirect> Queue ID %d is full.\n",(int)ulQueueID);
 
         return VOS_ERR;
     }
 
     if ( VOS_OK != VOS_SmV( vos_QueueCtrlBlcok[ulQueueID].Sem_ID) )
     {
-        LogPrint("# VOS_SmV error.\r\n");
+        mdrv_err("<VOS_FixedQueueWriteDirect> VOS_SmV Fail.\n");
 
         return VOS_ERR;
     }
@@ -642,16 +627,15 @@ VOS_UINT32 VOS_FixedQueueRead( VOS_UINT32 ulQueueID,
     if( VOS_OK != VOS_SmP( vos_QueueCtrlBlcok[ulQueueID].Sem_ID,
         ulTimeOutInMillSec ) )
     {
-        Print1("%s", "# msgQReceive error.\r\n");
+        mdrv_err("<VOS_FixedQueueRead> msgQReceive error.\n");
         return VOS_ERR;
     }
     else
     {
-        /*intLockLevel = VOS_SplIMP();*/
         VOS_SpinLockIntLock(&g_stVosQueueSpinLock, ulLockLevel);
 
         /* which should be del when only one FID exists */
-        /* for ( i=VOS_MAX_PID_PRI - 1; i>=0; i-- ) */
+        /* vos_QueueCtrlBlcok[ulQueueID].QNum is VOS_MAX_PID_PRI */
         for ( i=(VOS_INT)(vos_QueueCtrlBlcok[ulQueueID].QNum - 1); i>=0; i-- )
         {
             if (vos_QueueCtrlBlcok[ulQueueID].Q[i].QEntries > 0 )
@@ -670,7 +654,6 @@ VOS_UINT32 VOS_FixedQueueRead( VOS_UINT32 ulQueueID,
                     vos_QueueCtrlBlcok[ulQueueID].Q[i].QUrgentSize--;
                 }
 
-                /*VOS_Splx(intLockLevel);*/
                 VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
                 *pBufferAddr = TempValue;
@@ -678,7 +661,6 @@ VOS_UINT32 VOS_FixedQueueRead( VOS_UINT32 ulQueueID,
             }
         }
 
-        /*VOS_Splx(intLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
         return  VOS_ERR;
@@ -728,7 +710,7 @@ VOS_SEM VOS_GetSemIDFromQueue(VOS_UINT32 ulQueue)
 {
     if ( ulQueue >= vos_QueueCtrlBlcokNumber )
     {
-        LogPrint("VOS_GetSemIDFromQueue ulQueue is invaild.\r\n");
+        mdrv_err("<VOS_GetSemIDFromQueue> ulQueue is invaild.\n");
 
         return 0xffffffff;
     }
@@ -749,11 +731,10 @@ VOS_VOID* VOS_OutMsg( VOS_UINT32 ulQueueID )
     VOS_ULONG           ulLockLevel;
     VOS_UINT_PTR        TempValue;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosQueueSpinLock, ulLockLevel);
 
     /* which should be del when only one FID exists */
-    /* for ( i=VOS_MAX_PID_PRI - 1; i>=0; i-- ) */
+    /* vos_QueueCtrlBlcok[ulQueueID].QNum is VOS_MAX_PID_PRI */
     for ( i=(VOS_INT)(vos_QueueCtrlBlcok[ulQueueID].QNum - 1); i>=0; i-- )
     {
         if (vos_QueueCtrlBlcok[ulQueueID].Q[i].QEntries > 0 )
@@ -772,7 +753,6 @@ VOS_VOID* VOS_OutMsg( VOS_UINT32 ulQueueID )
                 vos_QueueCtrlBlcok[ulQueueID].Q[i].QUrgentSize--;
             }
 
-            /*VOS_Splx(intLockLevel);*/
             VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
             TempValue += VOS_MSG_BLK_HEAD_LEN;
@@ -781,7 +761,6 @@ VOS_VOID* VOS_OutMsg( VOS_UINT32 ulQueueID )
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosQueueSpinLock, ulLockLevel);
 
     return  VOS_NULL_PTR;
@@ -827,7 +806,7 @@ MODULE_EXPORTED VOS_UINT32  VOS_GetQueueSizeFromFid(VOS_UINT32 ulFid)
  *****************************************************************************/
 MODULE_EXPORTED VOS_VOID VOS_show_queue_info(VOS_VOID)
 {
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: Max be used queue is %d.\r\n", __FUNCTION__, Max_use_queue_number);
+    mdrv_debug("<VOS_show_queue_info> Max be used queue is %d.\n", Max_use_queue_number);
 }
 
 /*****************************************************************************
@@ -856,7 +835,7 @@ VOS_VOID VOS_QueuePrintFull( VOS_UINT32 ulQueue, VOS_CHAR *pcBuf, VOS_UINT32 ulL
 
         if ( (VOS_FID_QUEUE_LENGTH < ulCount) || (ulCount > ulNumber) )
         {
-            LogPrint1("# VOS_QueuePrintFull ulCount %d.\r\n",(VOS_INT)ulCount);
+            mdrv_debug("<VOS_QueuePrintFull> ulCount=%d.\n",(VOS_INT)ulCount);
 
             return;
         }

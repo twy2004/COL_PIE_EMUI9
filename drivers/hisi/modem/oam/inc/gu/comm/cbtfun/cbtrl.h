@@ -262,6 +262,7 @@ typedef enum
     CBT_MODE_UMTS,
     CBT_MODE_CDMA,
     CBT_MODE_NR,
+    CBT_MODE_LTEV2X = 7,
     CBT_MODE_COMM = 0xf,
     CBT_MODE_BUTT
 

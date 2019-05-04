@@ -325,6 +325,19 @@ static int smartpakit_read_regs(void *priv, void __user *arg)
 	return ret;
 }
 
+static bool smartpakit_need_write_regs(smartpakit_priv_t *pakit_priv,
+	int id, unsigned int num, smartpakit_param_node_t *regs)
+{
+	smartpakit_pa_ctl_sequence_t *old = &pakit_priv->poweron_sequence[id];
+	unsigned int regs_size = sizeof(smartpakit_param_node_t) * num;
+
+	if ((old->node != NULL) && (old->param_num == num) &&
+		(memcmp(old->node, regs, regs_size) == 0))
+		return false;
+
+	return true;
+}
+
 static int smartpakit_do_write_regs(smartpakit_i2c_priv_t *i2c_priv, unsigned int num, smartpakit_param_node_t *regs)
 {
 	smartpakit_priv_t *pakit_priv = NULL;
@@ -484,6 +497,14 @@ static int smartpakit_do_write_regs_all(smartpakit_priv_t *pakit_priv, smartpaki
 	hwlog_debug("%s: pa_num=%d, reg_num=%d!!!\n", __func__, pa_num_need_ops, reg_num_need_ops);
 	for (i = 0; i < pa_num_need_ops; i++) {
 		index = (int)sequence->pa_ctl_index[i];
+		if (!pakit_priv->force_refresh_chip &&
+			!smartpakit_need_write_regs(pakit_priv,
+			index, (unsigned int)reg_num_need_ops,
+			sequence->node + (i * reg_num_need_ops))) {
+			hwlog_info("%s: pa%d not need re-write the same regs\n",
+				__func__, index);
+			continue;
+		}
 		ret += smartpakit_do_write_regs(pakit_priv->i2c_priv[index], (unsigned int)reg_num_need_ops,
 			sequence->node + (i * reg_num_need_ops)); /*lint !e679*/
 	}
@@ -508,6 +529,13 @@ static int smartpakit_write_regs(void *priv, void __user *arg, int compat_mode)
 	ret = smartpakit_parse_params(&sequence, arg, compat_mode);
 	if (ret < 0) {
 		hwlog_err("%s: parse w_regs failed!!!\n", __func__);
+		goto err_out;
+	}
+
+	if (!smartpakit_need_write_regs(i2c_priv->priv_data,
+		i2c_priv->chip_id, sequence.param_num, sequence.node)) {
+		hwlog_info("%s: pa%d not need re-write the same regs\n",
+			__func__, i2c_priv->chip_id);
 		goto err_out;
 	}
 
@@ -650,6 +678,8 @@ static int smartpakit_resume_regs(void *priv)
 		return -EINVAL;
 	}
 
+	pakit_priv->force_refresh_chip = true;
+
 	// init chip
 	hwlog_info("%s: init chips...\n", __func__);
 	ret = smartpakit_do_write_regs_all(pakit_priv, &pakit_priv->resume_sequence);
@@ -671,6 +701,7 @@ static int smartpakit_resume_regs(void *priv)
 	}
 
 err_out:
+	pakit_priv->force_refresh_chip = false;
 	return ret;
 }
 
@@ -1203,7 +1234,6 @@ static int smartpakit_i2c_parse_dt_reg_ctl(smartpakit_reg_ctl_sequence_t **reg_c
 	int count = 0;
 	int val_num = 0;
 	int ret = 0;
-	int i = 0;
 
 	if ((NULL == node) || (NULL == ctl_str)) {
 		hwlog_err("%s: invalid argument!!!\n", __func__);
@@ -1239,15 +1269,6 @@ static int smartpakit_i2c_parse_dt_reg_ctl(smartpakit_reg_ctl_sequence_t **reg_c
 		ret = -EFAULT;
 		goto err_out;
 	}
-
-#ifndef CONFIG_FINAL_RELEASE
-	// dump regs
-	hwlog_info("%s: %s reg_ctl ...\n", __func__, ctl_str);
-	for (i = 0; i < (int)ctl->num; i++) {
-		hwlog_info("%s: reg_ctl[%d]=0x%x, 0x%x, %d!!!\n", __func__, i,
-			ctl->regs[i].addr, ctl->regs[i].value, ctl->regs[i].ctl_type);
-	}
-#endif
 
 	*reg_ctl = ctl;
 	return 0;
@@ -1815,7 +1836,9 @@ static void smartpakit_i2c_free(smartpakit_i2c_priv_t *i2c_priv)
 		i2c_priv->dump_regs_sequence = NULL;
 	}
 
-	smartpakit_i2c_regmap_deinit(i2c_priv);
+	if (i2c_priv->regmap_cfg != NULL)
+		smartpakit_i2c_regmap_deinit(i2c_priv);
+
 	kfree(i2c_priv);
 }
 
@@ -1823,10 +1846,6 @@ static int smartpakit_i2c_probe(struct i2c_client *i2c, const struct i2c_device_
 {
 	smartpakit_i2c_priv_t *i2c_priv = NULL;
 	int ret = 0;
-
-#ifndef CONFIG_FINAL_RELEASE
-	hwlog_info("%s: enter ...\n", __func__);
-#endif
 
 	if (0 == smartpakit_init_flag) {
 		hwlog_info("%s: this driver need probe_defer!!!\n", __func__);
@@ -1859,8 +1878,9 @@ static int smartpakit_i2c_probe(struct i2c_client *i2c, const struct i2c_device_
 	}
 
 	if (smartpakit_i2c_probe_skip[i2c_priv->chip_id]) {
-		hwlog_info("%s: chip_id = %d is probe success, skip!\n", __func__, i2c_priv->chip_id);
-		goto err_out;
+		hwlog_info("%s: chip_id = %d has been probed successfully, skip\n",
+				__func__, i2c_priv->chip_id);
+		goto skip_probe;
 	}
 
 	i2c_priv->dev = &i2c->dev;
@@ -1904,10 +1924,11 @@ static int smartpakit_i2c_probe(struct i2c_client *i2c, const struct i2c_device_
 	return 0;
 
 err_out:
+	hwlog_err("%s: end fail\n", __func__);
+skip_probe:
 	if (i2c_priv != NULL) {
 		smartpakit_i2c_free(i2c_priv);
 	}
-	hwlog_err("%s: end fail !!!\n", __func__);
 	return ret;
 }
 

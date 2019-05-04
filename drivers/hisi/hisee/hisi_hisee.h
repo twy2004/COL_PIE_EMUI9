@@ -380,4 +380,8 @@ void nfc_irq_cfg(hisee_nfc_irq_cfg_state flag);
 
 void hisee_get_smx_cfg(unsigned int *p_smx_cfg);
 
+#ifdef CONFIG_HISEE_SUPPORT_OVERSEA
+int hisee_write_smx_cfg(void);
+#endif
+
 #endif

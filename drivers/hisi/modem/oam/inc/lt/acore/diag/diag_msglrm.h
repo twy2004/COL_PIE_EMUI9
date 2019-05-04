@@ -66,7 +66,7 @@ extern "C" {
   2 macro
 *****************************************************************************/
 #ifdef DIAG_SYSTEM_5G
-#define DIAG_LRM_SRC_NUM        (8)
+#define DIAG_LRM_SRC_NUM        (14)
 #else
 #define DIAG_LRM_SRC_NUM        (6)
 #endif

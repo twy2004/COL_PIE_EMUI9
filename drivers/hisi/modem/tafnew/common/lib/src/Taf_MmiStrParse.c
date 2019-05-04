@@ -226,11 +226,32 @@ LOCAL VOS_UINT32 MMI_AtoI(
     const VOS_CHAR                      *pcSrc
 )
 {
-    VOS_UINT32      i = 0;
+    VOS_UINT32                          i;
+    VOS_UINT64                          ullTmpValue;
+
+    i           = 0;
+    ullTmpValue = 0;
+
+    if (VOS_NULL_PTR == pcSrc)
+    {
+        MN_ERR_LOG("MMI_AtoI: Null Ptr");
+        return i;
+    }
+
     while (MN_MMI_isdigit(*pcSrc))
     {
-        i = (i * 10) + (*(pcSrc++) - '0');
+        ullTmpValue = ((VOS_UINT64)i * 10) + (*(pcSrc++) - '0');
+
+        /* 反转保护 */
+        if (ullTmpValue > TAF_MMI_MAX_UINT32_VALUE)
+        {
+            MN_ERR_LOG("MMI_AtoI:U32 revert");
+            return 0;
+        }
+
+        i = (VOS_UINT32)ullTmpValue;
     }
+
     return i;
 }
 
@@ -248,6 +269,7 @@ LOCAL VOS_CHAR* MMI_StrChr(
         return VOS_NULL_PTR;
     }
 
+    /* pcTo为空指针时调用点必须保证字符串中存在\0，否则可能发生死循环 */
     for(; (*pcFrom != (VOS_CHAR) ichar) && MN_MMI_STR_PTR_IS_VALID(pcFrom, pcTo); ++pcFrom)
     {
         if ('\0' == *pcFrom )
@@ -264,13 +286,7 @@ LOCAL VOS_CHAR* MMI_StrChr(
     return (VOS_CHAR*)pcFrom;
 }
 
-
-
-
-LOCAL VOS_UINT32 MMI_Max(const VOS_UINT32 ulNumbera, const VOS_UINT32 ulNumberb)
-{
-    return ((ulNumbera > ulNumberb) ? ulNumbera : ulNumberb);
-}
+/* 不再使用 */
 
 
 VOS_BOOL MMI_DecodeScAndSi(
@@ -281,8 +297,8 @@ VOS_BOOL MMI_DecodeScAndSi(
 )
 {
     VOS_CHAR                            aucTmpVal[MN_MMI_MAX_PARA_NUM][MN_MMI_MAX_BUF_SIZE];
-    VOS_UINT16                          i = 0;
-    VOS_UINT16                          j = 0;
+    VOS_UINT32                          i = 0;
+    VOS_UINT32                          j = 0;
     VOS_CHAR                            *pcNextStart;
     VOS_CHAR                            *pcEnd;
     VOS_CHAR                            *pcNextStop;
@@ -366,6 +382,41 @@ VOS_BOOL MMI_DecodeScAndSi(
 }
 
 
+LOCAL  VOS_VOID MMI_ExtractPinOperationType(
+    MN_MMI_OPERATION_TYPE_ENUM_U8       enMmiOperationType,
+    MN_MMI_OPERATION_PARAM_STRU        *pMmiOpParam
+)
+{
+    switch(enMmiOperationType)
+    {
+    case TAF_MMI_CHANGE_PIN2:
+        pMmiOpParam->PinReq.CmdType = TAF_PIN_CHANGE;
+        pMmiOpParam->PinReq.PinType = TAF_SIM_PIN2;
+        break;
+
+    case TAF_MMI_CHANGE_PIN:
+        pMmiOpParam->PinReq.CmdType = TAF_PIN_CHANGE;
+        pMmiOpParam->PinReq.PinType = TAF_SIM_PIN;
+        break;
+
+    case TAF_MMI_UNBLOCK_PIN2:
+        pMmiOpParam->PinReq.CmdType = TAF_PIN_UNBLOCK;
+        pMmiOpParam->PinReq.PinType = TAF_SIM_PIN2;
+        break;
+
+    case TAF_MMI_UNBLOCK_PIN:
+        pMmiOpParam->PinReq.CmdType = TAF_PIN_UNBLOCK;
+        pMmiOpParam->PinReq.PinType = TAF_SIM_PIN;
+        break;
+
+    default:
+        /*该分支永远不会走到*/
+        break;
+    }
+
+    return;
+}
+
 
 LOCAL  VOS_BOOL MMI_JudgePinOperation(
     VOS_CHAR                            *pMmiStr,
@@ -374,7 +425,7 @@ LOCAL  VOS_BOOL MMI_JudgePinOperation(
     VOS_UINT32                          *pulErrCode
 )
 {
-    VOS_UINT16                          i = 0;
+    VOS_UINT32                          i = 0;
     MN_MMI_SC_SI_PARA_STRU              stScSiPara;
     MN_MMI_STR_OPERATION_Tbl_STRU       stMmiPinStrOpTbl[] = {
                                                               {"**042*", TAF_MMI_CHANGE_PIN2,  {0, 0, 0, 0, 0, 0, 0}},
@@ -384,17 +435,29 @@ LOCAL  VOS_BOOL MMI_JudgePinOperation(
                                                               {VOS_NULL_PTR, TAF_MMI_NULL_OPERATION, {0, 0, 0, 0, 0, 0, 0}}
                                                              };
 
+    VOS_UINT32                          ulSrcStrNLen;
+    VOS_UINT32                          ulDestStrNLen;
+
     *pulErrCode = MN_ERR_NO_ERROR;
+
+    ulSrcStrNLen = VOS_StrNLen((VOS_CHAR *)pMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
 
     while (VOS_NULL_PTR != stMmiPinStrOpTbl[i].pString)
     {
-        if (0 == VOS_MemCmp(pMmiStr,
-                            stMmiPinStrOpTbl[i].pString,
-                            VOS_StrNLen((VOS_CHAR *)stMmiPinStrOpTbl[i].pString, TAF_MMI_PIN_MAX_OP_STRING_LEN)))
+        ulDestStrNLen = VOS_StrNLen((VOS_CHAR *)stMmiPinStrOpTbl[i].pString, TAF_MMI_PIN_MAX_OP_STRING_LEN);
+
+        /* 字符串比较时按照目标字符串长度比较，保证输入字符创长度不小于目标字符串长度，不会发生读越界 */
+        if (ulSrcStrNLen >= ulDestStrNLen)
         {
-            pMmiOpParam->MmiOperationType = stMmiPinStrOpTbl[i].enOperationType;
-            break;
+            if (0 == VOS_MemCmp(pMmiStr,
+                                stMmiPinStrOpTbl[i].pString,
+                                ulDestStrNLen))
+            {
+                pMmiOpParam->MmiOperationType = stMmiPinStrOpTbl[i].enOperationType;
+                break;
+            }
         }
+
         i++;
     }
 
@@ -405,11 +468,15 @@ LOCAL  VOS_BOOL MMI_JudgePinOperation(
 
     if (VOS_TRUE == MMI_DecodeScAndSi(pMmiStr, pMmiOpParam, &stScSiPara, ppOutRestMmiStr))
     {
-        if (0 == VOS_MemCmp(stScSiPara.acSib,
-                            stScSiPara.acSic,
-                            MMI_Max(VOS_StrNLen((VOS_CHAR *)stScSiPara.acSib, MN_MMI_MAX_SIB_LEN),
-                                    VOS_StrNLen((VOS_CHAR *)stScSiPara.acSic, MN_MMI_MAX_SIC_LEN))))
+        ulSrcStrNLen  = VOS_StrNLen((VOS_CHAR *)stScSiPara.acSib, MN_MMI_MAX_SIB_LEN);
+        ulDestStrNLen = VOS_StrNLen((VOS_CHAR *)stScSiPara.acSic, MN_MMI_MAX_SIC_LEN);
+
+        if ((ulSrcStrNLen == ulDestStrNLen)
+         && (0 == VOS_MemCmp(stScSiPara.acSib, stScSiPara.acSic, ulDestStrNLen)))
         {
+            TAF_MEM_SET_S(pMmiOpParam->PinReq.aucOldPin, TAF_PH_PINCODELENMAX + 1, 0, TAF_PH_PINCODELENMAX + 1);
+            TAF_MEM_SET_S(pMmiOpParam->PinReq.aucNewPin, TAF_PH_PINCODELENMAX + 1, 0, TAF_PH_PINCODELENMAX + 1);
+
             (VOS_VOID)VOS_StrNCpy_s((VOS_CHAR*)pMmiOpParam->PinReq.aucOldPin,
                         TAF_PH_PINCODELENMAX + 1,
                         (VOS_CHAR*)stScSiPara.acSia,
@@ -418,32 +485,9 @@ LOCAL  VOS_BOOL MMI_JudgePinOperation(
                         TAF_PH_PINCODELENMAX + 1,
                         (VOS_CHAR*)stScSiPara.acSib,
                         VOS_StrNLen((VOS_CHAR *)stScSiPara.acSib, MN_MMI_MAX_SIB_LEN));
-            switch(pMmiOpParam->MmiOperationType)
-            {
-            case TAF_MMI_CHANGE_PIN2:
-                pMmiOpParam->PinReq.CmdType = TAF_PIN_CHANGE;
-                pMmiOpParam->PinReq.PinType = TAF_SIM_PIN2;
-                break;
 
-            case TAF_MMI_CHANGE_PIN:
-                pMmiOpParam->PinReq.CmdType = TAF_PIN_CHANGE;
-                pMmiOpParam->PinReq.PinType = TAF_SIM_PIN;
-                break;
-
-            case TAF_MMI_UNBLOCK_PIN2:
-                pMmiOpParam->PinReq.CmdType = TAF_PIN_UNBLOCK;
-                pMmiOpParam->PinReq.PinType = TAF_SIM_PIN2;
-                break;
-
-            case TAF_MMI_UNBLOCK_PIN:
-                pMmiOpParam->PinReq.CmdType = TAF_PIN_UNBLOCK;
-                pMmiOpParam->PinReq.PinType = TAF_SIM_PIN;
-                break;
-
-            default:
-                /*该分支永远不会走到*/
-                break;
-            }
+            /* 提圈 */
+            MMI_ExtractPinOperationType(pMmiOpParam->MmiOperationType, pMmiOpParam);
 
             *pulErrCode = MN_ERR_NO_ERROR;
         }
@@ -468,7 +512,7 @@ LOCAL  VOS_BOOL MMI_JudgePwdOperation(
     VOS_UINT32                          *pulErrCode
 )
 {
-    VOS_UINT16                          i = 0;
+    VOS_UINT32                          i = 0;
     MN_MMI_SC_SI_PARA_STRU              stScSiPara;
     MN_MMI_STR_OPERATION_Tbl_STRU       stMmiPwdStrOpTbl[] = {
                                                               {"**03*", TAF_MMI_REGISTER_PASSWD, {0, 0, 0, 0, 0, 0, 0}},
@@ -477,18 +521,29 @@ LOCAL  VOS_BOOL MMI_JudgePwdOperation(
                                                              };
     VOS_UINT32                          ulStrNLen1;
     VOS_UINT32                          ulStrNLen2;
+    VOS_UINT32                          ulSrcStrNLen;
+    VOS_UINT32                          ulDesStrNLen;
 
     *pulErrCode = MN_ERR_NO_ERROR;
 
+    ulSrcStrNLen = VOS_StrNLen((VOS_CHAR *)pMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+
     while (VOS_NULL_PTR != stMmiPwdStrOpTbl[i].pString)
     {
-        if (0 == VOS_MemCmp(pMmiStr,
-                            stMmiPwdStrOpTbl[i].pString,
-                            VOS_StrNLen((VOS_CHAR *)stMmiPwdStrOpTbl[i].pString, TAF_MMI_PWD_MAX_OP_STRING_LEN)))
+        ulDesStrNLen = VOS_StrNLen((VOS_CHAR *)stMmiPwdStrOpTbl[i].pString, TAF_MMI_PWD_MAX_OP_STRING_LEN);
+
+        /* 字符串比较时按照目标字符串长度比较，保证输入字符创长度不小于目标字符串长度，不会发生读越界 */
+        if (ulSrcStrNLen >= ulDesStrNLen)
         {
-            pMmiOpParam->MmiOperationType = stMmiPwdStrOpTbl[i].enOperationType;
-            break;
+            if (0 == VOS_MemCmp(pMmiStr,
+                                stMmiPwdStrOpTbl[i].pString,
+                                ulDesStrNLen))
+            {
+                pMmiOpParam->MmiOperationType = stMmiPwdStrOpTbl[i].enOperationType;
+                break;
+            }
         }
+
         i++;
     }
 
@@ -536,6 +591,9 @@ LOCAL  VOS_BOOL MMI_JudgePwdOperation(
                 }
             }
 
+            TAF_MEM_SET_S(pMmiOpParam->RegPwdReq.aucOldPwdStr, TAF_SS_MAX_PASSWORD_LEN + 1, 0, TAF_SS_MAX_PASSWORD_LEN + 1);
+            TAF_MEM_SET_S(pMmiOpParam->RegPwdReq.aucNewPwdStr, TAF_SS_MAX_PASSWORD_LEN + 1, 0, TAF_SS_MAX_PASSWORD_LEN + 1);
+            TAF_MEM_SET_S(pMmiOpParam->RegPwdReq.aucNewPwdStrCnf, TAF_SS_MAX_PASSWORD_LEN + 1, 0, TAF_SS_MAX_PASSWORD_LEN + 1);
             (VOS_VOID)VOS_StrNCpy_s((VOS_CHAR*)pMmiOpParam->RegPwdReq.aucOldPwdStr,
                         TAF_SS_MAX_PASSWORD_LEN + 1,
                         (VOS_CHAR*)stScSiPara.acSia,
@@ -567,22 +625,35 @@ LOCAL  VOS_BOOL MMI_JudgeTmpModeClirOp(
     MN_MMI_OPERATION_PARAM_STRU         *pMmiOpParam
 )
 {
-    VOS_UINT16                          i = 0;
+    VOS_UINT32                          i = 0;
     MN_MMI_STR_OPERATION_Tbl_STRU       stMmiLiStrOpTbl[]={
                                                             {"*31#", TAF_MMI_SUPPRESS_CLIR, {0, 0, 0, 0, 0, 0, 0}},
                                                             {"#31#", TAF_MMI_INVOKE_CLIR, {0, 0, 0, 0, 0, 0, 0}},
                                                             {VOS_NULL_PTR, TAF_MMI_NULL_OPERATION, {0, 0, 0, 0, 0, 0, 0}}
                                                           };
+
+    VOS_UINT32                          ulSrcStrNLen;
+    VOS_UINT32                          ulDesStrNLen;
+
+    ulSrcStrNLen = VOS_StrNLen((VOS_CHAR *)pInMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+
     while (VOS_NULL_PTR != stMmiLiStrOpTbl[i].pString)
     {
-        if (0 == VOS_MemCmp(pInMmiStr,
-                            stMmiLiStrOpTbl[i].pString,
-                            VOS_StrNLen((VOS_CHAR *)stMmiLiStrOpTbl[i].pString, TAF_MMI_LI_MAX_OP_STRING_LEN)))
+        ulDesStrNLen = VOS_StrNLen((VOS_CHAR *)stMmiLiStrOpTbl[i].pString, TAF_MMI_LI_MAX_OP_STRING_LEN);
+
+        /* 字符串比较时按照目标字符串长度比较，保证输入字符创长度不小于目标字符串长度，不会发生读越界 */
+        if (ulSrcStrNLen >= ulDesStrNLen)
         {
-            pMmiOpParam->MmiOperationType = stMmiLiStrOpTbl[i].enOperationType;
-            *ppOutRestMmiStr = pInMmiStr + VOS_StrNLen((VOS_CHAR *)stMmiLiStrOpTbl[i].pString, TAF_MMI_LI_MAX_OP_STRING_LEN);
-            return VOS_TRUE;
+            if (0 == VOS_MemCmp(pInMmiStr,
+                                stMmiLiStrOpTbl[i].pString,
+                                ulDesStrNLen))
+            {
+                pMmiOpParam->MmiOperationType = stMmiLiStrOpTbl[i].enOperationType;
+                *ppOutRestMmiStr = pInMmiStr + ulDesStrNLen;
+                return VOS_TRUE;
+            }
         }
+
         i++;
     }
 
@@ -598,8 +669,18 @@ LOCAL  VOS_BOOL MMI_JudgeImeiOperation(
 )
 {
     VOS_CHAR                            *pcImeiStr = "*#06#";
+    VOS_UINT32                          ulSrcStrNLen;
+    VOS_UINT32                          ulDesStrNLen;
 
-    if (0 == VOS_MemCmp(pcInMmiStr, pcImeiStr, VOS_StrNLen((VOS_CHAR *)pcImeiStr, TAF_MMI_IMEI_MAX_LEN)))
+    ulSrcStrNLen = VOS_StrNLen((VOS_CHAR *)pcInMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+    ulDesStrNLen = VOS_StrNLen((VOS_CHAR *)pcImeiStr, TAF_MMI_IMEI_MAX_LEN);
+
+    if (ulSrcStrNLen < ulDesStrNLen)
+    {
+        return VOS_FALSE;
+    }
+
+    if (0 == VOS_MemCmp(pcInMmiStr, pcImeiStr, ulDesStrNLen))
     {
         pstMmiOpParam->MmiOperationType = TAF_MMI_DISPLAY_IMEI;
         *ppcOutRestMmiStr = pcInMmiStr + VOS_StrNLen((VOS_CHAR *)pcImeiStr, TAF_MMI_IMEI_MAX_LEN);
@@ -613,7 +694,7 @@ LOCAL  VOS_BOOL MMI_JudgeImeiOperation(
     VOS_CHAR                            *pcMmiStr
 )
 {
-    VOS_UINT32       ulStrLen = VOS_StrNLen((VOS_CHAR *)pcMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+    VOS_UINT32                          ulStrLen;
 
     /*判断依据*/
     /*
@@ -622,6 +703,8 @@ LOCAL  VOS_BOOL MMI_JudgeImeiOperation(
     "Entry of any characters defined in the 3GPP TS 23.038 [8] Default Alphabet
     (up to the maximum defined in 3GPP TS 24.080 [10]), followed by #SEND".
     */
+    ulStrLen = VOS_StrNLen((VOS_CHAR *)pcMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+
     if ((ulStrLen >= MN_MMI_MIN_USSD_LEN)
       &&(MN_MMI_STOP_CHAR == pcMmiStr[ulStrLen - 1]))
     {
@@ -637,10 +720,10 @@ VOS_UINT32 MMI_TransMmiSsCodeToNetSsCode(
     VOS_UINT8                           *pucNetSsCode
 )
 {
-    VOS_UINT8       i = 0;
+    VOS_UINT32                          i = 0;
 
-    VOS_UINT32      ulStrNLen1;
-    VOS_UINT32      ulStrNLen2;
+    VOS_UINT32                          ulStrNLen1;
+    VOS_UINT32                          ulStrNLen2;
 
     /*转换SS Code*/
     while(i < MN_MMI_SC_MAX_ENTRY)
@@ -679,19 +762,23 @@ LOCAL VOS_UINT32 MMI_TransMmiBsCodeToNetBsCode(
 )
 {
     VOS_CHAR                            acBs[MN_MMI_MAX_SIA_LEN + 1];
-    VOS_UINT16                          i;
+    VOS_UINT32                          i;
+    VOS_UINT32                          ulSrcStrLen;
+    VOS_UINT32                          ulDestStrLen;
 
     /*是不是需要设定那些需要调用此函数的限定?*/
+
+    TAF_MEM_SET_S(acBs, sizeof(acBs), 0, sizeof(acBs));
 
     /*这一段是转换对应的BS code*/
     if ((TAF_ALL_FORWARDING_SS_CODE == (ucNetSsCode & 0xF0))
       ||(TAF_ALL_BARRING_SS_CODE == (ucNetSsCode & 0xF0)))
     {
-        TAF_MEM_CPY_S(acBs, sizeof(acBs), pstScSiPara->acSib, VOS_StrNLen((VOS_CHAR *)pstScSiPara->acSib, MN_MMI_MAX_SIB_LEN) + 1);
+        TAF_MEM_CPY_S(acBs, sizeof(acBs), pstScSiPara->acSib, VOS_StrNLen((VOS_CHAR *)pstScSiPara->acSib, MN_MMI_MAX_SIB_LEN));
     }
     else if (TAF_CW_SS_CODE == ucNetSsCode)
     {
-        TAF_MEM_CPY_S(acBs, sizeof(acBs), pstScSiPara->acSia, VOS_StrNLen((VOS_CHAR *)pstScSiPara->acSia, MN_MMI_MAX_SIA_LEN) + 1);
+        TAF_MEM_CPY_S(acBs, sizeof(acBs), pstScSiPara->acSia, VOS_StrNLen((VOS_CHAR *)pstScSiPara->acSia, MN_MMI_MAX_SIA_LEN));
     }
     else
     {
@@ -700,17 +787,24 @@ LOCAL VOS_UINT32 MMI_TransMmiBsCodeToNetBsCode(
 
 
     i = 0;
+    ulSrcStrLen = VOS_StrNLen((VOS_CHAR *)acBs, MN_MMI_MAX_SIA_LEN);
+
     while(i < MN_MMI_BS_MAX_ENTRY)
     {
-        if (0 == VOS_MemCmp(f_stMmiBSInfo[i].pcMmiBs,
-                            acBs,
-                            MMI_Max(VOS_StrNLen((VOS_CHAR *)f_stMmiBSInfo[i].pcMmiBs, TAF_MMI_BS_MAX_LEN),
-                                    VOS_StrNLen((VOS_CHAR *)acBs, MN_MMI_MAX_SIA_LEN))))
+        ulDestStrLen = VOS_StrNLen((VOS_CHAR *)f_stMmiBSInfo[i].pcMmiBs, TAF_MMI_BS_MAX_LEN);
+
+        if (ulSrcStrLen == ulDestStrLen)
         {
-            *pucNetBsCode = f_stMmiBSInfo[i].ucNetBsCode;
-            *pucNetBsType = f_stMmiBSInfo[i].ucNetBsType;
-            break;
+            if (0 == VOS_MemCmp(f_stMmiBSInfo[i].pcMmiBs,
+                                acBs,
+                                ulDestStrLen))
+            {
+                *pucNetBsCode = f_stMmiBSInfo[i].ucNetBsCode;
+                *pucNetBsType = f_stMmiBSInfo[i].ucNetBsType;
+                break;
+            }
         }
+
         i++;
     }
 
@@ -1341,12 +1435,14 @@ LOCAL VOS_UINT32 MMI_FillInCallOrigPara(
 )
 {
     VOS_BOOL                            bMatch = VOS_FALSE;
-    VOS_CHAR                            acOpType[3];
+    VOS_CHAR                            acOpType[TAF_MMI_SS_MAX_OP_TYPE_LEN];
     MN_MMI_SC_SI_PARA_STRU              stScSiPara;
     VOS_UINT8                           ucNetSsCode = TAF_ALL_SS_CODE;
-    VOS_UINT16                          i = 0;
+    VOS_UINT32                          i = 0;
     VOS_UINT32                          ulTableSize;
     MN_MMI_SS_OP_Tbl_STRU              *pstOperationType    = VOS_NULL_PTR;
+    VOS_UINT32                          ulSrcStrLen;
+    VOS_UINT32                          ulDestStrLen;
 
     *pulErrCode = MN_ERR_NO_ERROR;
     TAF_MEM_SET_S(acOpType, sizeof(acOpType), 0x00, sizeof(acOpType));
@@ -1357,18 +1453,24 @@ LOCAL VOS_UINT32 MMI_FillInCallOrigPara(
         acOpType[i] = pInMmiStr[i];
     }
 
+    ulSrcStrLen         = VOS_StrNLen((VOS_CHAR *)acOpType, TAF_MMI_SS_MAX_OP_TYPE_LEN);
     ulTableSize         = MMI_GetOporationTypeTblSize();
-    pstOperationType  = MMI_GetOporationTypeTblAddr();
+    pstOperationType    = MMI_GetOporationTypeTblAddr();
+
     for (i = 0; i < ulTableSize; i++)
     {
-        if (0 == VOS_MemCmp(pstOperationType->pcSsOpStr,
-                             acOpType,
-                             MMI_Max(VOS_StrNLen((VOS_CHAR *)pstOperationType->pcSsOpStr, TAF_MMI_SS_MAX_OP_STRING_LEN),
-                                     VOS_StrNLen((VOS_CHAR *)acOpType, 3))))
+        ulDestStrLen = VOS_StrNLen((VOS_CHAR *)pstOperationType->pcSsOpStr, TAF_MMI_SS_MAX_OP_STRING_LEN);
+
+        if (ulSrcStrLen == ulDestStrLen)
         {
-            pMmiOpParam->MmiOperationType = pstOperationType->enSsOpType;
-            bMatch = VOS_TRUE;
-            break;
+            if (0 == VOS_MemCmp(pstOperationType->pcSsOpStr,
+                                acOpType,
+                                ulDestStrLen))
+            {
+                pMmiOpParam->MmiOperationType = pstOperationType->enSsOpType;
+                bMatch = VOS_TRUE;
+                break;
+            }
         }
 
         pstOperationType++;
@@ -1403,7 +1505,7 @@ LOCAL VOS_BOOL MMI_JudgeChldOperation(
     VOS_UINT32                          *pulErrCode
 )
 {
-    VOS_UINT16                          i = 0;
+    VOS_UINT32                          i = 0;
     MN_MMI_CHLD_OP_Tbl_STRU             stChldOpTbl[] = {
                                                          {"0",           MN_CALL_SUPS_CMD_REL_HELD_OR_UDUB,  {0, 0, 0, 0, 0, 0, 0}},
                                                          {"1",           MN_CALL_SUPS_CMD_REL_ACT_ACPT_OTH,  {0, 0, 0, 0, 0, 0, 0}},
@@ -1434,18 +1536,25 @@ LOCAL VOS_BOOL MMI_JudgeChldOperation(
                                                          {"5",           MN_CALL_SUPS_CMD_ACT_CCBS,          {0, 0, 0, 0, 0, 0, 0}},
                                                          {VOS_NULL_PTR,  0,                                 {0, 0, 0, 0, 0, 0, 0}}
                                                         };
+    VOS_UINT32                          ulSrcStrLen;
+    VOS_UINT32                          ulDestStrLen;
 
     *pulErrCode = MN_ERR_NO_ERROR;
 
+    ulSrcStrLen = VOS_StrNLen((VOS_CHAR *)pcInMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN);
+
     while (VOS_NULL_PTR != stChldOpTbl[i].pcMmiChldStr)
     {
-        if(0 == VOS_MemCmp(pcInMmiStr,
-                            stChldOpTbl[i].pcMmiChldStr,
-                            MMI_Max(VOS_StrNLen((VOS_CHAR *)pcInMmiStr, TAF_SS_MAX_UNPARSE_PARA_LEN),
-                                    VOS_StrNLen((VOS_CHAR *)stChldOpTbl[i].pcMmiChldStr, TAF_MMI_CHLD_MAX_STRING_LEN))))
+        ulDestStrLen = VOS_StrNLen((VOS_CHAR *)stChldOpTbl[i].pcMmiChldStr, TAF_MMI_CHLD_MAX_STRING_LEN);
+
+        if (ulSrcStrLen == ulDestStrLen)
         {
-            break;
+            if(0 == VOS_MemCmp(pcInMmiStr, stChldOpTbl[i].pcMmiChldStr, ulDestStrLen))
+            {
+                break;
+            }
         }
+
         i++;
     }
 

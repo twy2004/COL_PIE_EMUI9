@@ -33,7 +33,7 @@
 		status = "ok";
 	};
 	&huawei_imx600hybrid {
-		gpios = <&gpio1 4 0 &gpio17 0 0>;
+		gpios = <&gpio1 4 0 &gpio17 0 0 &gpio4 3 0>;
 	};
 	&huawei_lcd_panel {
 		compatible = "huawei,lcd_panel_type";

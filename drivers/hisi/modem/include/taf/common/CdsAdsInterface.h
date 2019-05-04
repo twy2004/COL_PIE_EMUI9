@@ -315,11 +315,12 @@ typedef struct
     CDS_ADS_MSG_ID_ENUM_UINT32          enMsgId;
 
     VOS_UINT8                           ucIfaceId;
+    VOS_UINT8                           aucRsv1[1];
+    MODEM_ID_ENUM_UINT16                enModemId;
+    VOS_UINT8                           ucPduSessionId;
     VOS_UINT8                           ucErrRate;                              /* 错包率，扩展备用，目前不处理*/
-    VOS_UINT8                           aucRsv[2];                              /* 保留*/
+    VOS_UINT8                           aucRsv2[2];
 } ADS_CDS_ERR_IND_V2_STRU;
-
-
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack()

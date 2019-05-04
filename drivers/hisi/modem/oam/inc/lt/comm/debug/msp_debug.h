@@ -66,11 +66,7 @@ extern "C" {
 #pragma pack(push)
 #pragma pack(4)
 
-#define DIAG_DEBUG_START        (0xaaaa5555)
-#define DIAG_DEBUG_END          (0x5555aaaa)
 
-/* debug版本 V1.00 */
-#define DIAG_DEBUG_VERSION      (0x00010000)
 
 /* debug提示信息的长度 */
 #define DIAG_DEBUG_INFO_LEN     (32)
@@ -83,8 +79,6 @@ extern "C" {
 
 #if (defined(__KERNEL__) || defined(__OS_LRCCPU__))
 VOS_VOID DIAG_DebugCommon(VOS_VOID);
-VOS_UINT32 DIAG_DebugFileHeader(void *pFile);
-VOS_VOID DIAG_DebugFileTail(void *pFile, VOS_CHAR *FilePath);
 VOS_VOID DIAG_DebugNoIndLog(VOS_VOID);
 VOS_VOID diag_numberinfo(void *pFile);
 #else

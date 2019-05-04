@@ -53,8 +53,9 @@
     extern "C" {
 #endif
 #include <product_config.h>
-#include "drv_comm.h"
 #include "bsp_trace.h"
+#include "drv_comm.h"
+
 /*****************************
 * 宏定义
 *****************************/
@@ -105,6 +106,7 @@ typedef enum _module_tag
 	mod_dlock,
 	mod_sci,
 	mod_dump,
+	mod_nrrdr,
 	mod_diag,
 	mod_diag_sys,
 	mod_diag_dbg,
@@ -124,11 +126,13 @@ typedef enum _module_tag
 	mod_dspdvs,
 	mod_nrdsp,
 	mod_mailbox,
+    mod_mailbox_nr,
 	mod_xmailbox,
 	mod_dsp_dvfs,
 	mod_cpm,
 	mod_nrcpm,
 	mod_simhotplug,
+	mod_bus_err,
 	/*mdrv_1 end*/
 	/*mdrv_2 start*/
 	mod_emi,
@@ -173,6 +177,9 @@ typedef enum _module_tag
 	mod_spi,
 	mod_spi_slave,
 	mod_load_fpga,
+	mod_audio,
+	mod_aslr,
+    mod_charger,
 	/*mdrv_2 end*/
 	/*mdrv_3 start*/
         mod_fiq,
@@ -201,6 +208,9 @@ typedef enum _module_tag
 	mod_perf_stat,
 	mod_mperf,
 	mod_pm,
+	mod_nr_pm,
+	mod_nr_dpm,
+	mod_nr_wakesource,
 	mod_hotplug,
 	mod_hwadp,
 	mod_malloc_m,
@@ -232,7 +242,9 @@ typedef enum _module_tag
 	mod_cipher,
 	mod_udi,
 	mod_usb,
+	mod_rt1711,
 	mod_gmac,
+	mod_vcom,
 	/*mdrv_4 end*/
 	/*mdrv_5 start*/
 	mod_ipc,
@@ -243,6 +255,7 @@ typedef enum _module_tag
 	mod_at_uart,
 	mod_console,
 	mod_cshell,
+	mod_cshell_logger,
 	mod_dynmem_rpt,
 	mod_llt_tool,
 	mod_llt_load,
@@ -253,8 +266,6 @@ typedef enum _module_tag
 	/*mdrv_5 end*/
 	mod_all,/* 代表所有的模块 */
 	MODU_MAX = 256,    /* 边界值 */
-
-
 } module_tag;
 
 /*****************************
@@ -285,10 +296,10 @@ int logs(unsigned int console, unsigned int logbuf);
 int logm(unsigned int modid, unsigned int level);
 void logc(unsigned int modid);
 #else
-void bsp_print(module_tag modid, BSP_LOG_LEVEL level, char *fmt,...){return ;}
-int logs(unsigned int console, unsigned int logbuf){return 0;}
-int logm(unsigned int modid, unsigned int level){return 0;}
-void logc(unsigned int modid){return ;}
+static inline void bsp_print(module_tag modid, BSP_LOG_LEVEL level, char *fmt,...){return ;}
+static inline int logs(unsigned int console, unsigned int logbuf){return 0;}
+static inline int logm(unsigned int modid, unsigned int level){return 0;}
+static inline void logc(unsigned int modid){return ;}
 #endif
 
 //如果认为是比较重要的流程，比如初始化流程，可以在err级别打印;默认打印info级别；如果是在低功耗或者是开机log，我们不往控制台中输入，只往socp中送

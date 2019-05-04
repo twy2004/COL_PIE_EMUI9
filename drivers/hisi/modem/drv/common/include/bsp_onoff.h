@@ -53,7 +53,7 @@
 #include <osl_sem.h>
 #include "bsp_softtimer.h"
 
-#if defined(__KERNEL__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__KERNEL__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "power_com.h"
 
 #include "mdrv_sysboot.h"

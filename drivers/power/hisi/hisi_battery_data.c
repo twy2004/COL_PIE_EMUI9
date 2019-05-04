@@ -22,7 +22,7 @@
 
 #include <huawei_platform/power/power_dsm.h>
 #ifdef CONFIG_HUAWEI_BATTERY_INFORMATION
-#include <huawei_platform/power/batt_info.h>
+#include <huawei_platform/power/batt_info_pub.h>
 #endif
 
 
@@ -53,6 +53,7 @@ static struct hisi_coul_battery_data **p_data = NULL;
 static unsigned int hisi_bat_data_size = 0;	/* used to store number of bat types defined in DTS */
 /* used to judege whether bat_drv works fine or not, 1 means yes,0 means no */
 static int bat_param_status = 0;
+static int default_batt_id_index = -1;
 static int temp_points[] = { -20, -10, 0, 25, 40, 60 };
 
 static int get_battery_data_by_id_volt(unsigned int id_index, unsigned int id_voltage)
@@ -82,7 +83,7 @@ static int get_battery_data_by_id_sn(unsigned int id_index)
 		return -EINVAL;
 
 	ret = get_battery_type(id_sn);
-	if (ret == BATTERY_DRIVER_FAIL) {
+	if (ret) {
 		bat_data_err("get id_sn from ic fail!\n");
 		return -EINVAL;
 	}
@@ -121,10 +122,18 @@ struct hisi_coul_battery_data *get_battery_data(unsigned int id_voltage)
 		}
 	}
 	if (i == hisi_bat_data_size) {
-		i = 0;
-		if (!strstr(saved_command_line, "androidboot.swtype=factory")) {
-			power_dsm_dmd_report_format(POWER_DSM_BATTERY_DETECT, DSM_BATTERY_DETECT_ERROR_NO, \
-				"Battery id is invalid. Use the default battery params!\n");
+		if ((default_batt_id_index >= 0) &&
+			(default_batt_id_index < hisi_bat_data_size)) {
+			i = default_batt_id_index;
+			bat_data_info("use default battery of index %d\n", default_batt_id_index);
+		} else {
+			i = 0;
+			if (!strstr(saved_command_line, "androidboot.swtype=factory")) {
+				power_dsm_dmd_report_format(POWER_DSM_BATTERY_DETECT,
+					DSM_BATTERY_DETECT_ERROR_NO,
+					"Battery id is invalid. Use the default battery params!\n");
+			}
+			p_data[i]->id_status = BAT_ID_INVALID;
 		}
 	}
 	bat_data_info("current battery name is %s\n", p_data[i]->batt_brand);

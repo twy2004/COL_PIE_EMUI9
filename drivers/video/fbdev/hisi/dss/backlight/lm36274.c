@@ -23,7 +23,6 @@
 #include <linux/hisi/hw_cmdline_parse.h> //for runmode_is_factory
 #include <dsm/dsm_pub.h>
 extern struct dsm_client *lcd_dclient;
-#include "lcdkit_panel.h"
 
 struct class *lm36274_class = NULL;
 struct lm36274_chip_data *lm36274_g_chip = NULL;
@@ -32,14 +31,67 @@ static unsigned int g_reg_val[LM36274_RW_REG_MAX] = {0};
 static int g_bl_level_enhance_mode = 0;
 static int g_hidden_reg_support = 0;
 #define MAX_TRY_NUM 3
+#define BL_MAX 2047
 static int g_force_resume_bl_flag = RESUME_IDLE;
 #define MIN_BL_RESUME_TIMMER 1
 #define MAX_BL_RESUME_TIMMER 400
 #define PROTECT_BL_RESUME_TIMMER 28
+
+#define REG_REVISION 0x01
+#define REG_MAX 0x14
+#define LOG_LEVEL_INFO 8
+
 static int g_resume_bl_duration = 0;  /* default not support auto resume*/
 static enum hrtimer_restart lm36274_bl_resume_hrtimer_fnc(struct hrtimer *timer);
 static void lm36274_bl_resume_workqueue_handler(struct work_struct *work);
 extern int bl_lvl_map(int level);
+
+struct backlight_information {
+	/* whether support lm36274 or not */
+	int lm36274_support;
+	/* which i2c bus controller lm36274 mount */
+	int lm36274_i2c_bus_id;
+	/* lm36274 hw_en gpio */
+	int lm36274_hw_en_gpio;
+	int lm36274_reg[LM36274_RW_REG_MAX];
+};
+
+static struct backlight_information bl_info;
+
+static char *lm36274_dts_string[LM36274_RW_REG_MAX] = {
+	"lm36274_bl_config_1",
+	"lm36274_bl_config_2",
+	"lm36274_auto_freq_low",
+	"lm36274_auto_freq_high",
+	"lm36274_display_bias_config_1",
+	"lm36274_display_bias_config_2",
+	"lm36274_display_bias_config_3",
+	"lm36274_lcm_boost_bias",
+	"lm36274_vpos_bias",
+	"lm36274_vneg_bias",
+	"lm36274_bl_option_1",
+	"lm36274_bl_option_2",
+	"lm36274_bl_en",
+};
+
+static unsigned int lm36274_reg_addr[LM36274_RW_REG_MAX] = {
+	REG_BL_CONFIG_1,
+	REG_BL_CONFIG_2,
+	REG_AUTO_FREQ_LOW,
+	REG_AUTO_FREQ_HIGH,
+	REG_DISPLAY_BIAS_CONFIG_1,
+	REG_DISPLAY_BIAS_CONFIG_2,
+	REG_DISPLAY_BIAS_CONFIG_3,
+	REG_LCM_BOOST_BIAS,
+	REG_VPOS_BIAS,
+	REG_VNEG_BIAS,
+	REG_BL_OPTION_1,
+	REG_BL_OPTION_2,
+	REG_BL_ENABLE,
+};
+
+
+static struct backlight_work_mode_reg_info g_bl_work_mode_reg_indo;
 
 /*
 ** for debug, S_IRUGO
@@ -434,9 +486,9 @@ err_out:
  * A value of zero will be returned on success, a negative errno will
  * be returned in error cases.
  */
-ssize_t lm36274_set_backlight_reg(uint32_t bl_level)
+int lm36274_set_backlight_reg(unsigned int bl_level)
 {
-	ssize_t ret = -1;
+	int ret = -1;
 	uint32_t level = 0;
 	int bl_msb = 0;
 	int bl_lsb = 0;

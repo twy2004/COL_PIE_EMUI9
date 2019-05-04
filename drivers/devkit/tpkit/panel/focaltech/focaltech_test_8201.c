@@ -2604,6 +2604,7 @@ static int focal_8201_cb_increase_test(
 	ret = focal_write_reg(REG_8201_CB_INCREASE_LEVEL, cb_increase_level);
 	if (ret) {
 		TS_LOG_ERR("%s:write cb increase level reg fail, ret=%d\n", __func__, ret);
+		*result = test_result;
 		return ret;
 	}
 
@@ -2611,6 +2612,7 @@ static int focal_8201_cb_increase_test(
 	ret = focal_write_reg(REG_8201_CB_INCREASE_START, START_CB_INCREASE_VALUE);
 	if (ret) {
 		TS_LOG_ERR("%s:write cb increase start reg fail, ret=%d\n", __func__, ret);
+		*result = test_result;
 		return ret;
 	}
 	/*set CB level,wait data ready */

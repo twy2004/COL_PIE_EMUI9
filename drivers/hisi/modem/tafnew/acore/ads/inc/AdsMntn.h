@@ -80,6 +80,11 @@ extern "C" {
 #define ADS_MNTN_UL_RKT_REC_INFO_ARRAY  (&(g_stAdsUlPktRecInfo))                /* 记录上行IP报文的数组   */
 #define ADS_MNTN_DL_RKT_REC_INFO_ARRAY  (&(g_stAdsDlPktRecInfo))                /* 记录下行IP报文的数组   */
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+#define ADS_MNTN_UL_PC5_RKT_REC_INFO_ARRAY  (&(g_stAdsUlPc5PktRecInfo))         /* 记录上行PC5报文的数组 */
+#define ADS_MNTN_DL_PC5_RKT_REC_INFO_ARRAY  (&(g_stAdsDlPc5PktRecInfo))         /* 记录下行PC5报文的数组 */
+#endif
+
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
@@ -351,6 +356,75 @@ typedef struct
 } ADS_MNTN_DL_IP_PKT_REC_STRU;
 
 
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+/*****************************************************************************
+ 结构名    : ADS_MNTN_DL_PC5_PKT_INFO_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : 下行PC5接入层和适配层头信息;
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8  aucSrcAddr[3];           /* 源MAC地址 */
+    VOS_UINT8  aucDstAddr[3];           /* 目的MAC地址 */
+    VOS_UINT8  ucPriority;              /* 8个优先级描述，取值范围1~8 */
+    VOS_UINT8  ucUsrId;                 /* 物理层上送的USER ID */
+    VOS_UINT16 usFrmNo;                 /* 接收空口帧号 */
+    VOS_UINT8  ucSubFrmNo;              /* 接收空口子帧号 */
+    VOS_UINT8  ucResv;                  /* 接入层头部预留字段 */
+    VOS_UINT8  ucProtoType;             /* 适配层头结构，Protocal Type类型 */
+    VOS_UINT8  aucResv[3];              /* 结构体预留字段 */
+} ADS_MNTN_DL_PC5_PKT_HEAD_STRU;
+
+/*****************************************************************************
+ 结构名    : ADS_MNTN_UL_PC5_PKT_INFO_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : 保存上行PC5接入层和适配层头信息;
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT16 usAid;                   /* AID应用服务商的应用表示号，用以区别不同的应用 */
+    VOS_UINT8  aucSrcAddr[3];           /* 源MAC地址 */
+    VOS_UINT8  aucDstAddr[3];           /* 目的MAC地址 */
+    VOS_UINT8  ucPriority;              /* 8个优先级描述，取值范围1~8 */
+    VOS_UINT8  ucPduType;               /* 当上层数据包为IP数据包时，该值设置为IP(值为0);当上层数据包为DSMP数据包或DME数据包时，该值设置为Non-IP(值为1)*/
+    VOS_UINT8  aucResv[2];              /* 接入层头部预留字段 */
+    VOS_UINT8  ucProtoType;             /* 适配层头结构，Protocal Type类型 */
+    VOS_UINT8  aucResv1[3];             /* 结构体预留字段 */
+} ADS_MNTN_UL_PC5_PKT_HEAD_STRU;
+
+/*****************************************************************************
+ 结构名    : ADS_MNTN_UL_PC5_PKT_REC_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : ADS上行PC5报文记录结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8                           ucVer;
+    VOS_UINT8                           aucRsv[3];
+
+    VOS_UINT32                          ulRptNum;
+    ADS_MNTN_UL_PC5_PKT_HEAD_STRU       astPc5UlPktRecInfo[ADS_MNTN_REC_UL_PKT_MAX_NUM];
+} ADS_MNTN_UL_PC5_PKT_REC_STRU;
+
+/*****************************************************************************
+ 结构名    : ADS_MNTN_DL_PC5_PKT_REC_STRU
+ 协议表格  :
+ ASN.1描述 :
+ 结构说明  : ADS下行PC5报文记录结构
+*****************************************************************************/
+typedef struct
+{
+    VOS_UINT8                           ucVer;
+    VOS_UINT8                           aucRsv[3];
+
+    VOS_UINT32                          ulRptNum;
+    ADS_MNTN_DL_PC5_PKT_HEAD_STRU       astPc5DlPktRecInfo[ADS_MNTN_REC_DL_PKT_MAX_NUM];
+} ADS_MNTN_DL_PC5_PKT_REC_STRU;
+#endif
+
 /*****************************************************************************
   8 UNION定义
 *****************************************************************************/
@@ -402,8 +476,16 @@ VOS_VOID RNIC_MNTN_ReportAllStatsInfo(VOS_VOID);
 #pragma pack(0)
 #endif
 
-
-
+#if (FEATURE_ON == FEATURE_PC5_DATA_CHANNEL)
+VOS_VOID ADS_MNTN_ReportPc5ULPktInfo(VOS_VOID);
+VOS_VOID ADS_MNTN_ReportPc5DLPktInfo(VOS_VOID);
+VOS_VOID ADS_MNTN_RecPc5ULPktInfo(
+    IMM_ZC_STRU                        *pstImmZc
+);
+VOS_VOID ADS_MNTN_RecPc5DLPktInfo(
+    IMM_ZC_STRU                        *pstImmZc
+);
+#endif
 
 #ifdef __cplusplus
     #if __cplusplus

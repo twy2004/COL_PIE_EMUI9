@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -45,6 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+ 
 #ifndef __OSL_IRQ_H
 #define __OSL_IRQ_H
 #include "product_config.h"
@@ -182,7 +183,7 @@ static __inline__ unsigned int osl_int_context(void)
 		if(!__specific_flags) __enable_irq();          \
 	} while (0)
 
-#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_base.h"
 #include "sre_hwi.h"
 #include "sre_shell.h"
@@ -282,16 +283,53 @@ static inline unsigned int osl_int_context(void)
 {
 	OS_THREAD_TYPE_E ret;
 	ret = SRE_CurThreadType();
-    if(SYS_HWI == ret ||(SYS_SWI == ret))
+      if(SYS_TASK == ret)
     {
-		return 1;
+		return 0;
 	}
 	else
 	{
-		return 0;
+		return 1;
 	}
 }
+static inline unsigned int osl_int_context_disirq(void)
+{
+	OS_THREAD_TYPE_E ret;
+	#ifdef __OS_RTOSCK_SMP__
+	ret = SRE_CurThreadTypeNoIntLock();
+	#else
+	ret = SRE_CurThreadType();
+	#endif
+    if(SYS_TASK == ret)
+    {
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+#if defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+static inline unsigned long osl_clear_pending_bit(void)
+{
+	return 0;
+}
+#else
+extern OS_SEC_TEXT_MINOR UINT32 SRE_HwiClearPendingBit(HWI_HANDLE_T uwHwiNum);
+static inline int osl_clear_pending_bit(unsigned int irq)
+{
+	return (int)SRE_HwiClearPendingBit(irq);
+}
+#endif
+
 #define PSR_I_BIT	0x00000080
+#if defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+static inline unsigned long arch_local_save_flags(void)
+{
+	return 0;
+}
+#else
 static inline unsigned long arch_local_save_flags(void)
 {
 	unsigned long flags;
@@ -300,6 +338,7 @@ static inline unsigned long arch_local_save_flags(void)
 		: "=r" (flags) : : "memory", "cc");
 	return flags;/*lint !e530*/
 }
+#endif
 static inline int arch_irqs_disabled_flags(unsigned long flags)
 {
 	return flags & PSR_I_BIT;
@@ -308,7 +347,7 @@ static inline int irqs_disabled(void)
 {
 	return (int)arch_irqs_disabled_flags(arch_local_save_flags());
 }
-#ifdef __OS_RTOSCK_SMP__
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #define IPI_CALL_FUNC OS_HWI_IPI_NO_014
 #define IPI_CPU_STOP OS_HWI_IPI_NO_015
 #define IPI_CPU_DOWN OS_HWI_IPI_NO_013
@@ -319,11 +358,11 @@ static inline int irqs_disabled(void)
 #endif
 static inline void smp_cross_call(unsigned int mask,unsigned int irq)
 {
-	#ifdef __OS_RTOSCK_SMP__
+	#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 	SRE_HwiMcTrigger(OS_TYPE_TRIGGER_BY_MASK, mask, irq);
 	#endif
 }
-#ifdef __OS_RTOSCK_SMP__
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 static inline void smp_cross_call_trigger(UINT32 eIPIType, UINT32 uwCoreMsk, UINT32 uwHwiNum)
 {
 	SRE_HwiMcTrigger((OS_HWI_IPI_TYPE_E)eIPIType,uwCoreMsk,uwHwiNum);

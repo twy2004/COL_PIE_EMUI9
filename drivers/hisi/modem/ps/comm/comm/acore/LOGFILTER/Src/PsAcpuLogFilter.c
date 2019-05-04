@@ -52,9 +52,11 @@
 #include "PsAcpuLogFilter.h"
 #include "PsLogFilterComm.h"
 #include "msp_diag_comm.h"
-
+#include "TTFComm.h"
+#include "gucttf_tag.h"
 
 #define    THIS_FILE_ID        PS_FILE_ID_ACPU_LOG_FILTER_C
+#define    THIS_MODU           mod_logfilter
 
 /******************************************************************************
    2 外部函数变量声明

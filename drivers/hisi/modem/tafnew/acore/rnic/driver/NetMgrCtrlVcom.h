@@ -97,6 +97,11 @@ extern "C" {
   2 ∫Í∂®“Â
 *****************************************************************************/
 
+/* Log Print Module Define */
+#ifndef THIS_MODU
+#define THIS_MODU    ps_nas
+#endif
+
 #define NM_CTRL_DEVICE_NAME             "nmctrlvcom"
 
 #define NM_PROC_FILE_BIND_PID			"bind_pid"
@@ -174,9 +179,10 @@ extern int NM_CTRL_Open(struct inode *node, struct file *filp);
 extern unsigned int NM_CTRL_Poll(struct file* filp, poll_table *wait);
 extern ssize_t NM_CTRL_Read(struct file *filp, char __user *buf, size_t size, loff_t *ppos);
 extern int NM_CTRL_Release(struct inode *node, struct file *filp);
-extern void NM_CTRL_SendMsg(void* pDataBuffer, unsigned int len);
 extern void NM_CTRL_Setup(struct cdev * dev);
 
+extern void NM_CTRL_SendMsg(void* pDataBuffer, unsigned int len);
+#define NM_CTRL_SEND_MSG(pData,uslength) NM_CTRL_SendMsg(pData,uslength)
 
 
 #if (VOS_OS_VER == VOS_WIN32)

@@ -62,8 +62,6 @@ static void hisifb_display_effect_flags_config(struct hisi_fb_data_type *hisifd)
 
 static void dss_pdp_isr_vactive0_end_handle(struct hisi_fb_data_type *hisifd, uint32_t isr_s2, struct hisifb_secure *secure_ctrl)
 {
-	uint32_t temp = 0;
-
 	hisifd->vactive0_end_flag = 1;
 
 	hisifb_display_effect_flags_config(hisifd);
@@ -90,9 +88,6 @@ static void dss_pdp_isr_vactive0_end_handle(struct hisi_fb_data_type *hisifd, ui
 	}
 
 	if (g_err_status & DSS_PDP_LDI_UNDERFLOW) {
-		temp = inp32(hisifd->dss_base + DSS_DPP_OFFSET + DPP_DBG_CNT);
-		HISI_FB_INFO("fb%d, BIT_VACTIVE0_END: frame_no=%d, dpp_dbg =0x%x\n",
-			hisifd->index, hisifd->ov_req.frame_no, temp);
 		g_err_status &= ~DSS_PDP_LDI_UNDERFLOW;
 	}
 
@@ -101,16 +96,8 @@ static void dss_pdp_isr_vactive0_end_handle(struct hisi_fb_data_type *hisifd, ui
 
 static void dss_pdp_isr_vactive0_start_handle(struct hisi_fb_data_type *hisifd, uint32_t isr_s2)
 {
-	uint32_t temp = 0;
-
 	if (hisifd->ov_vactive0_start_isr_handler) {
 		hisifd->ov_vactive0_start_isr_handler(hisifd);
-	}
-
-	if (g_err_status & DSS_PDP_LDI_UNDERFLOW) {
-		temp = inp32(hisifd->dss_base + DSS_DPP_OFFSET + DPP_DBG_CNT);
-		HISI_FB_INFO("fb%d, BIT_VACTIVE0_START: frame_no=%d, dpp_dbg=0x%x\n",
-			hisifd->index, hisifd->ov_req.frame_no, temp);
 	}
 
 	if ((PARA_UPDT_NEED == hisifd->pipe_clk_ctrl.pipe_clk_updt_state)
@@ -184,6 +171,13 @@ irqreturn_t dss_pdp_isr(int irq, void *ptr)
 	}
 
 	if (isr_s2 & isr_te_vsync) {
+		hisifd->te_timestamp = ktime_get();
+
+		if (hisifd->panel_info.delayed_cmd_queue_support && hisifd->delayed_cmd_queue_wq && mipi_dsi_check_delayed_cmd_queue_working()) {
+			mipi_dsi_set_timestamp();
+			queue_work(hisifd->delayed_cmd_queue_wq, &hisifd->delayed_cmd_queue_work);
+		}
+
 		if (hisifd->vsync_isr_handler) {
 			hisifd->vsync_isr_handler(hisifd);
 		}

@@ -1103,6 +1103,7 @@ static int nvt_hybrid_parse_dts(struct device_node *device,
 	const char *raw_data_dts = NULL;
 	const char *mp_selftest_mode_dts = NULL;
 	char *producer=NULL;
+	unsigned int value = 0;
 
 	retval =
 	    of_property_read_u32(device, NVT_HYBRID_IRQ_CFG,
@@ -1151,11 +1152,15 @@ static int nvt_hybrid_parse_dts(struct device_node *device,
 		}
 	}
 
-	retval =
-	    of_property_read_u32(device, NVT_HYBRID_WD_CHECK,
-				 &chip_data->need_wd_check_status);
+	retval = of_property_read_u32(device, NVT_HYBRID_WD_CHECK, &value);
 	if (retval) {
 		TS_LOG_ERR("get device ic_type failed\n");
+		chip_data->need_wd_check_status = false;
+	} else {
+		if (value)
+			chip_data->need_wd_check_status = true;
+		else
+			chip_data->need_wd_check_status = false;
 	}
 
 	retval =
@@ -1188,21 +1193,23 @@ static int nvt_hybrid_parse_dts(struct device_node *device,
 		TS_LOG_ERR("get device y_max failed\n");
 	}
 
-	retval =
-	    of_property_read_u32(device, NVT_HYBRID_AIN_TX_NUM,
-				 &nvt_hybrid_ts->ain_tx_num);
-		TS_LOG_INFO("get device AIN_TX_NUM = %d\n", nvt_hybrid_ts->ain_tx_num);
-	if (retval) {
+	value = 0;
+	retval = of_property_read_u32(device, NVT_HYBRID_AIN_TX_NUM, &value);
+	if (retval)
 		TS_LOG_ERR("get device AIN_TX_NUM failed\n");
-	}
+	else
+		nvt_hybrid_ts->ain_tx_num = (u8)value;
 
-	retval =
-	    of_property_read_u32(device, NVT_HYBRID_AIN_RX_NUM,
-				 &nvt_hybrid_ts->ain_rx_num);
-		TS_LOG_INFO("get device AIN_RX_NUM = %d\n", nvt_hybrid_ts->ain_rx_num);
-	if (retval) {
+	TS_LOG_INFO("get device AIN_TX_NUM = %d\n", nvt_hybrid_ts->ain_tx_num);
+
+	value = 0;
+	retval = of_property_read_u32(device, NVT_HYBRID_AIN_RX_NUM, &value);
+	if (retval)
 		TS_LOG_ERR("get device AIN_RX_NUM failed\n");
-	}
+	else
+		nvt_hybrid_ts->ain_rx_num = (u8)value;
+
+	TS_LOG_INFO("get device AIN_RX_NUM = %d\n", nvt_hybrid_ts->ain_rx_num);
 
 	retval =
 	    of_property_read_u32(device, NVT_HYBRID_VCI_GPIO_TYPE,
@@ -1339,8 +1346,9 @@ static int nvt_hybrid_parse_dts(struct device_node *device,
 		TS_LOG_ERR("%s: can not get roi_supported value\n", __func__);
 		chip_data->ts_platform_data->feature_info.roi_info.roi_supported = 0;
 	}
-	
-	retval = of_property_read_string(device, "producer", &producer);
+
+	retval = of_property_read_string(device, "producer",
+		(const char **)&producer);
 	if (!retval && NULL != producer) {
 		strcpy(chip_data->module_name, producer);
 	}
@@ -2250,9 +2258,9 @@ static int32_t novatek_hybrid_regs_operators(struct ts_regs_info *info) {
 				buf[0] = (info->addr) & 0xFF;	//0~1 bytes (ex. yy)
 
 				if (info->values[0] == 0)
-					buf[1] = BitClear(buf[1], info->bit);
+					BitClear(buf[1], info->bit);
 				else if (info->values[0] == 1)
-					BitSet(buf[1], info->bit);
+					BitSet(buf[1], (unsigned int)info->bit);
 			}
 
 			ret = nvt_hybrid_ts_i2c_write(nvt_hybrid_ts->client, NVT_HYBRID_I2C_FW_Address, buf, info->num+1);

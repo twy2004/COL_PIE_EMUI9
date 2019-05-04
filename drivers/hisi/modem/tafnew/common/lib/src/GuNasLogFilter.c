@@ -70,7 +70,6 @@
 #define    AT_CMD_LEN_7             (7)
 #define    AT_CMD_LEN_8             (8)
 #define    AT_CMD_LEN_13            (13)
-#define    AT_SMS_MODE              (1)
 
 /*****************************************************************************
   2 全局变量定义
@@ -92,20 +91,14 @@ GUNAS_MSG_FILTER_PROC_TBL_FUNC              g_astGuNasMsgFilterProcFuncTbl[] =
 {
     {WUEPS_PID_AT,          WUEPS_PID_AT,       GUNAS_FilterAtToAtMsg},
 
-    {I0_WUEPS_PID_TAF,      WUEPS_PID_AT,       GUNAS_FilterTafToAtMsg},
-    {WUEPS_PID_AT,          I0_WUEPS_PID_TAF,   GUNAS_FilterAtToTafMsg},
     {WUEPS_PID_AT,          I0_WUEPS_PID_MMA,   GUNAS_FilterAtToMmaMsg},
     {WUEPS_PID_AT,          I0_UEPS_PID_MTA,    GUNAS_FilterAtToMtaMsg},
     {WUEPS_PID_AT,          I0_MAPS_PIH_PID,    GUNAS_FilterAtToPihMsg},
 
-    {I1_WUEPS_PID_TAF,      WUEPS_PID_AT,       GUNAS_FilterTafToAtMsg},
-    {WUEPS_PID_AT,          I1_WUEPS_PID_TAF,   GUNAS_FilterAtToTafMsg},
     {WUEPS_PID_AT,          I1_WUEPS_PID_MMA,   GUNAS_FilterAtToMmaMsg},
     {WUEPS_PID_AT,          I1_UEPS_PID_MTA,    GUNAS_FilterAtToMtaMsg},
     {WUEPS_PID_AT,          I1_MAPS_PIH_PID,    GUNAS_FilterAtToPihMsg},
 
-    {I2_WUEPS_PID_TAF,      WUEPS_PID_AT,       GUNAS_FilterTafToAtMsg},
-    {WUEPS_PID_AT,          I2_WUEPS_PID_TAF,   GUNAS_FilterAtToTafMsg},
     {WUEPS_PID_AT,          I2_WUEPS_PID_MMA,   GUNAS_FilterAtToMmaMsg},
     {WUEPS_PID_AT,          I2_UEPS_PID_MTA,    GUNAS_FilterAtToMtaMsg},
     {WUEPS_PID_AT,          I2_MAPS_PIH_PID,    GUNAS_FilterAtToPihMsg},
@@ -163,17 +156,6 @@ VOS_CHAR*                                       g_apcATFileterTable[]=
         "\r\n^USIMICCID:"   ,
 
         /* 短信相关 */
-        "AT+CMGS"           ,
-        "AT+CMGW"           ,
-        "AT+CMGC"           ,
-        "\r\n+CMT:"         ,
-        "\r\n+CMGR:"        ,
-        "\r\n^RSTRIGGER:"   ,
-        "\r\n+CMGS:"        ,
-        "\r\n+CDS:"         ,
-        "AT+CMSS"           ,
-        "AT^RSTRIGGER"      ,
-        "\r\n+CMGL:"        ,
 
         /* SIM LOCK相关 */
         "AT^SIMLOCKUNLOCK"  ,
@@ -257,15 +239,7 @@ VOS_VOID* GUNAS_FilterAtToAtMsg(
 
         default:
         {
-            if (pstAtMsg->ucIndex < AT_MAX_CLIENT_NUM)
-            {
-                if (AT_SMS_MODE == g_stParseContext[pstAtMsg->ucIndex].ucMode)
-                {
-                    /* 短信模式直接进行过滤 */
-                    MN_NORM_LOG1("GUNAS_FilterAtToAtMsg: TRUE,SMS MODE, ulMsgName ", pstAtMsg->enMsgId);
-                    return VOS_NULL_PTR;
-                }
-            }
+
 
             pucTmpAdr                   = (VOS_UINT8 *)((VOS_UINT8 *)pstAtMsg
                                                         + sizeof(AT_MSG_STRU)
@@ -341,71 +315,6 @@ VOS_VOID* GUNAS_FilterAtToPihMsg(
 }
 
 
-VOS_VOID* GUNAS_FilterAtToTafMsg(
-    PS_MSG_HEADER_STRU                 *pstMsg
-)
-{
-    switch (pstMsg->ulMsgName)
-    {
-        /* 短信相关的信息 */
-        case MN_MSG_MSGTYPE_SEND_RPDATA_DIRECT:
-        case MN_MSG_MSGTYPE_SEND_RPDATA_FROMMEM:
-        case MN_MSG_MSGTYPE_WRITE:
-        case MN_MSG_MSGTYPE_READ:
-        case MN_MSG_MSGTYPE_LIST:
-        case MN_MSG_MSGTYPE_SEND_RPRPT:
-        case MN_MSG_MSGTYPE_WRITE_SRV_PARA:
-            MN_NORM_LOG1("GUNAS_FilterAtToTafMsg: TRUE ulMsgName ", pstMsg->ulMsgName);
-            return VOS_NULL_PTR;
-
-        /* 补充业务相关的信息 */
-        case TAF_MSG_ACTIVATESS_MSG:
-        case TAF_MSG_DEACTIVATESS_MSG:
-        case TAF_MSG_REGPWD_MSG:
-            MN_NORM_LOG1("GUNAS_FilterAtToTafMsg: TRUE ulMsgName ", pstMsg->ulMsgName);
-            return VOS_NULL_PTR;
-
-        default:
-            return pstMsg;
-    }
-}
-
-
-VOS_VOID* GUNAS_FilterTafToAtMsg(
-    PS_MSG_HEADER_STRU                 *pstMsg
-)
-{
-    MN_AT_IND_EVT_STRU                 *pstAtEvent = VOS_NULL_PTR;
-    VOS_UINT32                          ulEventType;
-
-    ulEventType = 0;
-    pstAtEvent  = (MN_AT_IND_EVT_STRU *)pstMsg;
-
-    if (MN_CALLBACK_MSG   != pstMsg->ulMsgName)
-    {
-        return pstMsg;
-    }
-
-    TAF_MEM_CPY_S(&ulEventType, (VOS_UINT32)sizeof(ulEventType), pstAtEvent->aucContent, (VOS_UINT32)sizeof(VOS_UINT32));
-
-    switch ((MN_MSG_EVENT_ENUM_U32)ulEventType)
-    {
-        case MN_MSG_EVT_SUBMIT_RPT:
-        case MN_MSG_EVT_MSG_SENT:
-        case MN_MSG_EVT_DELIVER:
-        case MN_MSG_EVT_READ:
-        case MN_MSG_EVT_LIST:
-        case MN_MSG_EVT_WRITE:
-        case MN_MSG_EVT_WRITE_SRV_PARM:
-        case MN_MSG_EVT_READ_SRV_PARM:
-
-            MN_NORM_LOG1("GUNAS_FilterTafToAtMsg: TRUE ulEventType ", ulEventType);
-            return VOS_NULL_PTR;
-
-        default:
-            return pstMsg;
-    }
-}
 
 
 VOS_VOID* GUNAS_FilterLayerMsg(

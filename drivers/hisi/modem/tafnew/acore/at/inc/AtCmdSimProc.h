@@ -125,8 +125,6 @@ typedef struct
 /*****************************************************************************
   10 º¯ÊýÉùÃ÷
 *****************************************************************************/
-extern VOS_UINT32 At_Base16Decode(VOS_CHAR *pcData, VOS_UINT32 ulDataLen, VOS_UINT8* pucDst);
-
 
 extern VOS_UINT32 At_SetHvsstPara(
     VOS_UINT8                           ucIndex
@@ -308,8 +306,6 @@ extern TAF_UINT16 At_CardIccidInfoInd(
     SI_PIH_EVENT_INFO_STRU             *pstEvent
 );
 #if ((FEATURE_ON == FEATURE_VSIM)&&(FEATURE_ON == FEATURE_VSIM_ICC_SEC_CHANNEL))
-extern VOS_UINT16 At_Hex2Base16(VOS_UINT32 MaxLength,VOS_CHAR *headaddr,VOS_CHAR *pucDst,VOS_UINT8 *pucSrc,VOS_UINT16 usSrcLen);
-
 extern VOS_UINT32 At_QryHvCheckCardPara(
     VOS_UINT8                           ucIndex
 );

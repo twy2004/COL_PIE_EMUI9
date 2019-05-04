@@ -241,7 +241,7 @@ Input:          logpath;bbox's base_addr
 Output:         NA
 Return:         NA
 ********************************************************************/
-void bbox_save_every_core_data(char *logpath, char *base_addr)
+void bbox_save_every_core_data(const char *logpath, char *base_addr)
 {
 	char *addr;
 	int ret;

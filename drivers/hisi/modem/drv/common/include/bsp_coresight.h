@@ -92,6 +92,7 @@ void bsp_coresight_resume(void);
 #endif
 void bsp_coresight_save_cp_etb(char* dir_name);
 int bsp_coresight_stop_cp(void);
+
 #else
 static unsigned int inline  bsp_coresight_init(void)   {  return 0; }
 static void inline bsp_coresight_enable(void) {  return;   }

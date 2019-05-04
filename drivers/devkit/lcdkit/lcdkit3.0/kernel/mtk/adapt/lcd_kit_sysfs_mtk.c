@@ -16,7 +16,7 @@
 #include "lcd_kit_sysfs_mtk.h"
 #include "lcm_drv.h"
 #include <linux/kernel.h>
-#include "lcm_drv.h"
+#include "lcd_kit_adapt.h"
 /* marco define*/
 #ifndef strict_strtoul
 #define strict_strtoul kstrtoul
@@ -33,7 +33,6 @@ extern int is_mipi_cmd_panel(void);
 extern bool runmode_is_factory(void);
 extern int lcd_kit_dsi_cmds_extern_tx(struct lcd_kit_dsi_panel_cmds* cmds);
 extern int do_lcm_vdo_lp_write(struct dsi_cmd_desc *write_table, unsigned int count);
-extern int lcd_kit_dsi_cmds_extern_rx(uint8_t* out, struct lcd_kit_dsi_panel_cmds* cmds);
 extern unsigned int lcm_get_panel_state(void);
 static ssize_t lcd_model_show(struct device* dev,
 										struct device_attribute* attr, char* buf)
@@ -174,7 +173,9 @@ static ssize_t lcd_check_reg_show(struct device* dev,
 	if(panel_state) {
 		if (common_info->check_reg.support) {
 			expect_ptr = (char *)common_info->check_reg.value.buf;
-       	 	lcd_kit_dsi_cmds_extern_rx(read_value, &common_info->check_reg.cmds);
+			lcd_kit_dsi_cmds_extern_rx(read_value,
+						&common_info->check_reg.cmds,
+						MAX_REG_READ_COUNT);
 
 			for (i = 0; i < common_info->check_reg.cmds.cmd_cnt; i++) {
 				if ((char)read_value[i] != expect_ptr[i]) {
@@ -192,7 +193,7 @@ static ssize_t lcd_check_reg_show(struct device* dev,
 			} else {
 				ret = snprintf(buf, PAGE_SIZE, "FAIL\n");
 			}
-			LCD_KIT_INFO("checksum result:%s\n", buf);
+			LCD_KIT_INFO("checkreg result:%s\n", buf);
 		}
 	}
 	else

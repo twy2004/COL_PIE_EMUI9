@@ -62,7 +62,7 @@ extern "C" {
 #include "bsp_memmap.h"
 #include "bsp_s_memory.h"
 #include "mntn_interface.h"
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <string.h>
 #endif
 #include "securec.h"
@@ -114,7 +114,7 @@ extern "C" {
 #define DUMP_AREA_MAX_NUM   8
 
 /* field number supported by area */
-#define DUMP_FIELD_MAX_NUM  64
+#define DUMP_FIELD_MAX_NUM  80
 
 #ifndef __ASSEMBLY__
 /* field status */
@@ -145,8 +145,8 @@ typedef enum
 typedef enum
 {
     DUMP_AREA_MDMAP,
-    DUMP_AREA_LR, 
-    DUMP_AREA_NR, 
+    DUMP_AREA_LR,
+    DUMP_AREA_NR,
     DUMP_AREA_BUTT
 }DUMP_AREA_ID;
 #endif
@@ -168,7 +168,6 @@ typedef enum
 /* field magic num */
 #define DUMP_FIELD_MAGIC_NUM    (0x6C7D9F8E)
 
-#ifndef __ASSEMBLY__
 
 /*头部接口要与rdr_area.h中定义格式相同*/
 #define DUMP_GLOBALE_TOP_HEAD_MAGIC          (0x4e524d53)
@@ -219,13 +218,21 @@ struct dump_area_mntn_addr_info_s
     void*       paddr;
     u32         len;
 };
+typedef struct
+{
+    u32 done_flag;
+    u32 voice_flag;
+    u32 reversed1;
+    u32 reversed2;
+}dump_area_share_info;
+
 /* area head  */
 typedef struct _dump_area_head_s
 {
     u32 magic_num;
     u32 field_num;
     u8  name[8];
-    u8  version[16]; /* cp 区域的0-3字节用例表示cp log是否保存完成，12-16字节用来表示当前是否在通话 */
+    dump_area_share_info  share_info;
 }dump_area_head_t;
 
 /* field map */
@@ -258,13 +265,14 @@ struct dump_field_self_info_s
 #define DUMP_LEVEL1_AREA_MAGICNUM        (0x4e656464)
 #define DUMP_LEVEL2_AREA_MAGIC_NUMBER    (0x4c524d53)
 #define DUMP_NR_LEVEL2_AREA_NUMBER       (5)
+
 struct dump_level2_area_top_head_s
 {
     u32 magic;
     u32 version;
     u32 area_num;
     u8  area_name[8];
-    u32 reverse;
+    u32 save_done;
 };
 struct  dump_level2_base_info_s
 {
@@ -281,19 +289,22 @@ struct dump_level2_area_s {
     u32 offset; /* offset from area, unit is bytes(1 bytes) */
     u32 length; /* unit is bytes */
 };
+
+#if MNTN_AREA_NR_SIZE
 #define DUMP_NR_AVAIABLE_LENGTH  (MNTN_AREA_NR_SIZE \
-                /*- sizeof(struct dump_level2_area_top_head_s)\
+                - sizeof(struct dump_level2_area_top_head_s)\
                 - sizeof(struct dump_level2_area_s)*DUMP_NR_LEVEL2_AREA_NUMBER\
-                - sizeof(struct dump_level2_base_info_s)*/)
-struct dump_nr_level2_global_struct_s {
+                - sizeof(struct dump_level2_base_info_s))
+#else
+#define DUMP_NR_AVAIABLE_LENGTH   (4)
+#endif
+
+struct dump_level2_global_struct_s {
     struct dump_level2_area_top_head_s top_head;
     struct dump_level2_base_info_s base_info;
     struct dump_level2_area_s area_info[DUMP_NR_LEVEL2_AREA_NUMBER];
-#if DUMP_NR_AVAIABLE_LENGTH
     u8 padding2[DUMP_NR_AVAIABLE_LENGTH];
-#else
-    u8 padding2[4];
-#endif
+
 };
 
 
@@ -313,6 +324,9 @@ struct dump_nr_level2_global_struct_s {
 s32 bsp_dump_mem_init(void);
 u8* bsp_dump_get_field_map(u32 field_id);
 u8* bsp_dump_get_area_addr(u32 field_id);
+s32 bsp_dump_get_level2_area_info(u32 level2_area_id,struct dump_area_mntn_addr_info_s* area_info);
+s32 bsp_dump_get_level1_area_info(DUMP_AREA_ID areaid,struct dump_area_mntn_addr_info_s* area_info);
+
 #else
 static s32 inline bsp_dump_mem_init(void)
 {
@@ -330,9 +344,17 @@ static u32 inline bsp_dump_mem_map(void)
 {
     return BSP_OK;
 }
+static s32 inline  bsp_dump_get_level2_area_info(u32 level2_area_id,struct dump_area_mntn_addr_info_s* area_info)
+{
+    return BSP_OK;
+}
+static s32 inline  bsp_dump_get_level1_area_info(u32 level2_area_id,struct dump_area_mntn_addr_info_s* area_info)
+{
+    return BSP_OK;
+}
 #endif
 
-#endif /*__ASSEMBLY__*/
+
 
 #ifdef __cplusplus
 }

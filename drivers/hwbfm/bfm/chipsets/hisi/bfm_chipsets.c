@@ -66,6 +66,12 @@
 #define BFM_BOOT_SUCCESS_TIME_IN_KENREL ((long long)60) /* unit: second */
 #define BFM_DATAREADY_PATH "/proc/data-ready"
 
+#define BFM_SUB_BOOTFAIL_ADDR HISI_SUB_RESERVED_UNUSED_PHYMEM_BASE
+#define BFM_SUB_BOOTFAIL_MAGIC_NUM_ADDR ((void *)BFM_SUB_BOOTFAIL_ADDR)
+#define BFM_SUB_BOOTFAIL_NUM_ADDR ((void *)(BFM_SUB_BOOTFAIL_MAGIC_NUM_ADDR + sizeof(unsigned int)))
+#define BFM_SUB_BOOTFAIL_COUNT_ADDR ((void *)(BFM_SUB_BOOTFAIL_NUM_ADDR + sizeof(unsigned int)))
+#define BFM_SUB_BOOTFAIL_MAGIC_NUMBER ((unsigned int)0x42464E4F) /*BFNO*/
+
 
 /*----local prototypes----------------------------------------------------------------*/
 
@@ -109,6 +115,10 @@ typedef enum
     MODID_BFM_NATIVE_START,
     MODID_BFM_NATIVE_SECURITY_FAIL,
     MODID_BFM_NATIVE_CRITICAL_SERVICE_FAIL_TO_START,
+    MODID_BFM_NATIVE_MAPLE_ESCAPE_DLOPEN_MRT,
+    MODID_BFM_NATIVE_MAPLE_ESCAPE_CRITICAL_CRASH,
+    MODID_BFM_NATIVE_MAPLE_CRITICAL_CRASH_MYGOTE_DATA,
+    MODID_BFM_NATIVE_MAPLE_CRITICAL_CRASH_SYSTEMSERVER_DATA,
     MODID_BFM_NATIVE_END,
     MODID_BFM_NATIVE_DATA_START,
     MODID_BFM_NATIVE_SYS_MOUNT_FAIL,
@@ -249,6 +259,10 @@ static bfmr_bootfail_errno_to_hisi_modid_t s_bfmr_errno_to_hisi_modid_map_tbl[] 
     {PACKAGE_MANAGER_SETTING_FILE_DAMAGED, MODID_BFM_FRAMEWORK_PACKAGE_MANAGER_SETTING_FILE_DAMAGED},
     {BOOTUP_SLOWLY, MODID_BFM_BOOTUP_SLOWLY},
     {BFM_HARDWARE_FAULT, MODID_BFM_HARDWARE_FAULT},
+    {MAPLE_ESCAPE_DLOPEN_MRT, MODID_BFM_NATIVE_MAPLE_ESCAPE_DLOPEN_MRT},
+    {MAPLE_ESCAPE_CRITICAL_CRASH, MODID_BFM_NATIVE_MAPLE_ESCAPE_CRITICAL_CRASH},
+    {MAPLE_CRITICAL_CRASH_MYGOTE_DATA, MODID_BFM_NATIVE_MAPLE_CRITICAL_CRASH_MYGOTE_DATA},
+    {MAPLE_CRITICAL_CRASH_SYSTEMSERVER_DATA, MODID_BFM_NATIVE_MAPLE_CRITICAL_CRASH_SYSTEMSERVER_DATA},
 
     //TBD: add more bootErrNo from kernel and application level.
 };
@@ -356,7 +370,6 @@ static int bfm_save_bootfail_log_to_fs_immediately(
 static int bfm_check_validity_of_bootfail_log_in_dfx(bfm_bfi_member_info_t *pbfi_info, u64 rtc_time);
 static int bfm_read_log_in_dfx_part(void);
 static void bfm_release_buffer_saving_dfx_log(void);
-static bool bfmr_userdata_is_ready(void);
 static int bfm_add_bfi_info(bfm_bfi_member_info_t *pbfi_memeber, unsigned int bfi_memeber_len);
 static int bfm_update_save_flag_in_bfi(bfm_bfi_member_info_t *pbfi_info);
 static void bfm_sort_dfx_log_by_create_time(struct dfx_head_info *pdfx_head_info, char **paddr_buf, size_t addr_count);
@@ -411,7 +424,7 @@ int bfm_get_boot_stage(bfmr_detail_boot_stage_e *pbfmr_bootstage)
 
     if (unlikely(NULL == pbfmr_bootstage))
     {
-        BFMR_PRINT_INVALID_PARAMS("pbfmr_bootstage: %p\n", pbfmr_bootstage);
+        BFMR_PRINT_INVALID_PARAMS("pbfmr_bootstage.\n");
         return -1;
     }
 
@@ -446,7 +459,7 @@ static unsigned int bfm_read_file(char *buf, unsigned int buf_len, char *src_log
 
     if (unlikely((NULL == buf) || (NULL == src_log_path)))
     {
-        BFMR_PRINT_INVALID_PARAMS("buf: %p src_file_path: %p\n", buf, src_log_path);
+        BFMR_PRINT_INVALID_PARAMS("buf or src_log_path.\n");
         return 0;
     }
 
@@ -614,7 +627,7 @@ unsigned int bfmr_capture_log_from_system(char *buf, unsigned int buf_len, bfmr_
 
     if (unlikely((NULL == buf) || (NULL == src)))
     {
-        BFMR_PRINT_INVALID_PARAMS("buf: %p, src: %p\n", buf, src);
+        BFMR_PRINT_INVALID_PARAMS("buf or src.\n");
         return 0U;
     }
 
@@ -1000,7 +1013,7 @@ static void bfm_sort_dfx_log_by_create_time(struct dfx_head_info *pdfx_head_info
 
     if (unlikely((NULL == pdfx_head_info) || (NULL == paddr_buf)))
     {
-        BFMR_PRINT_INVALID_PARAMS("pdfx_head_info: %p, paddr_buf: %p\n", pdfx_head_info, paddr_buf);
+        BFMR_PRINT_INVALID_PARAMS("pdfx_head_info or paddr_buf.\n");
         return;
     }
 
@@ -1169,7 +1182,7 @@ int bfm_parse_and_save_bottom_layer_bootfail_log(
 
     if (unlikely((NULL == process_bootfail_param) || (NULL == buf)))
     {
-        BFMR_PRINT_INVALID_PARAMS("psave_param: %p, buf: %p\n", process_bootfail_param, buf);
+        BFMR_PRINT_INVALID_PARAMS("process_bootfail_param or buf.\n");
         return -1;
     }
 
@@ -1224,7 +1237,7 @@ int bfmr_save_log_to_fs(char *dst_file_path, char *buf, unsigned int log_len, in
 
     if (unlikely(NULL == dst_file_path || NULL == buf))
     {
-        BFMR_PRINT_INVALID_PARAMS("dst_file_path: %p, buf: %p\n", dst_file_path, buf);
+        BFMR_PRINT_INVALID_PARAMS("dst_file_path or buf.\n");
         return -1;
     }
 
@@ -1302,7 +1315,7 @@ int bfmr_save_log_to_raw_part(char *raw_part_name, unsigned long long offset, ch
 
     if (unlikely(NULL == raw_part_name || NULL == buf))
     {
-        BFMR_PRINT_INVALID_PARAMS("raw_part_name: %p, buf: %p\n", raw_part_name, buf);
+        BFMR_PRINT_INVALID_PARAMS("raw_part_name or buf.\n");
         return -1;
     }
 
@@ -1352,7 +1365,7 @@ int bfmr_save_log_to_mem_buffer(char *dst_buf, unsigned int dst_buf_len, char *s
 {
     if (unlikely(NULL == dst_buf || NULL == src_buf))
     {
-        BFMR_PRINT_INVALID_PARAMS("dst_buf: %p, src_buf: %p\n", dst_buf, src_buf);
+        BFMR_PRINT_INVALID_PARAMS("dst_buf or src_buf.\n");
         return -1;
     }
 
@@ -1403,7 +1416,7 @@ static int bfm_open_bfi_part_at_latest_bfi_info(int *fd)
 
     if (unlikely(NULL == fd))
     {
-        BFMR_PRINT_INVALID_PARAMS("fd: %p\n", fd);
+        BFMR_PRINT_INVALID_PARAMS("fd.\n");
         return -1;
     }
 
@@ -1481,7 +1494,7 @@ static int bfm_read_latest_bfi_info(bfm_bfi_member_info_t *pbfi_memeber, unsigne
 
     if (unlikely(NULL == pbfi_memeber))
     {
-        BFMR_PRINT_INVALID_PARAMS("path_buf: %p\n", pbfi_memeber);
+        BFMR_PRINT_INVALID_PARAMS("pbfi_memeber.\n");
         return -1;
     }
 
@@ -1527,7 +1540,7 @@ static int bfm_update_latest_bfi_info(bfm_bfi_member_info_t *pbfi_memeber, unsig
 
     if (unlikely(NULL == pbfi_memeber))
     {
-        BFMR_PRINT_INVALID_PARAMS("pbfi_memeber: %p\n", pbfi_memeber);
+        BFMR_PRINT_INVALID_PARAMS("pbfi_memeber.\n");
         return -1;
     }
 
@@ -1575,7 +1588,7 @@ static int bfm_get_bfi_part_full_path(char *path_buf, unsigned int path_buf_len)
 
     if (unlikely(NULL == path_buf))
     {
-        BFMR_PRINT_INVALID_PARAMS("path_buf: %p\n", path_buf);
+        BFMR_PRINT_INVALID_PARAMS("path_buf.\n");
         return -1;
     }
 
@@ -1615,7 +1628,7 @@ int bfm_capture_and_save_do_nothing_bootfail_log(bfm_process_bootfail_param_t *p
 
     if (unlikely(NULL == param))
     {
-        BFMR_PRINT_INVALID_PARAMS("param: %p\n", param);
+        BFMR_PRINT_INVALID_PARAMS("param.\n");
         return -1;
     }
 
@@ -1678,18 +1691,6 @@ __out:
     return ret;
 }
 
-static bool bfmr_userdata_is_ready(void)
-{
-    char data[BFM_MAX_INT_NUMBER_LEN] = {0};
-    int userdata_is_ready = 0;
-
-    (void)bfmr_full_read_with_file_path(BFM_DATAREADY_PATH, data, sizeof(char));
-    userdata_is_ready = (int)simple_strtol(data, NULL, 10);
-    BFMR_PRINT_KEY_INFO("userdata_is_ready: %d\n", userdata_is_ready);
-
-    return (0 != userdata_is_ready);
-}
-
 /**
     @function: int bfm_platform_process_boot_fail(bfm_process_bootfail_param_t *param)
     @brief: process boot fail in chipsets module
@@ -1706,7 +1707,7 @@ int bfm_platform_process_boot_fail(bfm_process_bootfail_param_t *param)
 
     if (unlikely(NULL == param))
     {
-        BFMR_PRINT_INVALID_PARAMS("param: %p\n", param);
+        BFMR_PRINT_INVALID_PARAMS("param.\n");
         return -1;
     }
 
@@ -1803,6 +1804,9 @@ int bfm_platform_process_boot_success(void)
 __out:
     bfmr_free(pbfi_memeber);
     s_chipsets_is_bootup_successfully = true;
+    bfm_write_sub_bootfail_magic_num(0x0, BFM_SUB_BOOTFAIL_MAGIC_NUM_ADDR);
+    bfm_write_sub_bootfail_num(0x0, BFM_SUB_BOOTFAIL_NUM_ADDR);
+    bfm_write_sub_bootfail_count(0x0, BFM_SUB_BOOTFAIL_COUNT_ADDR);
     return ret;
 }
 
@@ -1836,7 +1840,7 @@ static int bfm_read_bfi_part_header(bfm_bfi_header_info_t *pbfi_header_info)
 
     if (unlikely(NULL == pbfi_header_info))
     {
-        BFMR_PRINT_INVALID_PARAMS("pbfi_header_info: %p\n", pbfi_header_info);
+        BFMR_PRINT_INVALID_PARAMS("pbfi_header_info.\n");
         return -1;
     }
 
@@ -1904,7 +1908,7 @@ static int bfm_update_bfi_part_header(bfm_bfi_header_info_t *pbfi_header_info)
 
     if (unlikely(NULL == pbfi_header_info))
     {
-        BFMR_PRINT_INVALID_PARAMS("pbfi_header_info: %p\n", pbfi_header_info);
+        BFMR_PRINT_INVALID_PARAMS("pbfi_header_info.\n");
         return -1;
     }
 
@@ -1978,7 +1982,7 @@ static int bfm_get_rtc_time_of_latest_bootail_log_from_dfx_part(u64 *prtc_time)
 
     if (unlikely(NULL == prtc_time))
     {
-        BFMR_PRINT_INVALID_PARAMS("prtc_time: %p\n", prtc_time);
+        BFMR_PRINT_INVALID_PARAMS("prtc_time.\n");
         return -1;
     }
 
@@ -2146,7 +2150,7 @@ static int bfm_add_bfi_info(bfm_bfi_member_info_t *pbfi_memeber, unsigned int bf
 
     if (unlikely(NULL == pbfi_memeber))
     {
-        BFMR_PRINT_INVALID_PARAMS("pbfi_memeber: %p\n", pbfi_memeber);
+        BFMR_PRINT_INVALID_PARAMS("pbfi_memeber.\n");
         return -1;
     }
 
@@ -2250,7 +2254,7 @@ static void bfm_format_hardware_excp_detail_info(bfmr_hardware_fault_type_e faul
 {
     if (unlikely((NULL == poriginal_detail) || (NULL == pdetail_info_out)))
     {
-        BFMR_PRINT_INVALID_PARAMS("poriginal_detail: %p, pdetail_info_out: %p\n", poriginal_detail, pdetail_info_out);
+        BFMR_PRINT_INVALID_PARAMS("poriginal_detail or pdetail_info_out.\n");
         return;
     }
 
@@ -2269,7 +2273,7 @@ static void bfm_save_log_to_bfi_part(u32 hisi_modid, bfm_process_bootfail_param_
     BFMR_PRINT_ENTER();
     if (unlikely(NULL == param))
     {
-        BFMR_PRINT_INVALID_PARAMS("param: %p\n", param);
+        BFMR_PRINT_INVALID_PARAMS("param.\n");
         return;
     }
 
@@ -2676,7 +2680,7 @@ static struct notifier_block ocp_event_nb = {
 
 static int bfm_process_ocp_boot_fail_func(void *param)
 {
-    BFMR_PRINT_KEY_INFO("param: %p\n", param);
+    BFMR_PRINT_KEY_INFO("param.\n");
     while (1)
     {
         int i = 0;
@@ -2713,7 +2717,6 @@ static int bfm_process_ocp_boot_fail(void)
 {
     int ret = -1;
     struct task_struct *tsk;
-    bfm_ocp_boot_fail_test_param_t *ptest_param = NULL;
 
     ret = hisi_pmic_mntn_register_notifier(&ocp_event_nb);
     if (0 != ret)

@@ -6965,6 +6965,16 @@ oal_uint32  hmac_config_connect(mac_vap_stru *pst_mac_vap, oal_uint16 us_len, oa
     {
         hmac_config_del_p2p_ie(pst_connect_param->puc_ie, &(pst_connect_param->ul_ie_len));
     }
+
+    /* 判断传入内存长度，避免拷贝内存越界 */
+    if (pst_connect_param->ul_ie_len > WLAN_WPS_IE_MAX_SIZE)
+    {
+        OAM_ERROR_LOG1(pst_mac_vap->uc_vap_id, OAM_SF_CFG,
+                        "{hmac_config_connect:: connect ie is too large to save. [%d]!}",
+                        pst_connect_param->ul_ie_len);
+        return OAL_ERR_CODE_INVALID_CONFIG;
+    }
+
     st_app_ie.ul_ie_len      = pst_connect_param->ul_ie_len;
     oal_memcopy(st_app_ie.auc_ie, pst_connect_param->puc_ie, st_app_ie.ul_ie_len);
     st_app_ie.en_app_ie_type = OAL_APP_ASSOC_REQ_IE;

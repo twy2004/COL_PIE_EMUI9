@@ -65,6 +65,7 @@
 #include "diag_system_debug.h"
 #include "scm_common.h"
 #include "OmCommonPpm.h"
+#include "OmPortSwitch.h"
 #include "OmSocketPpm.h"
 
 

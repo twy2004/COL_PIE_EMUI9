@@ -1,50 +1,14 @@
-/*
- * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
- * foss@huawei.com
- *
- * If distributed as part of the Linux kernel, the following license terms
- * apply:
- *
- * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
- * * only version 2 as published by the Free Software Foundation.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program; if not, write to the Free Software
- * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
- *
- * Otherwise, the following license terms apply:
- *
- * * Redistribution and use in source and binary forms, with or without
- * * modification, are permitted provided that the following conditions
- * * are met:
- * * 1) Redistributions of source code must retain the above copyright
- * *    notice, this list of conditions and the following disclaimer.
- * * 2) Redistributions in binary form must reproduce the above copyright
- * *    notice, this list of conditions and the following disclaimer in the
- * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
- * *    without specific prior written permission.
- *
- * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- */
+/******************************************************************************
+
+
+        Copyright(C)2011,Hisilicon Co. LTD.
+
+ ******************************************************************************
+    File name   : PsCommonDef.h
+    Description : 协议栈内存处理，消息、定时器等接口封装
+    History     :
+      1.  Draft  2011-04-21 初稿完成
+******************************************************************************/
 
 
 #ifndef __PSCOMMONDEF_H__
@@ -101,6 +65,23 @@ extern "C" {
 #define PS_PRINTF
 #endif
 
+/* 协议栈日志打印新接口 */
+#ifndef L2_LIBFUZZ_TEST
+#define PS_PRINTF_FATAL(fmt, ...)               (mdrv_fatal(fmt, ##__VA_ARGS__))
+#define PS_PRINTF_ERR(fmt, ...)                 (mdrv_err(fmt, ##__VA_ARGS__))
+#define PS_PRINTF_WARNING(fmt, ...)             (mdrv_wrn(fmt, ##__VA_ARGS__))
+#define PS_PRINTF_INFO(fmt, ...)                (mdrv_info(fmt, ##__VA_ARGS__))
+#define PS_PRINTF_DEBUG(fmt, ...)               (mdrv_debug(fmt, ##__VA_ARGS__))
+#else
+#define PS_PRINTF_FATAL(fmt, ...)
+#define PS_PRINTF_ERR(fmt, ...)
+#define PS_PRINTF_WARNING(fmt, ...)
+#define PS_PRINTF_INFO(fmt, ...)
+#define PS_PRINTF_DEBUG(fmt, ...)
+#endif
+
+
+
 /* 内存操作封装 */
 #ifdef _lint
 
@@ -119,7 +100,6 @@ extern "C" {
 #ifdef LINUX_PC_LINT
 #define PS_SEND_MSG(ulPid, pMsg)                            (free((VOS_VOID*)pMsg), ulPid)
 #define PS_CHR_RPT_SEND_MSG(ulPid, pMsg)                    (free((VOS_VOID*)pMsg), ulPid)
-
 
 #else
 /*lint -emacro({58}, PS_SEND_MSG)*/
@@ -203,17 +183,19 @@ extern "C" {
             VOS_AllocMsg( ulPid, (ulLen)-(VOS_MSG_HEAD_LENGTH) )
 
 
+
+/*Modified by dongying for UT,2010-2-1,begin*/
 #elif defined(PS_UT_SWITCH)|| defined(_GAS_UT_SWITCH_)
 #include "stdlib.h"
 
 
 /*lint -emacro({586}, PS_ALLOC_MSG)*/
 #define PS_ALLOC_MSG(ulPid , ulLen)                         malloc((ulLen) + VOS_MSG_HEAD_LENGTH)
-
+/* pengzhipeng add for clear define start*/
 /*lint -emacro({586}, PS_ALLOC_MSG_WITH_HEADER_LEN)*/
 #define PS_ALLOC_MSG_WITH_HEADER_LEN(ulPid , ulLen)         malloc(ulLen)
 #define PS_POST_MSG(ulPid, pMsg)                            VOS_PostMsg(ulPid,pMsg)
-
+/* pengzhipeng add for clear define end*/
 /*lint -emacro({586}, PS_SEND_MSG)*/
 /*lint -emacro({516}, PS_SEND_MSG)*/
 #define PS_SEND_MSG(ulPid, pMsg)                            free(pMsg)
@@ -230,10 +212,30 @@ extern "C" {
 #define PS_MEM_MOVE(pDestBuffer,pSrcBuffer,ulBuffLen)       memmove_s(pDestBuffer, ulBuffLen, pSrcBuffer, ulBuffLen)
 
 #else
+/*Modified by dongying for UT,2010-2-1,end*/
+/*内存拷贝宏定义*/
+
+#define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+            (VOS_VOID)VOS_MemCpy_s( pucDestBuffer, ulBufferLen, pucSrcBuffer, ulBufferLen )
+
+/*内存内容填充宏定义*/
+#define PS_MEM_SET(pucBuffer, ucData, ulBufferLen) \
+            (VOS_VOID)VOS_MemSet_s( pucBuffer, ulBufferLen, ucData, ulBufferLen )
+
+/*安全内存拷贝宏定义*/
+#define PS_MEM_CPY_S(pucDestBuffer, ulDestBufferLen, pucSrcBuffer, ulSrcBufferLen) \
+            (VOS_VOID)VOS_MemCpy_s( pucDestBuffer, ulDestBufferLen, pucSrcBuffer, ulSrcBufferLen )
+
+/*安全内存内容填充宏定义*/
+#define PS_MEM_SET_S(pucDestBuffer, ulDestBufferLen, ucData, ulCount) \
+            (VOS_VOID)VOS_MemSet_s( pucDestBuffer, ulDestBufferLen, ucData, ulCount )
+
+/*内存移动宏定义*/
+#define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+            VOS_MemMove_s( pucDestBuffer, ulBufferLen, pucSrcBuffer, ulBufferLen )
 
 #define PS_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
             VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
-
 
 /*申请消息包,申请的长度包括消息报头长度*/
 /*lint -emacro({586}, PS_ALLOC_MSG_WITH_HEADER_LEN)*/
@@ -253,18 +255,6 @@ extern "C" {
   我们在这里将PS_SEND_MSG分别定义,区分WIN32和VXWORKS版本,对于WIN32版本,仍使用原
   Ps_SendMsg函数,以便于向PC STUB桩转发消息.后续OSA支持WIN32版本后,这里可统一处理*/
     #if(VOS_OS_VER == VOS_WIN32 )
-
-/*内存拷贝宏定义*/
-#define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
-                (VOS_VOID)memcpy(pucDestBuffer, pucSrcBuffer, ulBufferLen)    // unsafe_function_ignore: memcpy
-
-/*内存内容填充宏定义*/
-#define PS_MEM_SET(pucBuffer, ucData, ulBufferLen) \
-                (VOS_VOID)memset(pucBuffer, ucData, ulBufferLen)     // unsafe_function_ignore: memset
-
-/*内存移动宏定义*/
-#define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
-                memmove(pucDestBuffer, pucSrcBuffer, ulBufferLen)   // unsafe_function_ignore: memmove
 
         /*消息发送*/
         #ifdef __RECUR_TEST__
@@ -288,7 +278,6 @@ extern "C" {
             Ps_SendMsg((VOS_INT8 *)__FILE__, __LINE__, ulPid, pMsg)
 
         #define PS_CHR_RPT_SEND_MSG(ulPid, pMsg)  Ps_SendMsg((VOS_INT8 *)__FILE__, __LINE__, ulPid, pMsg)
-
         #endif
     #else
     /*消息发送*/
@@ -319,7 +308,7 @@ extern "C" {
 #define PS_MEM_ALLOC(ulPid , ulSize) \
             VOS_MemAlloc( ulPid, (DYNAMIC_MEM_PT), ulSize)
 
-#else   /*WIN32 DOPRA 1.6.1版本DYNAMIC_MEM_PT内存分配算法存在BUG，因此换成BLOCK_MEM_PT */
+#else   /*WIN32 DOPRA 1.6.1版本DYNAMIC_MEM_PT内存分配算法存在BUG，因此换成BLOCK_MEM_PT-h42180*/
 /*lint -emacro({586}, PS_MEM_ALLOC)*/
 #define PS_MEM_ALLOC(ulPid , ulSize) \
             VOS_MemAlloc( ulPid, (BLOCK_MEM_PT), ulSize)
@@ -397,9 +386,10 @@ When phTm is VOS_NULL_PTR, ucMode is not allowed to be VOS_RELTIMER_LOOP.
 #endif
 #endif
 
+/*sunbing 49683 2013-7-14 VoLTE begin*/
 #define PS_START_CALLBACK_REL_TIMER(phTm, ulPid, ulLength, ulName, ulParam, ucMode, TimeOutRoutine, ulPrecision)\
                             VOS_StartCallBackRelTimer(phTm, ulPid, ulLength, ulName, ulParam, ucMode, TimeOutRoutine, ulPrecision)
-
+/*sunbing 49683 2013-7-14 VoLTE end*/
 
 #define PS_STOP_REL_TIMER(phTm)               VOS_StopRelTimer( phTm )
 
@@ -446,14 +436,15 @@ When phTm is VOS_NULL_PTR, ucMode is not allowed to be VOS_RELTIMER_LOOP.
 #define    LPS_CacheFlush(pDataAddr, ulDataLen)         (VOS_VOID)OSAL_CacheFlush(OSAL_DATA_CACHE, (VOS_VOID *)(pDataAddr), (ulDataLen))
 #define    LPS_CacheInvalidate(pDataAddr, ulDataLen)    (VOS_VOID)OSAL_CacheInvalid(OSAL_DATA_CACHE, (VOS_VOID *)(pDataAddr), (ulDataLen))
 #endif
+/* 增加函数入参: 字节对其方式enAlignPow */
 /* #else: VOS_UnCacheMemAlloc --> VOS_UnCacheMemAllocDebug */
 /* #if: OSAL_CacheDmaMalloc --> VOS_UnCacheMemAllocDebug */
 /* #if: OSAL_CacheDmaFree --> VOS_UnCacheMemFree */
 #if (VOS_OS_VER == VOS_RTOSCK)
-#define    LPS_CacheDmaMalloc(ulSize,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,pDataAddr,uwCookie)
+#define    LPS_CacheDmaMalloc(ulSize,enAlignPow,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,enAlignPow,pDataAddr,uwCookie)
 #define    LPS_CacheDmaFree(pBuf,ulSize)                        VOS_UnCacheMemFree(pBuf,pBuf,ulSize)
 #else
-#define    LPS_CacheDmaMalloc(ulSize,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,pDataAddr,uwCookie)
+#define    LPS_CacheDmaMalloc(ulSize,enAlignPow,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,enAlignPow,pDataAddr,uwCookie)
 #define    LPS_CacheDmaFree(pBuf,ulSize)                        VOS_UnCacheMemFree(pBuf,pBuf,ulSize)
 #endif
 #endif

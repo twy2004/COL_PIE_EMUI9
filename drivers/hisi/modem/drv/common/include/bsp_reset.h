@@ -192,7 +192,7 @@ do{ 	\
 */
 typedef int (*MASTER_IDLE_HOOK_FUNC)(void);
 
-#ifdef CONFIG_BALONG_MODEM_RESET
+#if defined(CONFIG_BALONG_MODEM_RESET) || defined(CONFIG_BALONG_MODEM_GLOBAL_RESET) || defined(CONFIG_BALONG_MODEM_RESET_CTRL)
 
 unsigned long get_scbakdata13(void);
 #define bsp_reset_bootflag_set(value)    \
@@ -340,7 +340,7 @@ void bsp_modem_power_on(void);
 int bsp_cp_reset(void);
 u32 bsp_reset_is_connect_ril(void);
 u32 modem_reset_fail_id_get(void);
-#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_VXWORKS__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 
 #define CCORE_RST_TIMEOUT_NUM         (327) /*10ms*/
 #define CHECK_TIMEOUT(a)   (get_timer_slice_delta(a, bsp_get_slice_value()) < CCORE_RST_TIMEOUT_NUM)

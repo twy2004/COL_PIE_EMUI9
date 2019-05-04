@@ -228,7 +228,7 @@ static int is_cable_for_direct_charge(void)
 static struct cc_check_ops cc_check_ops = {
 	.is_cable_for_direct_charge = is_cable_for_direct_charge,
 };
-static int fusb3601_probe_work(struct work_struct *work)
+static void fusb3601_probe_work(struct work_struct *work)
 {
 	struct fusb3601_chip *chip = container_of(work, struct fusb3601_chip, fusb3601_probe_work);
 	struct i2c_client *client;
@@ -239,7 +239,7 @@ static int fusb3601_probe_work(struct work_struct *work)
 	if (!chip || NULL == chip->client) {
                 pr_err("FUSB  %s - Error: Client structure is NULL!\n",
                        __func__);
-                return -EINVAL;
+                return;
 	}
 	client = chip->client;
 #ifdef CONFIG_CONTEXTHUB_PD
@@ -260,7 +260,7 @@ static int fusb3601_probe_work(struct work_struct *work)
                 dev_err(&client->dev,
                         "FUSB  %s - Error: Unable to initialize GPIO!\n",
                         __func__);
-                return ret;
+                return;
         }
         pr_debug("FUSB  %s - GPIO initialized!\n", __func__);
 
@@ -282,7 +282,7 @@ static int fusb3601_probe_work(struct work_struct *work)
 	if (ret)
 	{
 		pr_info("cc_check_ops register failed!\n");
-		return -1;
+		return;
 	}
 	pr_info("shanshan1. *%s* pd_dpm_ops_register\n", __func__);
 	pd_dpm_ops_register(&tcpc_device_pd_dpm_ops, NULL);
@@ -296,13 +296,13 @@ static int fusb3601_probe_work(struct work_struct *work)
                 dev_err(&client->dev,
             "FUSB  %s - Error: Unable to enable interrupts! Error code: %d\n",
                         __func__, ret);
-                return -EIO;
+                return;
         }
 
         dev_info(&client->dev,
                  "FUSB  %s - FUSB3601 Driver loaded successfully!\n",
                  __func__);
-        return ret;
+        return;
 
 }
 static int fusb3601_probe (struct i2c_client* client,
@@ -368,8 +368,6 @@ static int fusb3601_probe (struct i2c_client* client,
 
 	/* Set our global chip's address to the newly allocated memory */
 	fusb3601_SetChip(chip);
-
-	pr_debug("FUSB  %s - Chip structure is set! Chip: %p ... g_chip: %p\n", __func__, chip, fusb3601_GetChip());
 
 	/* Initialize semaphore*/
 	sema_init(&chip->suspend_lock, 1);

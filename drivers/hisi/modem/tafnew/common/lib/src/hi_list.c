@@ -122,3 +122,37 @@ int msp_list_empty(const struct msp_list_header *head)
 }
 
 
+/*
+ * Delete a list entry by making the prev/next entries
+ * point to each other.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+void __list_del_msp_security(struct msp_list_header * prev,
+        struct msp_list_header * next,
+        struct msp_list_header * head)
+{
+    next->prev = prev;
+
+    if (prev == VOS_NULL_PTR)
+    {
+        prev       = head;
+        prev->next = next;
+    }
+    else
+    {
+        prev->next = next;
+    }
+}
+
+/**
+ * msp_list_del - deletes entry from list.
+ * @entry: the element to delete from the list.
+ * Note: msp_list_empty on entry does not return true after this, the entry is in an undefined state.
+ */
+MODULE_EXPORTED void msp_list_del_security(struct msp_list_header *entry, struct msp_list_header *head)
+{
+    __list_del_msp_security(entry->prev, entry->next, head);
+}
+

@@ -49,7 +49,7 @@
 #define __DUMP_MODM_BASEINFO_H__
 #include "osl_types.h"
 
-void dump_save_base_info(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length);
-void dump_save_momdem_reset_baseinfo(u32 modid,char* name);
+void dump_save_base_info(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length,char* sence);
 s32  dump_base_info_init(void);
+
 #endif

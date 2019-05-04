@@ -103,6 +103,7 @@ u32 nv_img_check_all_file(void);
 u32 nv_img_recover_from_bak(void);
 u32 nv_img_reload(void);
 u32 nv_img_mreset_load(void);
+u32 nv_img_rwbuf(void);
 u32 nv_img_flush(void);
 u32 nv_img_load_carrier(s8 * path);
 u32 nv_img_flush_carrier(void);

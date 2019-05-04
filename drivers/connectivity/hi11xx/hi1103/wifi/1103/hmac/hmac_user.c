@@ -494,7 +494,7 @@ mac_ap_type_enum_uint16 hmac_compability_ap_tpye_identify_etc(mac_vap_stru *pst_
 #ifdef _PRE_WLAN_FEATURE_M2S
             en_support_max_nss = pst_bss_dscr->en_support_max_nss;
 #endif
-            if (OAL_TRUE == pst_bss_dscr->en_ddc_whitelist_chip_oui)
+            if (OAL_TRUE == pst_bss_dscr->en_atheros_chip_oui)
             {
                 if((MAC_IS_NETGEAR_WNDR_AP(puc_mac_addr) && WLAN_DOUBLE_NSS == en_support_max_nss)
                     || ((MAC_IS_BELKIN_AP(puc_mac_addr)|| MAC_IS_TRENDNET_AP(puc_mac_addr))
@@ -506,31 +506,6 @@ mac_ap_type_enum_uint16 hmac_compability_ap_tpye_identify_etc(mac_vap_stru *pst_
             }
         }
 #endif
-
-#if 0
-        if(WLAN_AP_CHIP_OUI_RALINK == pst_bss_dscr->en_is_tplink_oui)
-        {
-            if(MAC_IS_TPINK_5640_7300_AP(puc_mac_addr))
-            {
-                OAM_WARNING_LOG0(pst_mac_vap->uc_vap_id, OAM_SF_ANY, "hmac_compability_ap_tpye_identify_etc is ralink-tplink!");
-                en_ap_type |= MAC_AP_TYPE_TPLINK;
-            }
-        }
-        else if(WLAN_AP_CHIP_OUI_ATHEROS == pst_bss_dscr->en_is_tplink_oui)
-        {
-            if((MAC_IS_TPINK_6500_1_AP(puc_mac_addr))
-                || (MAC_IS_TPINK_941N_AP(puc_mac_addr))
-                || (MAC_IS_TPINK_5510_AP(puc_mac_addr))
-                || (MAC_IS_TPINK_6500_2_AP(puc_mac_addr))
-                || (MAC_IS_TPINK_6500_3_AP(puc_mac_addr)))
-            {
-                OAM_WARNING_LOG0(pst_mac_vap->uc_vap_id, OAM_SF_ANY, "hmac_compability_ap_tpye_identify_etc is atheros-tplink!");
-                en_ap_type |= MAC_AP_TYPE_TPLINK;
-            }
-        }
-
-#endif
-
 
 #ifdef _PRE_WLAN_FEATURE_BTCOEX
         /*关联ap识别: AP OUI + chip OUI + 双流 + 2G 需要dmac侧刷新ps机制时one pkt帧发送类型 */
@@ -589,6 +564,12 @@ mac_ap_type_enum_uint16 hmac_compability_ap_tpye_identify_etc(mac_vap_stru *pst_
             en_ap_type |= MAC_AP_TYPE_160M_OP_MODE;
         }
 #endif
+
+        if ((OAL_TRUE == pst_bss_dscr->en_atheros_chip_oui) && (MAC_IS_LINKSYS_EA8500_AP(puc_mac_addr)))
+        {
+            OAM_WARNING_LOG0(pst_mac_vap->uc_vap_id, OAM_SF_ROAM, "hmac_compability_ap_tpye_identify_etc: aggr blacklist!");
+            en_ap_type |= MAC_AP_TYPE_AGGR_BLACKLIST;
+        }
     }
 
     /* 打桩1102逻辑 */
@@ -818,6 +799,9 @@ oal_uint32  hmac_user_del_etc(mac_vap_stru *pst_mac_vap, hmac_user_stru *pst_hma
         mac_vap_set_aid_etc(pst_mac_vap, 0);
 #endif
 #ifdef _PRE_WLAN_FEATURE_ROAM
+        
+        hmac_roam_wpas_connect_state_notify_etc(pst_hmac_vap, WPAS_CONNECT_STATE_IPADDR_REMOVED);
+
         hmac_roam_exit_etc(pst_hmac_vap);
 #endif //_PRE_WLAN_FEATURE_ROAM
 
@@ -1066,15 +1050,14 @@ oal_uint32  hmac_user_add_etc(mac_vap_stru *pst_mac_vap, oal_uint8 *puc_mac_addr
                 return OAL_FAIL;
             }
             en_ap_type = hmac_compability_ap_tpye_identify_etc(pst_mac_vap, puc_mac_addr);
-
-    #ifdef _PRE_WLAN_FEATURE_M2S
-            pst_hmac_vap->st_hmac_vap_m2s.en_arp_probe_on = OAL_FALSE;
-    #endif
-
         }
 #ifdef _PRE_WLAN_FEATURE_ROAM
         hmac_roam_init_etc(pst_hmac_vap);
 #endif //_PRE_WLAN_FEATURE_ROAM
+
+#ifdef _PRE_WLAN_FEATURE_M2S
+        pst_hmac_vap->st_hmac_vap_m2s.en_arp_probe_on = OAL_FALSE;
+#endif
     }
 
     /* 申请hmac用户内存，并初始清0 */

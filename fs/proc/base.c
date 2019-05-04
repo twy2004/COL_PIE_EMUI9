@@ -463,6 +463,20 @@ static int proc_pid_stack(struct seq_file *m, struct pid_namespace *ns,
 	int err;
 	int i;
 
+	/*
+	 * The ability to racily run the kernel stack unwinder on a running task
+	 * and then observe the unwinder output is scary; while it is useful for
+	 * debugging kernel issues, it can also allow an attacker to leak kernel
+	 * stack contents.
+	 * Doing this in a manner that is at least safe from races would require
+	 * some work to ensure that the remote task can not be scheduled; and
+	 * even then, this would still expose the unwinder as local attack
+	 * surface.
+	 * Therefore, this interface is restricted to root.
+	 */
+	if (!file_ns_capable(m->file, &init_user_ns, CAP_SYS_ADMIN))
+		return -EACCES;
+
 	entries = kmalloc(MAX_STACK_TRACE_DEPTH * sizeof(*entries), GFP_KERNEL);
 	if (!entries)
 		return -ENOMEM;
@@ -1980,10 +1994,11 @@ int pid_getattr(struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat)
 #if defined(CONFIG_HW_VIP_THREAD) || defined(CONFIG_HISI_SWAP_ZDATA)
 bool is_special_entry(struct dentry *dentry, const char* special_proc)
 {
+	const unsigned char *name;
 	if (NULL == dentry || NULL == special_proc)
 		return false;
 
-	const unsigned char *name = dentry->d_name.name;
+	name = dentry->d_name.name;
 	if (NULL != name && !strncmp(special_proc, name, 32))
 		return true;
 	else

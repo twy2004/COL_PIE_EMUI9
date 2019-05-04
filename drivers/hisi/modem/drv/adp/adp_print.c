@@ -49,6 +49,7 @@
 /*****************************************************************************
   1 头文件包含
 *****************************************************************************/
+
 #include <linux/kernel.h>
 #include <linux/string.h>
 #include <linux/slab.h>
@@ -87,23 +88,20 @@ void mdrv_print(unsigned int level, char *fmt, ...)
     if(0 != bsp_get_print_status() || MDRV_P_CLOSE == level)
         return;
 	va_start(arglist, fmt);
-    vsnprintf(print_buffer, (BSP_PRINT_BUF_LEN-1), fmt, arglist);/* unsafe_function_ignore: vsnprintf */
+    (void)vsnprintf(print_buffer, (BSP_PRINT_BUF_LEN-1), fmt, arglist);/* unsafe_function_ignore: vsnprintf */
     va_end(arglist);
     print_buffer[BSP_PRINT_BUF_LEN - 1] = '\0';
     
 	if(g_print_sys_level.con_level >= level)
 		(void)printk(KERN_ERR"%s", print_buffer);
-
-//级别大于logbuf的级别时，会上报到HIDS
-	if(g_print_sys_level.logbuf_level < level)
-		return ;
-
-    if(g_bsp_print_hook)
-    {
+    else if(g_print_sys_level.logbuf_level >= level)
+        (void)printk(KERN_INFO"%s", print_buffer);
+    else
+        return ;
+    if(NULL != g_bsp_print_hook)
         g_bsp_print_hook(THIS_MODU,level,0,print_buffer);
-    }
-
-    return ;
 }
 /*lint -restore +e530 +e830*/
 EXPORT_SYMBOL(mdrv_print);
+
+

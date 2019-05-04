@@ -214,7 +214,7 @@ out:
  * @return     : ::int
  * @note       :
 ********************************************************************************/
-int hisee_write_file(const char *fullname, char *buffer, size_t size)
+int hisee_write_file(const char *fullname, const char *buffer, size_t size)
 {
 	struct file *fp;
 	int ret = HISEE_OK;
@@ -886,7 +886,7 @@ int hisee_encos_read(char *data_buf, unsigned int size, unsigned int cos_id)
 		set_errno_and_return(ret);
 	}
 
-	/*1. find the partition path name. */
+	/* 1. find the partition path name. */
 	ret = flash_find_ptn(HISEE_ENCOS_PARTITION_NAME, fullpath);
 	if (0 != ret) {
 		pr_err("%s():flash_find_ptn fail\n", __func__);
@@ -896,7 +896,7 @@ int hisee_encos_read(char *data_buf, unsigned int size, unsigned int cos_id)
 	old_fs = get_fs();/*lint !e501*/
 	set_fs(KERNEL_DS);/*lint !e501*/
 
-	/*2. open file by read or write according to usr input. */
+	/* 2. open file by read or write according to usr input. */
 	fd = (int)sys_open(fullpath, O_RDONLY, HISEE_FILESYS_DEFAULT_MODE);
 	if (fd < 0) {
 		pr_err("%s():open %s failed\n", __func__, fullpath);
@@ -905,7 +905,7 @@ int hisee_encos_read(char *data_buf, unsigned int size, unsigned int cos_id)
 		set_errno_and_return(ret);
 	}
 
-	/*3. check the encos header is ok or not. */
+	/* 3. check the encos header is ok or not. */
 	if (check_encos_header_is_valid()) {
 		pr_err("%s():check img header err\n", __func__);
 		ret = HISEE_ENCOS_CHECK_HEAD_ERROR;
@@ -913,14 +913,14 @@ int hisee_encos_read(char *data_buf, unsigned int size, unsigned int cos_id)
 	}
 
 	file_id = cos_id - COS_IMG_ID_3;
-	/*if file name is null, do not need to read. */
+	/* if file name is null, do not need to read. */
 	if (g_hisee_encos_header.file[file_id].name[0] == 0) {
 		pr_err("%s(): sys_lseek failed,ret=%d.\n", __func__, ret);
 		ret = HISEE_ENCOS_LSEEK_FILE_ERROR;
 		goto out;
 	}
 
-	/*4. read the cos data from image partiton. */
+	/* 4. read the cos data from image partiton. */
 	file_offset = (long)(g_hisee_encos_header.file[file_id].offset);
 	ret = (int)sys_lseek((unsigned int)fd, file_offset, SEEK_SET);
 	if (ret < 0) {
@@ -942,7 +942,7 @@ out:
 	set_errno_and_return(ret);
 }
 
-int hisee_encos_write(char *data_buf, unsigned int size, unsigned int cos_id)
+int hisee_encos_write(const char *data_buf, unsigned int size, unsigned int cos_id)
 {
 	int fd;
 	ssize_t cnt;

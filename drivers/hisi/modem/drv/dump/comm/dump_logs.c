@@ -54,24 +54,40 @@
 #include <linux/timex.h>
 #include <linux/rtc.h>
 #include <linux/sched.h>
-#include "product_config.h"
 #include "osl_malloc.h"
 #include "bsp_sram.h"
 #include "bsp_shared_ddr.h"
 #include "bsp_ddr.h"
 #include "bsp_dump.h"
 #include "bsp_coresight.h"
-#include "dump_file.h"
+#include "bsp_rfile.h"
 #include "dump_logs.h"
 #include "dump_config.h"
 #include "dump_cp_agent.h"
 #include "dump_apr.h"
 #include "dump_area.h"
-#include "dump_config.h"
-#include "dump_lphy_tcm.h"
+
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
-void dump_optional_log_init(void)
+void dump_save_file(char * file_name, void * addr,void * phy_addr, u32 len)
 {
+    return;
+}
+void dump_save_log_notifier_init(void)
+{
+    return;
 }
 
+s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name)
+{
+    return BSP_OK;
+}
+
+s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun)
+{
+    return BSP_OK;
+}
+
+void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
+{
+}

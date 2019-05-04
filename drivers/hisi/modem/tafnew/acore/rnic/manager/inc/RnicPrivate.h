@@ -81,32 +81,32 @@ extern "C" {
 #if (VOS_OS_VER == VOS_LINUX)
 /*lint -emacro({717}, RNIC_PR_LOGH)*/
 #define RNIC_PR_LOGH(fmt, ...) \
-			do { \
-				pr_err("[NAS_RNIC]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_RNIC]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, RNIC_PR_LOGE)*/
 #define RNIC_PR_LOGE(fmt, ...) \
-			do { \
-				pr_err("[NAS_RNIC]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_RNIC]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, RNIC_PR_LOGI)*/
 #define RNIC_PR_LOGI(fmt, ...) \
-			do { \
-				pr_info("[NAS_RNIC]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_info("[NAS_RNIC]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, RNIC_PR_LOGD)*/
 #define RNIC_PR_LOGD(fmt, ...) \
-			do { \
-				pr_debug("[NAS_RNIC]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_debug("[NAS_RNIC]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 #else
-#define RNIC_PR_LOGH                                    PS_PRINTF
-#define RNIC_PR_LOGE                                    PS_PRINTF
-#define RNIC_PR_LOGI                                    PS_PRINTF
-#define RNIC_PR_LOGD                                    PS_PRINTF
+#define RNIC_PR_LOGH                                    PS_PRINTF_ERR
+#define RNIC_PR_LOGE                                    PS_PRINTF_WARNING
+#define RNIC_PR_LOGI                                    PS_PRINTF_INFO
+#define RNIC_PR_LOGD                                    PS_PRINTF_DEBUG
 #endif
 
 

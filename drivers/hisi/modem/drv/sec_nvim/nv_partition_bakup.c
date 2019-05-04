@@ -61,6 +61,65 @@
 extern struct nv_path_info_stru g_nv_path;
 
 /*****************************************************************************
+Function   :nv_bak_rwbuf
+parameter  :
+
+detail     :
+*****************************************************************************/
+u32 nv_bak_rwbuf(void)
+{
+    u32 ret;
+
+    FILE* fp = NULL;
+    u8* buf;
+    u32 offset;
+    u32 length;
+    nv_global_info_s* ddr_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
+    nv_file_info_s *finfo = (nv_file_info_s*)(NV_GLOBAL_CTRL_INFO_ADDR + NV_GLOBAL_CTRL_INFO_SIZE);;
+
+    nv_debug_printf("%s start\n", __func__);
+    if(0 == ddr_info->nminfo.mem_buf_addr)
+    {
+        nv_record("invalid mem buf addr\n");
+        return BSP_ERR_NV_INVALID_MEM_BUF;
+    }
+
+    nv_debug_printf("file_id:%d, name:%s, offset:0x%x, file_size:0x%x\n", finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_id, finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_name, finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_offset, finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_size);
+
+    offset = finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_offset;
+    length = finfo[NV_FILE_ATTRIBUTE_RDWR-1].file_size;
+
+    nv_create_flag_file((s8*)NV_BACK_FLAG_PATH);
+
+    fp = nv_file_open((s8*)NV_BACK_PATH,(s8*)NV_FILE_WRITE);
+    if(NULL == fp)
+    {
+        nv_record("open %s fail!\n",NV_BACK_PATH);
+        return BSP_ERR_NV_NO_FILE;
+    }
+
+    (void)nv_file_seek(fp, offset, SEEK_SET);
+    buf = (u8*)SHD_DDR_P2V(ddr_info->nminfo.mem_buf_addr);
+    ret = (u32)nv_file_write(buf,1,length, fp);
+    (void)nv_file_close(fp);
+    if(ret != length)
+    {
+        nv_record("write fail!write_len=0x%x,ret_len=0x%x.\n",length,ret);
+        return BSP_ERR_NV_WRITE_FILE_FAIL;
+    }
+
+    if(nv_file_update(NV_BACK_PATH))
+    {
+        nv_record("updata fail!\n");
+    }
+
+    nv_delete_flag_file((s8*)NV_BACK_FLAG_PATH);
+    nv_debug_printf("%s end\n", __func__);
+
+    return NV_OK;
+}
+
+/*****************************************************************************
  函 数 名  : nv_bak_flush
  功能描述  : 将内存中的NV数据同步至NV备份区，
              作用范围:1.升级NV启动刷新2.C核发起的同步操作
@@ -85,7 +144,7 @@ u32 nv_bak_flush(void)
     }
 
     ret = (u32)nv_file_write((u8*)NV_GLOBAL_CTRL_INFO_ADDR,1,ddr_info->file_len,fp);
-    nv_file_close(fp);
+    (void)nv_file_close(fp);
     if(ret != ddr_info->file_len)
     {
         nv_record("write fail!write_len=0x%x,ret_len=0x%x.\n",ddr_info->file_len,ret);
@@ -111,9 +170,9 @@ u32 nv_bak_flush(void)
 *****************************************************************************/
 bool nv_bak_is_need_flush(void)
 {
-    nv_global_info_s* global_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
+    nv_global_info_s* ddr_info = (nv_global_info_s*)NV_GLOBAL_INFO_ADDR;
 
-    if(global_info->flush_backnvm == FLUSH_NVM_BACK)
+    if(ddr_info->flush_backnvm & ALL_FILE_MASK)
     {
         return true;
     }

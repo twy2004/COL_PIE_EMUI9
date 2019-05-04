@@ -41,7 +41,7 @@
         ispsmmu-init-byap   = <0>;          /* Switch 10 for Whether Smmu Init by AP or Not */
         isp-mdc-flag        = <1>;          /* Switch 11 for Whether Use MDC or Not */
         isp-efuse-flag      = <0>;          /* Switch 12 for Whether Use efuse_deskew or Not */
-
+        useloadbin          = <0>;          /* Switch 13 for Whether Use load binary image or Not */
 
         /* Misc Items */
         isp-names           = "ISPCPU";     /* Name of MPU */
@@ -100,6 +100,14 @@
         a7-vaddr-mdc        = <0xC0900000 0x00100000 0x00000007 0x00000000 0x00000000>;  			/* Trusted ISP Page Table Mapping 14 for MDC Memory Space */
         /*                    <ispva      size       prot       offset     reserve   >*/
 
+        /* QOS Items */
+        qos-num         = <24>;
+        qos-offset      = <0x0008 0x000C 0x0088 0x008C 0x0208 0x020C 0x0288 0x028C 0x0108 0x010C
+                           0x0188 0x018C 0x0010 0x0014 0x0090 0x0094 0x0110 0x0114 0x0190 0x0194
+                           0x0210 0x0214 0x0290 0x0294>;
+        qos-value       = <0x0202 0x0002 0x0202 0x0002 0x0202 0x0002 0x0202 0x0002 0x0303 0x0000
+                           0x0303 0x0000 0x1000 0x0020 0x1000 0x0020 0x1000 0x0020 0x1000 0x0020
+                           0x1000 0x0020 0x1000 0x0020>;
         /* Definition for Smmu/Iommu Driver */
         iommu_info {
             start-addr      = <0xc0000000>;

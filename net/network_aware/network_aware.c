@@ -75,8 +75,8 @@ struct bg_ctrl_policy_t{
 
 static struct bg_ctrl_policy_t s_AwareNetBgCtrlPolicy[] = {
     {20, 1},
-    {50, 2},
-    {100, 5},
+    {50, 10},
+    {100, 25},
     {200, 10},
     {500, 25},
     {1000, 50},
@@ -135,7 +135,9 @@ static void limit_bg(void) {
     unsigned long cur_time;
     unsigned long network_sum = 0;
     unsigned int sleep_long = SLEEP_TIME_MS;
-
+    unsigned long last_time = 0;
+    unsigned long oldest_time;
+    unsigned long total_len_sum = 0;
     if (!is_bg_limit_enabled()) {
         return;
     }
@@ -160,9 +162,7 @@ static void limit_bg(void) {
             return;
         }
 
-        unsigned long oldest_time;
-        unsigned long last_time = 0;
-        unsigned long total_len_sum = 0;
+
         network_sum = 0;
         oldest_time = cur_time;
         spin_lock(&(netinfo.bg_lock));

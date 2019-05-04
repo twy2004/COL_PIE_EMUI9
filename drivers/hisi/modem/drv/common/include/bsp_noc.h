@@ -56,9 +56,7 @@ extern "C" {
 #include "osl_types.h"
 #include "osl_list.h"
 #include "osl_sem.h"
-#if (defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__))
-#include "mdrv_dsp.h"
-#endif
+#include "hi_noc_idle.h"
 
 /*****************************************************************************
   1 宏定义
@@ -78,6 +76,8 @@ extern "C" {
 #define NOC_RESET_CPHY_MODID      0xd0000001    /* BBE16_C触发noc异常modid */
 #define NOC_RESET_GUL2_MODID      0x31000000    /* CICOM、HDLC触发noc异常modid */
 #define NOC_RESET_MODID_ERR       0xffffffff
+
+#define NOC_IDLE_TIMEOUT_CYCLE  (1000)
 
 /*****************************************************************************
   2 枚举定义
@@ -204,10 +204,13 @@ extern noc_err_probe_nv_cfg g_noc_err_probe_nv_cfg;
 
 extern bsp_noc_hook_func g_NocTestFunc;
 
+
+extern struct dsp_mainctrl *g_dsp_ctrl;
 /*****************************************************************************
   3 函数声明
 *****************************************************************************/
 #ifdef CONFIG_NOC
+s32 bsp_noc_fault_handler(char *bus_name);
 s32 bsp_noc_check_test_mode(void);
 void bsp_noc_test_sem_up(void);
 void bsp_noc_test_mode_start(u32 modid);
@@ -236,23 +239,21 @@ void bsp_noc_test_proc(void);
 void bsp_noc_llt_test_proc(void);
 void bsp_noc_reset_branch_test(void* base);
 void noc_get_route_info(void* base, u32 idx, int *initflow, int *targetflow);
-#elif (defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__))
+#elif (defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 void bsp_noc_test_proc(u32 base);
 void bsp_noc_llt_test_proc(u32 base);
 void noc_get_route_info(u32 base, int *initflow, int *targetflow);
 void bsp_noc_reset_branch_test(u32 base);
-void bsp_dsp_pd_idle_req_cfg(enum bsp_dsp_type_e etype);
-void bsp_dsp_pd_idle_dis_cfg(enum bsp_dsp_type_e etype);
-u32 bsp_dsp_check_pd_idle_state(enum bsp_dsp_type_e etype);
+int bsp_noc_idle_enable(enum bsp_noc_idle_type_e etype);
+int bsp_noc_idle_disable(enum bsp_noc_idle_type_e etype);
 #endif
 
 #else
 #if defined(__KERNEL__)
 
-#elif (defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__))
-static inline void bsp_dsp_pd_idle_req_cfg(enum bsp_dsp_type_e etype){return;}
-static inline void bsp_dsp_pd_idle_dis_cfg(enum bsp_dsp_type_e etype){return;}
-static inline u32 bsp_dsp_check_pd_idle_state(enum bsp_dsp_type_e etype){return 0;}
+#elif (defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
+static inline int bsp_noc_idle_enable(enum bsp_noc_idle_type_e etype){return 0;}
+static inline int bsp_noc_idle_disable(enum bsp_noc_idle_type_e etype){return 0;}
 #endif
 #endif
 

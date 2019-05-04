@@ -436,7 +436,7 @@ static inline int mptcp_direct_copy(const struct sk_buff *skb,
 	if (!skb_copy_datagram_msg(skb, 0, meta_tp->ucopy.msg, chunk)) {
 #ifdef CONFIG_HW_NETWORK_MEASUREMENT
 		if (unlikely(nm_sample_on(meta_sk)))
-			nm_nse(meta_sk, skb, 0, chunk, NM_TCP, NM_DOWNLINK, NM_FUNC_HTTP);
+			nm_nse(meta_sk, (struct sk_buff *)skb, 0, chunk, NM_TCP, NM_DOWNLINK, NM_FUNC_HTTP);
 #endif /* CONFIG_HW_NETWORK_MEASUREMENT */
 		meta_tp->ucopy.len -= chunk;
 		meta_tp->copied_seq += chunk;
@@ -940,6 +940,10 @@ static int mptcp_queue_skb(struct sock *sk)
 		skb_queue_walk_safe(&sk->sk_receive_queue, tmp1, tmp) {
 			__skb_unlink(tmp1, &sk->sk_receive_queue);
 			tp->copied_seq = TCP_SKB_CB(tmp1)->end_seq;
+			if (mpcb->sched_ops->rcv_skb) {
+				mptcp_prepare_skb(tmp1, sk);
+				(*mpcb->sched_ops->rcv_skb)(sk, tmp1->len, TCP_SKB_CB(tmp1)->end_seq, 0);
+			}
 			__kfree_skb(tmp1);
 
 			if (!skb_queue_empty(&sk->sk_receive_queue) &&
@@ -974,6 +978,9 @@ static int mptcp_queue_skb(struct sock *sk)
 		skb_queue_walk_safe(&sk->sk_receive_queue, tmp1, tmp) {
 			tp->copied_seq = TCP_SKB_CB(tmp1)->end_seq;
 			mptcp_prepare_skb(tmp1, sk);
+			if (mpcb->sched_ops->rcv_skb)
+				(*mpcb->sched_ops->rcv_skb)(sk, tmp1->len,
+						TCP_SKB_CB(tmp1)->end_seq, 1);
 			__skb_unlink(tmp1, &sk->sk_receive_queue);
 			/* MUST be done here, because fragstolen may be true later.
 			 * Then, kfree_skb_partial will not account the memory.
@@ -1013,8 +1020,22 @@ static int mptcp_queue_skb(struct sock *sk)
 
 			/* This segment has already been received */
 			if (!after(TCP_SKB_CB(tmp1)->end_seq, meta_tp->rcv_nxt)) {
+				if (mpcb->sched_ops->rcv_skb)
+					(*mpcb->sched_ops->rcv_skb)(sk, tmp1->len,
+						TCP_SKB_CB(tmp1)->end_seq, 0);
 				__kfree_skb(tmp1);
 				goto next;
+			}
+
+			if (mpcb->sched_ops->rcv_skb)
+				(*mpcb->sched_ops->rcv_skb)(sk, tmp1->len,
+						TCP_SKB_CB(tmp1)->end_seq, 1);
+
+			/*update rcv_nxt and free the socks skb, not report read event to user*/
+			if ((tp->mptcp_cap_flag == MPTCP_CAP_ALL_APP) && (mptcp_hw_socks_recv(sk, tmp1) == 0)) {
+				meta_tp->rcv_nxt = TCP_SKB_CB(tmp1)->end_seq;
+				__kfree_skb(tmp1);
+				break;
 			}
 
 			/* Is direct copy possible ? */
@@ -1062,6 +1083,7 @@ next:
 void mptcp_data_ready(struct sock *sk)
 {
 	struct sock *meta_sk = mptcp_meta_sk(sk);
+	struct tcp_sock *meta_tp = tcp_sk(meta_sk);
 	struct sk_buff *skb, *tmp;
 	int queued = 0;
 
@@ -1101,6 +1123,9 @@ restart:
 		/* Validation */
 		if (mptcp_validate_mapping(sk, skb) < 0)
 			goto restart;
+
+		if (meta_tp->bytes_received <= 1 && skb->len)
+			(void)mptcp_proxy_fallback(meta_sk, MPTCP_FALLBACK_PROXY_NORESPONSE, false);
 
 		/* Push a level higher */
 		ret = mptcp_queue_skb(sk);
@@ -1350,6 +1375,9 @@ void mptcp_fin(struct sock *meta_sk)
 	} else {
 		state = mpcb->mptw_state;
 	}
+
+	if (state == TCP_ESTABLISHED && meta_tp->bytes_received <= 1)
+		(void)mptcp_proxy_fallback(meta_sk, MPTCP_FALLBACK_PROXY_NORESPONSE, true);
 
 	switch (state) {
 	case TCP_SYN_RECV:
@@ -2147,6 +2175,11 @@ bool mptcp_handle_options(struct sock *sk, const struct tcphdr *th,
 	if (tp->mpcb->infinite_mapping_rcv || tp->mpcb->infinite_mapping_snd)
 		return false;
 
+	if (th->fin || (mopt->mp_fclose && mopt->proxy_status)) {
+		(void)mptcp_proxy_fallback(mptcp_meta_sk(sk), mopt->proxy_status,
+			mopt->proxy_status?true:false);
+	}
+
 	if (mptcp_mp_fastclose_rcvd(sk))
 		return true;
 
@@ -2329,6 +2362,7 @@ int mptcp_rcv_synsent_state_process(struct sock *sk, struct sock **skptr,
 					   ntohs(tcp_hdr(skb)->window)))
 			return 2;
 
+		(void)mptcp_proxy_fallback(meta_sk, MPTCP_FALLBACK_PROXY_SYN_TIMEOUT, false);
 		sk = tcp_sk(sk)->mpcb->master_sk;
 		*skptr = sk;
 		tp = tcp_sk(sk);
@@ -2370,6 +2404,8 @@ fallback:
 
 		if (tp->inside_tk_table)
 			mptcp_hash_remove_bh(tp);
+
+		(void)mptcp_proxy_fallback(sk, MPTCP_FALLBACK_PROXY_NOMPTCP, true);
 	}
 
 	if (mptcp(tp))

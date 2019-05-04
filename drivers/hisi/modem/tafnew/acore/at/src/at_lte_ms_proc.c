@@ -61,10 +61,10 @@
 VOS_UINT32                 g_ulNVRDTL = 0;
 VOS_UINT32                 g_ulNVWRTL = 0;
 
-extern VOS_UINT32 AT_NVWRGetParaInfo( AT_PARSE_PARA_TYPE_STRU * pstPara, VOS_UINT8 * pu8Data, VOS_UINT32 * pulLen);
+
 extern VOS_BOOL AT_IsNVWRAllowedNvId(VOS_UINT16 usNvId);
 
-
+extern VOS_UINT32 AT_NVWRGetParaInfo( AT_PARSE_PARA_TYPE_STRU * pstPara, VOS_UINT8 * pu8Data, VOS_UINT32 * pulLen);
 
 // *****************************************************************************
 // o¡¥¨ºy??3?: atSetNVRDLenPara

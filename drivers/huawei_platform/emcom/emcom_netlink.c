@@ -48,8 +48,6 @@ static uint32_t g_user_space_pid = 0; /*save user space progress pid when user s
 static struct task_struct *g_emcom_netlink_task = NULL;
 static int g_emcom_module_state = EMCOM_NETLINK_EXIT;
 static struct semaphore g_emcom_netlink_sync_sema; /*tcp protocol use this semaphone to inform emcom netlink thread when data speed is slow*/
-static spinlock_t socket_msg_lock; /*this lock is used to protect global variable.*/
-static spinlock_t socket_state_lock; /*this lock is used to protect global variable.*/
 /* Queue of skbs to send to emcomd */
 static struct sk_buff_head emcom_skb_queue;
 
@@ -237,8 +235,6 @@ static void emcom_netlink_init(void)
     EMCOM_LOGI("%s: emcom_netlink_init success\n",__func__);
 
     sema_init(&g_emcom_netlink_sync_sema, 0);
-    spin_lock_init(&socket_msg_lock);
-    spin_lock_init(&socket_state_lock);
     g_emcom_netlink_task = kthread_run(emcom_netlink_thread, NULL, "emcom_netlink_thread");
 
     return;

@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and 
+ * * it under the terms of the GNU General Public License version 2 and
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may 
- * *    be used to endorse or promote products derived from this software 
+ * * 3) Neither the name of Huawei nor the names of its contributors may
+ * *    be used to endorse or promote products derived from this software
  * *    without specific prior written permission.
- * 
+ *
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -55,6 +55,35 @@ extern "C"
 #endif
 
 #include "mdrv_om_common.h"
+
+
+
+/*DRV*/
+#define DRV_NR_BSP_MODID(ERROR_CODE)              ((OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_BSP))| ERROR_CODE)
+#define DRV_NR_MSP_MODID(ERROR_CODE)              ((OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_MSP))| ERROR_CODE)
+#define PAM_NR_OSA_MODID(ERROR_CODE)              (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_OSA)| ERROR_CODE)
+#define PAM_NR_OAM_MODID(ERROR_CODE)              (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_OAM)| ERROR_CODE)
+#define NAS_NR_MODID(ERROR_CODE)                  (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_NAS)| ERROR_CODE)
+#define AS_NR_MODID(ERROR_CODE)                   (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_AS)| ERROR_CODE)
+#define PS_NR_MODID(ERROR_CODE)                   (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_PS)| ERROR_CODE)
+#define PHY_NR_MODID(ERROR_CODE)                  (OM_MODID_HEAD(NR_SYSTEM_AP,MODULE_PHY)| ERROR_CODE)
+
+#define DRV_LR_BSP_MODID(ERROR_CODE)              (ERROR_CODE)
+#define DRV_LR_MSP_MODID(ERROR_CODE)              (ERROR_CODE)
+ /*PAM*/
+#define PAM_LR_OSA_MODID(ERROR_CODE)              (ERROR_CODE)
+#define PAM_LR_OAM_MODID(ERROR_CODE)              (ERROR_CODE)
+
+ /*NAS*/
+#define NAS_LR_MODID(ERROR_CODE)                  (ERROR_CODE)
+
+ /*AS*/
+#define AS_LR_MODID(ERROR_CODE)                   (ERROR_CODE)
+
+ /*PS*/
+#define PS_LR_MODID(ERROR_CODE)                   (ERROR_CODE)
+ /*PHY*/
+#define PHY_LR_MODID(ERROR_CODE)                  (ERROR_CODE)
 
 #ifdef _cplusplus
 }

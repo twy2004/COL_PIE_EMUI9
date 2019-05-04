@@ -62,6 +62,7 @@
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 #include <hwnet/ipv4/wifi_delayst.h>
 #endif
+
 static u32 udp6_ehashfn(const struct net *net,
 			const struct in6_addr *laddr,
 			const u16 lport,
@@ -447,8 +448,11 @@ try_again:
 	err = copied;
 	if (flags & MSG_TRUNC)
 		err = ulen;
+
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_UDP);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_UDP);
+	}
 #endif
 	__skb_free_datagram_locked(sk, skb, peeking ? -err : err);
 	return err;
@@ -1269,7 +1273,9 @@ back_from_confirm:
 		if (!IS_ERR_OR_NULL(skb))
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 		{
-			delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+			if(DELAY_STATISTIC_SWITCH_ON) {
+				delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+			}
 #endif
 			err = udp_v6_send_skb(skb, &fl6);
 #ifdef CONFIG_WIFI_DELAY_STATISTIC

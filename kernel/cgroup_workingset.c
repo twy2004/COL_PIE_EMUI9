@@ -41,9 +41,13 @@
 #include <linux/blkdev.h>
 #include <linux/syscalls.h>
 #include <linux/version.h>
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+#include <linux/delayacct.h>
+#else
+#include <log/log_usertype.h>
+#endif
 #include "../drivers/hisi/tzdriver/libhwsecurec/securec.h"
 
-#define CONFIG_HW_CGROUP_WS_DEBUG
 #define CGROUP_WORKINGSET_VERSION	(11)
 
 #define FILE_PAGESEQ_BITS				16
@@ -173,8 +177,8 @@ enum ws_record_state {
 	E_RECORD_STATE_COLLECTING = 0x04,
 	E_RECORD_STATE_PREREADING = 0x08,
 	E_RECORD_STATE_PAUSE = 0x10,
-	/* the flag indicate the playload buffer is contiguous*/
-	E_RECORD_STATE_DATA_FROM_BACKUP = 0x20,
+	/* the flag indicate paths of files are cached in external buffers*/
+	E_RECORD_STATE_EXTERNAL_FILEPATH = 0x20,
 	/* the flag indicate the blkio count that first time on prereading*/
 	E_RECORD_STATE_UPDATE_BASE_BLKIO = 0x40,
 	/* the flag indicate write only record header to disk*/
@@ -385,17 +389,21 @@ static const char *moniter_states[E_MONITOR_STATE_MAX] = {
 };
 
 /*dynamic debug informatioins controller*/
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-static bool ws_debug_enable = true;
-#else
 static bool ws_debug_enable;
-#endif
 module_param_named(debug_enable, ws_debug_enable, bool, S_IRUSR | S_IWUSR);
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
 #define ws_dbg(x...) \
 	do { \
 		if (ws_debug_enable) \
 			pr_info(x); \
 	} while (0)
+#else
+#define ws_dbg(x...) \
+	do { \
+		if (ws_debug_enable || (get_logusertype_flag() == BETA_USER)) \
+			pr_info(x); \
+	} while (0)
+#endif
 
 static void workingset_do_preread_work_rcrdlocked(struct s_ws_record *record);
 static void workingset_preread_post_work_rcrdlocked(
@@ -968,14 +976,11 @@ static void workingset_recycle_record_rcrdlocked(struct s_ws_record *record)
 	 * free file_array only because use one vmalloc
 	 * for file_array and cacheseq.
 	 */
-	if (record->data.file_array) {
+	if (record->data.file_array && (record->state
+		& E_RECORD_STATE_EXTERNAL_FILEPATH)) {
 		for (idx = 0; idx < record->data.file_cnt; idx++) {
-			if (record->data.file_array[idx].path
-				&& !(record->state &
-				E_RECORD_STATE_DATA_FROM_BACKUP)) {
-				kfree(record->data.file_array[idx].path);
-				record->data.file_array[idx].path = NULL;
-			}
+			kfree(record->data.file_array[idx].path);
+			record->data.file_array[idx].path = NULL;
 		}
 	}
 	record->data.file_cnt = 0;
@@ -985,7 +990,7 @@ static void workingset_recycle_record_rcrdlocked(struct s_ws_record *record)
 	record->leader_blkio_cnt = 0;
 	record->need_update = 0;
 #endif
-	record->state &= E_RECORD_STATE_DATA_FROM_BACKUP;
+	record->state = 0;
 }
 
 /**
@@ -1044,6 +1049,7 @@ static int workingset_record_writeback_playload_rcrdlocked(struct file *filp,
 	unsigned length = 0;
 	unsigned pathnode_size;
 	unsigned idx;
+	ssize_t writed_len;
 	loff_t pos = sizeof(struct s_ws_backup_record_header);
 
 	pathnode_size = sizeof(struct s_path_node) *
@@ -1058,10 +1064,11 @@ static int workingset_record_writeback_playload_rcrdlocked(struct file *filp,
 	}
 
 	checksum = crc_val;
-	if (pathnode_size != kernel_write(filp,
-		(char *)record->data.file_array, pathnode_size, pos)) {
-		pr_err("%s line %d: kernel_write failed\n",
-			__func__, __LINE__);
+	writed_len = kernel_write(filp,
+		(char *)record->data.file_array, pathnode_size, pos);
+	if (pathnode_size != writed_len) {
+		pr_err("%s line %d: kernel_write failed, err=%ld\n",
+			__func__, __LINE__, writed_len);
 		ret = -EIO;
 		goto out;
 	}
@@ -1084,11 +1091,11 @@ static int workingset_record_writeback_playload_rcrdlocked(struct file *filp,
 		}
 
 		checksum = crc_val;
-		if (length != kernel_write(filp,
-			record->data.file_array[idx].path,
-			length, pos)) {
-			pr_err("%s line %d: kernel_write failed\n",
-				__func__, __LINE__);
+		writed_len = kernel_write(filp,
+			record->data.file_array[idx].path, length, pos);
+		if (length != writed_len) {
+			pr_err("%s line %d: kernel_write failed, err=%ld\n",
+				__func__, __LINE__, writed_len);
 			ret = -EIO;
 			goto out;
 		}
@@ -1106,10 +1113,11 @@ static int workingset_record_writeback_playload_rcrdlocked(struct file *filp,
 	}
 
 	checksum = crc_val;
-	if (length != kernel_write(filp,
-		(char *)record->data.cacheseq, length, pos)) {
-		pr_err("%s line %d: kernel_write failed\n",
-			__func__, __LINE__);
+	writed_len = kernel_write(filp,
+		(char *)record->data.cacheseq, length, pos);
+	if (length != writed_len) {
+		pr_err("%s line %d: kernel_write failed, err=%ld\n",
+			__func__, __LINE__, writed_len);
 		ret = -EIO;
 		goto out;
 	}
@@ -1140,6 +1148,7 @@ static bool workingset_backup_record_rcrdlocked(struct s_ws_record *record)
 	struct s_ws_backup_record_header header = {0,};
 	unsigned crc_val;
 	size_t offset;
+	ssize_t writed_len;
 
 	if (!record->data.file_cnt || !record->data.pageseq_cnt ||
 		!record->owner.record_path)
@@ -1191,12 +1200,12 @@ static bool workingset_backup_record_rcrdlocked(struct s_ws_record *record)
 
 	header.header_crc = crc_val;
 	header.magic = WORKINGSET_RECORD_MAGIC;
-	if (sizeof(header) == kernel_write(filp,
-		(char *)&header, sizeof(header), 0))
+	writed_len = kernel_write(filp, (char *)&header, sizeof(header), 0);
+	if (sizeof(header) == writed_len)
 		ret = true;
 	else {
-		pr_err("%s line %d: kernel_write failed\n",
-			__func__, __LINE__);
+		pr_err("%s line %d: kernel_write failed, err=%ld\n",
+			__func__, __LINE__, writed_len);
 		goto out;
 	}
 out:
@@ -1370,6 +1379,12 @@ static void *workingset_get_playload_addr_rcrdlocked(
 		return NULL;
 	}
 	workingset_recycle_record_rcrdlocked(record);
+
+	if (memset_s(playload, playload_pages * PAGE_SIZE,
+		0, playload_pages * PAGE_SIZE)) {
+		vunmap(playload);
+		return NULL;
+	}
 	return playload;
 }
 
@@ -1461,14 +1476,14 @@ static struct page **workingset_prepare_record_pages(
 		ret = memcpy_s(page_array, cpy_size, data->page_array,
 			 cpy_size);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			goto copy_fail;
 		}
 	}
 
 	idx = data->array_page_cnt;
 	while (idx < playload_pages) {
-		page = alloc_page(GFP_NOFS | __GFP_ZERO);
+		page = alloc_page(GFP_NOFS);
 		if (!page) {
 			pr_err("%s: OOM, alloc %u pages failed!\n",
 				__func__, playload_pages);
@@ -1501,8 +1516,8 @@ static int workingset_prepare_record_space_wsrcrdlocked(
 
 	if ((!data->page_array && data->array_page_cnt)
 		|| (data->page_array && !data->array_page_cnt)) {
-		pr_err("%s: page_array=%p, page_cnt=%u never happend!\n",
-			__func__, data->page_array, data->array_page_cnt);
+		pr_err("%s: array=%d, page_cnt=%u never happend!\n",
+			__func__, !!data->page_array, data->array_page_cnt);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1549,7 +1564,7 @@ static int workingset_prepare_record_space_wsrcrdlocked(
 		}
 	}
 	data->array_page_cnt = playload_pages;
-	*pplayload = playload;
+	*pplayload = data->file_array = playload;
 	return 0;
 
 vmap_fail:
@@ -1595,10 +1610,11 @@ static struct s_ws_record *workingset_get_record_from_backup(
 	if (ret)
 		goto alloc_space_fail;
 
-	if (header.playload_length != kernel_read(filp,
-		sizeof(header), playload, header.playload_length)) {
-		pr_err("%s line %d: kernel_read failed!\n",
-			__func__, __LINE__);
+	ret = kernel_read(filp,
+		sizeof(header), playload, header.playload_length);
+	if (header.playload_length != ret) {
+		pr_err("%s line %d: kernel_read failed! ret=%d\n",
+			__func__, __LINE__, ret);
 		goto alloc_space_fail;
 	}
 
@@ -1612,7 +1628,7 @@ static struct s_ws_record *workingset_get_record_from_backup(
 	len = strlen(owner->name) + 1;
 	ret = memcpy_s(record->owner.name, len, owner->name, len);
 	if (ret) {
-		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		goto alloc_space_fail;
 	}
 
@@ -1620,17 +1636,16 @@ static struct s_ws_record *workingset_get_record_from_backup(
 	ret = memcpy_s(record->owner.record_path, len,
 		owner->record_path, len);
 	if (ret) {
-		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		goto alloc_space_fail;
 	}
 
-	record->state = E_RECORD_STATE_USED | E_RECORD_STATE_DATA_FROM_BACKUP;
+	record->state = E_RECORD_STATE_USED;
 	record->owner.uid = owner->uid;
 	data = &record->data;
 	data->file_cnt = header.file_cnt;
 	data->pageseq_cnt = header.pageseq_cnt;
 	data->page_sum = header.page_sum;
-	data->file_array = playload;
 #ifdef CONFIG_TASK_DELAY_ACCT
 	record->leader_blkio_cnt = header.leader_blkio_cnt;
 	record->need_update = header.need_update;
@@ -1880,6 +1895,54 @@ static int workingset_can_attach(struct cgroup_taskset *tset)
 	return g_module_initialized ? 0 : -ENODEV;
 }
 
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+/*
+ * Tasks can be migrated into a different workingset anytime regardless of its
+ * current state.  workingset_attach() is responsible for making new tasks
+ * conform to the current state.
+ *
+ */
+/*lint -e454*/
+/*lint -e455*/
+/*lint -e456*/
+static void workingset_attach(struct cgroup_taskset *tset)
+{
+	struct task_struct *task;
+	struct cgroup_subsys_state *new_css;
+	struct mutex *old_lock = NULL;
+
+	rcu_read_lock();
+
+	cgroup_taskset_for_each(task, new_css, tset) {
+		struct s_workingset *ws;
+
+		if (new_css == NULL)
+			continue;
+		ws = css_workingset(new_css);
+		if (old_lock != &ws->mutex) {
+			if (old_lock)
+				mutex_unlock(old_lock);
+			old_lock = &ws->mutex;
+			mutex_lock(old_lock);
+		}
+
+		if ((ws->state & E_CGROUP_STATE_MONITOR_INWORKING)
+			== E_CGROUP_STATE_MONITOR_INWORKING) {
+			task->flags |= PF_WSCG_MONITOR;
+		} else {
+			task->flags &= ~PF_WSCG_MONITOR;
+		}
+	}
+
+	if (old_lock)
+		mutex_unlock(old_lock);
+	rcu_read_unlock();
+}
+/*lint +e454*/
+/*lint +e455*/
+/*lint +e456*/
+#endif
+
 #ifdef CONFIG_TASK_DELAY_ACCT
 static void workingset_blkio_monitor_wslocked(struct s_workingset *ws,
 	unsigned monitor_state)
@@ -1896,6 +1959,13 @@ static void workingset_blkio_monitor_wslocked(struct s_workingset *ws,
 			return;
 		}
 
+		if (tsk->delays == NULL) {
+			rcu_read_unlock();
+			pr_warn("%s, delayacct of task[pid:%d] is NULL!\n",
+				__func__, ws->owner.pid);
+			return;
+		}
+
 		get_task_struct(tsk);
 		rcu_read_unlock();
 
@@ -1907,6 +1977,38 @@ static void workingset_blkio_monitor_wslocked(struct s_workingset *ws,
 				- ws->leader_blkio_base);
 		put_task_struct(tsk);
 	}
+}
+#endif
+
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+static void enter_workingset_cgroup(struct s_workingset *ws)
+{
+	struct css_task_iter it;
+	struct task_struct *task;
+
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+	css_task_iter_start(&ws->css, 0, &it);
+#else
+	css_task_iter_start(&ws->css, &it);
+#endif
+	while ((task = css_task_iter_next(&it)))
+		task->flags |= PF_WSCG_MONITOR;
+	css_task_iter_end(&it);
+}
+
+static void exit_workingset_cgroup(struct s_workingset *ws)
+{
+	struct css_task_iter it;
+	struct task_struct *task;
+
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+	css_task_iter_start(&ws->css, 0, &it);
+#else
+	css_task_iter_start(&ws->css, &it);
+#endif
+	while ((task = css_task_iter_next(&it)))
+		task->flags &= ~PF_WSCG_MONITOR;
+	css_task_iter_end(&it);
 }
 #endif
 
@@ -1926,10 +2028,16 @@ static void workingset_apply_state(struct s_workingset *ws,
 #ifdef CONFIG_TASK_DELAY_ACCT
 		if ((monitor_state & E_CGROUP_STATE_MONITORING)
 			&& !(ws->state & E_CGROUP_STATE_MONITORING)) {
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+			enter_workingset_cgroup(ws);
+#endif
 			workingset_blkio_monitor_wslocked(ws, monitor_state);
 		} else if ((ws->state & E_CGROUP_STATE_MONITORING)
 			&& !(monitor_state & E_CGROUP_STATE_MONITORING)) {
 			workingset_blkio_monitor_wslocked(ws, monitor_state);
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+			exit_workingset_cgroup(ws);
+#endif
 		}
 #endif
 		if ((ws->stage_num < PAGE_STAGE_NUM_MASK)
@@ -2205,7 +2313,7 @@ static int workingset_data_parse_owner(struct s_workingset *ws,
 	}
 	ret = strncpy_s(owner_name, len, token, len);
 	if (ret) {
-		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		ret = -EINVAL;
 		goto parse_path_failed;
 	}
@@ -2224,7 +2332,7 @@ static int workingset_data_parse_owner(struct s_workingset *ws,
 	}
 	ret = strncpy_s(record_path, len, str, len);
 	if (ret) {
-		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		ret = -EINVAL;
 		goto copy_path_failed;
 	}
@@ -2331,6 +2439,9 @@ struct cgroup_subsys workingset_cgrp_subsys = {
 	.css_offline	= workingset_css_offline,
 	.css_free	= workingset_css_free,
 	.can_attach = workingset_can_attach,
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+	.attach = workingset_attach,
+#endif
 	.legacy_cftypes	= files,
 };
 
@@ -2458,24 +2569,28 @@ static int workingset_record_fileinfo_if_need_wslocked(struct s_workingset *ws,
 			goto out;
 		}
 
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+		ret = vfs_getattr_nosec(&file->f_path, &stat, STATX_UID, KSTAT_QUERY_FLAGS);
+#else
 		ret = vfs_getattr_nosec(&file->f_path, &stat);
+#endif
 		if (ret) {
-			ws_dbg("%s, vfs_getattr %s failed! err=%d\n",
-				__func__, filepath, ret);
+			pr_err("%s, vfs_getattr failed! err=%d\n",
+				__func__, ret);
 			ret = -EPERM;
 			goto out;
 		}
 
 		fileinfo = workingset_alloc_fileinfo(path_len, gfp_mask);
 		if (!fileinfo) {
-			ws_dbg("%s, oom, alloc fileinfo failed!\n", __func__);
+			pr_err("%s, oom, alloc fileinfo failed!\n", __func__);
 			ret = -ENOMEM;
 			goto out;
 		}
 		ret = strncpy_s(fileinfo->path_node.path, path_len + 1,
 			filepath, path_len + 1);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			kfree(fileinfo->filp_list);
 			kfree(fileinfo->path_node.path);
 			kfree(fileinfo);
@@ -2516,8 +2631,13 @@ static int workingset_dealwith_pagecache_wslocked(struct s_cachepage_info *info,
 	struct s_pagecache_info *pagecache;
 	struct s_file_info *file_info = NULL;
 	int major_touched;
+#if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
+	unsigned repeat_count = 0;
+	int page_count_delta = 0;
+#else
 	unsigned repeat_count;
 	int page_count_delta;
+#endif
 
 	if (pid == ws->owner.pid)
 		major_touched = 1;
@@ -2593,7 +2713,7 @@ static unsigned workingset_collector_dequeue_buffer_locked(
 		ret = memcpy_s(buffer, copy_size,
 			collector->circle_buffer + read_pos, copy_size);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			goto out;
 		}
 		read_pos += copy_size;
@@ -2612,7 +2732,7 @@ static unsigned workingset_collector_dequeue_buffer_locked(
 			ret = memcpy_s(buffer + buffer_pos, copy_size,
 				collector->circle_buffer, copy_size);
 			if (ret) {
-				ws_dbg("%s Line%d,ret=%d\n",
+				pr_err("%s Line%d,ret=%d\n",
 					__func__, __LINE__, ret);
 				goto out;
 			}
@@ -2628,7 +2748,7 @@ static unsigned workingset_collector_dequeue_buffer_locked(
 		ret = memcpy_s(buffer, copy_size,
 			collector->circle_buffer + read_pos, copy_size);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			goto out;
 		}
 		read_pos += copy_size;
@@ -2732,12 +2852,11 @@ static int workingset_collector_fill_record_filenode_wsrcrdlocked(
 		fileinfo = container_of(pos, struct s_file_info, list);
 		if (idx < data->file_cnt) {
 			if (!fileinfo->pageseq_count) {
-				kfree(fileinfo->path_node.path);
 				ret = memset_s(data->file_array + idx,
 					sizeof(struct s_path_node),
 					0, sizeof(struct s_path_node));
 				if (ret) {
-					ws_dbg("%s Line%d,ret=%d\n",
+					pr_err("%s Line%d,ret=%d\n",
 						__func__, __LINE__, ret);
 					goto out;
 				}
@@ -2747,19 +2866,19 @@ static int workingset_collector_fill_record_filenode_wsrcrdlocked(
 					&fileinfo->path_node,
 					sizeof(struct s_path_node));
 				if (ret) {
-					ws_dbg("%s Line%d,ret=%d\n",
+					pr_err("%s Line%d,ret=%d\n",
 						__func__, __LINE__, ret);
 					goto out;
 				}
+				/*
+				 * the pointer of path is assigned to path
+				 * of record, so don't free it in here.
+				 */
+				fileinfo->path_node.path = NULL;
 			}
 		} else {
-			kfree(fileinfo->path_node.path);
+			break;
 		}
-		/*
-		 * the pointer of path is assigned to path of record,
-		 * so don't free it in here.
-		 */
-		fileinfo->path_node.path = NULL;
 		idx++;
 	}
 	return 0;
@@ -2785,10 +2904,8 @@ static int workingset_collector_prepare_record_space_wsrcrdlocked(
 	playload_size = pathnode_size + sizeof(unsigned) * ws->pageseq_count;
 	ret = workingset_prepare_record_space_wsrcrdlocked(&ws->owner,
 		record, is_exist, playload_size, &playload);
-	if (!ret) {
-		data->file_array = playload;
+	if (!ret)
 		data->cacheseq = playload + pathnode_size;
-	}
 
 	return ret;
 }
@@ -2805,7 +2922,7 @@ static int workingset_collector_read_data_wsrcrdlocked(struct s_workingset *ws,
 	ret = workingset_collector_prepare_record_space_wsrcrdlocked(ws, record,
 		is_exist);
 	if (ret)
-		goto out;
+		goto fill_data_fail;
 
 	if (!is_exist) {
 		record->owner.uid = ws->owner.uid;
@@ -2813,7 +2930,7 @@ static int workingset_collector_read_data_wsrcrdlocked(struct s_workingset *ws,
 		ret = memcpy_s(record->owner.name, cpy_size,
 			ws->owner.name, cpy_size);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			goto fill_data_fail;
 		}
 
@@ -2821,7 +2938,7 @@ static int workingset_collector_read_data_wsrcrdlocked(struct s_workingset *ws,
 		ret = memcpy_s(record->owner.record_path, cpy_size,
 			ws->owner.record_path, cpy_size);
 		if (ret) {
-			ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+			pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 			goto fill_data_fail;
 		}
 	}
@@ -2833,7 +2950,7 @@ static int workingset_collector_read_data_wsrcrdlocked(struct s_workingset *ws,
 	if (ret)
 		goto fill_data_fail;
 
-	record->state &= ~E_RECORD_STATE_DATA_FROM_BACKUP;
+	record->state |= E_RECORD_STATE_EXTERNAL_FILEPATH;
 	idx = 0;
 	for (page_idx = 0;
 		page_idx < (ws->alloc_index / PAGECACHEINFO_PER_PAGE);
@@ -2850,14 +2967,12 @@ static int workingset_collector_read_data_wsrcrdlocked(struct s_workingset *ws,
 	if (ret)
 		goto fill_data_fail;
 
-	record->state &= ~E_RECORD_STATE_UPDATE_HEADER_ONLY;
 	record->state |= E_RECORD_STATE_USED | E_RECORD_STATE_DIRTY;
 	return 0;
 
 fill_data_fail:
 	record->state &= ~(E_RECORD_STATE_USED | E_RECORD_STATE_DIRTY |
 					E_RECORD_STATE_UPDATE_HEADER_ONLY);
-out:
 	return ret;
 }
 
@@ -3284,8 +3399,8 @@ static void workingset_prereader_open_all_files_rcrdlocked(
 					data->file_array[file_idx].path,
 					flags, 0);
 				if (IS_ERR_OR_NULL(filpp[file_idx])) {
-					if (!(record->state &
-					E_RECORD_STATE_DATA_FROM_BACKUP))
+					if (record->state &
+					E_RECORD_STATE_EXTERNAL_FILEPATH)
 					kfree(data->file_array[file_idx].path);
 
 					data->file_array[file_idx].path = NULL;
@@ -3469,59 +3584,10 @@ try_next:
 		move_lru_cnt, read_pages_cnt);
 }
 
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-static void workingset_page_readonly(const void *vmalloc_addr, bool enable)
-{
-	unsigned long addr = (unsigned long) vmalloc_addr;
-	pgd_t *pgd = pgd_offset_k(addr);
-
-	BUG_ON(!is_vmalloc_or_module_addr(vmalloc_addr));
-	if (!pgd_none(*pgd)) {
-		pud_t *pud = pud_offset(pgd, addr);
-
-		BUG_ON(pud_bad(*pud));
-		if (!pud_none(*pud) && !pud_bad(*pud)) {
-			pmd_t *pmd = pmd_offset(pud, addr);
-
-			BUG_ON(pmd_bad(*pmd));
-			if (!pmd_none(*pmd) && !pmd_bad(*pmd)) {
-				pte_t *ptep, pte;
-
-				ptep = pte_offset_map(pmd, addr);
-				pte = *ptep;
-				ws_dbg("%s %p = %llx\n",
-					__func__,
-					vmalloc_addr,
-					pte_val(*ptep));
-				if (!enable) {
-				pte = clear_pte_bit(pte,
-				__pgprot(PTE_RDONLY));
-				pte = set_pte_bit(pte,
-				__pgprot(PTE_WRITE));
-				set_pte(ptep, pte);
-				} else {
-				pte = clear_pte_bit(pte,
-				__pgprot(PTE_WRITE));
-				pte = set_pte_bit(pte,
-				__pgprot(PTE_RDONLY));
-				set_pte(ptep, pte);
-				}
-				pte_unmap(ptep);
-				flush_tlb_kernel_range(addr,
-					addr + PAGE_SIZE);
-			}
-		}
-	}
-}
-#endif
-
 static void workingset_do_preread_work_rcrdlocked(struct s_ws_record *record)
 {
 	struct file **filpp;
 	struct s_ws_data *data = &record->data;
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-	unsigned preread_file_cnt = data->file_cnt;
-#endif
 
 	if (!data->file_cnt || !data->pageseq_cnt ||
 		!data->file_array || !data->cacheseq)
@@ -3536,23 +3602,7 @@ static void workingset_do_preread_work_rcrdlocked(struct s_ws_record *record)
 		return;
 
 	workingset_prereader_open_all_files_rcrdlocked(record, filpp);
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-	if (data->file_cnt > FILPS_PER_PAGE) {
-		int idx;
-
-		for (idx = 0; idx < FILP_PAGES_COUNT; idx++)/*lint !e574*/
-			workingset_page_readonly(
-			filpp + (FILPS_PER_PAGE * idx), true);
-	}
-#endif
 	workingset_read_filepages_rcrdlocked(record, filpp);
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-	if (data->file_cnt != preread_file_cnt) {
-		pr_err("%s, a bad file_cnt=%u, pread_cnt=%u\n",
-			__func__, data->file_cnt, preread_file_cnt);
-		BUG();
-	}
-#endif
 	workingset_preread_post_work_rcrdlocked(record, filpp);
 }
 
@@ -3568,14 +3618,6 @@ static void workingset_preread_post_work_rcrdlocked(
 			if (filpp[file_idx])
 				filp_close(filpp[file_idx], NULL);
 		}
-#ifdef CONFIG_HW_CGROUP_WS_DEBUG
-		if (data->file_cnt > FILPS_PER_PAGE) {
-			for (idx = 0; idx < FILP_PAGES_COUNT; idx++)
-				workingset_page_readonly(
-				filpp + (FILPS_PER_PAGE * idx),
-				false);
-		}
-#endif
 	}
 
 	for (idx = 0; idx < FILP_PAGES_COUNT; idx++) {

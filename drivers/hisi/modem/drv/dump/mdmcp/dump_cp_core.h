@@ -49,11 +49,11 @@
 #define __DUMP_CP_CORE_H__
 #include <product_config.h>
 #include "osl_types.h"
+#include <linux/rtc.h>
 
 
 
 #define DUMP_CP_REST_TIME_COUNT  8
-/*单独复位的时间间隔设定为30s*/
 #define DUMP_CP_REST_TIME_SLICE  (30*0x8000)
 
 
@@ -63,9 +63,27 @@ typedef struct
     u32 count;
 }DUMP_CP_RESET_CTRL;
 
+typedef struct
+{
+    time64_t fail_time[DUMP_CP_REST_TIME_COUNT];
+    u32 count;
+}DUMP_MDM_RESET_FAIL_CTRL;
+
+
+typedef enum
+{
+    RESET_NOT_SUPPORT= 0,
+    RESET_NOT_SUCCES = 1,
+    RESET_SUCCES =     2,
+}RESET_RESULT;
+
+
 s32 __init dump_mdmcp_init(void);
 u32 dump_mdmcp_callback(u32 modid, u32 etype, u64 coreid, char* logpath, pfn_cb_dump_done fndone);
-void dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid);
+RESET_RESULT dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid);
+u32 dump_dmss_noc_proc(u32 modid);
+s32 dump_check_single_reset_by_modid(u32 modid);
+
 
 #endif
 

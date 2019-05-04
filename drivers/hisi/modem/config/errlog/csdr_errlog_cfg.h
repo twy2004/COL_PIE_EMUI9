@@ -75,6 +75,7 @@ extern "C" {
 #define UPHY_CHR_ERRLOG_WAKESLEEP_ALARM_ID      (0x04)
 #define UPHY_CHR_ERRLOG_ABNORMAL_ALARM_ID       (0x05)
 #define UPHY_CHR_ERRLOG_QPCH_ALARM_ID           (0x06)
+#define UPHY_CHR_ERRLOG_RANDOM_ACCESS_ALARM_ID  (0x07)
 /*****************************************************************************
   3 Ã¶¾Ù¶¨Òå
 *****************************************************************************/

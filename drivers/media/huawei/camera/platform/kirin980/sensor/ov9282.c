@@ -33,6 +33,7 @@
 #include "m25p80_norflash.h"
 
 #define I2S(i) container_of(i, sensor_t, intf)
+#define Sensor2Pdev(s) container_of((s).dev, struct platform_device, dev)
 
 struct mutex ov9282_power_lock;
 
@@ -336,7 +337,7 @@ static int ov9282_otp_get(
     case IRSENSOR_DEVICE_OTP:
         break;
     case IRSENSOR_ENTIRETY_OTP:
-        cam_info("%s otp->otp_buffer = 0x%p, otp->otp_buffer_size = 0x%x", __func__, otp->otp_buffer, otp->otp_buffer_size);
+        cam_info("%s otp->otp_buffer = 0x%pK, otp->otp_buffer_size = 0x%x", __func__, otp->otp_buffer, otp->otp_buffer_size);
         ret = m25p_get_array_part_content(IRSENSOR_ENTIRETY_OTP,
             otp->otp_buffer, otp->otp_buffer_size);
         //stub
@@ -428,10 +429,8 @@ ov9282_config(
         case SEN_CONFIG_READ_REG_SETTINGS:
             break;
         case SEN_CONFIG_ENABLE_CSI:
-            //ret = si->vtbl->csi_enable(si);
             break;
         case SEN_CONFIG_DISABLE_CSI:
-            //ret = si->vtbl->csi_disable(si);
             break;
         case SEN_CONFIG_MATCH_ID:
             ret = si->vtbl->match_id(si,argp);
@@ -508,7 +507,7 @@ static void __exit
 ov9282_exit_module(void)
 {
     rpmsg_sensor_unregister((void*)&s_ov9282);
-    hwsensor_unregister(&s_ov9282.intf);
+    hwsensor_unregister(Sensor2Pdev(s_ov9282));
     platform_driver_unregister(&s_ov9282_driver);
 }
 

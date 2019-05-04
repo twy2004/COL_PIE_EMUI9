@@ -833,12 +833,19 @@ receive_next:
 	return NULL;
 }
 
-const pkt_header_t *pack(const char *buf, unsigned int length)
+const pkt_header_t *pack(const char *buf, unsigned int length, bool *is_notifier)
 {
 	const pkt_header_t *head = normalpack(buf, length);
 #ifdef CONFIG_CONTEXTHUB_SHMEM
-	if(head && (head->tag == TAG_SHAREMEM) && (head->cmd == CMD_SHMEM_AP_RECV_REQ))
-		head = shmempack(buf, length);
+	if(head && (head->tag == TAG_SHAREMEM))
+	{
+		if (head->cmd == CMD_SHMEM_AP_RECV_REQ) {
+			head = shmempack(buf, length);
+		} else if (head->cmd == CMD_SHMEM_AP_SEND_RESP) {
+			shmem_send_resp(head);
+			*is_notifier = true;
+		}
+	}
 #endif
 	return head;
 }
@@ -2786,12 +2793,6 @@ void inputhub_process_sensor_report(const pkt_header_t* head)
             get_temperature_data = sensor_event->xyz[0].y;
         }
 
-        if (head->tag == TAG_CA)
-        {
-            hwlog_info("ca tag=%d:data length:%d, [data0:%d][data1:%d][data2:%d]",
-                       head->tag, head->length, sensor_event->xyz[0].x, sensor_event->xyz[0].y, sensor_event->xyz[0].y);
-        }
-
         if (head->tag == TAG_PHONECALL)  	/*recieve phonecall event*/
         {
             wake_lock_timeout(&wlock, HZ);
@@ -2841,7 +2842,7 @@ int inputhub_route_recv_mcu_data(const char *buf, unsigned int length)
     pkt_additional_info_req_t* addi_info = NULL;
 
 	const fingerprint_upload_pkt_t* fingerprint_data_upload = (const fingerprint_upload_pkt_t*)buf;
-    head = pack(buf, length);
+    head = pack(buf, length, &is_notifier);
 
     if (NULL == head)
     { return 0; }	/*receive next partial package.*/

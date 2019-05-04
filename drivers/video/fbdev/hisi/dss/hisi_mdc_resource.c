@@ -95,6 +95,19 @@ static int mdc_chn_request_handle(struct hisi_fb_data_type *hisifd,
 			chn_info->mmbuf_addr = MMBUF_SIZE_MAX + MMBUF_BASE;//hisi_dss_mmbuf_alloc(hisifd->mmbuf_gen_pool, chn_info->mmbuf_size);
 		}
 
+		if ((chn_info->rch_need_cap & CAP_AFBCD) == CAP_AFBCD) {
+			if ((chn_info->mmbuf_size == 0)
+				|| (chn_info->mmbuf_size > MMBUF_SIZE_MDC_MAX)
+				|| (chn_info->mmbuf_size & (MMBUF_ADDR_ALIGN - 1))) {
+
+				HISI_FB_ERR("fb%d, mmbuf size is invalid, size = %d!\n",
+					hisifd->index, chn_info->mmbuf_size);
+				return -EINVAL;
+			}
+
+			chn_info->mmbuf_addr = MMBUF_SIZE_MAX + MMBUF_BASE;//hisi_dss_mmbuf_alloc(hisifd->mmbuf_gen_pool, chn_info->mmbuf_size);
+		}
+
 		chn_info->rch_idx = mdc_chn->rch_idx;
 		chn_info->wch_idx = mdc_chn->wch_idx;
 		chn_info->ovl_idx = mdc_chn->ovl_idx;
@@ -145,6 +158,19 @@ static int mdc_chn_request_handle(struct hisi_fb_data_type *hisifd,
 
 		/* chn available */
 		if ((chn_info->rch_need_cap & CAP_HFBCD) == CAP_HFBCD) {
+			if ((chn_info->mmbuf_size == 0)
+				|| (chn_info->mmbuf_size > MMBUF_SIZE_MDC_MAX)
+				|| (chn_info->mmbuf_size & (MMBUF_ADDR_ALIGN - 1))) {
+
+				HISI_FB_ERR("fb%d, mmbuf size is invalid, size = %d!\n",
+					hisifd->index, chn_info->mmbuf_size);
+				return -EINVAL;
+			}
+
+			chn_info->mmbuf_addr = MMBUF_SIZE_MAX + MMBUF_BASE;//hisi_dss_mmbuf_alloc(hisifd->mmbuf_gen_pool, chn_info->mmbuf_size);
+		}
+
+		if ((chn_info->rch_need_cap & CAP_AFBCD) == CAP_AFBCD) {
 			if ((chn_info->mmbuf_size == 0)
 				|| (chn_info->mmbuf_size > MMBUF_SIZE_MDC_MAX)
 				|| (chn_info->mmbuf_size & (MMBUF_ADDR_ALIGN - 1))) {
@@ -283,7 +309,7 @@ int hisi_mdc_chn_request(struct fb_info *info, void __user *argp)
 	return ret;
 }
 
-int hisi_mdc_chn_release(struct fb_info *info, void __user *argp)
+int hisi_mdc_chn_release(struct fb_info *info, const void __user *argp)
 {
 	int ret = 0;
 	struct hisi_fb_data_type *hisifd = NULL;
@@ -413,7 +439,7 @@ int hisi_mdc_resource_init(struct hisi_fb_data_type *hisifd, unsigned int platfo
 			mdc_ops->mdc_channel[1].cap_available = CAP_BASE | CAP_DIM \
 				| CAP_SCL | CAP_YUV_PACKAGE \
 				| CAP_YUV_SEMI_PLANAR | CAP_YUV_PLANAR \
-				| CAP_YUV_DEINTERLACE | CAP_HFBCD;
+				| CAP_YUV_DEINTERLACE | CAP_HFBCD | CAP_AFBCD;
 			mdc_ops->mdc_channel[1].rch_idx = DSS_RCHN_V1;
 			mdc_ops->mdc_channel[1].wch_idx = DSS_WCHN_W1;
 			mdc_ops->mdc_channel[1].ovl_idx = DSS_OVL3;

@@ -45,6 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include <mdrv.h>
 #include "socp_ind_delay.h"
 #include <securec.h>
 
@@ -69,9 +70,10 @@ socp_early_cfg_stru         g_stSocpEarlyCfg    = {NULL,0,0,0,0,0};
 socp_mem_reserve_stru       g_stSocpMemReserve  = {NULL,0,0,0,0};
 DRV_DEFLATE_CFG_STRU  g_deflate_nv_ctrl={0,0};
 extern u32 socp_version;
-u64 g_socp_dma_mask = (u64)(-1);
 extern u32 g_strSocpDeflateStatus;
 s32 deflate_set_compress_mode(SOCP_IND_MODE_ENUM eMode);
+
+extern struct platform_device *modem_socp_pdev;
 
 /*****************************************************************************
 * 函 数 名  : socp_get_logbuffer_sizeparse
@@ -360,6 +362,7 @@ s32 socp_logbuffer_mmap(void)
                                                                     (size_t)g_stSocpMemReserve.ulBufferSize);
             if(NULL == g_stSocpMemReserve.pVirBuffer)
             {
+                socp_error("remap socp buffer fail\n");
                 g_stSocpMemReserve.ulBufUsable = BSP_FALSE;
                 return BSP_ERROR;
             }
@@ -433,7 +436,7 @@ s32  bsp_socp_get_log_ind_mode(u32 *LofgIndMode)
 u32 bsp_socp_get_sd_logcfg(SOCP_ENC_DST_BUF_LOG_CFG_STRU* cfg)
 {
     struct socp_enc_dst_log_cfg* LogCfg;
-    u32  deflate_stat;
+    u32  deflate_enable;
     if(NULL == cfg)
         return BSP_ERR_SOCP_INVALID_PARA;
 
@@ -442,8 +445,8 @@ u32 bsp_socp_get_sd_logcfg(SOCP_ENC_DST_BUF_LOG_CFG_STRU* cfg)
     cfg->logOnFlag       = LogCfg->logOnFlag;
     cfg->BufferSize      = LogCfg->BufferSize;
 
-    deflate_stat =bsp_socp_compress_status();
-    if(1 == deflate_stat)
+    deflate_enable =bsp_socp_compress_status();
+    if(1 == deflate_enable)
     {
         cfg->overTime        = g_stDeflateDstBufLogConfig.overTime;
     }
@@ -472,7 +475,6 @@ s32 socp_logbuffer_dmalloc(struct device_node* dev)
     int             ret;
     u32             aulDstChan[SOCP_DST_CHAN_CFG_BUTT]={0};
     u32             size;
-    struct device dev1;
 
     ret = of_property_read_u32_array(dev, "dst_chan_cfg", aulDstChan, (size_t)SOCP_DST_CHAN_CFG_BUTT);
     if(ret)
@@ -485,10 +487,7 @@ s32 socp_logbuffer_dmalloc(struct device_node* dev)
         socp_crit("of_property_read_u32_array get size 0x%x!\n", aulDstChan[SOCP_DST_CHAN_CFG_SIZE]);
         size = aulDstChan[SOCP_DST_CHAN_CFG_SIZE];
     }
-    memset_s(&dev1,sizeof(dev1),0,sizeof(dev1));
-    dma_set_mask_and_coherent(&dev1, g_socp_dma_mask);
-    of_dma_configure(&dev1, NULL);
-    pucBuf =(u8 *) dma_alloc_coherent(&dev1, (size_t)size, &ulAddress, GFP_KERNEL);
+    pucBuf =(u8 *) dma_alloc_coherent(&modem_socp_pdev->dev, (size_t)size, &ulAddress, GFP_KERNEL);
 
     if(BSP_NULL == pucBuf)
     {
@@ -544,7 +543,6 @@ s32 bsp_socp_logbuffer_init(struct device_node* dev)
             g_stDeflateDstBufLogConfig.BufferSize       = g_stSocpMemReserve.ulBufferSize;
             g_stDeflateDstBufLogConfig.overTime         = g_stSocpMemReserve.ulTimeout;
             g_stDeflateDstBufLogConfig.logOnFlag        = SOCP_DST_CHAN_DELAY;
-
         }
         /*step1.2: if kernel reserved buffer is invalid, disable ind delay, use 1M malloc buffer */
         else
@@ -912,6 +910,8 @@ s32 bsp_socp_set_cps_ind_mode(DEFLATE_IND_COMPRESSS_ENUM eMode)
         return BSP_ERROR;
     }
 
+    return BSP_OK;
+
 }
 /*****************************************************************************
 * 函 数 名  : socp_ind_delay_init
@@ -940,7 +940,6 @@ s32 bsp_socp_ind_delay_init(void)
 
     /*获取SOCP预留内存信息*/
     bsp_socp_get_mem_reserve_stru(&g_stSocpMemReserve);
-
     /*获取的内存虚拟物理转换*/
     (void)socp_logbuffer_mmap();
 	ret = platform_driver_register(&socp_mem_driver); /*lint !e64*/

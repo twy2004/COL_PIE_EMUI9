@@ -35,6 +35,9 @@ struct timer_list backlight_second_timer;
 static int g_backlight_count;
 int g_record_project_id_err = 0;
 
+/*This parameter represents the proximity status for control lcd power on and power off.*/
+static bool g_lcd_prox_enable;
+
 /* set global variables of td4336 */
 uint32_t g_read_value_td4336[19] = {0};
 static int find_cmd_by_mipi_clk(struct hisi_fb_data_type *hisifd, uint32_t clk_val, struct lcdkit_dsi_panel_cmds **snd_cmds);
@@ -264,6 +267,13 @@ static __maybe_unused int lcdkit_enter_ulps(struct hisi_fb_data_type* hisifd)
     mipi_dsi_ulps_cfg(hisifd, 0);
     udelay(10);
     return 0;
+}
+
+static bool lcdkit_get_proxmity_enable(void)
+{
+	g_lcd_prox_enable = tp_get_prox_status();
+	LCDKIT_INFO("The g_lcd_prox_enable is %d when lcd off!\n", g_lcd_prox_enable);
+	return g_lcd_prox_enable;
 }
 
 static int lcdkit_is_enter_sleep_mode(void)
@@ -723,13 +733,22 @@ static int jdi_panel_read(void)
     mipi_dsi_cmds_tx(lcd_reg_fb_cmds, \
         ARRAY_SIZE(lcd_reg_fb_cmds), hisifd->mipi_dsi0_base);
     /*read reg 8f,90,91*/
-    mipi_dsi_lread_reg(read_back, lcd_reg_8f_cmd, 1, hisifd->mipi_dsi0_base);
+    ret = mipi_dsi_lread_reg(read_back, lcd_reg_8f_cmd, 1, hisifd->mipi_dsi0_base);
+    if(ret < 0){
+        LCDKIT_ERR("Read lcd_reg_8f_cmd fail\n");
+    }
                read_temp[0] =  read_back[0] & 0xFF;
         LCDKIT_INFO("jdi  lcd  8f  first=0x%x\n", read_back[0]);
-    mipi_dsi_lread_reg(read_back, lcd_reg_90_cmd, 1, hisifd->mipi_dsi0_base);
+    ret = mipi_dsi_lread_reg(read_back, lcd_reg_90_cmd, 1, hisifd->mipi_dsi0_base);
+    if(ret < 0){
+        LCDKIT_ERR("Read lcd_reg_90_cmd fail\n");
+    }
                read_temp[1] =  read_back[0] & 0xFF;
         LCDKIT_INFO("jdi  lcd  90 first=0x%x\n", read_back[0]);
-    mipi_dsi_lread_reg(read_back, lcd_reg_91_cmd, 1, hisifd->mipi_dsi0_base);
+    ret = mipi_dsi_lread_reg(read_back, lcd_reg_91_cmd, 1, hisifd->mipi_dsi0_base);
+    if(ret < 0){
+        LCDKIT_ERR("Read lcd_reg_91_cmd fail\n");
+    }
                read_temp[2] =  read_back[0] & 0xFF;
         LCDKIT_INFO("jdi  lcd  91  first=0x%x\n", read_back[0]);
     /*switch page10*/
@@ -833,7 +852,7 @@ static int lcdkit_vcc_and_tp_power_on(struct platform_device* pdev)
     LCDKIT_INFO("Exit Aod mode, not running lcdkit_on, lcd_init_step %d . \n", pinfo->lcd_init_step);
     if (pinfo->lcd_init_step == LCD_INIT_POWER_ON)
     {
-        if(!lcdkit_is_enter_sleep_mode())
+        if ((!lcdkit_is_enter_sleep_mode()) && (!g_lcd_prox_enable))
         {
             if(lcdkit_info.panel_infos.iovcc_before_vci == 1)
             {
@@ -1065,7 +1084,7 @@ static int lcdkit_on(struct platform_device* pdev)
       if (lcdkit_info.panel_infos.panel_display_on_new_seq)
         lcdkit_display_on_new_seq_set_delay_time();
       LOG_JANK_D(JLID_KERNEL_LCD_POWER_ON, "%s", "LCD_POWER_ON");
-      if(!lcdkit_is_enter_sleep_mode())
+      if ((!lcdkit_is_enter_sleep_mode()) && (!g_lcd_prox_enable))
       {
         if(pinfo->bl_ic_ctrl_mode == COMMON_IC_MODE)
         {
@@ -1478,6 +1497,7 @@ static int lcdkit_off(struct platform_device* pdev)
         return -EINVAL;
     }
 
+	LCDKIT_INFO("fb%d, +!\n", hisifd->index);
     if(hisifd->aod_function)
     {
         LCDKIT_INFO("It is in AOD mode and should bypass lcdkit_off and notify tp! \n");
@@ -1551,7 +1571,7 @@ static int lcdkit_off(struct platform_device* pdev)
     {
     msleep(5);
 
-    if(!lcdkit_is_enter_sleep_mode())
+    if ((!lcdkit_get_proxmity_enable()) && (!lcdkit_is_enter_sleep_mode()))
     {
         //if(g_ts_kit_platform_data.chip_data->is_parade_solution)
         //{
@@ -1720,7 +1740,7 @@ static int lcdkit_off(struct platform_device* pdev)
         }
 
         //The function of double click to wake do not open this switch
-        if(lcdkit_info.panel_infos.idle2_lcd_reset_low )
+        if (lcdkit_info.panel_infos.idle2_lcd_reset_low && (!g_lcd_prox_enable))
         {
             gpio_cmds_tx(lcdkit_gpio_reset_low_cmds, \
                     ARRAY_SIZE(lcdkit_gpio_reset_low_cmds));
@@ -2740,6 +2760,7 @@ void read_td4336_project_id(struct hisi_fb_data_type* hisifd, uint8_t g_project_
 {
     char __iomem *mipi_dsi0_base = NULL;
     char project_id_reg[] = {0xbf};
+    int ret = 0;
 
 	if (NULL == hisifd || NULL == g_project_id)
 	{
@@ -2761,7 +2782,10 @@ void read_td4336_project_id(struct hisi_fb_data_type* hisifd, uint8_t g_project_
 	}
 	/*The number "75" means the length of register BFh for TD4336. */
     LCDKIT_PANEL_CMD_REQUEST();
-	mipi_dsi_lread_reg(g_read_value_td4336, project_id_cmd, READ_REG_TD4336_NUM, mipi_dsi0_base);
+	ret = mipi_dsi_lread_reg(g_read_value_td4336, project_id_cmd, READ_REG_TD4336_NUM, mipi_dsi0_base);
+	if(ret < 0){
+		HISI_FB_ERR("Read project_id_cmd fail\n");
+	}
 	read_ddic_reg_parse(g_read_value_td4336,READ_REG_TD4336_NUM,g_project_id, start_position, length);
     LCDKIT_PANEL_CMD_RELEASE();
 	return;
@@ -2772,6 +2796,8 @@ void read_himax83112_project_id(struct hisi_fb_data_type* hisifd, uint8_t g_proj
 	char __iomem *mipi_dsi0_base = NULL;
 	uint32_t read_value[2] = {0};
 	int i = 0;
+	int ret = 0;
+
 	char project_id_reg[] = {0xbb};
 	char project_addr[PROJECT_ID_LENGTH] = {0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b};
 	char project_addr_112A[PROJECT_ID_LENGTH] = {0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
@@ -2857,8 +2883,10 @@ void read_himax83112_project_id(struct hisi_fb_data_type* hisifd, uint8_t g_proj
 		}
 		mipi_dsi_cmds_tx(playload1_enter_cmds, ARRAY_SIZE(playload1_enter_cmds), mipi_dsi0_base);
 		//Here number "5" means to read five paramaters.
-		mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
-
+		ret = mipi_dsi_lread_reg(read_value, project_id_cmd, 5, mipi_dsi0_base);
+		if(ret < 0){
+			HISI_FB_ERR("Read project_id_cmd fail\n");
+		}
 		if(read_value[1] == 0)
 			read_value[1]+= '0';
 		g_project_id[i] = read_value[1];
@@ -3190,6 +3218,9 @@ static int __init lcdkit_probe(struct platform_device* pdev)
     if (runmode_is_factory())
     {
         pinfo->esd_enable = 0;
+        if (lcdkit_info.panel_infos.fac_esd_support == 1) {
+            pinfo->esd_enable = 1;
+        }
         pinfo->dirty_region_updt_support = 0;
         pinfo->prefix_ce_support = 0;
         pinfo->prefix_sharpness1D_support = 0;

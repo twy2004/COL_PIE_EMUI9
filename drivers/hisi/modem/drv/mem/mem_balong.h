@@ -86,9 +86,9 @@ extern "C"
 
 #undef THIS_MODU
 #define THIS_MODU mod_mem
-#define  mem_print_error(fmt,...)      (bsp_err("<%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
-#define  mem_print_dbg(fmt,...)		       (bsp_debug("<%s> <%d>"fmt"\n", __FUNCTION__, __LINE__, ##__VA_ARGS__))
-#define  mem_print_info(fmt,...)		(bsp_info(fmt"\n", ##__VA_ARGS__))
+#define  mem_print_error(fmt,...)      (bsp_err("<%s> <%d>"fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#define  mem_print_dbg(fmt,...)		       (bsp_debug("<%s> <%d>"fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__))
+#define  mem_print_info(fmt,...)		(bsp_info(fmt, ##__VA_ARGS__))
 /**************************************************************************
   º¯ÊýÉùÃ÷
 **************************************************************************/

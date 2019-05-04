@@ -54,9 +54,9 @@
 #include <linux/errno.h>
 #include <linux/etherdevice.h>
 #include <linux/skbuff.h>
-#include <linux/version.h>
 #include <net/sock.h>
 #include "rnic_dev.h"
+#include "rnic_dev_config.h"
 #include "rnic_dev_handle.h"
 #include "rnic_dev_debug.h"
 
@@ -71,8 +71,9 @@
  3. Global defintions
 *****************************************************************************/
 
-struct rnic_dev_context_s rnic_dev_context;
 unsigned int rnic_dev_log_level = RNIC_DEV_LOG_LVL_HIGH | RNIC_DEV_LOG_LVL_ERR;
+
+struct rnic_dev_context_s rnic_dev_context;
 
 static const uint8_t rnic_dev_dst_mac_base[ETH_ALEN] = {
 	0x58,0x02,0x03,0x04,0x05,0x06
@@ -167,7 +168,8 @@ STATIC int rnic_dev_stop(struct net_device *dev)
  Output       : None
  Return Value : netdev_tx_t
 *****************************************************************************/
-STATIC netdev_tx_t rnic_dev_start_xmit (struct sk_buff *skb, struct net_device *dev)
+STATIC netdev_tx_t rnic_dev_start_xmit (struct sk_buff *skb,
+					struct net_device *dev)
 {
 	struct rnic_dev_priv_s *priv =
 				(struct rnic_dev_priv_s *)netdev_priv(dev);
@@ -247,6 +249,18 @@ struct net_device *rnic_get_netdev_by_devid(uint8_t devid)
 }
 
 /*****************************************************************************
+ Prototype    : rnic_get_priv
+ Description  : Get private info of netdevice.
+ Output       : devid: id of netdeivce
+ Output       : None
+ Return Value : rnic_dev_priv_s
+*****************************************************************************/
+struct rnic_dev_priv_s *rnic_get_priv(uint8_t devid)
+{
+	return rnic_dev_context.priv[devid];
+}
+
+/*****************************************************************************
  Prototype    : rnic_get_devid_by_name
  Description  : Get id of netdeivce.
  Input        : name: name of netdevice
@@ -298,21 +312,147 @@ STATIC const struct rnic_dev_name_param_s *rnic_get_name_param(uint8_t devid)
 }
 
 /*****************************************************************************
+ Prototype    : rnic_check_rmnet_data
+ Description  : Check device is used for normal data service.
+ Input        : devid: id of netdeivce
+ Output       : None
+ Return Value : bool
+*****************************************************************************/
+STATIC bool rnic_check_rmnet_data(uint8_t devid)
+{
+	if (devid <= RNIC_DEV_ID_DATA_MAX)
+		return true;
+
+	return false;
+}
+
+/*****************************************************************************
+ Prototype    : rnic_cpumasks_deinit
+ Description  : Deinit load balance cpumasks.
+ Input        : priv: private info of netdevice
+ Output       : None
+ Return Value : void
+*****************************************************************************/
+STATIC void rnic_cpumasks_deinit(struct rnic_dev_priv_s *priv)
+{
+	if (priv->lb_cap_valid) {
+		priv->lb_cap_valid = false;
+		free_cpumask_var(priv->lb_cpumask_curr_avail);
+		free_cpumask_var(priv->lb_cpumask_orig);
+		free_cpumask_var(priv->lb_cpumask_candidacy);
+	}
+}
+
+/*****************************************************************************
+ Prototype    : rnic_cpumasks_init
+ Description  : Init load balance cpumasks.
+ Input        : priv: private info of netdevice
+ Output       : None
+ Return Value : Return 0 on success, negative on failure.
+*****************************************************************************/
+/*lint -save -e801*/
+STATIC int rnic_cpumasks_init(struct rnic_dev_priv_s *priv)
+{
+	if (!alloc_cpumask_var(&priv->lb_cpumask_curr_avail, GFP_KERNEL))
+		goto err_alloc_cpumask_avail;
+
+	if (!alloc_cpumask_var(&priv->lb_cpumask_orig, GFP_KERNEL))
+		goto err_alloc_cpumask_orig;
+
+	if (!alloc_cpumask_var(&priv->lb_cpumask_candidacy, GFP_KERNEL))
+		goto err_alloc_cpumask_candidacy;
+
+	cpumask_copy(priv->lb_cpumask_curr_avail, cpu_online_mask);
+	cpumask_clear(priv->lb_cpumask_orig);
+	cpumask_clear(priv->lb_cpumask_candidacy);
+
+	priv->lb_cap_valid = true;
+
+	return 0;
+
+err_alloc_cpumask_candidacy:
+	free_cpumask_var(priv->lb_cpumask_orig);
+err_alloc_cpumask_orig:
+	free_cpumask_var(priv->lb_cpumask_curr_avail);
+err_alloc_cpumask_avail:
+	priv->lb_cap_valid = false;
+
+	return -ENOMEM;
+}
+/*lint -restore +e801*/
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
+/*****************************************************************************
+ Prototype    : rnic_cpu_hotplug_notify
+ Description  : CPU hot plug notify cb
+ Input        : struct notifier_block *nfb, action, *hcpu
+ Output       : None
+ Return Value : NOTIFY_OK
+*****************************************************************************/
+STATIC int rnic_cpu_hotplug_notify(struct notifier_block *nfb,
+					unsigned long action, void *hcpu)
+{
+	struct rnic_dev_priv_s *priv =
+				container_of(nfb, struct rnic_dev_priv_s, cpu_hotplug_notifier);
+	unsigned int cpu = (unsigned int)(long)hcpu;
+
+	RNIC_LOGI("cpu %d, action 0x%lx.", cpu, action);
+
+	if (unlikely(cpu >= nr_cpu_ids))
+		return NOTIFY_OK;
+
+	switch (action) {
+		case CPU_ONLINE:
+		case CPU_ONLINE_FROZEN:
+			cpumask_set_cpu(cpu, priv->lb_cpumask_curr_avail);
+
+			/* This cpu is the expected load balance cpu,
+			 * then set it to lb_cpumask_orig
+			 */
+			if (test_bit((int)cpu, &priv->lb_cpu_bitmask) &&
+				priv->napi_lb_level_cfg[priv->lb_cur_level].lb_cpu_weight[cpu])
+				cpumask_set_cpu(cpu, priv->lb_cpumask_orig);
+
+			priv->lb_stats[cpu].hotplug_online_num++;
+			break;
+		case CPU_DOWN_PREPARE:
+		case CPU_DOWN_PREPARE_FROZEN:
+			cpumask_clear_cpu((int)cpu, priv->lb_cpumask_curr_avail);
+			cpumask_clear_cpu((int)cpu, priv->lb_cpumask_orig);
+			priv->lb_stats[cpu].hotplug_down_num++;
+			break;
+		default:
+			break;
+	}
+
+	return NOTIFY_OK;
+}
+#endif
+
+/*****************************************************************************
  Prototype    : rnic_cleanup
  Description  : Destory netdevice.
  Input        : void
  Output       : None
- Return Value : None
+ Return Value : void
 *****************************************************************************/
 STATIC void rnic_cleanup(void)
 {
 	struct rnic_dev_context_s *dev_ctx = RNIC_DEV_CTX();
+	struct rnic_dev_priv_s *priv;
 	struct net_device *dev;
 	uint32_t devid;
 
 	for (devid = 0; devid < RNIC_DEV_ID_BUTT; devid++) {
 		dev = dev_ctx->netdev[devid];
 		if (dev) {
+			priv = (struct rnic_dev_priv_s *)netdev_priv(dev);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
+			if (priv->cpu_hotplug_notifier.notifier_call)
+				unregister_cpu_notifier(&priv->cpu_hotplug_notifier);
+#endif
+			rnic_cpumasks_deinit(priv);
+
 			unregister_netdev(dev);
 			free_netdev(dev);
 		}
@@ -341,9 +481,6 @@ int rnic_create_netdev(void)
 	uint8_t dst_mac[ETH_ALEN], src_mac[ETH_ALEN];
 	int rc = 0;
 	uint8_t devid;
-
-	memset(dev_ctx->netdev, 0, /* unsafe_function_ignore: memset */
-		sizeof(struct net_device *) * RNIC_DEV_ID_BUTT);
 
 	for (devid = 0; devid < RNIC_DEV_ID_BUTT; devid++) {
 		name_param = rnic_get_name_param(devid);
@@ -376,20 +513,42 @@ int rnic_create_netdev(void)
 		priv->netdev = dev;
 		priv->devid = devid;
 
-		priv->napi_enable = true;
-		priv->gro_enable  = true;
+		priv->napi_enable = false;
+		priv->gro_enable  = false;
 		priv->napi_weight = 16;
 		priv->napi_queue_length = 10000;
 		skb_queue_head_init(&priv->napi_queue);
+		skb_queue_head_init(&priv->pend_queue);
+		skb_queue_head_init(&priv->process_queue);
 		netif_napi_add(dev, &priv->napi, rnic_napi_poll, 16);
 
-		memcpy(priv->v4_eth_header.h_dest, dst_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
+
+		memcpy(priv->v4_eth_header.h_dest, dst_mac, ETH_ALEN);   /* unsafe_function_ignore: memcpy */
 		memcpy(priv->v4_eth_header.h_source, src_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		priv->v4_eth_header.h_proto = htons(ETH_P_IP);/*lint !e778*/
 
-		memcpy(priv->v6_eth_header.h_dest, dst_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
+		memcpy(priv->v6_eth_header.h_dest, dst_mac, ETH_ALEN);   /* unsafe_function_ignore: memcpy */
 		memcpy(priv->v6_eth_header.h_source, src_mac, ETH_ALEN); /* unsafe_function_ignore: memcpy */
 		priv->v6_eth_header.h_proto = htons(ETH_P_IPV6);/*lint !e778*/
+
+
+		INIT_WORK(&(priv->napi_dispatcher_work), rnic_napi_dispatcher_cb);
+		atomic_set(&priv->napi_cpu, 0);
+
+		if (rnic_check_rmnet_data(devid)) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
+			if (!rnic_cpumasks_init(priv)) {
+				priv->cpu_hotplug_notifier.notifier_call = rnic_cpu_hotplug_notify;
+				register_cpu_notifier(&priv->cpu_hotplug_notifier);
+			} else {
+				RNIC_LOGE("cpumasks init failed, devid: %d.", devid);
+				priv->cpu_hotplug_notifier.notifier_call = NULL;
+			}
+#else
+			rnic_cpumasks_init(priv);
+#endif
+		}
+
 
 		dev->features |= NETIF_F_SG;
 		dev->hw_features |= NETIF_F_SG;
@@ -407,6 +566,8 @@ int rnic_create_netdev(void)
 	dev_ctx->ready = true;
 	if (dev_ctx->dev_notifier_func)
 		dev_ctx->dev_notifier_func();
+
+
 
 	return 0;
 

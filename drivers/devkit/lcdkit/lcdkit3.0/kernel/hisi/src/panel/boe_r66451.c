@@ -11,8 +11,6 @@
 
 extern int g_min_backlight_from_app;
 extern int g_max_backlight_from_app;
-static struct timer_list backlight_second_timer;
-static struct lcd_kit_disp_info g_lcd_kit_disp_info;
 
 #define LEVEL1 121
 #define LEVEL2 233
@@ -37,28 +35,29 @@ static struct lcd_kit_disp_info g_lcd_kit_disp_info;
 #define ZONE_SECOND   2
 #define ZONE_THIRD    3
 
+#define TIMER_EXPIRES_SECONDS (jiffies + (12 * HZ / 10))
 
-
-static void lcd_kit_second_timerout_function(unsigned long arg)
+static void lcd_kit_timerout_function(unsigned long arg)
 {
-	unsigned long temp;
-	temp = arg;
+	struct timer_list *timer;
+
+	timer = (struct timer_list *)arg;
 	if(disp_info->bl_is_shield_backlight == true) {
 		disp_info->bl_is_shield_backlight = false;
 	}
-	del_timer(&backlight_second_timer);
+	del_timer(timer);
 	disp_info->bl_is_start_second_timer = false;
 	LCD_KIT_INFO("Sheild backlight 1.2s timeout, remove the backlight sheild.\n");
 }
 
-static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int backlight_type)
+static int boe_r66451_set_backlight_by_type(struct platform_device *pdev,
+	int backlight_type, struct timer_list *backlight_timer)
 {
 	int ret = 0;
 	int max_backlight = 0;
 	int min_backlight = 0;
 	struct hisi_fb_data_type* hisifd = NULL;
 	struct lcd_kit_adapt_ops* adapt_ops = NULL;
-	int bl_delay_time = 0;
 	int level1 = 0;
 	int level2 = 0;
 	int level3 = 0;
@@ -85,7 +84,6 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 	max_backlight = g_max_backlight_from_app;
 	min_backlight = g_min_backlight_from_app;
 	hisifb_display_effect_fine_tune_backlight(hisifd, g_min_backlight_from_app, (int*)&min_backlight);
-	bl_delay_time = FRAME_TIME * (hisifd->panel_info.bl_delay_frame);
 
 	LCD_KIT_INFO("panel_version is %s\n", hisifd->panel_info.lcd_panel_version);
 
@@ -103,7 +101,6 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 	}
 	switch (backlight_type) {
 	case BACKLIGHT_HIGH_LEVEL:
-		udelay(bl_delay_time);
 		if (common_info->hbm.prepare_cmds_fir.cmds != NULL) {
 			if (adapt_ops->mipi_tx) {
 				//LEVEL1 = LEVELMIN
@@ -127,25 +124,24 @@ static int boe_r66451_set_backlight_by_type(struct platform_device* pdev, int ba
 
 		disp_info->bl_is_shield_backlight = true;
 		if(disp_info->bl_is_start_second_timer == false) {
-			init_timer(&backlight_second_timer);
-			backlight_second_timer.expires = jiffies + 12*HZ/10;// 1.2s
-			backlight_second_timer.data = 0;
-			backlight_second_timer.function = lcd_kit_second_timerout_function;
-			add_timer(&backlight_second_timer);
+			init_timer(backlight_timer);
+			backlight_timer->expires = TIMER_EXPIRES_SECONDS;
+			backlight_timer->data = (unsigned long)backlight_timer;
+			backlight_timer->function = lcd_kit_timerout_function;
+			add_timer(backlight_timer);
 			disp_info->bl_is_start_second_timer = true;
 		} else {
 			//if timer is not timeout, restart timer
-			mod_timer(&backlight_second_timer, (jiffies + 12*HZ/10));// 1.2s
+			mod_timer(backlight_timer, TIMER_EXPIRES_SECONDS);
 		}
 		LCD_KIT_INFO("backlight_type is (%d), set_backlight is (%d)\n", backlight_type, max_backlight);
 		break;
 	case BACKLIGHT_LOW_LEVEL:
 		if(disp_info->bl_is_start_second_timer == true) {
-			del_timer(&backlight_second_timer);
+			del_timer(backlight_timer);
 			disp_info->bl_is_start_second_timer = false;
 		}
 		disp_info->bl_is_shield_backlight = false;
-		udelay(bl_delay_time);
 		if (common_info->hbm.exit_cmds_fir.cmds != NULL) {
 			if (adapt_ops->mipi_tx) {
 				if(min_backlight >= level1 && min_backlight < level2){
@@ -207,7 +203,6 @@ static int boe_r66451_set_vss_by_thermal(void *hld)
 	thermal_zone = thermal_zone_get_zone_by_name("shell_front");
 	if(IS_ERR_OR_NULL(thermal_zone)){
 		LCD_KIT_ERR("Failed getting thermal zone!\n");
-		thermal_zone = NULL;
 		return LCD_KIT_FAIL;
 	}
 	ret = thermal_zone_get_temp(thermal_zone, &current_thermal);
@@ -234,8 +229,8 @@ static int boe_r66451_set_vss_by_thermal(void *hld)
 	}
 	bl_level = common_info->set_vss.new_backlight;
 
-	LCD_KIT_INFO("[boe_set_vss] enter_times = %d, descend_flag = %d\n", enter_times, descend_flag);
-	LCD_KIT_INFO("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
+	LCD_KIT_DEBUG("[boe_set_vss] enter_times = %d, descend_flag = %d\n", enter_times, descend_flag);
+	LCD_KIT_DEBUG("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
 	if((enter_times == FIRST_TIME || descend_flag)&&(zone_flag != ZONE_FIRST)&&(current_thermal <= CRITICAL_THERAML1)&&(bl_level >= BL_LEVEL1 && bl_level < BL_LEVEL2)){
 		if(adapt_ops->mipi_tx) {
 			ret = adapt_ops->mipi_tx((void *)hisifd, &common_info->set_vss.cmds_fir);
@@ -261,7 +256,7 @@ static int boe_r66451_set_vss_by_thermal(void *hld)
 		mini_thermal = current_thermal;
 	}
 	enter_times = FIRST_TIME;
-	LCD_KIT_INFO("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
+	LCD_KIT_DEBUG("[boe_set_vss] zone_flag = %d, thermal = %d, bl_level = %d\n", zone_flag, current_thermal, bl_level);
 
 	return ret;
 }

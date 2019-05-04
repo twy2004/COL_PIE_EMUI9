@@ -17,8 +17,10 @@ struct ivp_sec_ion_s {
     struct ion_client *ivp_ion_client;
 };
 
+#ifdef SEC_IVP_ENABLE
 extern int ivp_alloc_secbuff(unsigned int size);
 extern void ivp_free_secbuff(void);
+#endif
 extern int ivp_create_secimage_thread(struct ivp_device *ivp_devp);
 extern int ivp_destroy_secimage_thread(struct ivp_device *ivp_devp);
 extern int ivp_sec_load(void);

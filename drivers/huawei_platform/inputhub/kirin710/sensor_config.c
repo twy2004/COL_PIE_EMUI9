@@ -802,6 +802,33 @@ int tpmodule_notifier_call_chain(unsigned long val, void *v)
 }
 EXPORT_SYMBOL(tpmodule_notifier_call_chain);
 
+void set_als_extend_prameters(als_para_normal_table *als_para_diff_tp_color_table, int arraysize)
+{
+	unsigned int i = 0;
+	int min_threshold_num = 0;
+	int max_threshold_num = 0;
+
+	for (i = 0; i < arraysize; i++) {
+		if (((als_para_diff_tp_color_table + i)->phone_type == als_data.als_phone_type) &&
+				((als_para_diff_tp_color_table + i)->phone_version == als_data.als_phone_version) &&
+				(((als_para_diff_tp_color_table + i)->tp_manufacture == tp_manufacture) ||
+				 ((als_para_diff_tp_color_table + i)->tp_manufacture == TS_PANEL_UNKNOWN))) {
+			break;
+		}
+	}
+
+	memcpy(als_data.als_extend_data,
+			(als_para_diff_tp_color_table + i)->als_para,
+			sizeof(s16) * (als_para_diff_tp_color_table + i)->len >
+			SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE
+			? SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE
+			: sizeof(s16) * (als_para_diff_tp_color_table + i)->len);
+	min_threshold_num = (als_para_diff_tp_color_table + i)->len - 1;
+	max_threshold_num = (als_para_diff_tp_color_table + i)->len - 2;
+	minThreshold_als_para = (als_para_diff_tp_color_table + i)->als_para[min_threshold_num];
+	maxThreshold_als_para = (als_para_diff_tp_color_table + i)->als_para[max_threshold_num];
+}
+
 void set_tsl2591_als_extend_prameters(void)
 {
 	int tsl2591_als_para_table = 0;
@@ -810,7 +837,7 @@ void set_tsl2591_als_extend_prameters(void)
 	{
 		if((tsl2591_als_para_diff_tp_color_table[i].phone_type == als_data.als_phone_type)
 			&& (tsl2591_als_para_diff_tp_color_table[i].phone_version == als_data.als_phone_version)
-			&&(( tsl2591_als_para_diff_tp_color_table[i].tp_manufacture == tp_manufacture)
+			&& ((tsl2591_als_para_diff_tp_color_table[i].tp_manufacture == tp_manufacture)
 				||(tsl2591_als_para_diff_tp_color_table[i].tp_manufacture == TS_PANEL_UNKNOWN)))
 		{
 			tsl2591_als_para_table = i;
@@ -842,14 +869,15 @@ void set_bh1726_als_extend_prameters(void)
 			break;
 		}
 	}
+
 	memcpy(als_data.als_extend_data,bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para,
 		sizeof(bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para) >
 		SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE?
 		SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE:
 		sizeof(bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para));
 
-	minThreshold_als_para = bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para[BH1726_MAX_ThRESHOLD_NUM];
-	maxThreshold_als_para = bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para[BH1726_MIN_ThRESHOLD_NUM];
+	minThreshold_als_para = bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para[BH1726_MIN_ThRESHOLD_NUM];
+	maxThreshold_als_para = bh1726_als_para_diff_tp_color_table[bh1726_als_para_table].bh1726_para[BH1726_MAX_ThRESHOLD_NUM];
 }
 
 /* set als parameters */
@@ -1209,6 +1237,15 @@ void select_als_para(struct device_node *dn)
 		set_bh1726_als_extend_prameters();
 	} else if (g_apds9308Flag == 1) {
 		SetApds9308AlsExtendPrameters();
+	} else if (vishay_vcnl36832_als_flag == 1) {
+		set_als_extend_prameters(&vcnl36832_als_para_diff_tp_color_table[0],
+				ARRAY_SIZE(vcnl36832_als_para_diff_tp_color_table));
+	} else if (stk3338_als_flag == 1) {
+		set_als_extend_prameters(&stk3338_als_para_diff_tp_color_table[0],
+				ARRAY_SIZE(stk3338_als_para_diff_tp_color_table));
+	} else if (ltr2568_als_flag == 1) {
+		set_als_extend_prameters(&ltr2568_als_para_diff_tp_color_table[0],
+				ARRAY_SIZE(ltr2568_als_para_diff_tp_color_table));
 	}
 	else {
 		ret = fill_extend_data_in_dts(dn, "als_extend_data", als_data.als_extend_data, 12, EXTEND_DATA_TYPE_IN_DTS_HALF_WORD);

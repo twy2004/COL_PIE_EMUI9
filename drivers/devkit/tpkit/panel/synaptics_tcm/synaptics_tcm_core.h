@@ -552,6 +552,9 @@ struct syna_tcm_hcd {
 	unsigned int use_dma_download_firmware;
 	unsigned int downmload_firmware_frequency;
 	unsigned int spi_comnunicate_frequency;
+	unsigned int resume_retry_download_fw_support;
+	unsigned int retry_download_delay_time;
+	unsigned int retry_download_retry_times;
 	int (*reset)(struct syna_tcm_hcd *tcm_hcd, bool hw, bool update_wd);
 	int (*sleep)(struct syna_tcm_hcd *tcm_hcd, bool en);
 	int (*identify)(struct syna_tcm_hcd *tcm_hcd, bool id);
@@ -666,6 +669,21 @@ static inline int secure_memcpy(unsigned char *dest, unsigned int dest_size,
 	memcpy((void *)dest, (const void *)src, count);
 
 	return 0;
+}
+
+static inline char *syna_tcm_strncat(char *dest, char *src, size_t dest_size)
+{
+	size_t dest_len = 0;
+	size_t len = 0;
+
+	dest_len = strnlen(dest, dest_size);
+	if (dest_size > dest_len) {
+		len = dest_size - dest_len - 1;
+	} else {
+		len = 0;
+	}
+
+	return strncat(&dest[dest_len], src, len);
 }
 
 static inline int syna_tcm_realloc_mem(struct syna_tcm_hcd *tcm_hcd,

@@ -58,7 +58,9 @@
 #include "PsNdis.h"
 #include "Ipv4DhcpServer.h"
 #include "IpComm.h"
-
+#include "mdrv.h"
+#include "ps_tag.h"
+#define THIS_MODU ps_ndis
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -1139,19 +1141,19 @@ VOS_VOID IPV4_DHCP_ProcDhcpPkt(VOS_UINT8  *pucIpPkt, VOS_UINT8 ucRabId, VOS_UINT
 
 VOS_VOID IPV4_DHCP_ShowDebugInfo(VOS_VOID)
 {
-    PS_PRINTF("Recv Dhcp Packet              :    %d \r\n",g_stDhcpStatStru.ulRecvDhcpPkt);
-    PS_PRINTF("Recv Dhcp Discover  Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvDiscoverMsg);
-    PS_PRINTF("Recv Dhcp Request   Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvRequestMsg);
-    PS_PRINTF("Recv Dhcp Selecting Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvSelectingReqMsg);
-    PS_PRINTF("Recv Dhcp Other     Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvOtherReqMsg);
-    PS_PRINTF("Recv Dhcp Release   Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvReleaseMsg);
-    PS_PRINTF("Recv Dhcp Other Typ Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvOtherTypeMsg);
-    PS_PRINTF("Proc Dhcp Packet    Error     :    %d \r\n",g_stDhcpStatStru.ulProcErr);
-    PS_PRINTF("Send Dhcp Offer               :    %d \r\n",g_stDhcpStatStru.ulSendOffer);
-    PS_PRINTF("Send Dhcp Ack                 :    %d \r\n",g_stDhcpStatStru.ulSendAck);
-    PS_PRINTF("Send Dhcp NACK                :    %d \r\n",g_stDhcpStatStru.ulSendNack);
-    PS_PRINTF("Send Dhcp Mac Frame Succ      :    %d \r\n",g_stDhcpStatStru.ulSendDhcpPktSucc);
-    PS_PRINTF("Send Dhcp Mac Frame Fail      :    %d \r\n",g_stDhcpStatStru.ulSendDhcpPktFail);
+    PS_PRINTF_ERR("Recv Dhcp Packet              :    %d \r\n",g_stDhcpStatStru.ulRecvDhcpPkt);
+    PS_PRINTF_ERR("Recv Dhcp Discover  Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvDiscoverMsg);
+    PS_PRINTF_ERR("Recv Dhcp Request   Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvRequestMsg);
+    PS_PRINTF_ERR("Recv Dhcp Selecting Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvSelectingReqMsg);
+    PS_PRINTF_ERR("Recv Dhcp Other     Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvOtherReqMsg);
+    PS_PRINTF_ERR("Recv Dhcp Release   Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvReleaseMsg);
+    PS_PRINTF_ERR("Recv Dhcp Other Typ Msg       :    %d \r\n",g_stDhcpStatStru.ulRecvOtherTypeMsg);
+    PS_PRINTF_ERR("Proc Dhcp Packet    Error     :    %d \r\n",g_stDhcpStatStru.ulProcErr);
+    PS_PRINTF_ERR("Send Dhcp Offer               :    %d \r\n",g_stDhcpStatStru.ulSendOffer);
+    PS_PRINTF_ERR("Send Dhcp Ack                 :    %d \r\n",g_stDhcpStatStru.ulSendAck);
+    PS_PRINTF_ERR("Send Dhcp NACK                :    %d \r\n",g_stDhcpStatStru.ulSendNack);
+    PS_PRINTF_ERR("Send Dhcp Mac Frame Succ      :    %d \r\n",g_stDhcpStatStru.ulSendDhcpPktSucc);
+    PS_PRINTF_ERR("Send Dhcp Mac Frame Fail      :    %d \r\n",g_stDhcpStatStru.ulSendDhcpPktFail);
 
     return;
 }

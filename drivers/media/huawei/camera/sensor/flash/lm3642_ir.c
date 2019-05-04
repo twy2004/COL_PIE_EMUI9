@@ -55,7 +55,7 @@
 #define LM3642_IR_OVER_VOLTAGE_PROTECT               0x08
 #define LM3642_IR_LED_VOUT_SHORT                     0x04
 #define LM3642_IR_OVER_TEMP_PROTECT                  0x02
-
+#define CHIP_ID_MASK                                 0x07
 #define RETURN_ERROR_IF(x) \
         if ((x)) { \
             cam_err("%s error %s.", __func__, #x); \
@@ -611,7 +611,6 @@ static int hw_lm3642_ir_get_dt_data(struct hw_flash_ctrl_t *flash_ctrl)
     if (rc < 0) {
         cam_info("%s failed %d", __func__, __LINE__);
         pdata->flash_current = FLASH_LED_LEVEL_INVALID;
-        //return rc;
     }
 
     rc = of_property_read_u32(of_node, "huawei,torch_current",
@@ -621,8 +620,6 @@ static int hw_lm3642_ir_get_dt_data(struct hw_flash_ctrl_t *flash_ctrl)
     if (rc < 0) {
         cam_err("%s failed %d", __func__, __LINE__);
         pdata->torch_current = FLASH_LED_LEVEL_INVALID;
-        //TO FIX
-        //return rc;
     }
 
     rc = of_property_read_u32(of_node, "huawei,flash-chipid",
@@ -969,9 +966,10 @@ static int hw_lm3642_ir_match(struct hw_flash_ctrl_t *flash_ctrl)
     } else {
         loge_if_ret(i2c_func->i2c_read(i2c_client, REG_CHIP_ID, &id) < 0);
         cam_info("%s id=0x%x.\n", __func__, id);
+		id = id & CHIP_ID_MASK;
         if (id != pdata->chipid) {
             cam_err("%s match error, id(0x%x) != 0x%x.",
-                __func__, (id&0x7), pdata->chipid);
+                __func__, id, pdata->chipid);
             return -EINVAL;
         }
         loge_if_ret(i2c_func->i2c_write(i2c_client, REG_ENABLE, IVFM_EN) < 0);  //enable IVFM

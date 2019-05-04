@@ -83,7 +83,7 @@ NPU_PM_RUNTIME_S *adapter_pm_core1 = NULL;
 /* open performance monitor */
 void performance_monitor_open(unsigned int coreid)
 {
-    unsigned long irq_io_addr = 0;
+    uintptr_t irq_io_addr = 0;
 
     if (!adapter->common.feature.performance_monitor) {
         NPU_ERR("unsupport op in this platform!\n");
@@ -95,7 +95,7 @@ void performance_monitor_open(unsigned int coreid)
         return;
     }
 
-    irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     /* PERF_CNT_CLK_GT.perf_cnt_clk_gt = 0x1, to OPEN performance monitor */
     iowrite32(PERF_CNT_CLK_GT_ENABLE, (void *)SOC_ICS_PERF_CNT_CLK_GT_ADDR(irq_io_addr));
@@ -118,7 +118,7 @@ static void performance_monitor_get_stat(unsigned int coreid)
     unsigned int all_busy_cnt = 0;
     unsigned int frame_cnt = 0;
     unsigned int vcodecbus_clk = 0;
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     if (!adapter->common.feature.performance_monitor) {
         NPU_ERR("unsupport op in this platform!\n");
@@ -159,7 +159,7 @@ static void performance_monitor_get_stat(unsigned int coreid)
 /*close performance monitor*/
 static void performance_monitor_close(unsigned int coreid)
 {
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     if (!adapter->common.feature.performance_monitor) {
         NPU_ERR("unsupport op in this platform!\n");
@@ -180,7 +180,7 @@ static void performance_monitor_close(unsigned int coreid)
 /*interrupt init*/
 static void npu_interrupt_init(unsigned int coreid)
 {
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     /* clear npu status to unfinished */
     npu_task_finish_interrupt_clear(coreid);
@@ -197,7 +197,7 @@ static void npu_interrupt_init(unsigned int coreid)
 /* to mask npu interrupt and will not receive it */
 static void npu_interrupt_deinit(unsigned int coreid)
 {
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     /* clear npu status to unfinished */
     npu_task_finish_interrupt_clear(coreid);
@@ -214,7 +214,7 @@ static void npu_interrupt_deinit(unsigned int coreid)
 /*irq handle*/
 static void npu_core_irq_handler_func(unsigned int coreid)
 {
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     if (adapter->common.feature.level1_irq) {
         npu_core_irq_handler(coreid, irq_io_addr);
@@ -410,7 +410,7 @@ static long npu_get_chip_type(unsigned long arg)
 
     NPU_DEBUG("param[0][0x%x], param[1][0x%x]", param[0], param[1]);
 
-    if (copy_to_user((void __user *)arg, param, sizeof(param))) {
+    if (copy_to_user((void __user *)(uintptr_t)arg, param, sizeof(param))) {
         NPU_ERR("copy_to_user failed!\n");
         return -EFAULT;
     }
@@ -458,7 +458,7 @@ static long npu_process_workqueue(unsigned long arg)
         return -EFAULT;
     }
 
-    ret = copy_from_user(param, (void __user *)arg, sizeof(param));
+    ret = copy_from_user(param, (void __user *)(uintptr_t)arg, sizeof(param));
     if (ret) {
         NPU_ERR("Copy_from_user failed!");
         return -EINVAL;
@@ -490,7 +490,7 @@ static long npu_process_workqueue(unsigned long arg)
 static void npu_soft_reset(unsigned int coreid)
 {
     int loop = 0;
-    unsigned long irq_io_addr = (unsigned long)adapter->core[coreid].npu_irq.io_addr;
+    uintptr_t irq_io_addr = (uintptr_t)adapter->core[coreid].npu_irq.io_addr;
 
     /*config ICS_SOFT_RST_REQ  = 0x1*/
     iowrite32(1, (void *)SOC_ICS_SOFT_RST_REQ_ADDR(irq_io_addr));
@@ -593,7 +593,7 @@ static long npu_set_secure_mode(unsigned long arg)
         return -EFAULT;
     }
 
-    if (copy_from_user(param, (void __user *)arg, sizeof(param))) {
+    if (copy_from_user(param, (void __user *)(uintptr_t)arg, sizeof(param))) {
         NPU_ERR("copy arg failed!\n");
         return -EFAULT;
     }
@@ -667,7 +667,7 @@ static long npu_release_secure_mode(unsigned long arg)
         return -EFAULT;
     }
 
-    if (copy_from_user(param, (void __user *)arg, sizeof(param))) {
+    if (copy_from_user(param, (void __user *)(uintptr_t)arg, sizeof(param))) {
         NPU_ERR("copy arg failed!\n");
         return -EFAULT;
     }
@@ -779,7 +779,7 @@ static long npu_set_report_statistic(unsigned long arg)
 
     CTRL_UNLOCK(coreid);  //lint !e455
 
-    if (copy_to_user((void __user *)arg, &smmu_stat, sizeof(SMMU_STAT_S))) {
+    if (copy_to_user((void __user *)(uintptr_t)arg, &smmu_stat, sizeof(SMMU_STAT_S))) {
         NPU_ERR("copy_to_user failed core number=%d!\n", coreid);
         return -EFAULT;
     }
@@ -801,7 +801,7 @@ static long npu_set_update_pte(unsigned long arg)
         return -EFAULT;
     }
 
-    if (copy_from_user(&coreid, (void __user *)arg, sizeof(int))) {
+    if (copy_from_user(&coreid, (void __user *)(uintptr_t)arg, sizeof(int))) {
         NPU_ERR("copy arg failed!\n");
         return -EFAULT;
     }
@@ -868,7 +868,7 @@ static long npu_set_reset_virt_addr(unsigned long arg)
         NPU_ERR("npu_smmu_map failed!\n");
     }
 
-	if (copy_to_user((void __user *)arg, &map_data, sizeof(map_data))) {
+	if (copy_to_user((void __user *)(uintptr_t)arg, &map_data, sizeof(map_data))) {
         NPU_ERR("copy_to_user failed!\n");
         ret = -EFAULT;
     }
@@ -897,7 +897,7 @@ long npu_set_workprofile(unsigned long arg)
     }
 
     memset(param, 0x0, sizeof(param));
-    if (copy_from_user(param, (void __user *)arg, sizeof(param))) {
+    if (copy_from_user(param, (void __user *)(uintptr_t)arg, sizeof(param))) {
         NPU_ERR("copy arg failed!\n");
         return -EFAULT;
     }
@@ -984,7 +984,7 @@ static long npu_set_map(unsigned long arg)
         CTRL_UNLOCK(coreid); //lint !e455
     }
 
-    if (copy_to_user((void __user *)arg, &map_data, sizeof(map_data))) {
+    if (copy_to_user((void __user *)(uintptr_t)arg, &map_data, sizeof(map_data))) {
         NPU_ERR("copy_to_user failed!\n");
         ret = -EFAULT;
     }
@@ -1009,7 +1009,7 @@ static long npu_set_unmap(unsigned long arg)
         return -EFAULT;
     }
 
-    if (copy_from_user(&map_data, (void __user *)arg, sizeof(map_data))) {
+    if (copy_from_user(&map_data, (void __user *)(uintptr_t)arg, sizeof(map_data))) {
         NPU_ERR("copy_from_user failed!\n");
         return -EFAULT;
     }
@@ -1120,7 +1120,7 @@ static long npu_ioctl32(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     void *ptr_user = compat_ptr(arg);
 
-    return npu_ioctl(filp, cmd, (unsigned long)ptr_user);
+    return npu_ioctl(filp, cmd, (uintptr_t)ptr_user);
 }
 
 static loff_t npu_llseek(struct file *filp, loff_t off, int whence)
@@ -1179,7 +1179,7 @@ static void npu_common_release_features(void)
 /* get common feature by dtsi */
 static int npu_common_get_features(struct device *dev)
 {
-    int property_rd = 0;
+    unsigned int property_rd = 0;
     FEATURE_S* p_feature = &adapter->common.feature;
 
     struct device_node *node = of_find_node_by_name(dev->of_node, "platform_features");
@@ -1188,8 +1188,8 @@ static int npu_common_get_features(struct device *dev)
         return -EFAULT;
     }
 
-    property_rd  = of_property_read_u32(node, "core_num", &p_feature->core_num);
-    property_rd |= of_property_read_u32(node, "is_sswq",  &p_feature->is_selfstart);
+    property_rd  = (unsigned int)of_property_read_u32(node, "core_num", &p_feature->core_num);
+    property_rd |= (unsigned int)of_property_read_u32(node, "is_sswq",  &p_feature->is_selfstart);
     if (property_rd) {
         NPU_ERR("read property of core-num and sswq error. p_feature->core_num=%u, p_feature->core_num=%u\n",
 			p_feature->core_num, p_feature->is_selfstart);
@@ -1210,27 +1210,27 @@ static int npu_common_get_features(struct device *dev)
         goto err;
     }
 
-    property_rd = of_property_read_u32(node, "level1_irq",               &p_feature->level1_irq);
+    property_rd = (unsigned int)of_property_read_u32(node, "level1_irq",               &p_feature->level1_irq);
     if (property_rd) {
         NPU_DEBUG("not support level1_irq\n");
         p_feature->level1_irq = 0;
     }
-    property_rd = of_property_read_u32(node, "performance_monitor",      &p_feature->performance_monitor);
+    property_rd = (unsigned int)of_property_read_u32(node, "performance_monitor",      &p_feature->performance_monitor);
     if (property_rd) {
         NPU_DEBUG("not support performance_monitor\n");
         p_feature->performance_monitor = 0;
     }
-    property_rd = of_property_read_u32(node, "lpm3_set_vcodecbus",       &p_feature->lpm3_set_vcodecbus);
+    property_rd = (unsigned int)of_property_read_u32(node, "lpm3_set_vcodecbus",       &p_feature->lpm3_set_vcodecbus);
     if (property_rd) {
         NPU_DEBUG("not support lpm3_set_vcodecbus\n");
         p_feature->lpm3_set_vcodecbus = 0;
     }
-    property_rd = of_property_read_u32(node, "npu_reset_when_in_error",  &p_feature->npu_reset_when_in_error);
+    property_rd = (unsigned int)of_property_read_u32(node, "npu_reset_when_in_error",  &p_feature->npu_reset_when_in_error);
     if (property_rd) {
         NPU_DEBUG("not support npu_reset_when_in_error\n");
         p_feature->npu_reset_when_in_error = 0;
     }
-    property_rd = of_property_read_u32(node, "npu_bandwidth_lmt",        &p_feature->npu_bandwidth_lmt);
+    property_rd = (unsigned int)of_property_read_u32(node, "npu_bandwidth_lmt",        &p_feature->npu_bandwidth_lmt);
     if (property_rd) {
         NPU_DEBUG("not support npu_bandwidth_lmt\n");
         p_feature->npu_bandwidth_lmt = 0;
@@ -1602,8 +1602,8 @@ err:
 void npu_reset(unsigned int coreid)
 {
 	struct npu_peri_reg_s peri_reg;
-    unsigned long peri_io_addr   = (unsigned long)adapter->common.peri_reg.io_addr;
-    unsigned long media2_io_addr = (unsigned long)adapter->common.media2_reg.io_addr;
+    uintptr_t peri_io_addr   = (uintptr_t)adapter->common.peri_reg.io_addr;
+    uintptr_t media2_io_addr = (uintptr_t)adapter->common.media2_reg.io_addr;
 
     if (coreid > adapter->common.feature.core_num - 1) {
         NPU_ERR("param err coreid[%d]!", coreid);
@@ -2143,21 +2143,21 @@ static struct platform_driver npu_driver = {
 /* npu platform device and driver register */
 static int __init npu_module_init(void)
 {
-    int ret;
+    unsigned int ret;
 
     NPU_DEBUG("platform device and driver register!\n");
-    ret = platform_driver_register(&npu_driver);
+    ret = (unsigned int)platform_driver_register(&npu_driver);
 
     /* No need to "platform_device_register(&npu_device);",
            because it did when DTS initializating, no need to register device again
          */
 
-    ret |= platform_device_register(&npu_device_core0);/*lint !e64*/
-    ret |= platform_driver_register(&npu_driver_core0);/*lint !e64*/
-    ret |= platform_device_register(&npu_device_core1);/*lint !e64*/
-    ret |= platform_driver_register(&npu_driver_core1);/*lint !e64*/
+    ret |= (unsigned int)platform_device_register(&npu_device_core0);/*lint !e64*/
+    ret |= (unsigned int)platform_driver_register(&npu_driver_core0);/*lint !e64*/
+    ret |= (unsigned int)platform_device_register(&npu_device_core1);/*lint !e64*/
+    ret |= (unsigned int)platform_driver_register(&npu_driver_core1);/*lint !e64*/
 
-    return ret;
+    return (int)ret;
 }
 
 /* npu platform device and driver unregister */

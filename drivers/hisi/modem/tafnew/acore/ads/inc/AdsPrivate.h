@@ -81,32 +81,32 @@ extern "C" {
 #if (VOS_OS_VER == VOS_LINUX)
 /*lint -emacro({717}, ADS_PR_LOGH)*/
 #define ADS_PR_LOGH(fmt, ...) \
-			do { \
-				pr_err("[NAS_ADS]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_ADS]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, ADS_PR_LOGE)*/
 #define ADS_PR_LOGE(fmt, ...) \
-			do { \
-				pr_err("[NAS_ADS]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_ADS]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, ADS_PR_LOGI)*/
 #define ADS_PR_LOGI(fmt, ...) \
-			do { \
-				pr_info("[NAS_ADS]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_info("[NAS_ADS]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, ADS_PR_LOGD)*/
 #define ADS_PR_LOGD(fmt, ...) \
-			do { \
-				pr_debug("[NAS_ADS]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_debug("[NAS_ADS]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 #else
-#define ADS_PR_LOGH                                 PS_PRINTF
-#define ADS_PR_LOGE                                 PS_PRINTF
-#define ADS_PR_LOGI                                 PS_PRINTF
-#define ADS_PR_LOGD                                 PS_PRINTF
+#define ADS_PR_LOGH                                 PS_PRINTF_ERR
+#define ADS_PR_LOGE                                 PS_PRINTF_WARNING
+#define ADS_PR_LOGI                                 PS_PRINTF_INFO
+#define ADS_PR_LOGD                                 PS_PRINTF_DEBUG
 #endif
 
 /*****************************************************************************

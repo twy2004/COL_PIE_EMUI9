@@ -88,7 +88,7 @@ extern "C" {
 *****************************************************************************/
 
 #define RNIC_NET_ID_MAX_NUM             (RNIC_DEV_ID_BUTT)
-#define RNIC_3GPP_NET_ID_MAX_NUM        (RNIC_DEV_ID_RMNET6)
+#define RNIC_3GPP_NET_ID_MAX_NUM        (RNIC_DEV_ID_DATA_MAX)
 #define RNIC_MODEM_ID_MAX_NUM           (MODEM_ID_BUTT)
 
 #define RNIC_IPV4_VERSION               (4)                                     /* IP头部中IP V4版本号 */
@@ -272,6 +272,23 @@ extern "C" {
 #define RNIC_GET_TETHER_ORIG_GRO_FEATURE()             (g_stRnicCtx.stTetherInfo.ucOrigGroEnable)
 #define RNIC_SET_TETHER_ORIG_GRO_FEATURE(val)          (g_stRnicCtx.stTetherInfo.ucOrigGroEnable = (val))
 
+/* 获取指定网卡NAPI特性开关 */
+#define RNIC_GET_NAPI_LB_FEATURE(index)                (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.ucNapiLbEnable)
+/* 获取指定网卡NAPI负载均衡CPU掩码 */
+#define RNIC_GET_NAPI_LB_CPUMASK(index)                (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.usNapiLbCpumask)
+/* 获取指定网卡NAPI负载均衡当前档位 */
+#define RNIC_GET_NAPI_LB_CUR_LEVEL(index)              (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.ucNapiLbCurLevel)
+/* 获取指定网卡NAPI负载均衡档位对应的pps */
+#define RNIC_GET_NAPI_LB_LEVEL_PPS(index, level)       (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.astNapiLbLevelCfg[(level)].ulPps)
+/* 获取指定网卡NAPI负载均衡档位配置 */
+#define RNIC_GET_NAPI_LB_LEVEL_CFG(index)              (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.astNapiLbLevelCfg)
+
+/* 设置网卡NAPI特性开关 */
+#define RNIC_SET_NAPI_LB_FEATURE(index, val)           (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.ucNapiLbEnable = (val))
+/* 设置指定网卡NAPI负载均衡CPU掩码 */
+#define RNIC_SET_NAPI_LB_CPUMASK(index, val)           (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.usNapiLbCpumask = (val))
+/* 设置指定网卡NAPI负载均衡当前档位 */
+#define RNIC_SET_NAPI_LB_CUR_LEVEL(index, val)         (g_stRnicCtx.astIfaceCtx[index].stFeatureCfg.stNapiLbCfg.ucNapiLbCurLevel = (val))
 
 /*****************************************************************************
   3 枚举定义
@@ -408,6 +425,22 @@ typedef struct
 
 } RNIC_NAPI_CFG_STRU;
 
+
+typedef struct
+{
+    VOS_UINT8                           ucNapiLbEnable;                         /* NAPI负载均衡功能开关 */
+    VOS_UINT8                           ucNapiLbCurLevel;                       /* 当前负载均衡档位 */
+    VOS_UINT16                          usNapiLbCpumask;                        /* 参与Napi负载均衡的CPU掩码 */
+    VOS_UINT8                           ucReserved0;                            /* 保留位 */
+    VOS_UINT8                           ucReserved1;                            /* 保留位 */
+    VOS_UINT8                           ucReserved2;                            /* 保留位 */
+    VOS_UINT8                           ucReserved3;                            /* 保留位 */
+    VOS_UINT32                          ulReserved0;                            /* 保留位 */
+    VOS_UINT32                          ulReserved1;                            /* 保留位 */
+    RNIC_NAPI_LB_LEVEL_CFG_STRU         astNapiLbLevelCfg[RNIC_NVIM_NAPI_LB_MAX_LEVEL]; /* Napi负载均衡档位配置 */
+
+} RNIC_NAPI_LB_CFG_STRU;
+
 #if (defined(CONFIG_BALONG_SPE))
 
 typedef struct
@@ -424,6 +457,8 @@ typedef struct
 typedef struct
 {
     RNIC_NAPI_CFG_STRU                  stNapiCfg;                              /* NAPI,GRO特性配置 */
+    RNIC_NAPI_LB_CFG_STRU               stNapiLbCfg;                            /* NAPI软中断负载均衡配置 */
+
 #if (defined(CONFIG_BALONG_SPE))
     RNIC_SPE_CFG_STRU                   stSpeCfg;                               /* SPE配置 */
 #endif
@@ -504,7 +539,8 @@ VOS_VOID RNIC_InitCtx(VOS_VOID);
 VOS_VOID RNIC_InitPdnInfo(RNIC_PS_IFACE_INFO_STRU *pstPdnInfo);
 VOS_VOID RNIC_InitNapiCfg(
     RNIC_DEV_ID_ENUM_UINT8              enRmNetId,
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 );
 VOS_VOID RNIC_InitIpv4PdnInfo(RNIC_PS_IFACE_INFO_STRU *pstPdnInfo);
 VOS_VOID RNIC_InitIpv6PdnInfo(RNIC_PS_IFACE_INFO_STRU *pstPdnInfo);
@@ -512,10 +548,12 @@ VOS_VOID RNIC_InitOnDemandDialInfo(VOS_VOID);
 RNIC_IFACE_CTX_STRU* RNIC_GetNetCntxtByRmNetId(RNIC_DEV_ID_ENUM_UINT8 enRmNetId);
 VOS_VOID RNIC_InitResetSem(VOS_VOID);
 VOS_VOID RNIC_ReadNapiCfg(
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 );
-VOS_VOID RNIC_CheckNetIfCfgValid(
-    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg
+VOS_VOID RNIC_CheckNapiCfgValid(
+    TAF_NV_RNIC_NAPI_CFG_STRU          *pstNapiCfg,
+    TAF_NV_RNIC_NAPI_LB_CFG_STRU       *pstNapiLbCfg
 );
 VOS_VOID RNIC_InitTetherInfo(VOS_VOID);
 

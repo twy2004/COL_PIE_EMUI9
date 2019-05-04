@@ -151,7 +151,7 @@ void hisifb_save_file(char *filename, char *buf, uint32_t buf_len)
 	}
 
 	old_fs = get_fs();
-	set_fs(KERNEL_DS);
+	set_fs(KERNEL_DS); //lint !e501
 
 	write_len = vfs_write(fd, (char __user*)buf, buf_len, &pos);
 
@@ -191,7 +191,6 @@ int hisifb_ctrl_fastboot(struct hisi_fb_data_type *hisifd)
 	return ret;
 }
 
-
 int hisifb_ctrl_on(struct hisi_fb_data_type *hisifd)
 {
 	struct hisi_fb_panel_data *pdata = NULL;
@@ -201,12 +200,13 @@ int hisifb_ctrl_on(struct hisi_fb_data_type *hisifd)
 		HISI_FB_ERR("hisifd is NULL");
 		return -EINVAL;
 	}
+
 	pdata = dev_get_platdata(&hisifd->pdev->dev);
+
 	if (NULL == pdata) {
 		HISI_FB_ERR("pdata is NULL");
 		return -EINVAL;
 	}
-
 
 	if (pdata->on) {
 		ret = pdata->on(hisifd->pdev);
@@ -325,7 +325,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 		return -EINVAL;
 	}
 
-	down(&hisifd->power_esd_sem);
+	down(&hisifd->power_sem);
 
 	if (!hisifd->panel_power_on) {
 		HISI_FB_DEBUG("fb%d, panel power off!\n", hisifd->index);
@@ -341,7 +341,7 @@ int hisifb_ctrl_esd(struct hisi_fb_data_type *hisifd)
 	}
 
 err_out:
-	up(&hisifd->power_esd_sem);
+	up(&hisifd->power_sem);
 
 	return ret;
 }
@@ -351,7 +351,7 @@ int hisifb_ctrl_sbl(struct fb_info *info, int value)
 	int ret = 0;
 	struct hisi_fb_data_type *hisifd = NULL;
 	struct hisi_fb_panel_data *pdata = NULL;
-	int  bl_level = 0;
+	uint32_t  bl_level = 0;
 	int tmp = 0;
 
 	if (NULL == info) {
@@ -408,7 +408,7 @@ int hisifb_ctrl_sbl(struct fb_info *info, int value)
 
 	bl_level= (hisifd->bl_level * 255 / hisifd->panel_info.bl_max) & 0xff;
 	bl_level = bl_level - bl_level * 20 /255 + 20;
-	HISI_FB_DEBUG("sbl bl_level = 0x%x \n", bl_level);
+	HISI_FB_DEBUG("sbl bl_level = 0x%x \n", bl_level); //lint !e559
 
 	tmp = bl_level & 0xff;
 	hisifd->sbl.sbl_backlight_l = set_bits32(hisifd->sbl.sbl_backlight_l, tmp, 8, 0);
@@ -617,7 +617,7 @@ int hisifb_ctrl_dss_voltage_set(struct fb_info *info, void __user *argp)
 }
 /*lint +e644 +e540*/
 
-int hisifb_ctrl_dss_vote_cmd_set(struct fb_info *info, void __user *argp)
+int hisifb_ctrl_dss_vote_cmd_set(struct fb_info *info, const void __user *argp)
 {
 	int ret = 0;
 	struct hisi_fb_data_type *hisifd;
@@ -2607,7 +2607,7 @@ static ssize_t hisifb_lcd_func_switch_show(struct device *dev,
 
 static u32 xcc_table_def[12] = {0x0, 0x8000, 0x0,0x0,0x0,0x0,0x8000,0x0,0x0,0x0,0x0,0x8000,};
 
-static void hisifb_lcd_func_switch_store_sbl_xcc_support(struct hisi_panel_info *pinfo, char *command)
+static void hisifb_lcd_func_switch_store_sbl_xcc_support(struct hisi_panel_info *pinfo, const char *command)
 {
 	if (NULL == pinfo) {
 		HISI_FB_ERR("lcd func switch store pinfo NULL Pointer!\n");
@@ -2649,7 +2649,7 @@ static void hisifb_lcd_func_switch_store_sbl_xcc_support(struct hisi_panel_info 
 	}
 }
 
-static void hisifb_lcd_func_switch_store_blpwm(struct hisi_panel_info *pinfo, char *command)
+static void hisifb_lcd_func_switch_store_blpwm(struct hisi_panel_info *pinfo, const char *command)
 {
 	if (NULL == pinfo) {
 		HISI_FB_ERR("lcd func switch store pinfo NULL Pointer!\n");
@@ -2682,7 +2682,7 @@ static void hisifb_lcd_func_switch_store_blpwm(struct hisi_panel_info *pinfo, ch
 	}
 }
 
-static int hisifb_lcd_func_switch_store_lane_nums(struct hisi_fb_data_type *hisifd, struct hisi_panel_info *pinfo, char *command)
+static int hisifb_lcd_func_switch_store_lane_nums(struct hisi_fb_data_type *hisifd, struct hisi_panel_info *pinfo, const char *command)
 {
 	if (NULL == pinfo) {
 		HISI_FB_ERR("lcd func switch store pinfo NULL Pointer!\n");
@@ -2717,7 +2717,7 @@ static int hisifb_lcd_func_switch_store_lane_nums(struct hisi_fb_data_type *hisi
 	return 0;
 }
 
-static void hisifb_lcd_func_switch_store_esd_fps(struct hisi_panel_info *pinfo, char *command)
+static void hisifb_lcd_func_switch_store_esd_fps(struct hisi_panel_info *pinfo, const char *command)
 {
 	if (NULL == pinfo) {
 		HISI_FB_ERR("lcd func switch store pinfo NULL Pointer!\n");
@@ -4500,7 +4500,7 @@ static ssize_t hisi_alpm_function_store(struct device *dev,
 
 	ret = sscanf(buf, "%u", &hisifd->aod_function);
 	if (!ret) {
-		HISI_FB_ERR("sscanf return invaild:%d\n", ret);
+		HISI_FB_ERR("sscanf return invaild:%zd\n", ret);
 		return -1;
 	}
 
@@ -4729,3 +4729,4 @@ void hisifb_sysfs_attrs_add(struct hisi_fb_data_type *hisifd)
 
 	HISI_FB_DEBUG("fb%d, -.\n", hisifd->index);
 }
+#pragma GCC diagnostic pop

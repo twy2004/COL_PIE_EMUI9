@@ -52,7 +52,7 @@
 #include "AtSndMsg.h"
 #include "AtCsimagent.h"
 #include "AtImsaInterface.h"
-
+#include "TafCcmApi.h"
 
 #define    THIS_FILE_ID        PS_FILE_ID_AT_SND_MSG_C
 
@@ -322,6 +322,115 @@ VOS_UINT32 At_SndReleaseRrcReq (
     if ( VOS_OK != ulRslt )
     {
         AT_ERR_LOG("At_SndReleaseRrcReq:ERROR:PS_SEND_MSG ");
+        return VOS_ERR;
+    }
+
+    return VOS_OK;
+}
+
+
+VOS_UINT32  AT_GetSndCcmReqMsgLen(
+    VOS_UINT32                          ulParaLen,
+    VOS_UINT32                         *pulMsgLen
+)
+{
+    VOS_UINT32                          ulMsgLen;
+
+    if (VOS_NULL_PTR == pulMsgLen)
+    {
+        return VOS_ERR;
+    }
+
+    if (ulParaLen <= 4)
+    {
+        ulMsgLen = sizeof(TAF_CCM_APP_REQ_MSG_STRU);
+    }
+    else
+    {
+        ulMsgLen = (sizeof(TAF_CCM_APP_REQ_MSG_STRU) + ulParaLen) - 4;
+    }
+
+    *pulMsgLen = ulMsgLen;
+
+    return VOS_OK;
+}
+
+
+VOS_UINT32  AT_SndCcmReqMsg(
+    TAF_CTRL_STRU                      *pstCtrl,
+    VOS_VOID                           *pPara,
+    VOS_UINT32                          ulMsgType,
+    VOS_UINT32                          ulParaLen
+)
+{
+    TAF_CCM_APP_REQ_MSG_STRU           *pstTafCcmAppMsg = VOS_NULL_PTR;
+    VOS_UINT8                          *pucMsg          = VOS_NULL_PTR;
+    VOS_UINT32                          ulRet;
+    VOS_UINT32                          ulMsgLen;
+    MODEM_ID_ENUM_UINT16                enModemId;
+    VOS_UINT32                          ulReceiverPid;
+    VOS_UINT32                          ulSenderPid;
+
+    enModemId                           = MODEM_ID_0;
+
+    /* 获取client id对应的Modem Id */
+    ulRet                               = AT_GetModemIdFromClient(pstCtrl->usClientId, &enModemId);
+
+    ulReceiverPid                       = AT_GetDestPid(pstCtrl->usClientId, UEPS_PID_CCM);
+    ulSenderPid                         = AT_GetDestPid(pstCtrl->usClientId, WUEPS_PID_TAF);
+
+    if (VOS_ERR == ulRet)
+    {
+        return VOS_ERR;
+    }
+
+    if ((VOS_NULL_PTR == pPara)
+        && (0 != ulParaLen))
+    {
+        return VOS_ERR;
+    }
+
+    /* 获取消息长度 */
+    AT_GetSndCcmReqMsgLen(ulParaLen, &ulMsgLen);
+
+    pucMsg = (VOS_UINT8 *)PS_ALLOC_MSG_WITH_HEADER_LEN(ulSenderPid, ulMsgLen);
+
+    if (VOS_NULL_PTR == pucMsg)
+    {
+        return VOS_ERR;
+    }
+
+    pstTafCcmAppMsg                     = (TAF_CCM_APP_REQ_MSG_STRU *)pucMsg;
+
+    TAF_MEM_SET_S(  (VOS_INT8 *)pstTafCcmAppMsg + VOS_MSG_HEAD_LENGTH,
+                    (ulMsgLen - VOS_MSG_HEAD_LENGTH),
+                    0x00,
+                    (ulMsgLen - VOS_MSG_HEAD_LENGTH));
+
+    pstTafCcmAppMsg->ulMsgName          = ulMsgType;
+    pstTafCcmAppMsg->ulSenderPid        = ulSenderPid;
+    pstTafCcmAppMsg->ulReceiverPid      = ulReceiverPid;
+    pstTafCcmAppMsg->ulSenderCpuId      = VOS_LOCAL_CPUID;
+    pstTafCcmAppMsg->ulReceiverCpuId    = VOS_LOCAL_CPUID;
+
+    /* 填充消息头 */
+    TAF_MEM_CPY_S(  &(pstTafCcmAppMsg->stCtrl),
+                    sizeof(pstTafCcmAppMsg->stCtrl),
+                    pstCtrl,
+                    sizeof(TAF_CTRL_STRU));
+
+    /* 支持不带任何参数的消息结构 */
+    if ((VOS_NULL_PTR   != pPara)
+     && (0              < ulParaLen))
+    {
+        TAF_MEM_CPY_S(  pstTafCcmAppMsg->aucContent,
+                        ulParaLen,
+                        (VOS_UINT8 *)pPara,
+                        ulParaLen);
+    }
+
+    if (VOS_OK != PS_SEND_MSG(ulSenderPid, pucMsg))
+    {
         return VOS_ERR;
     }
 

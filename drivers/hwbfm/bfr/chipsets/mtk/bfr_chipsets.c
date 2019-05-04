@@ -46,6 +46,10 @@ bool bfr_safe_mode_has_been_enabled(void)
     return true;
 }
 
+bool bfr_bopd_has_been_enabled(void)
+{
+    return false;
+}
 
 int bfr_get_full_path_of_rrecord_part(char **path_buf)
 {

@@ -30,5 +30,8 @@ endif
 ifeq ($(CONFIG_IVP_IVPV250), y)
 subdir-ccflags-y += -DIVP_QOS_SUPPORT
 endif
+ifeq ($(CONFIG_IVP_IVPV210), y)
+subdir-ccflags-y += -DIVP_QOS_SUPPORT
+endif
 subdir-ccflags-y += -I$(srctree)/drivers/hisi/tzdriver \
                     -I$(srctree)/drivers/hisi/load_image

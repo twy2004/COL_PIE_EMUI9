@@ -58,6 +58,7 @@
 #include <mdrv_memory.h>
 #include <bsp_shared_ddr.h>
 #include <bsp_vic.h>
+#include <securec.h>
 
 #define HWADP_MAX_IP_BASE_NUM 256U
 #define HWADP_MAX_IRQ_NUM 256U
@@ -224,7 +225,7 @@ int mdrv_get_fix_ddr_addr(BSP_DDR_SECT_QUERY_S *pstSectQuery, BSP_DDR_SECT_INFO_
         return MDRV_ERROR;
     }
 
-    (void)memcpy((void *)pstSectInfo, (const void *)(&g_ddr_info[pstSectQuery->enSectType]), sizeof(BSP_DDR_SECT_INFO_S));
+    (void)memcpy_s((void *)pstSectInfo, sizeof(BSP_DDR_SECT_INFO_S), (const void *)(&g_ddr_info[pstSectQuery->enSectType]), sizeof(BSP_DDR_SECT_INFO_S));
 
     return MDRV_OK;
 }
@@ -320,7 +321,7 @@ int bsp_hwadp_register_base_addr(BSP_IP_TYPE_E type, const char * ip_name, void 
 
 	ip_base->enIPType = type;
 	ip_base->ul_base_addr = base_addr;
-	strncpy((void *)ip_base->ip_name, ip_name, HWADP_MAX_NAME_LEN);
+	strncpy_s((void *)ip_base->ip_name, HWADP_MAX_NAME_LEN+1, ip_name, HWADP_MAX_NAME_LEN);
 
 	list_add(&ip_base->node, &hwadp_ip_addrs);
 
@@ -351,7 +352,7 @@ int bsp_hwadp_register_irq_num(BSP_INT_TYPE_E type, const char * irq_name, unsig
 
 	irq_info->enIPType = type;
 	irq_info->irq_num = irq_num;
-	strncpy((void *)irq_info->int_name, irq_name, HWADP_MAX_NAME_LEN);
+	strncpy_s((void *)irq_info->int_name, HWADP_MAX_NAME_LEN+1, irq_name, HWADP_MAX_NAME_LEN);
 
 	list_add(&irq_info->node, &hwadp_irq_nums);
 

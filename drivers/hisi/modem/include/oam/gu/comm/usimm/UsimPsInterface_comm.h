@@ -66,10 +66,6 @@ extern "C" {
 #include "product_config.h"
 #include "mdrv.h"
 
-#if (FEATURE_VSIM == FEATURE_ON)
-#include "mdrv.h"
-#endif
-
 #pragma pack(4)
 
 /*******************************************************************************
@@ -331,8 +327,8 @@ extern "C" {
 #define USIMM_USIM_EF5GS3GPPLOCI_STR         "3F007FFF6FFF"
 #define USIMM_USIM_EF5GAUTHKEYS_STR          "3F007FFF6F01"
 #define USIMM_USIM_EF5GS3GPPNSC_STR          "3F007FFF6F02"
-#define USIMM_USIM_EFUAC_AIC_STR             "3F007FFF6F0A"
-
+#define USIMM_USIM_EFUAC_AIC_STR             "3F007FFF6F04"
+#define USIMM_USIM_EFSTEERING_OF_UE_IN_VPLMN_STR  "3F007FFF6FFD"
 #define USIMM_USIM_EFPST_STR                 "3F007FFF5F904F10"
 
 #define USIMM_USIM_DFACDC_STR                "3F007FFF5FA0"
@@ -851,26 +847,27 @@ enum USIMM_SWCHECK_ENUM
     USIMM_SW_OTHER_WARNING      ,   /*= 25,  命令执行告警*/
     USIMM_SW_OTHER_ERROR        ,   /*= 26,  命令执行错误*/
     USIMM_SW_SENDCMD_ERROR      ,   /*= 27,  发送命令错误*/
-    USIMM_SW_NO_INFO            ,   /*= 28,   No information given, state of non volatile memory unchanged */
-    USIMM_SW_DATA_CORRUPTED     ,   /*= 29,   Part of returned data may be corrupted */
-    USIMM_SW_END_OF_FILE        ,   /*= 30,   End of file/record reached before reading Le bytes */
-    USIMM_SW_INVALID_FILE       ,   /*= 31,   Selected file invalidated */
-    USIMM_SW_TERMINATE_FILE     ,   /*= 32,   Selected file in termination state */
-    USIMM_SW_MORE_DATA1         ,   /*= 33,   More data available */
-    USIMM_SW_MORE_DATA2         ,   /*= 34,   More data available and proactive command pending */
-    USIMM_SW_RESPONSE_DATA      ,   /*= 35,   Authentication response data available */
-    USIMM_SW_MORE_DATA3         ,   /*= 36,   More data expected */
-    USIMM_SW_MORE_DATA4         ,   /*= 37,   More data expected and proactive command pending */
-    USIMM_SW_TECH_ERROR         ,   /*= 38,   Technical problem, no precise diagnosis */
-    USIMM_SW_COMMAND_ERROR      ,   /*= 39,   Command not allowed - secure channel - security not satisfied */
-    USIMM_SW_EXPIRED_ERROR      ,   /*= 40,   Security session or association expired */
-    USIMM_SW_UNHANDLE_ERROR     ,   /*= 41,   状态字与协议定义的INS字段不符 */
-    USIMM_SW_CDMA_AUTN_ERROR    ,   /*= 42,   CDMA鉴权过程错误 */
-    USIMM_SW_MSGCHECK_ERROR     ,   /*= 43,   参数检查错误 */
-    USIMM_SW_INVALID_BAKID      ,   /*= 44,   BCMCS特殊错误 */
-    USIMM_SW_INVALID_BCMCSFID   ,   /*= 45,   BCMCS特殊错误 */
-    USIMM_SW_DFPATH_ERROR       ,   /*= 46, Status路径不匹配 */
+    USIMM_SW_NO_INFO            ,   /*= 28,  No information given, state of non volatile memory unchanged */
+    USIMM_SW_DATA_CORRUPTED     ,   /*= 29,  Part of returned data may be corrupted */
+    USIMM_SW_END_OF_FILE        ,   /*= 30,  End of file/record reached before reading Le bytes */
+    USIMM_SW_INVALID_FILE       ,   /*= 31,  Selected file invalidated */
+    USIMM_SW_TERMINATE_FILE     ,   /*= 32,  Selected file in termination state */
+    USIMM_SW_MORE_DATA1         ,   /*= 33,  More data available */
+    USIMM_SW_MORE_DATA2         ,   /*= 34,  More data available and proactive command pending */
+    USIMM_SW_RESPONSE_DATA      ,   /*= 35,  Authentication response data available */
+    USIMM_SW_MORE_DATA3         ,   /*= 36,  More data expected */
+    USIMM_SW_MORE_DATA4         ,   /*= 37,  More data expected and proactive command pending */
+    USIMM_SW_TECH_ERROR         ,   /*= 38,  Technical problem, no precise diagnosis */
+    USIMM_SW_COMMAND_ERROR      ,   /*= 39,  Command not allowed - secure channel - security not satisfied */
+    USIMM_SW_EXPIRED_ERROR      ,   /*= 40,  Security session or association expired */
+    USIMM_SW_UNHANDLE_ERROR     ,   /*= 41,  状态字与协议定义的INS字段不符 */
+    USIMM_SW_CDMA_AUTN_ERROR    ,   /*= 42,  CDMA鉴权过程错误 */
+    USIMM_SW_MSGCHECK_ERROR     ,   /*= 43,  参数检查错误 */
+    USIMM_SW_INVALID_BAKID      ,   /*= 44,  BCMCS特殊错误 */
+    USIMM_SW_INVALID_BCMCSFID   ,   /*= 45,  BCMCS特殊错误 */
+    USIMM_SW_DFPATH_ERROR       ,   /*= 46,  Status路径不匹配 */
     USIMM_SW_CLA_NOT_SUPPORT    ,   /*= 47,  CLA错误,需往ICC切*/
+    USIMM_SW_REF_DATA_INVALID   ,   /*= 48,  Referenced Data Invalidated*/
 
     USIMM_SW_BUTT
 };
@@ -1133,6 +1130,7 @@ enum USIMM_DEF_FILEID_ENUM
     USIMM_USIM_EF5GAUTHKEYS_ID         ,
     USIMM_USIM_EF5GS3GPPNSC_ID         ,
     USIMM_USIM_EFUAC_AIC_ID            ,
+    USIMM_USIM_EFSTEERING_OF_UE_IN_VPLMN_ID                ,
     USIMM_TELE_ID                      ,
     USIMM_TELE_EFADN_ID                ,
     USIMM_TELE_EFFDN_ID                ,
@@ -1797,6 +1795,7 @@ typedef VOS_UINT32      UICC_SERVICES_TYPE_ENUM_UINT32;
 enum USIMM_RESTRIC_CMD_ENUM
 {
     USIMM_AUTHENTICATION                = 136,
+    USIMM_SEARCH_RECORD                 = 162,
     USIMM_READ_BINARY                   = 176,
     USIMM_READ_RECORD                   = 178,
     USIMM_GET_RESPONSE                  = 192,
@@ -2925,7 +2924,7 @@ typedef struct
     VOS_UINT32                          ulSessionId;                            /* 会话id */
     VOS_UINT32                          ulChanNum;                              /* 通道号 */
     VOS_UINT32                          ulAIDLen;                               /* AID长度 */
-    VOS_UINT8                           aucADFName[2*USIMM_AID_LEN_MAX];        /* AID的内容 */
+    VOS_UINT8                           aucADFName[USIMM_AID_LEN_MAX];        /* AID的内容 */
     VOS_UINT8                           ucAPDUP2;
     VOS_UINT8                           ucRsv[3];
 }USIMM_CHANNEL_INFO_STRU;

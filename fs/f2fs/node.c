@@ -1116,7 +1116,6 @@ struct page *new_inode_page(struct inode *inode)
 	/* allocate inode page for new inode */
 	set_new_dnode(&dn, inode, NULL, NULL, inode->i_ino);
 
-	/* caller should f2fs_put_page(page, 1); */
 	return new_node_page(&dn, 0);
 }
 
@@ -1532,10 +1531,10 @@ redirty_out:
 
 int move_node_page(struct page *node_page, int gc_type)
 {
+	struct f2fs_sb_info *sbi = F2FS_P_SB(node_page);
 	int ret = -1;
 
 	if (gc_type == FG_GC) {
-		struct f2fs_sb_info *sbi = F2FS_P_SB(node_page);
 		struct writeback_control wbc = {
 			.sync_mode = WB_SYNC_ALL,
 			.nr_to_write = 1,
@@ -1562,8 +1561,11 @@ int move_node_page(struct page *node_page, int gc_type)
 		goto release_page;
 	} else {
 		/* set page dirty and write it */
-		if (!PageWriteback(node_page))
+		if (!PageWriteback(node_page)) {
 			set_page_dirty(node_page);
+			if (is_gc_test_set(sbi, GC_TEST_ENABLE_GC_STAT))
+				set_page_private(node_page, (unsigned long)BGGC_NODE_PAGE);
+		}
 		ret = 0;
 	}
 out_page:
@@ -2831,7 +2833,9 @@ void flush_nat_entries(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	struct nat_entry_set *setvec[SETVEC_SIZE];
 	struct nat_entry_set *set, *tmp;
 	unsigned int found;
+#ifdef CONFIG_F2FS_JOURNAL_APPEND
 	unsigned int over_journal = 0;
+#endif
 	nid_t set_idx = 0;
 	LIST_HEAD(sets);
 

@@ -84,7 +84,6 @@ atomic_t hmx_mmi_test_status = ATOMIC_INIT(0);
 
 struct ts_rawdata_info *info = NULL;
 extern struct himax_ts_data *g_himax_ts_data;
-extern char *himax_product_id[];
 
 struct get_csv_data {
 	uint64_t size;
@@ -669,6 +668,7 @@ int himax_bank_test(int step) //for Rawdara
 	return result;
 }
 
+#define HIMAX_TX_RX_MIN 2
 int himax_self_delta_test(int step)
 {
 	int index1 = 0;
@@ -681,6 +681,12 @@ int himax_self_delta_test(int step)
 	int m = 0;
 	tx_delta_num = rx*(tx-1);
 	rx_delta_num = (rx-1)*tx;
+
+	if ((tx < HIMAX_TX_RX_MIN) || (rx < HIMAX_TX_RX_MIN)) {
+		TS_LOG_ERR("%s: get the wrong tx/rx channel\n", __func__);
+		result = -1;
+		goto exit;
+	}
 
 	/*TX Delta*/
 	TS_LOG_INFO("TX Delta Start:\n");
@@ -739,7 +745,7 @@ int himax_self_delta_test(int step)
 #endif
 
 	TS_LOG_INFO("RX Delta End\n");
-
+exit:
 	if(result==0)
 	{
 		hx_result_pass_str[0] = '0'+step;
@@ -919,11 +925,18 @@ void himax_print_rawdata(int mode)
 	uint16_t mutual_num = 0;
 	uint16_t x_channel = getXChannel();
 	uint16_t y_channel = getYChannel();
-	uint8_t self_buff[HX_MAX_X_CHAN * HX_MAX_Y_CHAN]  = {0};
-	uint8_t mutual_buff[HX_MAX_X_CHAN * HX_MAX_Y_CHAN] = {0};
+	uint8_t *self_buff = NULL;
+	uint8_t *mutual_buff = NULL;
 
 	if(!x_channel || x_channel > HX_MAX_X_CHAN || !y_channel || y_channel > HX_MAX_Y_CHAN) {
 		TS_LOG_ERR("%s, x, y larger than defined\n", __func__);
+		return;
+	}
+
+	self_buff = kzalloc(HX_MAX_X_CHAN * HX_MAX_Y_CHAN, GFP_KERNEL);
+	mutual_buff = kzalloc(HX_MAX_X_CHAN * HX_MAX_Y_CHAN, GFP_KERNEL);
+	if (self_buff == NULL || mutual_buff == NULL) {
+		TS_LOG_ERR("%s: memeory is not enough!!\n", __func__);
 		return;
 	}
 
@@ -977,6 +990,8 @@ void himax_print_rawdata(int mode)
 		info->buff[current_index++] = self_buff[index1];
 	}
 
+	kfree(self_buff);
+	kfree(mutual_buff);
 }
 
 static int read_rawdata_sram(void)
@@ -1684,6 +1699,7 @@ int himax_get_raw_stack(int step)
 		TS_LOG_INFO("I2C Fail!\n");
 		goto BUS_FAIL_END;
 	}
+	TS_LOG_INFO("ready to change Bank!\n");
 	//=============================== Get Bank value Start===============================
 	setDiagCommand(BANK_CMD);
 	command_F1h_bank[0] = HX_REG_RAWDATA_MODE;
@@ -1696,11 +1712,15 @@ int himax_get_raw_stack(int step)
 		goto BUS_FAIL_END;
 	}
 
+	TS_LOG_INFO("Bank,now waiting for FW!\n");
+	msleep(HX_SLEEP_100MS);
 	for(loop_i =0;loop_i <300;loop_i++)
 	{
 		TS_LOG_INFO("loop_i = %d,hx_selftest_flag = %d",loop_i, hx_selftest_flag);
 		if(himax_int_gpio_read(g_himax_ts_data->tskit_himax_data->ts_platform_data->irq_id) == 0)
 			himax_get_rawdata_work();
+		else
+			TS_LOG_INFO("irq is high!\n");
 		if (hx_selftest_flag ==HX_SELFTEST_DIS)
 			break;
 		msleep(HX_SLEEP_10MS);
@@ -1713,6 +1733,7 @@ int himax_get_raw_stack(int step)
 		memcpy(mutual_bank,&mutual_data[0],mutual_num);
 		memcpy(self_bank,&self_data[0],self_num);
 	}
+	TS_LOG_INFO("1. ready to change Normal!\n");
 	setDiagCommand(CLOSE_DIAG_COMMAND);
 	command_F1h_bank[1] = CLOSE_DIAG_COMMAND ;
 	retval = i2c_himax_master_write(&command_F1h_bank[0],2, sizeof(command_F1h_bank),DEFAULT_RETRY_CNT);
@@ -1723,6 +1744,7 @@ int himax_get_raw_stack(int step)
 	}
 	msleep(HX_SLEEP_10MS);
 	//=============================== Get Bank value end===============================
+	TS_LOG_INFO("ready to change IIR!\n");
 	//=============================== Get IIR value Start===============================
 	hx_selftest_flag = 1;
 	g_state_get_frame = 0x00;
@@ -1736,12 +1758,15 @@ int himax_get_raw_stack(int step)
 		TS_LOG_INFO("I2C Fail!\n");
 		goto BUS_FAIL_END;
 	}
-
+	TS_LOG_INFO("IIR,now waiting for FW!\n");
+	msleep(HX_SLEEP_100MS);
 	for(loop_i =0;loop_i < GET_RAWDATA_MAX_TIMES;loop_i++)
 	{
 		TS_LOG_INFO("loop_i = %d,hx_selftest_flag = %d",loop_i, hx_selftest_flag);
 		if(himax_int_gpio_read(g_himax_ts_data->tskit_himax_data->ts_platform_data->irq_id) == 0)
 			himax_get_rawdata_work();
+		else
+			TS_LOG_INFO("irq is high!\n");
 		if (hx_selftest_flag ==0)
 			break;
 		msleep(HX_SLEEP_10MS);
@@ -1754,6 +1779,7 @@ int himax_get_raw_stack(int step)
 		memcpy(mutual_iir,&mutual_data[0],mutual_num);
 		memcpy(self_iir,&self_data[0],self_num);
 	}
+	TS_LOG_INFO("2. ready to change Normal!\n");
 	setDiagCommand(CLOSE_DIAG_COMMAND);
 	command_F1h_bank[1] = CLOSE_DIAG_COMMAND;
 	retval = i2c_himax_master_write(&command_F1h_bank[0],2, sizeof(command_F1h_bank),DEFAULT_RETRY_CNT);
@@ -2217,14 +2243,12 @@ static int himax_p2p_test_init(void)
 int hx852xes_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_top)
 {
 	int retval = NO_ERR;
-	uint16_t index1 = 0;
 	uint16_t self_num = 0;
 	uint16_t mutual_num = 0;
 	uint16_t rx = getXChannel();
 	uint16_t tx = getYChannel();
 	unsigned long timer_start = 0;
 	unsigned long timer_end = 0;
-	struct file *fn;
 
 	/* use for fetch test time */
 	timer_start=jiffies;

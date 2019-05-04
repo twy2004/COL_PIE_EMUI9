@@ -121,27 +121,31 @@ s32 reset_prepare(enum MODEM_ACTION action)
 {
 	unsigned long flags = 0;
 	u32 current_action = (u32)action;
-	u32 global_action = g_modem_reset_ctrl.modem_action;
+	u32 global_action = 0;
+	spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
+	global_action = g_modem_reset_ctrl.modem_action;
 
-	if (current_action == global_action)
+	if (current_action == global_action || ((u32)INVALID_MODEM_ACTION == global_action))
 	{
+		spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
 		return RESET_OK;
 	}
-	else if (((u32)MODEM_NORMAL != global_action) && ((u32)INVALID_MODEM_ACTION != global_action))
+	else if (((u32)MODEM_NORMAL == global_action) ||(((u32)MODEM_POWER_OFF == global_action) && ((u32)MODEM_POWER_ON == current_action)))
 	{
-		reset_print_err("action(%d) is doing, abundon action(%d)\n", global_action, action);
+	    //¿É½øÐÐreset
+	}
+	else
+	{
+              spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
+		reset_print_err("action(%d) is done, abundon action(%d)\n", global_action, action);
 		return RESET_ERROR;
 	}
-
 	g_reset_debug.main_stage = 0;
-
-	wake_lock(&(g_modem_reset_ctrl.wake_lock));
-	cp_reset_timestamp_dump(RESET_DUMP_PREPARE);
-	reset_print_debug("(%d) wake_lock\n", ++g_reset_debug.main_stage);
-
-	spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
 	g_modem_reset_ctrl.modem_action = action;
 	spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
+	cp_reset_timestamp_dump(RESET_DUMP_PREPARE);
+	wake_lock(&(g_modem_reset_ctrl.wake_lock));
+	reset_print_debug("(%d) wake_lock\n", ++g_reset_debug.main_stage);
 
 	if ((MODEM_POWER_OFF ==  current_action) || (MODEM_RESET ==  current_action))
 	{
@@ -332,13 +336,12 @@ s32 send_msg_to_hifi(DRV_RESET_CB_MOMENT_E stage)
                 {
                     modem_reset_fail_id = MODEM_RESET_HIFI_CB_ERR;
                     reset_print_err("unkown msg from hifi\n");
-                    reset_reboot_system(RESET_TYPE_RECV_HIFI_MSG_FAIL);
+   
                 }
                 break;
             case BSP_RESET_NOTIFY_SEND_FAILED:
                 modem_reset_fail_id = MODEM_RESET_HIFI_CB_ERR;
                 reset_print_err("send_msg_to_hifi=0x%x fail\n", ret);
-                reset_reboot_system(RESET_TYPE_SEND_MSG2_M3_FAIL_BEFORE);
                 break;
             case BSP_RESET_NOTIFY_TIMEOUT:
                 modem_reset_fail_id = MODEM_RESET_HIFI_CB_ERR;
@@ -655,7 +658,9 @@ int modem_reset_task(void *arg)
 	for( ; ;)
 	{
 		osl_sem_down(&(g_modem_reset_ctrl.task_sem));
+		spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
 		action = (u16)g_modem_reset_ctrl.modem_action;
+		spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
 		reset_print_debug("(%d)has taken task_sem, action=%d\n", ++g_reset_debug.main_stage, action);
 
 		if (MODEM_POWER_OFF == action)
@@ -671,12 +676,12 @@ int modem_reset_task(void *arg)
 			(void)do_reset(action);
 			reset_print_err("reset count: %d\n", ++g_modem_reset_ctrl.reset_cnt);
 		}
-		if (action == g_modem_reset_ctrl.modem_action)
+		spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
+		if ((MODEM_POWER_ON == action || MODEM_RESET == action) && (action == g_modem_reset_ctrl.modem_action))
 		{
-			spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
 			g_modem_reset_ctrl.modem_action = MODEM_NORMAL;
-			spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
 		}
+		spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
 
 		osl_sem_up(&(g_modem_reset_ctrl.action_sem));
 		wake_unlock(&(g_modem_reset_ctrl.wake_lock));/*lint !e455 */
@@ -732,7 +737,7 @@ struct reset_cb_list *do_cb_func_register(struct reset_cb_list * list_head, cons
 
     if (!func_name || !func || (prior < RESET_CBFUNC_PRIO_LEVEL_LOWT || prior > RESET_CBFUNC_PRIO_LEVEL_HIGH))
     {
-        reset_print_err("register fail, name:%s, cbfun=%pK, prio=%d\n", func_name,  func, prior);
+        reset_print_err("register fail, name:%s, prio=%d\n", func_name,  prior);
         return list_head;
     }
 
@@ -748,11 +753,11 @@ struct reset_cb_list *do_cb_func_register(struct reset_cb_list * list_head, cons
 		cb_func_node->cb_info.userdata = user_data;
 		cb_func_node->cb_info.cbfun = func;
     }
-	else
-	{
-		reset_print_err("cb fun malloc fial, name:%s, cbfun=%pK, prio=%d\n", func_name,  func, prior);
-		return list_head;
-	}
+    else
+    {
+        reset_print_err("register malloc fail, name:%s, prio=%d\n", func_name,  prior);
+        return list_head;
+    }
 
 	if (!list_head)
     {
@@ -964,13 +969,27 @@ s32 bsp_reset_ccpu_status_get(void)
 u32 bsp_reset_is_successful(u32 timeout_ms)
 {
     s32 ret;
+    u32 action = 0;
+    unsigned long flags = 0;
     ret = osl_sem_downtimeout(&(g_modem_reset_ctrl.action_sem), msecs_to_jiffies(timeout_ms));/*lint !e713 */
     if (ret != 0)
     {
-        return 0;
+	 spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
+        if (MODEM_POWER_OFF == g_modem_reset_ctrl.modem_action)
+        {
+            action = RESET_IS_SUCC;
+        }
+        spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
+        return  action;
     }
+    spin_lock_irqsave(&g_modem_reset_ctrl.action_lock, flags);
+    if ((MODEM_POWER_OFF == g_modem_reset_ctrl.modem_action) || (MODEM_NORMAL == g_modem_reset_ctrl.modem_action))
+    {
+        action = RESET_IS_SUCC;
+    }
+    spin_unlock_irqrestore(&g_modem_reset_ctrl.action_lock, flags);
 
-    return (MODEM_NORMAL == g_modem_reset_ctrl.modem_action);
+    return action;
 }
 
 unsigned long get_scbakdata13(void)

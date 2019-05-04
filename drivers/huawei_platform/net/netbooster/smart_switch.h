@@ -38,11 +38,8 @@
 #define NETWORK_STATUS_FOR_CHR      3
 #define NETWORK_STATUS_APP_QOE_NORMAL  4
 #define NETWORK_STATUS_APP_QOE_GENERAL_SLOW 5
-
-//define status for network_slow_chr
 #define NETWORK_STATUS_NETWORK_NORMAL  6
 #define NETWORK_STATUS_NETWORK_SLOW 7
-
 /*RTT threshold*/
 #define RTT_THRED (255)
 
@@ -160,5 +157,7 @@ extern void smart_switch_exit(void);
 #ifdef CONFIG_APP_QOE_AI_PREDICT
 extern int set_app_qoe_uid(int uid, int period);
 extern int set_app_qoe_rsrp(int uid, int period);
+extern void set_alpha_filter_alg_params(int filter_factor_small, int filter_factor_big);
+extern void set_alpha_filter_alg_change_thresh(int threshold);
 #endif
 #endif

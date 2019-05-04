@@ -76,39 +76,39 @@ u32 g_print_close = 0;
 bsp_syslevel_ctrl g_print_sys_level = {BSP_P_ERR,BSP_P_INFO};
 
 bsp_print_tag g_print_tag[MODU_MAX] ={
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
     {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
-	};
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    {BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},{BSP_P_INFO},
+    };
 /*new print end*/
 
 bsp_log_swt_cfg_s  g_mod_peint_level_info[BSP_MODU_MAX]    =
@@ -277,18 +277,16 @@ void bsp_trace(bsp_log_level_e log_level,bsp_module_e mod_id,char *fmt,...)
     /*lint -save -e530*/
     va_start(arglist, fmt);
     /*lint -restore +e530*/
-    vsnprintf(bsp_print_buffer, BSP_PRINT_BUF_LEN,fmt, arglist);/* unsafe_function_ignore: vsnprintf */ /* [false alarm]:屏蔽Fortify错误 */
+    (void)vsnprintf(bsp_print_buffer, (BSP_PRINT_BUF_LEN-1), fmt, arglist);/* unsafe_function_ignore: vsnprintf *//* [false alarm]:屏蔽Fortify错误 */
     va_end(arglist);
 
     bsp_print_buffer[BSP_PRINT_BUF_LEN - 1] = '\0';
 
     printk(KERN_ERR"%s", bsp_print_buffer);
-
     if(g_bsp_print_hook)
     {
         g_bsp_print_hook(mod_id,log_level,1,bsp_print_buffer);
     }
-
     return ;
 }
 EXPORT_SYMBOL_GPL(bsp_trace);
@@ -340,7 +338,7 @@ s32 logs( u32 console,u32 logbuf)
     if(console >= BSP_LEVEL_SUM || logbuf >= BSP_LEVEL_SUM)
         return BSP_ERROR;
     g_print_sys_level.logbuf_level = logbuf;
-	g_print_sys_level.con_level = console;
+    g_print_sys_level.con_level = console;
     return BSP_OK;
 }
 /*****************************************************************************
@@ -356,74 +354,74 @@ s32 logs( u32 console,u32 logbuf)
 *****************************************************************************/
 void set_all_module(u32 level)
 {
-	int i = 0;
+    int i = 0;
     if(level >= BSP_LEVEL_SUM)
         return;
-	for(i = 0; i < MODU_MAX; i++)
-		g_print_tag[i].modlevel= level;
-    
-	return ;
+    for(i = 0; i < MODU_MAX; i++)
+        g_print_tag[i].modlevel= level;
+
+    return ;
 }
 /*****************************************************************************
-* 函 数 名	: logm
+* 函 数 名  : logm
 *
-* 功能描述	: set module's level according to modid
+* 功能描述  : set module's level according to modid
 *
-* 输入参数	: u32 modid: module's id, u32 level: mod_level
+* 输入参数  : u32 modid: module's id, u32 level: mod_level
 *
-* 输出参数	: BSP_OK/BSP_ERROR
+* 输出参数  : BSP_OK/BSP_ERROR
 *
-* 返 回 值	: 成功/失败
+* 返 回 值  : 成功/失败
 *****************************************************************************/
 s32 logm(u32 modid, u32 level)
 {
-	if(MODU_MAX <= modid){
-		bsp_err("modid is error!\n");
-		return BSP_ERROR;
-		}
-	if(level >= BSP_LEVEL_SUM){
-		bsp_err("level can't over 5!\n");
-		return BSP_ERROR;
-		}
-	if( mod_all == modid){
-		set_all_module(level);
-		}
-	else
-		g_print_tag[modid].modlevel= level;
-	return BSP_OK;
+    if(MODU_MAX <= modid){
+        bsp_err("modid is error!\n");
+        return BSP_ERROR;
+        }
+    if(level >= BSP_LEVEL_SUM){
+        bsp_err("level can't over 5!\n");
+        return BSP_ERROR;
+        }
+    if( mod_all == modid){
+        set_all_module(level);
+        }
+    else
+        g_print_tag[modid].modlevel= level;
+    return BSP_OK;
 
 
 }
 /*****************************************************************************
-* 函 数 名	: logc
+* 函 数 名  : logc
 *
-* 功能描述	: inquire module's level according to modid
+* 功能描述  : inquire module's level according to modid
 *
-* 输入参数	: u32 modid: module's id
+* 输入参数  : u32 modid: module's id
 *
-* 输出参数	: NA
+* 输出参数  : NA
 *
-* 返 回 值	:
+* 返 回 值  :
 *****************************************************************************/
 void logc(u32 modid)
 {
-	if(MODU_MAX <= modid){
-		bsp_err("modid is error!\n");
-		return ;
-		}
-	bsp_err("con_level:%d logbuf_level:%d mod_level:%d\n\n",g_print_sys_level.con_level,g_print_sys_level.logbuf_level,g_print_tag[modid].modlevel);
-	return ;
+    if(MODU_MAX <= modid){
+        bsp_err("modid is error!\n");
+        return ;
+        }
+    bsp_err("con_level:%d logbuf_level:%d mod_level:%d\n\n",g_print_sys_level.con_level,g_print_sys_level.logbuf_level,g_print_tag[modid].modlevel);
+    return ;
 }
 /*****************************************************************************
-* 函 数 名	: bsp_print
+* 函 数 名  : bsp_print
 *
-* 功能描述	: print
+* 功能描述  : print
 *
-* 输入参数	: u32 modid: module's id, BSP_LOG_LEVEL level: print level, char *fmt: string
+* 输入参数  : u32 modid: module's id, BSP_LOG_LEVEL level: print level, char *fmt: string
 *
-* 输出参数	:
+* 输出参数  :
 *
-* 返 回 值	:
+* 返 回 值  :
 *****************************************************************************/
 void bsp_print(module_tag modid, BSP_LOG_LEVEL level, char *fmt, ...)
 {
@@ -441,29 +439,27 @@ void bsp_print(module_tag modid, BSP_LOG_LEVEL level, char *fmt, ...)
         return;
     }
 
-	va_start(arglist, fmt);
-    vsnprintf(print_buffer, (BSP_PRINT_BUF_LEN-1), fmt, arglist);/* unsafe_function_ignore: vsnprintf */
+    va_start(arglist, fmt);
+    (void)vsnprintf(print_buffer, (BSP_PRINT_BUF_LEN-1), fmt, arglist);/* unsafe_function_ignore: vsnprintf */ /* [false alarm]:屏蔽Fortify错误 */
     va_end(arglist);
-	print_buffer[BSP_PRINT_BUF_LEN - 1] = '\0';
+    print_buffer[BSP_PRINT_BUF_LEN - 1] = '\0';
 
-	if(g_print_sys_level.con_level >= level)
-		(void)printk(KERN_ERR"%s", print_buffer);
-
-	if(g_print_sys_level.logbuf_level < level)
-		return ;
-	
-    if(g_bsp_print_hook)
-    {
+    if(g_print_sys_level.con_level >= level)
+        (void)printk(KERN_ERR"%s", print_buffer);
+    else if(g_print_sys_level.logbuf_level >= level)
+        (void)printk(KERN_INFO"%s",print_buffer);
+    else
+        return ;
+    if(NULL != g_bsp_print_hook){
         g_bsp_print_hook(modid,level,0,print_buffer);
-    }
-
+        }
 }
 EXPORT_SYMBOL_GPL(bsp_print);
 EXPORT_SYMBOL_GPL(logs);
 EXPORT_SYMBOL_GPL(logm);
 EXPORT_SYMBOL_GPL(logc);
+EXPORT_SYMBOL_GPL(bsp_print_control);
 /*new print end*/
-
 
 /*debug 接口*/
 void bsp_log_show(void)
@@ -475,7 +471,7 @@ void log_buff_info(void)
 {
     log_mem_stru * log = NULL;
 
-    log    = (log_mem_stru *)bsp_dump_get_field_addr(DUMP_CP_DMESG);
+    log    = (log_mem_stru *)bsp_dump_get_field_addr(DUMP_LRCCPU_DMESG);
     if(log != NULL)
     {
         bsp_err("BUFFER MAGIC    : 0x%x\n", log->log_info.magic);
@@ -487,11 +483,13 @@ void log_buff_info(void)
 }
 
 
+
 EXPORT_SYMBOL(bsp_log_module_cfg_get);
 EXPORT_SYMBOL(bsp_mod_level_set);
 EXPORT_SYMBOL(bsp_log_level_set);
 EXPORT_SYMBOL(bsp_log_level_reset);
 EXPORT_SYMBOL(bsp_log_show);
 EXPORT_SYMBOL(log_buff_info);
+
 
 

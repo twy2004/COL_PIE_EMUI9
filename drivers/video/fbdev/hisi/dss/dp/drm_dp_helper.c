@@ -40,20 +40,20 @@ static uint8_t dp_link_status(const uint8_t link_status[DP_LINK_STATUS_SIZE], in
 }
 
 static uint8_t dp_get_lane_status(const uint8_t link_status[DP_LINK_STATUS_SIZE],
-			     int lane)
+			     uint8_t lane)
 {
 	int i = DP_LANE0_1_STATUS + (lane >> 1);//lint !e702
-	int s = (lane & 1) * 4;
+	uint8_t s = (lane & 1) * 4;
 	uint8_t l = dp_link_status(link_status, i);
 	return (l >> s) & 0xf;
 }
 
 bool drm_dp_channel_eq_ok(const uint8_t link_status[DP_LINK_STATUS_SIZE],
-			  int lane_count)
+			  uint8_t lane_count)
 {
 	uint8_t lane_align;
 	uint8_t lane_status;
-	int lane;
+	uint8_t lane;
 
 	lane_align = dp_link_status(link_status,
 				    DP_LANE_ALIGN_STATUS_UPDATED);

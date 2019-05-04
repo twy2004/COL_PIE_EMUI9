@@ -891,7 +891,7 @@ void mptcp_syn_options(const struct sock *sk, struct tcp_out_options *opts,
 		opts->mp_capable.sender_key = tp->mptcp_loc_key;
 		opts->dss_csum = !!sysctl_mptcp_checksum;
 
-		mptcp_proxy_syn_options(sk, opts, remaining);
+		mptcp_hw_add_syn_options(sk, opts, remaining);
 	} else {
 		const struct mptcp_cb *mpcb = tp->mpcb;
 
@@ -1267,7 +1267,7 @@ void mptcp_options_write(__be32 *ptr, struct tcp_sock *tp,
 		}
 	}
 
-	mptcp_proxy_options_write(ptr, tp, opts, skb);
+	mptcp_hw_add_options_write(ptr, tp, opts, skb);
 }
 
 /* Sends the datafin */

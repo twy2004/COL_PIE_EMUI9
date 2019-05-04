@@ -150,8 +150,6 @@ VOS_UINT32 At_QryLogPortPara(VOS_UINT8 ucIndex);
 VOS_UINT32 At_QryLogCfgPara(VOS_UINT8 ucIndex);
 VOS_UINT32 At_QryLogCpsPara(VOS_UINT8 ucIndex);
 VOS_UINT32 At_SetDpdtTestFlagPara(TAF_UINT8 ucIndex);
-VOS_UINT32 At_SetDpdtPara(TAF_UINT8 ucIndex);
-VOS_UINT32 At_SetQryDpdtPara(TAF_UINT8 ucIndex);
 VOS_UINT32 AT_RcvMtaSetDpdtTestFlagCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaSetDpdtValueCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaQryDpdtValueCnf(VOS_VOID *pMsg);
@@ -282,6 +280,22 @@ VOS_UINT32 AT_RcvMmaEmRssiRptInd(
     VOS_VOID                           *pstMsg
 );
 
+VOS_UINT32 AT_SetLtePwrDissPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_TestLtePwrDissPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaAtLtePwrDissSetCnf(VOS_VOID *pMsg);
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+extern VOS_UINT32 AT_RcvMtaNrrcCapCfgCnf(
+    VOS_VOID                           *pstMsg
+);
+extern VOS_UINT32 AT_RcvMtaNrrcCapQryCnf(
+    VOS_VOID                           *pstMsg
+);
+
+extern VOS_UINT32 AT_RcvMtaNrPwrCtrlSetCnf(
+    VOS_VOID                           *pstMsg
+);
+#endif
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else

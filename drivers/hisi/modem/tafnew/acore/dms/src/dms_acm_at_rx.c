@@ -93,7 +93,7 @@ VOS_UINT32 Dms_AtReadData(DMS_PHY_BEAR_ENUM enPhyBear, VOS_UINT8 *pDataBuf, VOS_
         return ERR_MSP_INVALID_PARAMETER;
     }
 
-    DMS_LOG_INFO("Dms_AtReadData: PortNo = %d, len = %d, buf = %s\n", enPhyBear, ulLen, pDataBuf);
+    DMS_LOG_INFO("<Dms_AtReadData> PortNo = %d, len = %d, buf = %s\n", enPhyBear, ulLen, pDataBuf);
 
     ulRet = (VOS_UINT32)pfnAcmReadData((VOS_UINT8)enPhyBear, pDataBuf, (VOS_UINT16)ulLen);
 
@@ -130,13 +130,13 @@ VOS_UINT32 DMS_UsbPortOpen(
     ACM_READ_BUFF_INFO                  stReadBuffInfo;
     UDI_HANDLE                          lHandle = UDI_INVALID_HANDLE;
 
-    DMS_LOG_INFO("DMS_UsbPortOpen[%d]: Open Enter.\n", enPhyBear);
+    DMS_LOG_INFO("<DMS_UsbPortOpen[%d]> Open Enter.\n", enPhyBear);
 
     pstPhyBearProp = DMS_GetPhyBearProperty(enPhyBear);
 
     if (UDI_INVALID_HANDLE != pstPhyBearProp->lPortHandle)
     {
-        DMS_LOG_WARNING("DMS_UsbPortOpen[%d]: Already open.\n", enPhyBear);
+        DMS_LOG_WARNING("<DMS_UsbPortOpen[%d]> Already open.\n", enPhyBear);
         return ERR_MSP_SUCCESS;
     }
 
@@ -153,28 +153,28 @@ VOS_UINT32 DMS_UsbPortOpen(
     {
         if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_RELLOC_READ_BUFF, &stReadBuffInfo))
         {
-            DMS_LOG_ERROR("DMS_UsbPortOpen[%d]: ACM_IOCTL_RELLOC_READ_BUFF fail.\n", enPhyBear);
+            DMS_LOG_ERROR("<DMS_UsbPortOpen[%d]> ACM_IOCTL_RELLOC_READ_BUFF fail.\n", enPhyBear);
             DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                               (VOS_UINT32)lHandle, 0, 1);
         }
 
         if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_SET_WRITE_CB, pWriteCB))
         {
-            DMS_LOG_ERROR("DMS_UsbPortOpen[%d]: ACM_IOCTL_SET_WRITE_CB fail.\n", enPhyBear);
+            DMS_LOG_ERROR("<DMS_UsbPortOpen[%d]> ACM_IOCTL_SET_WRITE_CB fail.\n", enPhyBear);
             DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                             (VOS_UINT32)lHandle, 0, 3);
         }
 
         if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_WRITE_DO_COPY, (void *)0))
         {
-            DMS_LOG_ERROR("DMS_UsbPortOpen[%d]: ACM_IOCTL_WRITE_DO_COPY fail.\n", enPhyBear);
+            DMS_LOG_ERROR("<DMS_UsbPortOpen[%d]> ACM_IOCTL_WRITE_DO_COPY fail.\n", enPhyBear);
             DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                             (VOS_UINT32)lHandle, 0, 4);
         }
 
         if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_SET_EVT_CB, pStateCB))
         {
-            DMS_LOG_ERROR("DMS_UsbPortOpen[%d]: ACM_IOCTL_SET_EVT_CB fail.\n", enPhyBear);
+            DMS_LOG_ERROR("<DMS_UsbPortOpen[%d]> ACM_IOCTL_SET_EVT_CB fail.\n", enPhyBear);
             DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                             (VOS_UINT32)lHandle, 0, 5);
         }
@@ -183,16 +183,16 @@ VOS_UINT32 DMS_UsbPortOpen(
 
         if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_SET_READ_CB, pReadCB))
         {
-            DMS_LOG_ERROR("DMS_UsbPortOpen[%d]: ACM_IOCTL_SET_READ_CB fail.\n", enPhyBear);
+            DMS_LOG_ERROR("<DMS_UsbPortOpen[%d]> ACM_IOCTL_SET_READ_CB fail.\n", enPhyBear);
             DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                             (VOS_UINT32)lHandle, 0, 2);
         }
 
-        DMS_LOG_INFO("DMS_UsbPortOpen[%d]: Open success.\n", enPhyBear);
+        DMS_LOG_INFO("<DMS_UsbPortOpen[%d]> Open success.\n", enPhyBear);
         return ERR_MSP_SUCCESS;
     }
 
-    DMS_LOG_INFO("DMS_UsbPortOpen[%d]: Open fail.\n", enPhyBear);
+    DMS_LOG_INFO("<DMS_UsbPortOpen[%d]> Open fail.\n", enPhyBear);
     DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_OPEN_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                     (VOS_UINT32)lHandle, 0, 6);
     return ERR_MSP_FAILURE;
@@ -204,13 +204,13 @@ VOS_UINT32 DMS_UsbPortClose(DMS_PHY_BEAR_ENUM enPhyBear)
     DMS_PHY_BEAR_PROPERTY_STRU         *pstPhyBearProp = NULL;
     VOS_INT32                           lRet = ERR_MSP_SUCCESS;
 
-    DMS_LOG_INFO("DMS_UsbPortClose[%d]: Enter.\n", enPhyBear);
+    DMS_LOG_INFO("<DMS_UsbPortClose[%d]> Enter.\n", enPhyBear);
 
     pstPhyBearProp = DMS_GetPhyBearProperty(enPhyBear);
 
     if (UDI_INVALID_HANDLE == pstPhyBearProp->lPortHandle)
     {
-        DMS_LOG_WARNING("DMS_UsbPortClose[%d]: Already close.\n", enPhyBear);
+        DMS_LOG_WARNING("<DMS_UsbPortClose[%d]> Already close.\n", enPhyBear);
         return ERR_MSP_SUCCESS;
     }
 
@@ -220,13 +220,13 @@ VOS_UINT32 DMS_UsbPortClose(DMS_PHY_BEAR_ENUM enPhyBear)
     lRet = mdrv_udi_close(pstPhyBearProp->lPortHandle);
     if (lRet == ERR_MSP_SUCCESS)
     {
-        DMS_LOG_INFO("DMS_UsbPortClose[%d]: Close success.\n", enPhyBear);
+        DMS_LOG_INFO("<DMS_UsbPortClose[%d]> Close success.\n", enPhyBear);
         pstPhyBearProp->lPortHandle = UDI_INVALID_HANDLE;
         pstPhyBearProp->ucChanStat   = ACM_EVT_DEV_SUSPEND;
         return (VOS_UINT32)lRet;
     }
 
-    DMS_LOG_INFO("DMS_UsbPortClose[%d]: Close fail.\n", enPhyBear);
+    DMS_LOG_INFO("<DMS_UsbPortClose[%d]> Close fail.\n", enPhyBear);
     DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_CLOSE_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                     (VOS_UINT32)lRet, 0, 0);
     return ERR_MSP_FAILURE;
@@ -240,7 +240,7 @@ VOS_VOID DMS_UsbPortReadCB(DMS_PHY_BEAR_ENUM enPhyBear)
     ACM_WR_ASYNC_INFO                   stAcmInfo;
     UDI_HANDLE                          lHandle = UDI_INVALID_HANDLE;
 
-    DMS_LOG_INFO("DMS_UsbPortReadCB[%d]: Read begin.\n", enPhyBear);
+    DMS_LOG_INFO("<DMS_UsbPortReadCB[%d]> Read begin.\n", enPhyBear);
 
 
     TAF_MEM_SET_S(&stAcmInfo, sizeof(stAcmInfo), 0x00, sizeof(stAcmInfo));
@@ -250,7 +250,7 @@ VOS_VOID DMS_UsbPortReadCB(DMS_PHY_BEAR_ENUM enPhyBear)
     lHandle = pstPhyBearProp->lPortHandle;
     if (UDI_INVALID_HANDLE == lHandle)
     {
-        DMS_LOG_ERROR("DMS_UsbPortReadCB[%d]: UDI_INVALID_HANDLE.\n", enPhyBear);
+        DMS_LOG_ERROR("<DMS_UsbPortReadCB[%d]> UDI_INVALID_HANDLE.\n", enPhyBear);
         return;
     }
 
@@ -259,7 +259,7 @@ VOS_VOID DMS_UsbPortReadCB(DMS_PHY_BEAR_ENUM enPhyBear)
 
     if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_GET_RD_BUFF, &stAcmInfo))
     {
-        DMS_LOG_ERROR("DMS_UsbPortReadCB[%d]: ACM_IOCTL_GET_RD_BUFF fail.\n", enPhyBear);
+        DMS_LOG_ERROR("<DMS_UsbPortReadCB[%d]> ACM_IOCTL_GET_RD_BUFF fail.\n", enPhyBear);
         DMS_DBG_SDM_FUN((DMS_SDM_MSG_ID_ENUM)(DMS_SDM_VCOM_RD_CB_ERR_BEGIN + (VOS_UINT32)enPhyBear),\
                         (VOS_UINT32)lHandle, 0, 0);
         return;
@@ -275,7 +275,7 @@ VOS_VOID DMS_UsbPortReadCB(DMS_PHY_BEAR_ENUM enPhyBear)
 
     if (MDRV_OK != mdrv_udi_ioctl(lHandle, ACM_IOCTL_RETURN_BUFF, &stAcmInfo))
     {
-        DMS_LOG_INFO("DMS_UsbPortReadCB[%d]: ACM_IOCTL_RETURN_BUFF fail.\n", enPhyBear);
+        DMS_LOG_INFO("<DMS_UsbPortReadCB[%d]> ACM_IOCTL_RETURN_BUFF fail.\n", enPhyBear);
     }
 
     return;

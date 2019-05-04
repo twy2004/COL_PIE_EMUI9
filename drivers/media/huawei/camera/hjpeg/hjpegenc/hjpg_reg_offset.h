@@ -97,4 +97,15 @@
 #define JPGENC_CRG_CFG0                  0x100
 
 
+typedef union
+{
+   struct
+   {
+       uint32_t reserved :2 ; /* [1..0] */
+       uint32_t address  :30 ;/* [31..2] */
+   } bits;
+   uint32_t reg32;
+} U_JPEGENC_ADDRESS;
+
+
 #endif // __HJPG_REG_OFFSET_H__

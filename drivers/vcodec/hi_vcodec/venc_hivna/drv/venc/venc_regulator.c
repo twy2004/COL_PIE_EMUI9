@@ -2,7 +2,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 #include <linux/regulator/consumer.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 
 #include "venc_regulator.h"
 #include "drv_venc_osal.h"
@@ -38,6 +38,7 @@ static HI_U32 g_VencQosExtcontrol  = 0x1;
 static HI_U32 g_VencLowFreq        = 480000000;
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 /*lint -e838 -e747 -e774 -e845*/
 static int Venc_Enable_Iommu(void)
 {
@@ -78,6 +79,7 @@ static int Venc_Disable_Iommu(void)
 
 	return -1;
 }
+#endif
 
 static HI_S32 Venc_GetDtsConfigInfo(struct platform_device *pdev, VeduEfl_DTS_CONFIG_S *pDtsConfig)
 {
@@ -90,7 +92,9 @@ static HI_S32 Venc_GetDtsConfigInfo(struct platform_device *pdev, VeduEfl_DTS_CO
 	struct clk *pvenc_clk    = HI_NULL;
 	struct device_node *np   = NULL;
 	struct device *dev       = &pdev->dev;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	struct iommu_domain_data *domain_data = NULL;
+#endif
 
 	if (!dev) {
 		HI_FATAL_VENC("invalid argument, dev is NULL\n");
@@ -172,11 +176,15 @@ static HI_S32 Venc_GetDtsConfigInfo(struct platform_device *pdev, VeduEfl_DTS_CO
 		HI_ERR_VENC("get venc qos mode failed set default\n");
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	domain_data = (struct iommu_domain_data *)(g_hisi_mmu_domain->priv);
 	if (domain_data) {
 		pDtsConfig->SmmuPageBaseAddr = (uint64_t)(domain_data->phy_pgd_base);
 		HI_INFO_VENC("SmmuPageBaseAddr is 0x%pK\n", __func__, pDtsConfig->SmmuPageBaseAddr);
 	}
+#else
+	pDtsConfig->SmmuPageBaseAddr = (HI_U64)(hisi_domain_get_ttbr(&pdev->dev));
+#endif
 
 	return HI_SUCCESS;
 }
@@ -262,12 +270,14 @@ HI_S32 Venc_Regulator_Init(struct platform_device *pdev)
 		return HI_FAILURE;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	/* 2 create smmu domain */
 	ret = Venc_Enable_Iommu();
 	if (ret < 0) {
 		HI_FATAL_VENC("enable venc iommu failed\n");
 		return HI_FAILURE;
 	}
+#endif
 
 	/* 3 read venc dts info from dts */
 	HiMemSet(&g_VencDtsConfig, 0, sizeof(VeduEfl_DTS_CONFIG_S));
@@ -289,8 +299,10 @@ HI_S32 Venc_Regulator_Init(struct platform_device *pdev)
 
 HI_VOID Venc_Regulator_Deinit(struct platform_device *pdev)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	if (pdev)
 		Venc_Disable_Iommu();
+#endif
 }
 
 HI_S32 Venc_Regulator_Enable(HI_VOID)
@@ -344,10 +356,9 @@ HI_S32 Venc_Regulator_Enable(HI_VOID)
 	g_VencPowerOn = HI_TRUE;
 
 #ifdef VENC_QOS_CFG
-	ret = Venc_Config_QOS();
+	ret = Venc_Config_QOS();  //If Venc_Config_QOS fail, it only effects performance
 	if (ret != HI_SUCCESS) {
 		HI_FATAL_VENC("%s config qos failed\n", __func__);
-		goto on_error_set_rate;
 	}
 #endif
 
@@ -426,6 +437,11 @@ HI_S32 Venc_SetClkRate(VENC_CLK_TYPE clk_type)
 
 	if (g_currClk != clk_type) {
 		switch (clk_type) {
+#ifdef HIVCODECV500
+		case VENC_CLK_RATE_LOWER :
+			needClk = g_VencDtsConfig.svsLowerRate;
+			break;
+#endif
 		case VENC_CLK_RATE_LOW :
 			needClk = g_VencDtsConfig.lowRate;
 			break;

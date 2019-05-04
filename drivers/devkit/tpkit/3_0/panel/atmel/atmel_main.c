@@ -2741,7 +2741,7 @@ static void mxt_proc_t25_messages(struct mxt_data *data, u8 *msg)
 
 	/* Output debug if status has changed */
 	TS_LOG_DEBUG("T25 Status 0x%x Info: %x %x %x %x %x\n",
-		     status, msg[2], msg[3], msg[4], msg[5], msg[6]);	/*the 2nd¡¢3rd¡¢4th¡¢5th¡¢6th save t25 info*/
+		     status, msg[2], msg[3], msg[4], msg[5], msg[6]);	/*the 2ndÂ¡Â¢3rdÂ¡Â¢4thÂ¡Â¢5thÂ¡Â¢6th save t25 info*/
 
 	/* Save current status */
 	memcpy(&data->t25_msg[0], &msg[1], sizeof(data->t25_msg));
@@ -3314,7 +3314,7 @@ static int mxt_proc_message(struct mxt_data *data, u8 *message)
 #ifndef T100_PROC_FINGER_NUM
 		mxt_proc_t100_message(data, message);
 #else
-		if (report_id < data->T100_reportid_min + 2) // 43¡¢44 reserved
+		if (report_id < data->T100_reportid_min + 2) // 43Â¡Â¢44 reserved
 			mxt_proc_t100_message_number(data, message);
 		else
 			mxt_proc_t100_message(data, message);
@@ -5357,6 +5357,8 @@ static void mxt_t72noise_switch(u8 t72noise_switch)
 	return;
 }
 #endif
+
+#if defined(HUAWEI_CHARGER_FB)
 static void mxt_charger_switch(u8 charger_switch)
 {
 	struct mxt_data *data = mxt_core_data;
@@ -5371,8 +5373,8 @@ static void mxt_charger_switch(u8 charger_switch)
 	default:
 		break;
 	}
-	return;
 }
+#endif
 
 static int atmel_charger_switch(struct ts_charger_info *info)
 {

@@ -94,6 +94,6 @@ hwdot_intf_notify_error(hwdot_notify_intf_t *i, hwdot_event_t *dot_ev)
 }
 
 extern int32_t hwdot_register(struct platform_device* pdev, const hwdot_intf_t* i,hwdot_notify_intf_t** notify);
-void hwdot_unregister(hwdot_intf_t* dot_intf);
+void hwdot_unregister(struct platform_device* pdev);
 #endif // __HW_ALAN_KERNEL_DOT_INTERFACE_H__
 

@@ -1,6 +1,6 @@
 config HISI_L3P_KARMA
 		tristate "L3 PREFETCH KARMA DEVFREQ Driver"
-		depends on ARCH_HISI && PM_DEVFREQ
+		depends on ARCH_HISI && PM_DEVFREQ && HISI_KARMA_PMU
 		select PM_OPP
 	    help
 			This enables the hisi l3p karma devfreq driver.

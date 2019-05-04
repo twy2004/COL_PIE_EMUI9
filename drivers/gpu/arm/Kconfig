@@ -44,6 +44,7 @@ config MALI_GONDUL
 menu "ARM GPU Configuration"
 
 if MALI_T830
+source "drivers/gpu/arm/r28p0-01rel0/Kconfig"
 endif
 
 if MALI_MIMIR
@@ -72,7 +73,8 @@ if MALI_NORR
 #source "drivers/gpu/arm/bifrost-r6p0-cet/Kconfig"
 #source "drivers/gpu/arm/bifrost-r7p0-00cet0/Kconfig"
 #source "drivers/gpu/arm/bifrost-r9p0-00cet0/Kconfig"
-source "drivers/gpu/arm/bifrost-r14p0-00cet0/Kconfig"
+#source "drivers/gpu/arm/bifrost-r14p0-00cet0/Kconfig"
+source "drivers/gpu/arm/bifrost-r16p0-00cet5/Kconfig"
 endif
 
 if MALI_TRYM

@@ -65,55 +65,11 @@ nv_cmd_req* nv_get_free_req(void) {
         nv_printf("malloc fail\n");
         return NULL;
     }
+
     (void)memset_s((void*)pNvCmdReq, sizeof(nv_cmd_req), 0, sizeof(nv_cmd_req));
 
     return pNvCmdReq;
 }
-/*****************************************************************************
-  函 数 名  : bsp_nvm_acore_msg_cb
-  功能描述  : 处理acore的写Nv和写文件的请求回调函数,注册到nv_cmd_req中的nv_msg_callback,
-  nv_ap_task任务处理完成后会调用到该函数
-  如果发出的请求消息需要等待回复，则注册本回调，否则不注册本回调；
-  输出参数  : 无
-  返 回 值  : 0 处理成功 非0处理失败
-  输入参数  : ret处理结果 sn 消息处理对应的sn号
-  调用函数  :
-  被调函数  :
- *****************************************************************************/
-u32 bsp_nvm_acore_msg_cb(u32 result, u32 sn)
-{
-    struct list_head *me;
-    nv_cmd_reply *pNvCmdReply = NULL;
-    unsigned long flags;
-    msg_queue_t  *pMsgQueue;
-
-    pMsgQueue = &g_msg_ctrl.req_list;
-
-    /* nv icc process is probably access reply msg
-     * add semaphore lock to prevent freeing reply msg
-     */
-    spin_lock_irqsave(&pMsgQueue->lock, flags);
-    list_for_each(me, &g_msg_ctrl.req_list.list)
-    {
-
-        /*lint -save -e826*//*Info 826: (Info -- Suspicious pointer-to-pointer conversion (area too small))*/
-        pNvCmdReply = list_entry(me, nv_cmd_reply, stList);/* [false alarm] */
-        /*lint -restore*/
-        if(pNvCmdReply->sn == sn)
-        {
-            pNvCmdReply->ret = result;
-            osl_sem_up(&pNvCmdReply->sem_req);
-            spin_unlock_irqrestore(&pMsgQueue->lock, flags);
-            g_msg_ctrl.sync_wr_done_count++;
-            return NV_OK;
-        }
-    }
-    spin_unlock_irqrestore(&pMsgQueue->lock, flags);
-
-    nv_printf("Invalid nv cmd SN %d in reply list", sn);
-    return NV_OK;
-}
-
 
 /*****************************************************************************
   函 数 名  : bsp_nvm_ccore_msg_cb
@@ -234,6 +190,13 @@ u32 nv_send_rmsg(u32 msg_type, u32 req_sn)
             pMsgQueue = &g_msg_ctrl.high_task_list;
             break;
 
+        case NV_ICC_REQ_FLUSH_RWNV:
+            type = NV_TASK_MSG_FLUSH_RWFILE;
+            priority = HIGH_PRIORITY_MSG_QUEUE;
+            func = bsp_nvm_ccore_msg_cb;
+            pMsgQueue = &g_msg_ctrl.high_task_list;
+            break;
+
         case NV_ICC_REQ_FLUSH_RDWR_ASYNC:
             type = NV_TASK_MSG_WRITE2FILE;
             priority = HIGH_PRIORITY_MSG_QUEUE;
@@ -345,6 +308,7 @@ u32 nv_handle_icc_rmsg(u32 chanid, u32 len)
     //nv_pm_trace(icc_req);
     switch (icc_req.msg_type) {
         case NV_ICC_REQ_FLUSH:
+        case NV_ICC_REQ_FLUSH_RWNV:
         case NV_ICC_REQ_LOAD_BACKUP:
         case NV_ICC_REQ_LOAD_CARRIER_RESUM:
         case NV_ICC_REQ_LOAD_CARRIER_CUST:
@@ -410,6 +374,7 @@ void nv_msg_dump(void) {
     nv_printf("wake_lock_active status %d \n", wake_lock_active(&g_nv_ctrl.wake_lock));
 }
 
+EXPORT_SYMBOL(nv_msg_dump);
 /*lint -restore*/
 
 /* vim set ts=4 sw=4 */

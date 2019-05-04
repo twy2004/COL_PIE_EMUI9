@@ -124,7 +124,7 @@ typedef struct tag_SRAM_SMALL_SECTIONS
 #endif/*__ASSEMBLY__*/
 
 
-#if !defined(__KERNEL__) && !defined(__OS_VXWORKS__) && !defined(__OS_RTOSCK__) && !defined(__OS_RTOSCK_SMP__)
+#if !defined(__KERNEL__) && !defined(__OS_VXWORKS__) && !defined(__OS_RTOSCK__) && !defined(__OS_RTOSCK_SMP__) && !defined(__OS_RTOSCK_TVP__) && !defined(__OS_RTOSCK_TSP__)
 
 #ifdef CONFIG_SRAM_SECURE
 #define SRAM_BASE_ADDR                  (SHM_BASE_ADDR+SHM_OFFSET_SRAM_TO_DDR)
@@ -173,7 +173,7 @@ typedef struct tag_SRAM_SMALL_SECTIONS
 #endif
 
 #define SRAM_OFFSET_LTEV_SHARED        (SRAM_OFFSET_GU_MAC_HEADER + SRAM_SIZE_GU_MAC_HEADER)
-#ifdef FEATURE_LTEV
+#ifdef FEATURE_DRV_LTEV
 #define SRAM_SIZE_LTEV_SHARED          (256)
 #else
 #define SRAM_SIZE_LTEV_SHARED          (0)

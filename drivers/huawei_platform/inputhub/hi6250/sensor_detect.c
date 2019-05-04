@@ -2566,6 +2566,7 @@ static void extend_config_after_sensor_detect(struct device_node *dn, int index)
 			break;
 		case MAGN_BRACKET:
 			read_magn_bracket_data_from_dts(dn);
+			break;
 		default:
 			hwlog_err("%s:err id =%d\n",__func__, s_id);
 			break;

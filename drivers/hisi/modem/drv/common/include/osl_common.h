@@ -45,12 +45,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #ifndef __OSL_COMMON_H__
 #define __OSL_COMMON_H__
 
 #include <product_config.h>
 
-#if defined(__KERNEL__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)/* acore/ccore */
+#if defined(__KERNEL__) || defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TSP__)|| defined(__OS_RTOSCK_TVP__)/* acore/ccore/TSP/TVP */
 #include <osl_types.h>
 #include <osl_bio.h>
 #include <osl_irq.h>

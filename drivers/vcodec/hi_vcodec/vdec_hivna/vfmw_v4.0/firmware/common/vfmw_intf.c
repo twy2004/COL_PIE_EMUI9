@@ -119,9 +119,11 @@ SINT32 VCTRL_VDHUnmapMessagePool(MEM_BUFFER_S *pMemMap)
 
 	if (pMemMap->u8IsMapped == 1) {
 		pMemMap->u8IsMapVirtual = 1;
-		ret = VDEC_MEM_UnmapKernel(pMemMap);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
+		ret = VDEC_MEM_UnmapKernel(pMemMap);  //kernel4.14 do not need unmap
 		if (ret)
 			dprint(PRN_FATAL, "%s Unmap Kernel is error(MESSAGE_POOL)\n", __func__);
+#endif
 	}
 	return VCTRL_OK;
 }
@@ -133,14 +135,23 @@ SINT32 VCTRL_VDHMapMessagePool(MEM_BUFFER_S* pMemMap, HI_S32 share_fd, HI_BOOL i
 	VDEC_SCENE scene = pMemMap->scene;
 	if ((1 == pMemMap->u8IsMapped) && (HI_TRUE == isVdhAllBufRemap)) {
 		pMemMap->u8IsMapVirtual = 1;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 		VDEC_MEM_UnmapKernel(pMemMap);
+#else
+		//VDEC_MEM_PutMapInfo(pMemMap);
+#endif
 		memset(pMemMap, 0, sizeof(*pMemMap)); /* unsafe_function_ignore: memset */
 		pMemMap->scene = scene;
 	}
 
 	if (pMemMap->u8IsMapped == 0) {
 		pMemMap->u8IsMapVirtual = 1;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 		ret = VDEC_MEM_MapKernel(share_fd, pMemMap);
+#else
+		ret = VDEC_MEM_GetMapInfo(share_fd, pMemMap);
+#endif
 		VCTRL_ASSERT_RET((ret == HI_SUCCESS), "share fd map failed");
 		pMemMap->u8IsMapped = 1;
 		pMemMap->u32ShareFd = share_fd;
@@ -152,7 +163,11 @@ SINT32 VCTRL_VDHMapMessagePool(MEM_BUFFER_S* pMemMap, HI_S32 share_fd, HI_BOOL i
 		}
 
 		if (ret) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 			VDEC_MEM_UnmapKernel(pMemMap);
+#else
+			VDEC_MEM_PutMapInfo(pMemMap);
+#endif
 			memset(pMemMap, 0, sizeof(*pMemMap)); /* unsafe_function_ignore: memset */
 			dprint(PRN_FATAL, "%s VDMHAL_IMP_OpenHAL is failed\n", __func__);
 			return VCTRL_ERR;
@@ -268,9 +283,6 @@ static SINT32 VCTRL_ISR(SINT32 irq, VOID *dev_id)
 	if (D32 == 1)
 		VDMHAL_ISR(0);
 
-	/* RD_VREG(SMMU_INTSTAT_NS, D32, 0);
-	if (D32 != 0)
-		SMMU_IntServProc();*/
 	return IRQ_HANDLED;
 }
 
@@ -347,11 +359,19 @@ static SINT32 VCTRL_SCDGetAddrInfo(MEM_BUFFER_S* pMemMap, SCD_CONFIG_REG_S *ctrl
 		if ((pMemMap[index].u8IsMapped == 0)
 				|| (ctrlReg->IsScdAllBufRemap)) {
 			pMemMap[index].u8IsMapVirtual = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 			ret = VDEC_MEM_MapKernel(ctrlReg->scd_share_fd[index], &pMemMap[index]);
+#else
+			ret = VDEC_MEM_GetMapInfo(ctrlReg->scd_share_fd[index], &pMemMap[index]);
+#endif
 			VCTRL_ASSERT_RET((ret == HI_SUCCESS), "share fd map is failed");
 			pMemMap[index].u8IsMapped = 1;
 			pMemMap[index].u32ShareFd = ctrlReg->scd_share_fd[index];
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 			VDEC_MEM_UnmapKernel(&pMemMap[index]);
+#else
+			VDEC_MEM_PutMapInfo(&pMemMap[index]);
+#endif
 		}
 	}
 	return VCTRL_OK;
@@ -364,7 +384,11 @@ static SINT32 VDEC_MEM_Check_Scene(MEM_BUFFER_S* pMemMap, HI_S32 share_fd)
 	VDEC_SCENE scene;
 
 	pMemMap->u8IsMapVirtual = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	ret = VDEC_MEM_MapKernel(share_fd, pMemMap);
+#else
+	ret = VDEC_MEM_GetMapInfo(share_fd, pMemMap);
+#endif
 	VCTRL_ASSERT_RET((ret == VCTRL_OK), "msg sharefd map failed");
 
 	if (pMemMap->u32Size < MIN_VIDEO_MSG_POOL_SIZE) {
@@ -372,8 +396,11 @@ static SINT32 VDEC_MEM_Check_Scene(MEM_BUFFER_S* pMemMap, HI_S32 share_fd)
 	} else {
 		scene = SCENE_VIDEO;
 	}
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 	VDEC_MEM_UnmapKernel(pMemMap);
+#else
+	VDEC_MEM_PutMapInfo(pMemMap);
+#endif
 	memset(pMemMap, 0, sizeof(*pMemMap)); /* unsafe_function_ignore: memset */
 	pMemMap->scene = scene;
 
@@ -443,14 +470,22 @@ static SINT32 VCTRL_VDHGetAddrInfo(MEM_BUFFER_S* pMemMap, MEM_BUFFER_S* pComMsgM
 
 		if (pMemMap[index].u8IsMapped == 0) {
 			pMemMap[index].u8IsMapVirtual = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 			ret = VDEC_MEM_MapKernel(share_fd[index], &pMemMap[index]);
+#else
+			ret = VDEC_MEM_GetMapInfo(share_fd[index], &pMemMap[index]);
+#endif
 			if (ret != HI_SUCCESS) {
 				dprint(PRN_FATAL,"share fd map failed, index is %d", index);
 				return VCTRL_ERR;
 			}
 			pMemMap[index].u8IsMapped = 1;
 			pMemMap[index].u32ShareFd = share_fd[index];
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 			VDEC_MEM_UnmapKernel(&pMemMap[index]);
+#else
+			VDEC_MEM_PutMapInfo(&pMemMap[index]);
+#endif
 		}
 	}
 	return VCTRL_OK;
@@ -698,7 +733,7 @@ SINT32 VCTRL_VDMHAL_IsRun(VOID)
 
 HI_BOOL VCTRL_Scen_Ident(HI_U32 cmd)
 {
-	HI_U32 value = 0;
+	HI_U32 value;
 #ifdef SECURE_VS_NOR_SECURE
 	RD_VREG(SCEN_IDENT, value, 0);
 #else

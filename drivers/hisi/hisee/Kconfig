@@ -122,3 +122,9 @@ config HISI_HISEE_MNTN_RESET_IRQ_SEPARATE
 	help
 	  whether hisee reset support separate interrupts feature
 
+config HISEE_HIGH_TEMP_PROTECT_SWITCH
+	depends on HISI_HISEE
+	bool "Hisilicon hisee support high temperature protect switch."
+	default n
+	help
+	  whether hisee support high temperature protect switch

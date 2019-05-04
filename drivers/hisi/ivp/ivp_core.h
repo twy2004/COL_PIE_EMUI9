@@ -19,6 +19,7 @@ struct image_section_header {
 };
 
 extern u32 ivp_reg_read(unsigned int off);
+extern void ivp_hw_runstall(struct ivp_device *devp,int mode);
 extern void ivp_reg_write(unsigned int off, u32 val);
 extern u32 ivp_wdg_reg_read(unsigned int off);
 extern void ivp_wdg_reg_write(unsigned int off, u32 val);

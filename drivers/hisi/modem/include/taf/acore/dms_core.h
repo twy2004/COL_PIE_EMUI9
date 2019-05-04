@@ -56,6 +56,8 @@
 #include "dms.h"
 #include "vos.h"
 #include "PsCommonDef.h"
+#include "mdrv.h"
+#include "ps_tag.h"
 #if (VOS_OS_VER == VOS_LINUX)
 #include "linux/module.h"
 #include <linux/types.h>
@@ -108,6 +110,11 @@ extern "C" {
   2 宏定义
 *****************************************************************************/
 
+/* Log Print Module Define */
+#ifndef THIS_MODU
+#define THIS_MODU    ps_nas
+#endif
+
 #define DMS_WRT_SLEEP_TIME              (50)
 #define DMS_RD_SLEEP_TIME               (50)
 #define DMS_RD_BUF_LEN                  (1024)
@@ -141,21 +148,41 @@ extern "C" {
 #define DMS_LOG_LEVEL_TOP               (DMS_LOG_LEVEL_INFO | DMS_LOG_LEVEL_WARNING | DMS_LOG_LEVEL_ERROR)
 
 #ifdef _lint
-#define DMS_DBG_PRINT(lvl, ...)
+#define DMS_INFO_PRINT(lvl, ...)
+#define DMS_WRN_PRINT(lvl, ...)
+#define DMS_ERR_PRINT(lvl, ...)
 #else
-#define DMS_DBG_PRINT(lvl, ...)\
+#define DMS_INFO_PRINT(lvl, ...)\
             do\
             {\
                 if (VOS_FALSE != (g_ulDmsDebugLevel & lvl))\
                 {\
-                    PS_PRINTF(__VA_ARGS__);\
+                    PS_PRINTF_INFO(__VA_ARGS__);\
+                }\
+            }while(0)
+
+#define DMS_WRN_PRINT(lvl, ...)\
+            do\
+            {\
+                if (VOS_FALSE != (g_ulDmsDebugLevel & lvl))\
+                {\
+                    PS_PRINTF_WARNING(__VA_ARGS__);\
+                }\
+            }while(0)
+
+#define DMS_ERR_PRINT(lvl, ...)\
+            do\
+            {\
+                if (VOS_FALSE != (g_ulDmsDebugLevel & lvl))\
+                {\
+                    PS_PRINTF_ERR(__VA_ARGS__);\
                 }\
             }while(0)
 #endif
 
-#define DMS_LOG_INFO(...)               DMS_DBG_PRINT(DMS_LOG_LEVEL_INFO, __VA_ARGS__)
-#define DMS_LOG_WARNING(...)            DMS_DBG_PRINT(DMS_LOG_LEVEL_WARNING, __VA_ARGS__)
-#define DMS_LOG_ERROR(...)              DMS_DBG_PRINT(DMS_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define DMS_LOG_INFO(...)               DMS_INFO_PRINT(DMS_LOG_LEVEL_INFO, __VA_ARGS__)
+#define DMS_LOG_WARNING(...)            DMS_WRN_PRINT(DMS_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define DMS_LOG_ERROR(...)              DMS_ERR_PRINT(DMS_LOG_LEVEL_ERROR, __VA_ARGS__)
 
 #define DMS_NLK_INVALID_PID             (0xFFFFFFFFUL)
 #define DMS_NLK_DEFUALT_DATA_SIZE       (NLMSG_DEFAULT_SIZE - sizeof(DMS_NLK_PAYLOAD_STRU))
@@ -492,6 +519,7 @@ extern VOS_VOID DMS_NcmWrtCB (char* pDoneBuff, int status);
 
 VOS_INT DMS_InitPorCfgFile(VOS_VOID);
 
+#if (!defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
 ssize_t DMS_ReadPortCfgFile(struct file  *file,
                                    char __user  *buf,
                                    size_t        len,
@@ -500,7 +528,19 @@ ssize_t DMS_WritePortCfgFile(struct file        *file,
                                    const char __user  *buf,
                                    size_t              len,
                                    loff_t             *ppos);
+#else
+int DMS_ReadPortCfgFile(
+    VOS_UINT32                          ulFileId,
+    VOS_UINT8                          *data,
+    size_t                              len
+);
 
+int DMS_WritePortCfgFile(
+    VOS_UINT32                          ulFileId,
+    VOS_UINT8                          *data,
+    size_t                              len
+);
+#endif
 extern VOS_VOID APP_VCOM_SendDebugNvCfg(
     VOS_UINT32                          ulPortIdMask1,
     VOS_UINT32                          ulPortIdMask2,
@@ -525,20 +565,37 @@ VOS_VOID __exit DMS_NLK_Exit(VOS_VOID);
 
 extern VOS_INT DMS_InitGetSliceFile(VOS_VOID);
 
+#if (!defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
 extern ssize_t DMS_ReadGetSliceFile(
     struct file                        *file,
     char __user                        *buf,
     size_t                              len,
     loff_t                             *ppos
 );
+#else
+extern int DMS_ReadGetSliceFile(
+    VOS_UINT32                          ulFileId,
+    VOS_UINT8                          *data,
+    size_t                              len
+);
+#endif
 
 VOS_INT __init DMS_InitModemStatusFile(VOS_VOID);
+
+#if (!defined(CONFIG_HISI_BALONG_EXTRA_MODEM_MBB))
 ssize_t DMS_ReadModemStatusFile(
     struct file                        *file,
     char __user                        *buf,
     size_t                              len,
     loff_t                             *ppos
 );
+#else
+int DMS_ReadModemStatusFile(
+    VOS_UINT32                          ulFileId,
+    VOS_UINT8                          *data,
+    size_t                              len
+);
+#endif
 
 /*****************************************************************************
   8 OTHERS定义

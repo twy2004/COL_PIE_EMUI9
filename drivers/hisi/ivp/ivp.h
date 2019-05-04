@@ -13,12 +13,6 @@
 #define IVP_REGULATOR                 "hisi-ivp"
 #define IVP_MEDIA_REGULATOR           "hisi-ivp-media"
 
-#define IVP_CLK_LEVEL_DEFAULT         0
-#define IVP_CLK_LEVEL_ULTRA_LOW       4 //set ultra_low value 4 tempo, will change all macros value with camera3 together
-#define IVP_CLK_LEVEL_LOW             1
-#define IVP_CLK_LEVEL_MEDIUM          2
-#define IVP_CLK_LEVEL_HIGH            3
-
 //dts info
 #define OF_IVP_SECTION_NAME           "section_mem"
 #define OF_IVP_SECTION_NODE_NAME      "ivp_mem_section"

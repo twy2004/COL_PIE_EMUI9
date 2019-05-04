@@ -45,23 +45,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
+ 
 #ifndef  __OSL_MATH64_H__
 #define  __OSL_MATH64_H__
 
 #ifdef __KERNEL__
 #include <linux/math64.h>
 #else
-static inline unsigned long long div_u64_with_remain(unsigned long long dividend, unsigned int divisor, unsigned int *remain)
-{
-	*remain = dividend % divisor;
-	return dividend/divisor;
-}
 
-static inline unsigned long long div_u64(unsigned long long dividend, unsigned int divisor)
+static inline unsigned long long osl_u64_div(unsigned long long dividend, unsigned int divisor)
 {
-	u32 remain;
-	return div_u64_with_remain(dividend, divisor, &remain);
+	return dividend/divisor;
 }
 
 #endif/*KERNEL*/

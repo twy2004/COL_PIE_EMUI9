@@ -1043,9 +1043,6 @@ static unsigned char *scsi_inq_str(unsigned char *buf, unsigned char *inq,
 }
 #endif
 
-#ifdef CONFIG_HISI_UFS_MANUAL_BKOPS
-extern int hisi_ufs_manual_bkops_config(struct request_queue *q, struct Scsi_Host *shost);
-#endif
 /**
  * scsi_probe_and_add_lun - probe a LUN, if a LUN is found add it
  * @starget:	pointer to target device structure
@@ -1185,9 +1182,6 @@ static int scsi_probe_and_add_lun(struct scsi_target *starget,
 			scsi_unlock_floptical(sdev, result);
 		}
 	}
-#ifdef CONFIG_HISI_UFS_MANUAL_BKOPS
-	hisi_ufs_manual_bkops_config(sdev->request_queue, shost);
-#endif /* CONFIG_HISI_UFS_MANUAL_BKOPS */
 
  out_free_result:
 	kfree(result);

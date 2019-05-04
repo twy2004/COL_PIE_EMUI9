@@ -51,6 +51,6 @@
 #define __DUMP_XTCM_H__
 
 void dump_save_cphy_tcm(char*  dst_path);
-void dump_cphy_init(void);
 
+void dump_cphy_init(void);
 #endif

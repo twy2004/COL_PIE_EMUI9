@@ -79,6 +79,8 @@
 #include "v_id.inc"
 #include "v_timer.h"
 #include "v_int.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 
@@ -86,6 +88,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_VOS_ID_C
+#define    THIS_MODU           mod_pam_osa
 
 /* recoed PID info VOS_PID_BUTT comes from v_id.inc */
 MODULE_EXPORTED VOS_INT                 vos_PidRecordsNumber;
@@ -157,7 +160,7 @@ VOS_UINT32 MOD_RegFidPidRSP( VOS_UINT32 ulPID, VOS_UINT32 ulFID,
 
     if( VOS_ID_PID_NULL != vos_PidRecords[ulPID-VOS_PID_DOPRAEND].Pid )
     {
-        Print1("%s", "# VOS_RegisterPIDInfo multiple register.\r\n");
+        mdrv_err("<VOS_RegisterPIDInfo> multiple register.\n");
     }
 
     if( priority > VOS_PRIORITY_P6 )
@@ -199,7 +202,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_RegisterPIDInfo( VOS_PID ulPID,
     if((ulPID >= VOS_PID_BUTT)||(ulPID < VOS_PID_DOPRAEND))
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_FIDPID_REGPIDI_INPUTPIDINVALID);
-        LogPrint1("\r\nVOS_RegisterPIDInfo: Register Wrong PID %d", (VOS_INT)ulPID);
+        mdrv_err("<VOS_RegisterPIDInfo> Register Wrong PID=%d", (VOS_INT)ulPID);
         return(VOS_ERRNO_FIDPID_REGPIDI_INPUTPIDINVALID);
     }
 
@@ -311,7 +314,7 @@ VOS_UINT32 VOS_PidsInitOnePhase( enum VOS_INIT_PHASE_DEFINE InitPhrase)
 
         if(ulReturnValue != VOS_OK)
         {
-            Print1("# VOS_PidsInitOnePhase Error. Pid 0x%x\r\n",i);
+            mdrv_err("<VOS_PidsInitOnePhase> InitFunc Fail. Pid=0x%x\n",i);
             /*由于PID扩展后,PID已经扩展超过了0xffff，需要扩展*/
             g_ulOmPidInit |= (i & 0xFFFFFF);
             V_LogRecord(9, g_ulOmPidInit);
@@ -344,7 +347,7 @@ VOS_UINT32 VOS_PidsInit(VOS_VOID)
         if ( VOS_OK
             != VOS_PidsInitOnePhase( (enum VOS_INIT_PHASE_DEFINE)ulInitPhase) )
         {
-            Print1("# VOS_PidsInitOnePhase VOS_IP_LOAD_CONFIG Error. InitPhase: 0x%x\r\n",ulInitPhase);
+            mdrv_err("<VOS_PidsInitOnePhase> VOS_IP_LOAD_CONFIG Error. InitPhase=0x%x\n",ulInitPhase);
 
             g_ulOmPidInit |= (ulInitPhase << 24);
             V_LogRecord(7, g_ulOmPidInit);
@@ -413,7 +416,7 @@ VOS_UINT32 VOS_FidCtrlBlkInit(VOS_VOID)
 
         if(pFidStaticTable->ulFID != (unsigned long)i)
         {
-            Print2("# Fid Init Fid invalid ulFID %d I %d",
+            mdrv_err("<VOS_FidCtrlBlkInit> Fid Init Fid invalid ulFID=%d I=%d",
                 (int)pFidStaticTable->ulFID, i );
 
             return(VOS_ERR);
@@ -477,7 +480,7 @@ VOS_UINT32 VOS_FidsInitOnePhase(enum VOS_INIT_PHASE_DEFINE InitPhrase)
 
         if(ulReturnValue != VOS_OK)
         {
-            Print4("# %s InitPhrase %d i %d ulReturnValue %x",
+            mdrv_err("<VOS_FidsInitOnePhase> Name=%s InitPhrase=%d i=%d ulReturnValue=%x",
                 vos_FidCtrlBlk[i].Name, InitPhrase, i, ulReturnValue);
 
             g_ulOmFidInit |= (i & VOS_NULL_WORD);
@@ -512,7 +515,7 @@ VOS_UINT32 VOS_FidsInit(VOS_VOID)
         if (VOS_OK
             != VOS_FidsInitOnePhase( (enum VOS_INIT_PHASE_DEFINE)ulInitPhase) )
         {
-            Print1("%s", "# VOS_FidsInitOnePhase VOS_IP_LOAD_CONFIG Error.\r\n");
+            mdrv_err("<VOS_FidsInitOnePhase> VOS_IP_LOAD_CONFIG Error.\n");
 
             g_ulOmFidInit |= (ulInitPhase << 16);
             V_LogRecord(3, g_ulOmFidInit);
@@ -594,7 +597,7 @@ VOS_UINT32 CreateFidsQueque(VOS_VOID)
 
         if( ulReturnValue != VOS_OK )
         {
-            Print1("# create %d FID queue error.\r\n", i);
+            mdrv_err("<CreateFidsQueque> create=%d FID queue error.\n", i);
 
             return( ulReturnValue );
         }
@@ -648,7 +651,7 @@ VOS_VOID vos_FidTask( VOS_UINT32 ulQueueID, VOS_UINT32 FID_value,
         if ( VOS_ERR
             == VOS_FixedQueueRead(ulQueueID, 0, &Msg_Address, VOS_FID_MAX_MSG_LENGTH))
         {
-            LogPrint1("# FID fetch message error. the Q ID is %d.\r\n",
+            mdrv_err("<vos_FidTask> FID fetch message error. the Q ID is %d.\n",
                 (int)ulQueueID);
 
             continue;
@@ -662,10 +665,10 @@ VOS_VOID vos_FidTask( VOS_UINT32 ulQueueID, VOS_UINT32 FID_value,
 
         if(iThePid >= VOS_PID_BUTT)
         {
-            LogPrint("# vos_FidTask Pid too big.\r\n");
+            mdrv_err("<vos_FidTask> Pid too big.\n");
 
             pulMsgAddr = (VOS_UINT32 *)pMsg;
-            LogPrint4("# Msg :S pid %08X R Pid %08X Length %08X Name %08X.\r\n",
+            mdrv_err("<vos_FidTask> Msg :S pid=%08X R Pid=%08X Length=%08X Name=%08X.\n",
                 (VOS_INT)(*(pulMsgAddr + 1)), (VOS_INT)(*(pulMsgAddr + 3)),
                 (VOS_INT)(*(pulMsgAddr + 4)), (VOS_INT)(*(pulMsgAddr + 5)));
 
@@ -684,10 +687,10 @@ VOS_VOID vos_FidTask( VOS_UINT32 ulQueueID, VOS_UINT32 FID_value,
         }
         else
         {
-            LogPrint("# vos_FidTask Pid not belong the Fid.\r\n");
+            mdrv_err("<vos_FidTask> Pid not belong the Fid.\n");
 
             pulMsgAddr = (VOS_UINT32 *)pMsg;
-            LogPrint4("# Msg :S pid %08X R Pid %08X Length %08X Name %08X.\r\n",
+            mdrv_err("<vos_FidTask> Msg :S pid=%08X R Pid=%08X Length=%08X Name=%08X.\n",
                 (VOS_INT)(*(pulMsgAddr + 1)), (VOS_INT)(*(pulMsgAddr + 3)),
                 (VOS_INT)(*(pulMsgAddr + 4)), (VOS_INT)(*(pulMsgAddr + 5)));
         }
@@ -887,7 +890,7 @@ VOS_UINT32 CreateFidsTask(VOS_VOID)
 
         if( ulReturnValue != VOS_OK )
         {
-            (VOS_VOID)Print1("VOS_CreateTaskOnly Fail in CreateFidsTask: FID = %d\r\n", i);
+            mdrv_err("<CreateTaskOnly> Fail in CreateFidsTask, FID=%d\n", i);
             return( ulReturnValue );
         }
 
@@ -909,7 +912,7 @@ VOS_UINT32 CreateFidsTask(VOS_VOID)
 
                 if( ulReturnValue != VOS_OK )
                 {
-                    Print1("VOS_CreateSelfTask Fail in CreateFidsTask: FID = %d.\r\n", i);
+                    mdrv_err("<VOS_CreateSelfTask> Fail in CreateFidsTask, FID=%d.\n", i);
                     return( ulReturnValue );
                 }
 
@@ -959,7 +962,7 @@ MODULE_EXPORTED VOS_UINT8 VOS_RegisterSelfTask( VOS_FID                   ulFID,
 
     if( ubyIndex >= VOS_MAX_SELF_TASK_OF_FID )
     {
-        Print1("%s", "# VOS_RegisterSelfTask error.\r\n");
+        mdrv_err("<VOS_RegisterSelfTask> index exceed VOS_MAX_SELF_TASK_OF_FID.\n");
 
         return VOS_NULL_BYTE;
     }
@@ -1005,7 +1008,7 @@ VOS_UINT8 VOS_RegisterSelfTaskPrio( VOS_FID             ulFID ,
 
     if( ubyIndex >= VOS_MAX_SELF_TASK_OF_FID )
     {
-        Print1("%s", "# VOS_RegisterSelfTask error.\r\n");
+        mdrv_err("<VOS_RegisterSelfTask> index exceed VOS_MAX_SELF_TASK_OF_FID.\n");
 
         return VOS_NULL_BYTE;
     }
@@ -1017,22 +1020,6 @@ VOS_UINT8 VOS_RegisterSelfTaskPrio( VOS_FID             ulFID ,
     return ubyIndex;
 }
 
-/*****************************************************************************
- Function   : VOS_SuspendFidTask
- Description: Suspend task of FID
- Input      : ulFID       -- Function module Identifiers
-            : void
- Return     : VOS_OK on success or errno on failure
- *****************************************************************************/
-MODULE_EXPORTED VOS_UINT32 VOS_SuspendFidTask(VOS_FID ulFid)
-{
-    if ((VOS_FID_DOPRAEND > ulFid) || (VOS_FID_BUTT <= ulFid))
-    {
-        return VOS_ERR;
-    }
-
-    return VOS_SuspendTask( vos_FidCtrlBlk[ulFid].Tid );
-}
 
 /*****************************************************************************
  Function   : VOS_ResumeFidTask
@@ -1051,46 +1038,6 @@ MODULE_EXPORTED VOS_UINT32 VOS_ResumeFidTask(VOS_FID ulFid)
     return VOS_ResumeTask( vos_FidCtrlBlk[ulFid].Tid );
 }
 
-/*****************************************************************************
- Function   : VOS_SuspendFidsTask
- Description: Suspend tasks of all FIDs
- Input      : void
-            : void
- Return     : VOS_OK on success or errno on failure
- *****************************************************************************/
-VOS_UINT32 VOS_SuspendFidsTask(VOS_VOID)
-{
-    VOS_UINT32              i;
-    int                     ubyIndex;
-    VOS_UINT32              ulReturnValue;
-
-    for(i=VOS_FID_DOPRAEND; i<VOS_FID_BUTT; i++)
-    {
-        ulReturnValue = VOS_SuspendTask( vos_FidCtrlBlk[i].Tid );
-        if( ulReturnValue != VOS_OK )
-        {
-            Print1("%s", "# SuspendFidsTask Fail 1 in SuspendFidsTask.\r\n");
-            return( ulReturnValue );
-        }
-
-        for( ubyIndex = 0; ubyIndex < VOS_MAX_SELF_TASK_OF_FID; ubyIndex++ )
-        {
-            if( vos_FidCtrlBlk[i].SelfProcTaskFunc[ubyIndex] != VOS_NULL_PTR )
-            {
-                ulReturnValue
-                    = VOS_SuspendTask( vos_FidCtrlBlk[i].SelfProcTaskTid[ubyIndex]);
-                if( ulReturnValue != VOS_OK )
-                {
-                    Print1("%s", "# SuspendFidsTask Fail 2 in SuspendFidsTask.\r\n");
-
-                    return( ulReturnValue );
-                }
-            }
-        }
-    }
-
-    return( VOS_OK );
-}
 
 /*****************************************************************************
  Function   : VOS_ResumeFidsTask
@@ -1110,7 +1057,7 @@ VOS_UINT32 VOS_ResumeFidsTask(VOS_VOID)
         ulReturnValue = VOS_ResumeTask( vos_FidCtrlBlk[i].Tid );
         if( ulReturnValue != VOS_OK )
         {
-            Print1("%s", "# ResumeFidsTask Fail 1 in ResumeFidsTask.\r\n");
+            mdrv_err("<ResumeFidsTask> Fail 1 in ResumeFidsTask.\n");
             return( ulReturnValue );
         }
 
@@ -1122,7 +1069,7 @@ VOS_UINT32 VOS_ResumeFidsTask(VOS_VOID)
                     = VOS_ResumeTask( vos_FidCtrlBlk[i].SelfProcTaskTid[ubyIndex]);
                 if( ulReturnValue != VOS_OK )
                 {
-                    Print1("%s", "# ResumeFidsTask Fail 2 in ResumeFidsTask.\r\n");
+                    mdrv_err("<ResumeFidsTask> Fail 2 in ResumeFidsTask.\n");
 
                     return( ulReturnValue );
                 }
@@ -1135,32 +1082,6 @@ VOS_UINT32 VOS_ResumeFidsTask(VOS_VOID)
 
 
 /*****************************************************************************
- Function   : VOS_SuspendAllTask
- Description: suspend all FID & selftask
- Input      : invaild
- Return     : void
- Other      : only for designer
- *****************************************************************************/
-VOS_VOID VOS_SuspendAllTask( VOS_UINT32 Para0, VOS_UINT32 Para1,
-                             VOS_UINT32 Para2, VOS_UINT32 Para3 )
-{
-    if ( VOS_OK != VOS_SuspendFidsTask() )
-    {
-        Print1("%s", "# SUSPED FID error.\r\n");
-    }
-
-    if ( VOS_OK != VOS_SuspendTask( vos_TimerTaskId ) )
-    {
-        Print1("%s", "# SUSPED VOS timer task error.\r\n");
-    }
-
-    if ( VOS_OK != VOS_SuspendTask( RTC_TimerTaskId ) )
-    {
-        Print1("%s", "# SUSPED RTC timer task error.\r\n");
-    }
-}
-
-/*****************************************************************************
  Function   : VOS_RegisterMsgTaskEntry
  Description: Register message handling task's entry of FID
  Input      : ulFID      -- Function module Identifier
@@ -1171,13 +1092,13 @@ MODULE_EXPORTED VOS_UINT32 VOS_RegisterMsgTaskEntry( VOS_FID ulFID, VOS_VOIDFUNC
 {
     if( ulFID >= VOS_FID_BUTT )
     {
-        LogPrint("VOS_RegisterMsgTaskEntry FID invaild.\r\n");
+        mdrv_err("<VOS_RegisterMsgTaskEntry> FID invaild.\n");
         return VOS_ERR;
     }
 
     if( VOS_NULL_PTR == pfnMsgTask )
     {
-        LogPrint("VOS_RegisterMsgTaskEntry task null.\r\n");
+        mdrv_err("<VOS_RegisterMsgTaskEntry> task null.\n");
         return VOS_ERR;
     }
 
@@ -1197,7 +1118,7 @@ VOS_UINT32 VOS_GetQueueIDFromFid(VOS_UINT32 ulFid)
 {
     if( ulFid >= VOS_FID_BUTT )
     {
-        LogPrint("VOS_GetQueueIDFromFid FID invaild.\r\n");
+        mdrv_err("<VOS_GetQueueIDFromFid> FID invaild.\n");
         return 0xffffffff;
     }
 
@@ -1220,7 +1141,7 @@ MODULE_EXPORTED VOS_VOID VOS_ShowFidsQueueInfo(VOS_UINT32 Para0, VOS_UINT32 Para
 
     for( i=VOS_FID_DOPRAEND; i<VOS_FID_BUTT; i++ )
     {
-        Print2("# FID %d %s queue info.\r\n", i, vos_FidCtrlBlk[i].Name);
+        mdrv_debug("<VOS_ShowFidsQueueInfo> FID=%d Name=%s queue info.\n", i, vos_FidCtrlBlk[i].Name);
 
         ulCount = 0;
 
@@ -1232,12 +1153,12 @@ MODULE_EXPORTED VOS_VOID VOS_ShowFidsQueueInfo(VOS_UINT32 Para0, VOS_UINT32 Para
 
             if ( ulCount > VOS_FID_QUEUE_LENGTH )
             {
-                LogPrint("# VOS_ShowFidsQueueInfo error.\r\n");
+                mdrv_err("<VOS_ShowFidsQueueInfo> VOS_FID_QUEUE_LENGTH reached\n");
 
                 break;
             }
 
-            Print4("# Msg :S pid %08X R Pid %08X Length %08X Name %08X.\r\n",
+            mdrv_debug("<VOS_ShowFidsQueueInfo> Msg :S pid=%08X R Pid=%08X Length=%08X Name=%08X.\n",
                     *(pulMsgAddr + 1), *(pulMsgAddr + 3),
                     *(pulMsgAddr + 4), *(pulMsgAddr + 5));
 
@@ -1274,7 +1195,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_GetTCBFromPid(VOS_UINT32 ulPid)
 
     if((ulPid < VOS_PID_DOPRAEND)||(ulPid >= VOS_PID_BUTT))
     {
-        Print1("VOS_GetTCBFromPid: Wrong Pid %d\r\n", ulPid);
+        mdrv_err("<VOS_GetTCBFromPid> Wrong Pid=%d\n", ulPid);
 
         return VOS_NULL;
     }
@@ -1283,7 +1204,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_GetTCBFromPid(VOS_UINT32 ulPid)
 
     if ((ulFid < (VOS_UINT32)VOS_FID_DOPRAEND) || (ulFid >= (VOS_UINT32)VOS_FID_BUTT))
     {
-        Print2("VOS_GetTCBFromPid Wrong PID %d. FID %d\r\n", (VOS_INT)ulPid, (VOS_INT)ulFid);
+        mdrv_err("<VOS_GetTCBFromPid> Wrong PID=%d. FID=%d\n", (VOS_INT)ulPid, (VOS_INT)ulFid);
 
         return VOS_NULL;
     }
@@ -1320,12 +1241,12 @@ VOS_BOOL VOS_CheckPSPidValidity(VOS_UINT32 ulPid)
  *****************************************************************************/
 VOS_VOID VOS_OsaGlobalShow(VOS_VOID)
 {
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_ulOmFidInit =: %d\n", __FUNCTION__, g_ulOmFidInit);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_ulOmPidInit =: %d\n", __FUNCTION__, g_ulOmPidInit);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usFidInitStep =: %d\n", __FUNCTION__, g_usFidInitStep);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usFidInitId =: %d\n", __FUNCTION__, g_usFidInitId);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usPidInitStep =: %d\n", __FUNCTION__, g_usPidInitStep);
-    (VOS_VOID)vos_printf("[PAM][OSA] %s: VOS_OsaGlobalShow:g_usPidInitId =: %d\n", __FUNCTION__, g_usPidInitId);
+    mdrv_debug("<VOS_OsaGlobalShow> g_ulOmFidInit=%d\n", g_ulOmFidInit);
+    mdrv_debug("<VOS_OsaGlobalShow> g_ulOmPidInit=%d\n", g_ulOmPidInit);
+    mdrv_debug("<VOS_OsaGlobalShow> g_usFidInitStep=%d\n", g_usFidInitStep);
+    mdrv_debug("<VOS_OsaGlobalShow> g_usFidInitId=%d\n", g_usFidInitId);
+    mdrv_debug("<VOS_OsaGlobalShow> g_usPidInitStep=%d\n", g_usPidInitStep);
+    mdrv_debug("<VOS_OsaGlobalShow> g_usPidInitId=%d\n", g_usPidInitId);
 
     return;
 }
@@ -1376,7 +1297,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_CheckPidValidity(VOS_UINT32 ulPid)
     {
         if((ulPid < VOS_PID_CPU_ID_0_DOPRAEND)||(ulPid >= VOS_CPU_ID_0_PID_BUTT))
         {
-            Print1("VOS_CheckPidValidity: Wrong Pid %d\r\n", ulPid);
+            mdrv_err("<VOS_CheckPidValidity> Wrong Pid=%d\n", ulPid);
 
             return VOS_PID_UNSURE;
         }
@@ -1389,7 +1310,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_CheckPidValidity(VOS_UINT32 ulPid)
     }
     else
     {
-        Print1("VOS_CheckPidValidity: Wrong CPU %d\r\n", ulPid);
+        mdrv_err("<VOS_CheckPidValidity> Wrong CPU=%d\n", ulPid);
 
         return VOS_PID_UNSURE;
     }
@@ -1397,7 +1318,7 @@ MODULE_EXPORTED VOS_UINT32 VOS_CheckPidValidity(VOS_UINT32 ulPid)
 
     if((ulPid < VOS_PID_DOPRAEND)||(ulPid >= VOS_PID_BUTT))
     {
-        Print1("VOS_CheckPidValidity: Wrong Pid %d\r\n", ulPid);
+        mdrv_err("<VOS_CheckPidValidity> Wrong Pid=%d\n", ulPid);
 
         return VOS_PID_UNSURE;
     }

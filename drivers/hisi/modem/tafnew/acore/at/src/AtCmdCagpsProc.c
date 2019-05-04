@@ -250,6 +250,12 @@ VOS_UINT32 At_SetAgpsForwardData(
         return AT_CME_OPERATION_NOT_ALLOWED;
     }
 
+    /* the value of para4 and the len of para5 must be equal */
+    if (gastAtParaList[3].ulParaValue != gastAtParaList[4].usParaLen)
+    {
+        return AT_CME_OPERATION_NOT_ALLOWED;
+    }
+
     ulDataLen = (gastAtParaList[3].ulParaValue / 2);
 
     if (ulDataLen >= 4)

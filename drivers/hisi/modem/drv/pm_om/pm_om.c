@@ -349,7 +349,7 @@ __init int bsp_pm_om_dump_init(void)
 
 	spin_lock_init(&g_pmom_ctrl.dump.lock);
 
-	g_pmom_ctrl.dump.base = (void *)bsp_dump_register_field(PM_OM_DUMP_ID, "PM_OM", 0, 0, PM_OM_DUMP_SIZE, 0);
+	g_pmom_ctrl.dump.base = (void *)bsp_dump_register_field(PM_OM_DUMP_ID, "PM_OM", 0, 0, PM_OM_DUMP_SIZE, 0); 
 	if (NULL == g_pmom_ctrl.dump.base)
 	{
 		goto err_ret; /*lint !e801 */
@@ -398,7 +398,7 @@ int bsp_pm_info_stat_register(pm_info_cbfun pcbfun, struct pm_info_usr_data *usr
 	{
 		if (pcbfun == pm_info->cb_func && usr_data->mod_id == pm_info->usr_data.mod_id)
 		{
-			pmom_pr_err("%p(id:%d)has registered\n", pcbfun, usr_data->mod_id);
+			pmom_pr_err("(id:%d)has registered\n",  usr_data->mod_id);
 			return PM_OM_OK;
 		}
 	}

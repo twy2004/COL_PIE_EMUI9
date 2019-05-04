@@ -36,7 +36,7 @@ static struct semaphore rdr_exce_sem;
 static void __iomem* sysctrl_base;
 static void __iomem* watchdog_base;
 static unsigned int* dump_vir_addr;
-static struct wake_lock rdr_wl;
+struct wake_lock rdr_wl;
 struct completion sensorhub_rdr_completion;
 static int nmi_reg;
 
@@ -793,9 +793,9 @@ static int rdr_sh_thread(void* arg)
             hwlog_warn(" ===========dump sensorhub log end==========\n");
         }
 
-        complete_all(&sensorhub_rdr_completion);
         wake_unlock(&rdr_wl);
 	peri_used_release();
+        complete_all(&sensorhub_rdr_completion);
     }
 
     return 0;

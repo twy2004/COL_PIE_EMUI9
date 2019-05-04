@@ -641,9 +641,6 @@ enum DRV_AGENT_MSG_TYPE_ENUM
     DRV_AGENT_SIMLOCKDATAREAD_QRY_CNF    = 0x00A1,                              /* _H2ASN_MsgChoice DRV_AGENT_SIMLOCKDATAREAD_QRY_CNF_STRU */
     DRV_AGENT_PHONEPHYNUM_SET_CNF        = 0x00A3,                              /* _H2ASN_MsgChoice DRV_AGENT_PHONEPHYNUM_SET_CNF_STRU */
     DRV_AGENT_PHONEPHYNUM_QRY_CNF        = 0x00A5,                              /* _H2ASN_MsgChoice DRV_AGENT_PHONEPHYNUM_QRY_CNF_STRU */
-    DRV_AGENT_PORTCTRLTMP_SET_CNF        = 0x00A7,                              /* _H2ASN_MsgChoice DRV_AGENT_PORTCTRLTMP_SET_CNF_STRU */
-    DRV_AGENT_PORTATTRIBSET_SET_CNF      = 0x00A9,                              /* _H2ASN_MsgChoice DRV_AGENT_PORTATTRIBSET_SET_CNF_STRU */
-    DRV_AGENT_PORTATTRIBSET_QRY_CNF      = 0x00AB,                              /* _H2ASN_MsgChoice DRV_AGENT_PORTATTRIBSET_QRY_CNF_STRU */
     DRV_AGENT_OPWORD_SET_CNF             = 0x00AD,                              /* _H2ASN_MsgChoice DRV_AGENT_OPWORD_SET_CNF_STRU */
     DRV_AGENT_ANTSTATE_QRY_IND           = 0x00AF,                              /* _H2ASN_MsgChoice AT_APPCTRL_STRU*/
     DRV_AGENT_INFORRS_SET_CNF            = 0x0101,                              /* _H2ASN_MsgChoice DRV_AGENT_INFORRS_SET_CNF_STRU */
@@ -682,6 +679,7 @@ enum AT_DEVICE_CMD_RAT_MODE_ENUM
     AT_RAT_MODE_FDD_LTE,
     AT_RAT_MODE_TDD_LTE,
     AT_RAT_MODE_WIFI,
+    AT_RAT_MODE_NR,
     AT_RAT_MODE_BUTT
 };
 typedef VOS_UINT8 AT_DEVICE_CMD_RAT_MODE_ENUM_UINT8;
@@ -1183,14 +1181,18 @@ enum AT_FEATURE_DRV_TYPE_ENUM
     AT_FEATURE_WIMAX,
     AT_FEATURE_WIFI,
     AT_FEATURE_GPS,
-    AT_FEATURE_TDSCDMA
+    AT_FEATURE_TDSCDMA,
+
+    AT_FEATURE_NR
 };
 typedef VOS_UINT32  AT_FEATURE_DRV_TYPE_ENUM_UINT32;
 
 #define AT_FEATURE_NAME_LEN_MAX       (16)
 #endif
 
-#define AT_FEATURE_CONTENT_LEN_MAX    (56)
+#define AT_FEATURE_CONTENT_LEN_MAX    (504)
+
+#define AT_FEATURE_BAND_STR_LEN_MAX   (512)
 
 
 
@@ -1903,17 +1905,6 @@ typedef struct
     VOS_UINT8                                       aucImeiRsa[DRV_AGENT_RSA_CIPHERTEXT_LEN];
     VOS_UINT8                                       aucSnRsa[DRV_AGENT_RSA_CIPHERTEXT_LEN];
 }DRV_AGENT_PHONEPHYNUM_QRY_CNF_STRU;
-
-
-
-
-typedef struct
-{
-    AT_APPCTRL_STRU                                 stAtAppCtrl;                /* 消息头 */
-    DRV_AGENT_PERSONALIZATION_ERR_ENUM_UINT32       enResult;                   /* 命令执行结果 */
-}DRV_AGENT_PORTCTRLTMP_SET_CNF_STRU;
-
-
 
 
 typedef struct

@@ -1,5 +1,8 @@
 #include "maxim_onewire.h"
 
+#ifdef HWLOG_TAG
+#undef HWLOG_TAG
+#endif
 #define HWLOG_TAG HW_ONEWIRE_MAXIM
 HWLOG_REGIST();
 
@@ -24,7 +27,7 @@ static unsigned char dscrc_table[] = {
 };
 
 /* Nerver change oddparity for CRC16, which is maxim special. */
-short oddparity[16] = { 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0 };
+static short oddparity[16] = { 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0 };
 
 /*
  *CRC8 Check
@@ -983,16 +986,16 @@ int maxim_onewire_register(maxim_onewire_ic_des *ic_des,
 
     /* register memory operations */
     mmo = &ic_des->mem_ops;
-    mmo->get_rom_id      =      maxim_get_rom_id;
-    mmo->get_personality =      maxim_get_personality;
-    mmo->get_user_memory =      maxim_get_user_memory;
-    mmo->set_user_memory =      maxim_set_user_memory;
-    mmo->set_sram        =      maxim_set_sram;
-    mmo->get_sram        =      maxim_get_sram;
-    mmo->get_mac         =      maxim_get_mac;
-    mmo->set_status      =      maxim_set_status;
-    mmo->get_status      =      maxim_get_status;
-    mmo->valid_mem_ops   =      maxim_valid_mem_ops;
+    mmo->get_rom_id      = maxim_get_rom_id;
+    mmo->get_personality = maxim_get_personality;
+    mmo->get_user_memory = maxim_get_user_memory;
+    mmo->set_user_memory = maxim_set_user_memory;
+    mmo->set_sram        = maxim_set_sram;
+    mmo->get_sram        = maxim_get_sram;
+    mmo->get_mac         = maxim_get_mac;
+    mmo->set_status      = maxim_set_status;
+    mmo->get_status      = maxim_get_status;
+    mmo->valid_mem_ops   = maxim_valid_mem_ops;
 
     return MAXIM_ONEWIRE_SUCCESS;
 }

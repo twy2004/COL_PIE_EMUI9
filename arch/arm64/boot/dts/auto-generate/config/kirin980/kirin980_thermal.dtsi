@@ -19,6 +19,9 @@
 		tsens: tsens@0{
 			compatible = "hisi,tsens";
 			hisi,sensors = <5>;
+			hisi,tsensor_name = "cluster0","cluster1","gpu","modem","ddr";
+			/*tsensor mode: disable->0, enable->1;*/
+			hisi,tsensor_mode = <1 1 1 1 1>;
 			/*sensortype, 0:Tsensor, 1:PVTsensor */
 			hisi,detect_cluster0_regno = <0>;
 			hisi,detect_cluster0_sensortype = <0>;
@@ -119,6 +122,75 @@
 			status = "ok";
 		};
 
+		hisi_mdm_temp: hisi_mdm_temp@0 {
+			compatible = "hisi,mdm_temp";
+			status = "ok";
+			sensors {
+				sensor0 {
+					type = "mmw_0";
+					channel = <13>;
+					mode = <1>;
+					tm_ntc_table = "austin_hkadc_soc_temp_table";
+				};
+				sensor1 {
+					type = "mmw_1";
+					channel = <7>;
+					mode = <1>;
+					tm_ntc_table = "austin_hkadc_soc_temp_table";
+				};
+				sensor2 {
+					type = "pa_2";
+					channel = <4>;
+					mode = <1>;
+					tm_ntc_table = "austin_hkadc_soc_temp_table";
+				};
+				sensor3 {
+					type = "pa_3";
+					channel = <9>;
+					mode = <1>;
+					tm_ntc_table = "austin_hkadc_soc_temp_table";
+				};
+				sensor4 {
+					type = "pa_4";
+					channel = <12>;
+					mode = <1>;
+					tm_ntc_table = "austin_hkadc_soc_temp_table";
+				};
+				sensor5 {
+					type = "mdm_soc0";
+					channel = <16>;
+					mode = <1>;
+					tm_ntc_table = "none";
+				};
+				sensor6 {
+					type = "mdm_soc1";
+					channel = <17>;
+					mode = <1>;
+					tm_ntc_table = "none";
+				};
+				sensor7 {
+					type = "mdm_soc2";
+					channel = <18>;
+					mode = <1>;
+					tm_ntc_table = "none";
+				};
+				sensor8 {
+					type = "mdm_soc3";
+					channel = <19>;
+					mode = <1>;
+					tm_ntc_table = "none";
+				};
+				sensor9 {
+					type = "mdm_ddr";
+					channel = <20>;
+					mode = <1>;
+					tm_ntc_table = "none";
+				};
+			};
+
+		};
+
+
 		hisi_shell: shell_frame@0 {
 			compatible = "hisi,shell-temp";
 			interval = <5000>;
@@ -209,6 +281,15 @@
 		cpu_temp_threshold {
 			hisilicon,down_threshold = <95000>;
 			hisilicon,up_threshold = <85000>;
+			hisilicon,cpu_hotplug_mask = <0xF0>;
+		};
+
+		ipa_sensors_info {
+			hisilicon,cluster_num = <3>;
+			hisilicon,ipa_cpufreq_table_index = <0 4 6>;/*little middle big*/
+			hisilicon,ipa_sensor_num = <4>;
+			hisilicon,ipa_actor_name = "cluster0","cluster1","cluster2","gpu";
+			hisilicon,ipa_actor_index = <0 1 2 3>;
 		};
 
 		capacitances {

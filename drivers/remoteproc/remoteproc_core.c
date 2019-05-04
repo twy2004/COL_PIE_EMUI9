@@ -43,7 +43,7 @@
 #include <asm/byteorder.h>
 #ifdef CONFIG_HISI_REMOTEPROC
 #include <asm/cacheflush.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/rproc_share.h>
 #include <linux/platform_data/remoteproc-hisi.h>
 #endif
@@ -998,6 +998,119 @@ int rproc_handle_resources_secisp(const struct firmware *fw, void *context)
 	ret = rproc_handle_resources(rproc, tablesz, rproc_vdev_handler);
 
 out:
+	return ret;
+}
+
+/*
+ * take a firmware and boot a remote processor with it.
+ */
+int nonsec_rproc_boot(struct rproc *rproc)
+{
+	struct device *dev = &rproc->dev;
+	struct resource_table *table, *loaded_table;
+	int ret, tablesz;
+
+	ret = rproc_fw_sanity_check(rproc, NULL);
+	if (ret)
+		return ret;
+
+	/*
+	 * if enabling an IOMMU isn't relevant for this rproc, this is
+	 * just a nop
+	 */
+	ret = rproc_enable_iommu(rproc);
+	if (ret) {
+		dev_err(dev, "can't enable iommu: %d\n", ret);
+		return ret;
+	}
+
+	rproc->bootaddr = rproc_get_boot_addr(rproc, NULL);
+	ret = -EINVAL;
+
+	/* look for the resource table */
+	table = rproc_find_rsc_table(rproc, NULL, &tablesz);
+	if (!table) {
+		dev_err(dev, "Failed to find resource table\n");
+		goto clean_up;
+	}
+
+	/*
+	 * Create a copy of the resource table. When a virtio device starts
+	 * and calls vring_new_virtqueue() the address of the allocated vring
+	 * will be stored in the cached_table. Before the device is started,
+	 * cached_table will be copied into device memory.
+	 */
+	rproc->cached_table = kmemdup(table, tablesz, GFP_KERNEL);
+	if (!rproc->cached_table)
+		goto clean_up;
+
+	rproc->table_ptr = rproc->cached_table;
+
+	/* reset max_notifyid */
+	rproc->max_notifyid = -1;
+
+	/* look for virtio devices and register them */
+	ret = rproc_handle_resources(rproc, tablesz, rproc_vdev_handler);
+	if (ret) {
+		dev_err(dev, "Failed to handle vdev resources: %d\n", ret);
+		goto clean_up;
+	}
+
+	/* handle fw resources which are required to boot rproc */
+	ret = rproc_handle_resources(rproc, tablesz, rproc_loading_handlers);
+	if (ret) {
+		dev_err(dev, "Failed to process resources: %d\n", ret);
+		goto clean_up_resources;
+	}
+
+	/* load the ELF segments to memory */
+	ret = rproc_load_segments(rproc, NULL);
+	if (ret) {
+		dev_err(dev, "Failed to load program segments: %d\n", ret);
+		goto clean_up_resources;
+	}
+	/* set shared parameters for rproc*/
+	ret = rproc_set_shared_para();
+	if (ret) {
+		dev_err(dev, "Failed to set bootware parameters...: %d\n", ret);
+		goto clean_up;
+	}
+
+	/*
+	 * The starting device has been given the rproc->cached_table as the
+	 * resource table. The address of the vring along with the other
+	 * allocated resources (carveouts etc) is stored in cached_table.
+	 * In order to pass this information to the remote device we must copy
+	 * this information to device memory. We also update the table_ptr so
+	 * that any subsequent changes will be applied to the loaded version.
+	 */
+	loaded_table = rproc_find_loaded_rsc_table(rproc, NULL);
+	if (loaded_table) {
+		memcpy(loaded_table, rproc->cached_table, tablesz);
+		rproc->table_ptr = loaded_table;
+	}
+
+	/* power up the remote processor */
+	ret = rproc->ops->start(rproc);
+	if (ret) {
+		dev_err(dev, "can't start rproc %s: %d\n", rproc->name, ret);
+		goto clean_up_resources;
+	}
+
+	rproc->state = RPROC_RUNNING;
+
+	dev_info(dev, "remote processor %s is now up\n", rproc->name);
+
+	return 0;
+
+clean_up_resources:
+	rproc_resource_cleanup(rproc);
+clean_up:
+	kfree(rproc->cached_table);
+	rproc->cached_table = NULL;
+	rproc->table_ptr = NULL;
+
+	rproc_disable_iommu(rproc);
 	return ret;
 }
 #endif

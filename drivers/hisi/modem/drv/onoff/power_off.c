@@ -95,7 +95,7 @@ void drv_shut_down( DRV_SHUTDOWN_REASON_E enReason, unsigned int  delay_in_ms )
 {
     /*do nothing*/
 }
-
+EXPORT_SYMBOL_GPL(drv_shut_down);
 /******************************************************************************
 *  Function:  bsp_drv_power_reboot
 *  Description: same as drv_power_off, the public API
@@ -121,10 +121,7 @@ void bsp_drv_power_reboot( void )
 *******************************************************************************/
 void mdrv_sysboot_restart(void)
 {
-    bsp_info("%s is called from (%pF) ...\n",
-        __FUNCTION__, __builtin_return_address(0U));
-
-	bsp_drv_power_reboot();
+    bsp_drv_power_reboot();
 }
 EXPORT_SYMBOL_GPL(mdrv_sysboot_restart);
 
@@ -141,9 +138,6 @@ EXPORT_SYMBOL_GPL(mdrv_sysboot_restart);
 ********************************************************************************/
 void bsp_drv_power_reboot_direct( void )
 {
-    bsp_info("%s is called from (%pF) ...\n",
-        __FUNCTION__, __builtin_return_address(0U));
-
     if(!is_in_llt())
     {
         system_error(DRV_ERROR_USER_RESET, 0, 0, NULL, 0);
@@ -164,9 +158,6 @@ EXPORT_SYMBOL_GPL(bsp_drv_power_reboot_direct);
 /*lint -save -e958 */
 void balong_power_restart(char mode, const char *cmd)
 {
-    bsp_info("%s is called from (%pF) ...\n",
-        __FUNCTION__, __builtin_return_address(0U));
-
     mbb_record_reboot_mode(cmd);
     bsp_drv_power_reboot();
 }
@@ -186,18 +177,12 @@ EXPORT_SYMBOL_GPL(balong_power_restart);
 ********************************************************************************/
 void balong_power_off( void )
 {
-    bsp_info("%s is called from (%pF) ...\n",
-        __FUNCTION__, __builtin_return_address(0U));
-
     drv_shut_down( DRV_SHUTDOWN_POWER_KEY, 0 );
 }
 EXPORT_SYMBOL_GPL(balong_power_off);
 
 void mdrv_sysboot_shutdown(void)
 {
-    bsp_info("%s is called from (%pF) ...\n",
-        __FUNCTION__, __builtin_return_address(0U));
-
     drv_shut_down(DRV_SHUTDOWN_TEMPERATURE_PROTECT, 0);
 }
 EXPORT_SYMBOL_GPL(mdrv_sysboot_shutdown);

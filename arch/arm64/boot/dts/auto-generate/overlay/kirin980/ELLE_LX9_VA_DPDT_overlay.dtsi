@@ -19,3 +19,30 @@
 		hisi,product_id = <0x37040800>;
 		hisi,product_name = "ELE-LX9";
 	};
+
+    /*hisi customize*/
+    &hisi_cust_cfg {
+        ini_file_name = "/vendor/etc/cfg_elle_lx9_va.ini";
+    };
+	&sensorhub{
+              	rpc{
+                       rpc{
+                             compatible = "huawei,rpc";
+                             file_id = <0x18>;
+                             sensor_list_info_id = <24>;
+                             sensor_type = "rpc";
+                             sensorlist_name = "rpc";
+                             mask = <0xFFFF 0x60F 0x60F 0x60F 0x60F 0x20F 0x20F 0x20F
+                                     0x20F 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+                                     0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+                                     0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xF 0xFFFF 0xFFFF>;
+                            table = <0xFFFF 0x201 0x202 0x203 0x207 0x1 0x2 0x3
+                                     0x7 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+                                     0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF
+                                     0xFFFF 0xFFFF 0xFFFF 0xFFFF 0xFFFF 0x0 0xFFFF 0xFFFF>;
+							mask_enable = <0x0200>;
+                            default_value = <0x1D>;
+                            status = "ok";
+                         };
+                 };
+	};

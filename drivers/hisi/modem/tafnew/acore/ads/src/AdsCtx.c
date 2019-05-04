@@ -58,7 +58,6 @@
 #include "mdrv.h"
 
 
-
 /*****************************************************************************
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
@@ -311,6 +310,7 @@ VOS_UINT32 ADS_UL_GetAllQueueDataNum(VOS_VOID)
     {
         ulTotalNum = ulTotalNum + ADS_UL_GetInstanceAllQueueDataNum(i);
     }
+
 
     return ulTotalNum;
 }
@@ -1476,6 +1476,7 @@ VOS_VOID ADS_InitCtx(VOS_VOID)
 
     /* 初始化每个实例的上下文 */
     ADS_InitSpecCtx();
+
 
     /* 初始化数据统计的上下文 */
     ADS_InitStatsInfoCtx();

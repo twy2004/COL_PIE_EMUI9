@@ -45,6 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #ifndef __APPRRCLTECOMMONINTERFACE_H__
 #define __APPRRCLTECOMMONINTERFACE_H__
 
@@ -249,6 +250,7 @@ typedef struct
     VOS_UINT32             enResult;
     LRRC_APP_NCELL_LIST_INFO_STRU stNcellListInfo;
 }LRRC_APP_GET_NCELL_INFO_CNF_STRU;
+
 
 
 #if (VOS_OS_VER != VOS_WIN32)

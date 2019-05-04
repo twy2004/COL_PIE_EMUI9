@@ -94,6 +94,6 @@ hwdriveric_intf_notify_error(hwdriveric_notify_intf_t *i, hwdriveric_event_t *dr
 }
 
 extern int32_t hwdriveric_register(struct platform_device* pdev, const hwdriveric_intf_t* i,hwdriveric_notify_intf_t** notify);
-void hwdriveric_unregister(hwdriveric_intf_t* driveric_intf);
+void hwdriveric_unregister(struct platform_device* pdev);
 #endif // __HW_ALAN_KERNEL_DRIVERIC_INTERFACE_H__
 

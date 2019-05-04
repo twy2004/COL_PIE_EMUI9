@@ -915,7 +915,8 @@ exit:
 			  (1UL << TCP_DELACK_TIMER_DEFERRED) |	\
 			  (1UL << TCP_MTU_REDUCED_DEFERRED) |   \
 			  (1UL << MPTCP_PATH_MANAGER_DEFERRED) |\
-			  (1UL << MPTCP_SUB_DEFERRED))
+			  (1UL << MPTCP_SUB_DEFERRED) |\
+			  (1UL << MPTCP_USER_SWTCH_DEFERRED))
 #else
 #define TCP_DEFERRED_ALL ((1UL << TCP_TSQ_DEFERRED) |		\
 			  (1UL << TCP_WRITE_TIMER_DEFERRED) |	\
@@ -976,6 +977,13 @@ void tcp_release_cb(struct sock *sk)
 	}
 	if (flags & (1UL << MPTCP_SUB_DEFERRED))
 		mptcp_tsq_sub_deferred(sk);
+
+	if (flags & (1UL << MPTCP_USER_SWTCH_DEFERRED)) {
+		if (tcp_sk(sk)->mpcb->pm_ops->user_switch)
+			tcp_sk(sk)->mpcb->pm_ops->user_switch(sk,
+				tp->user_switch, tp->prim_iface);
+		__sock_put(sk);
+	}
 #endif
 }
 EXPORT_SYMBOL(tcp_release_cb);
@@ -2580,12 +2588,16 @@ void tcp_send_loss_probe(struct sock *sk)
 		skb = tcp_write_queue_tail(sk);
 	}
 
+	if (unlikely(!skb)) {
+		WARN_ONCE(tp->packets_out,
+			  "invalid inflight: %u state %u cwnd %u mss %d\n",
+			  tp->packets_out, sk->sk_state, tp->snd_cwnd, mss);
+		inet_csk(sk)->icsk_pending = 0;
+		return;
+	}
+
 	/* At most one outstanding TLP retransmission. */
 	if (tp->tlp_high_seq)
-		goto rearm_timer;
-
-	/* Retransmit last segment. */
-	if (WARN_ON(!skb))
 		goto rearm_timer;
 
 	if (skb_still_in_host_queue(sk, skb))
@@ -3753,8 +3765,6 @@ void tcp_send_delayed_ack(struct sock *sk)
 	int ato = icsk->icsk_ack.ato;
 	unsigned long timeout;
 
-	tcp_ca_event(sk, CA_EVENT_DELAYED_ACK);
-
 	if (ato > TCP_DELACK_MIN) {
 		const struct tcp_sock *tp = tcp_sk(sk);
 		int max_ato = HZ / 2;
@@ -3817,8 +3827,6 @@ void __tcp_send_ack(struct sock *sk, u32 rcv_nxt)
 	if (sk->sk_state == TCP_CLOSE)
 		return;
 
-	tcp_ca_event(sk, CA_EVENT_NON_DELAYED_ACK);
-
 	/* We are not putting this on the write queue, so
 	 * tcp_transmit_skb() will set the ownership to this
 	 * sock.
@@ -3845,7 +3853,9 @@ void __tcp_send_ack(struct sock *sk, u32 rcv_nxt)
 	 */
 	skb_set_tcp_pure_ack(buff);
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_first_combine(sk,buff,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_first_combine(sk,buff,TP_SKB_DIRECT_SND,TP_SKB_TYPE_TCP);
+	}
 #endif
 	/* Send it off, this clears delayed acks for us. */
 	skb_mstamp_get(&buff->skb_mstamp);

@@ -15,6 +15,8 @@
 #include "../hisi_fb.h"
 #include "../hisi_fb_def.h"
 #include "core.h"
+#include "dp_aux.h"
+#include "reg.h"
 /*
  * Core Access Layer
  *
@@ -29,8 +31,8 @@
  * This function enables (unmasks) all interrupts in the INTERRUPT
  * register specified by @bits.
  */
-extern u16 usb31phy_cr_read(u32 addr);
-extern u16 usb31phy_cr_write(u32 addr, u16 value);
+extern u16 usb31phy_cr_read(uint32_t addr);
+extern u16 usb31phy_cr_write(uint32_t addr, u16 value);
 /*lint -save -e* */
 static void dptx_intr_en(struct dp_ctrl *dptx, uint32_t bits)
 {
@@ -174,8 +176,6 @@ void dptx_aux_disreset(struct dp_ctrl *dptx, bool enable)
 		HISI_FB_ERR("[DP] NULL Pointer\n");
 		return;
 	}
-
-	/* Enable AUX Block */
 	reg = (uint32_t)dptx_readl(dptx, DPTX_WRAP_REG_DPC_AUX_CTRL);//lint !e838
 
 	if (enable)
@@ -187,6 +187,7 @@ void dptx_aux_disreset(struct dp_ctrl *dptx, bool enable)
 	reg |= (3 << DPTX_TYPEC_AUX_VOD_TUNE_SHIFT);
 
 	dptx_writel(dptx, DPTX_WRAP_REG_DPC_AUX_CTRL, reg);
+
 	mdelay(1);//lint !e778 !e747 !e774
 }
 /**
@@ -281,16 +282,27 @@ void dptx_core_init_phy(struct dp_ctrl *dptx)
 
 	/* Set 40-bit PHY width */
 	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
-
 	if (g_fpga_flag == 1) {
-		phyifctrl |= DPTX_PHYIF_CTRL_WIDTH;	/*UDP need 20bit*/
+		phyifctrl |= DPTX_PHYIF_CTRL_WIDTH;	/*FPGA need 40 bit*/
 	} else {
-		phyifctrl &= ~DPTX_PHYIF_CTRL_WIDTH;	/*FPGA need 40 bit*/
+		phyifctrl &= ~DPTX_PHYIF_CTRL_WIDTH;	/*UDP need 20 bit*/
 	}
-
 	dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
 }
 
+/**
+* dptx_sink_enabled_ssc() - Returns true, if sink is enabled ssc
+* @dptx: The dptx struct
+*
+*/
+bool dptx_sink_enabled_ssc(struct dp_ctrl *dptx)
+{
+	uint8_t byte;
+
+	dptx_read_dpcd(dptx, DP_MAX_DOWNSPREAD, &byte);
+
+	return byte & 1;
+}
 /**
  * dptx_check_dptx_id() - Check value of DPTX_ID register
  * @dptx: The dptx struct
@@ -313,7 +325,6 @@ bool dptx_check_dptx_id(struct dp_ctrl *dptx)
 
 	return true;
 }
-
 /**
  * dptx_core_init() - Initializes the DP TX core
  * @dptx: The dptx struct
@@ -513,9 +524,9 @@ int dptx_phy_wait_busy(struct dp_ctrl *dptx, uint32_t lanes)
 	}
 
 	/*FPGA don't need config phy*/
-	if (g_fpga_flag == 1)
+	if (g_fpga_flag == 1) {
 		return 0;
-
+	}
 	switch (lanes) {
 	case 4:
 		mask |= DPTX_PHYIF_CTRL_BUSY(3);

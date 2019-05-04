@@ -67,6 +67,8 @@
 #define FCP_ADAPTER_DETECT_SUCC 0
 #define FCP_ADAPTER_DETECT_OTHER -1
 
+#define FCP_CHECK_CNT_MAX     3
+
 /*fcp adapter status */
 #define FCP_ADAPTER_STATUS 0x28
 #define FCP_ADAPTER_OVLT 0x04
@@ -189,6 +191,14 @@
 
 #define OTG_ENABLE                     (1)
 #define OTG_DISABLE                    (0)
+
+#define CCAFC_PATTERN_SIZE	(6)
+#define CCAFC_STRING_LENGTH	(72)
+#define CCAFC_STRING_SPACE_NUM	(18)
+#define CCAFC_CURRENT_LOCATION	(6)
+#define CCAFC_VOLTAGE_LOCATION	(12)
+#define RET_ERR			(-1)
+#define RET_OK			(0)
 /*************************struct define area***************************/
 enum charger_charging_event {
 	CHARGER_START_CHARGING_EVENT = 0,
@@ -217,7 +227,7 @@ enum otg_ctrl_type {
 	OTG_CTRL_TOTAL,
 };
 
-enum usb_charger_type {
+enum huawei_usb_charger_type {
 	CHARGER_TYPE_USB = 0,	/*SDP*/
 	CHARGER_TYPE_BC_USB,	/*CDP*/
 	CHARGER_TYPE_NON_STANDARD,	/*UNKNOW*/
@@ -284,6 +294,8 @@ enum charge_sysfs_type {
 	CHARGE_SYSFS_ADAPTOR_VOLTAGE,
 	CHARGE_SYSFS_PLUGUSB,
 	CHARGE_SYSFS_THERMAL_REASON,
+	CHARGE_SYSFS_CCA_CHARGE_PATTERN,
+	CHARGE_SYSFS_CCA_CCCV_SAMPLE,
 };
 enum charge_done_type {
 	CHARGE_DONE_NON = 0,
@@ -338,7 +350,7 @@ struct charger_event_queue {
 	unsigned int overlay, overlay_index;
 };
 struct ico_input {
-	enum usb_charger_type charger_type;
+	enum huawei_usb_charger_type charger_type;
 	unsigned int iin_max;
 	unsigned int ichg_max;
 	unsigned int vterm;
@@ -348,6 +360,7 @@ struct ico_output {
 	unsigned int charge_current;
 };
 struct chip_init_crit {
+	enum huawei_usb_charger_type charger_type;
 	int vbus;
 };
 struct charge_sysfs_data {
@@ -525,7 +538,7 @@ struct charge_device_info {
 #endif
 	unsigned int pd_input_current;
 	unsigned int pd_charge_current;
-	enum usb_charger_type charger_type;
+	enum huawei_usb_charger_type charger_type;
 	enum typec_input_current typec_current_mode;
 	enum power_supply_type charger_source;
 	enum charge_fault_type charge_fault;
@@ -572,6 +585,9 @@ struct charge_device_info {
 	int avg_iin_ma;
 	int max_iin_ma;
 	int current_full_status;
+#ifdef CONFIG_HUAWEI_YCABLE
+	struct notifier_block ycable_nb;
+#endif
 };
 enum charge_wakelock_flag {
 	CHARGE_NEED_WAKELOCK,
@@ -597,6 +613,13 @@ struct adaptor_test_attr{
 	enum test_state result;
 };
 
+/*fast charging pattern calculate by cca*/
+struct ccafc_charge_pattern {
+	int ccafc_current[CCAFC_PATTERN_SIZE];
+	int ccafc_voltage[CCAFC_PATTERN_SIZE];
+	int ccafc_mode[CCAFC_PATTERN_SIZE];
+};
+
 #define WDT_TIME_80_S 80
 #define WDT_STOP 0
 #define CHARGE_IC_GOOD 0
@@ -611,8 +634,6 @@ extern struct blocking_notifier_head charge_wake_unlock_list;
 extern struct atomic_notifier_head fault_notifier_list;
 extern struct device *charge_dev;
 extern unsigned int get_pd_charge_flag(void);
-extern bool pd_dpm_set_voltage(int vol);
-extern void pd_dpm_set_pd_reset_adapter(int ra);
 
 int water_detect_ops_register(struct water_detect_ops *ops);
 void water_detect(void);
@@ -658,5 +679,8 @@ int charge_set_input_current_max(void);
 bool charge_get_hiz_state(void);
 int charge_set_hiz_enable(int enable);
 void charge_set_batfet_disable(int val);
+int is_ccafc_supported(int *flag);
+int get_ccafc_pattern(struct ccafc_charge_pattern *pattern);
+int get_ccafc_sample_status(void);
 
 #endif

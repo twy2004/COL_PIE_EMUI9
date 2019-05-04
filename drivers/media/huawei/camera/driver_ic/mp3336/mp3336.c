@@ -88,6 +88,7 @@ typedef struct _driver_ic_mp3336_private_data_t {
 }drv_ic_mp3336_private_data_t;
 
 static driveric_t s_mp3336;
+static struct platform_device *s_pdev = NULL;
 static drv_ic_mp3336_private_data_t s_mp3336_pdata;
 
 static int mp3336_get_dt_data(const hwdriveric_intf_t *intf, struct device_node *dev_node)
@@ -201,13 +202,9 @@ static int mp3336_init(const hwdriveric_intf_t *intf)
     RETURN_ERROR_ON_NULL(drv_ic);
     RETURN_ERROR_ON_NULL(drv_ic->pdata);
 
- //   pdata = (drv_ic_mp3336_private_data_t *)drv_ic->pdata;
-
     cam_info("%s init success", __func__);
     return rc;
 }
-
-//static void mp3336_notify_error(uint32_t id);
 
 static int mp3336_power_on(const hwdriveric_intf_t* intf)
 {
@@ -312,6 +309,7 @@ mp3336_platform_probe(
         struct platform_device* pdev)
 {
     cam_notice("%s enter", __func__);
+    s_pdev = pdev;
     return hwdriveric_register(pdev, &s_mp3336.intf, &s_mp3336.notify);
 }
 
@@ -332,7 +330,7 @@ static void __exit
 mp3336_exit_module(void)
 {
     platform_driver_unregister(&s_mp3336_driver);
-    hwdriveric_unregister(&s_mp3336.intf);
+    hwdriveric_unregister(s_pdev);
 }
 
 module_init(mp3336_init_module);

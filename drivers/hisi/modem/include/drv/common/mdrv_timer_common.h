@@ -119,7 +119,44 @@ extern "C"
              值为递增值,系统深睡会停止计时(lixiaojie\gebaizhang\xiajun讨论添加)
      *************************************************************************/
 	unsigned int mdrv_timer_get_hrt_timestamp(void);
-
+	 /************************************************************************
+     *  FUNCTION
+     *       mdrv_get_normal_timestamp_freq
+     * DESCRIPTION
+     *       GetSliceFreq
+     * INPUTS
+     *       NONE
+     * OUTPUTS
+     *       NONE
+             获取时间戳的频率
+     *************************************************************************/
+	unsigned int mdrv_get_normal_timestamp_freq(void);
+	/************************************************************************
+     *  FUNCTION
+     *       mdrv_get_hrt_timestamp_freq
+     * DESCRIPTION
+     *       GetHrtSliceFreq
+     * INPUTS
+     *       NONE
+     * OUTPUTS
+     *       NONE
+             获取高精度时间戳频率,系统深睡会停止计时(lixiaojie\gebaizhang\xiajun讨论添加)
+     *************************************************************************/
+	unsigned int mdrv_get_hrt_timestamp_freq(void);
+	/************************************************************************
+     *  FUNCTION
+     *       mdrv_udelay
+     * DESCRIPTION
+     *       udelay
+     * INPUTS
+     *       NONE
+     * OUTPUTS
+     *       NONE
+             udelay对外接口，us级
+     *************************************************************************/
+#if defined(__OS_RTOSCK_TSP__)|| defined(__OS_RTOSCK_TVP__) 
+	void mdrv_udelay(unsigned us);
+#endif
 #ifdef __cplusplus
 }
 #endif

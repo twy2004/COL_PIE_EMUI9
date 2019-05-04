@@ -269,7 +269,7 @@ enum AT_RRETURN_CODE_ENUM
     AT_CME_MODEM_ID_ERROR,
     AT_CME_WRITE_NV_TimeOut,
     AT_CME_NV_NOT_SUPPORT_ERR,
-    
+
     AT_CME_FUNC_DISABLE,
     AT_CME_SCI_ERROR,
 
@@ -353,6 +353,24 @@ enum AT_RRETURN_CODE_ENUM
     AT_DEVICE_CLOSE_UL_CHAN_FAILURE,
     AT_DEVICE_CLOSE_DL_CHAN_FAILURE,
     AT_DEVICE_NV_DATA_INVALID,
+
+    AT_FCHAN_BAND_WIDTH_ERR,
+    AT_FCHAN_SCS_ERR,
+    AT_FCHAN_NO_SCS,
+    AT_FCHAN_LOAD_DSP_ERR,
+    AT_SND_MSG_FAIL,
+    AT_NOT_SET_PATH,
+    AT_NOT_LOAD_DSP,
+    AT_NOT_SUPPORT_WIFI,
+    AT_WIFI_NOT_ENABLE,
+    AT_FCHAN_WIFI_BAND_ERR,
+    AT_FCHAN_RAT_ERR,
+    AT_FWAVE_TYPE_ERR,
+    AT_FPA_LEVEL_ERR,
+    AT_TSELRF_PATH_ERR,
+    AT_ESELRF_TX_OR_RX_ERR,
+    AT_DPDT_RAT_ERR,
+    AT_MIMO_PARA_ERR,
 
     AT_PERSONALIZATION_ERR_BEGIN,
     AT_PERSONALIZATION_IDENTIFY_FAIL,
@@ -466,7 +484,7 @@ enum AT_RRETURN_CODE_ENUM
     AT_CMOLRE_MEMORY_ERROR,
     AT_CMOLRE_UNKNOWN_ERROR,
     AT_CMOLRE_ERR_ENUM_END,                 /* CMOLRE ERROR 结束 */
-    
+
     AT_DIAG_ENUM_BEGIN,               /* DIAG ERROR 开始 */
     AT_DIAG_USB_NOT_SUPPORT_CPS,
     AT_DIAG_USB_NOT_SUPPORT_CFG,
@@ -478,10 +496,10 @@ enum AT_RRETURN_CODE_ENUM
     AT_DIAG_CFG_SET_ERROR,
     AT_DIAG_GET_PORT_NOT_USB_OR_VCOM,
     AT_DIAG_ENUM_END,               /* DIAG ERROR 结束 */
-    
+
     AT_CMD_NOT_SUPPORT,
     AT_TOO_MANY_PARA,
-   
+
     AT_ABORT,
     AT_RRETURN_CODE_BUTT                    /* RETURN CODE 结束 */
 };
@@ -553,8 +571,11 @@ typedef VOS_UINT8 AT_CMD_OPT_TYPE;
 #define AT_CMD_OPT_READ_CMD         2
 #define AT_CMD_OPT_TEST_CMD         3
 #define AT_CMD_OPT_BUTT             4
-
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define AT_MAX_PARA_NUMBER                      (24)
+#else
 #define AT_MAX_PARA_NUMBER                      (16)
+#endif
 
 #define AT_PARA_SCALE_MAX_LEN                   (24)
 #define AT_CMD_NAME_LEN                         (50)
@@ -684,30 +705,41 @@ typedef VOS_UINT32 (*PFN_AT_FW_IND_PROC)(VOS_VOID *pMsgBlock);
 #define CMD_TBL_CLAC_IS_INVISIBLE_E5         CMD_TBL_LIMITED_NULL         /* E5形态下+CLAC命令中不输出显示的命令 */
 #define CMD_TBL_CLAC_IS_INVISIBLE_STICK      CMD_TBL_LIMITED_NULL          /* STICK形态下+CLAC命令中不输出显示的命令 */
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define AT_SET_CGDCONT_PARA_MAX_NUMBER           22
+#else
+#define AT_SET_CGDCONT_PARA_MAX_NUMBER           11
+#endif
+
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define AT_SET_CGTFT_PARA_MAX_NUMBER           13
+#else
+#define AT_SET_CGTFT_PARA_MAX_NUMBER           12
+#endif
+
 
 #if (FEATURE_ON == FEATURE_LTE)
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define CGDCONT_CMD_PARA_STRING         "(0-31),(\"IP\",\"IPV6\",\"IPV4V6\",\"PPP\",\"\"),(APN),(PdpAddr),(0-2),(0-3),(0,1),(0,1),(0-2),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(SNssai),(0),(0,1),(0),(0,1)"
+#else
 #define CGDCONT_CMD_PARA_STRING         "(0-31),(\"IP\",\"IPV6\",\"IPV4V6\",\"PPP\",\"\"),(APN),(PdpAddr),(0-2),(0-3),(0,1),(0,1),(0-2),(0,1),(0,1)"
+#endif
 #else
 #define CGDCONT_CMD_PARA_STRING         "(1-11),(\"IP\",\"IPV6\",\"IPV4V6\",\"PPP\",\"\"),(APN),(PdpAddr),(0-2),(0-3),(0,1),(0,1),(0-2),(0,1),(0,1)"
 #endif  /* FEATURE_ON == FEATURE_LTE */
 
 #if (FEATURE_ON == FEATURE_UE_MODE_NR) && (FEATURE_ON == FEATURE_LTE)
-#define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2,7,13)"
+#define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2,7,12)"
 #elif (FEATURE_ON == FEATURE_UE_MODE_NR)
-#define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2,13)"
+#define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2,12)"
 #elif (FEATURE_ON == FEATURE_LTE)
 #define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2,7)"
 #else
 #define COPS_CMD_PARA_STRING            "(0,1,2,3,4),(0-2),(@oper),(0,2)"
 #endif
 
-#if (FEATURE_ON == FEATURE_BOSTON_AFTER_FEATURE)
 #define SIMLOCKDATAREADEX_CMD_PARA_STRING                "(0,1,2,3,255),(1-255)"
 #define SIMLOCKDATAWRITEEX_CMD_PARA_STRING               "(0,1,2,3,255),(1-255),(1-255),(@SimlockData),(@hmac)"
-#else
-#define SIMLOCKDATAREADEX_CMD_PARA_STRING                "(0,1,2,3),(1-255)"
-#define SIMLOCKDATAWRITEEX_CMD_PARA_STRING               "(0,1,2,3),(1-255),(1-255),(@SimlockData),(@hmac)"
-#endif
 
 #if (FEATURE_ON == FEATURE_LTE)
 #define CGDSCONT_CMD_PARA_STRING        "(1-31),(0-31),(0-2),(0-3),(0-1)"
@@ -716,7 +748,11 @@ typedef VOS_UINT32 (*PFN_AT_FW_IND_PROC)(VOS_VOID *pMsgBlock);
 #endif  /* FEATURE_ON == FEATURE_LTE */
 
 #if (FEATURE_ON == FEATURE_LTE)
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define CGTFT_CMD_PARA_STRING           "(1-31),(1-16),(0-255),(IpMask),(0-255),(Dpr),(Spr),(0-4294967295),(TosM),(0-1048575),(0-3),(LocalIpMask),(0-255)"
+#else
 #define CGTFT_CMD_PARA_STRING           "(1-31),(1-16),(0-255),(IpMask),(0-255),(Dpr),(Spr),(0-4294967295),(TosM),(0-1048575),(0-3),(LocalIpMask)"
+#endif
 #else
 #define CGTFT_CMD_PARA_STRING           "(1-11),(1-16),(0-255),(IpMask),(0-255),(Dpr),(Spr),(0-4294967295),(TosM),(0-1048575),(0-3)"
 #endif  /* FEATURE_ON == FEATURE_LTE */
@@ -879,12 +915,34 @@ typedef VOS_UINT32 (*PFN_AT_FW_IND_PROC)(VOS_VOID *pMsgBlock);
 #define SCICHG_CMD_PARA_STRING          "(0-2),(0-2)"
 #endif
 
+#if(FEATURE_OFF == FEATURE_UE_MODE_NR)
+#define FCHAN_CMD_PARA_STRING           "(0-7),(0-255),(0-4294967295),(0-1)"
+#define FWAVE_CMD_PARA_STRING           "(0-7),(0-65535)"
+#define FPA_CMD_PARA_STRING             "(0-255)"
+#define FTXON_CMD_PARA_STRING           "(0,1,2)"
+#define TSELRF_CMD_PARA_STRING          "(0-255),(0-255)"
+#define DPDT_CMD_PARA_STRING            "(0-4),(0-65535)"
+#define DPDT_QRY_PARA_STRING            "(0-4)"
+#define DPDT_TEST_CMD_PATA_STRING       "(0-4),(0-65535)"
+#else
+#define FCHAN_CMD_PARA_STRING           "(0-9),(0-65535),(0-4294967295),(0-20),(0-4)"
+#define FWAVE_CMD_PARA_STRING           "(0-8),(0-65535)" 
+#define FPA_CMD_PARA_STRING             "(0-3)"
+#define FTXON_CMD_PARA_STRING           "(0,1)"
+#define TSELRF_CMD_PARA_STRING          "(1-18),(0,1),(1-3),(1-8)"
+#define DPDT_CMD_PARA_STRING            "(0-5),(0-65535),(0,1)"
+#define DPDT_QRY_PARA_STRING            "(0-5),(0,1)"
+#define DPDT_TEST_CMD_PATA_STRING       "(0-4),(0-65535)"
+#endif
+
+
 /* 命令表元素定义
    --------------------ulChkFlag------------------------------------------
   | bit31......bit4 |    bit3    |    bit2    |    bit1    |    bit0    |
   |       保留      |CLAC是否显示|E5 DOCK命令 |SIM锁定限制 | E5密码保护 |
    -----------------------------------------------------------------------
  */
+ /*lint -e958 ;cause:64bit*/
  typedef struct
 {
     VOS_UINT32 ulCmdIndex;
@@ -907,9 +965,11 @@ typedef VOS_UINT32 (*PFN_AT_FW_IND_PROC)(VOS_VOID *pMsgBlock);
     const VOS_UINT8* pszCmdName;
     const VOS_UINT8* pszParam;
 } AT_PAR_CMD_ELEMENT_STRU;
+/*lint +e958 ;cause:64bit*/
 
 
 /* SMS命令脚本类型 */
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     VOS_UINT32 ulCmdIndex;
@@ -930,6 +990,7 @@ typedef struct
     const VOS_UINT8* ParaText;           /* 文本参数脚本 */
     const VOS_UINT8* ParaPDU;            /* PDU参数脚本 */
 }AT_SMS_CMD_TAB_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 
 typedef struct tagAT_PAR_CMDTBL_LIST_STRU
@@ -941,6 +1002,7 @@ typedef struct tagAT_PAR_CMDTBL_LIST_STRU
     HI_LIST_S                           stCmdTblList;
 } AT_PAR_CMDTBL_LIST_STRU;
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     VOS_UINT8 ucClientStatus;    /* AT_FW_CLIENT_STATUS_READY/PEND */
@@ -967,6 +1029,7 @@ typedef struct
 
     HTIMER hTimer;
 } AT_PARSE_CONTEXT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 #define AT_PARA_MAX_NUM                         AT_MAX_PARA_NUMBER
 

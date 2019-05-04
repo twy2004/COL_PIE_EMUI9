@@ -47,10 +47,13 @@
 */
 
 #include "AtCheckFunc.h"
+#include "AtMntn.h"
 
 #include "msp_errno.h"
 
 #include "at_common.h"
+#include "mdrv.h"
+#include "ps_tag.h"
 
 
 /* ATÃüÁî³õÊ¼×´Ì¬±í */
@@ -376,7 +379,7 @@ static VOS_VOID atScanDmcmdModifier( VOS_UINT8 *pData, VOS_UINT16 *pLen)
     pDataTmp = (VOS_UINT8*)AT_MALLOC(*pLen + 1);
     if (VOS_NULL_PTR == pDataTmp)
     {
-        PS_PRINTF("atScanDmcmdModifier(): AT_MALLOC Failed!\n");
+        PS_PRINTF_WARNING("<atScanDmcmdModifier> AT_MALLOC Failed!\n");
         return;
     }
 

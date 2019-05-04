@@ -78,9 +78,13 @@ void fi_rtt_status(uint32_t appid, uint32_t status)
 void fi_reset_gamectx(fi_gamectx *gamectx)
 {
 	fi_gamectx tmpctx;
+	fi_mpctx *mpctx;
+
+	mpctx = g_fi_ctx.mpctx + gamectx->appid;
 
 	memcpy(&tmpctx, gamectx, sizeof(fi_gamectx));
 	memset(gamectx, 0, sizeof(fi_gamectx));
+	memset(mpctx, 0, sizeof(fi_mpctx));
 
 	/* 保留部分值 */
 	gamectx->appid = tmpctx.appid;
@@ -335,8 +339,8 @@ void fi_rtt_judge_qqfc(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx
 	timediff = FI_MAX(pktinfo->msec - flowctx->studystarttime, 1);
 
 	up_pps = flowctx->uppktnum * FI_MS / timediff;
-	FI_LOGD(" : FI judge qqfc, up: %u/s, down: %u/s, flow: %u,%u",
-	        up_pps, flowctx->downpktnum, pktinfo->sport, pktinfo->dport);
+	FI_LOGD(" : FI judge qqfc, up: %u/s, down: %u/s, flow: %u,%u, times: %u",
+	        up_pps, flowctx->downpktnum, pktinfo->sport, pktinfo->dport, flowctx->btflow_times);
 
 	/* 识别QQ飞车的对战流 */
 	if ((up_pps >= FI_QQFC_UP_PPS_MIN) && (up_pps <= FI_QQFC_UP_PPS_MAX))
@@ -428,8 +432,8 @@ void fi_rtt_judge_battle_flow(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *
 	downpktpersec = flowctx->downpktnum * FI_MS / timediff;
 	avgpktlen = flowctx->uppktbytes / FI_MAX(flowctx->uppktnum, 1);
 
-	FI_LOGD(" : FI judge battle: up: %u/s, down: %u/s, avg_pkt_len: %u, flow: %u,%u",
-	        uppktpersec, downpktpersec, avgpktlen, pktinfo->sport, pktinfo->dport);
+	FI_LOGD(" : FI judge battle: up: %u/s, down: %u/s, avg_pkt_len: %u, times: %u, flow: %u,%u",
+	        uppktpersec, downpktpersec, avgpktlen, flowctx->btflow_times, pktinfo->sport, pktinfo->dport);
 
 	if ((uppktpersec >= FI_BATTLE_UP_PKT_PER_SEC) &&
 	    (downpktpersec >= FI_BATTLE_DOWN_PKT_PER_SEC) &&
@@ -572,6 +576,7 @@ void fi_rtt_judge_flow_type(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *ga
 				break;
 			}
 			case FI_APPID_HYXD:
+			case FI_APPID_BH3:
 			{
 				/* do nothing */
 				break;
@@ -639,13 +644,14 @@ void fi_rtt_flow_study(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx
 	/* 判断对战是否开始 */
 	if (!FI_BATTLING(gamectx->appstatus))
 	{
-		/* QQ飞车识别出对战流意味着对战开始 */
-		if (gamectx->appid == FI_APPID_QQFC)
+		/* QQ飞车、崩坏3 识别出对战流意味着对战开始 */
+		if ((gamectx->appid == FI_APPID_QQFC) ||
+		    (gamectx->appid == FI_APPID_BH3))
 		{
 			if (flowctx->flowtype == FI_FLOWTYPE_BATTLE)
 			{
 				gamectx->appstatus |= FI_STATUS_BATTLE_START;
-				FI_LOGD(" : FI learned qqfc battle start status by flow %u,%u.",
+				FI_LOGD(" : FI learned battle start status by battle flow %u,%u.",
 						pktinfo->sport, pktinfo->dport);
 
 				/* 上报游戏状态: 对战开始 */
@@ -683,6 +689,8 @@ int fi_rtt_cal_tcprtt(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 				/* 记录期望收到的ack和当前时间戳 */
 				flowctx->seq = pktinfo->seq + pktinfo->len;
 				flowctx->uppkttime = pktinfo->msec;
+				FI_LOGD(" : FI save seq, seq=%u, nextseq=%u.",
+				        pktinfo->seq, flowctx->seq);
 			}
 			return FI_SUCCESS;
 		}
@@ -694,8 +702,10 @@ int fi_rtt_cal_tcprtt(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 		}
 
 		/* 健壮性考虑, 太长时间没有收到ack, 重新选取一个报文 */
-		if (pktinfo->msec - flowctx->uppkttime > FI_ACK_MAX_WAIT)
+		if ((flowctx->uppkttime > 0) &&
+		    (pktinfo->msec - flowctx->uppkttime > FI_ACK_MAX_WAIT))
 		{
+			FI_LOGD(" : FI reset tcprtt ctx.");
 			flowctx->seq = 0;
 			flowctx->uppkttime = 0;
 			return FI_FAILURE;
@@ -752,7 +762,8 @@ int fi_rtt_cal_mptcp(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 
 		/* seq等于0说明上一个计算周期已经结束, 重新开始一个新的周期 */
 		if ((mpctx->seq == 0) && (pktinfo->len > 0) &&
-		    (pktinfo->seq >= mpctx->preseq))
+		    ((pktinfo->seq >= mpctx->preseq) ||
+		    (FI_ABS_SUB(pktinfo->seq, mpctx->preseq) > FI_RETRANS_PKT)))
 		{
 			/* 记录期望收到的ack和当前时间戳 */
 			mpctx->seq = pktinfo->seq + pktinfo->len;
@@ -763,10 +774,11 @@ int fi_rtt_cal_mptcp(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 		}
 
 		/* 健壮性考虑, 太长时间没有收到ack, 重新选取一个报文 */
-		if (pktinfo->msec - mpctx->uppkttime > FI_ACK_MAX_WAIT)
+		if ((mpctx->uppkttime > 0) &&
+		    (pktinfo->msec - mpctx->uppkttime > FI_ACK_MAX_WAIT))
 		{
-			mpctx->seq = 0;
-			mpctx->uppkttime = 0;
+			FI_LOGD(" : FI reset mptcp ctx.");
+			memset(mpctx, 0, sizeof(fi_mpctx));
 		}
 
 		return FI_SUCCESS;
@@ -809,7 +821,8 @@ int fi_rtt_cal_hyxd(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 {
 	int32_t newrtt = 0;
 
-	if (pktinfo->len < FI_HYXD_MIN_LEN)
+	/* 需要访问负载，所以用bufdatalen */
+	if (pktinfo->bufdatalen < FI_HYXD_MIN_LEN)
 	{
 		return FI_FAILURE;
 	}
@@ -1034,9 +1047,120 @@ void fi_rtt_cal_uu(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
 }
 
 
+void fi_rtt_cal_bh3(fi_pkt *pktinfo, fi_flowctx *flowctx, fi_gamectx *gamectx)
+{
+	fi_flow_bh3 *bh3cache;
+	uint32_t newrtt = 0;
+	uint16_t seq = 0;
+	uint16_t ack = 0;
+	uint16_t verify = 0;
+	int i;
+
+	/* 上行报文，取出seq记录下来 */
+	if (pktinfo->dir == FI_DIR_UP)
+	{
+		/* 带seq的报文长度固定为12, 访问负载需要用bufdatalen */
+		if (pktinfo->bufdatalen != FI_BH3_UP_LEN)
+		{
+			return;
+		}
+
+		/* 固定位置出现关键字 */
+		if (pktinfo->data[FI_BH3_KEY_OFFSET_UP] != FI_BH3_KEY_WORD)
+		{
+			return;
+		}
+
+		/* 提取seq和verify */
+		seq = ntohs(*(uint16_t *)(pktinfo->data + FI_BH3_SEQ_OFFSET_UP));
+		verify = ntohs(*(uint16_t *)(pktinfo->data + FI_BH3_VRF_OFFSET_UP));
+
+		/* 发现更大的seq, 则覆盖小的seq, 如果是相等的seq则在其后面找地方保存 */
+		for (i = 0; i < FI_BH3_SEQ_CACHE_NUM; i++)
+		{
+			bh3cache = flowctx->flow_bh3 + i;
+			if (seq > bh3cache->seq)
+			{
+				bh3cache->seq = seq;
+				bh3cache->verify = verify;
+				bh3cache->time = (uint32_t)pktinfo->msec;
+				FI_LOGD(" : FI bh3 uplink, seq=%04x, verify=%04x, time=%u.",
+				        seq, verify, bh3cache->time);
+				break;
+			}
+		}
+
+		/* 清理缓存中seq比当前seq小的项目 */
+		for (i++; (i < FI_BH3_SEQ_CACHE_NUM) && (flowctx->flow_bh3[i].seq > 0); i++)
+		{
+			flowctx->flow_bh3[i].seq = 0;
+		}
+
+		return;
+	}
+	else
+	{
+		/* 带seq的报文长度固定为14, 访问负载需要用bufdatalen */
+		if (pktinfo->bufdatalen != FI_BH3_DOWN_LEN)
+		{
+			return;
+		}
+
+		/* 固定位置出现关键字 */
+		if (pktinfo->data[FI_BH3_KEY_OFFSET_DOWN] != FI_BH3_KEY_WORD)
+		{
+			return;
+		}
+
+		/* 提取ack和verify */
+		ack = ntohs(*(uint16_t *)(pktinfo->data + FI_BH3_ACK_OFFSET_DOWN));
+		verify = ntohs(*(uint16_t *)(pktinfo->data + FI_BH3_VRF_OFFSET_DOWN));
+
+		FI_LOGD(" : FI bh3 downlink, ack=%04x, verify=%04x.", ack, verify);
+
+		/* 在缓存中找配对的seq */
+		for (i = 0; i < FI_BH3_SEQ_CACHE_NUM; i++)
+		{
+			bh3cache = flowctx->flow_bh3 + i;
+			if ((ack == bh3cache->seq) && (verify == bh3cache->verify))
+			{
+				newrtt = (uint32_t)pktinfo->msec - bh3cache->time;
+				bh3cache->seq = 0;
+				FI_LOGD(" : FI bh3 downlink, ack=%04x, verify=%04x, rawrtt=%u.",
+				        ack, verify, newrtt);
+				break;
+			}
+		}
+
+		/* 没找到 */
+		if (i == FI_BH3_SEQ_CACHE_NUM)
+		{
+			return;
+		}
+
+		/* 没有专门的对战流识别算法，这里打上对战流标记 */
+		flowctx->flowtype = FI_FLOWTYPE_BATTLE;
+
+		/* 对原始rtt进行修正 */
+		newrtt = FI_RANGE(newrtt, FI_MIN_RTT, FI_MAX_ORG_RTT);
+
+		/* 直接计算srtt, 不使用积分平均 */
+		gamectx->rtt = newrtt;
+		gamectx->srtt = fi_get_srtt(gamectx->srtt, newrtt, FI_SRTT_VAR);
+		gamectx->battlertt = FI_MIN(gamectx->srtt, FI_MAX_RTT);
+		gamectx->updatetime = pktinfo->msec;
+
+		FI_LOGD(" : FI bh3, rtt=%d, srtt=%d, btrtt=%d.",
+				gamectx->rtt, gamectx->srtt, gamectx->battlertt);
+	}
+
+	return;
+}
+
+
 void fi_rtt_amend(fi_gamectx *gamectx, fi_gamectx *uuctx)
 {
-	switch(gamectx->appid)
+	switch (gamectx->appid)
 	{
 		case FI_APPID_CJZC:
 		case FI_APPID_QJCJ:
@@ -1132,7 +1256,7 @@ int fi_rtt_filter_pkt(fi_pkt *pktinfo, uint32_t appid)
 	int ret = FI_SUCCESS;
 
 	/* 不同的游戏关注的报文类型不同 */
-	switch(appid)
+	switch (appid)
 	{
 		/* QQ飞车需要tcp和udp */
 		case FI_APPID_QQFC:
@@ -1208,14 +1332,22 @@ int fi_rtt_entrance(fi_pkt *pktinfo, fi_flowctx *flowctx, uint32_t appid)
 		fi_rtt_record_battle(pktinfo, gamectx);
 	}
 
-	/* 对战开始之后才测算rtt */
+	/* 崩坏3直接尝试计算rtt */
+	if (gamectx->appid == FI_APPID_BH3)
+	{
+		fi_rtt_cal_bh3(pktinfo, flowctx, gamectx);
+		fi_rtt_amend(gamectx, g_fi_ctx.gamectx + FI_APPID_UU);
+		return FI_SUCCESS;
+	}
+
+	/* 其它游戏，对战开始之后才测算rtt */
 	if (!FI_BATTLING(gamectx->appstatus))
 	{
 		return FI_SUCCESS;
 	}
 
 	/* 不同的游戏采用不同的测算方案 */
-	switch(appid)
+	switch (appid)
 	{
 		case FI_APPID_HYXD:
 		{

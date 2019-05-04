@@ -54,7 +54,7 @@ MAILBOX_LOCAL int mailbox_init_mem(struct mb_cfg *config);
 
 MAILBOX_EXTERN int mailbox_queue_write(
                 struct mb_queue      *queue,
-                char                 *data,
+                const char           *data,
                 unsigned int         size)
 {
     unsigned int SizeToBottom;
@@ -956,13 +956,13 @@ MAILBOX_EXTERN int mailbox_request_buff(unsigned int mailcode,  void* mb_buf)
 /*把用户数据填入邮箱物理通道buff*/
 MAILBOX_EXTERN int mailbox_write_buff(
                 struct mb_queue      *queue,
-                 char                *data,
+                 const char          *data,
                 unsigned int         size)
 {
 	if ((size  <= mailbox_queue_left(queue->rear, queue->front, queue->length)) &&
 		(size + sizeof(struct mb_mail)	<= mailbox_queue_left(queue->rear, queue->front, queue->length))
 	   ) {
-		return mailbox_queue_write(queue, (char*)data, size);
+		return mailbox_queue_write(queue, data, size);
 	}
 	return 0;
 }

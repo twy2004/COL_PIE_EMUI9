@@ -66,7 +66,7 @@ extern "C" {
 #include <product_config.h>
 #include <vos.h>
 #include <msp.h>
-#include <diag_service_comm.h>
+#include <diag_frame.h>
 
 /*****************************************************************************
   2 macro
@@ -94,13 +94,6 @@ typedef struct
     VOS_UINT32                  ulMsgId;        /* 低16位有效 */
     VOS_UINT32                  ulTransId;      /* TransId */
 } MSP_DIAG_CNF_INFO_STRU;
-
-/* cnf 类型消息头 */
-typedef struct
-{
-    DIAG_SRV_SOCP_HEADER_STRU       socp_header;
-    DIAG_FRAME_INFO_STRU            frame_header;
-}DIAG_SRV_CNF_HEADER_STRU;
 
 /*****************************************************************************
   6 Extern Global Variable

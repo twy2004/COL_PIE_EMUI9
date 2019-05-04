@@ -37,7 +37,10 @@
 #define IOMMU_EXEC      (1 << 9)
 #endif
 
-#define IOMMU_NO_LB_MAP	(1 << 10)
+#ifdef CONFIG_HISI_LB
+#define IOMMU_PORT_SHIFT (12)
+#define IOMMU_PORT_MASK	(0xFF << IOMMU_PORT_SHIFT)
+#endif
 
 struct iommu_ops;
 struct iommu_group;

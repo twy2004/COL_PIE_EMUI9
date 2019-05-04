@@ -22,12 +22,13 @@
 #define CHG_ENABLE                      (1)
 #define CHG_DISABLE                     (0)
 
+#define WEAKSOURCE_FLAG_REG             PMIC_HRST_REG12_ADDR(0)
+#define WAEKSOURCE_FLAG                 BIT(2)
 
-
-#define HI6526_REG_MAX          (SOC_SCHARGER_OTG_RO_REG_9_ADDR(0)+1)
+#define HI6526_REG_MAX                  (SOC_SCHARGER_OTG_RO_REG_9_ADDR(0)+1)
 
 #define CHG_NONE_REG                    (0x00)
-#define CHG_NONE_MSK                   (0xFF)
+#define CHG_NONE_MSK                    (0xFF)
 #define CHG_NONE_SHIFT                  (0x00)
 
 #ifndef BIT
@@ -42,7 +43,6 @@ struct reg_page {
         u8 page_val;
 };
 
-
 #define FCP_ACK_RETRY_CYCLE				(10)
 #define CHG_VBATT_SOFT_OVP_CNT			(3)
 #define CHG_VBATT_SOFT_OVP_MAX			(4600)
@@ -51,8 +51,6 @@ struct reg_page {
 #define SCHARGER_EVT(fmt,args...) do { printk(KERN_WARNING"[hisi_scharger]" fmt, ## args); } while (0)
 #define SCHARGER_INF(fmt,args...) do { printk(KERN_INFO   "[hisi_scharger]" fmt, ## args); } while (0)
 #define SCHARGER_DBG(fmt,args...) do { printk(KERN_DEBUG   "[hisi_scharger]" fmt, ## args); } while (0)
-
-
 
 #define FIRST_INSERT_TRUE           (1)
 #define FCP_TRUE                    (1)
@@ -75,6 +73,14 @@ struct reg_page {
 #define HI6526_DPDM_WATER_THRESH_1590MV (1590)
 
 /*************************struct define area***************************/
+
+struct dc_regulator_info {
+        int ibus;
+        int ibat;
+        int vout;
+        int vbat;
+};
+
 struct param {
     int bat_comp;
     int vclamp;
@@ -82,6 +88,10 @@ struct param {
     int scp_support;
     int r_coul_mohm;
     int dp_th_res;
+    int lvc_vusb2vbus_drop_en;
+    int sc_vusb2vbus_drop_en;
+    struct dc_regulator_info lvc_regulator;
+    struct dc_regulator_info sc_regulator;
 };
 
 enum chg_mode_state {
@@ -89,6 +99,8 @@ enum chg_mode_state {
 	BUCK,
 	LVC,
 	SC,
+	OTG_MODE,
+	SOH_MODE
 };
 
 struct chip_debug_info {
@@ -104,6 +116,7 @@ struct chip_debug_info {
 
 #define INFO_LEN        (10)
 #define DBG_WORK_TIME  (40)
+#define WAIT_PD_IRQ_TIME (10)
 
 struct hi6526_device_info {
         struct i2c_client *client;
@@ -112,11 +125,11 @@ struct hi6526_device_info {
         struct delayed_work reverbst_work;
         struct delayed_work dc_ucp_work;
         struct param param_dts;
-        enum hisi_charger_type charger_type;
+        enum huawei_usb_charger_type charger_type;
         struct notifier_block   usb_nb;
         enum chg_mode_state chg_mode;
         struct mutex fcp_detect_lock;
-        struct mutex i2c_lock;
+        struct rt_mutex i2c_lock;
         struct mutex adc_conv_lock;
         struct mutex accp_adapter_reg_lock;
         struct mutex ibias_calc_lock;
@@ -138,12 +151,14 @@ struct hi6526_device_info {
         unsigned int dbg_index;
         unsigned long reverbst_begin;
         int delay_cunt;
-        u8 reverbst_cnt;
+        int reverbst_cnt;
         u8 batt_ovp_cnt_30s;
         u8 sysfs_fcp_reg_addr;
         u8 sysfs_fcp_reg_val;
         u8 dbg_work_stop;
         u8 abnormal_happened;
+        int chip_temp;
+        u8 i2c_reg_page;
 };
 
 /******************************************************************************/
@@ -151,7 +166,9 @@ struct hi6526_device_info {
 /******************************************************************************/
 #define CHIP_VERSION_0 (SOC_SCHARGER_VERSION0_RO_REG_0_ADDR(0))
 #define CHIP_VERSION_2 (SOC_SCHARGER_VERSION2_RO_REG_0_ADDR(0))
-#define CHIP_ID_6526  (0x36323536)
+#define CHIP_VERSION_4 (SOC_SCHARGER_VERSION4_RO_REG_0_ADDR(0))
+#define CHIP_ID_6526_V100       (0x3536F3F6)
+#define CHIP_ID_6526            (0x36323536)
 
 #define CHG_INPUT_SOURCE_REG            (SOC_SCHARGER_BUCK_CFG_REG_0_ADDR(0))
 #define CHG_ILIMIT_SHIFT                (SOC_SCHARGER_BUCK_CFG_REG_0_da_buck_ilimit_START)
@@ -194,14 +211,12 @@ struct hi6526_device_info {
 #define CHG_ILIMIT_MAX                 (CHG_ILIMIT_3100)
 #define CHG_ILIMIT_STEP_100                 (100)
 
-
 /* CHG_REG1调节寄存器 */
 #define CHG_FAST_CURRENT_REG            (SOC_SCHARGER_CHARGER_CFG_REG_2_ADDR(0))
 #define CHG_FAST_ICHG_SHIFT             (SOC_SCHARGER_CHARGER_CFG_REG_2_da_chg_fast_ichg_START)
 #define CHG_FAST_ICHG_MSK               (0x1f<<CHG_FAST_ICHG_SHIFT)
 #define CHG_FAST_ICHG_STEP_100          (100)
 #define CHG_FAST_ICHG_00MA              (0)
-
 
 #define CHG_FAST_ICHG_100MA             (100)
 #define CHG_FAST_ICHG_200MA             (200)
@@ -377,8 +392,6 @@ struct hi6526_device_info {
 #define CHG_OTG_SWITCH_SHIFT              (SOC_SCHARGER_OTG_CFG_REG_6_da_otg_switch_START)
 #define CHG_OTG_SWITCH_MASK               (1 << CHG_OTG_SWITCH_SHIFT)
 
-
-
 #define CHG_STAT_ENABLE                 (1)
 #define CHG_STAT_DISABLE                (0)
 
@@ -387,9 +400,16 @@ struct hi6526_device_info {
 
 #define CHG_ADC_CTRL_REG                (SOC_SCHARGER_HKADC_CTRL0_ADDR(0))
 #define CHG_ADC_EN_SHIFT                (SOC_SCHARGER_HKADC_CTRL0_sc_hkadc_en_START)
+#define CHG_ADC_CTRL_DEFAULT_VAL     (0X10)
 #define CHG_ADC_EN_MSK                  (1<<CHG_ADC_EN_SHIFT)
 #define CHG_ADC_EN                      (1)
 #define CHG_ADC_DIS                     (0)
+
+#define CHG_ADC_HKADC_SHIFT             (SOC_SCHARGER_HKADC_CTRL0_sc_hkadc_seq_conv_START)
+#define CHG_ADC_HKADC_MSK               (1<<CHG_ADC_HKADC_SHIFT)
+
+#define CHG_ADC_LOOP_SHIFT             (SOC_SCHARGER_HKADC_CTRL0_sc_hkadc_seq_loop_START)
+#define CHG_ADC_LOOP_MSK               (1<<CHG_ADC_LOOP_SHIFT)
 
 #define CHG_ADC_CH_SEL_H               (SOC_SCHARGER_HKADC_SEQ_CH_H_ADDR(0))
 #define CHG_ADC_CH_SEL_L               (SOC_SCHARGER_HKADC_SEQ_CH_L_ADDR(0))
@@ -410,17 +430,15 @@ struct hi6526_device_info {
 
 #define IBUS_INVALID_VAL                (5333)
 
-
 #define CHG_ADC_CTRL               (SOC_SCHARGER_HKADC_CTRL0_ADDR(0))
 #define CHG_ADC_CONV_SHIFT             (SOC_SCHARGER_HKADC_CTRL0_sc_hkadc_seq_conv_START)
 #define CHG_ADC_CONV_MSK               (1<<CHG_ADC_START_SHIFT)
 
 #define CHG_ADC_CTRL1               (SOC_SCHARGER_HKADC_CTRL1_ADDR(0))
 #define CHG_ADC_CTRL1_DEFAULT_VAL               (0x67)
+#define CHG_ADC_CTRL1_ACR_VAL               (0x64)
 
 #define CHG_ADC_RD_SEQ             (SOC_SCHARGER_HKADC_RD_SEQ_ADDR(0))
-
-
 
 #define CHG_ADC_START_REG               (SOC_SCHARGER_HKADC_START_ADDR(0))
 #define CHG_ADC_START_SHIFT             (SOC_SCHARGER_HKADC_START_sc_hkadc_start_cfg_START)
@@ -430,9 +448,13 @@ struct hi6526_device_info {
 #define CHG_ADC_CONV_STATUS_SHIFT       (SOC_SCHARGER_PULSE_NON_CHG_FLAG_hkadc_data_valid_START)
 #define CHG_ADC_CONV_STATUS_MSK         (1<<CHG_ADC_CONV_STATUS_SHIFT)
 
+#define SOH_SCHARGER_HKADC_H             (SOC_SCHARGER_HKADC_SEQ_CH_H_ADDR(0))
+#define SOH_SCHARGER_HKADC_L             (SOC_SCHARGER_HKADC_SEQ_CH_L_ADDR(0))
+#define SOH_SCHARGER_H_ACR_CHANNEL         (0X0)
+#define SOH_SCHARGER_L_ACR_CHANNEL         (0X40)
+
 #define CHG_PULSE_NO_CHG_FLAG_SHIFT      (SOC_SCHARGER_PULSE_NON_CHG_FLAG_pulse_non_chg_flag_START)
 #define CHG_PULSE_NO_CHG_FLAG_MSK         (1<<CHG_PULSE_NO_CHG_FLAG_SHIFT)
-
 
 #define CHG_ADC_APPDET_REG				(SOC_SCHARGER_DET_TOP_CFG_REG_0_ADDR(0))
 #define CHG_ADC_APPDET_EN				(1)
@@ -465,8 +487,8 @@ struct hi6526_device_info {
 #define CHG_HIZ_ENABLE_MSK              (1<<CHG_HIZ_ENABLE_SHIFT)
 
 #define CHG_IRQ_STATUS0                        (SOC_SCHARGER_IRQ_STATUS_0_ADDR(0))
+#define CHG_VBUS_UVP                    (BIT(5))
 #define CHG_VBAT_OVP                    (BIT(4))
-
 
 #define CHG_IRQ_ADDR                      (SOC_SCHARGER_IRQ_FLAG_ADDR(0))
 #define CHG_FCP_IRQ                      (BIT(0))
@@ -494,7 +516,7 @@ struct hi6526_device_info {
 
 /* others irq  */
 #define CHG_OTHERS_IRQ_ADDR              (SOC_SCHARGER_IRQ_FLAG_5_ADDR(0))
-#define OTHERS_IRQ_MASK                      (0xFFFF1F)
+#define OTHERS_IRQ_MASK                      (0xFFFF1D)
 #define OTHERS_SOH_IRQ_MASK                      (0x00000C)
 
 #define OTHERS_VDROP_IRQ_MASK                      (0x300000)
@@ -514,9 +536,10 @@ struct hi6526_device_info {
 #define CHG_FCP_IRQ5_MASK_ADDR			(SOC_SCHARGER_FCP_IRQ5_MASK_ADDR(0))
 #define CHG_IRQ_MASK_ALL_ADDR             (SOC_SCHARGER_IRQ_MASK_ADDR(0))
 #define CHG_IRQ_MASK_ALL_SHIFT			(0)
-#define CHG_IRQ_MASK_ALL_MSK				(0x1F << CHG_IRQ_MASK_ALL_SHIFT)
+#define CHG_IRQ_MASK_ALL_MSK				(0x1B << CHG_IRQ_MASK_ALL_SHIFT)
+#define CHG_IRQ_MASK_PD_MSK				(1 << 2)
 
-#define CHG_IRQ_UNMASK_DEFAULT				(0x05)
+#define CHG_IRQ_UNMASK_DEFAULT				(0x01)
 
 #define CHG_IRQ_MASK_0                     (SOC_SCHARGER_IRQ_MASK_0_ADDR(0))
 #define CHG_IRQ_MASK_1                     (SOC_SCHARGER_IRQ_MASK_1_ADDR(0))
@@ -528,15 +551,22 @@ struct hi6526_device_info {
 #define CHG_IRQ_MASK_7                     (SOC_SCHARGER_IRQ_MASK_7_ADDR(0))
 
 #define irq_sleep_mod_mask              BIT(0)
+#define irq_otg_ocp_mask                BIT(7)
 
 #define CHG_IRQ_MASK_0_VAL                     (0x00)
-#define CHG_IRQ_MASK_1_VAL                     (irq_sleep_mod_mask)
+#define CHG_IRQ_MASK_1_VAL                     (irq_otg_ocp_mask | irq_sleep_mod_mask)
 #define CHG_IRQ_MASK_2_VAL                     (0x00)
 #define CHG_IRQ_MASK_3_VAL                     (0x00)
 #define CHG_IRQ_MASK_4_VAL                     (0x00)
 #define CHG_IRQ_MASK_5_VAL                     (0x00)
 #define CHG_IRQ_MASK_6_VAL                     (0x00)
 #define CHG_IRQ_MASK_7_VAL                     (0x00)
+
+#define CHG_IRQ_MASK_5_IRQ_MSK			(0x1F)
+#define CHG_IRQ_MASK_5_IRQ_SHIFT		(0)
+
+#define CHG_IRQ_MASK_5_CC_MSK			(7 << 5)
+#define CHG_IRQ_MASK_5_CC_SHIFT			(0)
 
 #define CHG_IRQ_VBUS_UVP_SHIFT			(5)
 #define CHG_IRQ_VBUS_UVP_MSK				(0x1 << CHG_IRQ_VBUS_UVP_SHIFT)
@@ -550,8 +580,6 @@ struct hi6526_device_info {
 #define CHG_IR_COMP_MIN                 (0)
 #define CHG_IR_COMP_MAX                 (105)
 #define CHG_IR_COMP_STEP_15                 (15)
-
-
 
 #define CHG_IR_VCLAMP_REG               (SOC_SCHARGER_CHARGER_CFG_REG_8_ADDR(0))
 #define CHG_IR_VCLAMP_SHIFT             (SOC_SCHARGER_CHARGER_CFG_REG_8_da_chg_vclamp_set_START)
@@ -693,11 +721,9 @@ struct hi6526_device_info {
 #define SOH_SOH_TEST_SHIFT          (SOC_SCHARGER_HKADC_CTRL2_sc_soh_test_mode_START)
 #define SOH_SOH_TEST_MASK          (1 << SOC_SCHARGER_HKADC_CTRL2_sc_soh_test_mode_START)
 
-
 #define ACR_CTRL_REG		(SOC_SCHARGER_ACR_CTRL_ADDR(0))
 #define ACR_EN_SHIFT          (SOC_SCHARGER_ACR_CTRL_sc_acr_en_START)
 #define ACR_EN_MASK          (1 << ACR_EN_SHIFT)
-
 #define ACR_DATA_REG		(SOC_SCHARGER_ACR_DATA0_L_ADDR(0))
 
 #define SC_CHG_EN_REG           (SOC_SCHARGER_PULSE_CHG_CFG1_ADDR(0))
@@ -723,6 +749,10 @@ struct hi6526_device_info {
 #define LVC_CHG_MODE_FLAG_REG           (SOC_SCHARGER_SCHG_LOGIC_CFG_REG_2_ADDR(0))
 #define LVC_CHG_MODE_FLAG_SHIFT            (7)
 #define LVC_CHG_MODE_FLAG_MASK                 (1 << LVC_CHG_MODE_FLAG_SHIFT)
+
+#define DC_VUSB2VBUS_DRPO_REG           (SOC_SCHARGER_DC_TOP_CFG_REG_5_ADDR(0))
+#define DC_VUSB2VBUS_DRPO_SHIFT         (7)
+#define DC_VUSB2VBUS_DRPO_MASK          (1 << DC_VUSB2VBUS_DRPO_SHIFT)
 
 #define ADC_PMID_DPDM_SEL_REG    (SOC_SCHARGER_SCHG_LOGIC_CFG_REG_2_ADDR(0))
 #define ADC_PMID_DPDM_SEL_SHIFT    (4)
@@ -804,39 +834,30 @@ struct hi6526_device_info {
 #define BUF_LEN         (27)
 #define DELAY_TIMES     (3)
 
-static char* lvc_sc_irq_str[] =
-{
-        /* IRQ_FLAG_2 bit4 - bit0 */
-        "irq_ibus_dc_ucp",
-        "irq_ibus_dc_ocp",
-        "irq_vbus_lvc_uv",
-        "irq_vbus_lvc_ov",
-        "irq_vusb_lvc_ovp",
-        "none",
-        "none",
-        "none",
+/* direct charger regulator register*/
+#define DC_REGULATOR_IBAT_REG           (SOC_SCHARGER_DC_IBAT_REGULATOR_ADDR(0))
+#define DC_REGULATOR_IBAT_MIN           (3000)  // 3000mA
+#define DC_REGULATOR_IBAT_MAX           (13000)  // 13000mA
+#define DC_REGULATOR_IBAT_SETP          (50)    //50mA
 
-        /* IRQ_FLAG_3 bit0 - bit7 */
-        "irq_ibat_clamp",
-        "irq_ibus_clamp",
-        "irq_vout_ov_clamp",
-        "irq_bat_ov_clamp",
-        "irq_vusb_scauto_ovp",
-        "irq_vbat_dc_ovp",
-        "irq_vdrop_lvc_ov",
-        "irq_ibus_dc_rcp",
+#define DC_REGULATOR_VBAT_REG           (SOC_SCHARGER_DC_VBAT_REGULATOR_ADDR(0))
+#define DC_REGULATOR_VBAT_MIN           (4200)  // 4.2v
+#define DC_REGULATOR_VBAT_MAX           (5000)  // 5V
+#define DC_REGULATOR_VBAT_SETP          (10)    // 10mV
 
-        /* IRQ_FLAG_3 bit0 - bit7 */
-        "irq_ilim_bus_sc_ocp",
-        "irq_ilim_sc_ocp",
-        "irq_ibat_dcucp_alm",
-        "irq_ibat_dc_ocp",
-        "irq_vbat_sc_uvp",
-        "irq_vin2vout_sc",
-        "irq_vbus_sc_uv",
-        "irq_vbus_sc_ov",
+#define DC_REGULATOR_VOUT_REG           (SOC_SCHARGER_DC_VOUT_REGULATOR_ADDR(0))
+#define DC_REGULATOR_VOUT_MIN           (4200)  // 4.2v
+#define DC_REGULATOR_VOUT_MAX           (5000)  // 5V
+#define DC_REGULATOR_VOUT_SETP          (10)    // 10mV
 
-};
+#define DC_REGULATOR_IBUS_REG           (SOC_SCHARGER_DC_TOP_CFG_REG_2_ADDR(0))
+#define DC_REGULATOR_IBUS_MIN           (800)  // 800mA
+#define DC_REGULATOR_IBUS_MAX           (56000)  // 5600mA
+#define DC_REGULATOR_IBUS_SETP          (100)    //100mA
+#define DC_REGULATOR_IBUS_SHIFT          (SOC_SCHARGER_DC_TOP_CFG_REG_2_da_dc_ibus_regl_sel_START)
+#define DC_REGULATOR_IBUS_MASK           (0x3F << DC_REGULATOR_IBUS_SHIFT)
+/* direct charger regulator registers end*/
+
 /*
 flag2 bit3/4  vbus ovp   LVC     DIRECT_CHARGE_FAULT_VBUS_OVP
 flag2 bit2    vbus uv    LVC     none
@@ -872,12 +893,11 @@ flag4 bit0    ibus ocp   SC       DIRECT_CHARGE_FAULT_IBUS_OCP
 #define FAULT_CHG_FAULT     (0x000800)
 #define FAULT_CHG_DONE     (0x000080)
 
-#define REVERBST_RETRY          (10)
+#define REVERBST_RETRY          (300)
 
 #define R_MOHM_2                (2)
 #define R_MOHM_5                (5)
 #define R_MOHM_DEFULT           R_MOHM_2      /* resisitance mohm */
-
 
 struct opt_regs {
         u16 reg;
@@ -890,4 +910,8 @@ struct opt_regs {
 
 #define REG_CFG(r, m, s, v, b,  a)  { .reg = (r), .mask = (m), .shift = (s), .val = (v), .before = (b), .after = (a),}
 
+int hi6526_write(u16 reg, u8 value);
+int hi6526_read(u16 reg, u8 *value);
+void hi6526_set_adc_acr_mode(int enable);
+int hi6526_get_chip_temp(int *temp);
 #endif

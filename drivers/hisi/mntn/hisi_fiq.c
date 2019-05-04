@@ -27,6 +27,9 @@
 #include <linux/version.h>
 #include <linux/hisi/hisi_bbox_diaginfo.h>
 #include <linux/hisi/hisi_log.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/debug.h>
+#endif
 #define HISI_LOG_TAG HISI_FIQ_TAG
 static u32 fiq_dump_flag;
 
@@ -47,14 +50,15 @@ static void sp805_wdt_reset(void)
 
 void hisi_mntn_inform(void)
 {
-	if (get_bl31_exception_flag() == BL31_PANIC_MAGIC)
-		bl31_panic_ipi_handle();
-	else {
-		dmss_ipi_handler();
-	}
+    if (get_bl31_exception_flag() == BL31_PANIC_MAGIC)
+        bl31_panic_ipi_handle();
+    else {
+        dmss_ipi_handler();
+    }
 }
 
 #define ABNORMAL_RST_FLAG (0xFF)
+
 
 asmlinkage void fiq_dump(struct pt_regs *regs, unsigned int esr)
 {
@@ -76,9 +80,11 @@ asmlinkage void fiq_dump(struct pt_regs *regs, unsigned int esr)
 
 
 	pr_crit("fiq_dump begin!\n");
+
+
 	pr_emerg("%s", linux_banner);
 
-	dmss_fiq_handler();
+    dmss_fiq_handler();
 	console_verbose();
 	show_regs(regs);
 

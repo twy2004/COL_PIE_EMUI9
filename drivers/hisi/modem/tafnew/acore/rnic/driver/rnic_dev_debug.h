@@ -53,7 +53,6 @@
  1. Other files included
 *****************************************************************************/
 #include <linux/kernel.h>
-#include "RnicPrivate.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -74,28 +73,28 @@ extern "C" {
 #define RNIC_LOGH(fmt, ...) \
 			do { \
 				if (rnic_dev_log_level & RNIC_DEV_LOG_LVL_HIGH) \
-					pr_err("[NAS_RNIC]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+					pr_err("[NAS_RNIC]: [HIGH] <%s> "fmt"\n", __func__, ##__VA_ARGS__); \
 			} while(0)
 
 /*lint -emacro({717}, RNIC_LOGE)*/
 #define RNIC_LOGE(fmt, ...) \
 			do { \
 				if (rnic_dev_log_level & RNIC_DEV_LOG_LVL_ERR) \
-					pr_err("[NAS_RNIC]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+					pr_err("[NAS_RNIC]: [ERR] <%s> "fmt"\n", __func__, ##__VA_ARGS__); \
 			} while(0)
 
 /*lint -emacro({717}, RNIC_LOGI)*/
 #define RNIC_LOGI(fmt, ...)\
 			do {\
 				if (rnic_dev_log_level & RNIC_DEV_LOG_LVL_INFO) \
-					pr_warn("[NAS_RNIC]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+					pr_warn("[NAS_RNIC]: [INFO] <%s> "fmt"\n", __func__, ##__VA_ARGS__); \
 			} while(0)
 
 /*lint -emacro({717}, RNIC_LOGD)*/
 #define RNIC_LOGD(fmt, ...) \
 			do {\
 				if (rnic_dev_log_level & RNIC_DEV_LOG_LVL_DBG) \
-					pr_notice("[NAS_RNIC]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+					pr_notice("[NAS_RNIC]: [DBG] <%s> "fmt"\n", __func__, ##__VA_ARGS__); \
 			} while(0)
 
 

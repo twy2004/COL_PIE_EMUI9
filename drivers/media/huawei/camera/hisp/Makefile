@@ -54,7 +54,7 @@ endif
 
 ifneq ($(CLT_IV), true)
 ifneq ($(CONFIG_RPMSG),y)
-	obj-y += fakefw/
+	#obj-y += fakefw/
 endif
 endif
 

@@ -144,7 +144,33 @@ oal_void hmac_set_exsup_rates_ie_asoc_req_etc(hmac_vap_stru *pst_hmac_sta, oal_u
 
     *puc_ie_len = MAC_IE_HDR_LEN + uc_nrates;
 }
+#ifdef _PRE_WLAN_FEATURE_M2S
 
+oal_void hmac_assoc_set_siso_mode(mac_vap_stru *pst_mac_vap, oal_uint8 *puc_req_frame)
+{
+    hmac_user_stru         *pst_hmac_user;
+    mac_frame_ht_cap_stru  *pst_ht_capinfo;
+
+    /* 如果是满足只支持siso入网的黑名单条件，则以SISO方式入网 */
+    pst_hmac_user = mac_res_get_hmac_user_etc(pst_mac_vap->us_assoc_vap_id);
+    if (OAL_PTR_NULL == pst_hmac_user)
+    {
+        return;
+    }
+    if ((pst_hmac_user->en_user_ap_type & MAC_AP_TYPE_MIMO_BLACKLIST)
+      && (0 == oal_compare_mac_addr(pst_hmac_user->auc_mimo_blacklist_mac, pst_mac_vap->auc_bssid)))
+    {
+        puc_req_frame += MAC_IE_HDR_LEN;
+
+        pst_ht_capinfo = (mac_frame_ht_cap_stru *)puc_req_frame;
+        pst_ht_capinfo->bit_sm_power_save = MAC_SMPS_STATIC_MODE;
+        pst_ht_capinfo->bit_tx_stbc       = OAL_FALSE;
+
+        puc_req_frame -= MAC_IE_HDR_LEN;
+        OAM_WARNING_LOG0(0, OAM_SF_ASSOC, "{hmac_assoc_set_siso_mode::set smps to STATIC.}");
+    }
+}
+#endif
 
 oal_uint32 hmac_mgmt_encap_asoc_req_sta_etc(hmac_vap_stru *pst_hmac_sta, oal_uint8 *puc_req_frame, oal_uint8 *puc_curr_bssid)
 {
@@ -369,6 +395,14 @@ oal_uint32 hmac_mgmt_encap_asoc_req_sta_etc(hmac_vap_stru *pst_hmac_sta, oal_uin
         puc_req_frame -= MAC_11N_TXBF_CAP_OFFSET;
     }
 #endif
+#ifdef _PRE_WLAN_FEATURE_M2S
+        if( (OAL_TRUE == g_en_mimo_blacklist_etc)
+          &&(0 != uc_ie_len))
+        {
+            hmac_assoc_set_siso_mode(pst_mac_vap, puc_req_frame);
+        }
+#endif
+
     puc_req_frame += uc_ie_len;
 
 #if defined(_PRE_WLAN_FEATURE_11K) || defined(_PRE_WLAN_FEATURE_11K_EXTERN) || defined(_PRE_WLAN_FEATURE_FTM) || defined(_PRE_WLAN_FEATURE_11KV_INTERFACE)

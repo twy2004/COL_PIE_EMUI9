@@ -868,6 +868,13 @@ VOS_UINT32 AT_BcdAddrToAscii(
         return MN_ERR_NULLPTR;
     }
 
+    if (MN_MSG_MAX_BCD_NUM_LEN < pstBcdAddr->ucBcdLen)
+    {
+        AT_WARN_LOG("AT_BcdAddrToAscii: length of BcdAddr ucBcdLen is invalid.");
+
+        return MN_ERR_INVALIDPARM;
+    }
+
     pstAsciiAddr->enNumType = ((pstBcdAddr->addrType >> 4) & 0x07);
     pstAsciiAddr->enNumPlan = (pstBcdAddr->addrType & 0x0f);
     if((pstBcdAddr->aucBcdNum[pstBcdAddr->ucBcdLen - 1] & 0xF0) != 0xF0)
@@ -906,12 +913,16 @@ TAF_UINT16 At_PrintBcdAddr(
     TAF_UINT32                          ulRet;
     MN_MSG_ASCII_ADDR_STRU              stAsciiAddr;
 
+    TAF_MEM_SET_S(&stAsciiAddr, sizeof(MN_MSG_ASCII_ADDR_STRU), 0x00, sizeof(stAsciiAddr));
 
-    ulRet = AT_BcdAddrToAscii(pstBcdAddr, &stAsciiAddr);
-    if (MN_ERR_NO_ERROR != ulRet)
+    if (0 != pstBcdAddr->ucBcdLen )
     {
-        AT_WARN_LOG("At_PrintBcdAddr: Fail to convert BCD to ASCII.");
-        return 0;
+        ulRet = AT_BcdAddrToAscii(pstBcdAddr, &stAsciiAddr);
+        if (MN_ERR_NO_ERROR != ulRet)
+        {
+            AT_WARN_LOG("At_PrintBcdAddr: Fail to convert BCD to ASCII.");
+            return 0;
+        }
     }
 
     usLength = At_PrintAsciiAddr(&stAsciiAddr, pDst);
@@ -1538,7 +1549,7 @@ TAF_VOID At_GetCpmsMemStatus(
     {
         pstStorageList = &(pstSmsCtx->stCpmsInfo.stUsimStorage);
     }
-    else if (MN_MSG_MEM_STORE_NV == enMemType)
+    else if (MN_MSG_MEM_STORE_ME == enMemType)
     {
         pstStorageList = &(pstSmsCtx->stCpmsInfo.stNvimStorage);
     }
@@ -1614,7 +1625,7 @@ TAF_UINT8 *At_GetCpmsMemTypeStr(
     {
         ulMemType = AT_STRING_SM;
     }
-    else if (MN_MSG_MEM_STORE_NV == enMemType)
+    else if (MN_MSG_MEM_STORE_ME == enMemType)
     {
         ulMemType = AT_STRING_ME;
     }

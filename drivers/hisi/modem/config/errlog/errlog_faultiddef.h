@@ -120,6 +120,9 @@ enum ERR_LOG_FAULT_ID_ENUM
     FAULT_ID_CL_IMS_INFO                    = 0XD2, /* ??CL???,ims?????? */
 
     FAULT_ID_EHRPD_HRPD_INFO                = 0XD3, /* EHRPD?PDN???? */
+
+    FAULT_ID_NRMM_REG_FAILURE_MAX_TIMES     = 0XD4,
+
     /* TODO: python search flag end */
     FAULT_ID_ERR_LOG_ENUM_BUT
 };

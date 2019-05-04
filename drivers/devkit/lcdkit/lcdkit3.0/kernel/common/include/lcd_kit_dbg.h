@@ -171,6 +171,7 @@ struct lcd_kit_dbg_ops {
 	int (*xcc_support)(int val);
 	int (*arsr1psharpness_support)(int val);
 	int (*prefixsharptwo_d_support)(int val);
+	int (*video_idle_mode_support)(int val);
 	int (*cmd_type)(int val);
 	int (*pxl_clk)(int val);
 	int (*pxl_clk_div)(int val);
@@ -212,6 +213,7 @@ struct lcd_kit_dbg_ops {
 	int (*set_voltage)(void);
 	int (*dbg_mipi_rx)(uint8_t* out, struct lcd_kit_dsi_panel_cmds* cmds);
 	bool (*panel_power_on)(void);
+	void (*esd_check_func)(void);
 };
 
 //for extern

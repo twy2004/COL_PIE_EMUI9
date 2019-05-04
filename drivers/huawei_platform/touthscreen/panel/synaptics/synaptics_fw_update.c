@@ -1238,7 +1238,7 @@ bool synaptics_check_fw_version(void)
 
 	size = FW_IMAGE_OFFSET + header.firmware_size;
 	if(fwu->fw_entry_boot->size <size) {
-			TS_LOG_ERR("config_data = %p , fw_image = %p  , header size  =%d\n",fwu->config_data ,fw_image,header.firmware_size);
+			TS_LOG_ERR("config_data = %pK , fw_image = %pK  , header size  =%d\n",fwu->config_data ,fw_image,header.firmware_size);
 			return false;
 	}
 

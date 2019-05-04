@@ -12,8 +12,11 @@
  */
 #include "unzip_vle.h"
 #include <linux/prefetch.h>
+#include <linux/migrate.h>
 
 #include <trace/events/erofs.h>
+
+#define PAGE_MIGRATE_LOCKED	((void *)0x5F10C10C)
 
 static struct workqueue_struct *z_erofs_workqueue __read_mostly;
 static struct kmem_cache *z_erofs_workgroup_cachep __read_mostly;
@@ -104,11 +107,13 @@ static void z_erofs_vle_scan_cachepages(struct z_erofs_vle_work_builder *bl,
 					struct address_space *mapping,
 					pgoff_t index,
 					unsigned int clusterpages,
-					bool reserve_allocation)
+					bool reserve_allocation,
+					struct list_head *pagepool)
 {
 	struct page **const compressed_pages = bl->compressed_pages;
 	const unsigned int compressed_deficit = bl->compressed_deficit;
 	bool standalone = true;
+	gfp_t gfp = mapping_gfp_constraint(mapping, ~__GFP_DIRECT_RECLAIM);
 	unsigned int i, j = 0;
 
 	if (bl->role < Z_EROFS_VLE_WORK_PRIMARY_TERMINAL)
@@ -118,7 +123,7 @@ static void z_erofs_vle_scan_cachepages(struct z_erofs_vle_work_builder *bl,
 
 	/* TODO: optimize by introducing find_get_pages_range */
 	for (i = 0; i < compressed_deficit; ++i) {
-		struct page *page;
+		struct page *page, *newpage = NULL;
 		z_erofs_ctptr_t v;
 
 		if (READ_ONCE(compressed_pages[i]) != NULL)
@@ -127,10 +132,24 @@ static void z_erofs_vle_scan_cachepages(struct z_erofs_vle_work_builder *bl,
 		page = find_get_page(mapping, index + i);
 		if (page != NULL)
 			v = tagptr_fold(z_erofs_ctptr_t, page, 1);
-		else if (reserve_allocation)
+		else if (reserve_allocation) {
+#if 1
+			if (!list_empty(pagepool)) {
+				newpage = lru_to_page(pagepool);
+				list_del(&newpage->lru);
+			} else {
+				newpage = alloc_pages(gfp | __GFP_NOMEMALLOC | __GFP_NORETRY | __GFP_NOWARN, 0);
+			}
+			if (!newpage)
+				goto rrr;
+			newpage->mapping = Z_EROFS_MAPPING_PREALLOCATED;
+			v = tagptr_fold(z_erofs_ctptr_t, newpage, 1);
+#else
 			v = tagptr_init(z_erofs_ctptr_t,
 					EROFS_UNALLOCATED_CACHED_PAGE);
-		else {
+#endif
+		} else {
+rrr:
 			if (standalone)
 				j = i;
 			standalone = false;
@@ -143,6 +162,11 @@ static void z_erofs_vle_scan_cachepages(struct z_erofs_vle_work_builder *bl,
 
 		if (page != NULL)
 			put_page(page);
+		else if (newpage) {
+			newpage->mapping = NULL;
+			/* someone just allocated this page, drop our attempt */
+			list_add(&newpage->lru, pagepool);
+		}
 	}
 
 	bl->compressed_pages += j;
@@ -157,23 +181,43 @@ int erofs_try_to_free_all_cached_pages(struct erofs_sb_info *sbi,
 {
 	struct z_erofs_vle_workgroup *const grp =
 		container_of(egrp, struct z_erofs_vle_workgroup, obj);
+	struct z_erofs_vle_work *const primary_work =
+		z_erofs_vle_grab_primary_work(grp);
 	struct address_space *const mapping = MNGD_MAPPING(sbi);
 	const int clusterpages = erofs_clusterpages(sbi);
 	int i;
+
+	/* refcount of workgroup is now freezed as 1, check if it's in migration */
+	if (!mutex_trylock(&primary_work->lock))
+		return -EBUSY;
 
 	/*
 	 * refcount of workgroup is now freezed as 1,
 	 * therefore no need to worry about available decompression users.
 	 */
 	for (i = 0; i < clusterpages; ++i) {
-		struct page *page = grp->compressed_pages[i];
+		struct page *page = READ_ONCE(grp->compressed_pages[i]);
 
 		if (page == NULL)
 			continue;
 
+#ifdef CONFIG_EROFS_FS_DEBUG
+		if (unlikely(page == PAGE_MIGRATE_LOCKED)) {
+			/* cannot be migrate locked */
+			errln("%s: %d, mngd_mapping(%px) migrate_locked in grp %px",
+			      __func__, __LINE__, mapping, grp);
+
+			print_hex_dump(KERN_ERR, "grp data: ", DUMP_PREFIX_OFFSET,
+				       16, 1, grp, sizeof(struct z_erofs_vle_workgroup), true);
+			DBG_BUGON(1);
+		}
+#endif
+
 		/* block other users from reclaiming or migrating the page */
-		if (!trylock_page(page))
+		if (!trylock_page(page)) {
+			mutex_unlock(&primary_work->lock);
 			return -EBUSY;
+		}
 
 #ifdef CONFIG_EROFS_FS_DEBUG
 		if (unlikely(page->mapping != mapping)) {
@@ -200,6 +244,7 @@ int erofs_try_to_free_all_cached_pages(struct erofs_sb_info *sbi,
 		unlock_page(page);
 		put_page(page);
 	}
+	mutex_unlock(&primary_work->lock);
 	return 0;
 }
 
@@ -250,6 +295,80 @@ int erofs_try_to_free_cached_page(struct address_space *mapping,
 	}
 	return ret;
 }
+#ifdef CONFIG_MIGRATION
+int erofs_migrate_cached_page(struct address_space *mapping,
+			      struct page *newpage,
+			      struct page *page,
+			      enum migrate_mode mode)
+{
+	struct erofs_sb_info *const sbi = EROFS_SB(mapping->host->i_sb);
+	const unsigned int clusterpages = erofs_clusterpages(sbi);
+
+	struct z_erofs_vle_workgroup *grp;
+	struct z_erofs_vle_work *primary_work;
+	bool locking;
+	int rc;
+	unsigned int i;
+
+	if (!PagePrivate(page))
+		return migrate_page(mapping, newpage, page, mode);
+
+	/* the workgroup will not be freed with compressed page locked */
+	grp = (void *)READ_ONCE(page_private(page));
+	DBG_BUGON(!grp);
+
+	primary_work = z_erofs_vle_grab_primary_work(grp);
+
+	if (!mutex_trylock(&primary_work->lock)) {
+		if (mode == MIGRATE_ASYNC)
+			return -EAGAIN;
+
+		mutex_lock(&primary_work->lock);
+	}
+
+	/* drop this migration attempt if freezed to 1 (reclaiming) */
+	if (atomic_read(&grp->obj.refcount) == EROFS_LOCKED_MAGIC) {
+		mutex_unlock(&primary_work->lock);
+		return -EBUSY;
+	}
+
+	rc = migrate_page_move_mapping(mapping, newpage, page, NULL, mode, 0);
+	if (rc != MIGRATEPAGE_SUCCESS) {
+		mutex_unlock(&primary_work->lock);
+		return rc;
+	}
+
+	locking = false;
+	for (i = 0; i < clusterpages; ++i) {
+		const struct page *victim =
+			cmpxchg(&grp->compressed_pages[i], page, newpage);
+
+		if (victim == page) {
+			get_page(newpage);
+			set_page_private(newpage, (unsigned long)grp);
+			__SetPagePrivate(newpage);
+			break;
+		}
+		if (victim == PAGE_MIGRATE_LOCKED)
+			locking = true;
+	}
+
+	if (i >= clusterpages)
+		DBG_BUGON(!locking);
+	else
+		locking = false;
+
+	ClearPagePrivate(page);
+	set_page_private(page, 0);
+
+	migrate_page_copy(newpage, page);
+	mutex_unlock(&primary_work->lock);
+
+	if (!locking)
+		put_page(page);
+	return MIGRATEPAGE_SUCCESS;
+}
+#endif
 #endif
 
 /* page_type must be Z_EROFS_PAGE_TYPE_EXCLUSIVE */
@@ -678,7 +797,7 @@ rebegin_work:
 	if (unlikely(!(map->m_flags & EROFS_MAP_MAPPED)))
 		goto hitted;
 
-	DBG_BUGON(map->m_plen != 1 << sbi->clusterbits);
+	DBG_BUGON(map->m_plen != 1U << sbi->clusterbits);
 	DBG_BUGON(erofs_blkoff(map->m_pa));
 
 	err = z_erofs_vle_work_iter_begin(builder, sb, map, &fe->owned_head);
@@ -691,7 +810,7 @@ rebegin_work:
 		erofs_blknr(map->m_plen),
 		/* compressed page caching selection strategy */
 		fe->initial | (EROFS_FS_ZIP_CACHE_LVL >= 2 ?
-			       map->m_la < fe->cachedzone_la : 0));
+			       map->m_la < fe->cachedzone_la : 0), page_pool);
 #endif
 
 	tight &= builder_is_weak_followed(builder);
@@ -1002,11 +1121,19 @@ repeat:
 		if (pages[i] != NULL)
 			continue;
 
-		pages[i] = __stagingpage_alloc(page_pool, GFP_NOFS);
+		pages[i] = __stagingpage_alloc(page_pool, GFP_NOFS
+//#if defined(CONFIG_CMA) && defined(___GFP_CMA)
+//			     | ___GFP_CMA
+//#endif
+		);
 	}
 
 skip_allocpage:
 	vout = erofs_vmap(pages, nr_pages);
+	if (!vout) {
+		err = -ENOMEM;
+		goto out;
+	}
 
 	err = z_erofs_vle_unzip_vmap(compressed_pages,
 		clusterpages, vout, llen,
@@ -1150,10 +1277,12 @@ z_erofs_workgrp_grab_page_for_submission(struct z_erofs_vle_workgroup *grp,
 	int justfound;
 
 repeat:
-	oldpage = page = READ_ONCE(grp->compressed_pages[nr]);
+	page = xchg(&grp->compressed_pages[nr], PAGE_MIGRATE_LOCKED);
+	oldpage = PAGE_MIGRATE_LOCKED;
 
 	if (page == NULL)
 		goto out_allocpage;
+
 #ifdef EROFS_FS_HAS_MANAGED_CACHE
 	if (page == EROFS_UNALLOCATED_CACHED_PAGE) {
 		tocache = true;
@@ -1179,10 +1308,18 @@ repeat:
 
 	goto out;
 #else
+	if (mapping == Z_EROFS_MAPPING_PREALLOCATED) {
+		WRITE_ONCE(grp->compressed_pages[nr], page);
+		goto out_add_to_managed_cache;
+	}
+
+
 	/* all unmanaged pages are locked, so it's impossible to be NULL */
-	if (mapping != NULL && mapping != mc)
+	if (mapping != NULL && mapping != mc) {
+		WRITE_ONCE(grp->compressed_pages[nr], page);
 		/* ought to be unmanaged pages */
 		goto out;
+	}
 
 	lock_page(page);
 #ifdef CONFIG_EROFS_FS_DEBUG
@@ -1229,13 +1366,25 @@ repeat:
 
 	/* for the truncation case (page locked) */
 	DBG_BUGON(page->mapping != NULL);
+	DBG_BUGON(PagePrivate(page));
 
 	tocache = true;
+#ifdef CONFIG_EROFS_FS_DEBUG
+	errln("%s: %d truncated page %px (count %d) grp %px (count %d)",
+	      __func__, __LINE__, page, page_count(page), grp, atomic_read(&grp->obj.refcount));
+#endif
 	unlock_page(page);
 	put_page(page);
 	/* fallthrough */
 #endif
 out_allocpage:
+	if (tocache)
+		gfp |= __GFP_MOVABLE
+#if defined(CONFIG_CMA) && defined(___GFP_CMA)
+			     | ___GFP_CMA
+#endif
+		;
+
 	page = __stagingpage_alloc(pagepool, gfp);
 	if (oldpage != cmpxchg(&grp->compressed_pages[nr], oldpage, page)) {
 		list_add(&page->lru, pagepool);
@@ -1245,6 +1394,7 @@ out_allocpage:
 #ifdef EROFS_FS_HAS_MANAGED_CACHE
 	if (!tocache)
 		goto out;
+out_add_to_managed_cache:
 	if (add_to_page_cache_lru(page, mc, first_index + nr, gfp)) {
 #ifdef CONFIG_EROFS_FS_DEBUG
 		errln("%s: %d add_to_page_cache_lru failed page %px (count %d) grp %px (count %d)",
@@ -1820,7 +1970,7 @@ int z_erofs_map_blocks_iter(struct inode *inode,
 #ifdef CONFIG_EROFS_FS_HUAWEI_EXTENSION
 	case Z_EROFS_VLE_CLUSTER_TYPE_HUAWEI_COMPAT:
 		if (vle_huawei_compat_previous_clusters(clustersize, di)) {
-			end = (lcn-- + 1) * clustersize;
+			end = (lcn-- + 1ULL) * clustersize;
 			goto nonhead;
 		}
 		/* fallthrough */

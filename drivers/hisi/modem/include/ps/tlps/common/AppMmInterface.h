@@ -1,50 +1,4 @@
-/*
- * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
- * foss@huawei.com
- *
- * If distributed as part of the Linux kernel, the following license terms
- * apply:
- *
- * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
- * * only version 2 as published by the Free Software Foundation.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program; if not, write to the Free Software
- * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
- *
- * Otherwise, the following license terms apply:
- *
- * * Redistribution and use in source and binary forms, with or without
- * * modification, are permitted provided that the following conditions
- * * are met:
- * * 1) Redistributions of source code must retain the above copyright
- * *    notice, this list of conditions and the following disclaimer.
- * * 2) Redistributions in binary form must reproduce the above copyright
- * *    notice, this list of conditions and the following disclaimer in the
- * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
- * *    without specific prior written permission.
- *
- * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- */
+
 
 #ifndef __APPMMINTERFACE_H__
 #define __APPMMINTERFACE_H__
@@ -74,15 +28,18 @@ extern "C" {
 #define APP_MAX_PLMN_NUM                37
 #define APP_MAX_UEID_BUF_SIZE           10
 #define APP_MS_NET_CAP_MAX_SIZE         9
+/*niezhouyu add begin*/
 #define APP_MM_MAX_EQU_PLMN_NUM         16  /* 协议规定EPlmn最大个数*/
 #define APP_MM_MAX_PLMN_NUM             64  /* PLMN列表最大个数 */
 #define APP_MM_MAX_TA_NUM               64  /* TA 列表最大个数 */
-
+/*niezhouyu add end*/
 
 #define APP_MM_CN_NAME_MAX_LEN         255          /* 网络名字的最大长度 */
 
+/*niuxiufan DT begin */
 #define APP_EMM_IMSI_MAX_LEN           15
 
+/*niuxiufan DT end */
 
 
 /*APP->MM 普通命令消息前3个字节宏定义 APP->MM*/
@@ -130,6 +87,7 @@ enum    APP_MM_MSG_TYPE_ENUM
 
     ID_APP_MM_CMD_INQ_END               = 0x4F+APP_MM_COMM_MSG_ID_HEADER,
 
+    /* niuxiufan DT begin */
     ID_APP_MM_INQ_LTE_GUTI_REQ          = 0x46 + APP_MM_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_LTE_GUTI_REQ_STRU */
     ID_APP_MM_INQ_LTE_GUTI_CNF          = 0x46 + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_LTE_GUTI_CNF_STRU */
     ID_APP_MM_INQ_LTE_GUTI_IND          = 0x47 + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_LTE_GUTI_IND_STRU */
@@ -141,14 +99,15 @@ enum    APP_MM_MSG_TYPE_ENUM
     ID_APP_MM_INQ_EMM_STATE_REQ         = 0x48 + APP_MM_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_EMM_STATE_REQ_STRU */
     ID_APP_MM_INQ_EMM_STATE_CNF         = 0x4a + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_EMM_STATE_CNF_STRU */
     ID_APP_MM_INQ_EMM_STATE_IND         = 0x4b + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice APP_MM_INQ_EMM_STATE_IND_STRU */
+    /* niuxiufan DT end */
 
     ID_APP_MM_UE_CAP_INFO_REQ           = 0x4c + APP_MM_COMM_MSG_ID_HEADER,   /* _H2ASN_MsgChoice APP_MM_UE_CAP_INFO_REQ_STRU */
     ID_MM_APP_UE_CAP_INFO_CNF           = 0x4c + MM_APP_COMM_MSG_ID_HEADER,   /* _H2ASN_MsgChoice MM_APP_UE_CAP_INFO_CNF_STRU */
 
-
     /* 普通命令 流程类消息  0x50 ~ 0x8F*/
-
-    ID_APP_MM_REG_STAT_IND              = 0x5D+MM_APP_COMM_MSG_ID_HEADER,   /* _H2ASN_MsgChoice APP_MM_REG_STAT_IND_STRU */
+    ID_APP_MM_REG_STAT_REQ              = 0x5c + APP_MM_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice ID_APP_MM_REG_STAT_REQ_STRU */
+    ID_APP_MM_REG_STAT_CNF              = 0x5c + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice ID_APP_MM_REG_STAT_CNF_STRU */
+    ID_APP_MM_REG_STAT_IND              = 0x5D+MM_APP_COMM_MSG_ID_HEADER,      /* _H2ASN_MsgChoice APP_MM_REG_STAT_IND_STRU */
 
     ID_APP_MM_MSG_TYPE_BUTT
 };
@@ -284,6 +243,7 @@ enum APP_MM_REPORT_MODE_ENUM
 };
 typedef VOS_UINT32 APP_MM_REPORT_MODE_ENUM_UINT32;
 
+/* niuxiufan DT begin */
 /*****************************************************************************
  枚举名    : NAS_DT_RPT_STATUS_ENUM_UINT32
  枚举说明  : NAS为路测软件上报的状态
@@ -305,6 +265,7 @@ enum NAS_DT_REPORT_ITEM_ENUM
     NAS_DT_REPORT_TYPE_GUTI,
     NAS_DT_REPORT_TYPE_IMSI,
     NAS_DT_REPORT_TYPE_EMM_STATE,
+    NAS_DT_REPORT_TYPE_EMM_REG_STATE,
     NAS_DT_REPORT_TYPE_BUTT
 };
 typedef VOS_UINT32 NAS_DT_REPORT_ITEM_ENUM_UINT32;
@@ -330,7 +291,7 @@ typedef struct
     APP_MM_REPORT_MODE_ENUM_UINT32    enRptType;  /*上报类型 */
     NAS_DT_RPT_TIMER_STRU             stRptTimer;/*上报周期定时器信息 */
 }APP_MM_DT_REPORT_CTRL_STRU;
-
+/* niuxiufan DT end */
 
 /* OM和MM间的维护类命令执行结果类型 */
 /*
@@ -892,6 +853,7 @@ typedef struct
     APP_PLMN_ID_STRU                    astPlmnId[APP_MM_MAX_PLMN_NUM];
 }APP_MM_PLMN_LIST_STRU;
 
+/*niezhouyu add begin*/
 typedef struct
 {
     VOS_UINT32                          ulPlmnNum;
@@ -963,6 +925,7 @@ typedef struct
     VOS_UINT8                           ucRsv;
 }APP_MM_CN_NETWORK_NAME_STRU;
 
+/*niezhouyu add end*/
 /*****************************************************************************
 结构名称    :APP_DRX_STRU
 使用说明    :
@@ -1212,6 +1175,7 @@ typedef struct
     APP_MM_LTE_CS_INFO_STRU               stLtecsInfo;
 } APP_MM_INQ_LTE_CS_CNF_STRU;
 
+/*niuxiufan DT begin */
 typedef APP_MM_INQ_CMD_REQ_STRU           APP_MM_INQ_LTE_GUTI_REQ_STRU;
 
 typedef struct
@@ -1287,8 +1251,17 @@ typedef struct
     NAS_OM_EMM_STATE_STRU                 stEmmState;        /*EMM状态信息 */
 } APP_MM_INQ_EMM_STATE_IND_STRU;
 
+/*niuxiufan DT end */
+typedef APP_MM_INQ_CMD_REQ_STRU           APP_MM_INQ_EMM_REG_STATE_REQ_STRU;
 
-
+typedef struct
+{
+    VOS_MSG_HEADER                                  /*_H2ASN_Skip*/
+    VOS_UINT32                            ulMsgId;  /*_H2ASN_Skip*/
+    APP_MSG_HEADER
+    VOS_UINT32                            ulOpId;
+    VOS_UINT32                            ulRslt;   /*0成功，1失败*/
+} APP_MM_INQ_EMM_REG_STATE_CNF_STRU;
 
 typedef struct
 {

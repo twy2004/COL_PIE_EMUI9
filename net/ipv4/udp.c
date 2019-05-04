@@ -902,7 +902,9 @@ int udp_push_pending_frames(struct sock *sk)
 	if (!skb)
 		goto out;
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+	}
 #endif
 	err = udp_send_skb(skb, fl4);
 
@@ -1120,14 +1122,20 @@ back_from_confirm:
 
 		err = PTR_ERR(skb);
 		if (!IS_ERR_OR_NULL(skb))
+
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 		{
-			delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+			if(DELAY_STATISTIC_SWITCH_ON) {
+				delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
+			}
 #endif
+
 			err = udp_send_skb(skb, fl4);
+
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 		}
 #endif
+
 		goto out;
 	}
 
@@ -1415,9 +1423,13 @@ try_again:
 	err = copied;
 	if (flags & MSG_TRUNC)
 		err = ulen;
+
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
-	delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_UDP);
+	if(DELAY_STATISTIC_SWITCH_ON) {
+		delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_UDP);
+	}
 #endif
+
 	__skb_free_datagram_locked(sk, skb, peeking ? -err : err);
 	return err;
 
@@ -1822,8 +1834,24 @@ static inline int udp4_csum_init(struct sk_buff *skb, struct udphdr *uh,
 	/* Note, we are only interested in != 0 or == 0, thus the
 	 * force to int.
 	 */
-	return (__force int)skb_checksum_init_zero_check(skb, proto, uh->check,
-							 inet_compute_pseudo);
+	err = (__force int)skb_checksum_init_zero_check(skb, proto, uh->check,
+							inet_compute_pseudo);
+	if (err)
+		return err;
+
+	if (skb->ip_summed == CHECKSUM_COMPLETE && !skb->csum_valid) {
+		/* If SW calculated the value, we know it's bad */
+		if (skb->csum_complete_sw)
+			return 1;
+
+		/* HW says the value is bad. Let's validate that.
+		 * skb->csum is no longer the full packet checksum,
+		 * so don't treat it as such.
+		 */
+		skb_checksum_complete_unset(skb);
+	}
+
+	return 0;
 }
 
 /*

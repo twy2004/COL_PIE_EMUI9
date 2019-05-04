@@ -682,6 +682,20 @@ enum TAF_MMA_RAT_TYPE_ENUM
 typedef VOS_UINT8 TAF_MMA_RAT_TYPE_ENUM_UINT8;
 
 
+enum TAF_MMA_REJ_RAT_TYPE_ENUM
+{
+    TAF_MMA_REJ_RAT_GSM                                  =0,/* GSM接入技术 */
+    TAF_MMA_REJ_RAT_WCDMA                                =1,/* WCDMA接入技术 */
+    TAF_MMA_REJ_RAT_LTE                                  =2,/* LTE接入技术 */
+    TAF_MMA_REJ_RAT_1X                                   =3,/* 1X接入技术 */
+    TAF_MMA_REJ_RAT_HRPD                                 =4,/* HRPD接入技术 */
+    TAF_MMA_REJ_RAT_NR                                   =5,/* NR-5GC接入技术 */
+
+    TAF_MMA_REJ_RAT_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_REJ_RAT_TYPE_ENUM_UINT8;
+
+
 enum TAF_MMA_APP_CFPLMN_OPER_RESULT_ENUM
 {
     TAF_MMA_APP_CFPLMN_OPER_RESULT_SUCCESS               = 0,/* 操作成功 */
@@ -875,6 +889,9 @@ enum TAF_SYS_SUBMODE_ENUM
 
     TAF_SYS_SUBMODE_EHRPD               = 31,               /* EHRPD*/
 
+    TAF_SYS_SUBMODE_EUTRAN_5GC          = 110,               /* 4G接入制式5G核心网模式 */
+    TAF_SYS_SUBMODE_NR_5GC              = 111,               /* 5G接入制式5G核心网模式 */
+
     TAF_SYS_SUBMODE_BUTT
 };
 typedef VOS_UINT8  TAF_SYS_SUBMODE_ENUM_UINT8;
@@ -893,6 +910,9 @@ enum MN_PH_SYS_MODE_EX_ENUM
     MN_PH_SYS_MODE_EX_EVDO_RAT  ,                                               /*EVDO模式*/
     MN_PH_SYS_MODE_EX_HYBRID_RAT,                                               /*CDMA 1X+EVDO模式*/
     MN_PH_SYS_MODE_EX_SVLTE_RAT ,                                               /*CDMA 1X+LTE模式*/
+
+    MN_PH_SYS_MODE_EX_EUTRAN_5GC_RAT,                                           /* 4G接入制式5G核心网模式 */
+    MN_PH_SYS_MODE_EX_NR_5GC_RAT,                                               /* 5G接入制式5G核心网模式 */
 
     MN_PH_SYS_MODE_EX_BUTT_RAT
 };
@@ -934,6 +954,10 @@ enum MN_PH_SUB_SYS_MODE_EX_ENUM
     MN_PH_SUB_SYS_MODE_EX_TD_HSPA_PLUS_RAT                  = 65,               /*HSPA+模式*/
 
     MN_PH_SUB_SYS_MODE_EX_LTE_RAT       = 101   ,                               /*LTE模式*/
+
+    MN_PH_SUB_SYS_MODE_EX_EUTRAN_5GC_RAT                    = 110,              /* 4G接入制式5G核心网模式 */
+    MN_PH_SUB_SYS_MODE_EX_NR_5GC_RAT                        = 111,              /* 5G接入制式5G核心网模式 */
+
     MN_PH_SUB_SYS_MODE_EX_BUTT_RAT
 };
 typedef VOS_UINT8  MN_PH_SUB_SYS_MODE_EX_ENUM_U8;
@@ -949,6 +973,9 @@ enum TAF_PH_ACCESS_TECH_ENUM
     TAF_PH_ACCESS_TECH_HSUPA            = 5,                /* HSUPA */
     TAF_PH_ACCESS_TECH_HSDPA_HSUPA      = 6,                /* HSDPA+HSUPA */
     TAF_PH_ACCESS_TECH_E_UTRAN          = 7,                /* E-UTRAN*/
+
+    TAF_PH_ACCESS_TECH_EUTRAN_5GC       = 10,               /* E-UTRAN-5GC */
+    TAF_PH_ACCESS_TECH_NR_5GC           = 11,               /* NR-5GC */
 
     TAF_PH_ACCESS_TECH_CDMA_1X          = 20,               /* CDMA 1X */
     TAF_PH_ACCESS_TECH_EVDO             = 21,               /* EVDO */
@@ -1151,6 +1178,7 @@ enum TAF_MMA_QRY_REG_STATUS_TYPE_ENUM
     TAF_MMA_QRY_REG_STATUS_TYPE_CS,          /* CREG查询CS注册状态 */
     TAF_MMA_QRY_REG_STATUS_TYPE_PS,          /* CREG查询PS注册状态 */
     TAF_MMA_QRY_REG_STATUS_TYPE_EPS,         /* CREG查询EPS注册状态 */
+    TAF_MMA_QRY_REG_STATUS_TYPE_5GC,         /* CREG查询5GC注册状态 */
     TAF_MMA_QRY_REG_STATUS_TYPE_BUTT         /* 无效的查询类型 */
 };
 typedef VOS_UINT32 TAF_MMA_QRY_REG_STATUS_TYPE_ENUM_UINT32;
@@ -1256,6 +1284,10 @@ typedef VOS_UINT32 TAF_MMA_ICC_APP_TYPE_SWITCH_STATE_ENUM_UINT32;
 /* IMEI有效数据长度: IMEI信息由IMEI(TAC8位,SNR6位)和校验位两部分组成*/
 #define TAF_IMEI_DATA_LENGTH            (15)
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+#define TAF_NSSAI_MAX_LEN               (72)
+#endif
+
 typedef struct
 {
     TAF_UINT32    Mcc;
@@ -1272,6 +1304,15 @@ typedef struct
     VOS_UINT8           aucReserved[3];
 }TAF_MMA_HPLMN_WITH_MNC_LEN_STRU;
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+
+typedef struct
+{
+    VOS_UINT8                           ucLen;
+    VOS_UINT8                           aucRsv[3];
+    VOS_UINT8                           aucNssai[TAF_NSSAI_MAX_LEN];
+}TAF_ALLOWED_NSSAI_STRU;
+#endif
 
 #define TAF_PH_RELEASEDATE_LEN            10
 typedef struct
@@ -1606,6 +1647,15 @@ typedef struct
 }TAF_MMA_L_CELL_SIGN_INFO_STRU;
 
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+
+typedef struct
+{
+    VOS_INT16                           s5GRsrp;            /* 范围：(-141,-44), 99为无效 */
+    VOS_INT16                           s5GRsrq;            /* 范围：(-40, -6) , 99为无效 */
+    VOS_INT32                           l5GSinr;            /* SINR RS_SNR */
+}TAF_MMA_NR_CELL_SIGN_INFO_STRU;
+#endif
 
 /*RSSI查询功能命令+CSQ*/
 /*
@@ -1634,6 +1684,9 @@ typedef struct
         TAF_MMA_W_CELL_SIGN_INFO_STRU   stWCellSignInfo;
         TAF_MMA_G_CELL_SIGN_INFO_STRU   stGCellSignInfo;
         TAF_MMA_L_CELL_SIGN_INFO_STRU   stLCellSignInfo;
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+        TAF_MMA_NR_CELL_SIGN_INFO_STRU  stNrCellSignInfo;
+#endif
     }u;
 
 
@@ -2396,17 +2449,24 @@ typedef struct
     TAF_UINT32                          OP_CellId          : 1;
     TAF_UINT32                          OP_Rac             : 1;
     TAF_UINT32                          OP_Plmn            : 1;
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    TAF_UINT32                          OP_Nssai           : 1;
+    TAF_UINT32                          OP_Spare           : 24;
+#else
     TAF_UINT32                          OP_Spare           : 25;
-
+#endif
     TAF_PH_REG_STATE_TYPE               RegState;               /*MM注册状态*/
     TAF_PH_REG_STATE_TYPE               ucPsRegState;           /*PS注册状态*/
     TAF_PH_ACCESS_TECH_ENUM_UINT8       ucAct;                  /*当前驻留网络的接入技术*/
     TAF_UINT8                           ucRac;                  /*RAC*/
-    TAF_UINT16                          usLac;                  /*位置码信息*/
     VOS_UINT8                           ucRatType;
-    VOS_UINT8                           aucReserved[1];
+    VOS_UINT8                           aucReserved[3];
+    TAF_UINT32                          ulLac;                  /*位置码信息*/
     TAF_CELL_INFO_STRU                  CellId;                 /*小区ID*/
     TAF_PLMN_ID_STRU                    Plmn;                   /*提供PLMN信息，当前未有需求*/
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    TAF_ALLOWED_NSSAI_STRU              stNssai;                /* 允许的切片信息 */
+#endif
 }TAF_PH_REG_STATE_STRU;
 
 /*该信息包都是由NVIM中提取*/
@@ -2609,6 +2669,8 @@ enum TAF_SYS_MODE_ENUM
     TAF_PH_INFO_WCDMA_RAT               = 5,        /*WCDMA模式*/
     TAF_PH_INFO_LTE_RAT                 = 7,        /*LTE模式*/
     TAF_PH_INFO_HYBRID_RAT              = 8,        /*HRPD 混合模式*/
+    TAF_PH_INFO_EUTRAN_5GC_RAT          = 10,       /* 4G接入制式5G核心网 */
+    TAF_PH_INFO_NR_5GC_RAT              = 11,       /* 5G接入制式5G核心网 */
     TAF_PH_INFO_TD_SCDMA_RAT            = 15,       /*TD-SCDMA模式*/
     TAF_PH_INFO_SVLTE_SRLTE_RAT         = 16,       /*SVLTE/SRLTE模式*/
 };
@@ -3071,14 +3133,17 @@ typedef struct
 
     TAF_PLMN_ID_STRU                    stPlmnId;
     TAF_UINT32                          ulRejCause;
-    TAF_MMA_RAT_TYPE_ENUM_UINT8         enRat;
+
+    TAF_MMA_REJ_RAT_TYPE_ENUM_UINT8     enRat;
+
     TAF_MMA_SERVICE_DOMAIN_ENUM_UINT8   enSrvDomain;
 
     VOS_UINT8                           ucRejType;
     VOS_UINT8                           ucRac;
-    VOS_UINT16                          usLac;
+    VOS_UINT32                          ulLac;
     VOS_UINT8                           ucOriginalRejCause;
     VOS_UINT8                           ucPdnRejCause;
+    VOS_UINT8                           ucRsv[2];
     VOS_UINT32                          ulCellId;
 
 }TAF_PH_REG_REJ_INFO_STRU;
@@ -3414,16 +3479,16 @@ enum MM_TEST_AT_CMD_ENUM
     MM_TEST_AT_CMD_PLMN_SEARCH_MODE     = 5,    /* 设定搜网模式, 只更新NV项 */
     MM_TEST_AT_CMD_SET_RAT_MODE         = 6,    /* 设定接入模式, 只更新NV项 */
 
-    MM_TEST_AT_CMD_SET_ADDITIONAL_UPDATE_RESULT_IE = 7,    /* 设定ADDITIONAL_UPDATE_RESULT_IE */
-    MM_TEST_AT_CMD_SET_LTE_UE_USAGE_SETTING        = 8,    /* 设定LTE_UE_USAGE_SETTING */
+    MM_TEST_AT_CMD_SET_ADDITIONAL_UPDATE_RESULT_IE  = 7,    /* 设定ADDITIONAL_UPDATE_RESULT_IE */
+    MM_TEST_AT_CMD_SET_UE_USAGE_SETTING             = 8,    /* 设定UE_USAGE_SETTING */
 
-    MM_TEST_AT_CMD_SET_GMM_DEALY_SUSPENDRSP        = 9,    /* 设定gmm延迟回复挂起结果给MMC */
+    MM_TEST_AT_CMD_SET_GMM_DEALY_SUSPENDRSP         = 9,    /* 设定gmm延迟回复挂起结果给MMC */
 
-    MM_TEST_AT_CMD_SET_CSFB_HIGH_PRIO_FLG         = 10,
+    MM_TEST_AT_CMD_SET_CSFB_HIGH_PRIO_FLG           = 10,
 
-    MM_TEST_AT_CMD_CLEAR_USER_PLMN_                   = 11,
+    MM_TEST_AT_CMD_CLEAR_USER_PLMN_                 = 11,
 
-    MM_TEST_AT_CMD_SET_ORIGINAL_REJECT_CAUSE          = 12,
+    MM_TEST_AT_CMD_SET_ORIGINAL_REJECT_CAUSE        = 12,
     MM_TEST_AT_CMD_BUTT,
 };
 typedef VOS_UINT8 MM_TEST_AT_CMD_ENUM_U8;
@@ -4284,9 +4349,7 @@ typedef struct
 typedef struct
 {
     TAF_PLMN_ID_STRU                           stPlmnId;
-    VOS_UINT16                                 usLac;
-
-    VOS_UINT8                                  aucReserve[2];
+    VOS_UINT32                                 ulLac;
 }TAF_LAI_STRU;
 
 
@@ -4984,6 +5047,10 @@ typedef struct
     VOS_MSG_HEADER                                                              /*_H2ASN_Skip*/
     TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
     TAF_MMA_CTRL_STRU                   stCtrl;
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    VOS_UINT8                           ucNsaQryFlag;                           /* 是否是NSA查询 */
+    VOS_UINT8                           aucRsv[3];
+#endif
 }TAF_MMA_CERSSI_INFO_QRY_REQ_STRU;
 
 
@@ -5072,9 +5139,9 @@ typedef struct
     VOS_UINT32                          ulResult;
     VOS_UINT32                          ulMcc;
     VOS_UINT32                          ulMnc;
-    VOS_UINT16                          usLac;
+    VOS_UINT32                          ulLac;
     VOS_UINT8                           ucRac;
-    VOS_UINT8                           ucRsv;
+    VOS_UINT8                           ucRsv[3];
     VOS_UINT32                          ulCellid;
 }TAF_MMA_LOCATION_INFO_QRY_CNF_STRU;
 
@@ -5397,7 +5464,11 @@ typedef struct
     TAF_MMA_MSG_TYPE_ENUM_UINT32        ulMsgName;                              /*_H2ASN_Skip*/
     VOS_UINT16                          usClientId;
     VOS_UINT8                           ucOpId;
-    VOS_UINT8                           aucReserved[1];
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+    VOS_UINT8                           ucIsNsaRptFlg;
+#else
+    VOS_UINT8                           ucRsv;
+#endif
     VOS_UINT8                           aucCurcRptCfg[TAF_MMA_RPT_CFG_MAX_SIZE];         /* CURC设置的主动上报标识 */
     VOS_UINT8                           aucUnsolicitedRptCfg[TAF_MMA_RPT_CFG_MAX_SIZE];  /* 单个命令设置的主动上报标识 */
     TAF_PH_RSSI_STRU                    stRssiInfo;
@@ -6855,14 +6926,31 @@ typedef struct
 } TAF_MMA_CL_DBDOMAIN_STATUS_INFO_IND_STRU;
 
 
+enum TAF_MMA_SENSOR_STATE_SCENE_ENUM
+{
+    TAF_MMA_SENSOR_STATE_SCENE_ELEVATOR,       /* 电梯状态变化上报 */
+    TAF_MMA_SENSOR_STATE_SCENE_GARAGE,         /* 车库状态变化上报 */
+    TAF_MMA_SENSOR_STATE_SCENE_BUTT
+};
+typedef VOS_UINT8 TAF_MMA_SENSOR_STATE_SCENE_ENUM_UINT8;
+
+
 typedef struct
 {
-    MSG_HEADER_STRU                     stMsgHeader;                            /*_H2ASN_Skip*/
-    VOS_UINT16                          usClientId;
-    VOS_UINT8                           ucOpid;
-    VOS_UINT8                           resv;
-    VOS_UINT32                          ulElevatorState;
-    VOS_UINT32                          ulServiceState;
+    VOS_UINT32                                              ulSensorState;
+    VOS_UINT8                                               ucServiceState;
+    TAF_MMA_SENSOR_STATE_SCENE_ENUM_UINT8                   enSensorScene;
+    VOS_UINT8                                               aucReserved[2];
+} TAF_MMA_SENSOR_STATE_REPORT_PARA_STRU;
+
+
+typedef struct
+{
+    MSG_HEADER_STRU                                         stMsgHeader;                            /*_H2ASN_Skip*/
+    VOS_UINT16                                              usClientId;
+    VOS_UINT8                                               ucOpid;
+    VOS_UINT8                                               resv;
+    TAF_MMA_SENSOR_STATE_REPORT_PARA_STRU                   stSensorPara;
 } TAF_MMA_ELEVATOR_STATE_IND_STRU;
 
 
@@ -7439,6 +7527,14 @@ VOS_UINT32 TAF_MMA_QryCerssiReq(
     VOS_UINT8                           ucOpId
 );
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 TAF_MMA_QryCserssiReq(
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
+);
+#endif
+
 
 VOS_UINT32 TAF_MMA_QryAccessModeReq(
     VOS_UINT32                          ulModuleId,
@@ -7873,6 +7969,7 @@ extern VOS_UINT32 TAF_MMA_MtPowerDownReq(
 );
 #endif
 
+#if  ( FEATURE_MULTI_MODEM == FEATURE_ON )
 VOS_UINT32 TAF_MMA_SetPsSceneReq(
     VOS_UINT32                          ulModuleId,
     VOS_UINT16                          usClientId,
@@ -7880,10 +7977,11 @@ VOS_UINT32 TAF_MMA_SetPsSceneReq(
     TAF_MMA_PS_SCENE_PARA_STRU         *pstPsSrvStatePara
 );
 VOS_UINT32 TAF_MMA_QryPsSceneReq(
-	VOS_UINT32                          ulModuleId,
-	VOS_UINT16                          usClientId,
-    	VOS_UINT8                           ucOpId
+    VOS_UINT32                          ulModuleId,
+    VOS_UINT16                          usClientId,
+    VOS_UINT8                           ucOpId
  );
+#endif
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

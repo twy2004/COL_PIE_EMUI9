@@ -55,6 +55,7 @@
   1 其他头文件包含
 *****************************************************************************/
 #include "vos.h"
+#include "NasCommPacketSer.h"
 
 
 #ifdef __cplusplus
@@ -135,7 +136,9 @@ extern "C" {
 #define TAF_PS_CAUSE_WLAN_SECTION_BEGIN                     (0X0D00)
 
 #define TAF_PS_CAUSE_NRSM_SECTION_BEGIN                     (0X0E00)
-#define TAF_PS_CAUSE_NRMM_SECTION_BEGIN                     (0X0F00)
+#define TAF_PS_CAUSE_NRMM_SECTION_BEGIN                     (0X0E80)
+#define TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN                  (0X0F00)
+
 
 
 /* ^AUTHDATA */
@@ -227,30 +230,19 @@ AUTH_PAP (RFC 1334)
 #define TAF_PS_2G_BIT3_ENABLE                               1    /*2G拨号时PDP激活请求消息不携带bit3等参数  */
 
 
-#define TAF_PS_PDU_SESSION_ID_MIN                           (5)
-#define TAF_PS_PDU_SESSION_ID_MAX                           (15)
+
 #define TAF_PS_INVALID_PDU_SESSION_ID                       (0)
 
 
 #define TAF_MAX_IPV4_EPDG_NUM                       (2)
 #define TAF_MAX_IPV6_EPDG_NUM                       (2)
 
-#define TAF_PS_NSSAI_MAX_NUM                                (8)
 #define TAF_PS_INVALID_IFACE_ID                             (0)
 
 
+#define TAF_PS_MAX_QOS_RULE_NUM_IN_QOS_FLOW                 (4)
 
-enum TAF_PDP_ACCESS_TYPE_ENUM
-{
-
-    TAF_PDP_ACCESS_TYPE_3GPP                                = 0x0000,          /* */
-    TAF_PDP_ACCESS_TYPE_NON_3GPP                            = 0x0001,          /* */
-
-    TAF_PDP_ACCESS_TYPE_BUTT
-
-};
-typedef VOS_UINT8 TAF_PS_PDP_ACCESS_TYPE_ENUM_UINT8;
-
+/* Added by l60609 for L-C互操作项目, 2014-01-06, Begin */
 
 enum TAF_PDP_REQUEST_TYPE_ENUM
 {
@@ -481,6 +473,16 @@ enum TAF_PS_CAUSE_ENUM
     TAF_PS_CAUSE_NO_AVAILABLE_DOMAIN                        = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 40),
     TAF_PS_CAUSE_IP_ADDRESS_CHG_IN_HANDOVER                 = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 41),
 
+    TAF_PS_CAUSE_L2NR_HANDOVER_FAIL                         = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 42),
+    TAF_PS_CAUSE_NR2L_HANDOVER_FAIL                         = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 43),
+
+    TAF_PS_CAUSE_IPV6_ADDR_ALLOC_FAIL                       = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 44),
+    TAF_PS_CAUSE_IPV6_ADDR_REFRESH_FAIL                     = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 45),
+
+    /* 这个并不是sm给aps的原因值，时aps的内部原因值，为了复用内部去激活消息添加 */
+    TAF_PS_CAUSE_INTERNAL_DATA_OFF                          = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 46),
+    TAF_PS_CAUSE_APP_LOCAL_DEACTIVATE                       = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 47),
+
     TAF_PS_CAUSE_UNKNOWN                                    = (TAF_PS_CAUSE_APS_SECTION_BEGIN + 63),
 
     TAF_PS_CAUSE_DSM_INVALID_PARAMETER                      = (TAF_PS_CAUSE_DSM_SECTION_BEGIN + 1),
@@ -596,7 +598,11 @@ enum TAF_PS_CAUSE_ENUM
     TAF_PS_CAUSE_SM_NW_INSUFFICIENT_RESOURCES_FOR_SPC_SLICE_AND_DNN     = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 67),
     TAF_PS_CAUSE_SM_NW_NOT_SUPPORTED_SSC_MODE               = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 68),
     TAF_PS_CAUSE_SM_NW_INSUFFICIENT_RESOURCES_FOR_SPC_SLICE = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 69),
+    TAF_PS_CAUSE_SM_NW_MISSING_OR_UNKNOWN_DNN_IN_A_SLICE    = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 70),
     TAF_PS_CAUSE_SM_NW_INVALID_TI                           = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 81),
+    TAF_PS_CAUSE_SM_NW_MAX_DATA_RATE_FOR_INTEGRITY_PROTECTION_TOO_LOW  = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 82),
+    TAF_PS_CAUSE_SM_NW_SEMANTIC_ERROR_IN_THE_QOS_OPERATION             = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 83),
+    TAF_PS_CAUSE_SM_NW_SYNTACTICAL_ERROR_IN_THE_QOS_OPERATION          = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 84),
     TAF_PS_CAUSE_SM_NW_SEMANTICALLY_INCORRECT_MESSAGE       = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 95),
     TAF_PS_CAUSE_SM_NW_INVALID_MANDATORY_INFO               = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 96),
     TAF_PS_CAUSE_SM_NW_MSG_TYPE_NON_EXISTENT                = (TAF_PS_CAUSE_SM_NW_SECTION_BEGIN + 97),
@@ -658,7 +664,6 @@ enum TAF_PS_CAUSE_ENUM
     TAF_PS_CAUSE_GMM_NW_NOT_AUTHORIZED_FOR_THIS_CSG         = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 25),
     TAF_PS_CAUSE_GMM_NW_NO_PDP_CONTEXT_ACT                  = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 40),
     TAF_PS_CAUSE_GMM_NW_RETRY_UPON_ENTRY_CELL               = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 60),
-    TAF_PS_CAUSE_MM_NW_5GMM_MESSAGE_WAS_NOT_FORWARDED       = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 90),
     TAF_PS_CAUSE_GMM_NW_SEMANTICALLY_INCORRECT_MSG          = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 95),
     TAF_PS_CAUSE_GMM_NW_INVALID_MANDATORY_INF               = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 96),
     TAF_PS_CAUSE_GMM_NW_MSG_NONEXIST_NOTIMPLEMENTE          = (TAF_PS_CAUSE_GMM_NW_SECTION_BEGIN + 97),
@@ -983,11 +988,25 @@ enum TAF_PS_CAUSE_ENUM
        方向: NRSM -> TAF
        说明: UNKNOWN为错误码分段的最后一个错误码
     *---------------------------------------------------------------------*/
-    TAF_PS_CAUSE_NRSM_T3580_TIME_OUT                        = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 1),
-    TAF_PS_CAUSE_NRSM_T3396_ALG_NOT_ALLOWED                 = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 2),
-    TAF_PS_CAUSE_NRSM_SESSION_EST_FAILED                    = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 3),
-    TAF_PS_CAUSE_NRSM_SUSPEND                               = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 4),
-    TAF_PS_CAUSE_NRSM_UNKNOWN                               = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 255),
+    TAF_PS_CAUSE_NRSM_T3580_TIME_OUT                                          = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 1),
+    TAF_PS_CAUSE_NRSM_IN_FORBIDDEN_LIST                                       = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 2),
+    TAF_PS_CAUSE_NRSM_SESSION_EST_FAILED                                      = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 3),
+    TAF_PS_CAUSE_NRSM_SUSPEND                                                 = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 4),
+    TAF_PS_CAUSE_NRSM_FAILURE                                                 = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 5),
+    TAF_PS_CAUSE_NRSM_REBUILD_PDU_SESSION                                     = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 6),
+    TAF_PS_CAUSE_NRSM_SESSION_MODIFY_FAILED                                   = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 7),
+    TAF_PS_CAUSE_NRSM_T3581_TIME_OUT                                          = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 8),
+    TAF_PS_CAUSE_NRSM_BACK_OFF_TIMER_NOT_ALLOWED                              = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 9),
+    TAF_PS_CAUSE_NRSM_NOT_ALLOW_EST_NORMAL_SESSION_IN_EMC_STATUS              = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 10),
+    TAF_PS_CAUSE_NRSM_REACHED_PLMN_MAX_PDU_SESSION_NUM                        = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 11),
+    TAF_PS_CAUSE_NRSM_PDU_SESSION_INFO_UPDATE_FAIL                            = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 12),
+    TAF_PS_CAUSE_NRSM_ALLOC_ENTITY_FAIL                                       = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 13),
+    TAF_PS_CAUSE_NRSM_UE_MODIFICATION_COLLISION_WITH_NW_RELEASE               = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 14),
+    TAF_PS_CAUSE_NRSM_NW_MODIFICATION_COLLISION_WITH_UE_MODIFICATION          = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 15),
+    TAF_PS_CAUSE_NRSM_NO_RF                                                   = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 16),
+    TAF_PS_CAUSE_NRSM_T3582_TIME_OUT                                          = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 17),
+
+    TAF_PS_CAUSE_NRSM_UNKNOWN                                                 = (TAF_PS_CAUSE_NRSM_SECTION_BEGIN + 255),
 
     /*----------------------------------------------------------------------
        NRMM的内部原因值, 取值范围[0x0200, 0x02FF]
@@ -995,6 +1014,41 @@ enum TAF_PS_CAUSE_ENUM
        说明: UNKNOWN为错误码分段的最后一个错误码
     *---------------------------------------------------------------------*/
     TAF_PS_CAUSE_NRMM_REL_IND                               = (TAF_PS_CAUSE_NRMM_SECTION_BEGIN + 0),
+
+    /*----------------------------------------------------------------------
+       NRMM的网络原因值, 取值范围[0x0F00, 0x0FFF]
+       方向: NRMM -> NRSM -> TAF
+       说明: UNKNOWN为错误码分段的最后一个错误码
+    *---------------------------------------------------------------------*/
+    TAF_PS_CAUSE_NRMM_NW_ILLEGAL_UE                         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 3),
+    TAF_PS_CAUSE_NRMM_NW_PEI_NOT_ACCEPTED                   = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 5),
+    TAF_PS_CAUSE_NRMM_NW_ILLEGAL_ME                         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 6),
+    TAF_PS_CAUSE_NRMM_NW_5GS_SERVICES_NOT_ALLOWED           = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 7),
+    TAF_PS_CAUSE_NRMM_NW_IMPLICIT_DEREGISTERED              = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 10),
+    TAF_PS_CAUSE_NRMM_NW_PLMN_NOT_ALLOWED                   = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 11),
+    TAF_PS_CAUSE_NRMM_NW_TA_NOT_ALLOWED                     = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 12),
+    TAF_PS_CAUSE_NRMM_NW_ROAMING_NOT_ALLOWED_IN_THIS_TA     = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 13),
+    TAF_PS_CAUSE_NRMM_NW_MAC_FAILURE                        = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 20),
+    TAF_PS_CAUSE_NRMM_NW_SYNCH_FAILURE                      = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 21),
+    TAF_PS_CAUSE_NRMM_NW_CONGESTION                         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 22),
+    TAF_PS_CAUSE_NRMM_NW_N1_MODE_NOT_ALLOWED                = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 27),
+    TAF_PS_CAUSE_NRMM_NW_RSTRIC_SERVICE_AREA                = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 28),
+    TAF_PS_CAUSE_NRMM_NW_LADN_NOT_AVAIL                     = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 43),
+    TAF_PS_CAUSE_NRMM_NW_REACHED_PLMN_MAX_PDU_SESSION_NUM   = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 65),
+    TAF_PS_CAUSE_NRMM_NW_INSUFFICIENT_RSRC_FOR_SPEC_SLICE_AND_DNN  = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 67),
+    TAF_PS_CAUSE_NRMM_NW_INSUFFICIENT_RSRC_FOR_SPEC_SLICE   = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 69),
+    TAF_PS_CAUSE_NRMM_NW_PAYLOAD_NOT_FORWARDED              = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 90),
+    TAF_PS_CAUSE_NRMM_NW_DNN_NOT_SUPPORTED_IN_SPEC_SLICE    = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 91),
+    TAF_PS_CAUSE_NRMM_NW_SEMANTICALLY_INCORRECT_MSG         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 95),
+    TAF_PS_CAUSE_NRMM_NW_INVALID_MANDATORY_INF              = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 96),
+    TAF_PS_CAUSE_NRMM_NW_MSG_NONEXIST_NOTIMPLEMENTE         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 97),
+    TAF_PS_CAUSE_NRMM_NW_MSG_TYPE_NOT_COMPATIBLE            = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 98),
+    TAF_PS_CAUSE_NRMM_NW_IE_NONEXIST_NOTIMPLEMENTED         = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 99),
+    TAF_PS_CAUSE_NRMM_NW_CONDITIONAL_IE_ERROR               = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 100),
+    TAF_PS_CAUSE_NRMM_NW_MSG_NOT_COMPATIBLE                 = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 101),
+    TAF_PS_CAUSE_NRMM_NW_PROTOCOL_ERROR                     = (TAF_PS_CAUSE_NRMM_NW_SECTION_BEGIN + 111),
+
+
 
 
     TAF_PS_CAUSE_BUTT                                       = 0xFFFFFFFF
@@ -1014,6 +1068,8 @@ enum TAF_PS_CALL_END_CAUSE_ENUM
     TAF_PS_CALL_END_CAUSE_LOCAL                     = 0x13,                     /* 本地去激活 */
 
     TAF_PS_CALL_END_CAUSE_CELLULAR2W_HO             = 0x14,
+
+    TAF_PS_CALL_END_CAUSE_IMS_LOCAL_DEACT           = 0x15,
 
     TAF_PS_CALL_END_CAUSE_BUTT
 };
@@ -1055,12 +1111,74 @@ typedef VOS_UINT8 TAF_PS_BEARER_TYPE_ENUM_UINT8;
 
 enum TAF_PS_SSC_MODE_ENUM
 {
-    TAF_PS_SSC_MODE_1                   = 0x01,
-    TAF_PS_SSC_MODE_2                   = 0x02,
-    TAF_PS_SSC_MODE_3                   = 0x03,
+    TAF_PS_SSC_MODE_1                   = 0x00,
+    TAF_PS_SSC_MODE_2                   = 0x01,
+    TAF_PS_SSC_MODE_3                   = 0x02,
     TAF_PS_SSC_MODE_BUTT
 };
 typedef VOS_UINT8 TAF_PS_SSC_MODE_ENUM_UINT8;
+
+
+
+enum TAF_PS_SNSSAI_SST_ENUM
+{
+    TAF_PS_SNSSAI_SST_INVALID              = 0x00,
+    TAF_PS_SNSSAI_SST_EMBB                 = 0x01,
+    TAF_PS_SNSSAI_SST_URLLC                = 0x02,
+    TAF_PS_SNSSAI_SST_MIOT                 = 0x03,
+    TAF_PS_SNSSAI_SST_BUTT
+};
+typedef VOS_UINT8 TAF_PS_SNSSAI_SST_ENUM_UINT8;
+
+
+enum TAF_PS_PREF_ACCESS_TYPE_ENUM
+{
+    TAF_PS_PREF_ACCESS_TYPE_3GPP           = 0x0000,
+    TAF_PS_PREF_ACCESS_TYPE_NON_3GPP       = 0x0001,
+
+    TAF_PS_PREF_ACCESS_TYPE_BUTT
+};
+typedef VOS_UINT8 TAF_PS_PREF_ACCESS_TYPE_ENUM_UINT8;
+
+
+enum TAF_PS_ACCESS_TYPE_ENUM
+{
+    TAF_PS_ACCESS_TYPE_3GPP           = 0x0000,
+    TAF_PS_ACCESS_TYPE_NON_3GPP       = 0x0001,
+
+    TAF_PS_ACCESS_TYPE_BUTT
+};
+typedef VOS_UINT16 TAF_PS_ACCESS_TYPE_ENUM_UINT16;
+
+
+enum TAF_PS_REFLECT_QOS_IND_ENUM
+{
+    TAF_PS_REFLECT_QOS_IND_NOT_SUPPORT      = 0,
+    TAF_PS_REFLECT_QOS_IND_SUPPORT          = 1,
+
+    TAF_PS_REFLECT_QOS_IND_BUTT
+};
+typedef VOS_UINT8 TAF_PS_REFLECT_QOS_IND_ENUM_UINT8;
+
+
+enum TAF_PS_IPV6_MULTI_HOMING_IND_ENUM
+{
+    TAF_PS_IPV6_MULTI_HOMING_IND_NOT_SUPPORT      = 0,
+    TAF_PS_IPV6_MULTI_HOMING_IND_SUPPORT          = 1,
+
+    TAF_PS_IPV6_MULTI_HOMING_IND_BUTT
+};
+typedef VOS_UINT8 TAF_PS_IPV6_MULTI_HOMING_IND_ENUM_UINT8;
+
+
+enum TAF_PS_ALWAYS_ON_IND_ENUM
+{
+    TAF_PS_ALWAYS_ON_IND_NOT                      = 0,
+    TAF_PS_ALWAYS_ON_IND                          = 1,
+
+    TAF_PS_ALWAYS_ON_IND_BUTT
+};
+typedef VOS_UINT8 TAF_PS_ALWAYS_ON_IND_ENUM_UINT8;
 
 
 typedef struct
@@ -1234,7 +1352,12 @@ typedef struct
 
     TAF_PDP_NAS_SIG_PRIO_IND_ENUM_UINT8 enNasSigPrioInd;
 
-    VOS_UINT8                           aucReserved2[1];
+    TAF_PS_SSC_MODE_ENUM_UINT8                              enSscMode;
+    TAF_PS_PREF_ACCESS_TYPE_ENUM_UINT8                      enPrefAccessType;
+    TAF_PS_REFLECT_QOS_IND_ENUM_UINT8                       enRQosInd;
+    TAF_PS_IPV6_MULTI_HOMING_IND_ENUM_UINT8                 enMh6Pdu;
+    TAF_PS_ALWAYS_ON_IND_ENUM_UINT8                         enAlwaysOnInd;
+    PS_S_NSSAI_STRU                                         stSNssai;
 
 }TAF_PDP_PRIM_CONTEXT_STRU;
 
@@ -1298,7 +1421,8 @@ typedef struct
     VOS_UINT32                          bitOpFlowLabelType          : 1;
     VOS_UINT32                          bitOpLocalIpv4AddrAndMask   : 1;
     VOS_UINT32                          bitOpLocalIpv6AddrAndMask   : 1;
-    VOS_UINT32                          bitOpSpare                  : 20;
+    VOS_UINT32                          bitOpQri                    : 1;
+    VOS_UINT32                          bitOpSpare                  : 19;
 
     VOS_UINT8                           ucPacketFilterId;
     VOS_UINT8                           ucNwPacketFilterId;
@@ -1339,7 +1463,8 @@ typedef struct
     VOS_UINT8                           aucLocalIpv4Mask[TAF_IPV4_ADDR_LEN];
     VOS_UINT8                           aucLocalIpv6Addr[TAF_IPV6_ADDR_LEN];
     VOS_UINT8                           ucLocalIpv6Prefix;
-    VOS_UINT8                           aucReserved2[3];
+    VOS_UINT8                           ucQri;
+    VOS_UINT8                           aucReserved2[2];
 }TAF_PDP_PF_STRU;
 
 
@@ -1469,60 +1594,20 @@ typedef struct
 } TAF_PDP_IPV6_ADDR_STRU;
 
 
-typedef struct
-{
-    VOS_UINT32                          bitOpSd             : 1;
-    VOS_UINT32                          bitOpMappedSst      : 1;
-    VOS_UINT32                          bitOpMappedSd       : 1;
-    VOS_UINT32                          bitOpSpare          : 29;
-
-    VOS_UINT8                           ucSst;
-    VOS_UINT8                           ucMappedSst;
-    VOS_UINT8                           aucReserved[2];
-    VOS_UINT32                          ulSd;
-    VOS_UINT32                          ulMappedSd;
-} TAF_PS_S_NSSAI_STRU;
+/*****************************************************************************
+  8 UNION定义
+*****************************************************************************/
 
 
-typedef struct
-{
-    VOS_UINT8                           ucNum;
-    VOS_UINT8                           aucReserved[3];
-    TAF_PS_S_NSSAI_STRU                 astSNssai[TAF_PS_NSSAI_MAX_NUM];
-} TAF_PS_ALLOW_NSSAI_INFO_STRU;
+/*****************************************************************************
+  9 OTHERS定义
+*****************************************************************************/
 
 
-typedef struct
-{
-    TAF_PS_ALLOW_NSSAI_INFO_STRU        stNssai;
-} TAF_PS_NR_REG_INFO_STRU;
 
-
-typedef struct
-{
-    VOS_UINT8                           ucUnit;             /* 单位 */
-    VOS_UINT8                           ucRsv;
-    VOS_UINT16                          usValue;            /* 数值 */
-}TAF_PS_NR_BIT_RATE_STRU;
-
-
-typedef struct
-{
-    VOS_UINT32                          bitOpAveragWindow   : 1;
-    VOS_UINT32                          bitOpULMaxRate      : 1;
-    VOS_UINT32                          bitOpDLMaxRate      : 1;
-    VOS_UINT32                          bitOpULGMaxRate     : 1;
-    VOS_UINT32                          bitOpDLGMaxRate     : 1;
-    VOS_UINT32                          bitOpSpare          : 27;
-
-    VOS_UINT8                           uc5QI;
-    VOS_UINT8                           ucRsv;
-    VOS_UINT16                          usAveragWindow;     /* Averaging Window */
-    TAF_PS_NR_BIT_RATE_STRU             stULMaxRate;        /* MFBR uplink */
-    TAF_PS_NR_BIT_RATE_STRU             stDLMaxRate;        /* MFBR downlink */
-    TAF_PS_NR_BIT_RATE_STRU             stULGMaxRate;       /* GFBR uplink */
-    TAF_PS_NR_BIT_RATE_STRU             stDLGMaxRate;       /* GFBR downlink */
-}TAF_PS_NR_QOS_STRU;
+/*****************************************************************************
+  10 函数声明
+*****************************************************************************/
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

@@ -238,7 +238,11 @@ static int _request_pll_single(struct hi64xx_resmgr_priv *priv, enum hi64xx_pll_
 {
 	struct pll_switch_event event;
 
-	BUG_ON(pll_type < 0 || pll_type >= priv->config.pll_num);
+	if (pll_type < 0 || pll_type >= priv->config.pll_num) {
+		pr_err("pll type error, %d\n", pll_type);
+		WARN_ON(1);
+		return -EINVAL;
+	}
 
 	mutex_lock(&priv->pll_mutex);
 
@@ -269,7 +273,11 @@ static int _request_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 {
 	struct pll_switch_event event;
 
-	BUG_ON(pll_type < 0 || pll_type >= priv->config.pll_num);
+	if (pll_type < 0 || pll_type >= priv->config.pll_num) {
+		pr_err("pll type error, %d\n", pll_type);
+		WARN_ON(1);
+		return -EINVAL;
+	}
 
 	mutex_lock(&priv->pll_mutex);
 
@@ -311,7 +319,11 @@ static int _release_pll_single(struct hi64xx_resmgr_priv *priv, enum hi64xx_pll_
 	struct pll_switch_event event;
 	enum hi64xx_pll_type new_pll;
 
-	BUG_ON(pll_type < 0 || pll_type >= priv->config.pll_num);/*lint !e730*/
+	if (pll_type < 0 || pll_type >= priv->config.pll_num) {
+		pr_err("pll type error, %d\n", pll_type);
+		WARN_ON(1);
+		return -EINVAL;
+	}
 
 	mutex_lock(&priv->pll_mutex);
 
@@ -357,7 +369,11 @@ static int _release_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 	struct pll_switch_event event;
 	enum hi64xx_pll_type new_pll;
 
-	BUG_ON(pll_type < 0 || pll_type >= priv->config.pll_num);/*lint !e730*/
+	if (pll_type < 0 || pll_type >= priv->config.pll_num) {
+		pr_err("pll type error, %d\n", pll_type);
+		WARN_ON(1);
+		return -EINVAL;
+	}
 
 	mutex_lock(&priv->pll_mutex);
 

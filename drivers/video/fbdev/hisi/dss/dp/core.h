@@ -50,5 +50,10 @@ void dptx_phy_enable_xmit(struct dp_ctrl *dptx,
 int dptx_phy_rate_to_bw(uint8_t rate);
 int dptx_bw_to_phy_rate(uint8_t bw);
 void dptx_phy_set_pattern(struct dp_ctrl *dptx, uint32_t pattern);
+void dptx_enable_ssc(struct dp_ctrl *dptx);
+bool dptx_sink_enabled_ssc(struct dp_ctrl *dptx);
+#ifdef CONFIG_HISI_FB_V510
+void dptx_init_hwparams(struct dp_ctrl *dptx);
+#endif
 
 #endif

@@ -1186,7 +1186,7 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 		if (ps_calibration_res == COMMU_FAIL || ps_calibration_res == EXEC_FAIL)//COMMU_FAIL=4	EXEC_FAIL=2
 			goto save_log;
 		else if(pkg_mcu.errno == 0) {
-			if(val != 8 || val != 9){
+			if(val != 8 && val != 9){
 			ps_calib_data[val-1] = *((int32_t *)pkg_mcu.data);
 			hwlog_info("ps calibrate success, data=%d, len=%d val=%d\n", ps_calib_data[val-1],pkg_mcu.data_length,val);
 			}
@@ -1231,11 +1231,12 @@ save_log:
 	enq_notify_work_sensor(ps_test);
 	#endif
 
-	memset(&content, 0, sizeof(content));
-	snprintf(content, CLI_CONTENT_LEN_MAX, PS_CALI_RAW_DATA, ps_calib_data[val-1],
-		((ps_calibration_res == SUC) ? "pass":"fail"), (int)val, get_cali_error_code(ps_calibration_res), date_str);
-	save_to_file(DATA_CLLCT, content);
-
+	if(val>=PS_XTALK_CALIBRATE && val<=PS_3CM_CALIBRATE){
+		memset(&content, 0, sizeof(content));
+		snprintf(content, CLI_CONTENT_LEN_MAX, PS_CALI_RAW_DATA, ps_calib_data[val-1],
+			((ps_calibration_res == SUC) ? "pass":"fail"), (int)val, get_cali_error_code(ps_calibration_res), date_str);
+		save_to_file(DATA_CLLCT, content);
+	}
 	return count;
 }
 static DEVICE_ATTR(ps_calibrate, 0664, attr_ps_calibrate_show, attr_ps_calibrate_write);

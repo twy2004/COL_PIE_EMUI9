@@ -857,6 +857,18 @@ static struct queue_sysfs_entry queue_hisi_sr_tst_entry = {
 	.show = NULL,
 	.store = hisi_queue_suspend_tst_store,
 };
+
+extern ssize_t hisi_queue_idle_state_show(struct request_queue *q, char *page);
+extern ssize_t hisi_queue_hw_idle_enable_show(struct request_queue *q, char *page);
+static struct queue_sysfs_entry queue_hw_idle_enable_entry = {
+	.attr = {.name = "hw_idle_enable", .mode = S_IRUGO },
+	.show = hisi_queue_hw_idle_enable_show,
+};
+
+static struct queue_sysfs_entry queue_idle_state_entry = {
+	.attr = {.name = "idle_state", .mode = S_IRUGO },
+	.show = hisi_queue_idle_state_show,
+};
 #endif /* CONFIG_HISI_DEBUG_FS */
 
 static ssize_t queue_usr_ctrl_store(struct request_queue *q, const char *page, size_t count)
@@ -928,20 +940,6 @@ static struct queue_sysfs_entry queue_max_bg_depth_entry = {
 	.show = queue_max_bg_depth_show,
 	.store = queue_max_bg_depth_store,
 };
-
-extern ssize_t hisi_queue_hw_idle_enable_show(struct request_queue *q, char *page);
-extern ssize_t hisi_queue_hw_idle_enable_store(struct request_queue *q, const char *page, size_t count);
-extern ssize_t hisi_queue_idle_state_show(struct request_queue *q, char *page);
-static struct queue_sysfs_entry queue_hw_idle_enable_entry = {
-	.attr = {.name = "hw_idle_enable", .mode = S_IRUGO },
-	.show = hisi_queue_hw_idle_enable_show,
-};
-
-static struct queue_sysfs_entry queue_idle_state_entry = {
-	.attr = {.name = "idle_state", .mode = S_IRUGO },
-	.show = hisi_queue_idle_state_show,
-};
-
 
 static struct attribute *default_attrs[] = {
 	&queue_requests_entry.attr,
@@ -1138,7 +1136,7 @@ static void blk_wb_init(struct request_queue *q)
 {
 	struct rq_wb *rwb;
 
-	rwb = wbt_init(&q->backing_dev_info, &wb_stat_ops, q);
+	rwb = wbt_init(q->backing_dev_info, &wb_stat_ops, q);
 
 	/*
 	 * If this fails, we don't get throttling

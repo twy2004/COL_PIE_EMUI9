@@ -46,7 +46,7 @@ TRACE_EVENT(dsu_pctrl_set_active_portions,/* [false alarm]:原生宏定义 */
 		__entry->portion_active = portion_active;
 	),
 
-	TP_printk("portions=%lu portion_active=%lu",
+	TP_printk("portions=%lu portion_active=0x%lx",
 		  __entry->portions, __entry->portion_active)
 );
 

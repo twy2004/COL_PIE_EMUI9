@@ -180,7 +180,7 @@ static irqreturn_t hisi_l3cache_ecc_handler(int irq, void *data)
 			l3cache_ecc_get_status(&err1_status, &err1_misc0, 1);
 
 			/*record reboot reason, then reboot */
-			rdr_syserr_process_for_ap((u32)MODID_AP_S_L3CACHE_ECC, 0ULL, 0ULL);
+			rdr_syserr_process_for_ap((u32)MODID_AP_S_L3CACHE_ECC2, 0ULL, 0ULL);
 		}
 
 		/* clear ecc interrupt*/

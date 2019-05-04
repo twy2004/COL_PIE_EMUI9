@@ -36,30 +36,30 @@ DEFINE_MUTEX(l3c_acp_lock);
 
 
 
-static BLOCKING_NOTIFIER_HEAD(l3c_chain_head);
+static BLOCKING_NOTIFIER_HEAD(l3share_chain_head);
 
-int register_l3c_acp_notifier(struct notifier_block *nb)
+int register_l3share_acp_notifier(struct notifier_block *nb)
 {
-	return blocking_notifier_chain_register(&l3c_chain_head, nb);
+	return blocking_notifier_chain_register(&l3share_chain_head, nb);
 }
 
-int unregister_l3c_acp_notifier(struct notifier_block *nb)
+int unregister_l3share_acp_notifier(struct notifier_block *nb)
 {
-	return blocking_notifier_chain_unregister(&l3c_chain_head, nb);
+	return blocking_notifier_chain_unregister(&l3share_chain_head, nb);
 }
 
-int __l3c_notifier_call_chain(unsigned long val, int nr_to_call, int *nr_calls, void *v)
+int __l3share_notifier_call_chain(unsigned long val, int nr_to_call, int *nr_calls, void *v)
 {
 	int ret;
 
-	ret = __blocking_notifier_call_chain(&l3c_chain_head, val, v,
+	ret = __blocking_notifier_call_chain(&l3share_chain_head, val, v,
 						nr_to_call, nr_calls);
 
 	return notifier_to_errno(ret);
 }
-int l3c_notifier_call_chain(unsigned long val ,void *v)
+int l3share_notifier_call_chain(unsigned long val ,void *v)
 {
-	return __l3c_notifier_call_chain(val, -1, NULL, v);
+	return __l3share_notifier_call_chain(val, -1, NULL, v);
 }
 
 
@@ -127,7 +127,10 @@ int l3_cache_request(struct l3_cache_request_params *request_params)
 		goto unlock;
 	}
 
-	if (0 == g_acp_flag){
+	if (0 == g_acp_flag) {
+	/* disable karma */
+	l3share_notifier_call_chain(L3SHARE_ACP_ENABLE, request_params);
+
 		mutex_lock(&l3c_acp_lock);
 		req_pending_flag = true;
 		acp_enable_flag = false;
@@ -141,7 +144,7 @@ int l3_cache_request(struct l3_cache_request_params *request_params)
 		}
 		mutex_unlock(&l3c_acp_lock);
 
-		l3c_notifier_call_chain(L3C_ACP_PENDING, request_params);
+		l3share_notifier_call_chain(L3SHARE_MON_START, request_params);
 		pr_debug("%s pending request id %d, g_acp_flag = 0x%x\n", __func__, request_params->id, g_acp_flag);
 		trace_l3_cache_share_perf("acp pending", request_params->id, g_acp_flag);
 
@@ -179,7 +182,7 @@ int l3_cache_release(struct l3_cache_release_params *release_params)
 	}
 
 	g_acp_flag &= (~BIT(release_params->id));
-	if (0 == g_acp_flag){
+	if (0 == g_acp_flag) {
 		mutex_lock(&l3c_acp_lock);
 		if (true == acp_enable_flag){
 			acp_enable_flag = false;
@@ -190,7 +193,9 @@ int l3_cache_release(struct l3_cache_release_params *release_params)
 		req_pending_flag = false;
 		mutex_unlock(&l3c_acp_lock);
 
-		l3c_notifier_call_chain(L3C_ACP_RELEASE, release_params);
+		l3share_notifier_call_chain(L3SHARE_MON_STOP, release_params);
+	/* enable karma */
+	l3share_notifier_call_chain(L3SHARE_ACP_DISABLE, release_params);
 	}
 	pr_debug("%s succ release id %d, g_acp_flag = 0x%x\n", __func__, release_params->id, g_acp_flag);
 	trace_l3_cache_release_succ(release_params->id, g_acp_flag);

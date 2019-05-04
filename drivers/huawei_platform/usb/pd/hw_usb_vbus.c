@@ -236,7 +236,8 @@ static void vbus_connect_work(struct work_struct *w)
 		reinit_typec_completion();
 		return;
 	} else 	if (COMPLETE_FROM_TYPEC_CHANGE == g_typec_complete_type || timeout) {
-		hwlog_info("%s: cc change, exit,complete_type = %d, timeout is %u\n", __func__, g_typec_complete_type, timeout);
+		hwlog_info("cc change,complete_type = %d, timeout is %ld\n",
+			g_typec_complete_type, timeout);
 		cc_change = true;
 		cc_exist = true;
 		hwusb_wake_unlock();
@@ -397,14 +398,14 @@ static int hisi_usb_vbus_probe(struct platform_device *pdev)
 			hw_vbus_connect_irq, hw_vbus_disconnect_irq);
 
 	ret = request_irq(hw_vbus_connect_irq, charger_connect_interrupt,
-					  IRQF_NO_SUSPEND, "hiusb_in_interrupt", pdev);
+					  IRQF_SHARED | IRQF_NO_SUSPEND, "hiusb_in_interrupt", pdev);
 	if (ret) {
 		hwlog_err("request charger connect irq failed, irq: %d!\n", hw_vbus_connect_irq);
 		return ret;
 	}
 
 	ret = request_irq(hw_vbus_disconnect_irq, charger_disconnect_interrupt,
-					  IRQF_NO_SUSPEND, "hiusb_in_interrupt", pdev);
+					  IRQF_SHARED | IRQF_NO_SUSPEND, "hiusb_in_interrupt", pdev);
 	if (ret) {
 		free_irq(hw_vbus_disconnect_irq, pdev);
 		hwlog_err("request charger connect irq failed, irq: %d!\n", hw_vbus_disconnect_irq);

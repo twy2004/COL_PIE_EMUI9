@@ -139,6 +139,7 @@ extern VOS_UINT32 LUP_CreateSafeQue(VOS_UINT32 ulPid, LUP_QUEUE_STRU **ppQue,
                                 VOS_UINT32 ulMaxNodeNum);
 extern VOS_UINT32 LUP_EnSafeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID *pNode);
 extern VOS_UINT32 LUP_DeSafeQue(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode);
+extern VOS_UINT32 LUP_PeekSafeQueHead(LUP_QUEUE_STRU *pstQue, VOS_VOID **ppNode);
 #endif
 
 /*****************************************************************************

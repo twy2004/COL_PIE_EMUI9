@@ -1,3 +1,21 @@
+/*
+ * fpf2283.h
+ *
+ * fpf2283 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #ifndef _FPF2283_H_
 #define _FPF2283_H_
 
@@ -8,7 +26,8 @@
 /* ID reg=0x00, default=0x08, R */
 #define FPF2283_ID_REG                             0x00
 
-#define FPF2283_ID_VID_MASK                        (BIT(7) | BIT(6) | BIT(5) | BIT(4) | BIT(3))
+#define FPF2283_ID_VID_MASK                        (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4) | BIT(3))
 #define FPF2283_ID_VID_SHIFT                       (3)
 #define FPF2283_ID_RID_MASK                        (BIT(2) | BIT(1) | BIT(0))
 #define FPF2283_ID_RID_SHIFT                       (0)
@@ -77,6 +96,8 @@
 
 #define FPF2283_OVP_OFFSET_MASK                    (BIT(6) | BIT(5) | BIT(4))
 #define FPF2283_OVP_OFFSET_SHIFT                   (4)
+#define FPF2283_OVP_OV_MODE_MASK                   (BIT(3))
+#define FPF2283_OVP_OV_MODE_SHIFT                  (3)
 #define FPF2283_OVP_CENTER_VALUE_MASK              (BIT(1) | BIT(0))
 #define FPF2283_OVP_CENTER_VALUE_SHIFT             (0)
 
@@ -94,10 +115,14 @@
 #define FPF2283_OVP_CENTER_VALUE_17000MV           (0x2)
 #define FPF2283_OVP_CENTER_VALUE_23000MV           (0x3)
 
+#define FPF2283_OVP_OV_MODE_ENABLE                 (1)
+#define FPF2283_OVP_OV_MODE_DISABLE                (0)
+
 /* Isource to VIN reg=0x06, default=0x00, RW */
 #define FPF2283_ISRC_AMPLITUDE_REG                 0x06
 
-#define FPF2283_ISRC_AMPLITUDE_MASK                (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define FPF2283_ISRC_AMPLITUDE_MASK                (BIT(3) | BIT(2) | \
+BIT(1) | BIT(0))
 #define FPF2283_ISRC_AMPLITUDE_SHIFT               (0)
 
 #define FPF2283_ISRC_AMPLITUDE_0UA                 (0x0)
@@ -120,9 +145,11 @@
 /* Isource for work time reg=0x07, default=0x00, RW */
 #define FPF2283_ISRC_PULSE_REG                     0x07
 
-#define FPF2283_ISRC_PULSE_TDET_MASK               (BIT(7) | BIT(6) | BIT(5) | BIT(4))
+#define FPF2283_ISRC_PULSE_TDET_MASK               (BIT(7) | BIT(6) | \
+	BIT(5) | BIT(4))
 #define FPF2283_ISRC_PULSE_TDET_SHIFT              (4)
-#define FPF2283_ISRC_PULSE_TBLK_MASK               (BIT(3) | BIT(2) | BIT(1) | BIT(0))
+#define FPF2283_ISRC_PULSE_TBLK_MASK               (BIT(3) | BIT(2) | \
+	BIT(1) | BIT(0))
 #define FPF2283_ISRC_PULSE_TBLK_SHIFT              (0)
 
 #define FPF2283_ISRC_PULSE_TBLK_SINGLE_PULSE       (0x0)
@@ -175,8 +202,8 @@
 
 #define FPF2283_INIT_FINISH                        (1)
 #define FPF2283_NOT_INIT                           (0)
-#define FPF2283_ENABLE_INTERRUPT_NOTIFY            (1)
-#define FPF2283_DISABLE_INTERRUPT_NOTIFY           (0)
+#define FPF2283_ENABLE_INT_NOTIFY                  (1)
+#define FPF2283_DISABLE_INT_NOTIFY                 (0)
 
 #define FPF2283_NOT_USED                           (0)
 #define FPF2283_USED                               (1)
@@ -195,4 +222,4 @@ struct fpf2283_device_info {
 	int device_id;
 };
 
-#endif /* end of _FPF2283_H_ */
+#endif /* _FPF2283_H_ */

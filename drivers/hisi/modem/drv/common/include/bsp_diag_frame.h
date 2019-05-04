@@ -55,10 +55,48 @@ extern "C"
 #include <product_config.h>
 #include <osl_types.h>
 
+/* DIAG_SERVICE_HEAD_STRU:sessionid8b */
+#define MSP_SERVICE_SESSION_ID        (0x1) /* 标识Service与Client之间的连接,固定为1*/
 
 /* DIAG_SERVICE_HEAD_STRU:ssid4b */
 typedef enum _diag_frame_ssid_type
 {
+#ifdef DIAG_SYSTEM_5G
+    DIAG_FRAME_SSID_DEFAULT       = 0x0,  /* 0x00：未指定（仅下发REQ使用，表示由UE确定分发目标，CNF和IND不能使用该值） */
+    DIAG_FRAME_SSID_APP_CPU       = 0x1,  /* 0x01：A-CPU */
+    DIAG_FRAME_SSID_MODEM_CPU     = 0x2,  /* 0x02：2G/3G/4.5G子系统C-CPU（底软、PS使用） */
+    DIAG_FRAME_SSID_TLDSP_BBE_NX  = 0x3,  /* 0x03：BBE NX（TL DSP使用） */
+    DIAG_FRAME_SSID_BBP_DEBUG     = 0x4,  /* 0x04：2G/3G/4.5G BBP Debug   //原来是LTE BBP */
+    DIAG_FRAME_SSID_GUC_BBE_NX    = 0x5,  /* 0x05：BBE NX（GUC DSP SDR使用）  //因GUC PHY与TL PHY没有融合，仍需单独分配 */
+    DIAG_FRAME_SSID_HIFI          = 0x6,
+    DIAG_FRAME_SSID_LTE_V_DSP     = 0x7,  /* 0x07：LTE-V DSP（预留）//原来是TDS DSP */
+    DIAG_FRAME_SSID_RESERVE0      = 0x8,
+    DIAG_FRAME_SSID_MCU           = 0x9,
+    DIAG_FRAME_SSID_TEE           = 0xA,  /* 0x0A：TEE        //原来是GPU */
+    DIAG_FRAME_SSID_RESERVE1      = 0xB,  /* 0x0B：保留       //原来是GUX BBP */
+    DIAG_FRAME_SSID_IOM3          = 0xC,
+    DIAG_FRAME_SSID_EASYRF0       = 0xD,
+    DIAG_FRAME_SSID_X_DSP         = 0xE,
+    DIAG_FRAME_SSID_GUC_L1C       = 0xE,  /* 0x0E：2G/3G/4.5G子系统C-CPU（GUC L1C使用）   //因GUC L1C没有通过C核MSP进行OAM数据上报，仍需单独分配 */
+    DIAG_FRAME_SSID_RESERVE2      = 0xF,
+    DIAG_FRAME_SSID_5G_CCPU       = 0x10,
+    DIAG_FRAME_SSID_L2HAC         = 0x11,
+    DIAG_FRAME_SSID_HL1C          = 0x12,
+    DIAG_FRAME_SSID_LL1C_CORE0    = 0x13,
+    DIAG_FRAME_SSID_LL1C_CORE1    = 0x14,
+    DIAG_FRAME_SSID_LL1C_CORE2    = 0x15,
+    DIAG_FRAME_SSID_LL1C_CORE3    = 0x16,
+    DIAG_FRAME_SSID_LL1C_CORE4    = 0x17,
+    DIAG_FRAME_SSID_LL1C_CORE5    = 0x18,
+    DIAG_FRAME_SSID_SDR_CORE0     = 0x19,
+    DIAG_FRAME_SSID_SDR_CORE1     = 0x1A,
+    DIAG_FRAME_SSID_SDR_CORE2     = 0x1B,
+    DIAG_FRAME_SSID_SDR_CORE3     = 0x1C,
+    DIAG_FRAME_SSID_5G_BBP_DEBUG  = 0x1D,
+    DIAG_FRAME_SSID_EASYRF1       = 0x1E,
+    DIAG_FRAME_SSID_BBP_ACCESS_DEBUG= 0x1F,
+    DIAG_FRAME_SSID_BUTT,
+#else
     DIAG_FRAME_SSID_APP_CPU   = 0x1,
     DIAG_FRAME_SSID_MODEM_CPU,
     DIAG_FRAME_SSID_LTE_DSP,
@@ -74,6 +112,7 @@ typedef enum _diag_frame_ssid_type
     DIAG_FRAME_SSID_ISP,
     DIAG_FRAME_SSID_X_DSP,
     DIAG_FRAME_SSID_BUTT
+#endif
 
 }diag_frame_ssid_type;
 
@@ -91,6 +130,23 @@ typedef enum _diag_frame_msgtype_type
 }diag_frame_msgtype_type;
 
 /* MSP_DIAG_STID_STRU:pri4b */
+#ifdef DIAG_SYSTEM_5G
+enum DIAG_MESSAGE_TYPE
+{
+    DIAG_FRAME_MSG_TYPE_RSV       = 0x0,
+    DIAG_FRAME_MSG_TYPE_MSP       = 0x1,
+    DIAG_FRAME_MSG_TYPE_PS        = 0x2,
+    DIAG_FRAME_MSG_TYPE_PHY       = 0x3,
+    DIAG_FRAME_MSG_TYPE_BBP       = 0x4,
+    DIAG_FRAME_MSG_TYPE_HSO       = 0x5,
+    DIAG_FRAME_MSG_TYPE_BSP       = 0x9, /*MODEM BSP*/
+    DIAG_FRAME_MSG_TYPE_EASYRF    = 0xa,
+    DIAG_FRAME_MSG_TYPE_AP_BSP    = 0xb, /*AP BSP*/
+    DIAG_FRAME_MSG_TYPE_AUDIO     = 0xc,
+    DIAG_FRAME_MSG_TYPE_APP       = 0xe,
+    DIAG_FRAME_MSG_TYPE_BUTT
+};
+#else
 typedef enum _diag_frame_message_type
 {
     DIAG_FRAME_MSG_TYPE_RSV   = 0x0,
@@ -104,8 +160,8 @@ typedef enum _diag_frame_message_type
     DIAG_FRAME_MSG_TYPE_AUDIO = 0xc,
     DIAG_FRAME_MSG_TYPE_APP   = 0xe,
     DIAG_FRAME_MSG_TYPE_BUTT
-
 }diag_frame_message_type;
+#endif
 
 /* MSP_DIAG_STID_STRU:mode4b */
 typedef enum _diag_frame_mode_type
@@ -116,7 +172,11 @@ typedef enum _diag_frame_mode_type
     DIAG_FRAME_MODE_UMTS = 0x3,
     DIAG_FRAME_MODE_1X   = 0x4,
     DIAG_FRAME_MODE_HRPD = 0x5,
+
     DIAG_FRAME_MODE_LTEV = 0x6,
+	DIAG_FRAME_MODE_NR   = 0x7,
+    DIAG_FRAME_MODE_NRCOMM  = 0x8,
+
     DIAG_FRAME_MODE_COMM = 0xf,
 }diag_frame_mode_type;
 
@@ -124,7 +184,7 @@ typedef enum _diag_frame_mode_type
 /* MSP_DIAG_STID_STRU:pri4b */
 typedef enum _diag_frame_msg_sub_type
 {
-    DIAG_FRAME_MSG_CMD        = 0x0,
+    DIAG_FRAME_MSG_CMD     = 0x0,
     DIAG_FRAME_MSG_AIR     = 0x1,
     DIAG_FRAME_MSG_LAYER   = 0x2,
     DIAG_FRAME_MSG_PRINT   = 0x3,
@@ -136,6 +196,7 @@ typedef enum _diag_frame_msg_sub_type
     DIAG_FRAME_MSG_DSP_PRINT   = 0x9,
     DIAG_FRAME_MSG_CNF     = 0xa,
     DIAG_FRAME_MSG_IND     = 0xb,
+    DIAG_FRAME_MSG_DT      = 0xF,/* 路测消息 */
     DIAG_FRAME_MSG_STAT    = 0x1f
 
 }diag_frame_msg_sub_type;
@@ -175,7 +236,6 @@ typedef struct
     u32 u32module;                        /* 打印信息所在的模块ID */
     u32 u32level;                         /* 输出级别 */
     u32 u32no;                            /* IND标号 */
-    //u8  sztext[APPLOG_MAX_USER_BUFF_LEN];   /* 所有打印文本内容，可能包括文件和行号,以'\0'结尾 */
 } diag_print_head_stru;
 /* 描述 :一级头: service头 */
 typedef struct
@@ -201,7 +261,7 @@ typedef struct
     u32    ff1b        :1;
 
     u16    MsgTransId;
-    u16    srcCounter;      /* SOCP填写 */
+    u16    SocpEncDstId;      /* SOCP填写 */
 
     u8     aucTimeStamp[4];
 }diag_service_head_stru;

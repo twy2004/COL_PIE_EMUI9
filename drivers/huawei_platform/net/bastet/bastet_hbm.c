@@ -317,7 +317,7 @@ inline void bastet_mark_hb_reply(struct sock *sk, struct sk_buff *skb, int len)
 {
 	/* only check wifi proxy socket */
 	if (is_wifi_proxy(sk)) {
-		/* only has sent heartbeat packet *
+		/* only has sent heartbeat packet */
 		/* needs match heartbeat reply packet */
 		if (atomic_read(&sk->bastet->hbm.reply_filter_cnt) > 0) {
 			bastet_match_hb_reply(sk,

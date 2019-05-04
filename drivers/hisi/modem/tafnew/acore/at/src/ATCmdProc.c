@@ -635,12 +635,14 @@ const AT_STRING_TYPE_STRU gastAtStringTab[]=
     {AT_STRINT_RTTERROR,      (VOS_UINT8 *)"^RTTERR"},
 
     {AT_STRING_EMRSSIRPT,     (VOS_UINT8 *)"^EMRSSIRPT: "},
-	
+
     {AT_STRING_ELEVATOR,      (VOS_UINT8 *)"^ELEVATOR"},
 
     {AT_STRING_ULFREQRPT,      (VOS_UINT8 *)"^ULFREQRPT"},
 
     {AT_STRING_PSEUDBTS,      (VOS_UINT8 *)"^PSEUDBTS"},
+    {AT_STRING_NDISSTAT,      (VOS_UINT8 *)"^NDISSTAT"},
+    {AT_STRING_NDISSTATEX,    (VOS_UINT8 *)"^NDISSTATEX"},
 
     {AT_STRING_BUTT,(TAF_UINT8*)"\"\""},
 };
@@ -696,7 +698,6 @@ VOS_UINT32                              g_ulLcStartTime = 0;
 
 TAF_UINT8                               gastAtPppIndexTab[AT_MAX_CLIENT_NUM];   /* PppId和Index的对应表，下标是PppId */
 
-AT_DEVICE_CMD_CTRL_STRU                 g_stAtDevCmdCtrl        = {0};
 VOS_BOOL                                g_bAtDataLocked         = VOS_TRUE;     /* 记录是否解锁，初始值为未解锁，通过命令^DATALOCK解锁成功后修改该变量 */
 VOS_UINT8                               g_ucDtrDownFlag         = VOS_FALSE;    /* 主动挂断电话时，后台会拉低DTR管脚信号，此时AT置该全局变量为VOS_TRUE,拉低DCD管脚，
                                                                                 之后CST调用AT接口AT_CstDlDataInd发送数据时判断如果该全局变量为VOS_TRUE,则不调底软接口发送，
@@ -712,14 +713,14 @@ AT_SP_WORD_CTX_STRU                     g_stSpWordCtx = {0};
 AT_PS_INTERNAL_TIMEOUT_RESULT_STRU            g_astAtInterTimeoutResultTab[] =
 {
     /* Inter Timer Name */                  /* 消息处理函数 */
-    {AT_S0_TIMER,                           AT_RcvTiS0Expired                   },
-    {AT_HOLD_CMD_TIMER,                     AT_BlockCmdTimeOutProc              },
-    {AT_SIMLOCKWRITEEX_TIMER,               AT_RcvTiSimlockWriteExExpired       },
-    {AT_WAIT_WLAN_ACT_PDN_CNF_TIMER,        AT_RcvTiWlanActPdnCnfExpired        },
-    {AT_WAIT_WLAN_DEACT_PDN_CNF_TIMER,      AT_RcvTiWlanDeActPdnCnfExpired      },
-    {AT_PROTECT_PDN_IN_DATA_SYS_TIMER,      AT_RcvTiProtectPdnInDataSysExpired  },
-    {AT_SHUTDOWN_TIMER,                     AT_RcvTiShutDownExpired             },
-    {AT_AUTH_PUBKEY_TIMER,                  AT_RcvTiAuthPubkeyExpired           },
+    {AT_S0_TIMER,                           AT_RcvTiS0Expired                       },
+    {AT_HOLD_CMD_TIMER,                     AT_BlockCmdTimeOutProc                  },
+    {AT_SIMLOCKWRITEEX_TIMER,               AT_RcvTiSimlockWriteExExpired           },
+    {AT_WAIT_WLAN_ACT_PDN_CNF_TIMER,        AT_PS_RcvTiWlanActPdnCnfExpired         },
+    {AT_WAIT_WLAN_DEACT_PDN_CNF_TIMER,      AT_PS_RcvTiWlanDeActPdnCnfExpired       },
+    {AT_PROTECT_PDN_IN_DATA_SYS_TIMER,      AT_PS_RcvTiProtectPdnInDataSysExpired   },
+    {AT_SHUTDOWN_TIMER,                     AT_RcvTiShutDownExpired                 },
+    {AT_AUTH_PUBKEY_TIMER,                  AT_RcvTiAuthPubkeyExpired               },
 };
 
 /*****************************************************************************
@@ -3977,29 +3978,43 @@ VOS_UINT32 AT_ConvertMtaResult(
 
 VOS_UINT32  AT_GetSeconds(VOS_VOID)
 {
-    return VOS_GetTick()/PRE_SECOND_TO_TICK;
+    VOS_UINT32 ulsecond     = 0;
+    VOS_UINT32 ultimelow    = 0;
+    VOS_UINT32 ultimehigh   = 0;
+    VOS_UINT64 ulltimeCount = 0;
+
+    if (ERR_MSP_SUCCESS == mdrv_timer_get_accuracy_timestamp(&ultimehigh, &ultimelow))
+    {
+        ulltimeCount = ((VOS_UINT64)ultimehigh << 32) | ((VOS_UINT64)ultimelow);
+        ulltimeCount = ulltimeCount / SLICE_TO_SECOND_UINT;
+    }
+
+    /*将U64的slice转换为秒之后，只需要取低32位即可。低32位的秒能统计的时间已经达到136年*/
+    ulsecond = (VOS_UINT32)(ulltimeCount & SLICE_TO_MAX_SECOND);
+
+    return ulsecond;
 }
 
 
 VOS_VOID AT_GetLiveTime(
     NAS_MM_INFO_IND_STRU               *pstATtime,
-    NAS_MM_INFO_IND_STRU               *pstNewTime,    
+    NAS_MM_INFO_IND_STRU               *pstNewTime,
     VOS_UINT32                          ulNwSecond
 )
 {
     TIME_ZONE_TIME_STRU                 stNewTime;
     VOS_UINT32                          ulNowSecond;
     VOS_UINT32                          ulSeconds;
-    VOS_UINT32                          ulAdjustDate;    
+    VOS_UINT32                          ulAdjustDate;
     VOS_UINT32                          ulIndex;
-   
+
     TAF_MEM_SET_S(&stNewTime, sizeof(TIME_ZONE_TIME_STRU), 0x00, sizeof(TIME_ZONE_TIME_STRU));
 
     /* 全局变量中保存有时间信息 */
     if (NAS_MM_INFO_IE_UTLTZ == (pstATtime->ucIeFlg & NAS_MM_INFO_IE_UTLTZ))
     {
         TAF_MEM_CPY_S(pstNewTime, sizeof(NAS_MM_INFO_IND_STRU), pstATtime, sizeof(NAS_MM_INFO_IND_STRU));
-        
+
         if(0 == ulNwSecond)
         {
             return;
@@ -4007,14 +4022,15 @@ VOS_VOID AT_GetLiveTime(
 
         ulNowSecond = AT_GetSeconds();
 
-        /* 如果ulNowSecond 超过了TICK表示的最大值则进会反转，反转之后需要加上最大值 */
+        /* 如果ulNowSecond 超过了slice表示的最大值则进会反转，反转之后需要加上最大值 */
         if (ulNowSecond >= ulNwSecond)
         {
             ulSeconds = ulNowSecond - ulNwSecond;
         }
         else
         {
-            ulSeconds = ulNowSecond + TICK_TO_MAX_SECOND - ulNwSecond;
+            /*参考其余溢出流程实现, +1的原因是经过0的计数*/
+            ulSeconds = SLICE_TO_MAX_SECOND - ulNwSecond + ulNowSecond + 1;
         }
 
         if (0 != ulSeconds)

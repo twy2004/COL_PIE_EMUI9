@@ -22,12 +22,17 @@
 #include <linux/wakelock.h>
 #include <linux/reboot.h>
 #include <linux/export.h>
+#include <linux/version.h>
 
 #include <linux/hisi/rdr_pub.h>
 #include <linux/hisi/util.h>
 #include <linux/hisi/hisi_bootup_keypoint.h>
 #include <libhwsecurec/securec.h>
 #include <linux/hisi/hisi_log.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/debug.h>
+#include <uapi/linux/sched/types.h>
+#endif
 #define HISI_LOG_TAG HISI_BLACKBOX_TAG
 
 #include "rdr_inner.h"

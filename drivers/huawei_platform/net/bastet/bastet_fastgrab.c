@@ -21,6 +21,9 @@
 #include <net/inet_sock.h>
 
 #include <huawei_platform/net/bastet/bastet_utils.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/task.h>
+#endif
 
 /******************************************************************************
    2 ∫Í∂®“Â
@@ -212,7 +215,9 @@ static uint8_t BST_FG_ProcWXPacket_UL(
 		/**
 		 * too short.
 		 */
-		if ((ulLength < pstKwdIns->stLenPorp.usCopy)||(BST_FG_MAX_US_COPY_NUM < pstKwdIns->stLenPorp.usCopy)) {
+		if ((ulLength < pstKwdIns->stLenPorp.usCopy)||
+			(BST_FG_MAX_US_COPY_NUM < pstKwdIns->stLenPorp.usCopy) ||
+			(0 == pstKwdIns->stLenPorp.usCopy)) {
 			BASTET_LOGI("BST_FG_ProcWXPacket_UL pstKwdIns->stLenPorp.usCopy is invalid");
 			BST_FG_SetSockSpecial(pstSock, BST_FG_NO_SPEC);
 			return 0;
@@ -229,13 +234,11 @@ static uint8_t BST_FG_ProcWXPacket_UL(
 		 * Copy data from usr space. Set the last byte to '0' for strstr input.
 		 */
 		pUsrMsgHdr = (struct msghdr *)pData;
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
 		if (copy_from_user(pUsrData, pUsrMsgHdr->msg_iter.iov->iov_base,
 			pstKwdIns->stLenPorp.usCopy)) {
 			kfree(pUsrData);
 			return 0;
 		}
-#endif
 		pUsrData[pstKwdIns->stLenPorp.usCopy - 1] = 0;
 		pcFound = strstr((const char *)pUsrData,
 			(const char *)&pstKwdIns->stKeyWord.aucData[0]);
@@ -280,14 +283,14 @@ uint8_t BST_FG_HookPacket(
 	uint32_t ulLength,
 	uint32_t ulRole)
 {
-	if (IS_ERR_OR_NULL(pstSock)) {
-		BASTET_LOGE("invalid parameter");
-		return 0;
-	}
 	uid_t lSockUid = 0;
 	uint8_t ucRtn = 0;
 	uint16_t usIdx = BST_FG_IDX_INVALID_APP;
 
+	if (IS_ERR_OR_NULL(pstSock)) {
+		BASTET_LOGE("invalid parameter");
+		return 0;
+	}
 	/**
 	 * Get and find the uid in fast-grab message information list.
 	 */
@@ -675,7 +678,6 @@ static bool BST_FG_Check_AccUid(uid_t lUid)
 }
 
 
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
 #ifndef CONFIG_HUAWEI_XENGINE
 
 
@@ -697,9 +699,9 @@ void BST_FG_Hook_Ul_Stub(struct sock *pstSock, struct msghdr *msg)
 	}
 
 	/*if matched keyword, accelerate socket*/
-	if (BST_FG_NO_SPEC != pstSock->fg_Spec) 
+	if (BST_FG_NO_SPEC != pstSock->fg_Spec)
 	{
-		if (BST_FG_HookPacket(pstSock, (uint8_t *)msg, (uint32_t)(msg->msg_iter.iov->iov_len), BST_FG_ROLE_SNDER)) 
+		if (BST_FG_HookPacket(pstSock, (uint8_t *)msg, (uint32_t)(msg->msg_iter.iov->iov_len), BST_FG_ROLE_SNDER))
 		{
 			BST_FG_SetAccState( pstSock, BST_FG_ACC_HIGH );
 			return;
@@ -744,9 +746,9 @@ bool BST_FG_Hook_Ul_Stub(struct sock *pstSock, struct msghdr *msg)
 	}
 
 	/*if matched keyword, accelerate socket*/
-	if (BST_FG_NO_SPEC != pstSock->fg_Spec) 
+	if (BST_FG_NO_SPEC != pstSock->fg_Spec)
 	{
-		if (BST_FG_HookPacket(pstSock, (uint8_t *)msg, (uint32_t)(msg->msg_iter.iov->iov_len), BST_FG_ROLE_SNDER)) 
+		if (BST_FG_HookPacket(pstSock, (uint8_t *)msg, (uint32_t)(msg->msg_iter.iov->iov_len), BST_FG_ROLE_SNDER))
 		{
 			return true;
 		}
@@ -766,15 +768,12 @@ bool BST_FG_Hook_Ul_Stub(struct sock *pstSock, struct msghdr *msg)
 
 #endif
 
-#endif
 
 
 static void BST_FG_Save_Custom_Info(unsigned long arg)
 {
 	uint8_t ucLoop;
-	uint8_t ucAPPNum;
 	void __user *argp = (void __user *)arg;
-	BST_FG_CUSTOM_STRU *pstCustom;
 	/**
 	 * Get policy message from usr space
 	 */
@@ -895,7 +894,7 @@ void BST_FG_Custom_Process(struct sock *pstSock, struct msghdr *msg, uint8_t ucP
 	if ((pastCustomInfo->ucTcpRetranDiscard & 0x80) && (BST_FG_TCP_BITMAP == ucProtocolBitMap)) {
 		pInetSock = inet_csk(pstSock);
 		timeout = (pInetSock->icsk_timeout > jiffies) ? (pInetSock->icsk_timeout - jiffies) : 0;
-		BASTET_LOGD("BST_FG_CUSTOM:TCP Timeout is 0x%x",timeout);
+		BASTET_LOGD("BST_FG_CUSTOM:TCP Timeout is 0x%lx",timeout);
 		if ((0 != timeout) && (0 != HZ)) {
 			timeout = ((timeout * 1000) / HZ) + (20 * (pastCustomInfo->ucTcpRetranDiscard & 0x7F));
 			ucDiscardTimer = BST_FG_Encode_Discard_timer(timeout);

@@ -118,6 +118,7 @@ typedef enum tagIPC_INT_LEV_E
     IPC_CCPU_INT_SRC_XDSP_MNTN             ,   /* XDSP邮箱异常维测中断 */
     IPC_CCPU_INT_SRC_XDSP_PS_MBX           ,   /* PS与X模邮箱通信使用的中断 */
     IPC_CCPU_INT_SRC_XDSP_DVS              ,   /* CBBE16通知CCPU对dsp进行调频调压 */
+    IPC_CCPU_INT_SRC_NRCCPU_BBP_WAKEUP     ,   /* 5G BBP 唤醒4G CCPU 使用中断 */
 
     IPC_CCPU_INT_SRC_ACPU_IPC_EXTEND = 30, /* acpu发给ccpu中断,用于扩展IPC 中断*/
     /*  austin项目和 mcu 通信使用 icc 中断号, 不能变更 */
@@ -162,6 +163,8 @@ typedef enum tagIPC_INT_LEV_E
     IPC_MCPU_INT_SRC_ACPU_USB_PME_EN        ,  /* acore向M3通报USB唤醒完成事件 */
     IPC_MCU_INT_SRC_NR_CCPU_START           ,  /* 通知MCU启动NR CCPU */
     IPC_MCU_INT_SRC_LR_CCPU_START           ,
+    IPC_MCU_INT_SRC_NRCCPU_PD               ,  /* 通知MCU 给NRCCPU 下电 */
+
     /* 以下3个austin修改，和AP对齐，不能修改 */
     IPC_MCU_INT_SRC_ICC                 = 29,   /* m3 icc公用的ipc中断 */
     IPC_MCU_INT_SRC_CCPU_PD             = 30,    /* ccpu power down */
@@ -189,6 +192,7 @@ typedef enum tagIPC_INT_LEV_E
     IPC_ACPU_INT_SRC_HIFI_PC_VOICE_RX_DATA,  /* hifi->acore pc voice */
     IPC_ACPU_INT_SRC_CCPU_PM_OM           ,  /* CCPU发给ACPU的PMOM中断,触发写文件, 姚国才 */
     IPC_ACPU_INT_SRC_CCPU_IPC_EXTEND =20,
+    IPC_ACPU_INT_SRC_NRCCPU_RESET_SUCC ,
     IPC_ACPU_INT_SRC_END,
 
     /* 定义HIFI IPC跨核消息中断源bit位置 */
@@ -221,10 +225,20 @@ typedef enum tagIPC_INT_LEV_E
     IPC_XDSP_INT_SRC_END ,
 
     /* 定义NRCCPU IPC跨核消息中断源bit位置 */
+    IPC_NRCCPU_INT_SRC_LRCCPU_WAKEUP  = 0 ,  /*LTE CCPU 唤醒or 允许睡眠 NR CCPU*/
     IPC_NRCCPU_INT_SRC_HL1C_PD               = 29, /* HL1C发给nrccpu 下电中断*/
-    IPC_NRCCPU_INT_SRC_L2HAC_PD              = 30, /* L2HAC发给nrccpu 下电中断*/
     IPC_NRCCPU_INT_SRC_ACPU_ICC              = 31, /* acpu发给nrccpu中断*/
+
+    /*5G modem 内部IPC*/
+    IPC_NRCCPU_INT_SRC_LL1C_PM = 64,
+    
+    IPC_NRCCPU_INT_SRC_L2HAC_PD = 65, 			/* L2HAC发给nrccpu 下电中断*/
     IPC_NRCCPU_INT_SRC_END ,
+
+    /* 定义L2HAC IPC跨核消息中断源bit位置 */
+    IPC_L2HAC_INT_SRC_NRCCPU_WAKEUP     = 64, /* NRCCPU 发给L2HAC 唤醒中断*/
+    IPC_L2HAC_INT_SRC_NRCCPU_HALT          = 65, /* NRCCPU 发给L2HAC 允许睡眠中断*/
+    IPC_L2HAC_INT_SRC_END ,
 
     IPC_LTEV_INT_SRC_CCPU_PS_MBX = 0,           /* ARM->LTEV_DSP, ps */
     IPC_LTEV_INT_SRC_CCPU_OM_MBX,               /* ARM->LTEV_DSP, om */

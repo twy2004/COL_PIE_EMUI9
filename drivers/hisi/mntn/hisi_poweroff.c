@@ -47,7 +47,8 @@ extern struct cmdword reboot_reason_map[];
 
 void hisi_pm_system_off(void)
 {
-	int out_dir, protect_val;
+	unsigned int out_dir;
+	uintptr_t protect_val;
 
 	set_reboot_reason(AP_S_COLDBOOT);
 

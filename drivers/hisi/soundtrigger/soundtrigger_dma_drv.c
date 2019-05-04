@@ -49,6 +49,7 @@
 #include "soundtrigger_dma_drv.h"
 #include "soundtrigger_log.h"
 #include "slimbus.h"
+#include "slimbus_6405.h"
 #include "hifi_lpp.h"
 #include "asp_dma.h"
 #include "soundtrigger_event.h"
@@ -84,6 +85,9 @@
 #define HI6403_NORMAL_FRAME_LENGTH 	(480)										/* time: 10ms */
 
 #define HI6403_NORMAL_TRAN_RATE		(48000)
+#define HI6405_NORMAL_FRAME_LENGTH 	(480)										/* time: 10ms */
+
+#define HI6405_NORMAL_TRAN_RATE		(48000)
 #define BYTE_COUNT				(4) 										/* each sampling point has 4 bytes */
 
 #define VALID_BYTE_COUNT		(2) 										/* each sampling point only has 2 bytes valid data */
@@ -214,6 +218,15 @@ struct soundtrigger_dma_drv_info {
 static uint32_t hi6402_normal_frame_length = HI6402_NORMAL_FRAME_LENGTH;
 static uint32_t hi6402_normal_tran_rate = HI6402_NORMAL_TRAN_RATE;
 
+DRV_DMA_CONFIG_STRU hi6405_soundtrigger_dma_fast_cfg[2] = {
+	{.port = (HI3xxx_SLIMBUS_BASE_REG + 0x1280), .config = 0x433220a7, .channel = DMA_FAST_LEFT_CH_NUM},	/*hi6405 fast data left channel*/
+	{.port = (HI3xxx_SLIMBUS_BASE_REG + 0x12c0), .config = 0x43322077, .channel = DMA_FAST_RIGHT_CH_NUM},	/*hi6405 fast data right channel*/
+};
+
+DRV_DMA_CONFIG_STRU hi6405_soundtrigger_dma_normal_cfg[2] = {
+	{.port = (HI3xxx_SLIMBUS_BASE_REG + 0x1080), .config = 0x43322027, .channel = DMA_NORMAL_LEFT_CH_NUM},	/*hi6405 normal data left channel*/
+	{.port = (HI3xxx_SLIMBUS_BASE_REG + 0x10c0), .config = 0x433220b7, .channel = DMA_NORMAL_RIGHT_CH_NUM},	/*hi6405 normal data right channel*/
+};
 
 DRV_DMA_CONFIG_STRU hi6403_soundtrigger_dma_fast_cfg[2] = {
 	{.port = (HI3xxx_SLIMBUS_BASE_REG + 0x1280), .config = 0x433220a7, .channel = DMA_FAST_LEFT_CH_NUM},	/*hi6403 fast data left channel*/
@@ -253,6 +266,7 @@ DRV_DMA_CONFIG_STRU *hi640X_soundtrigger_dma_cfg_4smartpa[CODEC_HI640X_MAX][SOUN
 DRV_DMA_CONFIG_STRU *hi640X_soundtrigger_dma_cfg_default[CODEC_HI640X_MAX][SOUNDTRIGGER_PCM_CHAN_NUM] = {
 	{hi6402_soundtrigger_dma_fast_cfg,hi6402_soundtrigger_dma_normal_cfg,},
 	{hi6403_soundtrigger_dma_fast_cfg,hi6403_soundtrigger_dma_normal_cfg,},
+	{hi6405_soundtrigger_dma_fast_cfg,hi6405_soundtrigger_dma_normal_cfg,},
 };
 
 DRV_DMA_CONFIG_STRU * (*hi640X_soundtrigger_dma_cfg)[SOUNDTRIGGER_PCM_CHAN_NUM] = hi640X_soundtrigger_dma_cfg_default;
@@ -292,6 +306,22 @@ struct soundtrigger_pcm_config hi640X_pcm_cfg[CODEC_HI640X_MAX][SOUNDTRIGGER_PCM
 			.byte_count = BYTE_COUNT,
 		},
 	},
+	{
+		/*hi6405_pcm_fast_cfg*/
+		{
+			.channels = DMA_PORT_NUM,
+			.rate = FAST_TRAN_RATE,
+			.frame_len = FAST_FRAME_LENGTH,
+			.byte_count = BYTE_COUNT,
+		},
+		/*hi6405_pcm_normal_cfg*/
+		{
+			.channels = DMA_PORT_NUM,
+			.rate = HI6405_NORMAL_TRAN_RATE,
+			.frame_len = HI6405_NORMAL_FRAME_LENGTH,
+			.byte_count = BYTE_COUNT,
+		},
+	},
 };
 
 struct soundtrigger_dma_drv_info *g_dma_drv_info = NULL;
@@ -299,7 +329,7 @@ struct soundtrigger_dma_drv_info *g_dma_drv_info = NULL;
 static int32_t soundtrigger_dmac_irq_handler(unsigned short int_type, unsigned long para, unsigned int dma_channel);
 
 static int get_input_param(unsigned int usr_para_size,
-				  void __user *usr_para_addr,
+				  const void __user *usr_para_addr,
 				  unsigned int *krn_para_size,
 				  void **krn_para_addr)
 {
@@ -324,7 +354,7 @@ static int get_input_param(unsigned int usr_para_size,
 		goto ERR;
 	}
 
-	if (copy_from_user(para_in , (void __user *)usr_para_addr, usr_para_size)) {
+	if (copy_from_user(para_in, usr_para_addr, usr_para_size)) {
 		loge("copy_from_user fail\n");
 		goto ERR;
 	}
@@ -394,7 +424,7 @@ static inline int32_t slimbus_register_read(struct soundtrigger_dma_drv_info *dm
 	unsigned long flag = 0;
 	int32_t ret = 0;
 
-	BUG_ON(NULL == dma_drv_info);
+	WARN_ON(NULL == dma_drv_info);
 
 	if (hwspin_lock_timeout_irqsave(dma_drv_info->hwlock, HWLOCK_WAIT_TIME, &flag)) {
 		loge("hwspinlock timeout\n");
@@ -411,8 +441,8 @@ static void pcm_valid_data_get(uint32_t *input_buffer, uint16_t *output_buffer, 
 {
 	int32_t count = 0;
 
-	BUG_ON(NULL == input_buffer);
-	BUG_ON(NULL == output_buffer);
+	WARN_ON(NULL == input_buffer);
+	WARN_ON(NULL == output_buffer);
 
 	for (count = 0; count < frame_count; count++) {
 		output_buffer[count] = input_buffer[count]>>16;
@@ -423,8 +453,8 @@ static void pcm_48K_mono_to_16K_mono(uint16_t *input_buffer, uint16_t *output_bu
 {
 	int32_t count = 0;
 
-	BUG_ON(NULL == input_buffer);
-	BUG_ON(NULL == output_buffer);
+	WARN_ON(NULL == input_buffer);
+	WARN_ON(NULL == output_buffer);
 
 	for (count = 0; count < output_len; count++) {
 		output_buffer[count] = input_buffer[3 * count];/*lint !e679*/
@@ -727,6 +757,11 @@ static int32_t dma_start(struct st_fast_status * fast_status)
 		device_type = SLIMBUS_DEVICE_HI6403;
 		track_type = SLIMBUS_TRACK_SOUND_TRIGGER;
 	}
+	else if (CODEC_HI6405 == dma_drv_info->type) {
+		slimbus_params.channels = 1;
+		device_type = SLIMBUS_DEVICE_HI6405;
+		track_type = SLIMBUS_6405_TRACK_SOUND_TRIGGER;
+	}
 	else {
 		err = -EINVAL;
 		loge( "device type is err %d\n", device_type);
@@ -824,6 +859,9 @@ static int32_t dma_open(struct st_fast_status * fast_status)
 	} else if (CODEC_HI6403 == dma_drv_info->type) {
 		normal_info->normal_head_frame_size = HI6403_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT;
 	}
+	else if (CODEC_HI6405 == dma_drv_info->type) {
+		normal_info->normal_head_frame_size = HI6405_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT;
+	}
 	else {
 		loge( "device type is err %d\n", dma_drv_info->type);
 		return -EINVAL;
@@ -911,12 +949,18 @@ static int32_t dma_close(void)
 			device_type = SLIMBUS_DEVICE_HI6403;
 			track_type = SLIMBUS_TRACK_SOUND_TRIGGER;
 		}
+		else if (CODEC_HI6405 == dma_drv_info->type) {
+			device_type = SLIMBUS_DEVICE_HI6405;
+			track_type = SLIMBUS_6405_TRACK_SOUND_TRIGGER;
+		}
 		else {
 			loge("device type is err %d\n", dma_drv_info->type);
 			err = -EINVAL;
 			goto err_exit;
 		}
-		slimbus_track_deactivate(device_type, track_type, NULL);
+		err = slimbus_track_deactivate(device_type, track_type, NULL);
+		if (err)
+			loge("slimbus track deactivate err %d\n", err);
 		msleep(2);
 		hi64xx_release_pll_resource(HI_FREQ_SCENE_FASTTRANS);
 		logi("soundtrigger dma release pll resource and switch to soc\n");
@@ -994,6 +1038,10 @@ static int32_t dma_get_max_read_len(enum codec_hifi_type codec_type, size_t *max
 	} else if (CODEC_HI6403 == codec_type) {
 		*max_read_len = (RINGBUFFER_SIZE > (HI6403_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT)) ?
 			RINGBUFFER_SIZE : (HI6403_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT);
+	}
+	else if (CODEC_HI6405 == codec_type) {
+		*max_read_len = (RINGBUFFER_SIZE > (HI6405_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT)) ?
+			RINGBUFFER_SIZE : (HI6405_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT);
 	}
 	else {
 		loge("codec type = %d invalid .\n", codec_type);
@@ -1354,6 +1402,9 @@ static uint16_t *alloc_temp_buffer(enum codec_hifi_type codec_type)
 		temp_buf = (uint16_t *)kzalloc(HI6402_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT, GFP_KERNEL);
 	} else if (CODEC_HI6403 == codec_type) {
 		temp_buf = (uint16_t *)kzalloc(HI6403_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT, GFP_KERNEL);
+	}
+	else if (CODEC_HI6405 == codec_type) {
+		temp_buf = (uint16_t *)kzalloc(HI6405_NORMAL_FRAME_LENGTH * VALID_BYTE_COUNT, GFP_KERNEL);
 	}
 	else {
 		temp_buf = NULL;

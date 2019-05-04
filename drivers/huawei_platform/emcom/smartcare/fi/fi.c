@@ -6,6 +6,7 @@
 #include <net/udp.h>
 #include <net/sock.h>
 #include <linux/timer.h>
+#include <linux/version.h>
 #include "../../emcom_netlink.h"
 #include "../../emcom_utils.h"
 #include <huawei_platform/emcom/smartcare/fi/fi_utils.h>
@@ -13,7 +14,11 @@
 fi_ctx g_fi_ctx;
 
 
-static struct nf_hook_ops fi_nfhooks[] = {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,1)
+	static const struct nf_hook_ops fi_nfhooks[] = {
+#else
+	static struct nf_hook_ops fi_nfhooks[] = {
+#endif
 	{
 		.hook        = fi_hook_out,                 /* 回调函数 */
 		.pf          = PF_INET,                     /* nf协议链 */
@@ -81,7 +86,11 @@ void fi_register_nf_hook(void)
 	}
 
 	/* 注册netfilter钩子函数 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,1)
+	ret = nf_register_net_hooks(&init_net, fi_nfhooks, ARRAY_SIZE(fi_nfhooks));
+#else
 	ret = nf_register_hooks(fi_nfhooks, ARRAY_SIZE(fi_nfhooks));
+#endif
 	if (ret == 0)
 	{
 		/* 如果注册成功，需要设置标记 */
@@ -122,7 +131,11 @@ void fi_unregister_nf_hook(void)
 	}
 
 	/* 删除netfilter钩子函数 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,1)
+	nf_unregister_net_hooks(&init_net, fi_nfhooks, ARRAY_SIZE(fi_nfhooks));
+#else
 	nf_unregister_hooks(fi_nfhooks, ARRAY_SIZE(fi_nfhooks));
+#endif
 
 	/* 删除定时器, 定时器与钩子函数同时存在同时删除 */
 	del_timer(&g_fi_ctx.tm);
@@ -325,7 +338,8 @@ static inline int fi_parse_mptcp(fi_pkt *pktinfo, struct tcphdr *tcph, uint32_t 
 		}
 	}
 
-	FI_LOGD(" : FI mptcp, seq=%u, ack=%u.", pktinfo->seq, pktinfo->ack);
+	FI_LOGD(" : FI mptcp, seq=%u, ack=%u, flow: %u,%u.",
+	        pktinfo->seq, pktinfo->ack, pktinfo->sport, pktinfo->dport);
 
 	return FI_SUCCESS;
 }
@@ -356,7 +370,8 @@ static inline int fi_pkt_parse(fi_pkt *pktinfo, struct sk_buff *skb, int dir)
 		}
 
 		pktinfo->data = (uint8_t *)udph + l4hlen;
-		pktinfo->len  = skb->len - skb->data_len - iphlen - l4hlen;
+		pktinfo->len = skb->len - iphlen - l4hlen;
+		pktinfo->bufdatalen = skb->len - skb->data_len - iphlen - l4hlen;
 		pktinfo->sport = ntohs(udph->source);
 		pktinfo->dport = ntohs(udph->dest);
 	}
@@ -373,7 +388,8 @@ static inline int fi_pkt_parse(fi_pkt *pktinfo, struct sk_buff *skb, int dir)
 		}
 
 		pktinfo->data = (uint8_t *)tcph + l4hlen;
-		pktinfo->len  = skb->len - skb->data_len - iphlen - l4hlen;
+		pktinfo->len  = skb->len - iphlen - l4hlen;
+		pktinfo->bufdatalen = skb->len - skb->data_len - iphlen - l4hlen;
 		pktinfo->sport = ntohs(tcph->source);
 		pktinfo->dport = ntohs(tcph->dest);
 		pktinfo->seq = ntohl(tcph->seq);
@@ -536,6 +552,14 @@ static uint32_t fi_appname_to_appid(char *nameptr, uint32_t datalen)
 	else if (fi_streq(nameptr, datalen, FI_APP_NAME_QQFC))
 	{
 		appid = FI_APPID_QQFC;
+	}
+	else if (fi_streq(nameptr, datalen, FI_APP_NAME_BH3) ||
+	         fi_streq(nameptr, datalen, FI_APP_NAME_BH3_2) ||
+	         fi_streq(nameptr, datalen, FI_APP_NAME_BH3_3) ||
+	         fi_streq(nameptr, datalen, FI_APP_NAME_BH3_4) ||
+	         fi_streq(nameptr, datalen, FI_APP_NAME_BH3_5))
+	{
+		appid = FI_APPID_BH3;
 	}
 	else if (fi_streq(nameptr, datalen, FI_APP_NAME_UU))
 	{

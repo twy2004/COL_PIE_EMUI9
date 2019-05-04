@@ -45,7 +45,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "product_config.h"
+
 #include <linux/slab.h>
 #include <linux/syscalls.h>
 #include <linux/kernel.h>
@@ -54,6 +54,6 @@
 #include "bsp_dump.h"
 #include "bsp_slice.h"
 #include "dump_config.h"
-#undef	THIS_MODU
-#define THIS_MODU mod_dump
 
+#undef  THIS_MODU
+#define THIS_MODU mod_dump

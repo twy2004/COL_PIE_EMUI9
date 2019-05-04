@@ -20,7 +20,6 @@
 #define pr_fmt(fmt) "logger: " fmt
 
 #include <linux/version.h>
-#include <linux/sched.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
@@ -31,6 +30,9 @@
 #include <linux/vmalloc.h>
 #include <linux/aio.h>
 #include <linux/ratelimit.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/signal.h>
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0))
 #include <linux/uio.h>
 #endif

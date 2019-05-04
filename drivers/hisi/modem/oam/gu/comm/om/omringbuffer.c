@@ -174,7 +174,6 @@ OM_RING_ID OM_RingBufferCreate( int nbytes )
     VOS_INT       lTempSufffix = VOS_NULL_WORD;
     VOS_ULONG     ulLockLevel;
 
-    /*lLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
     for ( i=OM_MAX_RING_BUFFER_NUM -1; i>=0; i-- )
@@ -187,7 +186,6 @@ OM_RING_ID OM_RingBufferCreate( int nbytes )
         }
     }
 
-    /*VOS_Splx(lLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
     if ( VOS_NULL_WORD == lTempSufffix )
@@ -205,12 +203,10 @@ OM_RING_ID OM_RingBufferCreate( int nbytes )
 
     if ( VOS_NULL_PTR == buffer )
     {
-        /*lLockLevel = VOS_SplIMP();*/
         VOS_SpinLockIntLock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
         g_ucOMBufferOccupiedFlag[lTempSufffix] = VOS_FALSE;
 
-        /*VOS_Splx(lLockLevel);*/
         VOS_SpinUnlockIntUnlock(&g_stVosStaticMemSpinLock, ulLockLevel);
 
         OM_DRV_CACHEDMAM_ALLOC_ERROR();
@@ -243,9 +239,6 @@ int OM_RingBufferGet( OM_RING_ID rngId, char *buffer, int maxbytes )
     int pToBuf;
     int bytes2;
     int pRngTmp;
-    /*int lLockLevel;*/
-
-    /*lLockLevel = VOS_SplIMP();*/
 
     pToBuf = rngId->pToBuf;
 
@@ -285,8 +278,6 @@ int OM_RingBufferGet( OM_RING_ID rngId, char *buffer, int maxbytes )
         }
     }
 
-    /*VOS_Splx(lLockLevel);*/
-
     return (bytesgot);
 }
 /*lint +efunc(613,OM_RingBufferGet) */
@@ -298,9 +289,6 @@ int OM_RingBufferRemove( OM_RING_ID rngId, int maxbytes )
     int pToBuf;
     int bytes2;
     int pRngTmp;
-    /*int lLockLevel;*/
-
-    /*lLockLevel = VOS_SplIMP();*/
 
     pToBuf = rngId->pToBuf;
 
@@ -332,8 +320,6 @@ int OM_RingBufferRemove( OM_RING_ID rngId, int maxbytes )
         }
     }
 
-    /*VOS_Splx(lLockLevel);*/
-
     return (bytesgot);
 }
 
@@ -344,9 +330,6 @@ int OM_RingBufferGetReserve( OM_RING_ID rngId, char *buffer, int maxbytes )
     int pToBuf;
     int bytes2;
     int pRngTmp;
-    /*int lLockLevel;*/
-
-    /*lLockLevel = VOS_SplIMP();*/
 
     pToBuf = rngId->pToBuf;
 
@@ -375,8 +358,6 @@ int OM_RingBufferGetReserve( OM_RING_ID rngId, char *buffer, int maxbytes )
         }
     }
 
-    /*VOS_Splx(lLockLevel);*/
-
     return (bytesgot);
 }
 
@@ -387,9 +368,6 @@ int OM_RingBufferPut( OM_RING_ID rngId, char *buffer, int nbytes )
     int pFromBuf;
     int bytes2;
     int pRngTmp;
-    /*int lLockLevel;*/
-
-    /*lLockLevel = VOS_SplIMP();*/
 
     pFromBuf = rngId->pFromBuf;
 
@@ -431,8 +409,6 @@ int OM_RingBufferPut( OM_RING_ID rngId, char *buffer, int nbytes )
             rngId->pToBuf = pRngTmp;
         }
     }
-
-    /*VOS_Splx(lLockLevel);*/
 
     return (bytesput);
 }

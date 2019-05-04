@@ -168,6 +168,7 @@ extern VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen);
 
 #endif
 
+
 #ifdef __cplusplus
 #if __cplusplus
 }

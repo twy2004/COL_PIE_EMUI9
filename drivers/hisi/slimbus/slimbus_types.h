@@ -26,6 +26,7 @@
 #define SLIMBUS_MAX_CHANNELS (16)
 
 #define SLIMBUS_AUDIO_PLAYBACK_CHANNELS                 (2)
+#define SLIMBUS_AUDIO_PLAYBACK_MULTI_PA_CHANNELS        (4)
 #define SLIMBUS_AUDIO_CAPTURE_CHANNELS                  (2)
 #define SLIMBUS_AUDIO_CAPTURE_MULTI_MIC_CHANNELS        (4)
 #define SLIMBUS_VOICE_DOWN_CHANNELS                     (2)
@@ -247,6 +248,8 @@ typedef enum
 	AUDIO_CAPTURE_CHANNEL_MIC4     = 17,
 	DEBUG_LEFT                     = 18,
 	DEBUG_RIGHT                    = 19,
+	AUDIO_PLAY_CHANNEL_D3          = 20,
+	AUDIO_PLAY_CHANNEL_D4          = 21,
 } slimbus_channel_index_t;
 
 
@@ -343,7 +346,7 @@ typedef struct {
 
 } slimbus_channel_property_t;
 
-typedef int (*track_callback_t)(unsigned int int_type, void *param);
+typedef int (*track_callback_t)(unsigned int int_type, const void *param);
 
 /* configuration for a stream */
 typedef struct slimbus_track_param {

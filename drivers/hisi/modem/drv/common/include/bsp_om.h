@@ -62,7 +62,7 @@ extern "C" {
 #include <stdarg.h>
 #include "drv_comm.h"
 
-#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_shell.h"
 #endif
 

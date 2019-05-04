@@ -1,11 +1,8 @@
 /*
- * hw_kernel_stp_interface.h
- *
- * the hw_kernel_stp_interface.h for kernel scanner module using.
- *
- * sunhongqing <sunhongqing@huawei.com>
- *
- * Copyright (c) 2001-2021, Huawei Tech. Co., Ltd. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2018-2018. All rights reserved.
+ * Description: the hw_kernel_stp_proc.c for proc file create and destroy
+ * Author: sunhongqing <sunhongqing@huawei.com>
+ * Create: 2018-3-31
  */
 
 #ifndef _HW_KERNEL_STP_INTERFACE_H_
@@ -28,6 +25,7 @@
 #define STP_NAME_MOD_SIGN      "mod-sign"
 #define STP_NAME_PTRACE        "ptrace"
 #define STP_NAME_HKIP          "hkip"
+#define STP_NAME_USERCOPY      "usercopy"
 #define STP_NAME_CFI           "cfi"
 #define STP_NAME_ITRUSTEE      "itrustee"
 #define STP_NAME_DOUBLE_FREE   "double-free"
@@ -39,6 +37,7 @@
 #define STP_ID_ROOT_PROCS      0x00000385
 #define STP_ID_SETIDS          0x00000380
 #define STP_ID_EIMA            0x00000280
+#define STP_ID_USERCOPY        0x00000180
 #define STP_ID_CFI             0x00000181
 #define STP_ID_MOD_SIGN        0x00000182
 #define STP_ID_PTRACE          0x00000183
@@ -48,7 +47,6 @@
 
 typedef int (*stp_cb)(void);
 
-//TODO: big/little endian
 typedef union {
 	u64 val;
 	struct {
@@ -63,82 +61,83 @@ enum stp_proc_feature {
 };
 
 enum stp_status {
-    STP_SAFE = 0, /* safe */
-    STP_RISK = 1, /* risk */
+	STP_SAFE = 0, /* safe */
+	STP_RISK = 1, /* risk */
 };
 
 enum stp_reliability {
-    STP_REFERENCE = 0, /* status not trustable */
-    STP_CREDIBLE  = 1, /* status trustable */
+	STP_REFERENCE = 0, /* status not trustable */
+	STP_CREDIBLE  = 1, /* status trustable */
 };
 
-enum stp_item_category{
-    KCODE = 0,
-    SYSCALL,
-    SE_ENFROCING,
-    SE_HOOK,
-    ROOT_PROCS,
-    SETIDS,
-    EIMA,
-    MOD_SIGN,
-    PTRACE,
-    HKIP,
-    CFI,
-    ITRUSTEE,
-    DOUBLE_FREE,
+enum stp_item_category {
+	KCODE = 0,
+	SYSCALL,
+	SE_ENFROCING,
+	SE_HOOK,
+	ROOT_PROCS,
+	SETIDS,
+	EIMA,
+	MOD_SIGN,
+	PTRACE,
+	HKIP,
+	CFI,
+	ITRUSTEE,
+	DOUBLE_FREE,
 
-    STP_ITEM_MAX,
+	STP_ITEM_MAX,
 };
 
 struct stp_item_info {
-	unsigned int 		id;
-	char 				name[STP_ITEM_NAME_LEN];
+	unsigned int    id;
+	char            name[STP_ITEM_NAME_LEN];
 };
 
-struct stp_item
-{
-    /* item id formated as 0x0000ccnn:
-    cc means item category, defined by STP_CATEGORY
-    ii means item number, which is uniqe
-    item id used can be seen at:
-    (wiki address to be updated :) */
-    unsigned int         id;
-    /* item status defined by STP_STATUS */
-    unsigned char        status;
-    /* whether status is trusable, defined by STP_RELIABILITY */
-    unsigned char        credible;
-    /* item version number */
-    unsigned char        version;
-    /* item name or description string */
-    char                 name[STP_ITEM_NAME_LEN];
+struct stp_item {
+	/* item id formated as 0x0000ccnn:
+	 * cc means item category, defined by STP_CATEGORY
+	 * ii means item number, which is uniqe
+	 * item id used can be seen at:
+	 * (wiki address to be updated :)
+	 */
+	unsigned int    id;
+	/* item status defined by STP_STATUS */
+	unsigned char   status;
+	/* whether status is trusable, defined by STP_RELIABILITY */
+	unsigned char   credible;
+	/* item version number */
+	unsigned char   version;
+	/* item name or description string */
+	char            name[STP_ITEM_NAME_LEN];
 };
 
 /*
- * kernel_stp_scanner_register - each scanner module can regist to the kernel stp by this func
+ * kernel_stp_scanner_register - each scanner module can regist to the kernel
+ * stp by this func
  * Description: accept each scanner module regist to the kernel stp
  * @callbackfunc,the scanner trigger func of each module
  * @return: Result of loading.
  *     0, regist correctly.
- *     -1, regist failed.   
+ *     -1, regist failed.
  */
 #ifdef CONFIG_HW_KERNEL_STP
 int kernel_stp_scanner_register(stp_cb callbackfunc);
-/*the caller needed to check the return value */
+/* the caller needed to check the return value */
 extern struct stp_item_info *get_item_info_by_idx(int idx);
-/* to be deleted later */
+
 extern struct stp_item_info item_info[];
 #else
 static inline int kernel_stp_scanner_register(stp_cb callbackfunc)
 {
 	return 0;
 }
-/*the caller needed to check the return value */
+/* the caller needed to check the return value */
 static inline struct stp_item_info *get_item_info_by_idx(int idx)
 {
 	return NULL;
 }
-/* to be deleted later */
-static struct stp_item_info item_info[]={
+
+static struct stp_item_info item_info[] = {
 	[KCODE]        = { STP_ID_KCODE, STP_NAME_KCODE },
 	[SYSCALL]      = { STP_ID_KCODE_SYSCALL, STP_NAME_KCODE_SYSCALL },
 	[SE_ENFROCING] = { STP_ID_SE_ENFROCING, STP_NAME_SE_ENFROCING },
@@ -159,10 +158,10 @@ static struct stp_item_info item_info[]={
  * kernel_stp_upload - for each scanner module to  upload result to stp
  * Description: upload the scanner result to stp
  * @result, scanner result as stp_item
- * @addition_info,the addition info wanted to upload 
+ * @addition_info,the addition info wanted to upload
  * @return: Result of loading.
  *     0, upload correctly.
- *     -1, upload failed.   
+ *     -1, upload failed.
  */
 #ifdef CONFIG_HW_KERNEL_STP
 int kernel_stp_upload(struct stp_item result, char *addition_info);

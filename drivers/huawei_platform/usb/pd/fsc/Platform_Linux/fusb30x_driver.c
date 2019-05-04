@@ -28,6 +28,7 @@
 
 //#ifdef FSC_DEBUG
 #include "../core/core.h"                                                       // GetDeviceTypeCStatus
+#include "../core/TypeC.h"
 //#endif // FSC_DEBUG
 
 #include "fusb30x_driver.h"
@@ -44,19 +45,18 @@ static int pd_dpm_wake_lock_call(struct notifier_block *fsc_nb, unsigned long ev
 {
 	struct fusb30x_chip *chip = container_of(fsc_nb, struct fusb30x_chip, fsc_nb);
 
-	switch(event)
-	{
-		case PD_WAKE_LOCK:
-			FSC_PRINT("FUSB %s - wake lock node called\n", __func__);
-			wake_lock(&chip->fusb302_wakelock);
-			break;
-		case PD_WAKE_UNLOCK:
-			FSC_PRINT("FUSB %s - wake unlock node called\n", __func__);
-			wake_unlock(&chip->fusb302_wakelock);
-			break;
-		default:
-			FSC_PRINT("FUSB %s - unknown event: %d\n", __func__, event);
-			break;
+	switch (event) {
+	case PD_WAKE_LOCK:
+		FSC_PRINT("FUSB %s - wake lock node called\n", __func__);
+		wake_lock(&chip->fusb302_wakelock);
+		break;
+	case PD_WAKE_UNLOCK:
+		FSC_PRINT("FUSB %s - wake unlock node called\n", __func__);
+		wake_unlock(&chip->fusb302_wakelock);
+		break;
+	default:
+		FSC_PRINT("FUSB %s - unknown event: %ld\n", __func__, event);
+		break;
 	}
 
 	return NOTIFY_OK;
@@ -94,7 +94,6 @@ static FSC_BOOL fusb_write_mask(FSC_U8 reg, FSC_U8 MASK, FSC_U8 SHIFT, FSC_U8 va
 
 static int is_cable_for_direct_charge(void)
 {
-	FSC_U8 val;
 	FSC_U8 cc2;
 	FSC_U8 cc1;
 	FSC_BOOL ret;
@@ -119,33 +118,6 @@ static int is_cable_for_direct_charge(void)
 		return -1;
 	pr_info("%s:cc_check succ\n",__func__);
 	return 0;
-}
-
-int fusb30x_pd_dpm_get_cc_state(void)
-{
-	FSC_U8 val;
-	FSC_U8 cc2;
-	FSC_U8 cc1;
-	FSC_BOOL ret;
-	FSC_U8 meas_cc2 = 0x02;
-	FSC_U8 meas_cc1 = 0x01;
-	ret = fusb_write_mask(FSC_CC_SELECT_REG_02H, FSC_CC_SELECT_MASK, FSC_CC_SELECT_SHIFT, meas_cc2);
-	msleep(1);
-	ret &= fusb_I2C_ReadData( FSC_CC_STATUS_40H,&cc2);
-	ret &= fusb_write_mask(FSC_CC_SELECT_REG_02H, FSC_CC_SELECT_MASK, FSC_CC_SELECT_SHIFT, meas_cc1);
-	msleep(1);
-	ret &= fusb_I2C_ReadData( FSC_CC_STATUS_40H,&cc1);
-	if (!ret)
-	{
-		pr_info("%s:REG R/W FAIL!!!!\n",__func__);
-		return -1;
-	}
-	pr_info("%s:cc2_REG0x40 = 0x%x\n",__func__,cc2);
-	pr_info("%s:cc1_REG0x40 = 0x%x\n",__func__,cc1);
-	cc2 = cc2 & FSC_CC_STATUS_MASK;
-	cc1 = cc1 & FSC_CC_STATUS_MASK;
-	val = (cc2 << 2) | cc1;
-	return val;
 }
 
 void fusb30x_set_cc_mode(int mode)
@@ -345,6 +317,42 @@ static int fusb30x_remove(struct i2c_client* client)
     fusb_GPIO_Cleanup();
     pr_debug("FUSB  %s - FUSB30x device removed from driver...\n", __func__);
     return 0;
+}
+
+static void fusb30x_shutdown(struct i2c_client *client)
+{
+	FSC_U8 reset = 0x01; /* regaddr is 0x01 */
+	FSC_U8 data = 0x40; /* data is 0x40 */
+	FSC_U8 length = 0x01; /* length is 0x01 */
+	FSC_BOOL ret = 0;
+	struct fusb30x_chip *chip = fusb30x_GetChip();
+
+	if (!chip) {
+		pr_err("FUSB shutdown - Chip structure is NULL!\n");
+		return;
+	}
+
+	ret = fusb_I2C_WriteData(regControl3, length, &data);
+	if (ret != 0)
+		pr_err("send hardreset failed, ret = %d\n", ret);
+
+	/* Enable the pull-up on CC1 */
+	Registers.Switches.PU_EN1 = 1;
+	/* Disable the pull-down on CC1 */
+	Registers.Switches.PDWN1 = 0;
+	/* Enable the pull-up on CC2 */
+	Registers.Switches.PU_EN2 = 1;
+	/* Disable the pull-down on CC2 */
+	Registers.Switches.PDWN2 = 0;
+	/* Commit the switch state */
+	DeviceWrite(regSwitches0, 1, &Registers.Switches.byte[0]);
+
+	fusb_GPIO_Cleanup();
+	ret = fusb_I2C_WriteData(regReset, length, &reset);
+	if (ret != 0)
+		pr_err("device Reset failed, ret = %d\n", ret);
+
+	pr_debug("FUSB shutdown - FUSB30x device shutdown!\n");
 }
 
 /*******************************************************************************

@@ -211,8 +211,6 @@ static int LM3644_init(const hwdriveric_intf_t *intf)
     return rc;
 }
 
-//static void LM3644_notify_error(uint32_t id);
-
 static int LM3644_power_on(const hwdriveric_intf_t* intf)
 {
     driveric_t *drv_ic = NULL;
@@ -275,16 +273,7 @@ char const* LM3644_get_name(const hwdriveric_intf_t* intf)
     cam_info("%s position = %d get name = %s", __func__,LM3644->position,name);
     return name;
 }
-/*
-void LM3644_notify_error( uint32_t id)
-{
-    hwdriveric_event_t LM3644_ev;
-    LM3644_ev.kind = HWDRIVERIC_INFO_ERROR;
-    LM3644_ev.data.error.id = id;
-    cam_info("%s id = %x",__func__,id);
-    hwdriveric_intf_notify_error(s_LM3644.notify, &LM3644_ev);
-}
-*/
+
 static hwdriveric_vtbl_t
 s_vtbl_LM3644 =
 {
@@ -389,7 +378,6 @@ static void __exit
 LM3644_exit_module(void)
 {
     platform_driver_unregister(&s_LM3644_driver);
-    //hwdriveric_unregister(&s_LM3644.intf);
 }
 
 module_init(LM3644_init_module);

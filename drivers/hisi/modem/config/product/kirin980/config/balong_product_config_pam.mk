@@ -1,4 +1,4 @@
-# MD5: be57c00c152d4700cf2aa71f4fa4edba
+# MD5: 8fdaed22b042cfe44d78ebfd2b102182
 CFG_BBP_MASTER_NONE                             := 0
 CFG_BBP_MASTER_VER1                             := 1
 CFG_BBP_MASTER_VER2                             := 2
@@ -16,6 +16,7 @@ CFG_FEATURE_GUC_BBP_TRIG_NEWVERSION             := FEATURE_ON
 CFG_FEATURE_VOS_REDUCE_MEM_CFG                  := FEATURE_OFF
 CFG_FEATURE_RTC_TIMER_DBG                       := FEATURE_ON
 CFG_FEATURE_PHONE_SC                            := FEATURE_ON
+CFG_FEATURE_PIN_CRYPTO_PROTECT                  := FEATURE_ON
 CFG_FEATURE_SC_NETWORK_UPDATE                   := FEATURE_OFF
 CFG_FEATURE_SC_SIGNATURE_UPDATE                 := FEATURE_ON
 CFG_FEATURE_VSIM_ICC_SEC_CHANNEL                := FEATURE_ON
@@ -24,3 +25,4 @@ CFG_FEATURE_XSIM                                := FEATURE_OFF
 CFG_FEATURE_SCI_SWITCH_OPTIMIZE                 := FEATURE_ON
 CFG_FEATURE_VOS_18H_TIMER                       := FEATURE_OFF
 CFG_FEATURE_SET_C1C2_VALUE                      := FEATURE_ON
+CFG_FEATURE_DEEP_SLEEP_ANTEN_DETECT             := FEATURE_OFF

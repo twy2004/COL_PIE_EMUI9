@@ -81,6 +81,8 @@
 		lcd-kit,quickly-sleep-out-interval = <0>;
 		lcd-kit,esd-support = <0>;
 		lcd-kit,project-id-support = <0>;
+		lcd-kit,dpi01-set-change = <0>;
+		lcd-kit,pxl-clk-to-pll2 = <0>;
 		lcd-kit,oem-info-support = <0>;
 		lcd-kit,oem-barcode-2d-support = <0>;
 		lcd-kit,dirty-region-support = <0>;
@@ -101,6 +103,8 @@
 		lcd-kit,panel-bl-ic-ctrl-type = <1>;
 		lcd-kit,h-back-porch = <10>;
 		lcd-kit,h-front-porch = <32>;
+		lcd-kit,ldi-dpi0-overlap-size = <0>;
+		lcd-kit,ldi-dpi1-overlap-size = <0>;
 		lcd-kit,h-pulse-width = <10>;
 		lcd-kit,v-back-porch = <60>;
 		lcd-kit,v-front-porch = <14>;
@@ -114,6 +118,7 @@
 		lcd-kit,mipi-dsi-upt-support = <0>;
 		lcd-kit,mipi-lane-nums = <3>;
 		lcd-kit,mipi-color-mode = <5>;
+		lcd-kit,video-idle-mode-support = <0>;
 		lcd-kit,mipi-vc = <0>;
 		lcd-kit,mipi-dsi-bit-clk = <480>;
 		lcd-kit,mipi-burst-mode = <0>;
@@ -137,6 +142,7 @@
 		lcd-kit,check-reg-on-support = <1>;
 		lcd-kit,check-reg-on-support-dsm-report = <0>;
 		lcd-kit,check-reg-off-support = <1>;
+		lcd-kit,dsi1-cmd-support = <0>;
 		lcd-kit,check-reg-off-support-dsm-report = <0>;
 		lcd-kit,mipi-check-support = <0>;
 		lcd-kit,panel-mipi-error-report-threshold = <1>;
@@ -155,8 +161,9 @@
 		vdd-supply = <&ldo25>;
 		vci-supply = <&ldo17>;
 		lcd-kit,lcd-vci = <1 0 0>;
+		lcd-kit,lcd-aod = <2 0 0>;
 		lcd-kit,lcd-iovcc = <1 0 0>;
-		lcd-kit,lcd-vdd = <1 0 0>;
+		lcd-kit,lcd-vdd = <0 0 0>;
 		lcd-kit,lcd-vsp = <2 0 5500000>;
 		lcd-kit,lcd-vsn = <2 0 5500000>;
 		lcd-kit,lcd-reset = <2 0 0>;
@@ -177,9 +184,15 @@
 		lcd-kit,rgbw-support = <0>;
 		lcd-kit,blpwm-disable = <0>;
 		lcd-kit,blpwm-div = <0>;
+		lcd-kit,bl-work-delay-frame = <0>;
 		lcd-kit,acl-support = <0>;
 		lcd-kit,hbm-support = <0>;
+		lcd-kit,hbm-special-bit-ctrl-support = <0>;
+		lcd-kit,hbm-elvss-dim-support = <0>;
+		lcd-kit,hbm-elvss-dim-cmd-delay = <0>;
+		lcd-kit,hbm-set-elvss-dim-lp = <0>;
 		lcd-kit,hbm-fp-support = <0>;
+		lcd-kit,hbm-fp-prepare-support = <0>;
 		lcd-kit,hbm-level-max = <0>;
 		lcd-kit,vr-support = <0>;
 		lcd-kit,gamma-cal-support = <0>;
@@ -204,6 +217,9 @@
 		lcd-kit,brightness-color-uniform-support = <0>;
 		lcd-kit,dbv-curve-mapped-support = <0>;
 		lcd-kit,gamma-support = <0>;
+		lcd-kit,cascade-ic-support = <0>;
+		lcd-kit,otp-gamma-support = <0>;
+		lcd-kit,pcd-cmds-support = <0>;
 		lcd-kit,ce-support = <0>;
 		lcd-kit,effect-on-support = <0>;
 		lcd-kit,gmp-support = <0>;

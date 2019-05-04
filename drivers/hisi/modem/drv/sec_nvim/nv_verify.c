@@ -25,7 +25,7 @@ u32 nv_hash_sha256_calc(const u8 *data, u32 len, u8 *hash)
     int flag;
 
     tfm = crypto_alloc_shash("sha256", 0, 0);
-    if(NULL == tfm)
+    if((NULL == tfm) || (IS_ERR(tfm)))
     {
         nv_record("crypto_alloc_shash failed!\n");
         return NV_ERROR;

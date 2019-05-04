@@ -26,6 +26,21 @@
     board_id = <8901>;
 };
 
+&firmware {
+    android {
+        fstab {
+            vendor {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+            odm {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+        };
+    };
+};
+
 &hisi_peripheral_tm {
     compatible = "hisi,hisi-peripheral-tm";
     hisi,peripheral_sensors = <13>;
@@ -1102,7 +1117,7 @@
 				clock-names = "clk_out0";
 				clocks = <&clk_gate_out0>;
 				nfc_chip_type = "pn553";
-				nfc_single_channel = "true";
+				nfc_single_channel = "false";
 				nfc_ese_type = "hisee";
 			};
 
@@ -2706,7 +2721,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;

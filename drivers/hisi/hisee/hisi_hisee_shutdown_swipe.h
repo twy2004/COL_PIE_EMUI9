@@ -101,7 +101,7 @@ int inse_shutdown_swipe_t_nfc_en_func(void *buf, int para);
 int inse_shutdown_swipe_t_nfc_dis_func(void *buf, int para);
 u32 hisee_pdswipe_get_flash_data(void *buf, u32 buf_size, u32 flash_offset);
 void hisee_pdswipe_clear_exception_record(void);
-void hisee_pdswipe_add_flash_data(void *p_buf, u32 buf_size, u32 flash_offset);
+void hisee_pdswipe_add_flash_data(const void *p_buf, u32 buf_size, u32 flash_offset);
 ssize_t hisee_pdswipe_record_show(struct device *dev, struct device_attribute *attr, char *buf);
 ssize_t hisee_pdswipe_exc_show(struct device *dev, struct device_attribute *attr, char *buf);
 

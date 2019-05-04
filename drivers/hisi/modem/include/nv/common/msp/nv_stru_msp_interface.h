@@ -63,9 +63,7 @@ typedef enum{
     /*guc_phy，暂时放在这里等待tf AT命令 star*/
     en_NV_Item_WG_RF_MAIN_BAND           = 10000,  //NAS_NVIM_WG_RF_MAIN_BAND_STRU
     en_NV_Item_W_RF_DIV_BAND             = 10001,  //UCOM_NV_W_RF_DIV_BAND_STRU
-    en_NV_Item_DCXO_C_TRIM               = 10023,  //dcxo for ap nv same as ccore_nv_id_guc_phy.h
     en_NV_Item_RF_SAR_BACKOFF_TESTMODE   = 10029,  //UCOM_NV_SAR_BACKOFF_TEST_MODE_STRU
-    en_NV_Item_DCXO_C2_FIX               = 10071,  //dcxo for ap nv same as ccore_nv_id_guc_phy.h
     en_NV_Item_TRI_MODE_ENABLE           = 10073,  //UCOM_NV_TRI_MODE_ENABLE_STRU
     en_NV_Item_TRI_MODE_FEM_PROFILE_ID   = 10074,  //UCOM_NV_TRI_MODE_FEM_PROFILE_ID_STRU
     /*guc_phy，暂时放在这里等待tf AT命令 end*/

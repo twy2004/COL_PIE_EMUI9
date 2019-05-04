@@ -90,7 +90,7 @@ char *wakelock_name[]={
     "PM",
     "UART0",
     "TDS",
-    "CDMAUART",         /*drv cdma uart 数传*/
+    "SI",               /*pam*/
     "USIM",             /*oam*/
     "DSPPOWERON",       /*v8r1 ccore 提供给GUTL DSP作为c核上电初始化投票用*/
     "RESET",
@@ -171,8 +171,6 @@ void pm_om_log_show(void)
 	pmom_print("init_flag   : 0x%x\n", ctrl->log.init_flag);
 	pmom_print("buf_is_full : 0x%x\n", ctrl->log.buf_is_full);
 	pmom_print("threshold   : 0x%x\n", ctrl->log.threshold);
-	pmom_print("debug       : 0x%p\n", ctrl->debug);
-	pmom_print("platform    : 0x%p\n", ctrl->platform);
 	pmom_print("**********************************************\n");
 }
 
@@ -387,8 +385,7 @@ static inline void print_ccpu_icc_info(void)
 
 void print_ccpu_lowpower_info(void)
 {
-	printk(KERN_ERR"[C SR]current slice:0x%x, mem phy:0x%pK, virt:0x%pK\n",
-        bsp_get_slice_value(), bsp_dump_get_field_phy_addr(DUMP_CP_DRX), g_pmom_debug.cdrx_dump_addr);
+	printk(KERN_ERR"[C SR]current slice:0x%x\n",bsp_get_slice_value());
 	print_ccpu_wakelock_info();
 	print_ccpu_pm_info();
 	print_dpm_device_info();
@@ -404,7 +401,7 @@ int cp_pm_notify(struct notifier_block *nb, unsigned long event, void *dummy)
 		if(!g_pmom_debug.cdrx_dump_addr)
 		{
 			/*获取DUMP 低功耗共享内存地址*/
-			dump_base = (char *)bsp_dump_get_field_addr(DUMP_CP_DRX);
+			dump_base = (char *)bsp_dump_get_field_addr(DUMP_LRCCPU_DRX);
 			if(NULL == dump_base)
 			{
 				pmom_pr_err("*******get cdrx dump buffer failed!*******\n");
@@ -442,7 +439,7 @@ void pm_wakeup_init(void)
 	if(!g_pmom_debug.cdrx_dump_addr)
 	{
     	/*获取DUMP 低功耗共享内存地址*/
-		dump_base = (char *)bsp_dump_get_field_addr(DUMP_CP_DRX);
+		dump_base = (char *)bsp_dump_get_field_addr(DUMP_LRCCPU_DRX);
 		if(NULL == dump_base)
 		{
 			printk(KERN_ERR"notice: cp drx dump is not ready, try again in S/R\n");
@@ -495,7 +492,7 @@ void pm_om_notify_other_core(pm_om_icc_data_type data)
 		if (pm_info && pm_info->cb_func)
 		{
 			(void)pm_info->cb_func(&pm_info->usr_data);
-			pmom_pr_err("mod[%d](%p) is invoked\n", pm_info->usr_data.mod_id, pm_info->cb_func);
+			pmom_pr_err("mod[%d] is invoked\n", pm_info->usr_data.mod_id);
 		}
 	}
 

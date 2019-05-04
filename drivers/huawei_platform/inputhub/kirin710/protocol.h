@@ -198,6 +198,14 @@ typedef enum {
 	CMD_BIG_DATA_SEND_TO_AP,   //0x51
 	CMD_BIG_DATA_SEND_TO_AP_RESP,  //0x52
 
+	/* tag sys for hall status*/
+	CMD_SYS_HALL_STATUS_REQ = 0x53,//0x53
+	CMD_SYS_HALL_STATUS_RESP = 0x54,//0x54
+
+	/* tag modem for phonecall status*/
+	CMD_MODEM_PHONECALL_INFO_REQ = 0x55,//0x55
+	CMD_MODEM_PHONECALL_INFO_RESP = 0x56,//0x56
+
 	/*log buff*/
 	CMD_LOG_SER_REQ = 0xf1,
 	CMD_LOG_USEBUF_REQ,
@@ -383,6 +391,8 @@ typedef enum {
 	MOTION_TYPE_EXT_LOG,
 	MOTION_TYPE_HEAD_DOWN,
 	MOTION_TYPE_PUT_DOWN,
+	MOTION_TYPE_MOVE,
+	MOTION_TYPE_FALL,
 	//
 	MOTION_TYPE_SIDEGRIP, //sensorhub internal use, must at bottom;
 	/*!!!NOTE:add string in motion_type_str when add type*/
@@ -970,7 +980,9 @@ enum {
         FILE_FPC1511_FP = 114,
 	FILE_STK3338_ALS = 115,
 	FILE_APDS9308_ALS = 116,
-	FILE_ID_MAX = 117,                       // MAX VALID FILE ID
+	FILE_LTR2568_ALS = 117,
+	FILE_VCNL36832_ALS,
+	FILE_ID_MAX = 119,                       // MAX VALID FILE ID
 };
 
 #endif

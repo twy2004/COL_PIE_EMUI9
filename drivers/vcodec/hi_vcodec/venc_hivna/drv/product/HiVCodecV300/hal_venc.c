@@ -3,7 +3,7 @@
 #include "drv_venc_efl.h"
 #include "drv_venc_osal.h"
 #include "hi_drv_mem.h"
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/iommu.h>
 
 
@@ -730,7 +730,7 @@ HI_VOID VeduHal_CfgReg_AddrSet(VENC_REG_INFO_S *channelcfg)
     //NBI
     //{
     //   U_VEDU_VCPI_NBI_UPST_ADDR  D32;
-    //   D32.bits.vcpi_upst_address = pEncPara->vcpi_upst_address;
+
     //   pAllReg->VEDU_VCPI_NBI_UPST_ADDR = channelcfg->all_reg..u32;
     //}
 
@@ -802,6 +802,7 @@ HI_VOID VeduHal_CfgReg_SlcHeadSet(VENC_REG_INFO_S *channelcfg)
         pAllReg->VEDU_VCPI_VLC_CONFIG.u32 = channelcfg->all_reg.VEDU_VCPI_VLC_CONFIG.u32;
     }
 
+
     if (channelcfg->all_reg.VEDU_VCPI_MODE.bits.vcpi_protocol == VEDU_H265)
     {
         pAllReg->VEDU_CABAC_SLCHDR_PART2_SEG1 = channelcfg->all_reg.VEDU_CABAC_SLCHDR_PART2_SEG1;
@@ -845,7 +846,7 @@ HI_VOID VeduHal_CfgReg_SlcHeadSet(VENC_REG_INFO_S *channelcfg)
     }
     if (channelcfg->all_reg.VEDU_VLCST_PARAMETER.bits.vlcst_para_set_en == 1)
     {
-        //pEncPara_channel->vlcst_para_set_en = 0;
+
         pAllReg->VEDU_VLCST_PARA_DATA0 = channelcfg->all_reg.VEDU_VLCST_PARA_DATA0;
         pAllReg->VEDU_VLCST_PARA_DATA1 = channelcfg->all_reg.VEDU_VLCST_PARA_DATA1;
         pAllReg->VEDU_VLCST_PARA_DATA2 = channelcfg->all_reg.VEDU_VLCST_PARA_DATA2;

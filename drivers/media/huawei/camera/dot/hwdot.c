@@ -46,7 +46,6 @@ typedef struct _tag_hwdot
     struct mutex                                lock;
     const hwdot_intf_t*                         hw;
     hwcam_data_table_t*                         cfg;
-    struct ion_handle*                          cfg_hdl;
     hwdot_notify_intf_t                         notify;
 } hwdot_t;
 
@@ -76,7 +75,6 @@ hwdot_v4l2_close(
     struct v4l2_subdev* sd,
     struct v4l2_subdev_fh* fh)
 {
-    struct ion_handle* hdl = NULL;
     hwdot_t* s = SD2HWDOT(sd);
     hwdot_config_data_t edata;
     hwcam_data_table_t* cfg = NULL;
@@ -85,13 +83,7 @@ hwdot_v4l2_close(
     edata.cfgtype = HWCAM_DOT_POWEROFF;
     hwdot_subdev_config(s, &edata);
 
-    swap(s->cfg_hdl, hdl);
     swap(s->cfg, cfg);
-    if (hdl) {
-        HWCAM_CFG_ERR("release driver ic data table!");
-        hwcam_cfgdev_release_data_table(hdl);
-    }
-
     return 0;
 }
 
@@ -126,51 +118,6 @@ int hwdot_get_thermal(const hwdot_intf_t *i,void* data)
     return i->vtbl->get_thermal(i,data);
 }
 
-
-static long
-hwdot_subdev_mount_buf(
-    hwdot_t* s,
-    hwcam_buf_info_t* bi)
-{
-     long rc = -EINVAL;
-     switch (bi->kind)
-     {
-         case HWCAM_BUF_KIND_PIPELINE_PARAM:
-             if (!s->cfg) {
-                 s->cfg = hwcam_cfgdev_import_data_table(
-                         "hwdot_drv_cfg", bi, &s->cfg_hdl);
-                 if (s->cfg) { rc = 0; }
-             }
-             break;
-         default:
-             HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-             break;
-     }
-
-     return rc;
-}
-
-static long
-hwdot_subdev_unmount_buf(
-    hwdot_t* s,
-    hwcam_buf_info_t* bi)
-{
-    long rc = -EINVAL;
-    switch (bi->kind)
-    {
-        case HWCAM_BUF_KIND_PIPELINE_PARAM:
-            hwcam_cfgdev_release_data_table(s->cfg_hdl);
-            s->cfg_hdl = NULL;
-            s->cfg = NULL;
-            rc = 0;
-            break;
-        default:
-            HWCAM_CFG_ERR("invalid buffer kind(%d)! \n", bi->kind);
-        break;
-    }
-
-    return rc;
-}
 
 static long
 hwdot_subdev_config(
@@ -214,12 +161,6 @@ hwdot_subdev_ioctl(
     {
         case HWDOT_IOCTL_GET_INFO:
             rc = hwdot_subdev_get_info(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_MOUNT_BUF:
-            rc = hwdot_subdev_mount_buf(s, arg);
-            break;
-        case HWCAM_V4L2_IOCTL_UNMOUNT_BUF:
-            rc = hwdot_subdev_unmount_buf(s, arg);
             break;
         case HWDOT_IOCTL_CONFIG:
             rc = hwdot_subdev_config(s, arg);
@@ -350,13 +291,12 @@ alloc_fail:
 
 /*added for memory hwdot_t leak  **/
 void
-hwdot_unregister(hwdot_intf_t* intf)
+hwdot_unregister(struct platform_device* pdev)
 {
+    struct v4l2_subdev *subdev = platform_get_drvdata(pdev);
     hwdot_t* dot = NULL;
-    struct v4l2_subdev* subdev = NULL;
 
-    dot = container_of(intf, hwdot_t, hw);
-    subdev  = &dot->subdev;
+    dot = SD2HWDOT(subdev);
     media_entity_cleanup(&subdev->entity);
     hwcam_cfgdev_unregister_subdev(subdev);
 

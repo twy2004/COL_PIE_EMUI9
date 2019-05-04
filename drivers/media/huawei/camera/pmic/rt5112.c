@@ -51,6 +51,9 @@
 #define BOOST_CTL (0x05)
 #define BOOST_ENABLE (0x08)
 #define BOOST_VOUT (0x11) //4.5V-5.5V 25mV/step
+#define BOOST_VOUT_4V5 0x03
+#define BOOST_VOUT_5V0 0x50
+#define BOOST_VOUT_OFF 0x03
 
 #define RT5112_BOOST_VOLTAGE_MIN (4500000)
 #define RT5112_BOOST_VOLTAGE_MAX (5500000)
@@ -75,10 +78,19 @@
 #define RT5112_POWERON_MASK   (0x80)
 #define RT5112_POWEROFF_MASK (0x7F)
 
+// BUCK_PWM_MODE
+#define RT5112_BUCK_POWERON_MASK 0x81
+#define RT5112_BUCK_POWEROFF_MASK 0x7E
+#define RT5112_BUCK_PWM_MODE 1
+#define RT5112_LDO2_CTRL 1
+
 // Private data struct
 struct rt5112_private_data_t {
     unsigned int pin;
     unsigned int voltage[VOUT_MAX];
+	unsigned int buck_pwm_mode;
+	unsigned int ldo2_ctrl;
+	unsigned int shutdown_4V5;
 };
 
 typedef struct {
@@ -101,6 +113,7 @@ static struct rt5112_private_data_t rt5112_pdata;
 static struct i2c_driver rt5112_i2c_driver;
 static struct hisi_pmic_ctrl_t rt5112_ctrl;
 extern struct dsm_client *client_pmic;
+static int boost_enabled = 0;
 
 DEFINE_HISI_PMIC_MUTEX(rt5112);
 
@@ -162,7 +175,7 @@ static int rt5112_boost_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
     i2c_func->i2c_write(i2c_client, chx_enable_reg, chx_enable);
     cam_err("%s, power state[%d], chx_reg[%u],chx_enable[%u]", __func__,
             state, chx_enable_reg, chx_enable);
-
+	boost_enabled = state;
     return ret;
 }
 
@@ -171,6 +184,7 @@ static int rt5112_buck_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
                               u32 voltage,
                               int state)
 {
+	struct rt5112_private_data_t *pdata = NULL;
     struct hisi_pmic_i2c_client *i2c_client;
     struct hisi_pmic_i2c_fn_t *i2c_func;
     u8 chx_enable = 0;
@@ -200,6 +214,11 @@ static int rt5112_buck_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
         return -1;
     }
 
+	pdata = (struct rt5112_private_data_t *)pmic_ctrl->pdata;
+	if (pdata == NULL) {
+		cam_err("%s pdata error", __func__);
+		return -1;
+	}
     i2c_client = pmic_ctrl->pmic_i2c_client;
     i2c_func = pmic_ctrl->pmic_i2c_client->i2c_func_tbl;
 
@@ -213,12 +232,22 @@ static int rt5112_buck_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
                                             RT5112_BUCK_VOLTAGE_MIN,
                                             RT5112_BUCK_VOLTAGE_STEP);
         // set voltage
-        i2c_func->i2c_write(i2c_client, voltage_reg, voltage_level);
-        chx_enable = chx_enable | RT5112_POWERON_MASK;
+		i2c_func->i2c_write(i2c_client, voltage_reg, voltage_level);
+		if (pdata->buck_pwm_mode == RT5112_BUCK_PWM_MODE) {
+			chx_enable = chx_enable | RT5112_BUCK_POWERON_MASK;
+		}
+		else {
+			chx_enable = chx_enable | RT5112_POWERON_MASK;
+		}
     }
     else
     {
-        chx_enable = chx_enable & RT5112_POWEROFF_MASK;
+		if (pdata->buck_pwm_mode == RT5112_BUCK_PWM_MODE) {
+			chx_enable = chx_enable & RT5112_BUCK_POWEROFF_MASK;
+		}
+		else {
+			chx_enable = chx_enable & RT5112_POWEROFF_MASK;
+		}
     }
 
     i2c_func->i2c_write(i2c_client, chx_enable_reg, chx_enable);
@@ -301,19 +330,66 @@ static int rt5112_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
                               u32 voltage,
                               int state)
 {
-    int ret = 0;
+	int ret = 0;
+	static int state_votes = 0;
+	struct rt5112_private_data_t *pdata = NULL;
 
-    mutex_lock(&pmic_mut_rt5112);
-    if (seq_index == VOUT_BOOST) {
-        ret = rt5112_boost_seq_config(pmic_ctrl, seq_index, voltage, state);
-    } else if (seq_index < VOUT_LDO_5) {
-        ret = rt5112_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
-    } else {
-        ret = rt5112_buck_seq_config(pmic_ctrl, seq_index, voltage, state);
-    }
+	pdata = (struct rt5112_private_data_t *)pmic_ctrl->pdata;
+	if (pdata == NULL) {
+		cam_err("%s pdata error", __func__);
+		return -1;
+	}
 
-    mutex_unlock(&pmic_mut_rt5112);
-    return ret;
+	mutex_lock(&pmic_mut_rt5112);
+	if (seq_index == VOUT_BOOST) {
+		ret = rt5112_boost_seq_config(pmic_ctrl, seq_index, voltage, state);
+	} else if (seq_index < VOUT_LDO_5) {
+		if ((pdata->ldo2_ctrl == RT5112_LDO2_CTRL) && (seq_index == VOUT_LDO_2)) {
+			if (state == 0) {
+				if (state_votes > 1) {
+					cam_info("%s state_votes = %d, cannot close LDO index%d",
+						__func__, state_votes, seq_index);
+					state_votes--;
+				} else if (state_votes == 1) {
+					ret = rt5112_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+					if (ret == 0) {
+						state_votes = 0;
+						cam_info("%s vote to close LDO index%d suc", __func__, seq_index);
+					} else {
+						cam_err("%s vote to close LDO index%d err!", __func__, seq_index);
+					}
+				} else {
+					cam_err("%s invalid vote count = %d!", __func__, state_votes);
+					ret = -1;
+				}
+			}
+			if (state == 1) {
+				if (state_votes > 0) {
+					cam_info("%s state_votes = %d, do not open LDO index%d again",
+						__func__, state_votes, seq_index);
+					state_votes++;
+				} else if (state_votes == 0) {
+					ret = rt5112_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+					if (ret == 0) {
+						state_votes = 1;
+						cam_info("%s vote to open LDO index%d suc", __func__, seq_index);
+					} else {
+						cam_err("%s vote to open LDO index%d err!", __func__, seq_index);
+					}
+				} else {
+					cam_err("%s invalid vote count = %d!", __func__, state_votes);
+					ret = -1;
+				}
+			}
+		} else {
+			ret = rt5112_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+		}
+	} else {
+		ret = rt5112_buck_seq_config(pmic_ctrl, seq_index, voltage, state);
+	}
+
+	mutex_unlock(&pmic_mut_rt5112);
+	return ret;
 }
 
 static int rt5112_match(struct hisi_pmic_ctrl_t *pmic_ctrl)
@@ -344,7 +420,28 @@ static int rt5112_get_dt_data(struct hisi_pmic_ctrl_t *pmic_ctrl)
         goto fail;
     }
 
+	// buck pwm forced mode
+	rc = of_property_read_u32(dev_node, "hisi,pmic_buck_pwm_mode", &pdata->buck_pwm_mode);
+	if (rc < 0) {
+		pdata->buck_pwm_mode = 0;
+		cam_info("%s, cannot get buck config, set to default buck mode", __func__);
+	}
+	cam_info("%s huawei,pmic_buck_pwm_mode %d", __func__, pdata->buck_pwm_mode);
 
+	// ldo2_ctrl
+	rc = of_property_read_u32(dev_node, "hisi,pmic_ldo2_ctrl", &pdata->ldo2_ctrl);
+	if (rc < 0) {
+		pdata->ldo2_ctrl = 0;
+		cam_info("%s, cannot get buck config, set to default ldo2_ctrl", __func__);
+	}
+	rc = of_property_read_u32(dev_node, "hisi,shutdown_4V5",
+		&pdata->shutdown_4V5);
+	if (rc < 0) {
+		pdata->shutdown_4V5 = 0;
+		cam_info("%s, cannot get shutdown 4v5 set, set 0", __func__);
+	}
+	cam_info("%s shutdown 4v5 val = %d", __func__, pdata->shutdown_4V5);
+	cam_info("%s huawei,pmic_ldo2_ctrl %d", __func__, pdata->ldo2_ctrl);
     return 0;
 
 fail:
@@ -370,6 +467,8 @@ static int rt5112_init(struct hisi_pmic_ctrl_t *pmic_ctrl)
     struct rt5112_private_data_t *pdata;
     u8 chip_id = 0;
     int ret = 0;
+	u8 vout_reg = 0;
+	u8 boost_volt = 0;
 
     cam_debug("%s enter.", __func__);
 
@@ -415,14 +514,23 @@ static int rt5112_init(struct hisi_pmic_ctrl_t *pmic_ctrl)
     }
     cam_debug("%s chip id=%d", __func__, chip_id);
 
+	i2c_func->i2c_read(i2c_client, BOOST_VOUT, &vout_reg);
+	cam_info("get vboost vol reg = %d\n", vout_reg);
     //mask boost interrupt
     i2c_func->i2c_write(i2c_client, RT5112_MASK_INTR_REG, RT5112_MASK_BOOST_5V);
     //clean interrupt
     rt5112_clear_interrupt(pmic_ctrl);
 
-    //if(chip_id != RT5112_CHIP_VERSION) {
-    //    goto err;
-    //}
+	ret = i2c_func->i2c_read(i2c_client, BOOST_VOUT, &boost_volt);
+	if (ret < 0) {
+		cam_err("%s, read boost volt err", __func__);
+		boost_volt = BOOST_VOUT_OFF;
+	}
+
+	boost_volt = (boost_volt & BOOST_VOUT_OFF) | BOOST_VOUT_5V0;
+	ret = i2c_func->i2c_write(i2c_client, BOOST_VOUT, boost_volt);
+	if (ret < 0)
+		cam_err("%s, set boost volt err", __func__);
 
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
     set_hw_dev_flag(DEV_I2C_CAMERA_PMIC);
@@ -550,7 +658,41 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
     //mask boost interrupt
     i2c_func->i2c_write(i2c_client, RT5112_MASK_INTR_REG, RT5112_MASK_BOOST_5V);
 
+	if (boost_enabled) {
+		cam_info("reset boost power\n");
+		rt5112_boost_seq_config(pmic_ctrl, VOUT_BOOST, 0, boost_enabled);
+	}
     return 0;
+}
+
+static int rt5112_shutdown(struct i2c_client *client)
+{
+	struct hisi_pmic_i2c_client *rt_i2c_client = NULL;
+	struct hisi_pmic_ctrl_t *rt_shut_pmic_ctrl = NULL;
+	struct hisi_pmic_i2c_fn_t *i2c_func = NULL;
+	struct rt5112_private_data_t *pdata = NULL;
+	u8 boost_vol_value = 0;
+
+	cam_warn("%s enter", __func__);
+	rt_shut_pmic_ctrl = hisi_get_pmic_ctrl();
+	if (!rt_shut_pmic_ctrl || !rt_shut_pmic_ctrl->pmic_i2c_client ||
+		!rt_shut_pmic_ctrl->pmic_i2c_client->i2c_func_tbl ||
+		!rt_shut_pmic_ctrl->pdata)
+		return -EFAULT;
+
+	pdata = (struct rt5112_private_data_t *)rt_shut_pmic_ctrl->pdata;
+	if (pdata->shutdown_4V5 == 0) {
+		cam_warn("%s not support shut down to 4v5", __func__);
+		return 0;
+	}
+
+	rt_i2c_client = rt_shut_pmic_ctrl->pmic_i2c_client;
+	i2c_func = rt_shut_pmic_ctrl->pmic_i2c_client->i2c_func_tbl;
+	i2c_func->i2c_read(rt_i2c_client, BOOST_VOUT, &boost_vol_value);
+	boost_vol_value = boost_vol_value & BOOST_VOUT_4V5;
+	i2c_func->i2c_write(rt_i2c_client, BOOST_VOUT, boost_vol_value);
+	cam_warn("set to 4V5");
+	return 0;
 }
 
 static int rt5112_remove(struct i2c_client *client)
@@ -577,6 +719,7 @@ MODULE_DEVICE_TABLE(of, rt5112_dt_match);
 static struct i2c_driver rt5112_i2c_driver = {
     .probe    = hisi_pmic_i2c_probe,
     .remove = rt5112_remove,
+	.shutdown = rt5112_shutdown,
     .id_table   = rt5112_id,
     .driver = {
         .name = "rt5112",

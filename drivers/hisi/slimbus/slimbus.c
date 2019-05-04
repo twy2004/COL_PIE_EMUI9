@@ -29,15 +29,15 @@
 #include <linux/of.h>
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
+#include <rdr_hisi_audio_adapter.h>
 #include <dsm_audio/dsm_audio.h>
-
-#include "hi3630_asp_common.h"
 
 #include "slimbus_utils.h"
 #include "slimbus_drv.h"
 #include "slimbus.h"
 #include "slimbus_64xx.h"
 #include "slimbus_6403.h"
+#include "slimbus_6405.h"
 
 /*lint -e838 -e730 -e747 -e774 -e826 -e529 -e438 -e485 -e785 -e651 -e64 -e527 -e570*/
 
@@ -1065,7 +1065,7 @@ static int slimbus_check_pm(uint32_t track)
 			ret = pm_runtime_get_sync(pdata->dev);
 			if (ret < 0) {
 				pr_err("[%s:%d] pm resume error, track:%d, ret:%d\n", __FUNCTION__, __LINE__, track, ret);
-				BUG_ON(true);
+				rdr_system_error(RDR_AUDIO_RUNTIME_SYNC_FAIL_MODID, 0, 0);
 				return ret;
 			}
 			if (!slimbus_trackstate_get()) {
@@ -1257,6 +1257,11 @@ int slimbus_track_deactivate(
 	struct slimbus_device_info *dev = NULL;
 	bool is_fast_soundtrigger = false;
 	slimbus_track_config_t *track_config_t = NULL;
+
+	if (!pdata) {
+		pr_err("pdata is null\n");
+		return -1;
+	}
 
 	if (!slimbus_track_params_is_valid(dev_type, track)) {
 		pr_err("params error, dev_type %d, track %d\n", dev_type, track);
@@ -1478,7 +1483,7 @@ int slimbus_bus_configure(slimbus_bus_config_type_t type)
 		pm_ret = pm_runtime_get_sync(pdata->dev);
 		if (pm_ret < 0) {
 			pr_err("[%s:%d] pm resume error, type:%d pm_ret:%d\n", __FUNCTION__, __LINE__, type, pm_ret);
-			BUG_ON(true);
+			rdr_system_error(RDR_AUDIO_RUNTIME_SYNC_FAIL_MODID, 0, 0);
 			return pm_ret;
 		}
 	}
@@ -1571,6 +1576,9 @@ static int slimbus_init_platform_params(const char *platformtype, slimbus_device
 			if (SLIMBUS_DEVICE_HI6403 == device_type) {
 				slimbus_devices[device_type]->scene_config_type = SLIMBUS_SCENE_CONFIG_6144_FPGA;
 			}
+			else if (SLIMBUS_DEVICE_HI6405 == device_type) {
+				slimbus_devices[device_type]->scene_config_type = SLIMBUS_SCENE_CONFIG_6144_FPGA;
+			}
 			*platform_type = PLATFORM_FPGA;
 		} else {
 			pr_err("platform type define err, platformtype %s!\n", platformtype);
@@ -1623,6 +1631,22 @@ static void slimbus_hi64xx_register(slimbus_device_ops_t *dev_ops, struct slimbu
 		dev_ops->slimbus_device_param_init = slimbus_hi6403_param_init;
 		dev_ops->slimbus_device_param_update = slimbus_hi6403_param_update;
 		dev_ops->slimbus_get_soundtrigger_params = slimbus_hi6403_get_st_params;
+	}
+	else if (SLIMBUS_DEVICE_HI6405 == pd->device_type) {
+		dev_ops->create_slimbus_device = create_hi6405_slimbus_device;
+		dev_ops->slimbus_device_param_init = slimbus_hi6405_param_init;
+		dev_ops->slimbus_device_param_update = slimbus_hi6405_param_update;
+		dev_ops->slimbus_device_param_set = slimbus_hi6405_param_set;
+	 	dev_ops->slimbus_track_soundtrigger_activate = slimbus_hi6405_track_soundtrigger_activate;
+		dev_ops->slimbus_track_soundtrigger_deactivate = slimbus_hi6405_track_soundtrigger_deactivate;
+		dev_ops->slimbus_track_is_fast_soundtrigger = slimbus_hi6405_track_is_fast_soundtrigger;
+		dev_ops->slimbus_check_st_conflict = slimbus_hi6405_check_st_conflict;
+		dev_ops->slimbus_get_soundtrigger_params = slimbus_hi6405_get_st_params;
+		dev_ops->slimbus_check_scenes = slimbus_hi6405_check_scenes;
+		dev_ops->slimbus_select_scenes = slimbus_hi6405_select_scenes;
+
+		pd->track_config_table = track_config_6405_table;
+		pd->slimbus_track_max = SLIMBUS_6405_TRACK_MAX;
 	}
 	return;
 }
@@ -1803,6 +1827,9 @@ static int slimbus_pinctrl_init(struct platform_device *pdev, struct slimbus_pri
 
 	if (ret == 0 && !strncmp(codectype, "slimbus-6403cs", max_size_codectype)) {
 		pd->device_type = SLIMBUS_DEVICE_HI6403;
+	}
+	else if (ret == 0 && !strncmp(codectype, "slimbus-6405", max_size_codectype)) {
+		pd->device_type = SLIMBUS_DEVICE_HI6405;
 	}
 	else {
 		dev_err(dev, "%s : do not support hi6402\n", __FUNCTION__);
@@ -2027,7 +2054,7 @@ static int slimbus_suspend(struct device *device)
 		pm_ret = pm_runtime_get_sync(device);
 		if (pm_ret < 0) {
 			pr_err("[%s:%d] pm resume error, pm_ret:%d\n", __FUNCTION__, __LINE__, pm_ret);
-			BUG_ON(true);
+			rdr_system_error(RDR_AUDIO_RUNTIME_SYNC_FAIL_MODID, 0, 0);
 			return pm_ret;
 		}
 	}

@@ -26,6 +26,12 @@
 #define BST_SKIP_SOCK_OWNER_TIME		(HZ / 20)
 #define BST_WAKELOCK_TIMEOUT			(HZ / 10)
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#ifndef tcp_jiffies32
+#define tcp_jiffies32 tcp_time_stamp
+#endif
+#endif
+
 enum {
 	BST_TMR_EVT_INVALID = 0,
 	BST_TMR_REQ_SOCK_SYNC,
@@ -115,13 +121,14 @@ static void setup_sock_sync_request_timer(struct sock *sk, bool retry)
  */
 static int request_sock_sync(struct sock *sk)
 {
+	int err = 0;
+	struct bst_sock_comm_prop prop ;
+
+	memset(&prop, 0, sizeof(prop));
 	if (IS_ERR_OR_NULL(sk) ||IS_ERR_OR_NULL(sk->bastet)) {
 		BASTET_LOGE("invalid parameter");
 		return -EFAULT;
 	}
-
-	int err;
-	struct bst_sock_comm_prop prop;
 
 	sk->bastet->bastet_sock_state = BST_SOCK_UPDATING;
 
@@ -135,12 +142,14 @@ static int request_sock_sync(struct sock *sk)
 
 static bool do_sock_send_prepare(struct sock *sk)
 {
+	u8 sync_state;
+
 	if (IS_ERR_OR_NULL(sk) ||IS_ERR_OR_NULL(sk->bastet)) {
 		BASTET_LOGE("invalid parameter");
 		return false;
 	}
 
-	u8 sync_state = sk->bastet->bastet_sock_state;
+	sync_state = sk->bastet->bastet_sock_state;
 
 	switch (sync_state) {
 	case BST_SOCK_INVALID:
@@ -177,12 +186,14 @@ bool bastet_sock_send_prepare(struct sock *sk)
 static inline bool bastet_rcvqueues_full(struct sock *sk,
 	const struct sk_buff *skb)
 {
+	struct bastet_sock *bsk;
+
 	if (IS_ERR_OR_NULL(skb) || IS_ERR_OR_NULL(sk) ||IS_ERR_OR_NULL(sk->bastet)) {
 		BASTET_LOGE("invalid parameter");
 		return false;
 	}
 
-	struct bastet_sock *bsk = sk->bastet;
+	bsk = sk->bastet;
 
 	return bsk->recv_len + skb->truesize > sk->sk_rcvbuf;
 }
@@ -366,7 +377,7 @@ static void bastet_store_ts_recent(struct tcp_sock *tp,
 	/* new_ts_rencent_tick has not changed since been passed to modem */
 	if (0 != new_ts_rencent_tick) {
 		long new_stamp = get_seconds()
-			- ((tcp_time_stamp - new_ts_rencent_tick) / HZ);
+			- ((tcp_jiffies32 - new_ts_rencent_tick) / HZ);
 
 		tp->rx_opt.ts_recent_stamp = new_stamp;
 	}
@@ -426,7 +437,7 @@ static int adjust_sock_sync_prop(struct sock *sk,
 	tp->snd_una += seq_changed;
 
 	if (likely(tp->rx_opt.tstamp_ok)) {
-		tp->tsoffset = sync_p->ts_current - tcp_time_stamp;
+		tp->tsoffset = sync_p->ts_current - tcp_jiffies32;
 
 		bastet_store_ts_recent(tp, sync_p->ts_recent,
 			sync_p->ts_recent_tick);
@@ -1157,14 +1168,16 @@ out_put:
  */
 void bastet_sock_release(struct sock *sk)
 {
+	struct bst_close_sock_prop prop;
+	struct bastet_sock *bsk;
+
 	if (IS_ERR_OR_NULL(sk)) {
 		BASTET_LOGE("invalid parameter");
 		return;
 	}
 
-	struct bst_close_sock_prop prop;
-	struct bastet_sock *bsk = sk->bastet;
-
+	bsk = sk->bastet;
+	memset(&prop, 0, sizeof(prop));
 	if (!is_bastet_enabled())
 		return;
 

@@ -11,7 +11,7 @@
   /{
     nve_himntn:himntn {
         compatible = "hisilicon,hisi-himntn";
-        himntn = "011111111111101000101100000000000000001010001";
+        himntn = "01111111111110100010110000000000000000101000";
     };
 
     rdr_ap_adapter {
@@ -62,6 +62,7 @@
         ap_dump_mem_modu_noc_size = <0x1000>;   /*0x1000 4k*/
         ap_dump_mem_modu_ddr_size = <0x2000>;   /*0x2000 8k*/
         ap_dump_mem_modu_tmc_size = <0x20000>;  /*0x20000 128k for TMC*/
+        ap_dump_mem_modu_mntn_fac_size = <0x400>; /*0x400 1k*/
         ap_dump_mem_modu_gap_size = <0x100>;    /*0x100 256 byte space as the gap, adding modules need before this*/
         status = "ok";
     };
@@ -79,7 +80,7 @@
         ecc-size = <0x0>;
     };
 
-    rdr {
+rdr: rdr {
         compatible = "hisilicon,rdr";
         /* Confirm reg definition is same as in hisi_3660_memory.dtsi*/
         bbox_addr = <&mntn_mem>;

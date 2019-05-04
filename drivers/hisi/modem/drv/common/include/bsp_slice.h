@@ -147,6 +147,8 @@ u32 bsp_slice_getcurtime_hrt_ns(u64 *pcurtime_ns);
 u32 bsp_slice_getcurtime_hrt(u64 *pcurtime);
 u32 bsp_get_slice_freq(void);
 void slice_resume(void);
+void slice_resume_mdm(void);
+void slice_resume_mdm5g(void);
 int bsp_slice_init(void);
 void hrt_slice_resume(void);
 #else
@@ -162,6 +164,8 @@ static inline u32 bsp_slice_getcurtime_hrt(u64 *pcurtime){return 0;}
 static inline u32 bsp_get_slice_freq(void){return 32764;}
 static inline u32 bsp_get_hrtimer_freq(void){return 19200000;}
 static inline void slice_resume(void){return;};
+static inline void slice_resume_mdm(void){return;};
+static inline void slice_resume_mdm5g(void){return;};
 #ifndef __KERNEL__
 static inline void udelay(unsigned us){return;}
 #endif

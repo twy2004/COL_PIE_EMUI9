@@ -448,11 +448,11 @@ static inline void ion_secsg_heap_destroy(struct ion_heap *ih){ }
 #if (defined CONFIG_ION_HISI_SECSG) || (defined CONFIG_ION_HISI_SECCM)
 int ion_secmem_heap_phys(struct ion_heap *heap,
 		struct ion_buffer *buffer,
-		ion_phys_addr_t *addr, size_t *len);
+		phys_addr_t *addr, size_t *len);
 #else
 static inline int ion_secmem_heap_phys(struct ion_heap *heap,
 		struct ion_buffer *buffer,
-		ion_phys_addr_t *addr, size_t *len)
+		phys_addr_t *addr, size_t *len)
 {
 	pr_err("%s: not sec mem!\n", __func__);
 	return -EINVAL;

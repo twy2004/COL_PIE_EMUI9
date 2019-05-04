@@ -121,6 +121,10 @@ static int no_open(struct inode *inode, struct file *file)
 	return -ENXIO;
 }
 
+#ifndef EROFS_SUPER_MAGIC
+#define EROFS_SUPER_MAGIC	(0xE0F5E1E2UL)
+#endif
+
 /**
  * inode_init_always - perform inode structure intialisation
  * @sb: superblock inode belongs to
@@ -186,7 +190,8 @@ int inode_init_always(struct super_block *sb, struct inode *inode)
 	atomic_set(&mapping->i_mmap_writable, 0);
 
 	if (sb->s_magic == F2FS_SUPER_MAGIC
-		|| sb->s_magic == EXT4_SUPER_MAGIC)
+		|| sb->s_magic == EXT4_SUPER_MAGIC
+		|| sb->s_magic == EROFS_SUPER_MAGIC)
 		mask |= ___GFP_CMA;
 
 	mapping_set_gfp_mask(mapping, mask);

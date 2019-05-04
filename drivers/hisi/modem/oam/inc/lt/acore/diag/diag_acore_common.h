@@ -158,11 +158,11 @@ VOS_UINT32 diag_TransReqProcEntry(DIAG_FRAME_INFO_STRU *pstReq, DIAG_TRANS_HEADE
 VOS_VOID OM_AcpuCltInfoCnfMsgProc(MsgBlock* pMsg);
 VOS_VOID OM_AcpuCltInfoCnfNotNeedProcessSetFlag(VOS_VOID);
 VOS_VOID OM_AcpuRcvCltInfoFinish(VOS_VOID);
-
 VOS_VOID PPM_SockOmServerTask(VOS_VOID);
 VOS_VOID PPM_SockAtServerTask(VOS_VOID);
 VOS_UINT32 diag_DisconnectTLPort(void);
 VOS_VOID diag_ApAgentMsgProc(MsgBlock* pMsgBlock);
+VOS_VOID diag_TimerMsgProc(MsgBlock* pMsgBlock);
 
 /*****************************************************************************
   9 OTHERS

@@ -362,6 +362,12 @@ void bfgx_beat_timer_expire_etc(uint64 data)
     struct tty_bufhead *buf = NULL;
 #endif
 
+    if (bfgx_is_shutdown_etc())
+    {
+        PS_PRINT_WARNING("bfgx is closed\n");
+        return;
+    }
+
     get_exception_info_reference_etc(&pst_exception_data);
     if (NULL == pst_exception_data)
     {
@@ -2159,8 +2165,7 @@ int32 __store_wifi_mem_to_file_etc(void)
 
 #ifdef PLATFORM_DEBUG_ENABLE
     struct timeval tv;
-    struct rtc_time tm;
-
+    struct rtc_time tm = {0};
     do_gettimeofday(&tv);
     rtc_time_to_tm(tv.tv_sec, &tm);
     PS_PRINT_INFO("%4d-%02d-%02d  %02d:%02d:%02d\n",

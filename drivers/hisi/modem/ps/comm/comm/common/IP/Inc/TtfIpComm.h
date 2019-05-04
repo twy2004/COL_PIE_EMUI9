@@ -134,6 +134,8 @@ typedef VOS_UINT8 IP_DATA_TYPE_ENUM_UINT8;
 #endif
 
 
+#define TTF_MASK_IPV4_ADDR(Ipv4Addr)        ((Ipv4Addr) & 0xFFFFFF00)
+
 #define TTF_IP_MAX_OPT                  (40)
 #define TTF_TCP_MAX_OPT                 (40)
 #define TTF_TCP_HEAD_NORMAL_LEN         (20)
@@ -156,6 +158,11 @@ typedef VOS_UINT8 IP_DATA_TYPE_ENUM_UINT8;
 #define TTF_IP_DF_MASK                  (0x4000)
 #define TTF_IP_MF_MASK                  (0x2000)
 #define TTF_IP_FRAGMENT_OFFSET_MASK     (0x1FFF)
+
+#define TTF_IPV4_MASK_IP_ADDR_SENSITIVE_POS      (3)     /* IPV4 地址脱敏的位置 */
+#define TTF_IPV4_MASK_IP_ADDR_SENSITIVE_BYTE_NUM (1)     /* IPV4 地址脱敏的字节数 */
+#define TTF_IPV6_MASK_IP_ADDR_SENSITIVE_POS      (5)     /* IPV6 地址脱敏的位置 */
+#define TTF_IPV6_MASK_IP_ADDR_SENSITIVE_BYTE_NUM (11)    /* IPV6 地址脱敏的字节数 */
 
 /*****************************************************************************
   4 全局变量声明
@@ -267,6 +274,22 @@ extern VOS_UINT16 TTF_GetIpDataTraceLen
     VOS_UINT16                          usSduLen
 );
 
+extern VOS_VOID TTF_TraceMaskIpAddr
+(
+    VOS_UINT32                          ulPid,
+    VOS_UINT8                          *pucData,
+    VOS_UINT16                          usDataLen
+);
+
+extern VOS_VOID TTF_FilterIpv4AddrSensitiveInfo
+(
+    VOS_UINT8                          *pucIpAddr
+);
+
+extern VOS_VOID TTF_FilterIpv6AddrSensitiveInfo
+(
+    VOS_UINT8                          *pucIpAddr
+);
 
 #pragma pack()
 

@@ -236,6 +236,8 @@ enum NAS_MNTN_SYS_SUBMODE_ENUM
     NAS_MNTN_SYS_SUBMODE_HSDPA                 = 5,                /* HSDPAģʽ */
     NAS_MNTN_SYS_SUBMODE_HSUPA                 = 6,                /* HSUPAģʽ */
     NAS_MNTN_SYS_SUBMODE_HSDPA_HSUPA           = 7,                /* HSDPA+HSUPAģʽ */
+    NAS_MNTN_SYS_SUBMODE_LTE                   = 8,                /* LTEģʽ */
+    NAS_MNTN_SYS_SUBMODE_NR                    = 9,                /* NRģʽ */
     NAS_MNTN_SYS_SUBMODE_BUTT
 };
 typedef VOS_UINT8  NAS_MNTN_SYS_SUBMODE_ENUM_UINT8;

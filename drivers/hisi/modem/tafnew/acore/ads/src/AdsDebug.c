@@ -114,21 +114,21 @@ VOS_VOID ADS_ShowEntityStats(VOS_VOID)
 
     for (i = 0; i < ADS_INSTANCE_MAX_NUM; i++)
     {
-        PS_PRINTF("ADS Modem ID %d\n", i);
+        PS_PRINTF_INFO("ADS Modem ID %d\n", i);
 
         for (j = ADS_RAB_ID_MIN; j <= ADS_RAB_ID_MAX; j++)
         {
             if (VOS_NULL_PTR != g_stAdsCtx.astAdsSpecCtx[i].stAdsUlCtx.astAdsUlQueue[j].pstAdsUlLink)
             {
-                PS_PRINTF("ADS Queue length is %d\n", IMM_ZcQueueLen(g_stAdsCtx.astAdsSpecCtx[i].stAdsUlCtx.astAdsUlQueue[j].pstAdsUlLink));
+                PS_PRINTF_INFO("ADS Queue length is %d\n", IMM_ZcQueueLen(g_stAdsCtx.astAdsSpecCtx[i].stAdsUlCtx.astAdsUlQueue[j].pstAdsUlLink));
             }
 
-            PS_PRINTF("ADS DL RabId is %d\r\n", g_stAdsCtx.astAdsSpecCtx[i].stAdsDlCtx.astAdsDlRabInfo[j - ADS_RAB_ID_OFFSET].ulRabId);
+            PS_PRINTF_INFO("ADS DL RabId is %d\n", g_stAdsCtx.astAdsSpecCtx[i].stAdsDlCtx.astAdsDlRabInfo[j - ADS_RAB_ID_OFFSET].ulRabId);
         }
     }
 
-    PS_PRINTF("ADS上行正在发送标识              %d\n",g_stAdsCtx.stAdsIpfCtx.ucSendingFlg);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS UL is sending flag, SendingFlg = %d\n",g_stAdsCtx.stAdsIpfCtx.ucSendingFlg);
+
 
     return;
 }
@@ -136,23 +136,21 @@ VOS_VOID ADS_ShowEntityStats(VOS_VOID)
 
 VOS_VOID ADS_ShowEventProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS EVENT PROC STATS                         \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ULQueNonEmptyTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueNonEmptyTrigEvent);
-    PS_PRINTF("ULQueFullTrigEvent               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueFullTrigEvent);
-    PS_PRINTF("ULQueHitThresTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueHitThresTrigEvent);
-    PS_PRINTF("ULTmrHitThresTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULTmrHitThresTrigEvent);
-    PS_PRINTF("UL10MsTmrTrigEvent               %10u\n", g_stAdsStats.stUlComStatsInfo.ulUL10MsTmrTrigEvent);
-    PS_PRINTF("ULSpeIntTrigEvent                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULSpeIntTrigEvent);
-    PS_PRINTF("ULProcEventNum                   %10u\n", g_stAdsStats.stUlComStatsInfo.ulULProcEventNum);
-    PS_PRINTF("DLRcvIpfRdIntNum                 %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRcvIpfRdIntNum);
-    PS_PRINTF("DLCCoreResetTrigRdEvent          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLCCoreResetTrigEvent);
-    PS_PRINTF("DLProcIpfRdEventNum              %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLProcIpfRdEventNum);
-    PS_PRINTF("DLRcvIpfAdqEmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRcvIpfAdqEmptyIntNum);
-    PS_PRINTF("DLRecycleMemTrigAdEvent          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRecycleMemTrigEvent);
-    PS_PRINTF("DLProcIpfAdEventNum              %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLProcIpfAdEventNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS EVENT PROC STATS START:              \n");
+    PS_PRINTF_INFO("ULQueNonEmptyTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueNonEmptyTrigEvent);
+    PS_PRINTF_INFO("ULQueFullTrigEvent               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueFullTrigEvent);
+    PS_PRINTF_INFO("ULQueHitThresTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULQueHitThresTrigEvent);
+    PS_PRINTF_INFO("ULTmrHitThresTrigEvent           %10u\n", g_stAdsStats.stUlComStatsInfo.ulULTmrHitThresTrigEvent);
+    PS_PRINTF_INFO("UL10MsTmrTrigEvent               %10u\n", g_stAdsStats.stUlComStatsInfo.ulUL10MsTmrTrigEvent);
+    PS_PRINTF_INFO("ULSpeIntTrigEvent                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULSpeIntTrigEvent);
+    PS_PRINTF_INFO("ULProcEventNum                   %10u\n", g_stAdsStats.stUlComStatsInfo.ulULProcEventNum);
+    PS_PRINTF_INFO("DLRcvIpfRdIntNum                 %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRcvIpfRdIntNum);
+    PS_PRINTF_INFO("DLCCoreResetTrigRdEvent          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLCCoreResetTrigEvent);
+    PS_PRINTF_INFO("DLProcIpfRdEventNum              %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLProcIpfRdEventNum);
+    PS_PRINTF_INFO("DLRcvIpfAdqEmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRcvIpfAdqEmptyIntNum);
+    PS_PRINTF_INFO("DLRecycleMemTrigAdEvent          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRecycleMemTrigEvent);
+    PS_PRINTF_INFO("DLProcIpfAdEventNum              %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLProcIpfAdEventNum);
+    PS_PRINTF_INFO("ADS EVENT PROC STATS END.                \n");
 
     return;
 }
@@ -162,32 +160,30 @@ VOS_VOID ADS_ShowULPktProcStats(VOS_VOID)
 {
     VOS_UINT32                           ulInstance;
 
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS UL PTK PROC STATS                        \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ULRmnetRxPktNum                  %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetRxPktNum);
-    PS_PRINTF("ULRmnetModemIdErrNum             %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetModemIdErrNum);
-    PS_PRINTF("ULRmnetRabIdErrNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetRabIdErrNum);
-    PS_PRINTF("ULRmnetEnQueSuccNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetEnQueSuccNum);
-    PS_PRINTF("ULRmnetEnQueFailNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetEnQueFailNum);
-    PS_PRINTF("ULPktEnQueSuccNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULPktEnQueSuccNum);
-    PS_PRINTF("ULPktEnQueFailNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULPktEnQueFailNum);
+    PS_PRINTF_INFO("ADS UL PKT PROC STATS START:             \n");
+    PS_PRINTF_INFO("ULRmnetRxPktNum                  %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetRxPktNum);
+    PS_PRINTF_INFO("ULRmnetModemIdErrNum             %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetModemIdErrNum);
+    PS_PRINTF_INFO("ULRmnetRabIdErrNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetRabIdErrNum);
+    PS_PRINTF_INFO("ULRmnetEnQueSuccNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetEnQueSuccNum);
+    PS_PRINTF_INFO("ULRmnetEnQueFailNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULRmnetEnQueFailNum);
+    PS_PRINTF_INFO("ULPktEnQueSuccNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULPktEnQueSuccNum);
+    PS_PRINTF_INFO("ULPktEnQueFailNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULPktEnQueFailNum);
 
     for (ulInstance = 0; ulInstance < ADS_INSTANCE_MAX_NUM; ulInstance++)
     {
-        PS_PRINTF("ULBuffPktNum[MDOEM:%d]            %10u\n", ulInstance, ADS_UL_GetInstanceAllQueueDataNum(ulInstance));
+        PS_PRINTF_INFO("ULBuffPktNum[MDOEM:%d]            %10u\n", ulInstance, ADS_UL_GetInstanceAllQueueDataNum(ulInstance));
     }
 
-    PS_PRINTF("ULBuffThresholdCurrent           %10u\n", g_stAdsCtx.stAdsIpfCtx.ulThredHoldNum);
-    PS_PRINTF("ULBuffThreshold1                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
-    PS_PRINTF("ULBuffThreshold2                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
-    PS_PRINTF("ULBuffThreshold3                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
-    PS_PRINTF("ULBuffThreshold4                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
-    PS_PRINTF("ULWaterLevel1HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel1HitNum);
-    PS_PRINTF("ULWaterLevel2HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel2HitNum);
-    PS_PRINTF("ULWaterLevel3HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel3HitNum);
-    PS_PRINTF("ULWaterLevel4HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel4HitNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ULBuffThresholdCurrent           %10u\n", g_stAdsCtx.stAdsIpfCtx.ulThredHoldNum);
+    PS_PRINTF_INFO("ULBuffThreshold1                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
+    PS_PRINTF_INFO("ULBuffThreshold2                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
+    PS_PRINTF_INFO("ULBuffThreshold3                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
+    PS_PRINTF_INFO("ULBuffThreshold4                 %10u\n", g_stAdsCtx.stAdsIpfCtx.stUlAssemParmInfo.stThresholdLevel.ulThreshold1);
+    PS_PRINTF_INFO("ULWaterLevel1HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel1HitNum);
+    PS_PRINTF_INFO("ULWaterLevel2HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel2HitNum);
+    PS_PRINTF_INFO("ULWaterLevel3HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel3HitNum);
+    PS_PRINTF_INFO("ULWaterLevel4HitNum              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULWmLevel4HitNum);
+    PS_PRINTF_INFO("ADS UL PKT PROC STATS END.               \n");
 
     return;
 }
@@ -195,18 +191,16 @@ VOS_VOID ADS_ShowULPktProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowULBdProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS UL BD PROC STATS                         \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ULBdqCfgIpfHaveNoBd              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfHaveNoBd);
-    PS_PRINTF("ULBdqCfgBdSuccNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgBdSuccNum);
-    PS_PRINTF("ULBdqCfgBdFailNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgBdFailNum);
-    PS_PRINTF("ULBdqCfgIpfSuccNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfSuccNum);
-    PS_PRINTF("ULBdqCfgIpfFailNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfFailNum);
-    PS_PRINTF("ULBdqSaveSrcMemNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqSaveSrcMemNum);
-    PS_PRINTF("ULBdqFreeSrcMemNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqFreeSrcMemNum);
-    PS_PRINTF("ULBdqFreeSrcMemErr               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqFreeSrcMemErr);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS UL BD PROC STATS START:              \n");
+    PS_PRINTF_INFO("ULBdqCfgIpfHaveNoBd              %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfHaveNoBd);
+    PS_PRINTF_INFO("ULBdqCfgBdSuccNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgBdSuccNum);
+    PS_PRINTF_INFO("ULBdqCfgBdFailNum                %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgBdFailNum);
+    PS_PRINTF_INFO("ULBdqCfgIpfSuccNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfSuccNum);
+    PS_PRINTF_INFO("ULBdqCfgIpfFailNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqCfgIpfFailNum);
+    PS_PRINTF_INFO("ULBdqSaveSrcMemNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqSaveSrcMemNum);
+    PS_PRINTF_INFO("ULBdqFreeSrcMemNum               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqFreeSrcMemNum);
+    PS_PRINTF_INFO("ULBdqFreeSrcMemErr               %10u\n", g_stAdsStats.stUlComStatsInfo.ulULBdqFreeSrcMemErr);
+    PS_PRINTF_INFO("ADS UL BD PROC STATS END.                \n");
 
     return;
 }
@@ -214,14 +208,12 @@ VOS_VOID ADS_ShowULBdProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowDLPktProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS DL PKT PROC STATS                        \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("DLRmnetTxPktNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetTxPktNum);
-    PS_PRINTF("DLRmnetModemIdErrNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetModemIdErrNum);
-    PS_PRINTF("DLRmnetRabIdErrNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetRabIdErrNum);
-    PS_PRINTF("DLRmnetNoFuncFreePktNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetNoFuncFreePktNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS DL PKT PROC STATS START:             \n");
+    PS_PRINTF_INFO("DLRmnetTxPktNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetTxPktNum);
+    PS_PRINTF_INFO("DLRmnetModemIdErrNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetModemIdErrNum);
+    PS_PRINTF_INFO("DLRmnetRabIdErrNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetRabIdErrNum);
+    PS_PRINTF_INFO("DLRmnetNoFuncFreePktNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRmnetNoFuncFreePktNum);
+    PS_PRINTF_INFO("ADS DL PKT PROC STATS END.               \n");
 
     return;
  }
@@ -229,18 +221,16 @@ VOS_VOID ADS_ShowDLPktProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowDLRdProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS DL RD PROC STATS                         \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("DLRdqRxRdNum                     %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxRdNum);
-    PS_PRINTF("DLRdqGetRd0Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqGetRd0Num);
-    PS_PRINTF("DLRdqTransMemFailNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqTransMemFailNum);
-    PS_PRINTF("DLRdqRxNormPktNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxNormPktNum);
-    PS_PRINTF("DLRdqRxNdPktNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxNdPktNum);
-    PS_PRINTF("DLRdqRxDhcpPktNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxDhcpPktNum);
-    PS_PRINTF("DLRdqRxErrPktNum                 %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxErrPktNum);
-    PS_PRINTF("DLRdqFilterErrNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqFilterErrNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS DL RD PROC STATS START:              \n");
+    PS_PRINTF_INFO("DLRdqRxRdNum                     %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxRdNum);
+    PS_PRINTF_INFO("DLRdqGetRd0Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqGetRd0Num);
+    PS_PRINTF_INFO("DLRdqTransMemFailNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqTransMemFailNum);
+    PS_PRINTF_INFO("DLRdqRxNormPktNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxNormPktNum);
+    PS_PRINTF_INFO("DLRdqRxNdPktNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxNdPktNum);
+    PS_PRINTF_INFO("DLRdqRxDhcpPktNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxDhcpPktNum);
+    PS_PRINTF_INFO("DLRdqRxErrPktNum                 %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqRxErrPktNum);
+    PS_PRINTF_INFO("DLRdqFilterErrNum                %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLRdqFilterErrNum);
+    PS_PRINTF_INFO("ADS DL RD PROC STATS END.                \n");
 
     return;
 }
@@ -248,30 +238,28 @@ VOS_VOID ADS_ShowDLRdProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowDLAdProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS DL ADQ PROC STATS                        \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("DLAdqAllocSysMemSuccNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocSysMemSuccNum);
-    PS_PRINTF("DLAdqAllocSysMemFailNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocSysMemFailNum);
-    PS_PRINTF("DLAdqAllocMemSuccNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocMemSuccNum);
-    PS_PRINTF("DLAdqAllocMemFailNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocMemFailNum);
-    PS_PRINTF("DLAdqFreeMemNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeMemNum);
-    PS_PRINTF("DLAdqRecycleMemSuccNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRecycleMemSuccNum);
-    PS_PRINTF("DLAdqRecycleMemFailNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRecycleMemFailNum);
-    PS_PRINTF("DLAdqGetFreeAdSuccNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqGetFreeAdSuccNum);
-    PS_PRINTF("DLAdqGetFreeAdFailNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqGetFreeAdFailNum);
-    PS_PRINTF("DLAdqCfgAdNum                    %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAdNum);
-    PS_PRINTF("DLAdqCfgAd0Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd0Num);
-    PS_PRINTF("DLAdqCfgAd1Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd1Num);
-    PS_PRINTF("DLAdqFreeAd0Num                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd0Num);
-    PS_PRINTF("DLAdqFreeAd1Num                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd1Num);
-    PS_PRINTF("DLAdqCfgIpfSuccNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgIpfSuccNum);
-    PS_PRINTF("DLAdqCfgIpfFailNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgIpfFailNum);
-    PS_PRINTF("DLAdqStartEmptyTmrNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqStartEmptyTmrNum);
-    PS_PRINTF("DLAdqEmptyTmrTimeoutNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqEmptyTmrTimeoutNum);
-    PS_PRINTF("DLAdqRcvAd0EmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRcvAd0EmptyIntNum);
-    PS_PRINTF("DLAdqRcvAd1EmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRcvAd1EmptyIntNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS DL ADQ PROC STATS START:             \n");
+    PS_PRINTF_INFO("DLAdqAllocSysMemSuccNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocSysMemSuccNum);
+    PS_PRINTF_INFO("DLAdqAllocSysMemFailNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocSysMemFailNum);
+    PS_PRINTF_INFO("DLAdqAllocMemSuccNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocMemSuccNum);
+    PS_PRINTF_INFO("DLAdqAllocMemFailNum             %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqAllocMemFailNum);
+    PS_PRINTF_INFO("DLAdqFreeMemNum                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeMemNum);
+    PS_PRINTF_INFO("DLAdqRecycleMemSuccNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRecycleMemSuccNum);
+    PS_PRINTF_INFO("DLAdqRecycleMemFailNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRecycleMemFailNum);
+    PS_PRINTF_INFO("DLAdqGetFreeAdSuccNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqGetFreeAdSuccNum);
+    PS_PRINTF_INFO("DLAdqGetFreeAdFailNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqGetFreeAdFailNum);
+    PS_PRINTF_INFO("DLAdqCfgAdNum                    %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAdNum);
+    PS_PRINTF_INFO("DLAdqCfgAd0Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd0Num);
+    PS_PRINTF_INFO("DLAdqCfgAd1Num                   %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd1Num);
+    PS_PRINTF_INFO("DLAdqFreeAd0Num                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd0Num);
+    PS_PRINTF_INFO("DLAdqFreeAd1Num                  %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd1Num);
+    PS_PRINTF_INFO("DLAdqCfgIpfSuccNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgIpfSuccNum);
+    PS_PRINTF_INFO("DLAdqCfgIpfFailNum               %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgIpfFailNum);
+    PS_PRINTF_INFO("DLAdqStartEmptyTmrNum            %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqStartEmptyTmrNum);
+    PS_PRINTF_INFO("DLAdqEmptyTmrTimeoutNum          %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqEmptyTmrTimeoutNum);
+    PS_PRINTF_INFO("DLAdqRcvAd0EmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRcvAd0EmptyIntNum);
+    PS_PRINTF_INFO("DLAdqRcvAd1EmptyIntNum           %10u\n", g_stAdsStats.stDlComStatsInfo.ulDLAdqRcvAd1EmptyIntNum);
+    PS_PRINTF_INFO("ADS DL ADQ PROC STATS END.               \n");
 
     return;
 }
@@ -279,18 +267,16 @@ VOS_VOID ADS_ShowDLAdProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowResetProcStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS RESET PROC STATS                         \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ULResetSem                       %ld\n",   g_stAdsCtx.hULResetSem);
-    PS_PRINTF("ULResetCreateSemFailNum          %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetCreateSemFailNum);
-    PS_PRINTF("ULResetLockFailNum               %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetLockFailNum);
-    PS_PRINTF("ULResetSuccNum                   %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetSuccNum);
-    PS_PRINTF("DLResetSem                       %ld\n",   g_stAdsCtx.hDLResetSem);
-    PS_PRINTF("DLResetCreateSemFailNum          %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetCreateSemFailNum);
-    PS_PRINTF("DLResetLockFailNum               %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetLockFailNum);
-    PS_PRINTF("DLResetSuccNum                   %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetSuccNum);
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS RESET PROC STATS START:             \n");
+    PS_PRINTF_INFO("ULResetSem                       %ld\n",   g_stAdsCtx.hULResetSem);
+    PS_PRINTF_INFO("ULResetCreateSemFailNum          %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetCreateSemFailNum);
+    PS_PRINTF_INFO("ULResetLockFailNum               %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetLockFailNum);
+    PS_PRINTF_INFO("ULResetSuccNum                   %10u\n", g_stAdsStats.stResetStatsInfo.ulULResetSuccNum);
+    PS_PRINTF_INFO("DLResetSem                       %ld\n",   g_stAdsCtx.hDLResetSem);
+    PS_PRINTF_INFO("DLResetCreateSemFailNum          %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetCreateSemFailNum);
+    PS_PRINTF_INFO("DLResetLockFailNum               %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetLockFailNum);
+    PS_PRINTF_INFO("DLResetSuccNum                   %10u\n", g_stAdsStats.stResetStatsInfo.ulDLResetSuccNum);
+    PS_PRINTF_INFO("ADS RESET PROC STATS END.                \n");
 
     return;
 }
@@ -298,17 +284,14 @@ VOS_VOID ADS_ShowResetProcStats(VOS_VOID)
 
 VOS_VOID ADS_ShowDLMemStats(VOS_VOID)
 {
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("ADS DL MEM STATS                             \n");
-    PS_PRINTF("=============================================\n");
-    PS_PRINTF("DLUsingAd0Num                     %10u\n", (g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd0Num - g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd0Num));
-    PS_PRINTF("DLUsingAd1Num                     %10u\n", (g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd1Num - g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd1Num));
-    PS_PRINTF("DLRdqRxRdNum                      %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLRdqRxRdNum);
-    PS_PRINTF("DLRmnetNoFuncFreePktNum           %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLRmnetNoFuncFreePktNum);
-    PS_PRINTF("DLGetIpfAd0FailedNum              %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLAdqGetIpfAd0FailNum);
-    PS_PRINTF("DLGetIpfAd1FailedNum              %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLAdqGetIpfAd1FailNum);
-
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS DL MEM STATS START:                   \n");
+    PS_PRINTF_INFO("DLUsingAd0Num                     %10u\n", (g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd0Num - g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd0Num));
+    PS_PRINTF_INFO("DLUsingAd1Num                     %10u\n", (g_stAdsStats.stDlComStatsInfo.ulDLAdqCfgAd1Num - g_stAdsStats.stDlComStatsInfo.ulDLAdqFreeAd1Num));
+    PS_PRINTF_INFO("DLRdqRxRdNum                      %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLRdqRxRdNum);
+    PS_PRINTF_INFO("DLRmnetNoFuncFreePktNum           %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLRmnetNoFuncFreePktNum);
+    PS_PRINTF_INFO("DLGetIpfAd0FailedNum              %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLAdqGetIpfAd0FailNum);
+    PS_PRINTF_INFO("DLGetIpfAd1FailedNum              %10u\n",  g_stAdsStats.stDlComStatsInfo.ulDLAdqGetIpfAd1FailNum);
+    PS_PRINTF_INFO("ADS DL MEM STATS END.                     \n");
 
     return;
 }
@@ -326,24 +309,22 @@ VOS_VOID ADS_ShowDLInfoStats(VOS_VOID)
 }
 
 
+
 VOS_VOID ADS_Help(VOS_VOID)
 {
-    PS_PRINTF("=================================================\n");
-    PS_PRINTF("ADS DEBUG ENTRY                                  \n");
-    PS_PRINTF("=================================================\n");
-    PS_PRINTF("ADS_ShowEntityStats          显示实体信息\n");
-    PS_PRINTF("ADS_ShowEventProcStats       显示事件统计信息\n");
-    PS_PRINTF("ADS_ShowULPktProcStats       显示上行数据统计信息\n");
-    PS_PRINTF("ADS_ShowULBdProcStats        显示上行BD统计信息\n");
-    PS_PRINTF("ADS_ShowDLInfoStats          显示下行所有统计信息\n");
-    PS_PRINTF("ADS_ShowDLPktProcStats       显示下行数据统计信息\n");
-    PS_PRINTF("ADS_ShowDLRdProcStats        显示下行RD统计信息\n");
-    PS_PRINTF("ADS_ShowDLAdProcStats        显示下行AD统计信息\n");
-    PS_PRINTF("ADS_ShowDLMemStats           显示下行内存统计信息\n");
-    PS_PRINTF("ADS_ShowResetProcStats       显示C核复位统计信息\n");
-    PS_PRINTF("ADS_ShowFeatureState         显示特性状态\n");
-    PS_PRINTF("ADS_ResetDebugInfo           重置统计信息\n");
-    PS_PRINTF("\r\n");
+    PS_PRINTF_INFO("ADS DEBUG ENTRY                    \n");
+    PS_PRINTF_INFO("<ADS_ShowEntityStats>          \n");
+    PS_PRINTF_INFO("<ADS_ShowEventProcStats>       \n");
+    PS_PRINTF_INFO("<ADS_ShowULPktProcStats>       \n");
+    PS_PRINTF_INFO("<ADS_ShowULBdProcStats>        \n");
+    PS_PRINTF_INFO("<ADS_ShowDLInfoStats>          \n");
+    PS_PRINTF_INFO("<ADS_ShowDLPktProcStats>       \n");
+    PS_PRINTF_INFO("<ADS_ShowDLRdProcStats>        \n");
+    PS_PRINTF_INFO("<ADS_ShowDLAdProcStats>        \n");
+    PS_PRINTF_INFO("<ADS_ShowDLMemStats>           \n");
+    PS_PRINTF_INFO("<ADS_ShowResetProcStats>       \n");
+    PS_PRINTF_INFO("<ADS_ShowFeatureState>         \n");
+    PS_PRINTF_INFO("<ADS_ResetDebugInfo>           \n");
 
     return;
 }
@@ -423,7 +404,7 @@ VOS_VOID ADS_DLFlowAdd(VOS_UINT32 ulSduLen)
         {
             g_stAdsStats.stDlComStatsInfo.ulDLEndSlice   = VOS_GetSlice();
 
-            PS_PRINTF("ADS DL Flow Info = %10d, Pkt Num = %10d, Slice = %10d, Time = %10d\n",
+            PS_PRINTF_INFO("DL Flow Info = %10d, Pkt Num = %10d, Slice = %10d, Time = %10d\n",
                 g_stAdsStats.stDlComStatsInfo.ulDLFlowInfo,
                 g_stAdsStats.stDlComStatsInfo.ulDLRmnetTxPktNum, g_stAdsStats.stDlComStatsInfo.ulDLEndSlice,
                 (g_stAdsStats.stDlComStatsInfo.ulDLEndSlice - g_stAdsStats.stDlComStatsInfo.ulDLStartSlice));
@@ -449,7 +430,7 @@ VOS_VOID ADS_ULFlowAdd(VOS_UINT32 ulSduLen)
         {
             g_stAdsStats.stUlComStatsInfo.ulULEndSlice   = VOS_GetSlice();
 
-            PS_PRINTF("ADS UL Flow Info = %10d, Pkt Num = %10d, Slice = %10d, Time = %10d\n",
+            PS_PRINTF_INFO("UL Flow Info = %10d, Pkt Num = %10d, Slice = %10d, Time = %10d\n",
                 g_stAdsStats.stUlComStatsInfo.ulULFlowInfo,
                 g_stAdsStats.stUlComStatsInfo.ulULRmnetRxPktNum, g_stAdsStats.stUlComStatsInfo.ulULEndSlice,
                 (g_stAdsStats.stUlComStatsInfo.ulULEndSlice - g_stAdsStats.stUlComStatsInfo.ulULStartSlice));

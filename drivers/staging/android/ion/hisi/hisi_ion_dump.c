@@ -59,7 +59,7 @@ int hisi_ion_proecss_info(void)
 			continue;
 		}
 
-		for (fd = 0; fd < files_fdtable(files)->max_fds; fd++) {/*lint !e1058*/
+		for (fd = 0; fd < files_fdtable(files)->max_fds; fd++) { /*lint !e1058*/
 			struct dma_buf *dbuf;
 			struct ion_buffer *ibuf;
 			struct file *f = fcheck_files(files, fd);

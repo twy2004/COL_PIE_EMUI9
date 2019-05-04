@@ -52,6 +52,7 @@
 #include <product_config.h>
 
 #include "mdrv.h"
+#include <osl_thread.h>
 #include "bsp_pm_om.h"
 #include "bsp_slice.h"
 //#include "bsp_nandc.h"
@@ -709,8 +710,6 @@ s32 bsp_readdir(u32 fd, void  *dirent, u32 count)
     return ret;
 }
 
-
-
 s32 bsp_closedir(s32 pDir)
 {
     s32 ret;
@@ -963,6 +962,8 @@ s32 rfile_AcoreWriteReq(struct bsp_rfile_write_req *pstRfileReq, u32 ulId)
 
     rfile_IccSend(&stRfileCnf, sizeof(stRfileCnf), ulId);
 
+    memset_s((void*)pstRfileReq,RFILE_LEN_MAX,0,(pstRfileReq->ulSize+sizeof(struct bsp_rfile_write_req)));
+
     return BSP_OK;
 }
 
@@ -982,6 +983,8 @@ s32 rfile_AcoreWriteSyncReq(struct bsp_rfile_write_req *pstRfileReq, u32 ulId)
     stRfileCnf.ret = bsp_write_sync(pstRfileReq->fd, (s8*)pstRfileReq->aucData, pstRfileReq->ulSize);
 
     rfile_IccSend(&stRfileCnf, sizeof(stRfileCnf), ulId);
+
+    memset_s((void*)pstRfileReq,RFILE_LEN_MAX,0,(pstRfileReq->ulSize+sizeof(struct bsp_rfile_write_req)));
 
     return BSP_OK;
 }
@@ -1021,6 +1024,8 @@ s32 rfile_AcoreReadReq(struct bsp_rfile_read_req *pstRfileReq, u32 ulId)
     /* 由C核请求的地方保证读取的数据长度不超过ICC最大长度限制 */
 
     rfile_IccSend(pstRfileCnf, ulLen, ulId);
+
+    memset_s((void*)pstRfileCnf,ulLen,0,ulLen);
 
     Rfile_Free(pstRfileCnf);
 

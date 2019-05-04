@@ -118,6 +118,8 @@ short synap_get_oem_data_info( void );
 int synap_get_oem_data(unsigned char *oem_data, unsigned short leng);
 int synap_set_oem_data(unsigned char *oem_data, unsigned short leng);
 #endif
+int synaptics_get_gamma_data(unsigned char *pm_data, unsigned short leng);
+int synaptics_set_gamma_data(unsigned char *pm_data, unsigned short leng);
 //static int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng);
 extern struct synaptics_rmi4_data *rmi4_data;
 extern void synap_parse_chip_specific_dts(struct ts_kit_device_data *chip_data);
@@ -4117,30 +4119,31 @@ int synap_get_oem_data(unsigned char *oem_data, unsigned short leng)
 			oem_data[0] = 1;
 			oem_data[1] = 3;
 			if( BARCODE_READ_OEM_TYPE_1 == fwu->rmi4_data->synaptics_chip_data->read_2dbarcode_oem_type){
-				TS_LOG_INFO("[%s]-> LG \n",__func__);
+				TS_LOG_INFO("[%s]-> BARCODE_READ_OEM_TYPE_1 \n",__func__);
 				memcpy(oem_data+SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
 					fwu->read_config_buf + SYNAPTICS_RMI4_BARCODE_NUM_OF_ROW , \
 					leng);
 				retval = 0;
 			}
 			else if(BARCODE_READ_STANDARD_TYPE == fwu->rmi4_data->synaptics_chip_data->read_2dbarcode_oem_type){
-				TS_LOG_INFO("[%s] ->BOE offset 4 =  %d\n",__func__,\
+				TS_LOG_INFO("[%s] ->BARCODE_READ_STANDARD_TYPE offset 4 =  %d\n",__func__,\
 							fwu->read_config_buf[SYNAPTICS_RMI4_BARCODE_START_OFFSET\
 							+ SYNAPTICS_RMI4_BARCODE_OFFSET_4]);
-				if(0 == (fwu->read_config_buf [SYNAPTICS_RMI4_BARCODE_START_OFFSET\
-							+ SYNAPTICS_RMI4_BARCODE_OFFSET_4])){
-					TS_LOG_INFO("[%s] ->read block 1~3\n",__func__);
-					memcpy(oem_data+SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
-						fwu->read_config_buf + SYNAPTICS_RMI4_BARCODE_NUM_OF_ROW + \
-						SYNAPTICS_RMI4_BARCODE_START_OFFSET, \
-						leng);
-				}else{
+				if(0 != (fwu->read_config_buf[SYNAPTICS_RMI4_BARCODE_START_OFFSET\
+						+ SYNAPTICS_RMI4_BARCODE_OFFSET_4])
+						&&(0 == fwu->read_config_buf[SYNAPTICS_RMI4_BARCODE_OFFSET_4])){
 					TS_LOG_INFO("[%s] ->read block 4~6\n",__func__);
 					memcpy(oem_data+SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
-						fwu->read_config_buf + SYNAPTICS_RMI4_BARCODE_OFFSET_4 + \
-						SYNAPTICS_RMI4_BARCODE_START_OFFSET, \
+						fwu->read_config_buf + SYNAPTICS_RMI4_BARCODE_OFFSET_4 +\
+						SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
 						leng);
-					}
+				}else {
+					TS_LOG_INFO("[%s] ->read block 1~3\n",__func__);
+					memcpy(oem_data+SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
+						fwu->read_config_buf + SYNAPTICS_RMI4_BARCODE_NUM_OF_ROW +\
+						SYNAPTICS_RMI4_BARCODE_START_OFFSET,\
+						leng);
+				}
 				retval = 0;
 			}
 			else{
@@ -4321,6 +4324,97 @@ exit:
 }
 #endif
 
+int synaptics_get_gamma_data(unsigned char *pm_data, unsigned short leng)
+{
+	int retval = -EINVAL;
+	unsigned short block_count = 0;
+	if(!pm_data){
+		TS_LOG_ERR("%s: NULL Failed \n", __func__);
+		return -EIO;
+	}
+
+	retval = synap_fw_data_s3718_init(rmi4_data);
+	if(retval) {
+		TS_LOG_ERR("%s: synap_fw_data_s3718_init Failed \n", __func__);
+		return -EIO;
+	}
+
+	fwu->config_area = PM_CONFIG_AREA;
+	block_count = fwu->blkcount.pm_config;
+	if (block_count == 0) {
+		TS_LOG_ERR("%s: Invalid block count\n", __func__);
+		return -EINVAL;
+	}
+
+	fwu->config_size = fwu->block_size * block_count;
+
+	retval = fwu_allocate_read_config_buf(fwu->config_size);
+	if (retval < 0)
+		goto exit;
+
+	memset(fwu->read_config_buf, 0x00, fwu->config_size);
+
+	retval = fwu_read_f34_blocks(block_count, CMD_READ_CONFIG);
+	if (retval < 0)
+		goto exit;
+
+	TS_LOG_INFO("%s: wl block_count = %d  fwu->config_size = %d \n", __func__,block_count, fwu->config_size);
+	memcpy(pm_data, fwu->read_config_buf, fwu->config_size);
+
+exit:
+	synap_fw_data_s3718_release();
+	return retval;
+}
+
+int synaptics_set_gamma_data(unsigned char *pm_data, unsigned short leng)
+{
+	int retval = -EINVAL;
+	unsigned short block_count = 0;
+	unsigned short config_area = 0;
+
+	if(!pm_data){
+		TS_LOG_ERR("%s: NULL Failed \n", __func__);
+		return -EIO;
+	}
+
+	retval = synap_fw_data_s3718_init(rmi4_data);
+	if(retval) {
+		TS_LOG_ERR("%s: synap_fw_data_s3718_init Failed \n", __func__);
+		return -EIO;
+	}
+
+	fwu->config_area = PM_CONFIG_AREA;
+	config_area = fwu->config_area;
+	retval = fwu_enter_flash_prog();
+	if (retval < 0)
+		goto exit;
+
+	fwu->config_area = config_area;
+	block_count = fwu->blkcount.pm_config;
+	if (block_count == 0) {
+		TS_LOG_ERR("%s: Invalid block count\n", __func__);
+		goto exit;
+	}
+
+	fwu->config_size = fwu->block_size * block_count;
+	retval = fwu_allocate_read_config_buf(fwu->config_size);
+	if (retval < 0) {
+		goto exit;
+	}
+
+	memcpy(fwu->read_config_buf, pm_data, fwu->config_size);
+
+	retval = fwu_write_f34_blocks((unsigned char *)fwu->read_config_buf,
+			block_count, CMD_WRITE_CONFIG);
+	if (retval < 0) {
+		synap_fw_data_s3718_release();
+		goto exit;
+	}
+
+exit:
+	fwu->rmi4_data->reset_device(fwu->rmi4_data);
+	return retval;
+}
 
 static int get_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 {
@@ -4422,7 +4516,7 @@ static int synaptics_read_project_id(void)
 				fwu->write_project_id = true;
 				goto out;
 			} else {
-			TS_LOG_ERR("get_lockdown_data successfully\n", __func__);
+			TS_LOG_ERR("%s:get_lockdown_data successfully\n", __func__);
 			goto out;
 			}
 		}

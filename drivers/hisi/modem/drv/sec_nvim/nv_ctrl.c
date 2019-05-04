@@ -46,7 +46,6 @@
  *
  */
 
-#include <securec.h>
 #include <product_config.h>
 #include <ptable_com.h>
 #include "mdrv_rfile_common.h"
@@ -187,7 +186,6 @@ FILE* nv_file_open(const s8* path,const s8* mode)
         return NULL;
     }
 
-    (void)memset_s((void*)fp, sizeof(struct nv_file_p), 0, sizeof(struct nv_file_p));
     if(0 != strncasecmp((const s8*)NON_FS_DIR, path, (sizeof(NON_FS_DIR) -1) ))
     {
         flag = nv_file_getmode((const char*)mode, &oflags);

@@ -1296,7 +1296,7 @@ VOS_UINT32  AT_DiscardInvalidChar(VOS_UINT8* pucData, VOS_UINT16 *pusLen)
 
     if ((*pusLen == 0) || (AT_CMD_MAX_LEN < *pusLen))
     {
-        PS_PRINTF("AT_DiscardInvalidChar: usLen > AT_CMD_MAX_LEN or usLen = 0. usLen :%d", *pusLen);
+        PS_PRINTF_WARNING("<AT_DiscardInvalidChar> usLen > AT_CMD_MAX_LEN or usLen = 0. usLen :%d", *pusLen);
         return ERR_MSP_FAILURE;
     }
     for(i = 0; i < (*pusLen); i++)
@@ -1895,13 +1895,16 @@ VOS_VOID At_CombineBlockCmdProc(VOS_UINT8 ucIndex)
 }
 
 
-VOS_VOID At_CmdMsgDistr(AT_MSG_STRU *pstMsg)
+VOS_VOID At_CmdMsgDistr(VOS_VOID *pMsg)
 {
     AT_CMD_MSG_NUM_CTRL_STRU           *pstMsgNumCtrlCtx = VOS_NULL_PTR;
+    AT_MSG_STRU                        *pstMsg           = VOS_NULL_PTR;
     VOS_UINT16                          usLen = 0;
     VOS_UINT8                          *pData = NULL;
     VOS_UINT8                           ucIndex = 0;
     VOS_ULONG                           ulLockLevel;
+
+    pstMsg = (AT_MSG_STRU*)pMsg;
 
     if (AT_NORMAL_TYPE_MSG == pstMsg->ucType)
     {
@@ -2392,7 +2395,6 @@ VOS_UINT8 atCmdIsSupportedByCLMode(VOS_UINT8 ucIndex)
                                                              AT_CMD_CCFC,
                                                              /*AT_CMD_CLIR,*/
 
-                                                             AT_CMD_CSSN,
                                                              AT_CMD_CELLINFO,
                                                              AT_CMD_CPMS,
                                                              AT_CMD_RELEASERRC,

@@ -201,10 +201,12 @@ int tcpm_typec_role_swap(struct tcpc_device *tcpc_dev)
 	return TCPM_ERROR_UNSUPPORT;
 }
 
-int tcpm_typec_notify_direct_charge(struct tcpc_device *tcpc_dev, bool dc)
+int tcpm_typec_notify_direct_charge(void *client, bool dc)
 {
+	struct tcpc_device *tcpc_dev = (struct tcpc_device *)client;
+
 	TCPC_INFO("%s,%d", __func__, __LINE__);
-	if (tcpc_dev->typec_attach_old == TYPEC_UNATTACHED)
+	if (tcpc_dev->typec_attach_old == TYPEC_UNATTACHED && tcpc_dev->no_rpsrc_state == 0)
 		return TCPM_ERROR_UNATTACHED;
 
 	TCPC_INFO("%s,%d", __func__, __LINE__);

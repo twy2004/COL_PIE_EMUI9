@@ -22,6 +22,9 @@ extern "C" {
 #include "oam_ext_if.h"
 #include "plat_pm_wlan.h"
 #include "plat_firmware.h"
+#if defined(CONFIG_LOG_EXCEPTION) && !defined(CONFIG_HI110X_KERNEL_MODULES_BUILD_SUPPORT)
+#include <log/log_usertype.h>
+#endif
 
 #ifndef WIN32
 #include "plat_pm.h"
@@ -53,46 +56,46 @@ static struct notifier_block hcc_bus_pm_notifier = {
   "pcie"               -- only support pcie
   */
 char* hisi_wifi_bus_select = "";
-module_param(hisi_wifi_bus_select, charp, S_IRUGO | S_IWUSR);
+oal_debug_module_param(hisi_wifi_bus_select, charp, S_IRUGO | S_IWUSR);
 
 oal_uint32 hcc_exception_enable = 1;
-module_param(hcc_exception_enable, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_exception_enable, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_switch_bypass = 0;
-module_param(hcc_bus_switch_bypass, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_switch_bypass, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_switch_test_delay_time = 0;
-module_param(hcc_bus_switch_test_delay_time, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_switch_test_delay_time, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_switch_test_break = 0;
-module_param(hcc_bus_switch_test_break, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_switch_test_break, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_auto_switch = 0;
-module_param(hcc_bus_auto_switch, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_auto_switch, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_auto_bindcpu = 0;
-module_param(hcc_bus_auto_bindcpu, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_auto_bindcpu, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_manual_bindcpu = 1;
-module_param(hcc_bus_manual_bindcpu, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_manual_bindcpu, uint, S_IRUGO|S_IWUSR);
 
 /*pps 按照大包计算*/
 oal_uint32 hcc_bus_auto_bindcpu_limit = (200*1024*128)/1500;
-module_param(hcc_bus_auto_bindcpu_limit, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_auto_bindcpu_limit, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_current_pps = 0x0;
-module_param(hcc_bus_current_pps, uint, S_IRUGO);
+oal_debug_module_param(hcc_bus_current_pps, uint, S_IRUGO);
 
 oal_uint32 hcc_bus_wakelock_debug = 0x0;
-module_param(hcc_bus_wakelock_debug, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_wakelock_debug, uint, S_IRUGO|S_IWUSR);
 
 oal_uint32 hcc_bus_auto_switch_limit       = (350*1024*128)/1500;
-module_param(hcc_bus_auto_switch_limit, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(hcc_bus_auto_switch_limit, uint, S_IRUGO|S_IWUSR);
 
 char str_ini_hcc_bus_switch[100] = {0};
-module_param_string(ini_hcc_bus_switch, str_ini_hcc_bus_switch,
+oal_debug_module_param_string(ini_hcc_bus_switch, str_ini_hcc_bus_switch,
                     sizeof(str_ini_hcc_bus_switch), S_IRUGO|S_IWUSR);
-MODULE_PARM_DESC(ini_hcc_bus_switch, "Ini string for hcc bus switch");
+OAL_DEBUG_MODULE_PARM_DESC(ini_hcc_bus_switch, "Ini string for hcc bus switch");
 
 #else
 oal_dlist_head_stru g_hcc_bus_res_hdr;
@@ -120,7 +123,7 @@ oal_uint32 g_switch_ip_pwrdown_bypass = 1;
 #ifdef WIN32
 oal_uint32 jiffies;
 #else
-module_param(g_switch_ip_pwrdown_bypass, uint, S_IRUGO|S_IWUSR);
+oal_debug_module_param(g_switch_ip_pwrdown_bypass, uint, S_IRUGO|S_IWUSR);
 #endif
 
 oal_int32  g_switch_pwr_ret;/*TBD*/
@@ -175,7 +178,7 @@ OAL_STATIC hcc_bus_dev g_bus_dev_res[10];
 
 oal_uint32       bus_dump_mem_flag = 0;
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-module_param(bus_dump_mem_flag, uint, S_IRUGO | S_IWUSR);
+oal_debug_module_param(bus_dump_mem_flag, uint, S_IRUGO | S_IWUSR);
 
 oal_atomic g_wakeup_dev_wait_ack_etc;
 oal_atomic g_bus_powerup_dev_wait_ack;/*ip 上电握手标记*/
@@ -2222,6 +2225,34 @@ oal_int32 hcc_bus_pm_wakeup_device(hcc_bus *hi_bus)
 EXPORT_SYMBOL_GPL(hcc_bus_pm_wakeup_device);
 
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+unsigned long long hcc_bus_excetpion_ssi_module_set(oal_void)
+{
+    unsigned long long set = 0x0;
+    oal_print_hi11xx_log(HI11XX_LOG_INFO, "bfgx is %s  %s",
+        (true == bfgx_is_shutdown_etc()) ? "shutdown":"poweron", 
+#if defined(CONFIG_LOG_EXCEPTION) && !defined(CONFIG_HI110X_KERNEL_MODULES_BUILD_SUPPORT)
+    (BETA_USER == get_logusertype_flag())?", is beta user":", not beta user"
+#else
+        ""
+#endif
+        );
+    if((true == bfgx_is_shutdown_etc())
+#if defined(CONFIG_LOG_EXCEPTION) && !defined(CONFIG_HI110X_KERNEL_MODULES_BUILD_SUPPORT)
+       || (BETA_USER == get_logusertype_flag())
+#endif
+      )
+    {
+        set = (SSI_MODULE_MASK_ARM_REG|SSI_MODULE_MASK_AON_CUT);
+    }
+    else
+    {
+        //set = SSI_MODULE_MASK_ARM_REG;
+        set = 0x0;
+    }
+
+    return set;
+}
+
 oal_void hcc_bus_exception_submit(hcc_bus *hi_bus, oal_int32 excep_type)
 {
     oal_ulong flags;
@@ -2264,16 +2295,7 @@ oal_void hcc_bus_exception_submit(hcc_bus *hi_bus, oal_int32 excep_type)
 
         if(HI1XX_ANDROID_BUILD_VARIANT_USER == hi11xx_get_android_build_variant())
         {
-            if(true == bfgx_is_shutdown_etc())
-            {
-                set = (SSI_MODULE_MASK_ARM_REG|SSI_MODULE_MASK_AON_CUT);
-                oal_print_hi11xx_log(HI11XX_LOG_INFO, "bfgx is shutdown");
-            }
-            else
-            {
-                //set = SSI_MODULE_MASK_ARM_REG;
-                set = 0x0;
-            }
+            set = hcc_bus_excetpion_ssi_module_set();
 
             if(!oal_print_rate_limit(24*PRINT_RATE_HOUR))
             {

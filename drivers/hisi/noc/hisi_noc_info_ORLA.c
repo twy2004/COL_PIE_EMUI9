@@ -23,8 +23,9 @@
 #define NOC_CFG_SYS_BUS_ID              0
 #define NOC_VCODEC_BUS_ID               1
 #define NOC_VIVO_BUS_ID                 2
-#define NOC_FCM_BUS_ID                  3
-#define NOC_NPU_BUS_ID                  4
+#define NOC_NPU_BUS_ID                  3
+#define NOC_FCM_BUS_ID                  4
+
 
 
 #define CFG_INITFLOW_ARRAY_SIZE         32
@@ -509,13 +510,13 @@ struct noc_mid_info noc_mid_ORLA[] = {
 	{2, 0xFF, 0x003f, 0x2B, "ISP_A7_CFG"},/*ISP*/
 	{2, 0xFF, 0x003f, 0x2C, "CMDLIST"},/*IPP_SUBSYS*/
 	{2, 0xFF, 0x003f, 0x2D, "ORB"},/*IPP_SUBSYS*/
-	{4, 0xFF, 0x003f, 0x30, "NPU_0"},/*NPU*/
-	{4, 0xFF, 0x003f, 0x31, "NPU_1"},/*NPU*/
-	{4, 0xFF, 0x003f, 0x32, "NPU_2"},/*NPU*/
-	{4, 0xFF, 0x003f, 0x33, "NPU_3"},/*NPU*/
+	{3, 0xFF, 0x003f, 0x30, "NPU_0"},/*NPU*/
+	{3, 0xFF, 0x003f, 0x31, "NPU_1"},/*NPU*/
+	{3, 0xFF, 0x003f, 0x32, "NPU_2"},/*NPU*/
+	{3, 0xFF, 0x003f, 0x33, "NPU_3"},/*NPU*/
 	{1, 0x01, 0x003f, 0x34, "DSP_CORE_DATA"},/*DSP_CORE_DATA*/
-	{3, 0xFF, 0x003f, 0x38, "FCM_M0"},/*DSP_CORE_DATA*/
-	{3, 0xFF, 0x003f, 0x39, "FCM_M1"},/*DSP_CORE_DATA*/
+	{4, 0xFF, 0x003f, 0x38, "FCM_M0"},/*DSP_CORE_DATA*/
+	{4, 0xFF, 0x003f, 0x39, "FCM_M1"},/*DSP_CORE_DATA*/
 };
 
 struct noc_sec_info noc_sec_ORLA[] = {
@@ -592,6 +593,7 @@ const struct noc_busid_initflow hisi_filter_initflow_ORLA[] = {
 	{0, 18, RDR_CP},	/*socp*/
 	{0, 6, RDR_IOM3},  /* iomcu core */
 	{0, 7, RDR_IOM3},  /* iomcu dma */
+	{0, 0, RDR_HIFI},  /* hifi */
 	{ARRAY_END_FLAG, 0, RDR_AP},	/*end*/
 };
 
@@ -666,29 +668,6 @@ const struct noc_bus_info noc_buses_info_ORLA[] = {
 		.noc_sec_info_size = ARRAY_SIZE_NOC(noc_sec_ORLA),
 	},
 	[3] = {
-		.name = "fcm_bus",
-		.initflow_mask = ((0x1) << 8),
-		.targetflow_mask = ((0x3) << 6),
-		.targ_subrange_mask = ((0x1) << 5),
-		.seq_id_mask = (0x1F),
-		.opc_mask = ((0xf) << 1),
-		.err_code_mask = ((0x7) << 8),
-		.opc_array = opc_array,
-		.opc_array_size = OPC_NR,
-		.err_code_array = err_code_array,
-		.err_code_array_size = ERR_CODE_NR,
-		.initflow_array = fcm_initflow_array,
-		.initflow_array_size = FCM_INITFLOW_ARRAY_SIZE,
-		.targetflow_array = fcm_targetflow_array,
-		.targetflow_array_size = FCM_TARGETFLOW_ARRAY_SIZE,
-		.routeid_tbl = fcm_routeid_addr_tbl,
-		.routeid_tbl_size = ARRAY_SIZE_NOC(fcm_routeid_addr_tbl),
-		.p_noc_mid_info = noc_mid_ORLA,
-		.noc_mid_info_size = ARRAY_SIZE_NOC(noc_mid_ORLA),
-		.p_noc_sec_info = noc_sec_ORLA,
-		.noc_sec_info_size = ARRAY_SIZE_NOC(noc_sec_ORLA),
-	},
-	[4] = {
 		.name = "npu_bus",
 		.initflow_mask = ((0xf) << 17),
 		.targetflow_mask = ((0xf) << 13),
@@ -711,6 +690,30 @@ const struct noc_bus_info noc_buses_info_ORLA[] = {
 		.p_noc_sec_info = noc_sec_ORLA,
 		.noc_sec_info_size = ARRAY_SIZE_NOC(noc_sec_ORLA),
 	},
+	[4] = {
+        .name = "fcm_bus",
+		.initflow_mask = ((0x1) << 8),
+		.targetflow_mask = ((0x3) << 6),
+		.targ_subrange_mask = ((0x1) << 5),
+		.seq_id_mask = (0x1F),
+		.opc_mask = ((0xf) << 1),
+		.err_code_mask = ((0x7) << 8),
+		.opc_array = opc_array,
+		.opc_array_size = OPC_NR,
+		.err_code_array = err_code_array,
+		.err_code_array_size = ERR_CODE_NR,
+		.initflow_array = fcm_initflow_array,
+		.initflow_array_size = FCM_INITFLOW_ARRAY_SIZE,
+		.targetflow_array = fcm_targetflow_array,
+		.targetflow_array_size = FCM_TARGETFLOW_ARRAY_SIZE,
+		.routeid_tbl = fcm_routeid_addr_tbl,
+		.routeid_tbl_size = ARRAY_SIZE_NOC(fcm_routeid_addr_tbl),
+		.p_noc_mid_info = noc_mid_ORLA,
+		.noc_mid_info_size = ARRAY_SIZE_NOC(noc_mid_ORLA),
+		.p_noc_sec_info = noc_sec_ORLA,
+		.noc_sec_info_size = ARRAY_SIZE_NOC(noc_sec_ORLA),
+	},
+
 };
 
 /* hisi_noc_get_array_size - get static array size

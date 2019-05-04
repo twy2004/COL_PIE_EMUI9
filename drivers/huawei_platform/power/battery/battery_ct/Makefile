@@ -9,4 +9,4 @@ ifeq ($(TARGET_VERSION_MODE),factory)
 ccflags-y += -DBATTBD_FORCE_MATCH
 endif
 
-obj-$(CONFIG_HUAWEI_BATTERY_INFORMATION) += batt_info.o
+obj-$(CONFIG_HUAWEI_BATTERY_INFORMATION) += batt_info.o batt_aut_checker.o

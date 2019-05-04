@@ -52,10 +52,7 @@
 
 #define RF_DSP_COUNT  (2)
 #define RF_DTCM_SIZE  (256*1024)
-
-
 void dump_save_rfdsp_tcm(char* dst_path);
 void dump_rfdsp_init(void);
-
 #endif
 

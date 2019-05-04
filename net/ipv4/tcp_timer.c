@@ -259,7 +259,7 @@ int tcp_write_timeout(struct sock *sk)
 		/* Stop retransmitting MP_CAPABLE options in SYN if timed out. */
 		if (tcp_sk(sk)->request_mptcp &&
 		    icsk->icsk_retransmits >= sysctl_mptcp_syn_retries) {
-			if (mptcp_hw_ext_reset_rules_by_sk_fallback(sk)) {
+			if (mptcp_proxy_fallback(sk, MPTCP_FALLBACK_PROXY_SYN_TIMEOUT, true) != MPTCP_FALLBACK_UNDO) {
 				tcp_write_err(sk);
 				return 1;
 			}

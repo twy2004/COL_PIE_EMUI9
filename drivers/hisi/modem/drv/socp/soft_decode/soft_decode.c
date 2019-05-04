@@ -509,6 +509,8 @@ void diag_fill_soft_tail(u32 pFile, s8 *FilePath)
     }
 }
 
+EXPORT_SYMBOL(diag_save_soft_decode_info);
+
 
 
 

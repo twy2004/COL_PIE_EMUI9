@@ -357,11 +357,7 @@ static bool __has_merged_page(struct f2fs_bio_info *io,
 		else
 			target = fscrypt_control_page(bvec->bv_page);
 
-#ifdef CONFIG_F2FS_JOURNAL_APPEND
 		if (idx != target->index && idx != ULONG_MAX)
-#else
-		if (idx != target->index)
-#endif
 			continue;
 
 		if (inode && inode == target->mapping->host)
@@ -1041,18 +1037,36 @@ int f2fs_preallocate_blocks(struct kiocb *iocb, struct iov_iter *from)
 	return err;
 }
 
-void __do_map_lock(struct f2fs_sb_info *sbi, int flag, bool lock)
+/* false - lock op, true - node changes */
+bool __do_map_lock(struct f2fs_sb_info *sbi, int flag,
+		   bool lock, bool lock2)
 {
 	if (flag == F2FS_GET_BLOCK_PRE_AIO) {
-		if (lock)
-			down_read(&sbi->node_change);
-		else
+		if (lock) {
+retry_get_lock:
+			if (READ_ONCE(sbi->cp_rwsem_owner)) {
+				f2fs_lock_op(sbi);
+				return false;
+			} else {
+				down_read(&sbi->node_change);
+				if (READ_ONCE(sbi->cp_rwsem_owner)) {
+					up_read(&sbi->node_change);
+					goto retry_get_lock;
+				}
+				return true;
+			}
+		} else if (lock2) {
 			up_read(&sbi->node_change);
+		} else  {
+			f2fs_unlock_op(sbi);
+		}
+		return false;
 	} else {
 		if (lock)
 			f2fs_lock_op(sbi);
 		else
 			f2fs_unlock_op(sbi);
+		return false;
 	}
 }
 
@@ -1079,6 +1093,7 @@ int f2fs_map_blocks(struct inode *inode, struct f2fs_map_blocks *map,
 	struct extent_info ei = {0,0,0};
 	block_t blkaddr;
 	int contig_level;
+	bool lock2 = false;
 
 	if (!maxblocks)
 		return 0;
@@ -1104,7 +1119,7 @@ int f2fs_map_blocks(struct inode *inode, struct f2fs_map_blocks *map,
 
 next_dnode:
 	if (create)
-		__do_map_lock(sbi, flag, true);
+		lock2 = __do_map_lock(sbi, flag, true, false);
 
 	/* When reading holes, we need its node page */
 	set_new_dnode(&dn, inode, NULL, NULL, 0);
@@ -1220,7 +1235,7 @@ skip:
 	f2fs_put_dnode(&dn);
 
 	if (create) {
-		__do_map_lock(sbi, flag, false);
+		(void)__do_map_lock(sbi, flag, false, lock2);
 		f2fs_balance_fs(sbi, dn.node_changed);
 	}
 	goto next_dnode;
@@ -1233,7 +1248,7 @@ sync_out:
 	f2fs_put_dnode(&dn);
 unlock_out:
 	if (create) {
-		__do_map_lock(sbi, flag, false);
+		(void)__do_map_lock(sbi, flag, false, lock2);
 		f2fs_balance_fs(sbi, dn.node_changed);
 	}
 out:
@@ -2234,6 +2249,9 @@ static int prepare_write_begin(struct f2fs_sb_info *sbi,
 	bool locked = false;
 	struct extent_info ei = {0,0,0};
 	int err = 0;
+	int flag;
+	bool lock2 = false;
+
 
 	/*
 	 * we already allocated all the blocks, so we don't need to get
@@ -2243,9 +2261,15 @@ static int prepare_write_begin(struct f2fs_sb_info *sbi,
 			!is_inode_flag_set(inode, FI_NO_PREALLOC))
 		return 0;
 
+	/* f2fs_lock_op avoids race between write CP and convert_inline_page */
+	if (f2fs_has_inline_data(inode) && pos + (loff_t)len > (loff_t)MAX_INLINE_DATA(inode))
+		flag = F2FS_GET_BLOCK_DEFAULT;
+	else
+		flag = F2FS_GET_BLOCK_PRE_AIO;
+
 	if (f2fs_has_inline_data(inode) ||
 			(pos & PAGE_MASK) >= i_size_read(inode)) {
-		__do_map_lock(sbi, F2FS_GET_BLOCK_PRE_AIO, true);
+		lock2 = __do_map_lock(sbi, flag, true, false);
 		locked = true;
 	}
 restart:
@@ -2281,8 +2305,9 @@ restart:
 			err = get_dnode_of_data(&dn, index, LOOKUP_NODE);
 			if (err || dn.data_blkaddr == NULL_ADDR) {
 				f2fs_put_dnode(&dn);
-				__do_map_lock(sbi, F2FS_GET_BLOCK_PRE_AIO,
-								true);
+				lock2 = __do_map_lock(sbi, F2FS_GET_BLOCK_PRE_AIO,
+					      true, false);
+				WARN_ON(flag != F2FS_GET_BLOCK_PRE_AIO);
 				locked = true;
 				goto restart;
 			}
@@ -2296,7 +2321,7 @@ out:
 	f2fs_put_dnode(&dn);
 unlock_out:
 	if (locked)
-		__do_map_lock(sbi, F2FS_GET_BLOCK_PRE_AIO, false);
+		(void)__do_map_lock(sbi, flag, false, lock2);
 	return err;
 }
 

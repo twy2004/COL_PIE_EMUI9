@@ -123,12 +123,15 @@ void   PPM_VComCfgPortInit(void);
 
 void   PPM_VComIndPortInit(void);
 
-void   PPM_VComPortInit(void);
-
 void   GU_OamErrLogVComPortInit(void);
 
 void   PPM_VComInfoShow(void);
 
+#ifdef DIAG_SYSTEM_A_PLUS_B_CP
+static inline void   PPM_VComPortInit(void){return;}
+#else
+void   PPM_VComPortInit(void);
+#endif
 /*****************************************************************************
   5 全局变量声明
 *****************************************************************************/

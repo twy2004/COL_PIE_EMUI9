@@ -345,14 +345,12 @@ static int32_t nvt_load_mp_ctrlram_bin(void)
 				CtrlRAM_test_cmd[i].data[1] = *(ptr + (4 * i) + 1);
 				CtrlRAM_test_cmd[i].data[2] = *(ptr + (4 * i) + 2);
 				CtrlRAM_test_cmd[i].data[3] = *(ptr + (4 * i) + 3);
-				//if (i < 10) {
-				//	printk("%02X %02X %02X %02X\n", CtrlRAM_test_cmd[i].data[0], CtrlRAM_test_cmd[i].data[1], CtrlRAM_test_cmd[i].data[2], CtrlRAM_test_cmd[i].data[3]);
-				//}
 				ctrlram_cur_addr = ctrlram_cur_addr + 4;
 			}
 
 		} else {
-			TS_LOG_ERR("%s: retval=%d, read_ret=%d, fbufp=%p, stat.size=%lld\n", __func__, retval, read_ret, fbufp, stat.size);
+			TS_LOG_ERR("%s:ret=%d,read=%d,fbufp=%pK,stat.size=%lld\n",
+				__func__, retval, read_ret, fbufp, stat.size);
 			retval = -3;
 			goto exit_free;
 		}
@@ -364,10 +362,8 @@ static int32_t nvt_load_mp_ctrlram_bin(void)
 
 exit_free:
 	set_fs(org_fs);
-	if (fbufp) {
-		vfree(fbufp);
-		fbufp = NULL;
-	}
+	vfree(fbufp);
+	fbufp = NULL;
 	if (fp) {
 		filp_close(fp, NULL);
 		fp = NULL;
@@ -1571,7 +1567,8 @@ static int nvt_get_threshold_from_csvfile(uint64_t columns, uint64_t rows, char*
 	else{
 	    return FAIL;
 	}
-	TS_LOG_INFO("threshold file name:%s, rows_size=%d, columns_size=%d, target_name = %s\n", file_path, rows, columns, target_name);
+	TS_LOG_INFO("threshold filename:%s, rows_size=%llu, columns_size=%llu,target_name = %s\n",
+		file_path, rows, columns, target_name);
 
 	result =  ts_kit_parse_csvfile(file_path, target_name, data->csv_data, rows, columns);
 	if (PASS == result){
@@ -2200,8 +2197,6 @@ int32_t nvt_kit_selftest(struct ts_rawdata_info *info)
 	char test_2_result[4]={0};
 	char test_3_result[4]={0};
 	char test_4_result[4]={0};
-	int32_t noise_ret = NO_ERR;
-	int32_t open_ret = NO_ERR;
 	uint32_t bytes_of_array=0;
 	uint32_t start_p=0;
 	unsigned long timer_start=0;

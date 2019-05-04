@@ -76,6 +76,9 @@
 	&soh_core {
 		status = "disabled";
 	};
+	&hisi_soh_charger {
+		status = "disabled";
+	};
 	&pd_dpm {
 		uart_use_sbu = <1>;
 		uart_rx_gpio = <&gpio4 5 0>;
@@ -594,6 +597,13 @@
 				nfc_single_channel = "true";
 				nfc_ese_type = "hisee";
 			};
+			tps65132@3e {
+				compatible = "hisilicon,tps65132_phy";
+				reg = <0x3e>;
+				tps65132_i2c_bus_id = <4>;
+				tps65132_support = <1>;
+				status = "ok";
+			};
 
 		};
 
@@ -900,6 +910,12 @@
 				status = "ok";
 			};
 
+			hi6405_codec: hi6405_codec@0{
+				hisilicon,mic_num = <2>;
+				hs_detect_extern_cable = <1>;
+				status = "disabled";
+			};
+
 			pmx4: hi6402_pinctrl {
 				status = "disabled";
 			};
@@ -911,6 +927,10 @@
 		status = "ok";
 	};
 
+	&sound_hi6405 {
+		compatible = "hisilicon,hi3xxx-hi6405";
+		status = "disabled";
+	};
 
 	&hi6210_hifi {
 		compatible = "hi6210-hifi";
@@ -1832,7 +1852,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;

@@ -60,7 +60,8 @@
 #include <asm/io.h>
 #include <linux/gfp.h>
 #include <linux/mm.h>
-#include "scm_ind_src.h"
+#include <soc_socp_adapter.h>
+#include <scm_ind_src.h>
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -70,6 +71,12 @@ extern "C"{
 
 #define DIAG_CODER_SRC_CNF_BUF_A_SIZE               (1024*64)
 #define SCM_CODER_SRC_CNF_BUFFER_SIZE               (DIAG_CODER_SRC_CNF_BUF_A_SIZE)
+
+#ifdef DIAG_SYSTEM_5G
+#define SOCP_CODER_SRC_CNF     SOCP_CODER_SRC_ACPU_CNF
+#else
+#define SOCP_CODER_SRC_CNF     SOCP_CODER_SRC_LOM_CNF1
+#endif
 
 u32 scm_init_cnf_src_buff(void);
 u32 scm_create_cnf_src_buff(u8 **pBufVir, u8 **pBufPhy, u32 ulLen);

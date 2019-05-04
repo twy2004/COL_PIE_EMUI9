@@ -86,7 +86,6 @@ VOS_UINT32 At_TestCgdcont(VOS_UINT8 ucIndex)
                                        "%s: (0-31),\"PPP\",,,(0-2),(0-3),(0,1),(0,1),(0-2),(0,1),(0,1)",
                                        g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
 
-
     gstAtSendData.usBufLen = usLength;
 
     return AT_OK;
@@ -271,7 +270,6 @@ VOS_UINT32 At_TestCgeqos(VOS_UINT8 ucIndex)
 }
 
 
-
 VOS_UINT32 At_TestCgeqosrdp(VOS_UINT8 ucIndex)
 {
     return At_TestCgeqnegPara(ucIndex);
@@ -354,6 +352,18 @@ VOS_UINT32 At_TestVtsPara(VOS_UINT8 ucIndex)
                                        (VOS_CHAR *)pgucAtSndCodeAddr + usLength,
                                        "+VTS: (0-9,A-D,*,#)");
     gstAtSendData.usBufLen = usLength;
+
+    return AT_OK;
+}
+
+
+VOS_UINT32 At_TestChldPara(VOS_UINT8 ucIndex)
+{
+    gstAtSendData.usBufLen = (VOS_UINT16)At_sprintf(AT_CMD_MAX_LEN,
+                                      (VOS_CHAR *)pgucAtSndCodeAddr,
+                                      (VOS_CHAR *)pgucAtSndCodeAddr,
+                                      "%s: (0,1,1x,2,2x,3,4,5)",
+                                      g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
 
     return AT_OK;
 }
@@ -529,7 +539,7 @@ VOS_UINT32 AT_TestCscbPara(VOS_UINT8 ucIndex)
 {
     gstAtSendData.usBufLen = (VOS_UINT16)VOS_sprintf_s((VOS_CHAR*)pgucAtSndCodeAddr,
                                         AT_CMD_MAX_LEN + 20 - 3,
-                                        "%s:(0,1)",
+                                        "%s: (0,1)",
                                         g_stParseContext[ucIndex].pstCmdElement->pszCmdName);
     return AT_OK;
 }

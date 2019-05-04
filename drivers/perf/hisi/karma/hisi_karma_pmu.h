@@ -33,6 +33,9 @@
  */
 #define KARMA_PMU_IDX_CYCLE_COUNTER	31
 
+#define KARMA_ACTIVE_CPU_MASK			0x0
+#define KARMA_ASSOCIATED_CPU_MASK		0x1
+
 
 #define to_hisi_pmu(p)	(container_of(p, struct karma_pmu, pmu))
 
@@ -40,21 +43,28 @@
 
 #define PMU_MAX_PERIOD(nr) (BIT_ULL(nr) - 1)
 
-#define KARMA_PMU_ATTR(_name, _func, _config)				\
+#ifdef CONFIG_HISI_KARMA_PMU_DEBUG
+#define KARMA_EXT_ATTR(_name, _func, _config)		\
 	(&((struct dev_ext_attribute[]) {				\
-		{ __ATTR(_name, 0440, _func, NULL), (void *)_config }   \
+		{							\
+			.attr = __ATTR(_name, 0440, _func, NULL),	\
+			.var = (void *)_config				\
+		}							\
 	})[0].attr.attr)
 
-#define KARMA_PMU_FORMAT_ATTR(_name, _config)		\
-	KARMA_PMU_ATTR(_name, karma_format_sysfs_show, (void *)_config)
+#define KARMA_EVENT_ATTR(_name, _config)		\
+	KARMA_EXT_ATTR(_name, karma_pmu_sysfs_event_show, (unsigned long)_config)
 
-#define KARMA_PMU_EVENT_ATTR(_name, _config)		\
-	KARMA_PMU_ATTR(_name, karma_event_sysfs_show, (unsigned long)_config)
+#define KARMA_FORMAT_ATTR(_name, _config)		\
+	KARMA_EXT_ATTR(_name, karma_pmu_sysfs_format_show, (char *)_config)
+
+#define KARMA_CPUMASK_ATTR(_name, _config)	\
+	KARMA_EXT_ATTR(_name, karma_pmu_cpumask_show, (unsigned long)_config)
+#endif
 
 #define for_each_sibling_event(sibling, event)			\
 	if ((event)->group_leader == (event))			\
 		list_for_each_entry((sibling), &(event)->sibling_list, sibling_list)
-
 
 struct karma_pmu_hwevents {
 	struct perf_event *hw_events[KARMA_PMU_MAX_HW_CNTRS];
@@ -68,7 +78,7 @@ struct karma_pmu {
 	/* associated_cpus: All CPUs associated with the PMU */
 	cpumask_t associated_cpus;
 	/* CPU used for counting */
-	int on_cpu;
+	cpumask_t active_cpu;
 	//int irq;
 	struct device *dev;
 	raw_spinlock_t pmu_lock;
@@ -88,24 +98,17 @@ struct karma_pmu {
 
 
 int karma_pmu_counter_valid(struct karma_pmu *karma_pmu, int idx);
-int karma_pmu_get_event_idx(struct perf_event *event);
-void karma_pmu_read(struct perf_event *event);
-int karma_pmu_add(struct perf_event *event, int flags);
-void karma_pmu_del(struct perf_event *event, int flags);
-void karma_pmu_start(struct perf_event *event, int flags);
-void karma_pmu_stop(struct perf_event *event, int flags);
-void karma_pmu_set_event_period(struct perf_event *event);
-void karma_pmu_event_update(struct perf_event *event);
-int karma_pmu_event_init(struct perf_event *event);
-void karma_pmu_enable(struct pmu *pmu);
-void karma_pmu_disable(struct pmu *pmu);
-ssize_t karma_event_sysfs_show(struct device *dev,
+#ifdef CONFIG_HISI_KARMA_PMU_DEBUG
+ssize_t karma_pmu_sysfs_event_show(struct device *dev,
 			      struct device_attribute *attr, char *buf);
-ssize_t karma_format_sysfs_show(struct device *dev,
+ssize_t karma_pmu_sysfs_format_show(struct device *dev,
 			       struct device_attribute *attr, char *buf);
-ssize_t karma_cpumask_sysfs_show(struct device *dev,
+ssize_t karma_pmu_cpumask_show(struct device *dev,
 				struct device_attribute *attr, char *buf);
-int karma_pmu_online_cpu(unsigned int cpu, struct hlist_node *node);
-int karma_pmu_offline_cpu(unsigned int cpu, struct hlist_node *node);
+#endif
+
+
+
+
 
 #endif /* __HISI_KARMA_PMU_H__ */

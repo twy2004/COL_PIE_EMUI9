@@ -166,6 +166,7 @@ VOS_VOID ADS_UL_StopDsFlowStats(
 }
 
 
+
 VOS_INT ADS_UL_SendPacket(
     IMM_ZC_STRU                        *pstImmZc,
     VOS_UINT8                           ucExRabId
@@ -607,17 +608,19 @@ VOS_VOID ADS_UL_ConfigBD(VOS_UINT32 ulBdNum)
 
     for (ulCnt = 0; ulCnt < ulBdNum; ulCnt++)
     {
+        pstUlBdBuff   = ADS_UL_GET_BD_BUFF_PTR(ulCnt);
+        pstUlCfgParam = ADS_UL_GET_BD_CFG_PARA_PTR(ulCnt);
+
         pstImmZc = ADS_UL_GetNextQueueNode(&ulRabId, &ulInstance, &uc1XorHrpdUlIpfFlag);
+
         if (VOS_NULL_PTR == pstImmZc)
         {
             break;
         }
 
-        pstUlBdBuff = ADS_UL_GET_BD_BUFF_PTR(ulCnt);
         pstUlBdBuff->pstPkt = pstImmZc;
 
         ulBeginSlice  = ADS_UL_GET_SLICE_FROM_IMM(pstImmZc);
-        pstUlCfgParam = ADS_UL_GET_BD_CFG_PARA_PTR(ulCnt);
         /* Attribute: 中断使能，过滤加搬移，过滤器组号modem0用0，modem1用1 */
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
         pstUlCfgParam->Data         = (modem_phy_addr)virt_to_phys((VOS_VOID *)pstImmZc->data);
@@ -678,6 +681,7 @@ VOS_VOID ADS_UL_ConfigBD(VOS_UINT32 ulBdNum)
     ADS_DBG_UL_BDQ_CFG_IPF_SUCC_NUM(1);
 
     ADS_MNTN_ReportULPktInfo();
+
 
     ADS_UL_EnableRxWakeLockTimeout(ADS_UL_RX_WAKE_LOCK_TMR_LEN);
     return;

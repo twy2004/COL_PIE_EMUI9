@@ -42,6 +42,10 @@ int mdrv_slt_acore_l2cache_test(void);
 
 int mdrv_slt_hifi_test(void);
 
+int mdrv_slt_serdes_test(void);
+
+int mdrv_slt_alink_test(void);
+
 #ifdef __cplusplus
 }
 #endif

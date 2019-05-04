@@ -121,14 +121,38 @@ extern "C"
 #define ID_MSG_DIAG_DSP_DISCONNECT_REQ    		    (0x30004904)
 #define ID_MSG_DIAG_DSP_DISCONNECT_CNF    		    (ID_MSG_DIAG_DSP_DISCONNECT_REQ)
 
+
+/* diag 发送给TL-PHY的维测开关 */
+#define ID_MSG_DIAG_DSP_MNTN_SWITCH                 (0x30004907)
+#define ID_MSG_DIAG_DSP_MNTN_SWITCH_CNF             (ID_MSG_DIAG_DSP_MNTN_SWITCH)
+
+/* diag 发送给LTE-V的消息连接请求 */
+#define ID_MSG_DIAG_LVDSP_CONNECT_REQ    		        (0x37004903)
+#define ID_MSG_DIAG_LVDSP_CONNECT_CNF    		        (ID_MSG_DIAG_LVDSP_CONNECT_REQ)
+/* diag 发送给LTE-V的消息断连请求 */
+#define ID_MSG_DIAG_LVDSP_DISCONNECT_REQ    		    (0x37004904)
+#define ID_MSG_DIAG_LVDSP_DISCONNECT_CNF    		    (ID_MSG_DIAG_LVDSP_DISCONNECT_REQ)
+
+
 /* diag 发送给HL1C的消息连接请求 */
 #define ID_MSG_DIAG_HL1C_CONNECT_REQ    		    (0x3f000007)
 #define ID_MSG_DIAG_HL1C_CONNECT_CNF    		    (ID_MSG_DIAG_HL1C_CONNECT_REQ)
 /* diag 发送给HL1C的消息断连请求 */
 #define ID_MSG_DIAG_HL1C_DISCONNECT_REQ    		    (0x3f000006)
 #define ID_MSG_DIAG_HL1C_DISCONNECT_CNF    		    (ID_MSG_DIAG_HL1C_DISCONNECT_REQ)
-/* 端口信息 */
-#define ID_MSG_DIAG_NRPHY_PORT_INFO                 (0x3f00000a)
+
+/* diag 发送给HL1C的维测开关*/
+#define ID_MSG_DIAG_HL1C_MNTN_SWITCH                (0x3f00000a)
+#define ID_MSG_DIAG_HL1C_MNTN_SWITCH_CNF            (ID_MSG_DIAG_HL1C_MNTN_SWITCH)
+
+/* diag 发送给EasyRF的维测开关*/
+#define ID_MSG_DIAG_RFDSP_MNTN_SWITCH               (0x0000f805)
+
+/* diag 发送给C-PHY的维测开关*/
+#define ID_MSG_DIAG_CPHY_MNTN_SWITCH                (0x0000901d)
+
+/* diag 发送给GU-PHY的维测开关*/
+#define ID_MSG_DIAG_GUPHY_MNTN_SWITCH               (0x0000ff07)
 
 /* 对外消息的范围与 DIAG_MESSAGE_TYPE_U32 拉通 */
 
@@ -188,6 +212,7 @@ enum DIAG_MODE_TYPE
     DIAG_MODE_1X   = 0x4,
     DIAG_MODE_HRPD = 0x5,
     DIAG_MODE_NR   = 0x6,
+    DIAG_MODE_LTEV = 0x7,
     DIAG_MODE_COMM = 0xf
 };
 typedef VOS_UINT32 DIAG_MODE_TYPE_U32;
@@ -249,6 +274,16 @@ typedef struct
     VOS_UINT32        ulLength;
     VOS_VOID          *pData;
 } DIAG_TRANS_IND_STRU;
+
+typedef struct
+{
+    VOS_UINT32        ulModule;
+    VOS_UINT32        ulPid;
+    VOS_UINT32        ulMsgId;
+    VOS_UINT32        ulReserve;
+    VOS_UINT32        ulLength;
+    VOS_VOID          *pData;
+} DIAG_DT_IND_STRU;
 
 /*********************************连接管理相关********************************************/
 /* OSA消息头 */
@@ -436,6 +471,16 @@ VOS_UINT32 Diag_GetLogLevel(VOS_UINT32 ulPid);
              其他值          失败
 *****************************************************************************/
 VOS_UINT32 DIAG_RttReport(VOS_VOID *pData, VOS_UINT32 ulDatalen);
+/*****************************************************************************
+ 函 数 名     : DIAG_DtReport
+ 功能描述  : 路测数据上报扩展接口
+ 输入参数  : DIAG_DT_IND_STRU->ulModule( 31-24:modemid,23-16:modeid,11-8:groupid )
+                          DIAG_DT_IND_STRU->ulMsgId(透传命令ID)
+                          DIAG_DT_IND_STRU->ulLength(透传信息的长度)
+                          DIAG_DT_IND_STRU->pData(透传信息)
+*****************************************************************************/
+VOS_UINT32 DIAG_DtReport(DIAG_DT_IND_STRU *pstData);
+
 #ifdef __cplusplus
     }
 #endif

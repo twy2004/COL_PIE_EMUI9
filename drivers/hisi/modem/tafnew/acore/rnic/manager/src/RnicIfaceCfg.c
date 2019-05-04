@@ -53,12 +53,12 @@
 #include "PsCommonDef.h"
 #include "RnicMsgProc.h"
 #include "RnicEntity.h"
+#include "RnicMntn.h"
 #include "RnicIfaceOndemand.h"
 #include "RnicLog.h"
 #include "BastetRnicInterface.h"
 #include "rnic_dev_i.h"
 #include "rnic_ondemand_i.h"
-
 
 
 
@@ -87,7 +87,43 @@ VOS_VOID RNIC_IFACE_SetNapiCfg(RNIC_DEV_ID_ENUM_UINT8 enRmNetId)
     stNapiCfg.napi_weight       = RNIC_GET_NAPI_WEIGHT(enRmNetId);
     stNapiCfg.napi_queue_length = RNIC_GET_NAPI_POLL_QUE_MAX_LEN(enRmNetId);
 
-    rnic_set_napi_config(&stNapiCfg);
+    rnic_set_dev_napi_config(&stNapiCfg);
+    return;
+}
+
+
+VOS_VOID RNIC_IFACE_SetNapiLbCfg(
+    RNIC_DEV_ID_ENUM_UINT8              enRmNetId
+)
+{
+    struct rnic_napi_lb_config_s        stNapiLbCfg;
+
+    stNapiLbCfg.devid          = enRmNetId;
+    stNapiLbCfg.lb_enable      = RNIC_GET_NAPI_LB_FEATURE(enRmNetId);
+    stNapiLbCfg.lb_cpu_bitmask = RNIC_GET_NAPI_LB_CPUMASK(enRmNetId);
+
+    TAF_MEM_CPY_S( stNapiLbCfg.napi_lb_level_cfg,
+                   sizeof(struct rnic_napi_lb_level_config_s) * RNIC_NAPI_LB_MAX_LEVEL,
+                   RNIC_GET_NAPI_LB_LEVEL_CFG(enRmNetId),
+                   sizeof(RNIC_NAPI_LB_LEVEL_CFG_STRU) * RNIC_NVIM_NAPI_LB_MAX_LEVEL);
+
+    rnic_set_dev_napi_lb_config(&stNapiLbCfg);
+    return;
+}
+
+
+VOS_VOID RNIC_IFACE_SetNapiLbLevel(
+    RNIC_DEV_ID_ENUM_UINT8              enRmNetId,
+    VOS_UINT8                           ucLbLevel
+)
+{
+    if (ucLbLevel != RNIC_GET_NAPI_LB_CUR_LEVEL(enRmNetId))
+    {
+        if (!rnic_set_dev_napi_lb_level(enRmNetId, ucLbLevel))
+        {
+            RNIC_SET_NAPI_LB_CUR_LEVEL(enRmNetId, ucLbLevel);
+        }
+    }
     return;
 }
 
@@ -99,8 +135,36 @@ VOS_VOID RNIC_IFACE_SetNapiWeight(
 {
     if (ucWeight != RNIC_GET_NAPI_WEIGHT(enRmNetId))
     {
-        rnic_set_napi_weight(enRmNetId, ucWeight);
+        rnic_set_dev_napi_weight(enRmNetId, ucWeight);
         RNIC_SET_NAPI_WEIGHT(enRmNetId, ucWeight);
+    }
+
+    return;
+}
+
+
+VOS_VOID RNIC_IFACE_ResetNapiConfig(RNIC_DEV_ID_ENUM_UINT8 enRmNetId)
+{
+    VOS_UINT8                           ucMinWeight = RNIC_GET_NAPI_WEIGHT_LEVEL1(enRmNetId);
+
+    if (RNIC_FEATURE_ON == RNIC_GET_NAPI_FEATURE(enRmNetId))
+    {
+        if (0 != rnic_set_dev_napi_weight(enRmNetId, ucMinWeight))
+        {
+            RNIC_ERROR_LOG(ACPU_PID_RNIC,
+                "RNIC_IFACE_ResetNapiConfig: set rnic_set_napi_weight fail!");
+        }
+        RNIC_SET_NAPI_WEIGHT(enRmNetId, ucMinWeight);
+    }
+
+    if (RNIC_FEATURE_ON == RNIC_GET_NAPI_LB_FEATURE(enRmNetId))
+    {
+        if (0 != rnic_set_dev_napi_lb_level(enRmNetId, 0))
+        {
+            RNIC_ERROR_LOG(ACPU_PID_RNIC,
+                "RNIC_IFACE_ResetNapiConfig: set rnic_set_napi_lb_level fail!");
+        }
+        RNIC_SET_NAPI_LB_CUR_LEVEL(enRmNetId, 0);
     }
 
     return;
@@ -153,6 +217,30 @@ VOS_VOID RNIC_IFACE_AdjustNapiWeight(VOS_UINT8 ucRmNetId)
     {
         ucWeight = RNIC_IFACE_CalcNapiWeight(ucRmNetId);
         RNIC_IFACE_SetNapiWeight(ucRmNetId, ucWeight);
+    }
+
+    return;
+}
+
+
+VOS_VOID RNIC_IFACE_AdjNapiLbLevel(VOS_UINT8 ucRmNetId)
+{
+    VOS_UINT32                          ulLbLevel;
+    VOS_UINT32                          ulDlNapiRecvPktNum;
+
+    /* NAPI负载均衡特性打开时，才根据流量调整CPU的权重 */
+    if (RNIC_FEATURE_ON == RNIC_GET_NAPI_LB_FEATURE(ucRmNetId))
+    {
+        ulDlNapiRecvPktNum = RNIC_GET_IFACE_PERIOD_RECV_PKT(ucRmNetId);
+
+        for (ulLbLevel = 0; ulLbLevel < (RNIC_NVIM_NAPI_LB_MAX_LEVEL - 1); ulLbLevel++)
+        {
+            if ((ulDlNapiRecvPktNum >= RNIC_GET_NAPI_LB_LEVEL_PPS(ucRmNetId, ulLbLevel))
+             && (ulDlNapiRecvPktNum < RNIC_GET_NAPI_LB_LEVEL_PPS(ucRmNetId, ulLbLevel+1UL)))
+                break;
+        }
+
+        RNIC_IFACE_SetNapiLbLevel(ucRmNetId, (VOS_UINT8)ulLbLevel);
     }
 
     return;
@@ -228,7 +316,7 @@ VOS_VOID RNIC_IFACE_SetNetDevUp(
                                     RNIC_V4DataTxProc : RNIC_V6DataTxProc;
     }
 
-    if (0 != rnic_set_ps_iface_up(&stPsIfaceCfg))
+    if (0 != rnic_set_dev_ps_iface_up(&stPsIfaceCfg))
     {
         RNIC_ERROR_LOG(ACPU_PID_RNIC, "RNIC_IFACE_SetDevUp: set rnic_set_ps_iface_up fail!");
     }
@@ -251,14 +339,17 @@ VOS_VOID RNIC_IFACE_SetNetDevDown(
     stPsIfaceCfg.ip_family    = ucIpFamily;
     stPsIfaceCfg.data_tx_func = VOS_NULL_PTR;
 
-    if (0 != rnic_set_ps_iface_down(&stPsIfaceCfg))
+    if (0 != rnic_set_dev_ps_iface_down(&stPsIfaceCfg))
     {
         RNIC_ERROR_LOG(ACPU_PID_RNIC,
             "RNIC_IFACE_SetDevDown: set rnic_set_ps_iface_down fail!");
     }
 
+    RNIC_IFACE_ResetNapiConfig(pstIfaceCtx->enRmNetId);
+
     return;
 }
+
 
 
 
@@ -267,10 +358,11 @@ VOS_VOID RNIC_IFACE_SetFeatureCfg(VOS_VOID)
 {
     VOS_UINT32                          ulIndex;
 
-    for (ulIndex = 0 ; ulIndex < RNIC_NET_ID_MAX_NUM ; ulIndex++)
+    for (ulIndex = 0 ; ulIndex <= RNIC_3GPP_NET_ID_MAX_NUM ; ulIndex++)
     {
         /* 设置NAPI特性 */
         RNIC_IFACE_SetNapiCfg((VOS_UINT8)ulIndex);
+        RNIC_IFACE_SetNapiLbCfg((VOS_UINT8)ulIndex);
 
     }
 
@@ -406,11 +498,13 @@ VOS_VOID RNIC_IFACE_ResetPsIface(VOS_UINT8 ucRmNetId)
 
     /* Down V4 网卡 */
     stPsIfaceCfg.ip_family    = RNIC_IPV4_ADDR;
-    rnic_set_ps_iface_down(&stPsIfaceCfg);
+    rnic_set_dev_ps_iface_down(&stPsIfaceCfg);
 
     /* Down V6 网卡 */
     stPsIfaceCfg.ip_family    = RNIC_IPV6_ADDR;
-    rnic_set_ps_iface_down(&stPsIfaceCfg);
+    rnic_set_dev_ps_iface_down(&stPsIfaceCfg);
+
+    RNIC_IFACE_ResetNapiConfig(ucRmNetId);
 
     return;
 }

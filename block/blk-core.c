@@ -1757,12 +1757,12 @@ get_rq:
 	 * rq allocator and io schedulers.
 	 */
 	if (sync)
-		rw_flags |= REQ_SYNC;
+		rw_flags = (unsigned int)rw_flags | REQ_SYNC;
 
 	/*
 	 * Add in META/PRIO flags, if set, before we get to the IO scheduler
 	 */
-	rw_flags |= (bio->bi_opf & (REQ_META | REQ_PRIO));
+	rw_flags = (unsigned int)rw_flags | (bio->bi_opf & (REQ_META | REQ_PRIO));
 
 	/*
 	 * Grab a free request. This is might sleep but can not fail.
@@ -2799,7 +2799,7 @@ bool blk_update_request(struct request *req, int error, unsigned int nr_bytes)
 
 	/* update sector only for requests with clear definition of sector */
 	if (req->cmd_type == REQ_TYPE_FS)
-		req->__sector += total_bytes >> 9;
+		req->__sector += (unsigned int)total_bytes >> 9;
 
 	/* mixed attributes always follow the first bio */
 	if (req->cmd_flags & REQ_MIXED_MERGE) {
@@ -3762,7 +3762,7 @@ int __init blk_dev_init(void)
  * them when printing them out.
  */
 ssize_t
-blk_latency_hist_show(char* name, struct io_latency_state *s, char *buf,
+blk_latency_hist_show(const char* name, struct io_latency_state *s, char *buf,
 		int buf_size)
 {
 	int i;

@@ -79,6 +79,9 @@ typedef int ST_IRQ_STATE_INT32;
 enum codec_hifi_type {
 	CODEC_HI6402 = 0,
 	CODEC_HI6403,
+#ifdef CONFIG_SND_SOC_HI6405
+	CODEC_HI6405,
+#endif
 	CODEC_HI640X_MAX,
 } ;
 

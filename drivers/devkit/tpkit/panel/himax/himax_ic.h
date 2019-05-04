@@ -604,6 +604,8 @@ extern unsigned  int  HX_ESD_RESET_COUNT ;
 extern uint8_t HW_RESET_ACTIVATE;
 //for update test
 
+extern char himax_product_id[];
+
 //define in debug.c
 extern int i_update_FW(void);
 extern int himax_touch_sysfs_init(void);

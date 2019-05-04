@@ -58,9 +58,12 @@
 #include "omprivate.h"
 #include "cbtapprl.h"
 #include "PamOamSpecTaskDef.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 #define    THIS_FILE_ID        PS_FILE_ID_CBT_PPM_C
+#define    THIS_MODU           mod_pam_cbt
 
 
 

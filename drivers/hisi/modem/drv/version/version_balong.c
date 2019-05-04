@@ -51,6 +51,7 @@
 
 #include <linux/module.h>
 #include <linux/string.h>
+#include <linux/atomic.h>
 #include <nv_stru_drv.h>
 #include <bsp_nvim.h>
 #include <bsp_version.h>
@@ -190,8 +191,8 @@ char * bsp_version_get_product_inner_name(void)
         (void)memset_s((void*)product_inner_name, MemparamType(len), 0, MemparamType(len));
 
         /* coverity[secure_coding] */
-        strncat_s(product_inner_name, len, huawei_product_info.name, strlen(huawei_product_info.name));
-        strncat_s(product_inner_name, len, huawei_product_info.namePlus, strlen(huawei_product_info.namePlus));
+        strncat_s(product_inner_name, VERSION_MAX_LEN, huawei_product_info.name, strlen(huawei_product_info.name));
+        strncat_s(product_inner_name, VERSION_MAX_LEN, huawei_product_info.namePlus, strlen(huawei_product_info.namePlus));
         *(product_inner_name+len) = 0;
         b_geted=true;
     }
@@ -230,8 +231,7 @@ char * bsp_version_get_product_out_name(void)
 *****************************************************************************/
 char * bsp_version_get_build_date_time(void)
 {
-	static char * build_date   = __DATE__ ", " __TIME__;
-	return build_date;
+    return NULL;
 }
 
 /*****************************************************************************

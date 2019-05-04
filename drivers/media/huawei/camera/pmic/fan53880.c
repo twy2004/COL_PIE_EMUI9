@@ -50,6 +50,8 @@
 #define BOOST_CTL (0x03)
 #define BOOST_ENABLE (0x0A)
 #define BOOST_VOUT (0x11) //3V-5.5V 25mV/step
+#define FAN53880_VOUT_4v5 0x40
+#define FAN53880_VOUT_5v0 0x54
 
 #define FAN53880_BOOST_VOLTAGE_MIN (3000000)
 #define FAN53880_BOOST_VOLTAGE_MAX (5700000)
@@ -70,10 +72,15 @@
 #define FAN53880_MASK_UVP_INT (0x20)
 #define FAN53880_MASK_BST_IPK_INT (0x80)
 
+//LDO2
+#define FAN53880_LDO2_CTRL 1
+
 // Private data struct
 struct fan53880_private_data_t {
     unsigned int pin;
     unsigned int voltage[VOUT_MAX];
+	unsigned int ldo2_ctrl;
+	unsigned int shutdown_4V5;
 };
 
 typedef struct {
@@ -298,19 +305,66 @@ static int fan53880_seq_config(struct hisi_pmic_ctrl_t *pmic_ctrl,
                               u32 voltage,
                               int state)
 {
-    int ret = 0;
+	int ret = 0;
+	static int state_votes = 0;
+	struct fan53880_private_data_t *pdata = NULL;
 
-    mutex_lock(&pmic_mut_fan53880);
-    if (seq_index == VOUT_BOOST) {
-        ret = fan53880_boost_seq_config(pmic_ctrl, seq_index, voltage, state);
-    } else if (seq_index < VOUT_LDO_5) {
-        ret = fan53880_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
-    } else {
-        ret = fan53880_buck_seq_config(pmic_ctrl, seq_index, voltage, state);
-    }
-    mutex_unlock(&pmic_mut_fan53880);
+	pdata = (struct fan53880_private_data_t *)pmic_ctrl->pdata;
+	if (pdata == NULL) {
+		cam_err("%s pdata error", __func__);
+		return -1;
+	}
 
-    return ret;
+	mutex_lock(&pmic_mut_fan53880);
+	if (seq_index == VOUT_BOOST) {
+		ret = fan53880_boost_seq_config(pmic_ctrl, seq_index, voltage, state);
+	} else if (seq_index < VOUT_LDO_5) {
+		if ((pdata->ldo2_ctrl == FAN53880_LDO2_CTRL) && (seq_index == VOUT_LDO_2)) {
+			if (state == 0) {
+				if (state_votes > 1) {
+					cam_info("%s state_votes = %d, cannot close LDO index%d",
+						__func__, state_votes, seq_index);
+					state_votes--;
+				} else if (state_votes == 1) {
+					ret = fan53880_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+					if (ret == 0) {
+						state_votes = 0;
+						cam_info("%s vote to close LDO index%d suc", __func__, seq_index);
+					} else {
+						cam_err("%s vote to close LDO index%d err!", __func__, seq_index);
+					}
+				} else {
+					cam_err("%s invalid vote count = %d!", __func__, state_votes);
+					ret = -1;
+				}
+			}
+			if (state == 1) {
+				if (state_votes > 0) {
+					cam_info("%s state_votes = %d, do not open LDO index%d again",
+						__func__, state_votes, seq_index);
+					state_votes++;
+				} else if (state_votes == 0) {
+					ret = fan53880_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+					if (ret == 0) {
+						state_votes = 1;
+						cam_info("%s vote to open LDO index%d suc", __func__, seq_index);
+					} else {
+						cam_err("%s vote to open LDO index%d err!", __func__, seq_index);
+					}
+				} else {
+					cam_err("%s invalid vote count = %d!", __func__, state_votes);
+					ret = -1;
+				}
+			}
+		} else {
+			ret = fan53880_ldo_seq_config(pmic_ctrl, seq_index, voltage, state);
+		}
+	} else {
+		ret = fan53880_buck_seq_config(pmic_ctrl, seq_index, voltage, state);
+	}
+
+	mutex_unlock(&pmic_mut_fan53880);
+	return ret;
 }
 
 static int fan53880_match(struct hisi_pmic_ctrl_t *pmic_ctrl)
@@ -341,6 +395,21 @@ static int fan53880_get_dt_data(struct hisi_pmic_ctrl_t *pmic_ctrl)
         goto fail;
     }
 
+	// ldo2_ctrl
+	rc = of_property_read_u32(dev_node, "hisi,pmic_ldo2_ctrl", &pdata->ldo2_ctrl);
+	if (rc < 0) {
+		pdata->ldo2_ctrl = 0;
+		cam_info("%s, cannot get buck config, set to default ldo2_ctrl", __func__);
+	}
+	cam_info("%s huawei,pmic_ldo2_ctrl %d", __func__, pdata->ldo2_ctrl);
+
+	rc = of_property_read_u32(dev_node, "hisi,shutdown_4V5",
+		&pdata->shutdown_4V5);
+	if (rc < 0) {
+		pdata->shutdown_4V5 = 0;
+		cam_info("%s, cannot get shutdown 4v5 set, set 0", __func__);
+	}
+	cam_info("get shutdown_4V5 val = %d", pdata->shutdown_4V5);
     return 0;
 
 fail:
@@ -413,9 +482,9 @@ static int fan53880_init(struct hisi_pmic_ctrl_t *pmic_ctrl)
     }
     cam_debug("%s chip id=%d", __func__, chip_id);
 
-    //if(chip_id != FAN53880_CHIP_VERSION) {
-    //    goto err;
-    //}
+	ret = i2c_func->i2c_write(i2c_client, BOOST_CTL, FAN53880_VOUT_5v0);
+	if (ret < 0)
+		cam_err("%s, set boost volt err", __func__);
 
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
     set_hw_dev_flag(DEV_I2C_CAMERA_PMIC);
@@ -516,6 +585,32 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
     return 0;
 }
 
+static int fan53880_shutdown(struct i2c_client *client)
+{
+	struct hisi_pmic_i2c_client *fan_i2c_client = NULL;
+	struct hisi_pmic_ctrl_t *fan_shut_pmic_ctrl = NULL;
+	struct hisi_pmic_i2c_fn_t *i2c_func = NULL;
+	struct fan53880_private_data_t *pdata = NULL;
+
+	cam_warn("%s enter", __func__);
+	fan_shut_pmic_ctrl = hisi_get_pmic_ctrl();
+	if (!fan_shut_pmic_ctrl || !fan_shut_pmic_ctrl->pmic_i2c_client ||
+		!fan_shut_pmic_ctrl->pmic_i2c_client->i2c_func_tbl ||
+		!fan_shut_pmic_ctrl->pdata)
+		return -EFAULT;
+	pdata = (struct rt5112_private_data_t *)fan_shut_pmic_ctrl->pdata;
+	if (pdata->shutdown_4V5 == 0) {
+		cam_warn("%s not support shut down to 4v5", __func__);
+		return 0;
+	}
+
+	fan_i2c_client = fan_shut_pmic_ctrl->pmic_i2c_client;
+	i2c_func = fan_shut_pmic_ctrl->pmic_i2c_client->i2c_func_tbl;
+	i2c_func->i2c_write(fan_i2c_client, BOOST_CTL, FAN53880_VOUT_4v5);
+	cam_warn("set to 4V5");
+	return 0;
+}
+
 static int fan53880_remove(struct i2c_client *client)
 {
     cam_debug("%s enter.", __func__);
@@ -540,6 +635,7 @@ MODULE_DEVICE_TABLE(of, fan53880_dt_match);
 static struct i2c_driver fan53880_i2c_driver = {
     .probe    = hisi_pmic_i2c_probe,
     .remove = fan53880_remove,
+	.shutdown = fan53880_shutdown,
     .id_table   = fan53880_id,
     .driver = {
         .name = "fan53880",

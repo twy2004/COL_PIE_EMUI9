@@ -79,6 +79,7 @@ static struct file_operations gt1x_tool_fops = {
 #define DATA_LENGTH_UINT	512
 #define CMD_HEAD_LENGTH		(sizeof(st_cmd_head) - sizeof(u8*))
 #define OFFSET_8BITS  		8
+#define GT1X_FW_TOOL_NAME "gt1x_fw.img"
 
 static st_cmd_head cmd_head;
 static s32 DATA_LENGTH = 0;
@@ -308,7 +309,8 @@ static ssize_t gt1x_tool_write(struct file *filp, const char __user * buff, size
 	} else if (LEAVE_UPDATA_MODE == cmd_head.wr) {
 		gt1x_leave_update_mode();
 	} else if (ENTER_UPDATA_MODE == cmd_head.wr) {
-		data_len = cmd_head.data_len > DATA_LENGTH_UINT ? DATA_LENGTH_UINT : cmd_head.data_len;
+		data_len = cmd_head.data_len > DATA_LENGTH_UINT ?
+			(DATA_LENGTH_UINT - 1) : cmd_head.data_len;
 		memset(cmd_head.data, 0, DATA_LENGTH_UINT);
 		if(copy_from_user(cmd_head.data, &buff[CMD_HEAD_LENGTH], data_len)){
 			TS_LOG_ERR("%s:copy to user error\n", __func__);
@@ -316,7 +318,13 @@ static ssize_t gt1x_tool_write(struct file *filp, const char __user * buff, size
 		memset(gt1x_ts->firmware_name, 0, GT1X_FW_NAME_LEN);
 		snprintf(gt1x_ts->firmware_name, GT1X_FW_NAME_LEN, "%s",cmd_head.data);
 		TS_LOG_INFO("%s: fw_name=%s\n",__func__, gt1x_ts->firmware_name);
-		return gt1x_update_firmware();
+		if (strncmp(gt1x_ts->firmware_name, GT1X_FW_TOOL_NAME,
+			strlen(GT1X_FW_TOOL_NAME))) {
+			TS_LOG_ERR("%s: invalid fw_name\n", __func__);
+			return -EINVAL;
+		} else {
+			return gt1x_update_firmware();
+		}
 	} else if (cmd_head.wr == CHECK_IC_STATUS) {
 		if (!gt1x_ts->sensor_id_valid)
 			return -EINVAL;
@@ -365,8 +373,7 @@ Output:
 static ssize_t gt1x_tool_read(struct file *filp, char __user * buffer, size_t count, loff_t * ppos)
 {
 	u16 addr, len, loc = 0;
-	int data_len = 0;
-	int ret = 0;
+	int data_len,ret = 0;
 	u8 tmp =0;
 
 	if(!buffer){

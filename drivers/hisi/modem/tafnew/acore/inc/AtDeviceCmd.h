@@ -133,19 +133,6 @@ enum AT_TBAT_OPERATION_DIRECTION_ENUM
 typedef VOS_UINT32  AT_TBAT_OPERATION_DIRECTION_ENUM_UINT32;
 
 
-enum AT_TSELRF_PATH_ENUM
-{
-    AT_TSELRF_PATH_GSM                  = 1,
-    AT_TSELRF_PATH_WCDMA_PRI            = 2,
-    AT_TSELRF_PATH_WCDMA_DIV            = 3,
-    AT_TSELRF_PATH_TD					= 6,
-    AT_TSELRF_PATH_WIFI                 = 7,
-    AT_TSELRF_PATH_BUTT
-};
-typedef VOS_UINT32  AT_TSELRF_PATH_ENUM_UINT32;
-
-
-
 enum AT_KEY_TYPE_ENUM
 {
     AT_KEY_TYPE_DIEID      = 1,
@@ -180,19 +167,6 @@ enum AT_SET_STATE_ENUM
     AT_SET_STATE_BUTT
 };
 
-
-enum AT_SET_SLT_TEST_TYPE_ENUM
-{
-    AT_SET_SGMII_TEST                   = 1,    /* SGMII数模接口功能测试 */
-    AT_SET_RGMII_TEST                   = 2,    /* RGMII数模接口功能测试 */
-    AT_SET_PCIE_TEST                    = 3,    /* PCIe模拟PHY接口连接测试 */
-    AT_SET_SPI_TEST                     = 4,    /* SPI master和slave对接环回测试 */
-    AT_SET_SDCARD_TEST                  = 5,    /* MMC0接口及SD卡读写测试 */
-    AT_SET_L2CACHE_TEST                 = 6,    /* L2CACHE测试 */
-    AT_SET_HIFI_TEST                    = 7,    /* HIFI测试*/
-    AT_SET_SLT_TEST_BUTT
-};
-typedef VOS_UINT8  AT_SET_SLT_TEST_TYPE_ENUM_UINT8;
 
 #define SLT_SUCCESS                     (0)
 #define SLT_ERROR                       (1)
@@ -284,12 +258,6 @@ VOS_UINT32 AT_UpdateMacPara(
 
 VOS_UINT32 AT_SetTmodeAutoPowerOff(VOS_UINT8 ucIndex);
 
-#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
-VOS_UINT32 AT_SetTseLrfPara(VOS_UINT8 ucIndex);
-
-VOS_UINT32 AT_QryTseLrfPara(VOS_UINT8 ucIndex);
-#endif
-
 VOS_UINT32 AT_GetPhynumMac(VOS_UINT8 aucMac[]);
 
 VOS_UINT32 AT_ExistSpecificPort(VOS_UINT8 ucPortType);
@@ -314,10 +282,8 @@ VOS_UINT32 AT_SetNVReadPara(VOS_UINT8 ucClientId);
 VOS_UINT32 AT_SetNVWritePara(VOS_UINT8 ucClientId);
 #endif
 
-VOS_UINT32 AT_QryFPllStatusPara(VOS_UINT8 ucIndex);
 VOS_VOID At_RfPllStatusCnfProc(PHY_AT_RF_PLL_STATUS_CNF_STRU *pstMsg);
 
-VOS_UINT32 AT_QryFpowdetTPara(VOS_UINT8 ucIndex);
 VOS_VOID At_RfFpowdetTCnfProc(PHY_AT_POWER_DET_CNF_STRU *pstMsg);
 
 VOS_UINT32 AT_NVWRGetParaInfo( AT_PARSE_PARA_TYPE_STRU * pstPara, VOS_UINT8 * pu8Data, VOS_UINT32 * pulLen);
@@ -353,14 +319,7 @@ extern VOS_UINT32 AT_SetMeidPara(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_QryMeidPara(VOS_UINT8 ucIndex);
 #endif
 
-#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
-extern VOS_UINT32 AT_SetMipiWrPara(VOS_UINT8 ucIndex);
-#endif
-extern VOS_UINT32 AT_SetMipiRdPara(VOS_UINT8 ucIndex);
-#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
-extern VOS_UINT32 AT_SetSSIWrPara(VOS_UINT8 ucIndex);
-extern VOS_UINT32 AT_SetSSIRdPara(VOS_UINT8 ucIndex);
-#endif
+
 
 #if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
 VOS_UINT32 AT_SetSlavePara(VOS_UINT8 ucIndex);
@@ -391,17 +350,16 @@ VOS_UINT32 AT_RcvMtaTasTestQryCnf( VOS_VOID *pMsg );
 #if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
 VOS_UINT32 AT_SetCdmaAttDiversitySwitch(VOS_UINT8 ucIndex);
 #endif
-VOS_UINT32 AT_RcvMtaPowerDetQryCnf(VOS_VOID *pMsg);
 
-#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
-VOS_UINT32 AT_SetMipiReadPara(VOS_UINT8 ucIndex);
+#if (FEATURE_ON == FEATURE_DCXO_HI1102_SAMPLE_SHARE)
+VOS_UINT32 AT_SetDcxoQryPara(VOS_UINT8 ucIndex);
 #endif
+
 VOS_UINT32 AT_RcvMtaSetMipiReadCnf(VOS_VOID *pstMsg);
 
-VOS_UINT32  At_SetCltPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_RcvMtaSetPhyMipiWriteCnf(VOS_VOID *pstMsg);
 
-VOS_UINT32 AT_SetDcxotempcompPara(VOS_UINT8 ucIndex);
-VOS_UINT32  AT_QryDcxotempcompPara(VOS_UINT8 ucIndex );
+
 #ifdef MBB_SLT
 VOS_UINT32 AT_SetBsnExPara(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_QryBsnExPara(VOS_UINT8 ucIndex);

@@ -79,8 +79,16 @@
 #include "vos_Id.h"
 #include "v_sem.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
+#include <linux/version.h>
 #include <linux/kthread.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/types.h>
+#include <linux/sched/debug.h>
+#include <linux/sched/signal.h>
+#endif
 
 
 
@@ -88,6 +96,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_TASK_C
+#define    THIS_MODU           mod_pam_osa
 
 typedef struct
 {
@@ -195,7 +204,6 @@ VOS_UINT32 VOS_TaskCtrlBlkGet(VOS_VOID)
     VOS_UINT32              i;
     VOS_ULONG               ulLockLevel;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTaskSpinLock, ulLockLevel);
 
     for(i=0; i<vos_TaskCtrlBlkNumber; i++)
@@ -208,7 +216,6 @@ VOS_UINT32 VOS_TaskCtrlBlkGet(VOS_VOID)
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
 
     if( i < vos_TaskCtrlBlkNumber)
@@ -217,7 +224,7 @@ VOS_UINT32 VOS_TaskCtrlBlkGet(VOS_VOID)
     }
     else
     {
-        Print("# allocate task control block fail.\r\n");
+        mdrv_err("<VOS_TaskCtrlBlkGet> allocate task control block fail.\n");
 
         return(VOS_TASK_CTRL_BLK_NULL);
     }
@@ -238,26 +245,24 @@ VOS_UINT32 VOS_TaskCtrlBlkFree(VOS_UINT32 Tid)
     {
         if(vos_TaskCtrlBlk[Tid].Flag == VOS_TASK_CTRL_BLK_IDLE)
         {
-            Print("# VOS_TaskCtrlBlkFree free Idle Task.\r\n");
+            mdrv_err("<VOS_TaskCtrlBlkFree> free Idle Task.\n");
 
             return VOS_ERR;
         }
         else
         {
-            /* intLockLevel = VOS_SplIMP(); */
             VOS_SpinLockIntLock(&g_stVosTaskSpinLock, ulLockLevel);
 
             vos_TaskCtrlBlk[Tid].Flag = VOS_TASK_CTRL_BLK_IDLE;
 
             VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
-            /*VOS_Splx(intLockLevel);*/
 
             return VOS_OK;
         }
     }
     else
     {
-        Print("# VOS_TaskCtrlBlkFree Error.\r\n");
+        mdrv_err("<VOS_TaskCtrlBlkFree> Tid exceed TaskCtrlBlkNumber.\n");
 
         return VOS_ERR;
     }
@@ -396,7 +401,7 @@ VOS_UINT32 VOS_CreateTaskOnly(
 
     if (VOS_NULL != sched_setscheduler(tsk, SCHED_FIFO, &param))
     {
-        (VOS_VOID)vos_printf("[PAM][OSA] %s: Creat Task %s ID %d sched_setscheduler Error\r\n", __FUNCTION__, puchName, iTid);
+        mdrv_err("<VOS_CreateTaskOnly> Creat sched_setscheduler fail, Task=%s, ID=%d \n", puchName, iTid);
 
         VOS_TaskPrintCtrlBlkInfo();
 
@@ -435,7 +440,7 @@ VOS_UINT32 VOS_CreateTask( VOS_CHAR * puchName,
 
     if (VOS_OK != ulResult)
     {
-        (VOS_VOID)vos_printf("[PAM][OSA] %s: createonly error\r\n", __FUNCTION__);
+        mdrv_err("<VOS_CreateTask> createTaskOnly fail\n");
         return VOS_ERR;
     }
 
@@ -445,63 +450,17 @@ VOS_UINT32 VOS_CreateTask( VOS_CHAR * puchName,
 
     if (VOS_NULL_PTR == tsk)
     {
-        (VOS_VOID)vos_printf("[PAM][OSA] %s: tsk NULL\r\n", __FUNCTION__);
+        mdrv_err("<VOS_CreateTask> tsk NULL\n");
         return VOS_ERR;
     }
 
     if (tsk->pid != ulLinuxThreadId)
     {
-        (VOS_VOID)vos_printf("[PAM][OSA] %s: tsk pid not equal\r\n", __FUNCTION__);
+        mdrv_err("<VOS_CreateTask> tsk pid not equal\n");
         return VOS_ERR;
     }
 
     (VOS_VOID)wake_up_process(tsk);
-
-    return VOS_OK;
-}
-
-/*****************************************************************************
- Function   : VOS_SuspendTask
- Description: Suspend a task
- Calls      : OSAL_SuspendTask
- Called By  :
- Input      : ulTaskID  --  id of a task
- Output     : none
- Return     : return VOS_OK if success
- Other      : none
- *****************************************************************************/
-VOS_UINT32 VOS_SuspendTask( VOS_UINT32 ulTaskID )
-{
-    struct task_struct    *tsk;
-    pid_t                 ulTemp;
-
-    if( ulTaskID >= vos_TaskCtrlBlkNumber )
-    {
-        return(VOS_ERR);
-    }
-
-    ulTemp = vos_TaskCtrlBlk[ulTaskID].ulLinuxThreadId;
-
-    tsk = pid_task(find_vpid(ulTemp), PIDTYPE_PID);
-
-    if ( VOS_NULL_PTR == tsk)
-    {
-        return(VOS_ERR);
-    }
-
-    if ( tsk->pid != ulTemp )
-    {
-        printk("susupend find task to set pri fail.\r\n");
-        return VOS_ERR;
-    }
-
-    /*lint -e446*/
-    set_task_state(tsk, TASK_UNINTERRUPTIBLE);
-    /*lint +e446*/
-    if (tsk == current)
-    {
-        schedule();
-    }
 
     return VOS_OK;
 }
@@ -536,8 +495,6 @@ VOS_UINT32 VOS_ResumeTask( VOS_UINT32 ulTaskID )
         printk("resume find task to set pri fail.\r\n");
         return VOS_ERR;
     }
-
-    /*set_task_state(tsk, TASK_RUNNING);*/
 
     wake_up_process(tsk);
 
@@ -605,7 +562,7 @@ VOS_UINT32 VOS_TaskUnlock( VOS_VOID )
  *****************************************************************************/
 VOS_UINT32 VOS_DeleteTask( VOS_UINT32 ulTaskID )
 {
-    (VOS_VOID)vos_printf("\r\n[PAM][OSA] %s: Delete Task =: %x", __FUNCTION__, ulTaskID);
+    mdrv_debug("<VOS_DeleteTask>: Delete TaskId=%x", ulTaskID);
 
     return(VOS_OK);
 }
@@ -626,7 +583,6 @@ VOS_UINT32 VOS_GetCurrentTaskID( VOS_VOID )
 
     ulOSID = current->pid;
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTaskSpinLock, ulLockLevel);
 
     for ( i=0; i<(VOS_INT)vos_TaskCtrlBlkNumber; i++ )
@@ -635,7 +591,6 @@ VOS_UINT32 VOS_GetCurrentTaskID( VOS_VOID )
         {
             if ( ulOSID == vos_TaskCtrlBlk[i].ulLinuxThreadId )
             {
-                /*VOS_Splx(intLockLevel);*/
                 VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
 
                 return (VOS_UINT32)i;
@@ -644,10 +599,9 @@ VOS_UINT32 VOS_GetCurrentTaskID( VOS_VOID )
         }
     }
 
-    /*VOS_Splx(intLockLevel);*/
     VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
 
-    LogPrint("# VOS_GetCurrentTaskID fatal error.\r\n");
+    mdrv_err("<VOS_GetCurrentTaskID> Current Task ID not found.\n");
 
     return( VOS_NULL_LONG );
 }
@@ -756,16 +710,14 @@ VOS_UINT32 VOS_EventWrite( VOS_UINT32 ulTaskID, VOS_UINT32 ulEvents )
 
     if ( VOS_OK != VOS_CheckEvent(ulTaskID) )
     {
-        LogPrint("# VOS_EventWrite EVENT not exist.\r\n");
+        mdrv_err("<VOS_EventWrite> EVENT not exist.\n");
         return VOS_ERR;
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTaskSpinLock, ulLockLevel);
 
     vos_TaskCtrlBlk[ulTaskID].ulEvents |= ulEvents;
 
-    /*VOS_Splx( intLockLevel );*/
     VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
 
     ulTempQueue = VOS_GetQueueIDFromFid(vos_TaskCtrlBlk[ulTaskID].ulFid);
@@ -782,7 +734,7 @@ VOS_UINT32 VOS_EventWrite( VOS_UINT32 ulTaskID, VOS_UINT32 ulEvents )
 
     if ( VOS_OK != VOS_SmV( ulTempSem ) )
     {
-        LogPrint("# VOS_EventWrite error.\r\n");
+        mdrv_err("<VOS_EventWrite> Vos_SmV Fail.\n");
 
         return VOS_ERR;
     }
@@ -832,36 +784,36 @@ VOS_UINT32 VOS_EventRead( VOS_UINT32 ulEvents,
 
     if( VOS_EVENT_NOWAIT & ulFlags )
     {
-        LogPrint("# OSA don't support VOS_EVENT_NOWAIT.\r\n");
+        mdrv_err("<VOS_EventRead> OSA don't support VOS_EVENT_NOWAIT.\n");
 
-        VOS_SuspendTask(ulTaskSelf);
+
 
         return VOS_ERR;
     }
 
     if( !(VOS_EVENT_ANY & ulFlags) )
     {
-        LogPrint("# OSA don't support VOS_EVENT_ALL.\r\n");
+        mdrv_err("<VOS_EventRead> OSA don't support VOS_EVENT_ALL.\n");
 
-        VOS_SuspendTask(ulTaskSelf);
+
 
         return VOS_ERR;
     }
 
     if( 0 == ulEvents )
     {
-        LogPrint("# OSA don't support event = 0.\r\n");
+        mdrv_err("<VOS_EventRead> OSA don't support event = 0.\n");
 
-        VOS_SuspendTask(ulTaskSelf);
+
 
         return VOS_ERR;
     }
 
     if ( VOS_OK != VOS_CheckEvent(ulTaskSelf) )
     {
-        LogPrint("# VOS_EventRead EVENT not exist.\r\n");
+        mdrv_err("<VOS_EventRead> VOS_EventRead EVENT not exist.\n");
 
-        VOS_SuspendTask(ulTaskSelf);
+
 
         return VOS_ERR;
     }
@@ -880,11 +832,10 @@ VOS_UINT32 VOS_EventRead( VOS_UINT32 ulEvents,
 
     if( VOS_OK != VOS_SmP( ulTempSem, ulTimeOutInMillSec ) )
     {
-        Print("# VOS_EventRead error.\r\n");
+        mdrv_err("<VOS_EventRead> VOS_SmP Fail.\n");
         return VOS_ERR;
     }
 
-    /*intLockLevel = VOS_SplIMP();*/
     VOS_SpinLockIntLock(&g_stVosTaskSpinLock, ulLockLevel);
 
     ulTempEvent = vos_TaskCtrlBlk[ulTaskSelf].ulEvents & ulEvents;
@@ -899,7 +850,6 @@ VOS_UINT32 VOS_EventRead( VOS_UINT32 ulEvents,
         *pulRetEvents = VOS_MSG_SYNC_EVENT;
     }
 
-    /*VOS_Splx( intLockLevel );*/
     VOS_SpinUnlockIntUnlock(&g_stVosTaskSpinLock, ulLockLevel);
 
     return VOS_OK;
@@ -916,14 +866,14 @@ VOS_UINT32 VOS_GetQueueIDFromTID(VOS_UINT32 ulTid)
 {
     if ( ulTid >= vos_TaskCtrlBlkNumber )
     {
-        LogPrint("VOS_GetQueueIDFromTID TID invaild.\r\n");
+        mdrv_err("<VOS_GetQueueIDFromTID> TID invaild.\n");
 
         return 0xffffffff;
     }
 
     if ( 0xffffffff == vos_TaskCtrlBlk[ulTid].ulFid )
     {
-        LogPrint("VOS_GetQueueIDFromTID FID invaild.\r\n");
+        mdrv_err("<VOS_GetQueueIDFromTID> FID invaild.\n");
 
         return 0xffffffff;
     }

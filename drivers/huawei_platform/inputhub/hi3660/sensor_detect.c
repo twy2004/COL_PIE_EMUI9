@@ -3001,9 +3001,11 @@ int sensor_set_fw_load(void)
 }
 int motion_set_cfg_data(void)
 {
+	int ret;
 	uint8_t app_config[16] = {MOTION_TYPE_ROTATION, CMD_MOTION_SET_PARA_REQ, };
 	memcpy(&app_config[2], &motion_data, min(sizeof(motion_data), sizeof(app_config) - 2));
-	write_customize_cmd_noresp(TAG_MOTION, CMD_CMN_CONFIG_REQ, app_config, sizeof(app_config));
+	ret = write_customize_cmd_noresp(TAG_MOTION, CMD_CMN_CONFIG_REQ, app_config, sizeof(app_config));
+	return ret;
 }
 
 static void redetect_sensor_work_handler(void)

@@ -133,7 +133,6 @@ typedef struct
 /******************************************************************************
   9 º¯ÊýÉùÃ÷
 ******************************************************************************/
-
 extern void diag_HdlcInit( OM_HDLC_STRU *pstHdlc );
 
 extern OM_HDLC_RESULT_ENUM_UINT32 diag_HdlcDecap( OM_HDLC_STRU *pstHdlc, u8 ucChar );

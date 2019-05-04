@@ -5,7 +5,7 @@
 comment "ccore image load driver"
 
 config MLOADER
-	tristate "ccore image load"
+	tristate "modem image load"
 	default n
 	help
 	  ccore image load driver

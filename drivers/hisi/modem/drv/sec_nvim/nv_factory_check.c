@@ -51,6 +51,7 @@
 #include <product_nv_id.h>
 #include <product_nv_def.h>
 #include <osl_common.h>
+#include <securec.h>
 #include <mdrv_nvim.h>
 #include <bsp_nvim.h>
 #include "nv_comm.h"
@@ -371,6 +372,8 @@ u32 nv_read_item_from_factory(u32 modem_id, u32 itemid, u32 offset, u8 *pdata, u
         goto nv_readEx_err;
     }
 
+    (void)memset_s((void *)ctrl_info_ptr, ctrl_info.ctrl_size, 0, ctrl_info.ctrl_size);
+
     /*read ctrl info */
     nv_file_seek(fp,0,SEEK_SET);
     ret = nv_file_read((u8*)ctrl_info_ptr,1, ctrl_info.ctrl_size,fp);
@@ -434,6 +437,7 @@ nv_readEx_err:
     return ret;
 }
 
+EXPORT_SYMBOL(nv_make_single_band_nv_crc);
 EXPORT_SYMBOL(nv_check_factory_nv_status);
 
 

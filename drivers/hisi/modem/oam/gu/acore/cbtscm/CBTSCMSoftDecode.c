@@ -55,10 +55,12 @@
 #include "PamOamSpecTaskDef.h"
 #include "OmHdlcInterface.h"
 #include "CBTSCMSoftDecode.h"
-
+#include "mdrv.h"
+#include "pam_tag.h"
 
 
 #define    THIS_FILE_ID        PS_FILE_ID_CBT_SCM_SOFT_DECODE_C
+#define    THIS_MODU           mod_pam_cbt
 
 
 

@@ -57,6 +57,7 @@ extern "C" {
 #endif
 #endif
 
+u32 nv_bak_rwbuf(void);
 u32 nv_bak_flush(void);
 u32 nv_bak_reload(u32 type);
 bool nv_bak_is_need_flush(void);

@@ -69,7 +69,7 @@ extern "C" {
 /*****************************************************************************************************************************
 *共享内存基地址
 ******************************************************************************************************************************/
-#if !defined(__KERNEL__) && !defined(__OS_VXWORKS__) && !defined(__OS_RTOSCK__) && !defined(__OS_RTOSCK_SMP__)
+#if !defined(__KERNEL__) && !defined(__OS_VXWORKS__) && !defined(__OS_RTOSCK__) && !defined(__OS_RTOSCK_SMP__) && !defined(__OS_RTOSCK_TVP__) && !defined(__OS_RTOSCK_TSP__)
 
 #if defined(__CMSIS_RTOS) && defined(LPMCU_DRAM_WINDOW)
 /* M533 lpmcu 访问ddr需要增加划窗 */
@@ -88,7 +88,12 @@ extern "C" {
 ******************************************************************************************************************************/
 #define SHM_OFFSET_NV  (0)
 
+#ifdef CONFIG_SEC_ICC
+#define SHM_OFFSET_SHA_SEC_ICC          (SHM_OFFSET_NV + SHM_SIZE_NV)
+#define SHM_OFFSET_HIFI_MBX		    	(SHM_OFFSET_SHA_SEC_ICC + SHM_SIZE_SHA_SEC_ICC)
+#else
 #define SHM_OFFSET_HIFI_MBX		    	(SHM_OFFSET_NV + SHM_SIZE_NV)
+#endif
 
 #define SHM_OFFSET_HIFI		    		/*lint -save -e778 -e835*/(SHM_OFFSET_HIFI_MBX + SHM_SIZE_HIFI_MBX)/*lint -restore */
 
@@ -161,13 +166,29 @@ extern "C" {
 /* 产品线升级使用内存 */
 #define SHM_OFFSET_PRODUCT_MEM           /*lint -save -e778 -e835*/(SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY)/*lint -restore */
 
+#ifdef SHM_SIZE_NV_UNSAFE
+/* NV 1k 非安全region共享内存 */
+#define SHM_OFFSET_NV_UNSAFE           /*lint -save -e778 -e835*/((SHM_OFFSET_PRODUCT_MEM + SHM_SIZE_PRODUCT_MEM))/*lint -restore */
+/*共享内存剩余部分偏移和大小*/
+#define SHM_OFFSET_MEMMGR               (SHM_OFFSET_NV_UNSAFE + SHM_SIZE_NV_UNSAFE)
+#define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
+#else
 /*共享内存剩余部分偏移和大小*/
 #define SHM_OFFSET_MEMMGR               (SHM_OFFSET_PRODUCT_MEM + SHM_SIZE_PRODUCT_MEM)
+#define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
+#endif
+#else
+#ifdef SHM_SIZE_NV_UNSAFE
+/* NV 1k 非安全region共享内存 */
+#define SHM_OFFSET_NV_UNSAFE           /*lint -save -e778 -e835*/((SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY))/*lint -restore */
+/*共享内存剩余部分偏移和大小*/
+#define SHM_OFFSET_MEMMGR               (SHM_OFFSET_NV_UNSAFE + SHM_SIZE_NV_UNSAFE)
 #define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
 #else
 /*共享内存剩余部分偏移和大小*/
 #define SHM_OFFSET_MEMMGR               (SHM_OFFSET_SIM_MEMORY + SHM_SIZE_SIM_MEMORY)
 #define SHM_SIZE_MEMMGR                 (DDR_SHARED_MEM_SIZE - SHM_OFFSET_MEMMGR)
+#endif
 #endif
 
 /**************************************用于分配不满足Kb对齐的分配*******************************************************
@@ -224,7 +245,7 @@ extern "C" {
 #define SHM_OFFSET_MODEM_SR_STAMP       (SHM_OFFSET_PAN_RPC + SHM_SIZE_PAN_RPC)
 
 
-#define SHM_SIZE_TSENSOR_STAMP         (0x10)
+#define SHM_SIZE_TSENSOR_STAMP         (0x14)
 #define SHM_OFFSET_TSENSOR_STAMP       (SHM_OFFSET_MODEM_SR_STAMP + SHM_SIZE_MODEM_SR_STAMP)
 
 /* rffe via modem is active*/
@@ -270,7 +291,7 @@ extern "C" {
 /*****************************************************************************************************************************
 *安全共享内存资源分配
 ******************************************************************************************************************************/
-#if (defined(__FASTBOOT__) || defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)) && defined(DDR_SEC_SHARED_ADDR)
+#if (defined(__FASTBOOT__)||defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)||defined(__OS_RTOSCK_TVP__)||defined(__OS_RTOSCK_TSP__)) && defined(DDR_SEC_SHARED_ADDR)
 #define SHM_SEC_BASE_ADDR          MDDR_FAMA(DDR_SEC_SHARED_ADDR)
 
 /* 预留(4K)防止被踩，初始化为全F */
@@ -292,6 +313,7 @@ extern "C" {
 
 #define SHM_OFFSET_SEC_DUMP                 (SHM_OFFSET_SEC_CERT + SHM_SIZE_SEC_CERT)
 
+#define SHM_OFFSET_SEC_MALLOC      (SHM_OFFSET_SEC_DUMP + SHM_SIZE_SEC_DUMP)
 #endif
 
 /*****************************************************************************************************************************

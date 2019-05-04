@@ -253,10 +253,15 @@ out:
 	if (!strcmp(a->attr.name, "trim_sections"))
 		return -EINVAL;
 
-	*ui = t;
+	if (!strcmp(a->attr.name, "iostat_enable")) {
+		sbi->iostat_enable = !!t;
+		if (!sbi->iostat_enable)
+			f2fs_reset_iostat(sbi);
+		return count;
+	}
 
-	if (!strcmp(a->attr.name, "iostat_enable") && *ui == 0)
-		f2fs_reset_iostat(sbi);
+	*ui = (unsigned int)t;
+
 	if (!strcmp(a->attr.name, "gc_urgent") && t == 1 && gc_th) {
 		gc_th->gc_wake = 1;
 		wake_up_interruptible_all(&gc_th->gc_wait_queue_head);
@@ -765,7 +770,7 @@ static ssize_t f2fs_bd_discard_info_write(struct file *file,
 	struct f2fs_bigdata_info *bd = F2FS_BD_STAT(sbi);
 	char buffer[3] = {0};
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))
@@ -816,7 +821,7 @@ static ssize_t f2fs_bd_cp_info_write(struct file *file,
 	struct f2fs_bigdata_info *bd = F2FS_BD_STAT(sbi);
 	char buffer[3] = {0};
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))
@@ -877,7 +882,7 @@ static ssize_t f2fs_bd_gc_info_write(struct file *file,
 	int i;
 	char buffer[3] = {0};
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))
@@ -942,7 +947,7 @@ static ssize_t f2fs_bd_fsync_info_write(struct file *file,
 	struct f2fs_bigdata_info *bd = F2FS_BD_STAT(sbi);
 	char buffer[3] = {0};
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))
@@ -1023,7 +1028,7 @@ static ssize_t f2fs_bd_hotcold_info_write(struct file *file,
 	char buffer[3] = {0};
 	int i;
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))
@@ -1066,7 +1071,7 @@ static ssize_t f2fs_bd_encrypt_info_write(struct file *file,
 	struct f2fs_bigdata_info *bd = F2FS_BD_STAT(sbi);
 	char buffer[3] = {0};
 
-	if (!buf || length > 2)
+	if (!buf || length > 2 || length <= 0)
 		return -EINVAL;
 
 	if (copy_from_user(&buffer, buf, length))

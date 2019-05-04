@@ -980,9 +980,8 @@ AT_L4A_MSG_FUN_TABLE_STRU* atL4aGetIndMsgFun(VOS_UINT32 ulMsgId)
 
 /******************************************************************************
  */
-VOS_UINT32 at_L4aCnfProc(MsgBlock* pMsgBlockTmp)
+VOS_VOID at_L4aCnfProc(VOS_VOID* pMsgBlockTmp)
 {
-    VOS_UINT32 ulRet = ERR_MSP_SUCCESS;
     VOS_UINT32 ulMsgId = 0;
     VOS_UINT16 usIndex = 0;
     AT_L4A_MSG_FUN_TABLE_STRU* pTable = NULL;
@@ -1007,15 +1006,15 @@ VOS_UINT32 at_L4aCnfProc(MsgBlock* pMsgBlockTmp)
     }
     else
     {
-        ulRet = ERR_MSP_FAILURE;
+        ;
     }
 
     if(NULL != pMsgProc)
     {
-        ulRet = pMsgProc(pMsgBlockTmp);
+        pMsgProc(pMsgBlockTmp);
     }
 
-    return ulRet;
+    return;
 }
 
 
@@ -1052,8 +1051,10 @@ AT_FTM_CNF_MSG_PROC_STRU g_astLteAtFtmCnfMsgTbl[] =
 
 AT_FTM_IND_MSG_PROC_STRU g_astLteAtFtmIndMsgTbl[] = 
 {
+
     {ID_MSG_FTM_TX_CLT_INFO_IND, At_ProcLteTxCltInfoReport},
 };
+
 
 
 /******************************************************************************
@@ -1107,7 +1108,6 @@ AT_FTM_IND_MSG_PROC_STRU* At_GetFtmIndMsgProc(VOS_UINT32 ulMsgId)
             return &(g_astLteAtFtmIndMsgTbl[i]);
         }
     }
-
     return VOS_NULL_PTR;
 }
 
@@ -1130,11 +1130,9 @@ AT_FTM_IND_MSG_PROC_STRU* At_GetFtmIndMsgProc(VOS_UINT32 ulMsgId)
 /*    ERR_MSP_FAILURE 失败
  */
 
-/******************************************************************************
- */
-VOS_UINT32 At_FtmEventMsgProc(VOS_VOID* pMsg)
+/*******************************************************************************/
+VOS_VOID At_FtmEventMsgProc(VOS_VOID* pMsg)
 {
-    VOS_UINT32 ulRet = ERR_MSP_SUCCESS;
     OS_MSG_STRU *pOsMsg = NULL;
     MsgBlock *pstMsgBlock = NULL;
     AT_FTM_CNF_MSG_PROC_STRU* pMsgProcItem = NULL;
@@ -1146,7 +1144,7 @@ VOS_UINT32 At_FtmEventMsgProc(VOS_VOID* pMsg)
     pstMsgBlock = VOS_MemAlloc(WUEPS_PID_AT, (DYNAMIC_MEM_PT), (sizeof(MsgBlock)+sizeof(OS_MSG_STRU)-2));
     if (NULL == pstMsgBlock)
     {
-        return ERR_MSP_FAILURE;
+        return;
     }
 
     /* 消息结构转换 */
@@ -1160,7 +1158,7 @@ VOS_UINT32 At_FtmEventMsgProc(VOS_VOID* pMsg)
     if (NULL == pTmp)
     {
         VOS_MemFree(WUEPS_PID_AT, pstMsgBlock);
-        return ERR_MSP_FAILURE;
+        return;
     }
 
     pOsMsg->ulParam1 = pTmp;
@@ -1175,20 +1173,20 @@ VOS_UINT32 At_FtmEventMsgProc(VOS_VOID* pMsg)
     if(NULL != pMsgProcItem)
     {
         AT_STOP_TIMER_CMD_READY(pDataMsg->ulClientId);
-        ulRet = pMsgProcItem->pfnCnfMsgProc((VOS_UINT8)(pDataMsg->ulClientId), (VOS_VOID *)pstMsgBlock);
+        pMsgProcItem->pfnCnfMsgProc((VOS_UINT8)(pDataMsg->ulClientId), (VOS_VOID *)pstMsgBlock);
     }
     else if (VOS_NULL_PTR != pstFtmIndMsgItem)
     {
-        ulRet = pstFtmIndMsgItem->pfnIndMsgProc((VOS_VOID *)pstMsgBlock);
+        pstFtmIndMsgItem->pfnIndMsgProc((VOS_VOID *)pstMsgBlock);
     }
     else
     {
-        ulRet = ERR_MSP_FAILURE;
+        ;
     }
 
     VOS_MemFree(WUEPS_PID_AT, pTmp);
     VOS_MemFree(WUEPS_PID_AT, pstMsgBlock);
-    return ulRet;
+    return;
 }
 
 

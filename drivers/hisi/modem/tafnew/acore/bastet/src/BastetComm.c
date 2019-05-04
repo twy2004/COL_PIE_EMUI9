@@ -124,12 +124,13 @@ static long bastet_modem_ioctl(struct file *flip, unsigned int cmd, unsigned lon
     void __user *argp = (void __user *)arg;
     char netdev_name_from[IFNAMSIZ];
     struct bastet_modem_rab_id info;
-   
+
     if(NULL == argp)
     {
         BST_PR_LOGI("bastet_modem ioctl argp is null.\n");
         return rc;
     }
+    
     switch (cmd) {
     case BST_MODEM_IOC_GET_MODEM_RAB_ID:
     {
@@ -365,15 +366,16 @@ static ssize_t bastet_modem_write(struct file *filp,
         BST_PR_LOGE("msg alloc failed!");
         return -1;
     }
-    if (NULL == buf)
+
+    memset_s(msg, BST_MAX_WRITE_PAYLOAD, 0, BST_MAX_WRITE_PAYLOAD);
+    if(NULL == buf)
     {
         BST_PR_LOGE("buf is null!");
         kfree(msg);
         return -1;
     }
 
-    memset_s(msg, BST_MAX_WRITE_PAYLOAD, 0, BST_MAX_WRITE_PAYLOAD);
-    if (count > BST_MAX_WRITE_PAYLOAD)
+    if ((count > BST_MAX_WRITE_PAYLOAD) || (count <= 0))
     {
         BST_PR_LOGE("write length over BST_MAX_WRITE_PAYLOAD!");
         kfree(msg);

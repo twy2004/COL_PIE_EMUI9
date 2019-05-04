@@ -62,6 +62,10 @@
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_TAF_APS_API_C
 
+/* Log Print Module Define */
+#ifndef THIS_MODU
+#define THIS_MODU    ps_nas
+#endif
 
 /*****************************************************************************
    2 全局变量定义
@@ -102,7 +106,7 @@ VOS_UINT32 TAF_PS_SndMsg(
             break;
 
         default:
-            PS_PRINTF("TAF_PS_SndMsg: ModemId is Error!");
+            PS_PRINTF_WARNING("<TAF_PS_SndMsg> ModemId is Error!\n");
             return VOS_ERR;
     }
 

@@ -45,7 +45,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 #ifndef __PSTYPEDEF_H__
 #define __PSTYPEDEF_H__
 
@@ -201,12 +200,15 @@ typedef struct
 }CAS_MSG_HEADER_STRU;
 /* add for Balong CL end */
 
+/*add  for IMS2HIFI voice data desensitization begin*/
+/*lint -save -e959*/
 typedef struct
 {
     VOS_MSG_HEADER
     VOS_UINT16                          usMsgId;
-    VOS_UINT8                           aucRsv[2];
 }IMS2HIFI_MSG_HEADER_STRU;
+/*lint -restore*/
+/*add for IMS2HIFI voice data desensitization end*/
 /*****************************************************************************
   6 UNION
 *****************************************************************************/

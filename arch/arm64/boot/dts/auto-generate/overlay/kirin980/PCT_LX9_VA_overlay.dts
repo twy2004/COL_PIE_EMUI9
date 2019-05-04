@@ -78,10 +78,6 @@
 		hisee_exist_flag = "0";
 		status = "ok";
 	};
-    /*hisi customize*/
-    &hisi_cust_cfg {
-        ini_file_name = "/vendor/etc/cfg_pct_lx9.ini";
-    };
 
 	&huawei_imx316{
 		compatible = "huawei,sensor";
@@ -141,3 +137,7 @@
 
 		status = "ok";
 	};
+    /*hisi customize*/
+    &hisi_cust_cfg {
+        ini_file_name = "/vendor/etc/cfg_pct_lx9.ini";
+    };

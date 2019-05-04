@@ -81,33 +81,33 @@ extern "C" {
 #if (VOS_OS_VER == VOS_LINUX)
 /*lint -emacro({717}, DMS_PR_LOGH)*/
 #define DMS_PR_LOGH(fmt, ...) \
-			do { \
-				pr_err("[NAS_DMS]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_DMS]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, DMS_PR_LOGE)*/
 #define DMS_PR_LOGE(fmt, ...) \
-			do { \
-				pr_err("[NAS_DMS]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_DMS]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 
 /*lint -emacro({717}, DMS_PR_LOGI)*/
 #define DMS_PR_LOGI(fmt, ...) \
-			do { \
-				pr_info("[NAS_DMS]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_info("[NAS_DMS]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, DMS_PR_LOGD)*/
 #define DMS_PR_LOGD(fmt, ...) \
-			do { \
-				pr_debug("[NAS_DMS]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_debug("[NAS_DMS]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 #else
-#define DMS_PR_LOGH                                 PS_PRINTF
-#define DMS_PR_LOGE                                 PS_PRINTF
-#define DMS_PR_LOGI                                 PS_PRINTF
-#define DMS_PR_LOGD                                 PS_PRINTF
+#define DMS_PR_LOGH                                 PS_PRINTF_ERR
+#define DMS_PR_LOGE                                 PS_PRINTF_WARNING
+#define DMS_PR_LOGI                                 PS_PRINTF_INFO
+#define DMS_PR_LOGD                                 PS_PRINTF_DEBUG
 #endif
 
 /*****************************************************************************

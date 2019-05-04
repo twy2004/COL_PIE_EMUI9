@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 #include <bsp_shared_ddr.h>
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <bsp_dpm.h>
 #endif
 
@@ -128,9 +128,9 @@ struct drv_hifi_image_head
 *****************************************************************************/
 struct drv_hifi_sec_addr
 {
-    void*         sec_source_addr;  /*段的源地址*/
+    unsigned int         sec_source_addr;  /*段的源地址*/
     unsigned int  sec_length;       /*段的长度*/
-    void*         sec_dest_addr;    /*段的目的地址*/
+    unsigned int         sec_dest_addr;    /*段的目的地址*/
 };
 
 /*****************************************************************************
@@ -399,7 +399,7 @@ int bsp_bbe_tcm_accessible(void);
 
 void bsp_dsp_set_pll_div(u32 dsp_pll_freq, u32 req_value);
 
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 int bsp_bbe_dpm_prepare(struct dpm_device *dev);
 
 int bsp_bbe_dpm_suspend_late(struct dpm_device *dev);

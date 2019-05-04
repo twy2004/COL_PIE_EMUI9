@@ -92,7 +92,7 @@ do {    \
         goto DIAG_ERROR;    \
     }   \
 }while(0)
-#define DIAG_MSG_BSP_CFG_ACOE_TO_NRM(ulLen, pstDiagHead, pstInfo, ret) \
+#define DIAG_MSG_BSP_CFG_ACORE_TO_NRM(ulLen, pstDiagHead, pstInfo, ret) \
     do {    \
         ulLen = sizeof(DIAG_BSP_MSG_A_TRANS_C_STRU)- VOS_MSG_HEAD_LENGTH + pstDiagHead->ulMsgLen;  \
         pstInfo = (DIAG_BSP_MSG_A_TRANS_C_STRU*)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, ulLen);  \

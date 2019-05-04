@@ -71,13 +71,13 @@
 **************************************************************************** */
 SCM_CODER_DEST_CFG_STRU g_astSCMIndCoderDstCfg=
 {
-    SCM_CHANNEL_UNINIT, 
-    SOCP_CODER_DST_OM_IND, 
-    SCM_CODER_DST_IND_SIZE, 
-    SCM_CODER_DST_THRESHOLD,  
+    SCM_CHANNEL_UNINIT,
+    SOCP_CODER_DST_OM_IND,
+    SCM_CODER_DST_IND_SIZE,
+    SCM_CODER_DST_THRESHOLD,
     SOCP_TIMEOUT_TRF_LONG,
-    NULL, 
-    NULL,  
+    NULL,
+    NULL,
     NULL
 };
 
@@ -97,7 +97,7 @@ u32 scm_malloc_ind_dst_buff(void)
     {
         /*2M申请失败重试1M*/
         g_astSCMIndCoderDstCfg.ulBufLen = 1*1024*1024;
-        
+
         /* 申请编码目的空间 */
         g_astSCMIndCoderDstCfg.pucBuf = (u8*)scm_UnCacheMemAlloc(g_astSCMIndCoderDstCfg.ulBufLen, &ulPHYAddr);
         if(NULL == g_astSCMIndCoderDstCfg.pucBuf)
@@ -150,8 +150,8 @@ u32 scm_rls_ind_dst_buff(u32 ulReadSize)
 {
     u32                          ulDataLen;
     SOCP_BUFFER_RW_STRU                 stBuffer;
-    SOCP_CODER_DST_ENUM_U32             ulChanlID; 
-    
+    SOCP_CODER_DST_ENUM_U32             ulChanlID;
+
     ulChanlID = g_astSCMIndCoderDstCfg.enChannelID;
 
     if(0 == ulReadSize) /*释放通道所有数据*/
@@ -244,6 +244,7 @@ void scm_send_ind_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
 
     OM_ACPU_DEBUG_CHANNEL_TRACE(enChanID, pucVirData, ulSendDataLen, OM_ACPU_SEND_USB_IND, OM_ACPU_DATA);
 
+    diag_system_debug_rev_socp_data(ulSendDataLen);
     diag_ThroughputSave(EN_DIAG_THRPUT_DATA_CHN_PHY, ulSendDataLen);
     ulResult = CPM_ComSend(enLogicPort, pucVirData, pucPHYData, ulSendDataLen);
 
@@ -317,12 +318,11 @@ void  scm_set_power_on_log(void)
 
     memset_s(&stLogCfg, sizeof(stLogCfg), 0, sizeof(stLogCfg));
     if(BSP_OK == bsp_socp_get_sd_logcfg(&stLogCfg))
-    {           
-        stPowerOnLog.cPowerOnlogA = (stLogCfg.BufferSize < 50*1024*1024) ? 0 : 1;        
+    {
+        stPowerOnLog.cPowerOnlogA = (stLogCfg.BufferSize < 50*1024*1024) ? 0 : 1;
         diag_shared_mem_write(POWER_ON_LOG_A, sizeof(stPowerOnLog.cPowerOnlogA), &(stPowerOnLog.cPowerOnlogA));
     }
     return;
-
 }
 
 
@@ -351,7 +351,6 @@ void scm_ind_dst_read_cb(void)
         return;
     }
 
-    diag_system_debug_rev_socp_data(stBuffer.u32RbSize + stBuffer.u32Size);
 
      /* 开机log功能，IND通道上报函数为空，使log缓存在本地 */
     if(NULL == g_astSCMIndCoderDstCfg.pfunc)

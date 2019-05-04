@@ -1,6 +1,7 @@
 #ifdef CONFIG_HW_VIP_THREAD
 /*lint -save -e578 -e695 -e571*/
 
+#include <linux/version.h>
 #include <linux/sched.h>
 #include <linux/list.h>
 #include <linux/jiffies.h>
@@ -160,7 +161,7 @@ static inline void dynamic_vip_inc(struct task_struct *task, int type)
 
 static void __dynamic_vip_dequeue(struct task_struct *task, int type)
 {
-#ifdef CONFIG_HISI_EAS_SCHED
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         unsigned long flags;
 #else
         struct rq_flags flags;
@@ -203,7 +204,7 @@ void dynamic_vip_dequeue(struct task_struct *task, int type)
 extern const struct sched_class fair_sched_class;
 static void __dynamic_vip_enqueue(struct task_struct *task, int type, int depth)
 {
-#ifdef CONFIG_HISI_EAS_SCHED
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         unsigned long flags;
 #else
         struct rq_flags flags;
@@ -394,7 +395,7 @@ static int __do_vip_balance(void *data)
 	}
 #else
 	raw_spin_unlock(&src_rq->lock);
-	for_each_cpu_and(i, tsk_cpus_allowed(p), cpu_coregroup_mask(src_cpu)) {
+	for_each_cpu_and(i, &(p->cpus_allowed), cpu_coregroup_mask(src_cpu)) {
 		if (i == src_cpu || !cpu_online(i))
 			continue;
 		dst_rq = cpu_rq(i);

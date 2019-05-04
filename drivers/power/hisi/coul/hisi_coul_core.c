@@ -14,7 +14,6 @@
 #include "inputhub_bridge.h"
 #endif
 
-#include <huawei_platform/power/battery_temp_fitting.h>
 #define COUL_CORE_INFO
 #ifndef COUL_CORE_INFO
 #define coul_core_debug(fmt, args...)do {} while (0)
@@ -138,6 +137,7 @@ struct coul_core_info_sh *g_di_coul_info_sh = NULL;
 static struct wake_lock coul_lock;
 static void iscd_clear_sampled_info(struct smartstar_coul_device *di);
 static void check_batt_critical_electric_leakage(struct smartstar_coul_device *di);
+static void isc_config_splash2_file_sync(struct iscd_info *iscd);
 static char dsm_buff[ISCD_DSM_LOG_SIZE_MAX] = { 0 };
 #ifdef CONFIG_HISI_DEBUG_FS
 int print_multi_ocv_threshold(void);
@@ -461,7 +461,7 @@ int coul_core_ops_register(struct coul_device_ops *ops)
     return ret;
 }
 
-static int get_coul_chip_temp(void)
+static int coul_get_chip_temp(void)
 {
     int chip_temp = 0;
     if(g_coul_core_ops && g_coul_core_ops->get_chip_temp) {
@@ -469,7 +469,7 @@ static int get_coul_chip_temp(void)
         coul_core_info("%s:chip_temp=%d\n",__func__,chip_temp);
         return chip_temp;
     } else {
-        coul_core_err("%s:get_coul_chip_temp failed.",__func__);
+        coul_core_err("%s:coul_get_chip_temp failed.",__func__);
         return -1;
     }
 }
@@ -1693,7 +1693,7 @@ static int get_initial_params(struct smartstar_coul_device *di)
     }
     memcpy(&di->nv_info, &my_nv_info, sizeof(my_nv_info));
 
-    set_charge_cycles(di, pinfo->charge_cycles);
+    di->batt_chargecycles = pinfo->charge_cycles;
     di->high_pre_qmax     = pinfo->qmax;
     di->batt_limit_fcc    = pinfo->limit_fcc;
     di->batt_report_full_fcc_real = pinfo->report_full_fcc_real;
@@ -2034,16 +2034,19 @@ int coul_battery_temperature_tenth_degree(BATTERY_TEMP_USER_TYPE user)
     }
 
     if (di && di->coul_dev_ops && di->coul_dev_ops->get_bat_temp){
-        T_adc = di->coul_dev_ops->get_bat_temp();
-        if(T_adc < 0)
-        {
-            coul_core_err("Bat temp read fail!,retry_cnt = %d\n",cnt);
+        while(cnt++ < retry_times) {
+            T_adc = di->coul_dev_ops->get_bat_temp();
+            if(T_adc < 0)
+            {
+                coul_core_err("Bat temp read fail!,retry_cnt = %d\n",cnt);
+            }
+            else
+            {
+                temperature = adc_to_temp(T_adc);
+                return 10*temperature;
+            }
         }
-        else
-        {
-            temperature = adc_to_temp(T_adc);
-            return 10*temperature;
-        }
+        goto error;
     }
 
     while(cnt++ < retry_times)
@@ -2061,6 +2064,7 @@ int coul_battery_temperature_tenth_degree(BATTERY_TEMP_USER_TYPE user)
         }
     }
 
+error:
     coul_core_err("Bat temp read retry 3 times,error!\n");
 	if (USER_CHARGER == user)
 		return TEMP_IPC_GET_ABNORMAL*10;
@@ -2082,8 +2086,6 @@ int coul_ntc_temperature_compensation(struct smartstar_coul_device *di, BATTERY_
     int ichg = 0;
     int i = 0;
 
-    int new_temp = 0;
-
     /*modify the temperature obtained by sampling, according to the temperature compensation value
       corresponding to the different current */
     temp_without_compensation = coul_battery_temperature_tenth_degree(user);
@@ -2099,10 +2101,6 @@ int coul_ntc_temperature_compensation(struct smartstar_coul_device *di, BATTERY_
                 break;
             }
         }
-    }
-
-    if (btf_get_battery_temp_with_current(ichg, &new_temp) == 0) {
-        temp_with_compensation = new_temp * 10;
     }
 
     coul_core_info("coul_ntc_temperature_compensation: current = %d, temp_without_compensation = %d, temp_with_compensation = %d\n", ichg, temp_without_compensation, temp_with_compensation );
@@ -2355,7 +2353,11 @@ int coul_get_battery_current_ma(void)
 char* coul_get_battery_brand(void)
 {
     struct smartstar_coul_device *di = g_smartstar_coul_dev;
-    return di->batt_data->batt_brand;
+
+    if (di->batt_data->id_status == BAT_ID_VALID)
+        return di->batt_data->batt_brand;
+
+    return "default";
 }
 
 /*******************************************************
@@ -3092,13 +3094,13 @@ bool could_cc_update_ocv(void)
 static bool is_in_capacity_dense_area(int ocv_uv)
 {
 	if( ocv_uv < CAPACITY_DENSE_AREA_3200
-		|| (ocv_uv > CAPACITY_DENSE_AREA_3670 && ocv_uv < CAPACITY_DENSE_AREA_3690)
-		|| (ocv_uv > CAPACITY_DENSE_AREA_3730 && ocv_uv < CAPACITY_DENSE_AREA_3800))
+		|| (ocv_uv > CAPACITY_DENSE_AREA_3670 && ocv_uv < CAPACITY_DENSE_AREA_3700)
+		|| (ocv_uv > CAPACITY_DENSE_AREA_3720 && ocv_uv < CAPACITY_DENSE_AREA_3810))
 		return TRUE;
 /*restrict [3800mv,3830mv]&&(3200mv,3730mv)ocv update with cc dischage 5% fcc */
-    if ((ocv_uv > CAPACITY_DENSE_AREA_3200 && ocv_uv < CAPACITY_DENSE_AREA_3730)
-        ||(ocv_uv >= CAPACITY_DENSE_AREA_3800
-            && ocv_uv <= CAPACITY_DENSE_AREA_3830)) {
+    if ((ocv_uv > CAPACITY_DENSE_AREA_3200 && ocv_uv < CAPACITY_DENSE_AREA_3720)
+        ||(ocv_uv >= CAPACITY_DENSE_AREA_3810
+            && ocv_uv <= CAPACITY_DENSE_AREA_3900)) {
         if (FALSE == could_cc_update_ocv())
             return TRUE;
     }
@@ -3106,7 +3108,7 @@ static bool is_in_capacity_dense_area(int ocv_uv)
 }
 
 /*get array max value and min value.*/
-static void max_min_value(int array[],u32 size, int *min, int *max)
+static void max_min_value(const int array[],u32 size, int *min, int *max)
 {
     u32 i;
     int max_value, min_value;
@@ -3138,7 +3140,7 @@ static void max_min_value(int array[],u32 size, int *min, int *max)
   Remark:          1 all data is same ,invalid.
                    2 error exceeding 5mv, invalid.
 ********************************************************/
-static int check_ocv_vol_data_valid(int vol_data[], u32 data_cnt)
+static int check_ocv_vol_data_valid(const int vol_data[], u32 data_cnt)
 {
     int max = 0;
     int min = 0;
@@ -5692,7 +5694,7 @@ static void coul_smooth_startup_soc(struct smartstar_coul_device *di)
 }
 
 #ifdef CONFIG_HUAWEI_CHARGER
-static void __fatal_isc_chg_prot(struct iscd_info *iscd, int * capacity)
+static void __fatal_isc_chg_prot(struct iscd_info *iscd, const int * capacity)
 {
     int ret;
 
@@ -5735,7 +5737,7 @@ static int fatal_isc_chg_limit_soc(struct notifier_block *self,
 #endif
 
 #ifdef CONFIG_DIRECT_CHARGER
-static void __fatal_isc_direct_chg_prot(struct iscd_info *iscd, int * capacity)
+static void __fatal_isc_direct_chg_prot(struct iscd_info *iscd, const int * capacity)
 {
     int ret;
 
@@ -5798,6 +5800,11 @@ static int fatal_isc_uevent_notify(struct notifier_block *self,
 {
     struct iscd_info *iscd = container_of(self, struct iscd_info, fatal_isc_uevent_notify_nb);
 
+    if (iscd->has_reported != TRUE) {
+        iscd->has_reported = TRUE;
+        isc_config_splash2_file_sync(iscd);
+    }
+
     if(event != ISC_LIMIT_START_CHARGING_STAGE && event != ISC_LIMIT_BOOT_STAGE) {
         return NOTIFY_DONE;
     } else if(iscd->isc_status){
@@ -5839,6 +5846,33 @@ static void isc_splash2_file_sync(struct iscd_info *iscd)
     }
 }
 
+static void isc_config_splash2_file_sync(struct iscd_info *iscd)
+{
+    struct file * fd;
+    ssize_t write_size;
+
+    if (!iscd) {
+        coul_core_err("Null input pointer iscd found in %s\n", __func__);
+        return;
+    }
+    fd = filp_open(ISC_CONFIG_DATA_FILE, O_WRONLY|O_TRUNC, 0);
+    if (IS_ERR(fd)) {
+        coul_core_err("splash2 file isc_config.data not ready for isc config data record\n.");
+        return;
+    }
+    iscd->fatal_isc_config.write_flag = iscd->write_flag;
+    iscd->fatal_isc_config.delay_cycles = iscd->isc_valid_delay_cycles;
+    iscd->fatal_isc_config.has_reported = iscd->has_reported;
+    iscd->fatal_isc_config.magic_num = FATAL_ISC_MAGIC_NUM;
+    write_size = kernel_write(fd, (const void *)&iscd->fatal_isc_config, sizeof(isc_config), 0);
+    if (write_size != sizeof(iscd->fatal_isc_config))
+        coul_core_err("Write %s failed(wtire:%zd expect:%zu) in %s\n.",
+                  ISC_CONFIG_DATA_FILE, write_size, sizeof(iscd->fatal_isc_config), __func__);
+
+    filp_close(fd, NULL);
+    coul_core_info("sync fatal isc config to splash2 success.\n");
+}
+
 static void fatal_isc_dmd_wkfunc(struct work_struct *work)
 {
     fatal_isc_dmd *reporter = container_of(work, fatal_isc_dmd, work.work);
@@ -5868,7 +5902,7 @@ static int fatal_isc_dsm_report(struct notifier_block *self,
     int j;
     struct iscd_info *iscd = container_of(self, struct iscd_info, fatal_isc_dsm_report_nb);
 
-    if(iscd->isc_status && iscd->fatal_isc_hist.dmd_report && event == ISC_LIMIT_BOOT_STAGE && iscd->app_ready == ISC_APP_READY) {
+    if(iscd->isc_status && iscd->fatal_isc_hist.dmd_report && event == ISC_LIMIT_BOOT_STAGE) {
         iscd->dmd_reporter.retry = 0;
         /* check isc status is one of valid types */
         if(iscd->isc_status <= iscd->fatal_isc_trigger.valid_num) {
@@ -6058,7 +6092,7 @@ static int iscd_sample_ocv_soc_uAh(struct smartstar_coul_device *di, int ocv_uv,
 
     return (*ocv_soc_uAh > 0 ? SUCCESS : ERROR);
 }
-static int iscd_check_ocv_variance(int *ocv, int avg_ocv, int n)
+static int iscd_check_ocv_variance(const int *ocv, int avg_ocv, int n)
 {
     s64 var = 0;
     int detal_ocv;
@@ -6535,12 +6569,15 @@ static int iscd_is_short_current_valid(struct smartstar_coul_device *di)
     }
 
     chrg_cycle = coul_battery_cycle_count();
-    if (chrg_cycle < di->iscd->isc_valid_cycles ) {
-        coul_core_err("ISCD %s charge_cycle(%d) is less than %d, try to next loop.\n",
-                  __func__, chrg_cycle, di->iscd->isc_valid_cycles);
+    if (chrg_cycle < di->iscd->isc_valid_cycles || (di->iscd->isc_delay_cycles_enable == TRUE &&
+        chrg_cycle <= di->iscd->isc_valid_delay_cycles)) {
+        coul_core_err("ISCD %s charge_cycle(%d) is less than %d or is less than %d, try to next loop.\n",
+                  __func__, chrg_cycle, di->iscd->isc_valid_cycles,di->iscd->isc_valid_delay_cycles);
        return ISCD_INVALID;
     }
 
+    coul_core_info("ISCD %s chrg_cycle: %d, isc_delay_cycles: %d\n", __func__, chrg_cycle,
+        di->iscd->isc_valid_delay_cycles);
     sample_size = di->iscd->size;
     sample_time = di->iscd->sample_info[sample_size-1].sample_time.tv_sec - di->iscd->sample_info[0].sample_time.tv_sec;
 
@@ -6736,13 +6773,8 @@ static void fatal_isc_judgement(struct iscd_info *iscd, int type)
         iscd->need_monitor = 0;
         break;
     case SUCCESSIVE_ISC_JUDGEMENT_TIME:
-        if(ISC_APP_READY == iscd->app_ready)
-        {
-            iscd->fatal_isc_hist.trigger_type = SUCCESSIVE_ISC_JUDGEMENT_TIME;
-            successive_isc_judgement_time(iscd);
-        }else{
-            iscd->fatal_isc_hist.trigger_type = INVALID_ISC_JUDGEMENT;
-        }
+        iscd->fatal_isc_hist.trigger_type = SUCCESSIVE_ISC_JUDGEMENT_TIME;
+        successive_isc_judgement_time(iscd);
         break;
     default:
         coul_core_err("Unexpected type(%d) found in %s.\n", type, __func__);
@@ -6870,12 +6902,12 @@ static void iscd_process_short_current(struct smartstar_coul_device *di)
             di->iscd->isc < di->iscd->level_config[i].isc_max) {
             coul_core_info("ISCD isc: %duA,  level: %d, threhold: [%d, %d)uA\n", di->iscd->isc, i,
                      di->iscd->level_config[i].isc_min, di->iscd->level_config[i].isc_max);
-            ret |= iscd_dsm_report(di, i);
+            ret = iscd_dsm_report(di, i);
+            if(ret) {
+                coul_core_err("Reporting ISC level %d DMD failed in %s\n", i, __func__);
+            }
             break;
         }
-    }
-    if(ret) {
-        coul_core_err("Reporting ISC level %d DMD failed in %s\n", i, __func__);
     }
 
     /* update the isc history information */
@@ -7212,7 +7244,7 @@ static void update_polar_ocv(struct smartstar_coul_device *di,
     duration = (int)(sample_time_rtc / NSEC_PER_MSEC) - sample_time;
     sample_time = (int)(sample_time_rtc / NSEC_PER_MSEC);
     if (duration) {
-        curr_ma = -CC_UAS2MA(cc_now, (duration / MSEC_PER_SEC));
+        curr_ma = -CC_UAS2MA(cc_now, (duration / MSEC_PER_SEC)); //lint !e647
         get_resume_polar_info(0, curr_ma, duration, sample_time, temp, soc);
     }
     coul_core_info("[%s]polar_ocv:%d, polar_ocv_time:%d,cc_comp:%d\n",
@@ -7412,7 +7444,7 @@ static ssize_t coul_sysfs_show(struct device *dev,
     struct smartstar_coul_device *di = dev_get_drvdata(dev);
     int val = 0;
     int temp = 0, voltage = 0, ufcapacity = 0, capacity = 100, afcapacity = 0, rm = 0, fcc = 0, delta_rc = 0;
-    int cur = 0,uuc = 0,cc = 0, ocv=0, rbatt;
+    int cur = 0,uuc = 0,cc = 0, ocv=0, rbatt, high_pre_qmax;
     unsigned int pd_charge = 0;
 
     info = coul_sysfs_field_lookup(attr->attr.name);
@@ -7438,9 +7470,10 @@ static ssize_t coul_sysfs_show(struct device *dev,
         ocv        = coul_get_battery_ocv();
         rbatt      = coul_get_battery_resistance();
         pd_charge  = get_pd_charge_flag();
+        high_pre_qmax = coul_get_battery_qmax();;
 
         snprintf(buf, PAGE_SIZE, "%-6d  %-6d  %-8d  %-6d  %-3d  %-5d  %-6d  %-6d  %-7d  %-5d  %-6d  %-5d  %-4d  %-7d  %-5d  %-5d  %-9d   %-8d   %-7d    %-5d    %-5d    %-5d    %-9ld    %-7d    %-9d    ",
-                    voltage,  (signed short)cur, ufcapacity, capacity, afcapacity, rm, fcc,di->high_pre_qmax, uuc, cc, delta_rc, pd_charge, temp, ocv, rbatt, di->batt_limit_fcc/1000, di->last_ocv_level, di->batt_ocv_valid_to_refresh_fcc,
+                    voltage,  (signed short)cur, ufcapacity, capacity, afcapacity, rm, fcc, high_pre_qmax, uuc, cc, delta_rc, pd_charge, temp, ocv, rbatt, di->batt_limit_fcc/1000, di->last_ocv_level, di->batt_ocv_valid_to_refresh_fcc,
                     di->polar.ocv_old, di->polar.ori_vol, di->polar.ori_cur, di->polar.err_a, di->polar.vol, di->polar.curr_5s, di->polar.polar_ocv);
 
         return strlen(buf);
@@ -7555,7 +7588,7 @@ static ssize_t coul_sysfs_store(struct device *dev,
         if(strict_strtol(buf, 10, &val) < 0)
             return -EINVAL;
         c_offset_a = val;
-        curr_cal_temp = get_coul_chip_temp();
+        curr_cal_temp = coul_get_chip_temp();
         break;
     case COUL_SYSFS_PL_C_OFFSET_B:
         if(strict_strtol(buf, 10, &val) < 0)
@@ -8046,6 +8079,18 @@ static void coul_core_get_iscd_info(struct device_node* np, struct iscd_info *is
         iscd->isc_critical_threhold = ISCD_CRITICAL_LEVEL_THREHOLD;
     }
     coul_core_info("ISCD isc_critical_threhold = %d\n", iscd->isc_critical_threhold);
+    ret = of_property_read_s32(np, "iscd_chrg_delay_cycles", &iscd->isc_chrg_delay_cycles);
+    if (ret) {
+        coul_core_err("get iscd_chrg_delay_cycles fail, use default one !!\n");
+        iscd->isc_chrg_delay_cycles = ISCD_CHRG_DELAY_CYCLES;
+    }
+    coul_core_info("ISCD isc_chrg_delay_cycles = %d\n", iscd->isc_chrg_delay_cycles);
+    ret = of_property_read_s32(np, "iscd_delay_cycles_enable", &iscd->isc_delay_cycles_enable);
+    if (ret) {
+        coul_core_err("get iscd_delay_cycles_enable fail, use default one !!\n");
+        iscd->isc_delay_cycles_enable = ISCD_DELAY_CYCLES_ENABLE;
+    }
+    coul_core_info("ISCD iscd_delay_cycles_enable = %d\n", iscd->isc_delay_cycles_enable);
     coul_core_get_iscd_dsm_config(np, iscd);
 
     iscd->isc_valid_cycles = ISCD_CHARGE_CYCLE_MIN;
@@ -8400,6 +8445,7 @@ static void isc_hist_info_init(struct work_struct *work)
     char *buff;
     char *find_str;
     mm_segment_t old_fs;
+    int ret_s = -1;
     struct iscd_info *iscd = container_of(work, struct iscd_info, isc_splash2_work.work);
 
     if(iscd->isc_splash2_ready) {
@@ -8429,7 +8475,7 @@ static void isc_hist_info_init(struct work_struct *work)
         whence += read_size;
         if(whence > (int) strlen(SPLASH2_MOUNT_INFO)) {
             (void) memmove_s(buff, MOUNTS_INFO_FILE_MAX_SIZE, buff + whence - strlen(SPLASH2_MOUNT_INFO), strlen(SPLASH2_MOUNT_INFO));
-            memset_s(buff + strlen(SPLASH2_MOUNT_INFO), whence - strlen(SPLASH2_MOUNT_INFO), 0, whence - strlen(SPLASH2_MOUNT_INFO));
+            (void)memset_s(buff + strlen(SPLASH2_MOUNT_INFO), whence - strlen(SPLASH2_MOUNT_INFO), 0, whence - strlen(SPLASH2_MOUNT_INFO));
             whence = strlen(SPLASH2_MOUNT_INFO);
         }
     }
@@ -8445,22 +8491,26 @@ static void isc_hist_info_init(struct work_struct *work)
     old_fs = get_fs();/*lint !e501 */
     set_fs(KERNEL_DS);/*lint !e501 */
     file_des = sys_access(ISC_DATA_DIRECTORY, 0);
+    set_fs(old_fs);
     /* case for different errors need differenr process here */
     if (file_des < 0) {
         coul_core_info("Access directory %s failed(%d) in %s.\n",
                    ISC_DATA_DIRECTORY, file_des, __func__);
+        set_fs(KERNEL_DS);/*lint !e501*/
         file_des = sys_mkdir(ISC_DATA_DIRECTORY, 0770);
+        set_fs(old_fs);
         if (file_des < 0) {
             coul_core_err("Create directory %s for recording fatal isc failed(%d) in %s\n",
                       ISC_DATA_DIRECTORY, file_des, __func__);
-            set_fs(old_fs);
             goto isc_init_buff_free;
         }
     }
 
     /* init isc history information from /splash2/isc/isc.data */
     flags = O_RDWR | O_CREAT | (get_batt_reset_flag() ? O_TRUNC : 0);
+    set_fs(KERNEL_DS);/*lint !e501*/
     fd = filp_open(ISC_DATA_FILE, flags, 0660);
+    set_fs(old_fs);
     if (IS_ERR(fd)) {
         coul_core_err("Open and create %s failed in %s.\n", ISC_DATA_FILE, __func__);
         goto isc_init_buff_free;
@@ -8504,6 +8554,38 @@ static void isc_hist_info_init(struct work_struct *work)
     spin_unlock(&iscd->boot_complete);
     coul_core_info("%s was fined by %s.\n", ISC_DATA_FILE, __func__);
 
+
+    /* init isc history information from /splash2/isc/isc_config.data */
+    flags = O_RDWR | O_CREAT | (get_batt_reset_flag() ? O_TRUNC : 0);
+    fd = filp_open(ISC_CONFIG_DATA_FILE, flags, 0660);
+    if (IS_ERR(fd)) {
+        coul_core_err("Open and create %s failed in %s.\n", ISC_CONFIG_DATA_FILE, __func__);
+        goto isc_init_buff_free;
+    }
+    read_size = kernel_read(fd, 0, buff, sizeof(isc_config)+1);
+    filp_close(fd, NULL);
+    if (read_size == (int)sizeof(isc_config)) {
+        coul_core_info("fatal isc config datum file size was correct.\n");
+        ret_s = memcpy_s(&iscd->fatal_isc_config, sizeof(isc_config), buff, sizeof(isc_config));
+        if (ret_s)
+            coul_core_err("fatal isc config datum memcpy failed\n");
+
+        if (iscd->fatal_isc_config.magic_num == FATAL_ISC_MAGIC_NUM) {
+            iscd->has_reported = iscd->fatal_isc_config.has_reported;
+            if (iscd->fatal_isc_config.write_flag == TRUE) {
+                iscd->isc_valid_delay_cycles = iscd->fatal_isc_config.delay_cycles;
+                iscd->write_flag = iscd->fatal_isc_config.write_flag;
+            }
+        }
+    } else
+        coul_core_info("fatal isc config datum file size was uncorrect.\n");
+
+    if (iscd->isc_delay_cycles_enable == TRUE && iscd->fatal_isc_config.write_flag != TRUE) {
+        iscd->isc_valid_delay_cycles = coul_battery_cycle_count() + iscd->isc_chrg_delay_cycles;
+        iscd->write_flag = TRUE;
+        isc_config_splash2_file_sync(iscd);
+    }
+
 isc_init_buff_free:
     kfree(buff);
     buff = NULL;
@@ -8531,8 +8613,11 @@ static ssize_t isc_show(struct device *dev, struct device_attribute *attr, char 
     }
     iscd = g_smartstar_coul_dev->iscd;
 
+    iscd->fatal_isc_action = iscd->fatal_isc_action_dts;
+    set_fatal_isc_action(iscd);
     spin_lock(&iscd->boot_complete);
     iscd->app_ready = 1;
+
     if(!iscd->isc_splash2_ready) {
         spin_unlock(&iscd->boot_complete);
         schedule_delayed_work(&iscd->isc_splash2_work, 0);
@@ -8544,7 +8629,10 @@ static ssize_t isc_show(struct device *dev, struct device_attribute *attr, char 
         spin_unlock(&iscd->boot_complete);
     }
 
-    return snprintf(buf, sizeof(iscd->isc_status), "%d", iscd->isc_status);
+    if (iscd->fatal_isc_action == FATAL_ISC_ACTION_DMD_ONLY)
+        return snprintf(buf, sizeof(iscd->isc_status), "%d", 0);
+    else
+        return snprintf(buf, sizeof(iscd->isc_status), "%d", iscd->isc_status);
 }
 
 static ssize_t isc_shutdown_status_show(struct device *dev, struct device_attribute *attr, char *buf
@@ -8563,14 +8651,20 @@ static ssize_t isc_shutdown_status_show(struct device *dev, struct device_attrib
     if(!iscd->isc_splash2_ready) {
         spin_unlock(&iscd->boot_complete);
         schedule_delayed_work(&iscd->isc_splash2_work, 0);
-    } else if(iscd->uevent_wait_for_send) {
+    } else if(iscd->uevent_wait_for_send && iscd->has_reported) {
         iscd->uevent_wait_for_send = 0;
         spin_unlock(&iscd->boot_complete);
+        iscd->fatal_isc_action = iscd->fatal_isc_action_dts;
+        set_fatal_isc_action(iscd);
         fatal_isc_protection(iscd, ISC_LIMIT_BOOT_STAGE);
     } else {
         spin_unlock(&iscd->boot_complete);
     }
-    return snprintf_s(buf, sizeof(iscd->isc_status), sizeof(iscd->isc_status)-1, "%d", iscd->isc_status);
+
+    if (iscd->has_reported && (iscd->fatal_isc_action != FATAL_ISC_ACTION_DMD_ONLY))
+        return snprintf_s(buf, sizeof(iscd->isc_status), sizeof(iscd->isc_status)-1, "%d", iscd->isc_status);
+    else
+        return snprintf_s(buf, sizeof(iscd->isc_status), sizeof(iscd->isc_status)-1, "%d", 0);
 }
 static ssize_t isc_limit_support_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -8639,10 +8733,10 @@ static ssize_t fatal_isc_show(struct device *dev, struct device_attribute *attr,
     }
     iscd = g_smartstar_coul_dev->iscd;
 
-    val = snprintf(buf, PAGE_SIZE, "status:%02x trigger:%02x valid num:%02x dmd:%02x version:%08x\n",
+    val = snprintf(buf, PAGE_SIZE, "status:%02x trigger:%02x valid num:%02x dmd:%02x reported:%02x version:%08x\n",
                    iscd->fatal_isc_hist.isc_status, iscd->fatal_isc_hist.trigger_type,
                    iscd->fatal_isc_hist.valid_num, iscd->fatal_isc_hist.dmd_report,
-                   iscd->fatal_isc_hist.magic_num);
+                   iscd->fatal_isc_config.has_reported, iscd->fatal_isc_hist.magic_num);
     val += snprintf(buf + val, PAGE_SIZE, "%11s%11s%11s%11s%11s%6s%6s\n",
                    "ISC(uA)", "FCC", "RM", "QMAX", "CYCLES", "YEAR", "YDAY");
     for( i = 0; i < MAX_FATAL_ISC_NUM; i++) {
@@ -8861,6 +8955,36 @@ static ssize_t isc_monitor_show(struct device *dev, struct device_attribute *att
 
     return snprintf(buf, PAGE_SIZE, "%d\n", iscd->need_monitor);
 }
+static ssize_t isc_valid_delay_cycles_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    struct iscd_info *iscd;
+
+    if (!g_smartstar_coul_dev || !g_smartstar_coul_dev->iscd) {
+        coul_core_err("g_smartstar_coul_dev is Null found in %s.\n", __func__);
+        return snprintf_s(buf, sizeof("Error"), sizeof("Error")-1, "%s", "Error");
+    }
+    iscd = g_smartstar_coul_dev->iscd;
+
+    return snprintf_s(buf, PAGE_SIZE, PAGE_SIZE-1, "%d\n", iscd->isc_valid_delay_cycles);
+}
+static ssize_t isc_valid_delay_cycles_store(struct device *dev, struct device_attribute *attr,
+                                                const char *buf, size_t count)
+{
+    struct iscd_info *iscd;
+    long val;
+
+    if (!g_smartstar_coul_dev || !g_smartstar_coul_dev->iscd) {
+        coul_core_err("g_smartstar_coul_dev is Null found in %s.\n", __func__);
+        return -EINVAL;
+    }
+    iscd = g_smartstar_coul_dev->iscd;
+
+    if (kstrtol(buf, 10, &val) < 0)
+        return -EINVAL;
+
+    iscd->isc_valid_delay_cycles = val;
+    return count;
+}
 
 static DEVICE_ATTR_RW(isc_status);
 static DEVICE_ATTR_RW(fatal_isc);
@@ -8871,6 +8995,7 @@ static DEVICE_ATTR_RW(isc_charge_limit_soc);
 static DEVICE_ATTR_RW(isc_recharge_soc);
 static DEVICE_ATTR_RW(isc_valid_cycles);
 static DEVICE_ATTR_RO(isc_monitor);
+static DEVICE_ATTR_RW(isc_valid_delay_cycles);
 
 static struct attribute *isc_test_attrs[] = {
     &dev_attr_isc_status.attr,
@@ -8882,6 +9007,7 @@ static struct attribute *isc_test_attrs[] = {
     &dev_attr_isc_recharge_soc.attr,
     &dev_attr_isc_valid_cycles.attr,
     &dev_attr_isc_monitor.attr,
+    &dev_attr_isc_valid_delay_cycles.attr,
     NULL,
 };
 
@@ -8904,7 +9030,7 @@ static const struct attribute_group * isc_groups[] = {
 
 static void fatal_isc_init(struct device_node* np, struct iscd_info *iscd)
 {
-    int ret;
+    int ret, ret0, ret1, ret2;
     int i;
     int j;
     struct class *hw_power;
@@ -8969,15 +9095,17 @@ static void fatal_isc_init(struct device_node* np, struct iscd_info *iscd)
             iscd->fatal_isc_trigger.valid_num = ret/ELEMS_PER_CONDITION;
             ret = 0;
             for( i = 0, j = 0; i < iscd->fatal_isc_trigger.valid_num; i++, j += 3) {/*lint !e574*/
-                ret |= of_property_read_u32_index(np, "fatal_isc_trigger_condition",
+                ret0 = of_property_read_u32_index(np, "fatal_isc_trigger_condition",
                                                   j + FATAL_ISC_TRIGGER_NUM_OFFSET,
                                                   &iscd->fatal_isc_trigger.trigger_num[i]);
-                ret |= of_property_read_u32_index(np, "fatal_isc_trigger_condition",
+                ret1 = of_property_read_u32_index(np, "fatal_isc_trigger_condition",
                                         j + FATAL_ISC_TRIGGER_ISC_OFFSET,
                                         (unsigned int *) (&iscd->fatal_isc_trigger.trigger_isc[i]));
-                ret |= of_property_read_u32_index(np, "fatal_isc_trigger_condition",
+                ret2 = of_property_read_u32_index(np, "fatal_isc_trigger_condition",
                                         j + FATAL_ISC_TRIGGER_DMD_OFFSET,
                                         (unsigned int *) (&iscd->fatal_isc_trigger.dmd_no[i]));
+
+                ret = (ret || ret0 || ret1 || ret2);
             }
             if(ret) {
                 coul_core_err("Read fatal_isc_trigger_condition failed.\n");
@@ -9003,6 +9131,7 @@ static void fatal_isc_init(struct device_node* np, struct iscd_info *iscd)
 
     /* isc limitations setting up */
     iscd->fatal_isc_action = 0;
+    iscd->fatal_isc_action_dts = 0;
     ret = of_property_read_u32_array(np, "fatal_isc_actions", temp, __MAX_FATAL_ISC_ACTION_TYPE);
     if(ret) {
         coul_core_info("fatal_isc_actions not defined or right size in device tree.\n");
@@ -9021,11 +9150,12 @@ static void fatal_isc_init(struct device_node* np, struct iscd_info *iscd)
         }
         for (i = 0; i < __MAX_FATAL_ISC_ACTION_TYPE; i++){
             if(temp[i]) {
-                iscd->fatal_isc_action |= BIT(i);
+                iscd->fatal_isc_action_dts |= BIT(i);
             }
         }
     }
 
+    iscd->fatal_isc_action = FATAL_ISC_ACTION_DMD_ONLY;
     BLOCKING_INIT_NOTIFIER_HEAD(&iscd->isc_limit_func_head);
     iscd->fatal_isc_direct_chg_limit_soc_nb.notifier_call = fatal_isc_direct_chg_limit_soc;
     iscd->fatal_isc_chg_limit_soc_nb.notifier_call = fatal_isc_chg_limit_soc;
@@ -9079,7 +9209,7 @@ static void iscd_remove(struct smartstar_coul_device *di)
 static void clear_moved_battery_data(struct smartstar_coul_device *di)
 {
     if(di->coul_dev_ops->is_battery_moved()){
-        set_charge_cycles(di, 0);
+        di->batt_chargecycles = 0;
         di->batt_changed_flag = 1;
         di->batt_reset_flag = 1;
         di->batt_limit_fcc = 0;
@@ -9139,8 +9269,8 @@ static void coul_check_drained_battery_flag(struct smartstar_coul_device *di)
     if(strstr(saved_command_line, "androidboot.mode=normal") && strstr(saved_command_line, "androidboot.swtype=normal")){
    /*if the register of battery drained equals true when battery changed detected,report batter
 y drained event*/
-        snprintf_s(buff,sizeof(buff),sizeof(buff)-1,"last_charge_cycles:%d,charge_cylces:%d!\n",
-               last_charge_cycles,di->batt_chargecycles);
+        (void)snprintf_s(buff,sizeof(buff),sizeof(buff)-1,"last_charge_cycles:%d,charge_cylces:%d!\n",
+            last_charge_cycles,di->batt_chargecycles);
         if(di->batt_changed_flag && !drained_battery_flag){
             coul_dsm_report_ocv_cali_info(di, DSM_BATTERY_CHANGED_NO , buff);
         }else if(drained_battery_flag){
@@ -9320,6 +9450,7 @@ coul_no_battery:
     coul_ops->battery_unfiltered_capacity = coul_battery_unfiltered_capacity;
     coul_ops->battery_capacity            = coul_get_battery_capacity;
     coul_ops->battery_temperature         = coul_get_battery_temperature;
+    coul_ops->chip_temperature            = coul_get_chip_temp;
     coul_ops->battery_rm                  = coul_get_battery_rm;
     coul_ops->battery_fcc                 = coul_get_battery_fcc;
     coul_ops->battery_tte                 = coul_get_battery_tte;
@@ -9378,6 +9509,8 @@ coul_no_battery:
     di->coul_dev_ops->set_eco_sample_flag(0);
     di->coul_dev_ops->clr_eco_data(0);
 #endif
+    /* on boot multi steps will update charge cycles, so notify at end of function */
+    hisi_call_coul_blocking_notifiers(HISI_EEPROM_CYC, &di->batt_chargecycles);
     coul_core_info("coul core probe ok!\n");
     return 0;
 
@@ -9411,6 +9544,7 @@ int bat_lpm3_ocv_msg_handler(struct notifier_block *nb, unsigned long action,voi
 {
 	struct ipc_msg *p_ipcmsg;
     int mins;
+	errno_t ret_s;
     struct smartstar_coul_device *di = container_of(nb,
                                 struct smartstar_coul_device, bat_lpm3_ipc_block);
 	if (!msg || NULL == di) {
@@ -9420,8 +9554,10 @@ int bat_lpm3_ocv_msg_handler(struct notifier_block *nb, unsigned long action,voi
 	p_ipcmsg = (struct ipc_msg *)msg;
 	if (IPC_BAT_OCVINFO == p_ipcmsg->data[0]) {
         mins = min(sizeof(struct bat_ocv_info),(MAX_MAIL_SIZE - 1)*sizeof(int));
-        memcpy_s((void *)&di->eco_info, sizeof(struct bat_ocv_info), (void *)&p_ipcmsg->data[1], mins);
-        coul_core_debug("%s:vbat:0x%x,ibat:0x%x!\n", __func__, di->eco_info.eco_vbat_reg, di->eco_info.eco_ibat_reg);
+        ret_s = memcpy_s((void *)&di->eco_info, sizeof(struct bat_ocv_info), (void *)&p_ipcmsg->data[1], mins);
+		if (ret_s)
+			coul_core_err("%s:memcpy fail!\n", __func__);
+		coul_core_debug("%s:vbat:0x%x,ibat:0x%x!\n", __func__, di->eco_info.eco_vbat_reg, di->eco_info.eco_ibat_reg);
     }
     return 0;
 }

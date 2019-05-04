@@ -97,6 +97,7 @@ typedef enum
     NV_ID_DRV_CCORE_RESET                  = 0xd134,    //DRV_CCORE_RESET_STRU
     NV_ID_DRV_DUMP_FILE                    = 0xd144,    //DUMP_FILE_CFG_STRU
     NV_ID_DRV_DLOCK                        = 0xd155,    //DRV_DLOCK_CFG_STRU
+	NV_ID_DRV_PDLOCK_AP					   = 0xd192,	//DRV_PDLOCK_AP_CFG_STRU
 	
 	//定义在ccore_nv_id_drv.h中 xuziheng/306651 20171207
 #ifndef NV_DEFINE
@@ -105,8 +106,8 @@ typedef enum
     NV_ID_DRV_NOC_AP                       = 0xd16c,    //DRV_NOC_AP_CFG_STRU
     NV_ID_DMSS_KENERL			   		   = 0xd180,    //DRV_DMSS_CFG_STRU
     NV_ID_DRV_DIAG_RATE                    = 0xd187,    //DRV_DIAG_RATE_STRU
-
-    NV_ID_DRV_ID_ACORE_MAX                 = 0xd1ff
+    NV_ID_DRV_BUS_ERR_AP                   = 0xd188,    //DRV_NOC_AP_CFG_STRU
+    NV_ID_DRV_ID_ACORE_MAX                 = 0xd1ff,
 }NV_ID_DRV_ACORE_ENUM;
 
 

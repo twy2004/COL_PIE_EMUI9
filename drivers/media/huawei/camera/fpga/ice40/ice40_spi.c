@@ -888,7 +888,6 @@ static void ice40_spi_cs_set(u32 control)
         return;
     }
 
-    /*cam_info("%s control = %s.", __func__, (control==0)?"select":"diselect");*/ /*too many logs*/
     if (SSP_CHIP_SELECT == control) {
         ret = gpio_direction_output(plat_data->spi_cs_gpio, control);
         /* cs steup time at least 10ns */

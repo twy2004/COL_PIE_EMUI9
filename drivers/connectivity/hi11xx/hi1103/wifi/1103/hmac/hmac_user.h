@@ -388,7 +388,7 @@ typedef struct
     oal_uint8                            uc_user_bsst_token;                     /* 用户发送bss transition 帧的信令 */
     oal_uint8                            uc_user_status;                         /* 用户11V状态 */
     oal_uint8                            uc_11v_roam_scan_times;                 /* 单信道11v漫游扫描次数  */
-    oal_uint8                            us_resv;                                /* 4字节对齐用 */
+    oal_bool_enum_uint8                  en_only_scan_one_time;                  /* 只扫描一次标志位*/
     frw_timeout_stru                     st_status_wait_timer;                   /* 等待用户回应帧的计时器 */
     mac_user_callback_func_11v           mac_11v_callback_fn;                   /* 回调函数指针 */
 }hmac_user_11v_ctrl_stru;
@@ -473,7 +473,8 @@ typedef struct
     oal_uint32                      aul_drop_num[WLAN_WME_AC_BUTT];
     oal_uint32                      aul_tx_delay[3];                    /*0 1 2分别为最大发送延时,最小发送延时,平均发送延时*/
     mac_ap_type_enum_uint16         en_user_ap_type;                    /* 用户的AP类型，兼容性问题使用 */
-    oal_uint8                       auc_resv6[2];
+    oal_uint8                       auc_mimo_blacklist_mac[WLAN_MAC_ADDR_LEN];
+    //oal_uint8                       auc_resv6[2];
 
 #ifdef _PRE_WLAN_FEATURE_CAR
     hmac_car_limit_stru             st_car_user_cfg[HMAC_CAR_BUTT];    /* user限速结构体,0-up 1-down */

@@ -152,7 +152,8 @@ static ssize_t aware_ctrl_write(struct file *file, const char __user *buf,
     char* cur;
     char* pos;
     char buffer[MAX_ARRAY_LENGTH];
-
+    int new_limit_ratio = 100;
+    int new_package_ratio = 100;
     memset(buffer, 0, sizeof(buffer));
     if (count > sizeof(buffer) - 1)
         count = sizeof(buffer) - 1;
@@ -172,8 +173,6 @@ static ssize_t aware_ctrl_write(struct file *file, const char __user *buf,
     s_AwareNetCtrl.mode = simple_strtol(cur, NULL, 10);
     s_AwareNetCtrl.enable = (0 == s_AwareNetCtrl.mode) ? 0 : 1;
 
-    int new_limit_ratio = 100;
-    int new_package_ratio = 100;
 
     pos = strchr(cur, ':');
     if (pos == NULL) {

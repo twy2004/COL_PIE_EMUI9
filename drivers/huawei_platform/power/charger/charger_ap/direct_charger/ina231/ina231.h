@@ -1,3 +1,21 @@
+/*
+ * ina231.h
+ *
+ * ina231 driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #ifndef _IAN231_H_
 #define _INA231_H_
 
@@ -10,13 +28,17 @@
 
 #define INA231_CONFIG_RST_MASK           (BIT(15)) /* reset bit */
 #define INA231_CONFIG_RST_SHIFT          (15)
-#define INA231_CONFIG_AVG_MASK           (BIT(9) | BIT(10) | BIT(11)) /* averaging mode */
+/* averaging mode */
+#define INA231_CONFIG_AVG_MASK           (BIT(9) | BIT(10) | BIT(11))
 #define INA231_CONFIG_AVG_SHIFT          (9)
-#define INA231_CONFIG_VBUSCT_MASK        (BIT(6) | BIT(7) | BIT(8)) /* bus voltage conversion time */
+/* bus voltage conversion time */
+#define INA231_CONFIG_VBUSCT_MASK        (BIT(6) | BIT(7) | BIT(8))
 #define INA231_CONFIG_VBUSCT_SHIFT       (6)
-#define INA231_CONFIG_VSHUNTCT_MASK      (BIT(3) | BIT(4) | BIT(5)) /* shunt voltage conversion time */
+/* shunt voltage conversion time */
+#define INA231_CONFIG_VSHUNTCT_MASK      (BIT(3) | BIT(4) | BIT(5))
 #define INA231_CONFIG_VSHUNTCT_SHIFT     (3)
-#define INA231_CONFIG_MODE_MASK          (BIT(0) | BIT(1) | BIT(2)) /* operating mode */
+/* operating mode */
+#define INA231_CONFIG_MODE_MASK          (BIT(0) | BIT(1) | BIT(2))
 #define INA231_CONFIG_MODE_SHIFT         (0)
 
 #define INA231_CONFIG_RST_ENABLE         (1)
@@ -68,27 +90,38 @@
 /* MASK_ENABLE reg=0x06, default=0x0000, RW */
 #define INA231_MASK_ENABLE_REG           0x06
 
-#define INA231_MASK_ENABLE_SOL_MASK      (BIT(15)) /* shunt voltage over-voltage */
+/* shunt voltage over-voltage */
+#define INA231_MASK_ENABLE_SOL_MASK      (BIT(15))
 #define INA231_MASK_ENABLE_SOL_SHIFT     (15)
-#define INA231_MASK_ENABLE_SUL_MASK      (BIT(14)) /* shunt voltage under-voltage */
+/* shunt voltage under-voltage */
+#define INA231_MASK_ENABLE_SUL_MASK      (BIT(14))
 #define INA231_MASK_ENABLE_SUL_SHIFT     (14)
-#define INA231_MASK_ENABLE_BOL_MASK      (BIT(13)) /* bus voltage over-voltage */
+/* bus voltage over-voltage */
+#define INA231_MASK_ENABLE_BOL_MASK      (BIT(13))
 #define INA231_MASK_ENABLE_BOL_SHIFT     (13)
-#define INA231_MASK_ENABLE_BUL_MASK      (BIT(12)) /* bus voltage under-voltage */
+/* bus voltage under-voltage */
+#define INA231_MASK_ENABLE_BUL_MASK      (BIT(12))
 #define INA231_MASK_ENABLE_BUL_SHIFT     (12)
-#define INA231_MASK_ENABLE_POL_MASK      (BIT(11)) /* over-limit power */
+/* over-limit power */
+#define INA231_MASK_ENABLE_POL_MASK      (BIT(11))
 #define INA231_MASK_ENABLE_POL_SHIFT     (11)
-#define INA231_MASK_ENABLE_CNVR_MASK     (BIT(10)) /* conversion ready */
+/* conversion ready */
+#define INA231_MASK_ENABLE_CNVR_MASK     (BIT(10))
 #define INA231_MASK_ENABLE_CNVR_SHIFT    (10)
-#define INA231_MASK_ENABLE_AFF_MASK      (BIT(4)) /* alert function flag */
+/* alert function flag */
+#define INA231_MASK_ENABLE_AFF_MASK      (BIT(4))
 #define INA231_MASK_ENABLE_AFF_SHIFT     (4)
-#define INA231_MASK_ENABLE_CVRF_MASK     (BIT(3)) /* conversion ready flag */
+/* conversion ready flag */
+#define INA231_MASK_ENABLE_CVRF_MASK     (BIT(3))
 #define INA231_MASK_ENABLE_CVRF_SHIFT    (3)
-#define INA231_MASK_ENABLE_OVF_MASK      (BIT(2)) /* math overflow flag */
+/* math overflow flag */
+#define INA231_MASK_ENABLE_OVF_MASK      (BIT(2))
 #define INA231_MASK_ENABLE_OVF_SHIFT     (2)
-#define INA231_MASK_ENABLE_APOL_MASK     (BIT(1)) /* alert polarity */
+/* alert polarity */
+#define INA231_MASK_ENABLE_APOL_MASK     (BIT(1))
 #define INA231_MASK_ENABLE_APOL_SHIFT    (1)
-#define INA231_MASK_ENABLE_LEN_MASK      (BIT(0)) /* alert altch enable */
+/* alert altch enable */
+#define INA231_MASK_ENABLE_LEN_MASK      (BIT(0))
 #define INA231_MASK_ENABLE_LEN_SHIFT     (0)
 
 /* ALERT_LIMIT reg=0x07, default=0x0000, RW */
@@ -105,8 +138,8 @@
 
 #define INA231_INIT_FINISH               (1)
 #define INA231_NOT_INIT                  (0)
-#define INA231_ENABLE_INTERRUPT_NOTIFY   (1)
-#define INA231_DISABLE_INTERRUPT_NOTIFY  (0)
+#define INA231_ENABLE_INT_NOTIFY         (1)
+#define INA231_DISABLE_INT_NOTIFY        (0)
 
 struct ina231_config_data {
 	u16 config_sleep_in;
@@ -138,4 +171,4 @@ struct ina231_device_info {
 	struct ina231_config_data *config;
 };
 
-#endif /* end of _INA231_H_ */
+#endif /* _INA231_H_ */

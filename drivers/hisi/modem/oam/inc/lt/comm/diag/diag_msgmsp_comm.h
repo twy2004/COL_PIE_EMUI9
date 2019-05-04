@@ -158,6 +158,9 @@ typedef struct
 /*****************************************************************************
   9 OTHERS
 *****************************************************************************/
+VOS_UINT32 diag_AppTransMspProc(MsgBlock* pMsgBlock);
+VOS_UINT32 diag_MspMsgProc(DIAG_FRAME_INFO_STRU *pData);
+VOS_UINT32 diag_RegMsgMspProc(VOS_UINT32 ulCmdId, DIAG_MSGMSP_PROC_FUNC pfnProc);
 
 #ifdef __cplusplus
     #if __cplusplus

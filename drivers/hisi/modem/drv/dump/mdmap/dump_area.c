@@ -49,14 +49,26 @@
 
 #include <product_config.h>
 #include <bsp_ddr.h>
+#include "bsp_version.h"
 #include "bsp_dump_mem.h"
 #include "dump_area.h"
 #include "dump_config.h"
+
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
-
-/*对外接口打桩*/
+u8 * bsp_dump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id)
+{
+    return NULL;
+}
 u8 * bsp_dump_get_field_addr(u32 field_id)
+{
+    return NULL;
+}
+void dump_show_field(void)
+{
+    return;
+}
+u8 * bsp_dump_get_field_phy_addr(u32 field_id)
 {
     return NULL;
 }
@@ -64,21 +76,17 @@ u8 * bsp_dump_get_field_map(u32 field_id)
 {
     return NULL;
 }
-u8 * bsp_dump_register_field(u32 field_id, char * name, void * virt_addr, void * phy_addr, u32 length, u16 version_id)
+u32 dump_get_mdm_voice_status(void)
 {
-    return NULL;
+    u32 flag = DUMP_OUT_VOICE;
+    return flag;
 }
 s32 bsp_dump_mem_init(void)
-{
+{
     return BSP_OK;
 }
-u8 * bsp_dump_get_field_phy_addr(u32 field_id)
-{
-    return NULL;
-}
-
-
-
-
+EXPORT_SYMBOL_GPL(bsp_dump_register_field);
+EXPORT_SYMBOL_GPL(bsp_dump_get_field_addr);
+EXPORT_SYMBOL(dump_show_field);
 
 

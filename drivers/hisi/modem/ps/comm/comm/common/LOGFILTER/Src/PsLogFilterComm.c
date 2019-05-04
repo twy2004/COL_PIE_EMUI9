@@ -52,12 +52,14 @@
 #include "PsLogFilterInterface.h"
 #include "PsLib.h"
 #include "PsLogFilterComm.h"
-
+#include "TTFComm.h"
+#include "gucttf_tag.h"
 
 
 
 
 #define    THIS_FILE_ID        PS_FILE_ID_LOG_FILTER_COMM_C
+#define    THIS_MODU           mod_logfilter
 
 /******************************************************************************
    2 外部函数变量声明
@@ -159,6 +161,8 @@ VOS_VOID* PS_OM_DiffCpuLayerMsgCommReplace
                     }
                 }
             }
+
+            break;
         }
     }
 

@@ -61,7 +61,8 @@
 #include "acore_nv_stru_gucttf.h"
 #include "nv_stru_gucnas.h"
 #include "acore_nv_stru_gucnas.h"
-
+#include "TTFComm.h"
+#include "gucttf_tag.h"
 
 
 /*****************************************************************************
@@ -69,6 +70,7 @@
 *****************************************************************************/
 /*lint -e767  原因简述: 打点日志文件宏ID定义 */
 #define    THIS_FILE_ID        PS_FILE_ID_PPP_INIT_C
+#define    THIS_MODU           mod_ppp
 /*lint +e767  */
 
 
@@ -230,92 +232,6 @@ VOS_UINT8 PPP_GetWinsConfig(VOS_VOID)
     return stWins.ucWins;
 }
 
-/*****************************************************************************
- Prototype      : PPP_StatusPrint()
- Description    :
- Input          : VOS_VOID
- Output         :
- Return Value   : VOID
- Calls          :
- Called By      :
- History        :
-  1.Date        : 2007-08-28
-    Author      :
-    Modification:
-*****************************************************************************/
-VOS_VOID PPP_StatusPrint(VOS_VOID)
-{
-    VOS_UINT32  ulIndex;
-    struct lcp *lcp;
-
-    PS_PRINTF(" lcp Info \n");
-    for(ulIndex = 0; ulIndex < PPP_MAX_ID_NUM; ulIndex++)
-    {
-        lcp = &((pgPppLink + ulIndex)->lcp);
-
-        /* 输出到Shell */
-        PS_PRINTF(" %d: %s [%s]\n", ulIndex, lcp->fsm.name, State2Nam(lcp->fsm.state));
-        PS_PRINTF(" his side: MRU %d, ACCMAP %x, PROTOCOMP %s, ACFCOMP %s,\n"
-                    "           MAGIC %x, MRRU %u, SHORTSEQ %s, REJECT %04x\n",
-                    lcp->his_mru, (VOS_UINT32)lcp->his_accmap,
-                    lcp->his_protocomp ? "on" : "off",
-                    lcp->his_acfcomp ? "on" : "off",
-                    (VOS_UINT32)lcp->his_magic, lcp->his_mrru,
-                    lcp->his_shortseq ? "on" : "off", lcp->his_reject);
-        PS_PRINTF(" my  side: MRU %d, ACCMAP %x, PROTOCOMP %s, ACFCOMP %s,\n"
-                    "           MAGIC %x, MRRU %u, SHORTSEQ %s, REJECT %04x\n",
-                    lcp->want_mru, (VOS_UINT32)lcp->want_accmap,
-                    lcp->want_protocomp ? "on" : "off",
-                    lcp->want_acfcomp ? "on" : "off",
-                    (VOS_UINT32)lcp->want_magic, lcp->want_mrru,
-                    lcp->want_shortseq ? "on" : "off", lcp->my_reject);
-
-        if (lcp->cfg.mru)
-            PS_PRINTF("\n Defaults: MRU = %d (max %d), ",
-                      lcp->cfg.mru, lcp->cfg.max_mru);
-        else
-            PS_PRINTF("\n Defaults: MRU = any (max %d), ",
-                      lcp->cfg.max_mru);
-        if (lcp->cfg.mtu)
-            PS_PRINTF("MTU = %d (max %d), ",
-                      lcp->cfg.mtu, lcp->cfg.max_mtu);
-        else
-            PS_PRINTF("MTU = any (max %d), ", lcp->cfg.max_mtu);
-        PS_PRINTF("ACCMAP = %x\n", (VOS_UINT32)lcp->cfg.accmap);
-        PS_PRINTF("           LQR period = %us, ",
-                    lcp->cfg.lqrperiod);
-        PS_PRINTF("Open Mode = %s",
-                    lcp->cfg.openmode == OPEN_PASSIVE ? "passive" : "active");
-        if (lcp->cfg.openmode > 0)
-            PS_PRINTF(" (delay %ds)", lcp->cfg.openmode);
-        PS_PRINTF("\n           FSM retry = %us, max %u Config"
-                    " REQ%s, %u Term REQ%s\n", lcp->cfg.fsm.timeout,
-                    lcp->cfg.fsm.maxreq, lcp->cfg.fsm.maxreq == 1 ? "" : "s",
-                    lcp->cfg.fsm.maxtrm, lcp->cfg.fsm.maxtrm == 1 ? "" : "s");
-        PS_PRINTF("    Ident: %s\n", lcp->cfg.ident);
-        PS_PRINTF("\n Negotiation:\n");
-        PS_PRINTF("           ACFCOMP =   %s\n",
-                    command_ShowNegval(lcp->cfg.acfcomp));
-        PS_PRINTF("           CHAP05 =    %s\n",
-                    command_ShowNegval(lcp->cfg.chap05));
-        PS_PRINTF("           CHAP80 =    %s\n",
-                    command_ShowNegval(lcp->cfg.chap80nt));
-        PS_PRINTF("           LANMan =    %s\n",
-                    command_ShowNegval(lcp->cfg.chap80lm));
-        PS_PRINTF("           CHAP81 =    %s\n",
-                    command_ShowNegval(lcp->cfg.chap81));
-        PS_PRINTF("           LQR =       %s\n",
-                    command_ShowNegval(lcp->cfg.lqr));
-        PS_PRINTF("           LCP ECHO =  %s\n",
-                      lcp->cfg.echo ? "enabled" : "disabled");
-        PS_PRINTF("           PAP =       %s\n",
-                    command_ShowNegval(lcp->cfg.pap));
-        PS_PRINTF("           PROTOCOMP = %s\n",
-                    command_ShowNegval(lcp->cfg.protocomp));
-    }
-
-    return;
-}
 
 /*****************************************************************************
  Prototype      : PppStop
@@ -704,7 +620,6 @@ VOS_VOID APP_PPP_FidTask(VOS_VOID)
         }
     }
 }
-
 
 
 VOS_UINT32 APP_PPP_FidInit(enum VOS_INIT_PHASE_DEFINE ip)

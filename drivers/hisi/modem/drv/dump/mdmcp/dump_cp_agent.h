@@ -55,17 +55,16 @@ typedef struct
     u32 modem_cp_modid;
     u8 desc[24];
 }modem_cp_exc_desc;
-s32  dump_cp_agent_init(void);
-
 
 void dump_save_cp_sysctrl(void);
 void dump_save_cp_base_info(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length);
 s32  dump_wait_cp_save_done(u32 ms,bool wait);
 void dump_notify_cp(u32 mod_id);
-void dump_cp_wdt_proc(void);
-void dump_save_cp_logs(char* dir_name);
+s32  dump_cp_agent_init(void);
 void dump_cp_timeout_proc(void);
-void dump_cp_dlock_proc(void);
 s32 dump_wait_mdmcp_done(void);
+void dump_cp_wdt_dlock_handle(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length);
+
+
 
 #endif

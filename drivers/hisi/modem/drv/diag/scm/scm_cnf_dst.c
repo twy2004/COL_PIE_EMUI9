@@ -282,7 +282,6 @@ void scm_send_cnf_data_to_udi(u8 *pucVirData, u8 *pucPHYData, u32 ulDataLen)
     if ((BSP_OK == ulRet) && (true == bUsbSendSucFlag))
     {
         pstDebugInfo->ulUSBSendNum++;
-        pstDebugInfo->ulUSBSendRealLen += ulSendDataLen;
     }
 
     return;
@@ -350,8 +349,8 @@ void scm_cnf_dst_read_cb(void)
     /* 记录回调函数的执行时间 */
     if(g_DiagLogLevel)
     {
-        diag_crit("g_astSCMCnfCoderDstCfg.pfunc Proc time 0x%x\n", (ulTimerOut - ulTimerIn));        
-    }    
+        diag_crit("g_astSCMCnfCoderDstCfg.pfunc Proc time 0x%x\n", (ulTimerOut - ulTimerIn));
+    }
 
     return;
 }

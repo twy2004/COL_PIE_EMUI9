@@ -102,10 +102,12 @@ extern "C" {
 /* 自动化类（0x5400-0x54ff）*/
 #define DIAG_CMD_GTR_SET                        (0x10015454)
 #define DIAG_CMD_GU_GTR_SET                     (0x10015455)    /* GU的RTT测试，只转发，不回复 */
+#define DIAG_CMD_5G_GTR_SET                     (0x10015456)    /* 5G GTR测试命令 */
 
 /* 2/3/4G BBP数采操作类 */
 #define DIAG_CMD_BBP_TL_SAMPLE_GEN_REQ          (0x4001521B)    /* 2/3/4G BBP数采TL-PHY start/stop命令*/
 #define DIAG_CMD_BBP_GU_SAMPLE_GEN_REQ          (0x4201521B)    /* 2/3/4G BBP数采GU-PHY start/stop命令*/
+#define DIAG_CMD_BBP_LTEV_SAMPLE_GEN_REQ        (0x4701521B)    /*     4G BBP数采LTE-V  start/stop命令*/
 #define DIAG_CMD_BBP_SAMPLE_ADDR_REQ            (0x4001521C)    /* 2/3/4G BBP数采Hids获取基地址*/
 #define DIAG_CMD_BBP_SAMPLE_CHNSIZE_REQ         (0x4001521D)    /* 2/3/4G BBP数采获取通道大小*/
 #define DIAG_CMD_BBP_SAMPLE_GET_VERSION_REQ     (0x4001521E)    /* 2/3/4G BBP数采获取版本信息*/
@@ -123,6 +125,20 @@ extern "C" {
 
 /* APP LOG */
 #define DIAG_CMD_APPLOG_CONFIG                  (0xEF000001)
+
+/* MSP IND 工具只将0x90038xxx和0x10038xxx当做是TRANS */
+/* ap 0x9F382000~0x9F382040 */
+#define DIAG_DEBUG_DST_MNTN_CMDID               (0x90382000)
+#define DIAG_DEBUG_AP_SRC_MNTN_CMDID            (0x90382001)
+#ifdef __OS_LRCCPU__
+/* lr 0x9F382040~0x9F382080 */
+#define DIAG_DEBUG_CP_SRC_MNTN_CMDID            (0x90382040)
+#elif defined(__OS_NRCCPU__)
+/* nr 0x9F382080~0x1FF8000c0 */
+#define DIAG_DEBUG_CP_SRC_MNTN_CMDID            (0x96382040)
+#endif
+/* hac 0x9F3820C0~0x1FF800100 */
+#define DIAG_DEBUG_HAC_SRC_MNTN_CMDID           (0x96382080)
 
 /* ======================================================================== */
 /*****************************************************************************

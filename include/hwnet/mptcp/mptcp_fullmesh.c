@@ -1994,14 +1994,14 @@ static void full_mesh_user_switch(struct sock *meta_sk, bool on, const char *ifa
 		mptcp_add_rem_addr_for_sk(meta_sk);
 
 		full_mesh_create_subflows(meta_sk);
-		mptcp_info("%s: try full_mesh_create_subflows\n", __func__);
+		mptcp_debug("%s: try full_mesh_create_subflows\n", __func__);
 	} else {
 		struct sock *sk, *tmpsk;
 		struct sock *sk_keep = NULL;
 		struct net_device *net_dev;
 		bool is_prim_iface_on = false;
 
-		if (iface) {
+		if (iface && (iface != meta_tp->prim_iface)) {
 			(void)strncpy(meta_tp->prim_iface, iface, IFNAMSIZ);
 			meta_tp->prim_iface[IFNAMSIZ - 1] = '\0';
 		}
@@ -2014,7 +2014,7 @@ static void full_mesh_user_switch(struct sock *meta_sk, bool on, const char *ifa
 		}
 
 		if (mpcb->cnt_subflows < 2 && !is_prim_iface_on) {
-			mptcp_info("%s: cnt_subflows %d is less than 2 and prim_iface is off\n",
+			mptcp_debug("%s: cnt_subflows %d is less than 2 and prim_iface is off\n",
 				__func__, mpcb->cnt_subflows);
 			return;
 		}
@@ -2048,7 +2048,7 @@ static void full_mesh_user_switch(struct sock *meta_sk, bool on, const char *ifa
 				continue;
 			}
 
-			mptcp_info("%s: close subflows\n", __func__);
+			mptcp_debug("%s: close subflows\n", __func__);
 			/* Reinject, so that pf = 1 and so we
 			 * won't select this one as the
 			 * ack-sock.

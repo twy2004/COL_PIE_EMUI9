@@ -246,9 +246,9 @@ char *rproc_analysis(const char *mdev_name, unsigned int pro_code)
 
 	if (0 == index)
 		return "ERR_RPROC";
-
+	index--;
 	/*npu ipc's mailbox channel */
-    if (NULL != strstr(mdev_name, "npu")) {
+    if (NULL != strstr(mdev_name, "npu-mailbox")) {
 		if (likely(index < NPU_RPROC_NUMBER))
 			return npu_rproc_name[index];
 		else
@@ -303,99 +303,99 @@ static inline void __ipc_unlock(void __iomem *base, unsigned int key)
 	__raw_writel(key, base + IPCLOCK());
 }
 
-static inline unsigned int __ipc_lock_status(void __iomem *base)
+static inline unsigned int __ipc_lock_status(const void __iomem *base)
 {
 	return __raw_readl(base + IPCLOCK());
 }
 
 static inline void __ipc_set_src(void __iomem *base, int source, int mdev)
 {
-	__raw_writel(IPCBITMASK(source), base + IPCMBxSOURCE(mdev));/*lint !e679*/
+	__raw_writel(IPCBITMASK(source), base + IPCMBxSOURCE((unsigned int)mdev));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_read_src(void __iomem *base, int mdev)
+static inline unsigned int __ipc_read_src(const void __iomem *base, int mdev)
 {
-	return __raw_readl(base + IPCMBxSOURCE(mdev));/*lint !e679*/
+	return __raw_readl(base + IPCMBxSOURCE((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_set_des(void __iomem *base, int source, int mdev)
 {
-	__raw_writel(IPCBITMASK(source), base + IPCMBxDSET(mdev));/*lint !e679*/
+	__raw_writel(IPCBITMASK(source), base + IPCMBxDSET((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_clr_des(void __iomem *base, int source, int mdev)
 {
-	__raw_writel(IPCBITMASK(source), base + IPCMBxDCLR(mdev));/*lint !e679*/
+	__raw_writel(IPCBITMASK(source), base + IPCMBxDCLR((unsigned int)mdev));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_des_status(void __iomem *base, int mdev)
+static inline unsigned int __ipc_des_status(const void __iomem *base, int mdev)
 {
-	return __raw_readl(base + IPCMBxDSTATUS(mdev));/*lint !e679*/
+	return __raw_readl(base + IPCMBxDSTATUS((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_send(void __iomem *base, unsigned int tosend, int mdev)
 {
-	__raw_writel(tosend, base + IPCMBxSEND(mdev));/*lint !e679*/
+	__raw_writel(tosend, base + IPCMBxSEND((unsigned int)mdev));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_read(void __iomem *base, int mdev, int index)
+static inline unsigned int __ipc_read(const void __iomem *base, int mdev, int index)
 {
-	return __raw_readl(base + IPCMBxDATA(mdev, index));/*lint !e679*/
+	return __raw_readl(base + IPCMBxDATA((unsigned int)mdev, (unsigned int)index));/*lint !e679*/
 }
 
 static inline void __ipc_write(void __iomem *base, u32 data, int mdev, int index)
 {
-	__raw_writel(data, base + IPCMBxDATA(mdev, index));/*lint !e679*/
+	__raw_writel(data, base + IPCMBxDATA((unsigned int)mdev, (unsigned int)index));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_cpu_imask_get(void __iomem *base, int mdev)
+static inline unsigned int __ipc_cpu_imask_get(const void __iomem *base, int mdev)
 {
-	return __raw_readl(base + IPCMBxIMASK(mdev));/*lint !e679*/
+	return __raw_readl(base + IPCMBxIMASK((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_cpu_imask_clr(void __iomem *base, unsigned int toclr, int mdev)
 {
 	unsigned int reg;
 
-	reg = __raw_readl(base + IPCMBxIMASK(mdev));/*lint !e679*/
+	reg = __raw_readl(base + IPCMBxIMASK((unsigned int)mdev));/*lint !e679*/
 	reg = reg & (~(toclr));
 
-	__raw_writel(reg, base + IPCMBxIMASK(mdev));/*lint !e679*/
+	__raw_writel(reg, base + IPCMBxIMASK((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_cpu_imask_all(void __iomem *base, int mdev)
 {
-	__raw_writel((~0), base + IPCMBxIMASK(mdev));/*lint !e679*/
+	__raw_writel((~0), base + IPCMBxIMASK((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_cpu_iclr(void __iomem *base, unsigned int toclr, int mdev)
 {
-	__raw_writel(toclr, base + IPCMBxICLR(mdev));/*lint !e679*/
+	__raw_writel(toclr, base + IPCMBxICLR((unsigned int)mdev));/*lint !e679*/
 }
 
-static inline int __ipc_cpu_istatus(void __iomem *base, int mdev)
+static inline int __ipc_cpu_istatus(const void __iomem *base, int mdev)
 {
-	return __raw_readl(base + IPCMBxICLR(mdev));/*lint !e679*/
+	return __raw_readl(base + IPCMBxICLR((unsigned int)mdev));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_mbox_istatus(void __iomem *base, int cpu)
+static inline unsigned int __ipc_mbox_istatus(const void __iomem *base, int cpu)
 {
-	return __raw_readl(base + IPCCPUxIMST(cpu));/*lint !e679*/
+	return __raw_readl(base + IPCCPUxIMST((unsigned int)cpu));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_mbox_irstatus(void __iomem *base, int cpu)
+static inline unsigned int __ipc_mbox_irstatus(const void __iomem *base, int cpu)
 {
-	return __raw_readl(base + IPCCPUxIRST(cpu));/*lint !e679*/
+	return __raw_readl(base + IPCCPUxIRST((unsigned int)cpu));/*lint !e679*/
 }
 
-static inline unsigned int __ipc_status(void __iomem *base, int mdev)
+static inline unsigned int __ipc_status(const void __iomem *base, int mdev)
 {
-	return __raw_readl(base + IPCMBxMODE(mdev));/*lint !e679*/
+	return __raw_readl(base + IPCMBxMODE((unsigned int)mdev));/*lint !e679*/
 }
 
 static inline void __ipc_mode(void __iomem *base, unsigned int mode, int mdev)
 {
-	__raw_writel(mode, base + IPCMBxMODE(mdev));/*lint !e679*/
+	__raw_writel(mode, base + IPCMBxMODE((unsigned int)mdev));/*lint !e679*/
 }
 
 static int hisi_mdev_startup(struct hisi_mbox_device *mdev)
@@ -468,7 +468,7 @@ static int hisi_mdev_check(struct hisi_mbox_device *mdev, mbox_mail_type_t mtype
 		index = index + AO_INDEX_BASE;
 		MDEV_DEBUG("ao-index is %d\n",index);
 	}
-	if (NULL != strstr(mdev->name, "npu")) {
+	if (NULL != strstr(mdev->name, "npu-mailbox")) {
 		index = index + NPU_INDEX_BASE;
 		MDEV_DEBUG("npu-index is %d\n",index);
 	}

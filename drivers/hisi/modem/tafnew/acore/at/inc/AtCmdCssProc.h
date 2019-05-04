@@ -120,7 +120,7 @@ typedef struct
   10 º¯ÊýÉùÃ÷
 *****************************************************************************/
 
-VOS_VOID AT_ProcCssMsg(CssAtInterface_MSG *pstMsg);
+VOS_VOID AT_ProcCssMsg(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvCssMccInfoSetCnf(VOS_VOID * pMsg);
 

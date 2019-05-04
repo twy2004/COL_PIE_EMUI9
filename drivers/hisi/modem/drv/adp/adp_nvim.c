@@ -104,21 +104,13 @@ unsigned int mdrv_nv_readex_factory(unsigned int modemid, unsigned int itemid, v
     return nv_readEx_factory(card_id, itemid, 0,(BSP_U8*)pdata,ulLength);
 
 }
+EXPORT_SYMBOL(mdrv_nv_readex_factory);
 
+unsigned int mdrv_nv_writeex(unsigned int modemid, unsigned int itemid,void *pdata, unsigned int ulLength)
+{
+    return NV_ERROR;
+}
 
-/*****************************************************************************
-* 函 数 名  : mdrv_nv_write_debug
-*
-* 功能描述  : 维测写NV接口，HIMS、AT^NVWR、AT^NVWRPART、CBT
-*
-* 输入参数  :
-* 输出参数  : 无
-*
-* 返 回 值  : OK
-*
-* 修改记录  :
-*
-*****************************************************************************/
 unsigned int mdrv_nv_om_write(unsigned int modemid, unsigned int itemid, unsigned int ulOffset, void *pdata, unsigned int ulLength)
 {
     return NV_ERROR;
@@ -283,7 +275,11 @@ unsigned int mdrv_nv_restore()
 {
     return 0;
 }
-
+void * mdrv_nv_get_addr(unsigned int modemid, unsigned int itemid)
+{
+    return bsp_nvm_get_addr(modemid+1,itemid);
+}
+EXPORT_SYMBOL(mdrv_nv_get_addr);
 
 /*****************************************************************************
 * 函 数 名  : mdrv_nv_flush
@@ -342,6 +338,7 @@ unsigned int mdrv_nv_check_factorynv(u32 mode)
 EXPORT_SYMBOL(mdrv_nv_restore);
 EXPORT_SYMBOL(mdrv_nv_flush);
 EXPORT_SYMBOL(mdrv_nv_backup);
+EXPORT_SYMBOL(mdrv_nv_writeex);
 EXPORT_SYMBOL(mdrv_nv_readex);
 EXPORT_SYMBOL(mdrv_nv_read_partex);
 EXPORT_SYMBOL(mdrv_nv_read);

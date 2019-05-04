@@ -55,7 +55,7 @@ extern "C" {
 
 #include <bsp_shared_ddr.h>
 #include <of.h>
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include <bsp_dpm.h>
 #include <mdrv_dsp.h>
 #include <bsp_edma.h>
@@ -114,7 +114,7 @@ static inline int his_load_cdsp_image(void)
 }
 #endif
 
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 static inline void dsp_load_init(void)
 {
     return;
@@ -382,7 +382,7 @@ static inline void bsp_dsp_dfs_en_auto(enum bsp_dsp_type_e etype)
 int his_load_cdsp_image(void);
 #endif
 
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__) || defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 int bsp_bbe_load(enum bsp_dsp_type_e etype);
 int bsp_bbe_store_ex(enum bsp_dsp_type_e etype, enum bsp_dsp_wait_edma_type edma_type);
 int bsp_bbe_wait_store_over(enum bsp_dsp_type_e etype);

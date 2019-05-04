@@ -10,7 +10,7 @@ static const struct partition partition_table_emmc[] =
   {PART_RESERVED1,         7*1024,      1024,      EMMC_USER_PART},/* reserved1        1024K  p3*/
   {PART_VRL,               8704,        512,       EMMC_USER_PART},/* VRL              512K   p5*/
   {PART_VRL_BACKUP,        9*1024,      512,       EMMC_USER_PART},/* VRL backup       512K   p6*/
-  {PART_NVME,             18*1024,      5*1024,    EMMC_USER_PART},/* nvme              5M     p8*/
+  {PART_NVME,             18*1024,      5*1024,    EMMC_USER_PART},/* nvme              5M    p8*/
   {PART_DDR_PARA,        285*1024,      1*1024,    EMMC_USER_PART},/* DDR_PARA          1M    p17*/
   {PART_LOWPOWER_PARA,   286*1024,      1*1024,    EMMC_USER_PART},/* lowpower_para     1M    p18*/
   {PART_BATT_TP_PARA,    287*1024,      1*1024,    EMMC_USER_PART},/* batt_tp_para      1M    p19*/

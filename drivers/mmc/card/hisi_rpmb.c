@@ -10,7 +10,7 @@
 #include <asm-generic/fcntl.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
-#include <linux/mmc/rpmb.h>
+#include <linux/hisi/rpmb.h>
 #include <linux/mmc/core.h>
 #include <linux/mmc/ioctl.h>
 #include <linux/mmc/card.h>

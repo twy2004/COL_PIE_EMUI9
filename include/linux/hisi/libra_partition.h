@@ -427,7 +427,7 @@ static const struct partition partition_table_ufs[] =
   {PART_VERSION_A,          8084*1024, 576*1024,    UFS_PART_3},/* version         576M   p62*/
   {PART_PRELOAD_A,          8660*1024, 900*1024,    UFS_PART_3},/* preload_a       900M   p63*/
   #ifdef CONFIG_FACTORY_MODE
-  {PART_RESERVED5,          9560*1024,        128*1024,    UFS_PART_3},/* reserved5      128M    p64*/
+  {PART_HIBENCH_IMG,        9560*1024,        128*1024,    UFS_PART_3},/* hibench_img    128M    p64*/
   {PART_HIBENCH_DATA,       9688*1024,        512*1024,    UFS_PART_3},/* hibench_data   512M    p65*/
   {PART_FLASH_AGEING,       10200*1024,       512*1024,    UFS_PART_3},/* flash_ageing   512M    p66*/
   {PART_USERDATA,           10712*1024,(4UL)*1024*1024,    UFS_PART_3},/* userdata       4G      p67*/

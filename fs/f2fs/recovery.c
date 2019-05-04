@@ -99,19 +99,23 @@ err_out:
 	return ERR_PTR(err);
 }
 
-static void del_fsync_inode(struct fsync_inode_entry *entry)
+static void del_fsync_inode(struct fsync_inode_entry *entry, int drop)
 {
+	if (drop) {
+		/* inode should not be recovered, drop it */
+		f2fs_inode_synced(entry->inode);
+	}
 	iput(entry->inode);
 	list_del(&entry->list);
 	kmem_cache_free(fsync_entry_slab, entry);
 }
 
-static void destroy_fsync_dnodes(struct list_head *head)
+static void destroy_fsync_dnodes(struct list_head *head, int drop)
 {
 	struct fsync_inode_entry *entry, *tmp;
 
 	list_for_each_entry_safe(entry, tmp, head, list)
-		del_fsync_inode(entry);
+		del_fsync_inode(entry, drop);
 }
 
 static int recover_dentry(struct inode *inode, struct page *ipage,
@@ -181,7 +185,7 @@ retry:
 	} else if (IS_ERR(page)) {
 		err = PTR_ERR(page);
 	} else {
-		err = __f2fs_do_add_link(dir, &fname, inode,
+		err = __f2fs_do_add_link(dir, &fname, NULL, inode,
 					inode->i_ino, inode->i_mode);
 	}
 	if (err == -ENOMEM)
@@ -303,7 +307,7 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 		page = get_tmp_page(sbi, blkaddr);
 		if (PageChecked(page)) {
 			f2fs_msg(sbi->sb, KERN_ERR, "Abandon looped node block list");
-			destroy_fsync_dnodes(head);
+			destroy_fsync_dnodes(head, 1);
 			break;
 		}
 
@@ -590,7 +594,7 @@ out:
 }
 
 static int recover_data(struct f2fs_sb_info *sbi, struct list_head *inode_list,
-						struct list_head *dir_list)
+		struct list_head *tmp_inode_list, struct list_head *dir_list)
 {
 	struct curseg_info *curseg;
 	struct page *page = NULL;
@@ -643,7 +647,7 @@ static int recover_data(struct f2fs_sb_info *sbi, struct list_head *inode_list,
 		}
 
 		if (entry->blkaddr == blkaddr)
-			del_fsync_inode(entry);
+			list_move_tail(&entry->list, tmp_inode_list);
 next:
 		/* check next segment */
 		blkaddr = next_blkaddr_of_node(page);
@@ -656,7 +660,7 @@ next:
 
 int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 {
-	struct list_head inode_list;
+	struct list_head inode_list, tmp_inode_list;
 	struct list_head dir_list;
 	int err;
 	int ret = 0;
@@ -686,6 +690,7 @@ int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	}
 
 	INIT_LIST_HEAD(&inode_list);
+	INIT_LIST_HEAD(&tmp_inode_list);
 	INIT_LIST_HEAD(&dir_list);
 
 	/* prevent checkpoint */
@@ -704,11 +709,16 @@ int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	need_writecp = true;
 
 	/* step #2: recover data */
-	err = recover_data(sbi, &inode_list, &dir_list);
+	err = recover_data(sbi, &inode_list, &tmp_inode_list, &dir_list);
 	if (!err)
 		f2fs_bug_on(sbi, !list_empty(&inode_list));
+	else {
+		/* restore s_flags to let iput() trash data */
+		sbi->sb->s_flags = s_flags;
+	}
 skip:
-	destroy_fsync_dnodes(&inode_list);
+	destroy_fsync_dnodes(&inode_list, err);
+	destroy_fsync_dnodes(&tmp_inode_list, err);
 
 	/* truncate meta pages to be used by the recovery */
 	truncate_inode_pages_range(META_MAPPING(sbi),
@@ -717,13 +727,13 @@ skip:
 	if (err) {
 		truncate_inode_pages_final(NODE_MAPPING(sbi));
 		truncate_inode_pages_final(META_MAPPING(sbi));
+	} else {
+		clear_sbi_flag(sbi, SBI_POR_DOING);
 	}
-
-	clear_sbi_flag(sbi, SBI_POR_DOING);
 	mutex_unlock(&sbi->cp_mutex);
 
 	/* let's drop all the directory inodes for clean checkpoint */
-	destroy_fsync_dnodes(&dir_list);
+	destroy_fsync_dnodes(&dir_list, err);
 
 	if (need_writecp) {
 		set_sbi_flag(sbi, SBI_IS_RECOVERED);

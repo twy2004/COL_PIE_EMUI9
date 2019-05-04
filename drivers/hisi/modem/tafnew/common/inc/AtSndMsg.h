@@ -129,6 +129,18 @@ VOS_UINT32  AT_FillAndSndAppReqMsg(
     VOS_UINT32                          ulRcvPid
 );
 
+VOS_UINT32  AT_GetSndCcmReqMsgLen(
+    VOS_UINT32                          ulParaLen,
+    VOS_UINT32                         *pulMsgLen
+);
+
+VOS_UINT32  AT_SndCcmReqMsg(
+    TAF_CTRL_STRU                      *pstCtrl,
+    VOS_VOID                           *pPara,
+    VOS_UINT32                          ulMsgType,
+    VOS_UINT32                          ulParaLen
+);
+
 VOS_UINT32 AT_SndSetFastDorm (
     VOS_UINT16                          usClientId,
     VOS_UINT8                           ucOpId,

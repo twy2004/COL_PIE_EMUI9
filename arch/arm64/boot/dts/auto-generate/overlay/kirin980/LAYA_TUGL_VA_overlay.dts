@@ -26,6 +26,21 @@
     board_id = <8430>;
 };
 
+&firmware {
+    android {
+        fstab {
+            vendor {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+            odm {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+        };
+    };
+};
+
 &hisi_peripheral_tm {
     compatible = "hisi,hisi-peripheral-tm";
     hisi,peripheral_sensors = <13>;
@@ -224,9 +239,9 @@
 };
 
 &fastboot_pmic {
-	hisilicon,init-reg-num = <3>;
-	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E>;
-	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4>;
+	hisilicon,init-reg-num = <4>;
+	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E 0x02E9>;
+	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4 0x06>;
 };
 
 	&rootparam {
@@ -355,6 +370,7 @@
 	};
 	&hisi_battery {
 		batt_name = <&desayatl_4100_snYA_4400_25 &desayatl_4100_snYT_4400_25 &scudmurata_4100_snCS_4400_50>;
+		default_batt_id_index = <1>;
 		status = "ok";
 	};
 	&hisi_bci_battery {
@@ -400,18 +416,20 @@
 	&wireless_charger {
 		interference_para =
 			"0x01", "0xfe", "138", "5000", "5500", "470",
-			"0x02", "0xfd", "-1",  "-1",   "-1",   "900";
+			"0x02", "0xfd", "-1",  "5000", "5500", "900";
 		rx_qval = <0x3c>;
 
 		status = "ok";
 	};
 	&wireless_tx {
 		tx_iin_limit = <0 500 300 1000 1000 0 0 0 0 1000 0 0>;
+		pwr_type = <0>; //0:VBUS_OTG
 		status = "ok";
 	};
 
-	&wireless_otg {
+	&vbus_channel_boost_gpio {
 		gpio_otg_switch = <&gpio16 7 0>;
+		charge_otg_ctl_flag = <1>;
 		status = "ok";
 	};
 
@@ -440,10 +458,20 @@
 	};
 	&huawei_batt_info {
 		status = "ok";
+		shield_ct_sign = <1>;
+		battery_checker@0 {
+			matchable = <&ds28el15 &ds28el16>;
+			status = "ok";
+		};
 	};
 	&ds28el15 {
 		id-mask = /bits/ 8 <0xFF 0x00 0x00 0x00 0x00 0xF0 0xFF 0x00>;
 		id-example = /bits/ 8 <0x97 0x00 0x00 0x00 0x00 0xD0 0x04 0x00>;
+		status = "ok";
+	};
+	&ds28el16 {
+		id-mask = /bits/ 8 <0xFF 0x00 0x00 0x00 0x00 0xF0 0xFF 0x00>;
+		id-example = /bits/ 8 <0x9F 0x00 0x00 0x00 0x00 0xD0 0x04 0x00>;
 		status = "ok";
 	};
 	&gpio_pl061_ctrl {
@@ -532,7 +560,7 @@
 		cc_cable_detect_enable = <1>;
 		full_path_res_max = <450>;
 		scp_work_on_charger = <1>;
-		standard_cable_full_path_res_max = <220>;
+		standard_cable_full_path_res_max = <450>;
 		first_cc_stage_timer_in_min = <5>;
 		stage_need_to_jump = "1";
 		temp_para =
@@ -542,6 +570,9 @@
 		resist_para =
 			"0", "180", "6000",
 			"180", "450", "4000";
+		std_resist_para =
+			"0", "250", "8000",
+			"250", "450", "4000";
 		status = "ok";
 	};
 
@@ -1443,7 +1474,7 @@
 				clock-names = "clk_out0";
 				clocks = <&clk_gate_out0>;
 				nfc_chip_type = "pn80t";
-				nfc_single_channel = "true";
+				nfc_single_channel = "false";
 				nfc_ese_type = "p61";
 			};
 
@@ -1694,6 +1725,7 @@
 				huawei,support_forcekey_cap_value_test = <1>;
 				huawei,ext_trex_short_test_wait_report_delay_flag = <1>;
 				huawei,support_2dbarcode_info = <1>;
+				huawei,support_gammadata_in_tp = <1>;
 				huawei,read_2dbarcode_oem_type = <0>;//0 for standard type
 			};
 			LAYA171000{
@@ -3154,6 +3186,7 @@
 				i2c_address=<0x70>;
 				file_id=<108>;
 				pressure_support=<1>;
+				anti_forgery_support=<0>;
 				gpio_irq=<198>;
 				gpio_irq_sh=<1005>;
 			};
@@ -3168,7 +3201,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;
@@ -3210,6 +3242,7 @@
 	&sensorhub_io_power{
 		compatible = "huawei,sensorhub_io";
 		sensor-io-supply = <&ldo24>;
+		set-3_2v = <1>;
 		status="ok";
 	};
 

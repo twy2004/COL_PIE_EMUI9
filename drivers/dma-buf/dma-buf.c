@@ -317,7 +317,7 @@ int is_dma_buf_file(struct file *file)
 }
 struct dma_buf * file_to_dma_buf(struct file *file)
 {
-	return file->private_data;;
+	return file->private_data;
 }
 /**
  * dma_buf_export - Creates a new dma_buf, and associates an anon file

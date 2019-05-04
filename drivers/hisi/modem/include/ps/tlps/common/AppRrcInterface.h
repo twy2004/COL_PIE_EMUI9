@@ -77,6 +77,7 @@ extern "C" {
 #define RRC_APP_CELL_MAX_COUNT           (32)
 #define RRC_APP_MAX_NUM_OF_MCC           (3)
 
+
 /*typedef DT_CMD_ENUM_UINT8 APP_CMD_ENUM_UINT8;*/
 /*typedef DT_RESULT_ENUM_UINT32 APP_RESULT_ENUM_UINT32;*/
 
@@ -131,7 +132,7 @@ extern "C" {
 #define LRRC_UTRAN_CELL_MAX_NUM 16
 #define LRRC_GERAN_CELL_MAX_NUM 16
 
-/*  新增位置定位消息中上报小区最大个数*/
+
 #define LRRC_ECELL_QRY_CELL_REPORT_NUM 9
 #define LRRC_ECELL_QRY_NBRCELL_NUM 8
 #define LRRC_ECELL_QRY_SELL_REPORT_NUM 4
@@ -144,12 +145,14 @@ extern "C" {
 
 #define LRRC_GURRC_GERAN_ARFCN_MAX_NUM                      32
 
-/* begin: add for at&t ue cap display  */
+
 /* 存放BAND信息最大的数组 */
 #define LRRC_APP_MAX_BAND_IND_ARRAY_NUM                     (8)
-/* end:   add for at&t ue cap display  */
+
+
 
 #define LRRC_APP_LWCLASH_MAX_SCELL_NUM                      (4)
+
 
 
 /*****************************************************************************
@@ -173,29 +176,32 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_RRC_PTL_STATE_QUERY_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x06),   /* _H2ASN_MsgChoice APP_RRC_PTL_STATE_QUERY_REQ_STRU */
     ID_APP_RRC_CELL_INFO_QUERY_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x07),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_LWCLASH_REQ              = (PS_MSG_ID_APP_TO_RRC_BASE + 0x08),   /* _H2ASN_MsgChoice APP_RRC_PTL_LWCLASH_REQ_STRU */
-    /*  DT begin */
+
     ID_APP_RRC_SERVING_CELL_INFO_QUERY_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x09),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_CSEL_INFO_QUERY_REQ           = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0a),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_UE_CAP_INFO_QUERY_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0b),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_AC_BARRING_INFO_QUERY_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0c),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_DRX_INFO_QUERY_REQ            = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0d),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
 
-    /*  DT end */
+    
     ID_APP_RRC_NMR_REQ                  = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0e),   /* _H2ASN_MsgChoice APP_RRC_NMR_REQ_STRU */
     ID_APP_RRC_CELLID_REQ               = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0f),   /* _H2ASN_MsgChoice APP_RRC_CELLID_REQ_STRU */
 
+    
     ID_APP_LRRC_RESEL_OFFSET_CFG_NTF         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x10),   /* _H2ASN_MsgChoice APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU  */
     ID_APP_LRRC_CON_TO_IDLE_NTF          = (PS_MSG_ID_APP_TO_RRC_BASE + 0x11),   /* _H2ASN_MsgChoice APP_LRRC_CON_TO_IDLE_NTF_STRU  */
+    
     ID_APP_LRRC_FAST_DORM_CFG_NTF          = (PS_MSG_ID_APP_TO_RRC_BASE + 0x12),   /* _H2ASN_MsgChoice APP_LRRC_FAST_DORM_CFG_NTF_STRU  */
+	
     ID_APP_LRRC_GET_NCELL_INFO_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x13),   /* _H2ASN_MsgChoice APP_LRRC_GET_NCELL_INFO_REQ_STRU  */
 
-    /* begin:V7R2-DT 移植强制切换，重选和禁止限制小区接入等功能, 2014/3/26 */
-    /*  Prob Begin */
     ID_APP_LRRC_INQ_TCFG_TXPOWER_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x14),   /* _H2ASN_MsgChoice APP_RRC_INQ_TCFG_TXPOWER_REQ_STRU */
-    /*  Prob End */
+
+
     ID_APP_RRC_FORCE_HOANDCSEL_REQ        = (PS_MSG_ID_APP_TO_RRC_BASE + 0x15),/*_H2ASN_MsgChoice APP_RRC_FORCE_HOANDCSEL_REQ_STRU*/
     ID_APP_RRC_BARCELL_ACCESS_REQ        = (PS_MSG_ID_APP_TO_RRC_BASE + 0x16),/*_H2ASN_MsgChoice APP_RRC_BARCELL_ACCESS_REQ_STRU*/
-    /* end:V7R2-DT 移植强制切换，重选和禁止限制小区接入等功能, 2014/3/26 */
+
+
     ID_APP_LRRC_SET_UE_REL_VERSION_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x17), /* _H2ASN_MsgChoice APP_LRRC_SET_UE_REL_VERSION_REQ_STRU  */
 
     /* begin:add for 路测融合 */
@@ -203,18 +209,18 @@ enum APP_RRC_MSG_ID_ENUM
     ID_DT_LRRC_SYNC_REPORT_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x19),
     /* end:add for 路测融合 */
 
-    /* begin: add for at&t ue cap display  */
+
     ID_APP_LRRC_GET_UE_CAP_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1a),   /* _H2ASN_MsgChoice APP_LRRC_GET_UE_CAP_INFO_REQ_STRU */
-    /* end:   add for at&t ue cap display  */
 
-    /* begin: added  for SCell Info Qry */
+
+
     ID_APP_RRC_SCELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1b),   /* _H2ASN_MsgChoice APP_RRC_SCELL_INFO_REQ_STRU */
-    /* end: added  for SCell Info Qry */
 
-    /* begin: add for cell info display,  -d9c-d51 */
+
+
     ID_APP_RRC_QUERY_ECELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1c),  /* _H2ASN_MsgChoice APP_RRC_QUERY_ECELL_INFO_REQ_STRU */
     ID_APP_RRC_QUERY_SCELL_INFO_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1d),   /* _H2ASN_MsgChoice APP_RRC_QUERY_SCELL_INFO_REQ_STRU */
-    /* end: add for cell info display,   */
+
 
     ID_APP_LRRC_SET_TLPS_PRINT2LAYER_REQ    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x18),
 
@@ -236,7 +242,7 @@ enum APP_RRC_MSG_ID_ENUM
     ID_RRC_APP_CELL_INFO_QUERY_CNF      = (PS_MSG_ID_RRC_TO_APP_BASE + 0x0e),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_LWCLASH_CNF              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x0f),   /* _H2ASN_MsgChoice RRC_APP_PTL_LWCLASH_IND_STRU */
     ID_RRC_APP_LWCLASH_IND              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x10),   /* _H2ASN_MsgChoice RRC_APP_PTL_LWCLASH_CNF_STRU */
-    /* DT begin */
+    /*niuxiufan DT begin */
     ID_RRC_APP_SERVING_CELL_INFO_QUERY_CNF    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x11),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_SERVING_CELL_INFO_IND    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x12),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_CSEL_INFO_QUERY_CNF      = (PS_MSG_ID_RRC_TO_APP_BASE + 0x13),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
@@ -251,69 +257,62 @@ enum APP_RRC_MSG_ID_ENUM
     ID_RRC_APP_GERAN_CSEL_INFO_IND        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1a),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_DRX_INFO_QUERY_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1b),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_DRX_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1c),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
-    /* DT end */
+
     ID_RRC_APP_NMR_CNF                    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1d),   /* _H2ASN_MsgChoice RRC_APP_NMR_CNF_STRU */
     ID_RRC_APP_CELLID_CNF                 = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1e),   /* _H2ASN_MsgChoice RRC_APP_CELLID_CNF_STRU */
+
     ID_RRC_APP_GET_NCELL_INFO_CNF       = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1f), /*_H2ASN_MsgChoice LRRC_APP_GET_NCELL_INFO_CNF_STRU*/
 
+
     ID_LRRC_APP_SET_UE_REL_VERSION_CNF      = (PS_MSG_ID_RRC_TO_APP_BASE + 0x40),/* _H2ASN_MsgChoice LRRC_APP_SET_UE_REL_VERSION_CNF_STRU  */
-   /* begin:V7R2-DT add dt cnf msg, 2014/5/21 */
+
     ID_APP_RRC_FORCE_HOANDCSEL_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x41),/* _H2ASN_MsgChoice RRC_APP_FORCE_HOANDCSEL_CNF_STRU */
     ID_APP_RRC_BARCELL_ACCESS_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x42),/* _H2ASN_MsgChoice RRC_APP_BARCELL_ACCESS_CNF_STRU */
-    /* end:V7R2-DT add dt cnf msg, 2014/5/21 */
-
-    /*Print2Layer  */
+   
     ID_LRRC_APP_SET_TLPS_PRINT2LAYER_CNF = (PS_MSG_ID_RRC_TO_APP_BASE + 0x47),
 
-    /* begin:add for 路测融合 */
+   
     ID_LRRC_DT_MEAS_REPORT_CNF   = (PS_MSG_ID_RRC_TO_APP_BASE + 0x48),
     ID_LRRC_DT_SYNC_REPORT_CNF   = (PS_MSG_ID_RRC_TO_APP_BASE + 0x49),
-    ID_LRRC_DT_MEAS_INFO_IND     = (0x988),/* 根据对外接口，路测测量Ind消息id为0x988，等于id_lrrc_lphy_conn_meas_ind */
-    ID_LRRC_DT_SYNC_INFO_IND     = (0x904),/* 根据对外接口，路测测量Ind消息id为0x904，等于id_lrrc_lphy_sync_info_ind */
-    ID_LRRC_DT_OUT_OF_SYNC_INFO_IND = (0x90f),/* 根据对外接口，路测测量Ind消息id为0x90f，等于id_lrrc_lphy_out_of_sync_info_ind */
-    /* end:add for 路测融合 */
+    ID_LRRC_DT_MEAS_INFO_IND     = (0x988),                    /* 根据对外接口，路测测量Ind消息id为0x988，等于id_lrrc_lphy_conn_meas_ind */
+    ID_LRRC_DT_SYNC_INFO_IND     = (0x904),                    /* 根据对外接口，路测测量Ind消息id为0x904，等于id_lrrc_lphy_sync_info_ind */
+    ID_LRRC_DT_OUT_OF_SYNC_INFO_IND = (0x90f),                 /* 根据对外接口，路测测量Ind消息id为0x90f，等于id_lrrc_lphy_out_of_sync_info_ind */
+   
 
-    /* V7R2-DT, report pcell and scell basic information,   2014-3-25 begin*/
-    ID_RRC_APP_SERVING_CELL_CA_INFO_IND          = (PS_MSG_ID_RRC_TO_DT_BASE + 0x12),
-    /* V7R2-DT, report pcell and scell basic information,   2014-3-25 begin*/
-
-    /* begin: add for at&t ue cap display  */
+    ID_RRC_APP_SERVING_CELL_CA_INFO_IND   = (PS_MSG_ID_RRC_TO_DT_BASE + 0x12),
     ID_LRRC_APP_GET_UE_CAP_INFO_CNF       = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4a), /* _H2ASN_MsgChoice LRRC_APP_GET_UE_CAP_INFO_CNF_STRU */
-    /* end:   add for at&t ue cap display  */
-
-    /* begin: add for fgi spilt display  */
     ID_LRRC_APP_FGI_INFO_IND              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4b), /* _H2ASN_MsgChoice LRRC_APP_FGI_INFO_IND_STRU */
-    /* end:   add for fgi spilt display  */
-    /* Begin Debug Info report  */
-    ID_RRC_APP_DBG_SYSINFO_IND           = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4c),  /* _H2ASN_MsgChoice  LRRC_APP_DBG_SYSINFO_IND_STRU */
-    /* End Debug Info report  */
 
-    /* add for lrrc debug stub cmd  beign */
+
+    ID_RRC_APP_DBG_SYSINFO_IND           = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4c),  /* _H2ASN_MsgChoice  LRRC_APP_DBG_SYSINFO_IND_STRU */
+
+
+
     ID_APP_RRC_DEBUG_STUB_SET_3HOUR_REQ       = (PS_MSG_ID_APP_TO_RRC_BASE + 0x20),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_SET_3HOUR_REQ_STRU */
     ID_APP_RRC_DEBUG_STUB_HO_FAIL_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x21),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_HO_FAIL_REQ_STRU */
     ID_APP_RRC_DEBUG_STUB_REL_ALL_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x22),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_REL_ALL_REQ_STRU */
 
     ID_RRC_APP_DEBUG_STUB_CMD_CNF             = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4d),   /* _H2ASN_MsgChoice RRC_APP_DEBUG_STUB_CMD_CNF_STRU */
-    /* add for lrrc debug stub cmd  end */
 
-    /* begin: added  for SCell Info Qry */
+
+
     ID_RRC_APP_SCELL_INFO_CNF              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4e), /* _H2ASN_MsgChoice RRC_APP_SCELL_INFO_CNF_STRU */
-    /* end: added  for SCell Info Qry */
+
 
     ID_RRC_CLOUD_CA_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4f),
 
-    /* begin: added by   Sell Info Qry -D51*/
+
     ID_RRC_APP_QUERY_ECELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x51), /* _H2ASN_MsgChoice RRC_APP_QUERY_ECELL_INFO_CNF_STRU */
     ID_RRC_APP_QUERY_SCELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x52), /* _H2ASN_MsgChoice RRC_APP_QUERY_SCELL_INFO_CNF_STRU */
-    /* end: added by   for SCell Info Qry */
 
-    /* begin: add&mod for Plmn Feature, 2018_05_23 */
+
+
     ID_RRC_PLMN_FEATURE_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x53),
-    /* end: add&mod for Plmn Feature, 2018_05_23 */
 
-    /* added by  for badcell ,begin */
+
+
     ID_APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x23),
-    /* added by  for  badcell ,end   */
+
     ID_APP_RRC_MSG_ID_BUTT
 };
 typedef VOS_UINT32    APP_RRC_MSG_ID_ENUM_UINT32;
@@ -446,7 +445,7 @@ enum APP_STATE_FLAG_ENUM
 };
 typedef VOS_UINT8 APP_STATE_FLAG_ENUM_UINT8;
 
-/* begin: add for at&t ue cap display  */
+
 /*****************************************************************************
  枚举名    : LRRC_CA_CC_NUM_ENUM
  枚举说明  :
@@ -459,7 +458,7 @@ enum LRRC_CA_CC_NUM_ENUM
     LRRC_CA_CC_NUM_BUTT
 };
 typedef VOS_UINT8 LRRC_CA_CC_NUM_ENUM_UINT8;
-/* end:   add for at&t ue cap display  */
+
 
 /*****************************************************************************
    5 STRUCT
@@ -730,7 +729,7 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_LOCK_WORK_INFO_CNF_STRU;
 
-/* begin: add for at&t ue cap display  */
+
 /*****************************************************************************
  结构名    :APP_LRRC_GET_UE_CAP_INFO_REQ_STRU
  结构说明  :HIDS下发的获取关键UE能力信息的结构体
@@ -766,11 +765,11 @@ typedef struct
     LRRC_CA_CC_NUM_ENUM_UINT8           enCaCCNum;                              /* 最大支持的CA CC数 */
 
 
-    VOS_UINT32                          ulBandNum;   /* usBandNum 取值范围[1,256] */
+    VOS_UINT32                          ulBandNum;                                   /* usBandNum 取值范围[1,256] */
     VOS_UINT32                          aulBandInd[LRRC_APP_MAX_BAND_IND_ARRAY_NUM]; /* aulBandInd,每个BIT，1:代表支持，0代表不支持，
-                                                                                ulBandInd[0]中第一个BIT代表BAND1,以此类推; */
+                                                                                        ulBandInd[0]中第一个BIT代表BAND1,以此类推; */
     VOS_UINT32                          aul256Qam[LRRC_APP_MAX_BAND_IND_ARRAY_NUM]; /* aul256Qam,每个BIT，1:代表支持，0代表不支持，
-                                                                                aul256Qam[0]中第一个BIT，以此类推; */
+                                                                                        aul256Qam[0]中第一个BIT，以此类推; */
     PS_BOOL_ENUM_UINT8                  enUlMimo4Layer;                           /* 是否支持上行4层 */
     PS_BOOL_ENUM_UINT8                  enDlMimo4Layer;                           /* 是否支持下行4层 */
     VOS_UINT8                           aucReserved[2];
@@ -795,7 +794,7 @@ typedef struct
                                                                                    ，目前主要用于扩展CA组合，因为
                                                                                    CA组合占用空间很大 */
 }LRRC_APP_GET_UE_CAP_INFO_CNF_STRU;
-/* end:   add for at&t ue cap display  */
+
 
 /*****************************************************************************
  结构名    : APP_RRC_TRANSPARENT_CMD_REQ
@@ -825,7 +824,7 @@ typedef struct
     VOS_UINT32          ulMsgId;                            /*_H2ASN_Skip*/
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
-    VOS_UINT8           aucTransCmdCnf[4];  /*透明命令结果码流，可变*/
+    VOS_UINT8           aucTransCmdCnf[4];                 /*透明命令结果码流，可变*/
 }RRC_APP_TRANSPARENT_CMD_CNF_STRU;
 
 /*****************************************************************************
@@ -1089,7 +1088,6 @@ typedef struct
  ASN.1描述 :
  结构说明  : RRC上报的协议状态
 *****************************************************************************/
-/*V7R2-DT , 2014/4/25, begin*/
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -1097,9 +1095,8 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;             /* MSP直接将此ID做为CmdID发给Prob */
     APP_RESULT_ENUM_UINT32              enResult;
-    //VOS_UINT32                          ulCurrentState;     /* RRC协议状态, 0:表示IDLE态 1:表示CONNECTED 2:表示协议状态无效 */
 }RRC_APP_PTL_STATE_QUERY_CNF_STRU;
-/*V7R2-DT , 2014/4/25, end*/
+
 
 /*****************************************************************************
  结构名    : RRC_APP_PTL_STATE_CHANGE_IND_STRU
@@ -1113,7 +1110,7 @@ typedef struct
     VOS_UINT32                          ulMsgId;            /*_H2ASN_Skip*/
     VOS_UINT32                          ulCurrentState;     /* RRC协议状态, 0:表示IDLE态 1:表示CONNECTED 2:表示协议状态无效 */
 }RRC_APP_PTL_STATE_CHANGE_IND_STRU;
-/* DT begin */
+
 /*****************************************************************************
  结构名    : RRC_APP_PTL_STATE_CHANGE_IND_STRU
  协议表格  :
@@ -1129,7 +1126,7 @@ typedef struct
     VOS_UINT32                          ulCurrentState;     /* RRC协议状态, 0:表示IDLE态 1:表示CONNECTED 2:表示协议状态无效 */
 }RRC_APP_DT_PTL_STATE_IND_STRU;
 
-/* DT end */
+
 
 /*****************************************************************************
  结构名    :APP_RRC_PTL_STATE_QUERY_REQ_STRU
@@ -1159,7 +1156,7 @@ typedef struct
     VOS_UINT8                           aucReserved[3];
 }RRC_APP_CELL_INFO_QUERY_CNF_STRU;
 
-/*  DT begin */
+
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -1189,9 +1186,7 @@ typedef struct
     VOS_UINT32                          ulOpId;
 }APP_RRC_INQ_CMD_IND_HEADER_STRU;
 
-/*  DT end */
 
-/* begin:V7R2-DT 移植强制切换、重选和禁止限制小区接入等功能,2014/3/26 */
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -1228,7 +1223,7 @@ typedef struct
     VOS_UINT8                           ucRsv[3];
 }APP_RRC_BARCELL_ACCESS_REQ_STRU;
 
-/* end:V7R2-DT 移植强制切换、重选和禁止限制小区接入等功能, 2014/3/26 */
+
 
 /*****************************************************************************
  结构名    : APP_RRC_MSG_DATA
@@ -1287,7 +1282,7 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
 } APP_RRC_LWCLASH_REQ_STRU;
-/* begin:add&mod  for 4G+ display,  */
+
 /*********************************************************
  枚举名    : APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM
  协议表格  :
@@ -1301,26 +1296,25 @@ enum APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM
     APP_RRC_ANTENNA_EIGHT_LAYERS,             /* UE MIMO层数8层 */
 };
 typedef VOS_UINT8    APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM_UINT8;
-/* end:add&mod  for 4G+ display,  */
+
 /*****************************************************************************
  结构名    : RRC_APP_LWCLASH_PARA_STRU
 结构说明  : RRC上报的消息
 *****************************************************************************/
 typedef struct
 {
-    /* Modified  for LTE Band66 2017-4-24 begin */
+
     VOS_UINT32                              ulUlFreq;          /*上行中心频率 单位:100Khz*/
     VOS_UINT32                              ulDlFreq;          /*下行中心频率 单位:100Khz*/
-    /* Modified  for LTE Band66 2017-4-24 end */
+
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usUlBandwidth;     /*上行带宽 */
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usDlBandwidth;     /*上行带宽 */
     APP_CAMPED_FLAG_ENUM_UINT8              enCamped;          /*是否驻留 */
     APP_STATE_FLAG_ENUM_UINT8               enState;           /*是否为冲突状态 */
     VOS_UINT8                               usBand;            /*频带指示 */
-    /* begin:add&mod  for 4G+ display */
     APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM_UINT8   enDlMimo;
-    /* end:add&mod  for 4G+ display */
 } RRC_APP_LWCLASH_PARA_STRU;
+
 
 /*****************************************************************************
  结构名    : RRC_APP_SCELL_INFO_STRU
@@ -1334,11 +1328,10 @@ typedef struct
     VOS_UINT32                              ulDlFreq;           /*下行中心频率 单位:100Khz*/
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usUlBandwidth;      /*上行带宽 */
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usDlBandwidth;      /*下行带宽 */
-    /* begin:add&mod  for 4G+ display */
     APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM_UINT8   enDlMimo;
     VOS_UINT8                               aucResv[3];
-    /* end:add&mod  for 4G+ display */
 }RRC_APP_SCELL_INFO_STRU;
+
 
 
 /*****************************************************************************
@@ -1483,7 +1476,7 @@ typedef struct
     VOS_UINT8                           aucValue[4];  /*消息体有效内容的指针*/
 }APP_LPS_MSG_STRU;
 
-/* BEGIN DTS_DCM_IDLE_RESELECTION_CFG   2012-12-08 Add*/
+
 /*****************************************************************************
  结构名    : APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU
  协议表格  :
@@ -1494,12 +1487,10 @@ typedef struct
 {
     VOS_MSG_HEADER                         /*_H2ASN_Skip*/
     VOS_UINT32             ulMsgId;        /*_H2ASN_Skip*/
-
     APP_MSG_HEADER
-    VOS_UINT32                          ulOpId;
-    /*BEGIN DTS_IDLE_RESELECTION_CFG_2   Modify*/
-    VOS_UINT32                           ulFlag;
-    /*END DTS_IDLE_RESELECTION_CFG_2   Modify*/
+
+    VOS_UINT32             ulOpId;
+    VOS_UINT32             ulFlag;
 }APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU;
 
 /*****************************************************************************
@@ -1513,11 +1504,11 @@ typedef struct
     VOS_MSG_HEADER                         /*_H2ASN_Skip*/
     VOS_UINT32             ulMsgId;        /*_H2ASN_Skip*/
     APP_MSG_HEADER
-    VOS_UINT32                          ulOpId;
-
+    VOS_UINT32              ulOpId;
     VOS_INT32              ulReserv;
 }APP_LRRC_CON_TO_IDLE_NTF_STRU;
 
+/* gaojishan-fast-dorm-cfg */
 
 /*****************************************************************************
  枚举名    : LRRC_LPDCP_FAST_DORMANCY_CMD_ENUM
@@ -1583,7 +1574,7 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 } LRRC_APP_SET_UE_REL_VERSION_CNF_STRU;
 
-/* begin : added  for SCell Info Qry */
+
 /*****************************************************************************
  结构名    :APP_RRC_SCELL_INFO_REQ_STRU
  结构说明  :AT下发的查询SCELL信息的结构体
@@ -1597,7 +1588,10 @@ typedef struct
     VOS_UINT8                           aucReserved[4];                         /* 保留 */
 }APP_RRC_SCELL_INFO_REQ_STRU;
 
-
+/*****************************************************************************
+ 结构名    : RRC_SCELL_INFO_STRU
+ 结构说明  :
+*****************************************************************************/
 typedef struct
 {
     VOS_UINT32  ulPhyCellId;          /* scell的物理小区id */
@@ -1631,7 +1625,6 @@ typedef struct
     VOS_UINT32                            ulSCellCnt;
     RRC_SCELL_INFO_STRU           astSCellInfo[LRRC_SCELL_MAX_NUM];
 }RRC_APP_SCELL_INFO_CNF_STRU;
-/* end : added  for SCell Info Qry */
 
 /*****************************************************************************
  结构名    : LRRC_DAM_BAR_LIST_ITEM_STRU
@@ -1659,8 +1652,8 @@ typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
     VOS_UINT32                          ulMsgId;            /*_H2ASN_Skip*/
-    VOS_UINT16                          usItemCount; /* Bar List中条目个数 */
-    VOS_UINT16                          usRev;  /* 保留 */
+    VOS_UINT16                          usItemCount;        /* Bar List中条目个数 */
+    VOS_UINT16                          usRev;              /* 保留 */
     LRRC_DAM_BAR_LIST_ITEM_STRU         astDamBarListItem[RRC_APP_MAX_LIMITED_ITEM_COUNT];
 }LRRC_APP_DAM_BAR_LIST_DBG_INFO_IND_STRU;
 /* add for AT&T LRRC DAM end */
@@ -1834,7 +1827,7 @@ typedef struct
     LRRC_APP_GERAN_SIGNLE_FREQ_MEAS_RESULT_STRU   astGeranFreqMesRslt[LRRC_GURRC_GERAN_ARFCN_MAX_NUM];
 }LRRC_APP_IDLE_GERAN_INFO_STRU;
 
-/*begin: measurement report 2015-08-18  */
+
 /*****************************************************************************
  结构名    : LRRC_APP_CELL_MEAS_RSLT_STRU
  协议表格  :
@@ -1986,7 +1979,6 @@ typedef struct
 {
     LRRC_APP_GERAN_CELL_RSLT_STRU       astGeranCellRslt[LRRC_GERAN_CELL_MAX_NUM]; /* 异频小区上报结果 */
 } LRRC_APP_GERAN_MEAS_RSLT_STRU;
-/*end: measurement report 2015-08-18  */
 
 /* add for Conn Meas Filter Optimize begin */
 /*****************************************************************************
@@ -2109,7 +2101,7 @@ typedef struct
      VOS_UINT8           aucPara[4];    /* 参数内容 */
 }APP_OM_MSG_REDF_STRU;
 
-/* add for lrrc debug stub cmd  beign */
+
 
 /*****************************************************************************
  结构名    :APP_RRC_DEBUG_STUB_SET_3HOUR_REQ_STRU
@@ -2162,8 +2154,8 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_DEBUG_STUB_CMD_CNF_STRU;
 
-/* add for lrrc debug stub cmd  end */
-/* add for lrrc debug badcell  begin */
+
+
 /*****************************************************************************
  结构名    :APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU
  结构说明  :打桩坏小区列表
@@ -2191,9 +2183,9 @@ typedef struct
     VOS_UINT16                      usRsv3;
 }APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU;
 
-/* add for lrrc debug badcell  end */
 
-/* add for lrrc observe   begin */
+
+
 /*****************************************************************************
  结构名    :LTE_CA_STATE_INFO_STRU
  协议表格  :
@@ -2319,7 +2311,7 @@ typedef struct
     VOS_UINT32                 ulOpId;
     LTE_CA_STATE_INFO_STRU     stSCellInfo;      /*CA小区信息*/
 }RRC_APP_QUERY_SCELL_INFO_CNF_STRU;
-/* add for lrrc observe   end */
+
 
 
 extern PS_BOOL_ENUM_UINT8  LRRC_COMM_LoadDspAlready( MODEM_ID_ENUM_UINT16 enModemId);
@@ -2331,12 +2323,11 @@ extern VOS_VOID LHPA_DbgSendSetWorkMode_toSlaveMode(MODEM_ID_ENUM_UINT16 enModem
 extern VOS_VOID * LAPP_MemAlloc( MODEM_ID_ENUM_UINT16 enModemId,VOS_UINT32 ulSize );
 extern VOS_UINT32  LApp_MemFree(MODEM_ID_ENUM_UINT16 usModemId,VOS_VOID *pAddr );
 extern VOS_UINT32  LAppSndMsgToLPs(MODEM_ID_ENUM_UINT16 enModemId,APP_LPS_MSG_STRU  *pstAppToPsMsg );
-/* Modified  for common CT, 2013-08-10, begin */
 extern 	VOS_UINT32 LHPA_InitDsp_ForAT( VOS_VOID );
 extern VOS_UINT32 LHPA_InitDspNvForLteTdsCBT(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_UINT32 LHPA_LoadDspForLteCBT(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_VOID   LHPA_DbgSetSlaveModeThenMasterMode(MODEM_ID_ENUM_UINT16 enModemId);
-/* Modified  for common CT, 2013-08-10, end */
+
 
 /*****************************************************************************
   8 Fuction Extern

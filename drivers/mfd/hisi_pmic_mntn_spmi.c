@@ -682,6 +682,7 @@ static int hisi_pmic_otmp_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DESC 
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	unsigned char reg_value = 0;
+        int ret0 = 0, ret1 = 0, ret2 = 0;
 	s32 ret = 0;
 
 	root = of_find_compatible_node(np, NULL, "hisilicon-pmic-mntn-otmp");
@@ -690,17 +691,19 @@ static int hisi_pmic_otmp_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DESC 
 		return -ENODEV;
 	}
 
-	ret |= of_property_read_u32_array(root, "hisilicon,otmp-threshold-val", (u32 *)&pmic_mntn->otmp_thshd_val, 0x1);
-	ret |= of_property_read_u32_array(root, "hisilicon,otmp-threshold-reg", (u32 *)&pmic_mntn->otmp_thshd_reg, 0x3);
+	ret0 = of_property_read_u32_array(root, "hisilicon,otmp-threshold-val", (u32 *)&pmic_mntn->otmp_thshd_val, 0x1);
+	ret1 = of_property_read_u32_array(root, "hisilicon,otmp-threshold-reg", (u32 *)&pmic_mntn->otmp_thshd_reg, 0x3);
+        ret = (ret0 || ret1);
 	if (ret) {
 		dev_err(dev, "[%s]get pmic otmp attribute failed.\n", __func__);
 		return -ENODEV;
 	}
 
-	ret |= of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-flag", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_flag, 0x1);
-	ret |= of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-val", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_val, 0x1);
-	ret |= of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-reg", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_reg, 0x3);
-	if (ret) {
+	ret0 = of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-flag", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_flag, 0x1);
+	ret1 = of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-val", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_val, 0x1);
+	ret2 = of_property_read_u32_array(root, "hisilicon,otmp-hreset-pwrdown-reg", (u32 *)&pmic_mntn->otmp_hreset_pwrdown_reg, 0x3);
+        ret = (ret0 || ret1 || ret2);
+        if (ret) {
 		dev_err(dev, "[%s]get pmic otmp attribute failed.\n", __func__);
 		return -ENODEV;
 	}
@@ -747,6 +750,7 @@ static int hisi_pmic_smpl_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DESC 
 	struct device_node *np = dev->of_node;
 	unsigned char reg_value = 0;
 	s32 ret = 0;
+        s32 ret0, ret1, ret2, ret3;
 	unsigned int smpl_en_val;
 
 	root = of_find_compatible_node(np, NULL, "hisilicon-pmic-mntn-smpl");
@@ -755,10 +759,11 @@ static int hisi_pmic_smpl_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DESC 
 		return -ENODEV;
 	}
 
-	ret |= of_property_read_u32_array(root, "hisilicon,smpl-ctrl-en", &pmic_mntn->smpl_en_val, 0x1);
-	ret |= of_property_read_u32_array(root, "hisilicon,smpl-ctrl-en-reg", (u32 *)&pmic_mntn->smpl_en_reg, 0x3);
-	ret |= of_property_read_u32_array(root, "hisilicon,smpl-ctrl-time", &pmic_mntn->smpl_tm_val, 0x1);
-	ret |= of_property_read_u32_array(root, "hisilicon,smpl-ctrl-time-reg", (u32 *)&pmic_mntn->smpl_tm_reg, 0x3);
+	ret0 = of_property_read_u32_array(root, "hisilicon,smpl-ctrl-en", &pmic_mntn->smpl_en_val, 0x1);
+	ret1 = of_property_read_u32_array(root, "hisilicon,smpl-ctrl-en-reg", (u32 *)&pmic_mntn->smpl_en_reg, 0x3);
+	ret2 = of_property_read_u32_array(root, "hisilicon,smpl-ctrl-time", &pmic_mntn->smpl_tm_val, 0x1);
+	ret3 = of_property_read_u32_array(root, "hisilicon,smpl-ctrl-time-reg", (u32 *)&pmic_mntn->smpl_tm_reg, 0x3);
+        ret = (ret0||ret1||ret2||ret3);
 	if (ret) {
 		dev_err(dev, "[%s]get pmic smpl attribute failed.\n", __func__);
 		return -ENODEV;
@@ -858,11 +863,11 @@ static int hisi_pmic_ocp_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DESC *
 
 		ret = of_property_read_u32(root, "hisilicon,inacceptable-event", (u32 *)&exch_reg_tmp[index].inacceptable_event);
 		for (bit = 0; bit < pmic_mntn->data_width; bit++) {
-			ret |= of_property_read_string_index(root, "hisilicon,event-bit-name",
+			ret = ret || of_property_read_string_index(root, "hisilicon,event-bit-name",
 					bit, (const char **)&exch_reg_tmp[index].event_bit_name[bit]);
 		}
 
-		ret = of_property_read_u32(root, "hisilicon,check_ocp_nofify", (u32 *)&exch_reg_tmp[index].check_ocp_nofify);
+		ret = ret || of_property_read_u32(root, "hisilicon,check_ocp_nofify", (u32 *)&exch_reg_tmp[index].check_ocp_nofify);
 		if (ret) {
 			dev_err(dev, "[%s]read attribute of %s.\n", __func__, compatible_string);
 		}
@@ -1013,7 +1018,7 @@ static int hisi_pmic_record_mntn_initial(struct spmi_device *pdev, PMIC_MNTN_DES
 
 		ret = of_property_read_u32(root, "hisilicon,inacceptable-event", (u32 *)&exch_reg_tmp[index].inacceptable_event);
 		for (bit = 0; bit < pmic_mntn->data_width; bit++) {
-			ret |= of_property_read_string_index(root, "hisilicon,event-bit-name",
+			ret = ret || of_property_read_string_index(root, "hisilicon,event-bit-name",
 						bit, (const char **)&exch_reg_tmp[index].event_bit_name[bit]);
 		}
 

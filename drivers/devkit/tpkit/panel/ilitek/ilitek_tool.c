@@ -93,8 +93,9 @@ static int ilitek_i2c_calibration_status(size_t count)
 	}
 	msleep(500);
 	buffer[0] = ILITEK_TP_CMD_CALIBRATION_STATUS;
-	ilitek_i2c_write_and_read(buffer, 1, 10, buffer, 1);
-	TS_LOG_INFO("%s, i2c calibration status:0x%X\n",__func__,buffer[0]);
+	ret = ilitek_i2c_write_and_read(buffer, 1, 10, buffer, 1);
+	TS_LOG_INFO("%s, i2c calibration status:0x%X ret:%d\n",
+		__func__, buffer[0], ret);
 	ret=buffer[0];
 	return ret;
 }

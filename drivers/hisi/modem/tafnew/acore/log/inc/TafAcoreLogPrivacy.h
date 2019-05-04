@@ -141,6 +141,14 @@ VOS_VOID* TAF_DRVAGENT_AcoreMsgLogPrivacyMatchProc(
     MsgBlock                           *pstMsg
 );
 
+VOS_VOID* RNIC_AcoreMsgLogPrivacyMatchProc(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_AcoreMsgLogPrivacyMatchProc(
+    MsgBlock                           *pstMsg
+);
+
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else

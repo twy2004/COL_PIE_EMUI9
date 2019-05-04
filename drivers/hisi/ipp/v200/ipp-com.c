@@ -18,7 +18,7 @@
 #include <linux/clk.h>
 #include <linux/genalloc.h>
 #include <asm/uaccess.h>
-#include <linux/hisi/hisi-iommu.h>
+#include <linux/hisi-iommu.h>
 #include <linux/hisi/hipp.h>
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>

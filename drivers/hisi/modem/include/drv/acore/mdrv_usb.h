@@ -58,11 +58,17 @@ extern "C"
 #include <linux/notifier.h>
 #endif
 
+#include <product_config.h>
+#ifdef CONFIG_BALONG_PCIE_CDEV
+#include <mdrv_pcdev.h>
+#endif
+
 /* IOCTL CMD 定义 */
 #define ACM_IOCTL_SET_WRITE_CB      0x7F001000
 #define ACM_IOCTL_SET_READ_CB       0x7F001001
 #define ACM_IOCTL_SET_EVT_CB        0x7F001002
 #define ACM_IOCTL_SET_FREE_CB       0x7F001003
+#define ACM_IOCTL_SET_WRITE_INFO_CB 0x7F001004
 
 #define ACM_IOCTL_WRITE_ASYNC       0x7F001010
 #define ACM_IOCTL_GET_RD_BUFF       0x7F001011
@@ -85,6 +91,17 @@ typedef struct tagACM_WR_ASYNC_INFO
     unsigned int u32Size;
     void* pDrvPriv;
 }ACM_WR_ASYNC_INFO;
+
+/* 异步数据收发结构，带时间戳 */
+typedef struct tagACM_WRITE_INFO
+{
+    char *pVirAddr;
+    char *pPhyAddr;
+    unsigned int u32Size;
+    unsigned int submit_time;
+    unsigned int complete_time;
+    unsigned int done_time;
+}ACM_WRITE_INFO;
 
 /* ACM设备事件类型 */
 typedef enum tagACM_EVT_E
@@ -110,6 +127,8 @@ typedef struct tagACM_READ_BUFF_INFO
 #define ADC_BUF_INFO_STRUCT ACM_WR_ASYNC_INFO
 
 typedef void (*ACM_WRITE_DONE_CB_T)(char *pVirAddr, char *pPhyAddr, int size);
+typedef void (*ACM_WRITE_INFO_DONE_CB_T)(ACM_WRITE_INFO *write_info);
+
 typedef void (*ACM_READ_DONE_CB_T)(void);
 typedef void (*ACM_EVENT_CB_T)(ACM_EVT_E evt);
 typedef void (*ACM_FREE_CB_T)(char* buf);
@@ -143,6 +162,21 @@ unsigned int mdrv_usb_reg_enablecb(USB_UDI_ENABLE_CB_T pFunc);
  ******************************************************************************/
 unsigned int mdrv_usb_reg_disablecb(USB_UDI_DISABLE_CB_T pFunc);
 #else
+
+#ifdef CONFIG_BALONG_PCIE_CDEV
+static inline unsigned int mdrv_usb_reg_enablecb(USB_UDI_ENABLE_CB_T pFunc)
+{
+    mdrv_pcdev_reg_enumdonecb((PCDEV_ENUM_DONE_CB_T)pFunc);
+    return 0;
+}
+
+static inline unsigned int mdrv_usb_reg_disablecb(USB_UDI_DISABLE_CB_T pFunc)
+{
+	mdrv_pcdev_reg_disablecb((PCDEV_DISABLE_CB_T)pFunc);
+    return 0;
+}
+
+#else
 static inline unsigned int mdrv_usb_reg_enablecb(USB_UDI_ENABLE_CB_T pFunc)
 {
 	return 0;
@@ -151,6 +185,7 @@ static inline unsigned int mdrv_usb_reg_disablecb(USB_UDI_DISABLE_CB_T pFunc)
 {
 	return 0;
 }
+#endif /*CONFIG_BALONG_PCIE_CDEV*/
 #endif
 
 #ifdef _cplusplus

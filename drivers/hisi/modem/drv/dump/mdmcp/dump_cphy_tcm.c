@@ -59,11 +59,8 @@
 #include "bsp_ddr.h"
 #include "bsp_dump.h"
 #include "dump_cphy_tcm.h"
-#include "dump_file.h"
 #include "dump_config.h"
+#include "dump_logs.h"
 
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
-void dump_cphy_init(void)
-{
-}

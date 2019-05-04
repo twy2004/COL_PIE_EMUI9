@@ -994,7 +994,7 @@ static struct sdhci_ops sdhci_arasan_ops = {
 	.restore_transfer_para = sdhci_of_arasan_restore_transfer_para,
 	.hw_reset = sdhci_arasan_hw_reset,
 	.dumpregs = sdhci_arasan_dumpregs,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 	.select_drive_strength = sdhci_arasan_select_drive_strength,
 #endif
 };
@@ -1335,6 +1335,14 @@ void sdhci_hisi_dump_clk_reg(void)
 
 #endif
 
+void sdhci_arasan_mmc_host_ops_init(struct sdhci_host *host)
+{
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+	host->mmc_host_ops.select_drive_strength =
+		sdhci_arasan_select_drive_strength;
+#endif
+}
+
 static int sdhci_arasan_probe(struct platform_device *pdev)
 {
 /*lint -save -e593*/
@@ -1455,12 +1463,14 @@ static int sdhci_arasan_probe(struct platform_device *pdev)
 		goto clk_disable_all;
 	}
 
+	sdhci_of_arasan_platform_init(host);
 	g_sdhci_for_mmctrace = host;
 
 	sdhci_get_of_property(pdev);
 	pltfm_host = sdhci_priv(host);
 	pltfm_host->priv = sdhci_arasan;
 	pltfm_host->clk = sdhci_arasan->clk;
+	sdhci_arasan_mmc_host_ops_init(host);
 
 #ifdef CONFIG_MMC_CQ_HCI
 #define HW_CMDQ_REG_OFF                0x200

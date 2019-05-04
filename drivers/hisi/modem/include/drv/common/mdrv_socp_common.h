@@ -136,6 +136,7 @@ enum SOCP_HDLC_FLAG_ENUM
     SOCP_HDLC_DISABLE        = 1,    /* 当前HDLC功能关闭 */
     SOCP_HDLC_FLAG_BUTT
 };
+typedef unsigned int SOCP_HDLC_FLAG_UINT32;
 
 enum SOCP_STATE_ENUM
     {
@@ -349,17 +350,17 @@ typedef struct
 /* 编码源通道结构体定义*/
 typedef struct tagSOCP_CODER_SRC_CHAN_S
 {
-    unsigned int                         u32DestChanID;      /* 目标通道ID*/
-    unsigned int                         u32BypassEn;        /* 通道bypass使能*/
-    unsigned int                         eTransIdEn;
-    unsigned int                         ePtrImgEn;
-    SOCP_DATA_TYPE_ENUM_UIN32        eDataType;          /* 数据类型，指明数据封装协议，用于复用多平台*/
-    SOCP_DATA_TYPE_EN_ENUM_UIN32     eDataTypeEn;        /* 数据类型使能位*/
-    SOCP_ENC_DEBUG_EN_ENUM_UIN32     eDebugEn;           /* 调试位使能*/
-    SOCP_ENCSRC_CHNMODE_ENUM_UIN32   eMode;              /* 通道数据模式*/
-    SOCP_CHAN_PRIORITY_ENUM_UIN32    ePriority;          /* 通道优先级*/
-    unsigned long                    eRptrImgPhyAddr;
-    unsigned long                    eRptrImgVirtAddr;
+    unsigned int                    u32DestChanID;      /* 目标通道ID*/
+    SOCP_HDLC_FLAG_UINT32           u32BypassEn;        /* 通道bypass使能*/
+    SOCP_TRANS_ID_EN_ENUM_UINT32    eTransIdEn;         /* transid使能 */
+    SOCP_PTR_IMG_EN_ENUM_UINT32     ePtrImgEn;          /* 时间戳镜像使能 */
+    SOCP_DATA_TYPE_ENUM_UIN32       eDataType;          /* 数据类型，指明数据封装协议，用于复用多平台*/
+    SOCP_DATA_TYPE_EN_ENUM_UIN32    eDataTypeEn;        /* 数据类型使能位*/
+    SOCP_ENC_DEBUG_EN_ENUM_UIN32    eDebugEn;           /* 调试位使能*/
+    SOCP_ENCSRC_CHNMODE_ENUM_UIN32  eMode;              /* 通道数据模式*/
+    SOCP_CHAN_PRIORITY_ENUM_UIN32   ePriority;          /* 通道优先级*/
+    unsigned long                   eRptrImgPhyAddr;
+    unsigned long                   eRptrImgVirtAddr;
     SOCP_SRC_SETBUF_STRU            sCoderSetSrcBuf;
 }SOCP_CODER_SRC_CHAN_S;
 
@@ -485,7 +486,6 @@ typedef  enum
 {
    DEFLATE_IND_NO_COMPRESS,
    DEFLATE_IND_COMPRESS
-   
 }DEFLATE_IND_COMPRESSS_ENUM;
 
 /*数据压缩状态枚举*/
@@ -536,6 +536,7 @@ void mdrv_socp_send_data_manager(unsigned int EncDestChanID, unsigned int bEnabl
 *              SOCP_ERROR:  编码源通道分配失败。
 *****************************************************************************/
 int mdrv_socp_corder_set_src_chan(SOCP_CODER_SRC_ENUM_U32 enSrcChanID, SOCP_CODER_SRC_CHAN_S *pSrcAttr);
+
 
 /*****************************************************************************
 *  函 数 名  : mdrv_socp_coder_set_dest_chan_attr
@@ -871,8 +872,6 @@ unsigned int mdrv_socp_get_sd_logcfg(SOCP_ENC_DST_BUF_LOG_CFG_STRU* cfg);
 unsigned int  DRV_SOCP_INIT_LTE_DSP(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize);
 
 unsigned int  DRV_SOCP_INIT_LTE_BBP_LOG(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize);
-
-unsigned int DRV_SOCP_INIT_RFIC_DS_CHAN(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize, unsigned int RptrImageAddr);
 
 unsigned int  DRV_SOCP_INIT_LTE_BBP_DS(unsigned int ulChanId,unsigned int ulPhyAddr,unsigned int ulSize);
 

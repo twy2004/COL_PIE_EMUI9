@@ -48,8 +48,13 @@
 
 #include "pcie-designware.h"
 
-#define to_kirin_pcie(x)		container_of(x, struct kirin_pcie, pp)
-#define PCIE_LINK_UP_TIME		200
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 69))
+#define to_kirin_pcie(x)	container_of(x, struct kirin_pcie, pp)
+#else
+#define to_kirin_pcie(x)	dev_get_drvdata((x)->dev)
+#endif
+
+#define PCIE_LINK_UP_TIME	200
 #define MAX_IRQ_NUM 			5
 #define IRQ_INTA 			0
 #define IRQ_INTB 			1
@@ -164,18 +169,24 @@
 #define PCIE_ATU_REGION_OUTBOUND	(0x0 << 31)
 #define PCIE_ATU_REGION_INDEX1		(0x1 << 0)
 #define PCIE_ATU_REGION_INDEX0		(0x0 << 0)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 69))
 #define PCIE_ATU_CR1			0x4
+#define PCIE_ATU_CR2			0x8
+#define PCIE_ATU_LOWER_BASE	0xC
+#define PCIE_ATU_UPPER_BASE	0x10
+#define PCIE_ATU_LIMIT				0x14
+#define PCIE_ATU_LOWER_TARGET	0x18
+#define PCIE_ATU_UPPER_TARGET		0x1C
+#endif
 #define PCIE_ATU_TYPE_MEM		(0x0 << 0)
 #define PCIE_ATU_TYPE_CFG0		(0x4 << 0)
 #define PCIE_ATU_TYPE_MSG		0x14
-#define PCIE_ATU_CR2			0x8
+
 #define PCIE_ATU_ENABLE			(0x1 << 31)
 #define INHIBIT_PAYLOAD                 (0x1 << 22)
-#define PCIE_ATU_LOWER_BASE		0xC
-#define PCIE_ATU_UPPER_BASE		0x10
-#define PCIE_ATU_LIMIT			0x14
-#define PCIE_ATU_LOWER_TARGET		0x18
-#define PCIE_ATU_UPPER_TARGET		0x1C
+
+
+
 
 /* port logic register */
 #define PROT_FORCE_LINK_REG		0x708
@@ -212,12 +223,22 @@
 
 #define PCIE_ENABLE_DBI_READ_FLAG		0x5a5aa5a5
 
+#define PCIE_PHY_SRAM_SIZE		0x4000
+#define SUP_DIG_LVL_OVRD_IN		0x21
+#define SUP_DIG_LVL_MASK		0xFFFF
+#define SUP_DIG_LVL_VAL			0xB5
+#define PCIE_PHY_CTRL150		0x258
+#define CDR_LEGACY_ENABLE		0x1
+
 #ifndef ERROR
 #define  ERROR	(-1)
 #endif
 #ifndef OK
 #define  OK	0
 #endif
+
+#define CHIP_TYPE_ES 1
+#define CHIP_TYPE_CS 2
 
 /*lint -e648 -e750 +esym(648,*) +esym(750,*)*/
 struct kirin_pcie_irq_info {
@@ -252,6 +273,7 @@ struct kirin_pcie_dtsinfo {
 	u32		noc_mntn;
 	u32		phy_cal;
 	u32		dbi_base;
+	u32		ep_device_type;
 };
 
 enum rc_power_status {
@@ -262,10 +284,12 @@ enum rc_power_status {
 	RC_POWER_INVALID = 4,
 };
 
+struct kirin_pcie;
+
 struct pcie_platform_ops {
 	int (*sram_ext_load)(void *data);
-	int (*plat_on)(struct pcie_port *pp, enum rc_power_status on_flag);
-	int (*plat_off)(struct pcie_port *pp, enum rc_power_status off_flag);
+	int (*plat_on)(struct kirin_pcie *pcie, enum rc_power_status on_flag);
+	int (*plat_off)(struct kirin_pcie *pcie, enum rc_power_status off_flag);
 	void (*cal_alg_adjust)(void *data, bool clear);
 };
 
@@ -304,7 +328,12 @@ struct kirin_pcie {
 	struct clk				*pcie_aclk;
 	struct clk				*pcie_aux_clk;
 	int					gpio_id_reset;
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 69))
 	struct  pcie_port			pp;
+#else
+	struct dw_pcie		*pci;
+#endif
 	struct  pci_dev				*rc_dev;
 	struct  pci_dev				*ep_dev;
 	atomic_t				usr_suspend;
@@ -407,18 +436,37 @@ enum pcie_test_result {
 };
 enum pcie_voltage {
 	NORMAL_VOL,
-	LOW_VOL
+	LOW_VOL,
+	HIGH_VOL,
 };
 
 enum {
 	POWEROFF_BUSON          = 0x0,
 	POWERON                 = 0x1,
 	POWEROFF_BUSDOWN        = 0x2,
-	POWER_MAX               = 0x3,
+	POWERON_CLK		= 0x3,
+	POWER_MAX               = 0x4,
 };
 
-#define CHIP_TYPE_ES 1
-#define CHIP_TYPE_CS 2
+enum {
+	EP_DEVICE_NODEV = 0,
+	EP_DEVICE_BCM = 1,
+	EP_DEVICE_HI110X = 2,
+	EP_DEVICE_NVME = 3,
+	EP_DEVICE_MODEM = 4,
+	EP_DEVICE_APR = 5,
+	EP_DEVICE_MAX = 6,
+};
+
+enum {
+	PLL_TYPE_FN = 1,
+	PLL_TYPE_HP = 2,
+};
+
+enum {
+	REFCLK_FROM_PHY = 1,
+	REFCLK_FROM_PLL = 2,
+};
 
 #define PCIE_PR_ERR(fmt, args ...) \
 	do { \
@@ -442,29 +490,32 @@ extern struct kirin_pcie g_kirin_pcie[];
 extern unsigned int g_rc_num;
 
 void kirin_elb_writel(struct kirin_pcie *pcie, u32 val, u32 reg);
-
 u32 kirin_elb_readl(struct kirin_pcie *pcie, u32 reg);
 
 /*Registers in PCIePHY*/
 
 void kirin_apb_phy_writel(struct kirin_pcie *pcie, u32 val, u32 reg);
-
 u32 kirin_apb_phy_readl(struct kirin_pcie *pcie, u32 reg);
 
 void kirin_natural_phy_writel(struct kirin_pcie *pcie, u32 val, u32 reg);
-
 u32 kirin_natural_phy_readl(struct kirin_pcie *pcie, u32 reg);
 
 void kirin_sram_phy_writel(struct kirin_pcie *pcie, u32 val, u32 reg);
-
 u32 kirin_sram_phy_readl(struct kirin_pcie *pcie, u32 reg);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 69))
 u32 kirin_pcie_readl_rc(struct pcie_port *pp, u32 reg);
 void kirin_pcie_writel_rc(struct pcie_port *pp, u32 reg, u32 val);
+#else
+u32	kirin_pcie_read_dbi(struct dw_pcie *pci, void __iomem *base, u32 reg,
+			    size_t size);
+void	kirin_pcie_write_dbi(struct dw_pcie *pci, void __iomem *base, u32 reg,
+		     size_t size, u32 val);
+#endif
 int kirin_pcie_rd_own_conf(struct pcie_port *pp, int where, int size,
 				u32 *val);
 int kirin_pcie_wr_own_conf(struct pcie_port *pp, int where, int size,
 				u32 val);
-int kirin_pcie_power_ctrl(struct pcie_port *pp, enum rc_power_status on_flag);
+int kirin_pcie_power_ctrl(struct kirin_pcie *pcie, enum rc_power_status on_flag);
 int kirin_pcie_enumerate(u32 rc_idx);
 int kirin_pcie_remove_ep(u32 rc_idx);
 int kirin_pcie_rescan_ep(u32 rc_idx);
@@ -477,8 +528,8 @@ void dump_apb_register(struct kirin_pcie *pcie);
 void kirin_pcie_reset_ctrl(struct kirin_pcie *pcie, enum RST_TYPE rst);
 int kirin_pcie_perst_cfg(struct kirin_pcie *pcie, int pull_up);
 int pcie_plat_init(struct platform_device *pdev, struct kirin_pcie *pcie);
-int32_t kirin_pcie_get_dtsinfo(u32 *rc_id, struct platform_device *pdev);
-
+int32_t kirin_pcie_get_dtsinfo(struct kirin_pcie *pcie, struct platform_device *pdev);
+int kirin_pcie_get_pcie(struct kirin_pcie **pcie, struct platform_device *pdev);
 void set_phy_eye_param(struct kirin_pcie *pcie);
 
 #ifdef CONFIG_KIRIN_PCIE_TEST
@@ -497,20 +548,6 @@ static inline int kirin_pcie_debugfs_init(struct kirin_pcie *pcie)
 static inline void kirin_pcie_host_speed_limit(struct kirin_pcie *pcie)
 {
 	return;
-}
-#endif
-
-#if defined(CONFIG_PCIE_KIRIN_SLT)
-void pcie_slt_resource_init(struct kirin_pcie *pcie);
-enum pcie_test_result pcie_slt_vary_voltage_test(struct kirin_pcie *pcie);
-#else
-static inline void pcie_slt_resource_init(struct kirin_pcie *pcie)
-{
-	return;
-}
-static inline enum pcie_test_result pcie_slt_vary_voltage_test(struct kirin_pcie *pcie)
-{
-	return RESULT_OK;
 }
 #endif
 

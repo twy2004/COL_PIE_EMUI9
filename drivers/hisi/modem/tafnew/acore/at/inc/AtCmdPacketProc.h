@@ -55,6 +55,7 @@
 #include "AtCtx.h"
 #include "AtParse.h"
 #include "AtRnicInterface.h"
+#include "AtDataProc.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -73,7 +74,19 @@ extern "C" {
 /*****************************************************************************
   3 枚举定义
 *****************************************************************************/
+/*****************************************************************************
+ 结构名称   : AT_DIALTYPE_ENUM
+ 结构说明   : DIAL类型
+*****************************************************************************/
+enum AT_DIALTYPE_ENUM
+{
+    AT_DIALTYPE_APP     = 1,
+    AT_DIALTYPE_NDIS    = 2,
 
+    AT_DIALTYPE_BUTT
+};
+
+typedef VOS_UINT32 AT_DIALTYPE_ENUM_UINT32;
 
 /*****************************************************************************
   4 全局变量声明
@@ -107,21 +120,13 @@ extern "C" {
 /*****************************************************************************
   10 函数声明
 *****************************************************************************/
-VOS_UINT32 AT_SetChdataPara(VOS_UINT8 ucIndex);
-VOS_UINT32 AT_QryChdataPara(VOS_UINT8 ucIndex);
 
 VOS_UINT32 At_SetDhcpPara(VOS_UINT8 ucIndex);
-VOS_UINT32 At_QryDhcpPara_AppUser(VOS_UINT8 ucIndex);
-VOS_UINT32 At_QryDhcpPara_NdisUser(VOS_UINT8 ucIndex);
-VOS_UINT32 At_QryDhcpPara_UsbComUser(VOS_UINT8 ucIndex);
-VOS_UINT32 At_QryDhcpPara(TAF_UINT8 ucIndex);
+VOS_UINT32 At_QryDhcpPara(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_TestDhcpPara(VOS_UINT8 ucIndex);
 
 #if (FEATURE_ON == FEATURE_IPV6)
 VOS_UINT32 AT_SetDhcpv6Para(VOS_UINT8 ucIndex);
-VOS_UINT32 AT_QryDhcpV6Para_AppUser(VOS_UINT8 ucIndex);
-VOS_UINT32 AT_QryDhcpV6Para_NdisUser(VOS_UINT8 ucIndex);
-VOS_UINT32 At_QryDhcpV6Para_UsbComUser(TAF_UINT8 ucIndex);
 VOS_UINT32 AT_QryDhcpv6Para(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_TestDhcpv6Para(VOS_UINT8 ucIndex);
 
@@ -148,16 +153,6 @@ VOS_UINT32  At_QryApConnStPara(
     VOS_UINT8                           ucIndex
 );
 VOS_UINT32 AT_TestApConnStPara(VOS_UINT8 ucIndex);
-
-VOS_UINT32 At_SetApThroughputPara(
-    VOS_UINT8                           ucIndex
-);
-VOS_UINT32 At_QryApThroughputPara(
-    VOS_UINT8                           ucIndex
-);
-VOS_UINT32 AT_TestApThroughputPara(VOS_UINT8 ucIndex);
-
-VOS_UINT32 AT_SetApEndPppPara(VOS_UINT8 ucIndex);
 
 VOS_UINT32 AT_SetApDsFlowRptCfgPara(VOS_UINT8 ucIndex);
 VOS_UINT32 AT_QryApDsFlowRptCfgPara(VOS_UINT8 ucIndex);
@@ -196,6 +191,10 @@ VOS_UINT32 AT_SetApnThrotInfoPara(VOS_UINT8 ucIndex);
 
 VOS_UINT32 At_SetUsbTetherInfo(VOS_UINT8 ucIndex);
 VOS_UINT32 At_TestUsbTetherInfo(VOS_UINT8 ucIndex);
+
+VOS_UINT32 At_QryDconnStatPara(VOS_UINT8 ucIndex);
+VOS_UINT32 AT_TestDconnStatPara(VOS_UINT8 ucIndex);
+AT_PDP_STATUS_ENUM_UINT32 AT_NdisGetConnStatus(AT_PDP_STATE_ENUM_U8 enPdpState);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

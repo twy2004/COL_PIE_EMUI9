@@ -52,20 +52,45 @@
 #ifndef __MDRV_DIAG_SYSTEM_COMMON_H__
 #define __MDRV_DIAG_SYSTEM_COMMON_H__
 
-
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
 #endif
 #endif
 #include <product_config.h>
-#include <mdrv_socp_common.h>
+#include <stdarg.h>
+#include "mdrv_socp_common.h"
+
+/*最好PS将MODID 和DIAG_AIR_MSG_LOG_ID的地方都替换成DIAG_ID*/
+#define DRV_DIAG_ID(module_id, log_type)   (unsigned int)(module_id | (log_type << 12))
+
+#define DRV_DIAG_AIR_MSG_LOG_ID(module_id, is_up_link)  DIAG_ID(module_id, is_up_link) /*module_id对应PID*/
+
+#define DRV_DIAG_GEN_LOG_MODULE(modemid, modetype, level)  \
+               (((unsigned int)(modemid & 0xff) << 24)  \
+              | ((unsigned int)(modetype & 0xf) << 16)  \
+              | ((unsigned int)(level    & 0xf ) << 12))
+
+#define DRV_DIAG_GEN_MODULE(modemid, modetype)  \
+               (((unsigned int)(modemid & 0xff) << 24)  \
+              | ((unsigned int)(modetype & 0xf) << 16))
+
+
+#define DRV_DIAG_GEN_MODULE_EX(modemid, modetype, groupid)  \
+                   (((unsigned int)(modemid & 0xff) << 24)  \
+                  | ((unsigned int)(modetype & 0xf) << 16) \
+                  | ((unsigned int)(groupid  & 0xf)  << 8))
+
+#define DRV_DIAG_GEN_LOG_ID(filenum, linenum)   \
+                ((((unsigned int)(filenum & 0XFFFF)) << 16)   \
+                | ((unsigned int)(linenum & 0XFFFF)))
 
 /* diag对共享内存操作命令码 */
 typedef enum
 {
     POWER_ON_LOG_A = 0,
-    DS_DATA_BUFFER_STATE,
+    DS_DATA_BUFFER_STATE = 1,
+    POWER_ON_LOG_BUFF = 2,
 }DIAG_SHM_TYPE_ENUM;
 
 typedef enum
@@ -199,11 +224,29 @@ typedef enum
     EN_DIAG_PTR_MAX
 } DIAG_PTR_ID_ENUM;
 
+enum DIAGLOG_OM_PORT_TYPE
+{
+    DIAGLOG_OM_PORT_TYPE_USB    	= 0,
+    DIAGLOG_OM_PORT_TYPE_VCOM   	= 1,
+    DIAGLOG_OM_PORT_TYPE_WIFI   	= 2,
+    DIAGLOG_OM_PORT_TYPE_BUTT
+};
+
+enum DIAGLOG_POWER_LOG_PROFILE
+{
+    DIAGLOG_POWER_LOG_PROFILE_OFF     	= 0,
+    DIAGLOG_POWER_LOG_PROFILE_SIMPLE  	= 1,
+    DIAGLOG_POWER_LOG_PROFILE_NORAML  	= 2,
+    DIAGLOG_POWER_LOG_PROFILE_WHOLE   	= 3,
+    DIAGLOG_POWER_LOG_PROFILE_BUTT
+};
+
 /* throughput 吞吐率信息*******************************************/
 
 typedef enum
 {
     EN_DIAG_THRPUT_DATA_CHN_ENC = 0,    /* 数据通道编码输入端 */
+
     EN_DIAG_THRPUT_DATA_CHN_PHY,        /* 数据通道写入物理通道 */
 
     EN_DIAG_THRPUT_DATA_CHN_CB,         /* 数据物理通道回调 */
@@ -249,9 +292,8 @@ typedef enum
 #define SOCP_CODER_SRC_ACORE_HDS_ADDR        (SOCP_CODER_SRC_CCORE_HDS_ADDR+SOCP_CODER_SRC_CCORE_HDS_LENGTH)
 #define SOCP_CODER_SRC_ACORE_HDS_LENGTH      (8*1024)
 
-
-#define BBP_SOCP_ADDR                       (DDR_SOCP_ADDR+8*1024*1024)
-#define BBP_SOCP_SIZE                       (DDR_SOCP_SIZE-8*1024*1024)
+#define BBP_SOCP_ADDR                       (DDR_SOCP_ADDR + 8*1024*1024)
+#define BBP_SOCP_SIZE                       (DDR_SOCP_SIZE - 8*1024*1024)
 
 #else
 
@@ -269,13 +311,12 @@ typedef enum
 #define BBP_BUS_MEM_SIZE                (64*1024)
 #endif
 
-#define BBP_LOG1_MEM_SIZE                   (8*1024)
+#define BBP_LOG1_MEM_SIZE               (8*1024)
 
 #ifdef DIAG_SYSTEM_5G
 #define BBP_5G_BUS_MEM_SIZE             (64*1024)
-#define BBP_RFIC0_BUS_MEM_SIZE             (64*1024)
-#define BBP_RFIC1_BUS_MEM_SIZE             (64*1024)
-
+#define BBP_RFIC0_BUS_MEM_SIZE          (64*1024)
+#define BBP_RFIC1_BUS_MEM_SIZE          (64*1024)
 #endif
 
 #endif
@@ -523,16 +564,191 @@ typedef enum
 #define  ERR_MSP_WRITE_DONE_FAIL                (ERR_MSP_DIAG_ERROR_BEGIN + 31)
 #define  ERR_MSP_STOP_SOCP_FAIL                 (ERR_MSP_DIAG_ERROR_BEGIN + 33)
 #define  ERR_MSP_GET_WRITE_BUFF_FAIL            (ERR_MSP_DIAG_ERROR_BEGIN + 34)
+#define  ERR_MSP_CLEAR_BUFF_FAIL                (ERR_MSP_DIAG_ERROR_BEGIN + 35)
+#define  ERR_MSP_CONNECT_AUTH_FAIL              (ERR_MSP_DIAG_ERROR_BEGIN + 36)
+#define  ERR_MSP_GEN_AUTH_HASH_FAIL             (ERR_MSP_DIAG_ERROR_BEGIN + 37)
+#define  ERR_MSP_REPEAT_AUTH_HASH_FAIL          (ERR_MSP_DIAG_ERROR_BEGIN + 38)
+#define  ERR_MSP_DEC_RSA_DATA_FAIL              (ERR_MSP_DIAG_ERROR_BEGIN + 39)
+#define  ERR_MSP_DEC_RSA_SIZE_FAIL              (ERR_MSP_DIAG_ERROR_BEGIN + 40)
+#define  ERR_MSP_PORT_SWITCH_FAIL               (ERR_MSP_DIAG_ERROR_BEGIN + 41)
+#define  ERR_MSP_PCDEV_LINK_DOWN                (ERR_MSP_DIAG_ERROR_BEGIN + 42)
+
 /*error no end**********************************************************************/
+
+/* diag源端维测信息上报统一结构体 */
+#define DIAGLOG_MNTN_SRC_INFO   unsigned int    ulChannelId;        /* 通道号 */\
+                                char            chanName[12];       /* 通道名称 */\
+                                unsigned int    ulDeltaTime;        /* 上报时间间隔 slice */\
+                                unsigned int    ulPackageLen;       /* 上报时间段内上报的数据包总长度 byte */\
+                                unsigned int    ulPackageNum;       /* 上报时间段内上报的数据包总次数 */\
+                                unsigned int    ulAbandonLen;       /* 上报时间段内被丢弃数据长度 byte*/\
+                                unsigned int    ulAbandonNum;       /* 上报时间段内被丢弃数据总次数 */\
+                                unsigned int    ulThrputEnc;        /* 上报周期内编码源吞吐率,byte/s */\
+                                unsigned int    ulOverFlow50Num;    /* 上报周期内编码源buff占用超过50%的次数 */\
+                                unsigned int    ulOverFlow80Num;    /* 上报周期内编码源buff占用超过80%的次数 */
+
+
+
+typedef struct
+{
+    unsigned int ulOverFlow50Num;
+    unsigned int ulOverFlow80Num;
+
+    unsigned int ulAbandonNum;
+    unsigned int ulAbandonLen;
+
+    unsigned int ulPackageLen;
+    unsigned int ulPackageNum;
+}DIAG_DRV_DEBUG_INFO_STRU;
+
+typedef enum
+{
+    DIAGLOG_SRC_MNTN = 0,
+    DIAGLOG_DST_MNTN = 1,
+    DIAGLOG_MNTN_BUTT = 2,
+}DIAGLOG_MNTN_ENUM;
+
+/**********************************IND start*********************/
+typedef struct
+{
+    unsigned int        ulModule;		/* DIAG_GEN_MODULE*/
+    unsigned int        ulPid;
+    unsigned int        ulEventId;		/* 事件ID */
+    unsigned int        ulLength;
+    void          *pData;
+}DRV_DIAG_EVENT_IND_STRU;
+
+typedef struct
+{
+    unsigned int        ulModule;       /* DIAG_GEN_MODULE*/
+    unsigned int        ulPid;
+    unsigned int        ulMsgId;
+    unsigned int        ulDirection;
+    unsigned int        ulLength;
+    void          *pData;
+}DRV_DIAG_AIR_IND_STRU;
+
+typedef struct
+{
+    unsigned int        ulModule;
+    unsigned int        ulPid;
+    unsigned int        ulMsgId;
+    unsigned int        ulReserve;
+    unsigned int        ulLength;
+    void          *pData;
+} DRV_DIAG_TRANS_IND_STRU;
+
+typedef struct
+{
+    unsigned int        ulModule;
+    unsigned int        ulPid;
+    unsigned int        ulMsgId;
+    unsigned int        ulReserve;
+    unsigned int        ulLength;
+    void                *pData;
+} DRV_DIAG_DT_IND_STRU;
+
+/**********************************IND end*********************/
+
+/* 诊断消息层为上层提供的参数结构 */
+typedef struct
+{
+    unsigned int        ulSSId;         /* 数据产生的CPU ID */
+    unsigned int        ulMsgType;      /* 所属组件 */
+    unsigned int        ulMode;         /* 模式 */
+    unsigned int        ulSubType;      /* 子类型，DIAG_MSG_SUB_TYPE_unsigned int */
+    unsigned int        ulDirection;    /* 上报消息的方向 */
+    unsigned int        ulModemid;
+    unsigned int        ulMsgId;        /* 低16位有效 */
+    unsigned int        lTransId;      /* TransId */
+} DRV_DIAG_CNF_INFO_STRU;
 
 void mdrv_diag_PTR(DIAG_PTR_ID_ENUM enType, unsigned int paraMark, unsigned int para0, unsigned int para1);
 unsigned int mdrv_GetThrputInfo(DIAG_THRPUT_ID_ENUM type);
-unsigned int mdrv_scm_send_ind_src_data(unsigned char *pucSendDataAddr, unsigned int ulSendLen);
 unsigned int mdrv_diag_shared_mem_write(unsigned int eType, unsigned int len, char *pData);
 unsigned int mdrv_diag_shared_mem_read(unsigned int eType);
-unsigned long mdrv_scm_ind_src_phy_to_virt(unsigned char * phyAddr);
-unsigned long mdrv_scm_cnf_src_phy_to_virt(unsigned char * phyAddr);
+unsigned int mdrv_diag_debug_file_header(void *pFile);
+void mdrv_diag_debug_file_tail(void *pFile, char *FilePath);
 
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_report_log
+ 功能描述  :
+ 输入参数  :
+*****************************************************************************/
+unsigned int mdrv_diag_report_log(unsigned int ulModuleId, unsigned int ulPid, unsigned int level, char *cFileName, unsigned int ulLineNum, char* pszFmt, va_list arg);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_report_trans
+ 功能描述  : 结构化数据上报接口(替换原来的DIAG_ReportCommand)
+ 输入参数  : DRV_DIAG_TRANS_IND_STRU->ulModule( 31-24:modemid,23-16:modeid )
+             DRV_DIAG_TRANS_IND_STRU->ulMsgId(透传命令ID)
+             DRV_DIAG_TRANS_IND_STRU->ulLength(透传信息的长度)
+             DRV_DIAG_TRANS_IND_STRU->pData(透传信息)
+*****************************************************************************/
+unsigned int mdrv_diag_report_trans(DRV_DIAG_TRANS_IND_STRU *pstData);
+/*****************************************************************************
+ 函 数 名  : DIAG_EventReport
+ 功能描述  : 事件上报接口
+ 输入参数  : DRV_DIAG_EVENT_IND_STRU->ulModule( 31-24:modemid,23-16:modeid,15-12:level,11-0:pid )
+             DRV_DIAG_EVENT_IND_STRU->ulEventId(event ID)
+             DRV_DIAG_EVENT_IND_STRU->ulLength(event的长度)
+             DRV_DIAG_EVENT_IND_STRU->pData(event信息)
+*****************************************************************************/
+unsigned int mdrv_diag_report_event(DRV_DIAG_EVENT_IND_STRU *pstData);
+/*****************************************************************************
+ 函 数 名  : DIAG_AirMsgReport
+ 功能描述  : 空口消息上报接口，给PS使用(替换原来的DIAG_ReportAirMessageLog)
+ 输入参数  : DRV_DIAG_AIR_IND_STRU->ulModule( 31-24:modemid,23-16:modeid,15-12:level,11-0:pid )
+             DRV_DIAG_AIR_IND_STRU->ulMsgId(空口消息ID)
+             DRV_DIAG_AIR_IND_STRU->ulDirection(空口消息的方向)
+             DRV_DIAG_AIR_IND_STRU->ulLength(空口消息的长度)
+             DRV_DIAG_AIR_IND_STRU->pData(空口消息信息)
+*****************************************************************************/
+unsigned int mdrv_diag_report_air(DRV_DIAG_AIR_IND_STRU *pstData);
+/*****************************************************************************
+ 函 数 名     : DIAG_TraceReport
+ 功能描述  : 层间消息上报接口
+ 输入参数  : pMsg(标准的VOS消息体，源模块、目的模块信息从消息体中获取)
+*****************************************************************************/
+unsigned int mdrv_diag_report_trace(void *pstData, unsigned int modemid);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_disconn_reset
+ 功能描述  : 复位diag相关内容
+ 输入参数  : void
+*****************************************************************************/
+void mdrv_diag_report_reset(void);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_reset_mntn_info
+ 功能描述  : 复位diag维测统计信息
+ 输入参数  : void
+*****************************************************************************/
+void mdrv_diag_reset_mntn_info(DIAGLOG_MNTN_ENUM  type);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_get_mntn_info
+ 功能描述  : 获取维测统计信息
+ 输入参数  : void
+*****************************************************************************/
+void* mdrv_diag_get_mntn_info(DIAGLOG_MNTN_ENUM  type);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_report_msg_trans
+ 功能描述  : 获取维测统计信息
+ 输入参数  : void
+*****************************************************************************/
+unsigned int mdrv_diag_report_msg_trans(DRV_DIAG_TRANS_IND_STRU *pstData, unsigned int ulcmdid);
+/*****************************************************************************
+ 函 数 名     : mdrv_diag_report_msg_trans
+ 功能描述  : 获取维测统计信息
+ 输入参数  : void
+*****************************************************************************/
+unsigned int mdrv_diag_report_cnf(DRV_DIAG_CNF_INFO_STRU *pstData, void *pData, unsigned int ulLen);
+/*****************************************************************************
+ 函 数 名     : diag_report_dt
+ 功能描述  : 路测消息上报接口
+ 输入参数  : DRV_DIAG_DT_IND_STRU->ulModule( 31-24:modemid,23-16:modeid,15-12:level,11-8:groupid )
+                          DRV_DIAG_DT_IND_STRU->ulMsgId(路测命令ID)
+                          DRV_DIAG_DT_IND_STRU->ulLength(路测信息的长度)
+                          DRV_DIAG_DT_IND_STRU->pData(路测信息)
+*****************************************************************************/
+unsigned int mdrv_diag_report_dt(DRV_DIAG_DT_IND_STRU *pstData);
 #ifdef __cplusplus
     #if __cplusplus
         }

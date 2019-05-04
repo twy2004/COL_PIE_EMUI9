@@ -1,7 +1,7 @@
 OAMDIR = ..
 
 MODEM_DIR := $(srctree)/drivers/hisi/modem
--include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/config/balong_product_config.mk
+-include $(MODEM_DIR)/config/product/$(OBB_PRODUCT_NAME)/$(OBB_MODEM_CUST_CONFIG_DIR)/config/balong_product_config.mk
 
 ifeq ($(TARGET_ARM_TYPE), arm64)
 EXTRA_CFLAGS += -Iarch/arm64/include/asm
@@ -46,6 +46,8 @@ EXTRA_CFLAGS += -I$(MODEM_DIR)/include/ps/nas/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/acore/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/ccore/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/taf/common/
+EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tag/apss/
+EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tag/cpss/
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/tools/
 
 EXTRA_CFLAGS += -I$(MODEM_DIR)/include/nv/common/pam/
@@ -150,6 +152,7 @@ gumsp-objs += $(OAMDIR)/gu/comm/si/pbdata.o
 gumsp-objs += $(OAMDIR)/gu/comm/si/stkapi.o
 gumsp-objs += $(OAMDIR)/gu/comm/si/pihapi.o
 gumsp-objs += $(OAMDIR)/gu/comm/si/pbapi_phone.o
+
 
 ifneq ($(strip $(CONFIG_HISI_BALONG_MODEM)),m)
 obj-y  := gumsp.o

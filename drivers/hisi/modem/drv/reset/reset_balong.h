@@ -64,9 +64,9 @@ extern "C"
 #include <osl_sem.h>
 #include <osl_spinlock.h>
 #include <acore_nv_stru_drv.h>
-#include <gunas_errno.h>
-
+#include <mdrv_errno.h>
 #include <bsp_reset.h>
+#include <bsp_om_enum.h>
 #include <bsp_print.h>
 
 /************************** 宏和枚举定义 **************************/
@@ -75,11 +75,13 @@ extern "C"
 #define RESET_WAIT_M3_RESETING_REPLY_TIMEOUT (200)   /*ms, time of wating for reply from modem in idle*/
 #define RESET_WAIT_CCORE_WAKEUP_REPLY_TIMEOUT (100)   /*ms, time of wating for modem wakeup*/
 #define RESET_WAIT_CCPU_STARTUP_TIMEOUT  (20000)
+#define RESET_WAIT_MODEM_STARTUP_TIMEOUT  (90000)
 #define DRV_RESET_MODULE_NAME_LEN        (9)
 #define THIS_MODU mod_reset
-#define reset_print_err(fmt, ...)        (bsp_err("[%s] "fmt, __FUNCTION__, ##__VA_ARGS__))
+#define reset_print_err(fmt, ...)        (printk(KERN_ERR "[%s] "fmt, __FUNCTION__, ##__VA_ARGS__))
 #define reset_print_shorterr(fmt, ...) (bsp_err(fmt, ##__VA_ARGS__))
 #define RESET_RETRY_TIMES (3)
+#define RESET_IS_SUCC                    (1)
 #define CP_RESET_DUMP_SIZE          (1024)
 #define CP_RESET_DUMP_INVOKE_END    (750)
 #define CP_RESET_DUMP_INVOKE_OFFSET (256)
@@ -158,7 +160,7 @@ enum RESET_TYPE
 typedef enum _modem_reset
 {
     MODEM_RESET_DRV_ERR               = DRV_ERRNO_MODEM_RST_FAIL,   /* DRV异常 */
-    MODEM_RESET_NAS_CB_ERR            = NAS_REBOOT_MOD_ID_RESET,    /* NAS回调失败 */
+    MODEM_RESET_NAS_CB_ERR            = 0x67000000,    /* NAS回调失败 */
     MODEM_RESET_LOAD_SEC_IMAGE_ERR    = TEEOS_ERRNO_LOAD_SEC_IMAGE, /* 加载安全镜像失败 */
     MODEM_RESET_HIFI_CB_ERR           = HIFI_ERRNO_MODEM_RESET,     /* HIFI回调失败 */
     MODEM_RESET_M3_ERR                = LPM3_ERRNO_MODEM_RESET,     /* M3异常 */
@@ -206,6 +208,7 @@ struct modem_reset_ctrl
 	IPC_INT_LEV_E ipc_send_irq_wakeup_ccore;
 	IPC_INT_LEV_E ipc_recv_irq_idle;
 	IPC_INT_LEV_E ipc_recv_irq_reboot;
+	IPC_INT_LEV_E ipc_recv_irq_nrreboot;
 	s32 in_suspend_state;
 	u32 list_use_cnt;
 	u32 reset_cnt;
@@ -213,6 +216,8 @@ struct modem_reset_ctrl
 	u32 exec_time;
 	DRV_CCORE_RESET_STRU nv_config;
 	u32 state;
+	u32 modem_lrreboot_state;
+	u32 modem_nrreboot_state;
 };
 
 /*

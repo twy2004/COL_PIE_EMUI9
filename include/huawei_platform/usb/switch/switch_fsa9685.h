@@ -37,6 +37,10 @@ struct fsa9685_device_info {
 	struct work_struct g_intb_work;
 	struct delayed_work detach_delayed_work;
 
+#ifdef CONFIG_BOOST_5V
+	struct notifier_block usb_nb;
+#endif
+
 	u32 usbid_enable;
 	u32 fcp_support;
 	u32 scp_support;
@@ -44,6 +48,7 @@ struct fsa9685_device_info {
 	u32 two_switch_flag; /* disable for two switch */
 	u32 pd_support;
 	u32 dcd_timeout_force_enable;
+	u32 power_by_5v;
 };
 
 struct fsa9685_device_ops {

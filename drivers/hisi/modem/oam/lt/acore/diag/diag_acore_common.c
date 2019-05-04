@@ -60,7 +60,6 @@
 #include <nv_stru_sys.h>
 #include <soc_socp_adapter.h>
 #include <eagleye.h>
-#include "msp_service.h"
 #include "diag_common.h"
 #include "diag_msgbsp.h"
 #include "diag_msgbbp.h"
@@ -79,7 +78,6 @@
 #include "diag_time_stamp.h"
 #include "diag_message.h"
 #include "diag_msg_def.h"
-#include "diag_service.h"
 #include "diag_time_stamp.h"
 #include "diag_acore_common.h"
 
@@ -102,10 +100,6 @@ extern DIAG_TRANS_HEADER_STRU g_stPSTransHead;
 
 struct wake_lock diag_wakelock;
 
-/* 自旋锁，用来作编码源buff的临界资源保护 */
-extern VOS_SPINLOCK             g_stSrvIndSrcBuffSpinLock;
-extern VOS_SPINLOCK             g_stSrvCnfSrcBuffSpinLock;
-
 /*****************************************************************************
   3 Function
 *****************************************************************************/
@@ -121,10 +115,8 @@ extern VOS_VOID SCM_StopAllSrcChan(VOS_VOID);
 *****************************************************************************/
 VOS_INT diag_ResetCcoreCB(DRV_RESET_CB_MOMENT_E enParam, int userdata)
 {
-    DIAG_SRV_TRANS_HEADER_STRU  stTransHeader;
-    DIAG_CMD_TRANS_IND_STRU*    pstTransInfo = {0};
-    DIAG_MSG_REPORT_HEAD_STRU   stDiagHead;
-    VOS_INT ret = ERR_MSP_SUCCESS;
+    DRV_DIAG_TRANS_IND_STRU stResetMsg = {};
+    VOS_UINT32 ret = ERR_MSP_SUCCESS;
 
     if(enParam == MDRV_RESET_CB_BEFORE)
     {
@@ -137,36 +129,23 @@ VOS_INT diag_ResetCcoreCB(DRV_RESET_CB_MOMENT_E enParam, int userdata)
             return ERR_MSP_SUCCESS;
         }
 
-        pstTransInfo = &stTransHeader.trans_header;
-        pstTransInfo->ulModule = MSP_PID_DIAG_APP_AGENT;
-        pstTransInfo->ulMsgId  = DIAG_CMD_MODEM_WILL_RESET;
-        pstTransInfo->ulNo     = (g_DiagLogPktNum.ulTransNum)++;
+        stResetMsg.ulModule = DRV_DIAG_GEN_MODULE_EX(DIAG_MODEM_0, DIAG_MODE_LTE, DIAG_MSG_TYPE_MSP);
+        stResetMsg.ulPid    = MSP_PID_DIAG_APP_AGENT;
+        stResetMsg.ulMsgId  = DIAG_CMD_MODEM_WILL_RESET;
+        stResetMsg.ulReserve= 0;
+        stResetMsg.ulLength = sizeof(VOS_UINT32);
+        stResetMsg.pData    = (void *)&ret;
 
-        (VOS_VOID)VOS_MemSet_s(&stDiagHead, sizeof(stDiagHead), 0, sizeof(stDiagHead));
-
-        /* 填充数据头 */
-        diag_SvcFillHeader((DIAG_SRV_HEADER_STRU *)&stTransHeader);
-        DIAG_SRV_SET_MODEM_ID(&stTransHeader.frame_header, 0);
-        DIAG_SRV_SET_TRANS_ID(&stTransHeader.frame_header, g_ulTransId++);
-        DIAG_SRV_SET_COMMAND_ID_EX(&stTransHeader.frame_header, DIAG_CMD_MODEM_WILL_RESET);
-        DIAG_SRV_SET_MSG_LEN(&stTransHeader.frame_header, sizeof(stTransHeader.trans_header) + sizeof(VOS_UINT32));
-
-        stDiagHead.ulHeaderSize     = sizeof(stTransHeader);
-        stDiagHead.pHeaderData      = &stTransHeader;
-
-        stDiagHead.ulDataSize       = sizeof(VOS_UINT32);
-        stDiagHead.pData            = &enParam;
-
-        ret = diag_ServicePacketResetData(&stDiagHead);
+        ret = mdrv_diag_report_reset_msg(&stResetMsg);
         if(ret)
         {
-            diag_error("Report ccore reset fail\n");
+            diag_error("report reset msg fail, ret:0x%x\n", ret);
         }
 
         diag_crit("Diag report ccore reset to HIDP,and reset SOCP timer.\n");
         /* modem单独复位时，把中断超时时间恢复为默认值，让HIDP尽快收到复位消息 */
         mdrv_socp_set_ind_mode(SOCP_IND_MODE_DIRECT);
-
+        g_ulAuthState = DIAG_AUTH_TYPE_DEFAULT;
     }
     else if(enParam == MDRV_RESET_CB_AFTER)
     {
@@ -189,7 +168,7 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
 
     if(ip == VOS_IP_LOAD_CONFIG)
     {
-    	 wake_lock_init(&diag_wakelock,WAKE_LOCK_SUSPEND,"diag_wakelock");
+        wake_lock_init(&diag_wakelock, WAKE_LOCK_SUSPEND, "diag_wakelock");
         ret = (VOS_UINT32)mdrv_sysboot_register_reset_notify(resetName, (pdrv_reset_cbfun)diag_ResetCcoreCB, 0, resetLevel);
         if(ret)
         {
@@ -204,24 +183,12 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
         diag_PsMsgInit();
         diag_HifiMsgInit();
         diag_MessageInit();
-        diag_ServiceInit();
-        msp_ServiceInit();
         diag_AppLogMsgInit();
         diag_LRMMsgInit();
         diag_NrmMsgInit();
-
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulPrintLock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulAirLock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulVoLTELock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulTraceLock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulUserLock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulEventLock);
-        VOS_SpinLockInit(&g_DiagLogPktNum.ulTransLock);
     }
     else if(ip == VOS_IP_RESTART)
     {
-        //diag_InitAuthVariable();
-
         diag_ConnReset();
 
         /* 都初始化结束后再设置开关 */
@@ -233,11 +200,14 @@ VOS_UINT32 diag_AppAgentMsgProcInit(enum VOS_INIT_PHASE_DEFINE ip)
         {
             /* 在打开开机log前，推送一个时间戳高位给工具 */
             diag_PushHighTs();
+            diag_StartHighTsTimer();
             g_ulDiagCfgInfo |= DIAG_CFG_POWERONLOG;
+
+            /* 开机log中推送维测信息 */
+            diag_StartMntnTimer(DIAG_OPENLOG_MNTN_TIMER_LEN);
         }
 
         mdrv_scm_reg_ind_coder_dst_send_fuc();
-
 
         diag_crit("Diag PowerOnLog is %s.\n", (g_ulDiagCfgInfo&DIAG_CFG_POWERONLOG) ? "open" : "close");
     }
@@ -346,8 +316,32 @@ VOS_VOID diag_ApAgentMsgProc(MsgBlock* pMsgBlock)
     }
 }
 
+VOS_VOID diag_TimerMsgProc(MsgBlock* pMsgBlock)
+{
+    REL_TIMER_MSG *pTimer = NULL;
 
+    pTimer   = (REL_TIMER_MSG*)pMsgBlock;
 
+    if((DIAG_DEBUG_TIMER_NAME == pTimer->ulName) && (DIAG_DEBUG_TIMER_PARA == pTimer->ulPara))
+    {
+        diag_ReportMntn();
+    }
+    else if((DIAG_CONNECT_TIMER_NAME == pTimer->ulName) && (DIAG_CONNECT_TIMER_PARA == pTimer->ulPara))
+    {
+        (VOS_VOID)diag_ConnTimerProc();
+    }
+    else if((DIAG_HIGH_TS_PUSH_TIMER_NAME == pTimer->ulName) && (DIAG_HIGH_TS_PUSH_TIMER_PARA == pTimer->ulPara))
+    {
+        /* 推送时间戳高位 */
+        diag_PushHighTs();
+    }
+    else
+    {
+        diag_TransTimeoutProc(pTimer);
+    }
+
+    return;
+}
 /*****************************************************************************
  Function Name   : diag_AppAgentMsgProc
  Description        : DIAG APP AGENT接收到的消息处理入口
@@ -362,7 +356,6 @@ VOS_VOID diag_ApAgentMsgProc(MsgBlock* pMsgBlock)
 VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
 {
     VOS_UINT32  ulErrorLog = ERR_MSP_CONTINUE; /* 见函数头中的注意事项的描述 */
-    REL_TIMER_MSG *pTimer =NULL;
 
     /*入参判断*/
     if (NULL == pMsgBlock)
@@ -380,26 +373,7 @@ VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
     {
         /*超时消息，按照超时包格式，打包回复*/
         case DOPRA_PID_TIMER:
-
-            pTimer   = (REL_TIMER_MSG*)pMsgBlock;
-
-            if((DIAG_DEBUG_TIMER_NAME == pTimer->ulName) && (DIAG_DEBUG_TIMER_PARA == pTimer->ulPara))
-            {
-                diag_ReportMntn();
-            }
-            else if((DIAG_CONNECT_TIMER_NAME == pTimer->ulName) && (DIAG_CONNECT_TIMER_PARA == pTimer->ulPara))
-            {
-                (VOS_VOID)diag_ConnTimerProc();
-            }
-            else if((DIAG_HIGH_TS_PUSH_TIMER_NAME == pTimer->ulName) && (DIAG_HIGH_TS_PUSH_TIMER_PARA == pTimer->ulPara))
-            {
-                /* 推送时间戳高位 */
-                diag_PushHighTs();
-            }
-            else
-            {
-                diag_TransTimeoutProc(pTimer);
-            }
+            diag_TimerMsgProc(pMsgBlock);
             ulErrorLog = VOS_OK;
             break;
 
@@ -437,7 +411,7 @@ VOS_VOID diag_AppAgentMsgProc(MsgBlock* pMsgBlock)
     }
 
    /*任务开始结束，允许睡眠*/
-  wake_unlock(&diag_wakelock);
+   wake_unlock(&diag_wakelock);
 
    return ;
 }
@@ -831,7 +805,7 @@ static ssize_t diag_debug_write(struct file *filp, const char __user *ubuf, size
     {
         DIAG_DebugCommon();
         DIAG_DebugNoIndLog();
-        DIAG_DebugDFR();
+        /*DIAG_DebugDFR();*/
 
         pstFlag = (DIAG_A_DEBUG_C_REQ_STRU *)VOS_AllocMsg(MSP_PID_DIAG_APP_AGENT, (sizeof(DIAG_A_DEBUG_C_REQ_STRU) - VOS_MSG_HEAD_LENGTH));
 
@@ -871,7 +845,6 @@ static const struct file_operations diag_debug_fops = {
 VOS_UINT32 MSP_AppDiagFidInit(enum VOS_INIT_PHASE_DEFINE ip)
 {
     VOS_UINT32 ulRelVal = 0;
-    struct dentry * d_file;
 
     switch (ip)
     {
@@ -891,21 +864,6 @@ VOS_UINT32 MSP_AppDiagFidInit(enum VOS_INIT_PHASE_DEFINE ip)
             {
                 return VOS_ERR;
             }
-
-            /* coverity[var_deref_model] */
-            d_file = debugfs_create_dir("modem_diag", NULL);
-            if(!d_file)
-            {
-                diag_error("create debugfs dir modem_diag fail\n");
-                return VOS_ERR;
-            }
-
-            if(!debugfs_create_file("diag", 0640, d_file, NULL, &diag_debug_fops))
-            {
-                diag_error("create debugfs file modem_diag/diag file\n");
-                return VOS_ERR;
-            }
-
             /* 申请8K的dump空间 */
             g_stDumpInfo.pcDumpAddr = (VOS_VOID * )mdrv_om_register_field(OM_AP_DIAG, "ap_diag", (void*)0, (void*)0, DIAG_DUMP_LEN, 0);
 
@@ -922,16 +880,14 @@ VOS_UINT32 MSP_AppDiagFidInit(enum VOS_INIT_PHASE_DEFINE ip)
 
             VOS_RegisterMsgGetHook((VOS_MSG_HOOK_FUNC)DIAG_LayerMsgReport);
 
-            VOS_SpinLockInit(&g_stSrvIndSrcBuffSpinLock);
-            VOS_SpinLockInit(&g_stSrvCnfSrcBuffSpinLock);
-
 
             return VOS_OK;
             // break;
 
         case VOS_IP_RESTART:
-            // return COMM_Init();
-
+            /* ready stat */
+            mdrv_ppm_pcdev_ready();
+            break;
         default:
             break;
     }

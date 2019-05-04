@@ -96,6 +96,8 @@ extern "C" {
 #define AT_AP_XML_RPT_SRV_URL_STR_LEN                           (AT_AP_XML_RPT_SRV_URL_LEN + 1)
 #define AT_AP_NVIM_XML_RPT_INFO_TYPE_LEN                        (127)
 #define AT_AP_NVIM_XML_RPT_INFO_TYPE_STR_LEN                    (AT_AP_NVIM_XML_RPT_INFO_TYPE_LEN + 1)
+#define RNIC_NVIM_NAPI_LB_MAX_LEVEL                             (16)            /* 软中断负载均衡最大档位 */
+#define RNIC_NVIM_NAPI_LB_MAX_CPUS                              (16)            /* 软中断负载均衡最大CPU个数 */
 
 
 /*****************************************************************************
@@ -373,6 +375,30 @@ typedef struct
     RNIC_NAPI_WEIGHT_DYNAMIC_ADJ_CFG_STRU         stNapiWeightDynamicAdjCfg;    /* Napi Weight动态调整配置 */
 
 } TAF_NV_RNIC_NAPI_CFG_STRU;
+
+
+typedef struct
+{
+    VOS_UINT32                          ulPps;                                  /* RNIC网卡下行每秒收包个数档位值 */
+    VOS_UINT8                           aucCpusWeight[RNIC_NVIM_NAPI_LB_MAX_CPUS];   /* 参与NAPI负载均衡的CPU Weight值档位 */
+
+} RNIC_NAPI_LB_LEVEL_CFG_STRU;
+
+
+typedef struct
+{
+    VOS_UINT8                           ucNapiLbEnable;                         /* NAPI负载均衡功能开关 */
+    VOS_UINT8                           ucNapiLbValidLevel;                     /* Napi负载均衡有效档位 */
+    VOS_UINT16                          usNapiLbCpumask;                        /* 参与Napi负载均衡的CPU掩码 */
+    VOS_UINT8                           ucReserved0;                            /* 保留位 */
+    VOS_UINT8                           ucReserved1;                            /* 保留位 */
+    VOS_UINT8                           ucReserved2;                            /* 保留位 */
+    VOS_UINT8                           ucReserved3;                            /* 保留位 */
+    VOS_UINT32                          ulReserved0;                            /* 保留位 */
+    VOS_UINT32                          ulReserved1;                            /* 保留位 */
+    RNIC_NAPI_LB_LEVEL_CFG_STRU         astNapiLbLevelCfg[RNIC_NVIM_NAPI_LB_MAX_LEVEL];  /* Napi负载均衡档位配置 */
+
+} TAF_NV_RNIC_NAPI_LB_CFG_STRU;
 
 
 typedef struct

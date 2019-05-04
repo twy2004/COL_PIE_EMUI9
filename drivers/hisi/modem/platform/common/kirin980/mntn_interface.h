@@ -29,4 +29,5 @@
 #define MNTN_AREA_NR_LL1C_SIZE (0)
 #define MNTN_AREA_NR_PHY_SIZE (0)
 #define MNTN_AREA_NR_RF_SIZE (0)
+#define DUMP_TASK_SWITCH_SIZE (0x14000)
 #endif

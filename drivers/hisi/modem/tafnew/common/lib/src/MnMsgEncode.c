@@ -66,6 +66,13 @@ VOS_UINT32 MSG_EncodeUserData(
     VOS_UINT32                          *pucLen
 );
 
+VOS_UINT32 MSG_EncodeUserDataByCoding7BIT(
+    MN_MSG_USER_DATA_STRU               *pstUserData,
+    VOS_UINT8                           *pucUserData,
+    VOS_UINT32                           ulMaxMemLength,
+    VOS_UINT32                          *pucLen
+);
+
 /*****************************************************************************
   2 常量定义
 *****************************************************************************/
@@ -819,8 +826,7 @@ LOCAL VOS_VOID  MSG_GetUdhl(
 }
 
 
-VOS_UINT32 MSG_EncodeUserData(
-    MN_MSG_MSG_CODING_ENUM_U8           enMsgCoding,
+VOS_UINT32 MSG_EncodeUserDataByCoding7BIT(
     MN_MSG_USER_DATA_STRU               *pstUserData,
     VOS_UINT8                           *pucUserData,
     VOS_UINT32                           ulMaxMemLength,
@@ -832,6 +838,79 @@ VOS_UINT32 MSG_EncodeUserData(
     VOS_UINT8                           ucUdhl;
     VOS_UINT8                           ucFillBit           = 0;
     VOS_UINT32                          ulLen;
+    VOS_UINT32                          ulUdl;
+
+
+    if (0 != pstUserData->ucNumofHeaders)
+    {
+        /*填充UDHL和UDH数据区并输出UDHL数值*/
+        ulRet = MSG_EncodeUdh(pstUserData->ucNumofHeaders,
+                              pstUserData->astUserDataHeader,
+                              &(pucUserData[ulPos]),
+                              ulMaxMemLength - ulPos,
+                              &ucUdhl);
+        if (MN_ERR_NO_ERROR != ulRet)
+        {
+            return ulRet;
+        }
+        ucFillBit      = (MN_MSG_BITS_PER_SEPTET - (((ucUdhl + 1) * MN_MSG_BITS_PER_OCTET) % MN_MSG_BITS_PER_SEPTET)) % MN_MSG_BITS_PER_SEPTET;
+
+        /*pucUserData[0]存储UDL*/
+        ulUdl = (VOS_UINT32)(pstUserData->ulLen + ((((ucUdhl + 1) * MN_MSG_BITS_PER_OCTET) + ucFillBit)/MN_MSG_BITS_PER_SEPTET));
+
+        /*将数据区数组下标移至UDHL UDH之后 */
+        ulPos         += (ucUdhl + 1);
+    }
+    else
+    {
+        ulUdl = pstUserData->ulLen;
+        if (0 == ulUdl)
+        {
+            pucUserData[0] = (VOS_UINT8)ulUdl;
+            *pucLen = 1;
+            return MN_ERR_NO_ERROR;
+        }
+    }
+
+    /*用户数据越界检查*/
+    if (ulUdl > MN_MSG_MAX_7_BIT_LEN)
+    {
+        MN_WARN_LOG("MSG_EncodeUserData: The length of 7 bit encoded user data is overflow.");
+        return MN_ERR_CLASS_SMS_MSGLEN_OVERFLOW;
+    }
+
+    pucUserData[0] = (VOS_UINT8)ulUdl;
+
+    /*字符转换为GSM 7 bit default alphabet，填充UD中的FillBit SM数据区，并输出FillBit SM占用的字节数*/
+    ulRet   = TAF_STD_Pack7Bit(pstUserData->aucOrgData,
+                               pstUserData->ulLen,
+                               ucFillBit,
+                               &(pucUserData[ulPos]),
+                               &ulLen);
+    if (VOS_OK != ulRet)
+    {
+        return MN_ERR_CLASS_INVALID_TP_UD;
+    }
+
+    /*计算UDL UD总共占用的字节数*/
+    *pucLen = 1 + (((pucUserData[0] * MN_MSG_BITS_PER_SEPTET) + MN_MSG_BITS_PER_SEPTET)/MN_MSG_BITS_PER_OCTET);
+
+    return MN_ERR_NO_ERROR;
+}
+
+
+VOS_UINT32 MSG_EncodeUserData(
+    MN_MSG_MSG_CODING_ENUM_U8           enMsgCoding,
+    MN_MSG_USER_DATA_STRU               *pstUserData,
+    VOS_UINT8                           *pucUserData,
+    VOS_UINT32                           ulMaxMemLength,
+    VOS_UINT32                          *pucLen
+)
+{
+    VOS_UINT32                          ulPos               = 1;
+    VOS_UINT32                          ulRet;
+    VOS_UINT8                           ucUdhl;
+    VOS_UINT32                          ulUdl;
 
     if ((VOS_NULL_PTR == pstUserData)
      || (VOS_NULL_PTR == pucUserData)
@@ -844,56 +923,12 @@ VOS_UINT32 MSG_EncodeUserData(
     /*TP UDL UD */
     if (MN_MSG_MSG_CODING_7_BIT == enMsgCoding)
     {
-        if (0 != pstUserData->ucNumofHeaders)
-        {
-            /*填充UDHL和UDH数据区并输出UDHL数值*/
-            ulRet = MSG_EncodeUdh(pstUserData->ucNumofHeaders,
-                                  pstUserData->astUserDataHeader,
-                                  &(pucUserData[ulPos]),
-                                  ulMaxMemLength - ulPos,
-                                  &ucUdhl);
-            if (MN_ERR_NO_ERROR != ulRet)
-            {
-                return ulRet;
-            }
-            ucFillBit      = (7 - (((ucUdhl + 1) * 8) % 7)) % 7;
+        ulRet = MSG_EncodeUserDataByCoding7BIT(pstUserData,
+                                                   pucUserData,
+                                                   ulMaxMemLength,
+                                                   pucLen);
 
-            /*pucUserData[0]存储UDL*/
-            pucUserData[0] = (VOS_UINT8)(pstUserData->ulLen + ((((ucUdhl + 1) * 8) + ucFillBit)/7));
-
-            /*将数据区数组下标移至UDHL UDH之后 */
-            ulPos         += (ucUdhl + 1);
-        }
-        else
-        {
-            pucUserData[0] = (VOS_UINT8)pstUserData->ulLen;
-            if (0 == pstUserData->ulLen)
-            {
-                *pucLen = 1;
-                return MN_ERR_NO_ERROR;
-            }
-        }
-
-        /*用户数据越界检查*/
-        if (pucUserData[0] > MN_MSG_MAX_7_BIT_LEN)
-        {
-            MN_WARN_LOG("MSG_EncodeUserData: The length of 7 bit encoded user data is overflow.");
-            return MN_ERR_CLASS_SMS_MSGLEN_OVERFLOW;
-        }
-
-        /*字符转换为GSM 7 bit default alphabet，填充UD中的FillBit SM数据区，并输出FillBit SM占用的字节数*/
-        ulRet   = TAF_STD_Pack7Bit(pstUserData->aucOrgData,
-                                   pstUserData->ulLen,
-                                   ucFillBit,
-                                   &(pucUserData[ulPos]),
-                                   &ulLen);
-        if (VOS_OK != ulRet)
-        {
-            return MN_ERR_CLASS_INVALID_TP_UD;
-        }
-
-        /*计算UDL UD总共占用的字节数*/
-        *pucLen = 1 + (((pucUserData[0] * 7) + 7)/8);
+        return ulRet;
     }
     else
     {
@@ -911,22 +946,24 @@ VOS_UINT32 MSG_EncodeUserData(
             }
 
             /*pucUserData[0]存储UDL*/
-            pucUserData[0] = (VOS_UINT8)((ucUdhl + 1) + pstUserData->ulLen);
+            ulUdl = (VOS_UINT32)((ucUdhl + 1) + pstUserData->ulLen);
             /*将数据区数组下标移至UDHL UDH之后 */
             ulPos         += (ucUdhl + 1);
         }
         else
         {
             /*pucUserData[0]存储UDL*/
-            pucUserData[0]     = (VOS_UINT8)pstUserData->ulLen;/*UDL*/
+            ulUdl = pstUserData->ulLen;  /*UDL*/
+
         }
 
         /*用户数据越界检查*/
-        if (pucUserData[0] > MN_MSG_MAX_8_BIT_LEN)
+        if (ulUdl > MN_MSG_MAX_8_BIT_LEN)
         {
             MN_WARN_LOG("MSG_EncodeUserData: The length of 8 bit encoded user data is overflow.");
             return MN_ERR_CLASS_SMS_MSGLEN_OVERFLOW;
         }
+        pucUserData[0] = (VOS_UINT8)ulUdl;
 
         if (pstUserData->ulLen > (ulMaxMemLength - ulPos))
         {

@@ -228,7 +228,7 @@ void npu_task_restore(unsigned int core_id, NPU_TASK_PROCESS_E restore_reason)
 
 void npu_task_watchdog_start(unsigned int core_id)
 {
-	unsigned long config_reg_virt_addr = (unsigned long)g_task_private->reg_space[core_id].config_reg_virt_addr;
+	uintptr_t config_reg_virt_addr = (uintptr_t)g_task_private->reg_space[core_id].config_reg_virt_addr;
 	unsigned long watchdog_timeout = g_task_private->watchdog_timer[core_id];
 	unsigned int tmp;
 
@@ -247,7 +247,7 @@ static void npu_core_irq_task_proc(unsigned int core_id, unsigned int* interrupt
 	bool reset_npu_flag = false;
 	unsigned int interrupt_status = interrupt_status_ptr[core_id];
 	unsigned int fault_status = 0;
-	unsigned long config_reg_virt_addr = (unsigned long)g_task_private->reg_space[core_id].config_reg_virt_addr;
+	uintptr_t config_reg_virt_addr = (uintptr_t)g_task_private->reg_space[core_id].config_reg_virt_addr;
 
 	if (!interrupt_status) {
 		NPU_ERR("interrupt status is error!interrupt_status=%d", interrupt_status);
@@ -270,9 +270,10 @@ static void npu_core_irq_task_proc(unsigned int core_id, unsigned int* interrupt
 
 	/********************NPU_CONTROL_INTERRUPT**********/
 	if (interrupt_status & NPU_CONTROL_INTERRUPT_MASK) {
-		NPU_ERR("core_id %d NPU_CONTROL_INTERRUPT error, fault_status=0x%x, npu_control id:%x%x",
+		NPU_ERR("core_id %d NPU_CONTROL_INTERRUPT error, fault_status=0x%x, npu_interrupt_pc: %x, npu_watchdog_timer: %x, npu_control id:%x",
 				 core_id,
 				 fault_status,
+				 ioread32((void *)(SOC_NPU_INTERRUPT_PC_ADDR(config_reg_virt_addr))),
 				 ioread32((void *)(SOC_NPU_CONTROL_ID_ADDR(config_reg_virt_addr + 4))),
 				 ioread32((void *)(SOC_NPU_CONTROL_ID_ADDR(config_reg_virt_addr))));
 
@@ -320,7 +321,7 @@ static void npu_core_irq_clear(unsigned int core_id, unsigned long irq_io_addr, 
 	unsigned int ret_value;
 	unsigned int interrupt_status;
 	unsigned int loop_cnt = 0;
-	unsigned long config_reg_virt_addr = (unsigned long)g_task_private->reg_space[core_id].config_reg_virt_addr;
+	uintptr_t config_reg_virt_addr = (uintptr_t)g_task_private->reg_space[core_id].config_reg_virt_addr;
 
 	interrupt_status = ioread32((void *)SOC_NPU_IS_ADDR(config_reg_virt_addr));
 	interrupt_status_ptr[core_id] = interrupt_status;
@@ -375,7 +376,7 @@ static void npu_core_irq_clear(unsigned int core_id, unsigned long irq_io_addr, 
 	}
 
 	/* to  clear non-secure interrupt */
-	iowrite32(NPU_IRQ_CLEAR_IRQ_LEVEL1_NS | NPU_IRQ_CLEAR_IRQ_NS, (void *)SOC_ICS_IRQ_CLR_NS_ADDR(irq_io_addr));
+	iowrite32(NPU_IRQ_CLEAR_IRQ_LEVEL1_NS | NPU_IRQ_CLEAR_IRQ_NS, (void *)(uintptr_t)SOC_ICS_IRQ_CLR_NS_ADDR(irq_io_addr));
 
 	return;
 }
@@ -484,7 +485,7 @@ release_cfg_mem:
 
 int npu_task_finish_interrupt_clear(unsigned int core_id)
 {
- 	unsigned long config_reg_virt_addr = (unsigned long)g_task_private->reg_space[core_id].config_reg_virt_addr;
+ 	uintptr_t config_reg_virt_addr = (uintptr_t)g_task_private->reg_space[core_id].config_reg_virt_addr;
 
 	CHECK_COREID_INVALID_RETURN(core_id);
 	/* clear NPU finished status */

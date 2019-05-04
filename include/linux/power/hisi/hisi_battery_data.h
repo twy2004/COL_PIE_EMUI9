@@ -88,6 +88,10 @@ enum segment_para_info{
     SEGMENT_PARA_VOLT_BACK,
     SEGMENT_PARA_TOTAL,
 };
+enum bat_id_info {
+    BAT_ID_VALID = 0,
+    BAT_ID_INVALID,
+};
 
 struct chrg_para_lut{
     int temp_len;
@@ -141,6 +145,7 @@ struct hisi_coul_battery_data {
     int ifull;
     struct chrg_para_lut *chrg_para;
     char *batt_brand;
+    unsigned int    id_status;
 };
 struct hisi_coul_battery_data *get_battery_data(unsigned int id);
 #endif

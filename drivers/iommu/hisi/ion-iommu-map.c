@@ -29,8 +29,8 @@
 #include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/types.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
+#include <linux/ion-iommu.h>
 
 #define MAX_IOVA_SIZE_2G 0x80000000UL
 #define MAX_IOVA_START_ADDR_4G 0x100000000UL
@@ -61,7 +61,7 @@ static unsigned long hisi_alloc_iova(struct gen_pool *pool,
 		return 0;
 	}
 
-	if (align > (1 << pool->min_alloc_order))
+	if (align > (1UL << pool->min_alloc_order))
 		WARN(1, "hisi iommu domain cant align to 0x%lx\n", align);
 
 	mutex_unlock(&iova_pool_mutex);
@@ -286,9 +286,20 @@ int hisi_iommu_unmap_domain(struct iommu_map_format *format)
 }
 EXPORT_SYMBOL_GPL(hisi_iommu_unmap_domain);
 
-unsigned long hisi_iommu_idle_display_map(phys_addr_t paddr, size_t allsize, size_t l3size, size_t lbsize)
+unsigned long hisi_iommu_idle_display_unmap(unsigned long iova, size_t allsize)
+{
+	struct iommu_map_format format;
+	memset(&format, 0x0, sizeof(struct iommu_map_format));/* unsafe_function_ignore: memset  */
+	format.iova_start = iova;
+	format.iova_size = allsize;
+
+	return (unsigned long)hisi_iommu_unmap_domain(&format);/*lint !e571*/
+}
+unsigned long hisi_iommu_idle_display_map(u32 pid, phys_addr_t paddr,
+				size_t allsize, size_t l3size, size_t lbsize)
 {
 	int ret;
+	int prot = 0;
 	unsigned long iova, ret_va = 0;
 	size_t map_size = 0;
 	struct ion_iommu_domain *ion_domain = ion_iommu_domain;
@@ -313,9 +324,10 @@ unsigned long hisi_iommu_idle_display_map(phys_addr_t paddr, size_t allsize, siz
 	/**
 	 * map l3 fisrt
 	 */
+	prot = IOMMU_CACHE|IOMMU_READ|IOMMU_WRITE;
 	if (l3size) {
 		ret = iommu_map(ion_domain->domain, iova, paddr, l3size,
-			IOMMU_CACHE|IOMMU_READ|IOMMU_WRITE|IOMMU_NO_LB_MAP);
+			prot);
 		if (ret)
 			goto free_iova;
 	}
@@ -326,9 +338,13 @@ unsigned long hisi_iommu_idle_display_map(phys_addr_t paddr, size_t allsize, siz
 	/**
 	 * map lb second
 	 */
+	prot = IOMMU_READ|IOMMU_WRITE;
+#ifdef CONFIG_HISI_LB
+	prot |= pid << IOMMU_PORT_SHIFT;
+#endif
 	if (lbsize) {
 		ret = iommu_map(ion_domain->domain, iova, paddr,
-			lbsize, IOMMU_READ|IOMMU_WRITE);
+			lbsize, prot);
 		if (ret)
 			goto err;
 	}
@@ -340,9 +356,10 @@ unsigned long hisi_iommu_idle_display_map(phys_addr_t paddr, size_t allsize, siz
 	/**
 	 * map last
 	 */
+	prot = IOMMU_READ|IOMMU_WRITE;
 	if (allsize - map_size) {
 		ret = iommu_map(ion_domain->domain, iova, paddr,
-			allsize - map_size, IOMMU_READ|IOMMU_WRITE|IOMMU_NO_LB_MAP);
+			allsize - map_size, prot);
 		if (ret)
 			goto err;
 	}

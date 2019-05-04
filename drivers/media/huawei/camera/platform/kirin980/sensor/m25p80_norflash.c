@@ -370,7 +370,7 @@ int m25p_get_array_part_content(u32 type, void *userAddr, unsigned long size)
 
     if (type > IRSENSOR_ENTIRETY_OTP
         || 0 == userAddr || 0 == size) {
-        cam_err("%s type = %d, userAddr = %p, size = %u, invalid.",
+        cam_err("%s type = %d, userAddr = %pK, size = %u, invalid.",
             __func__, type, userAddr, (unsigned int)size);
         return -EINVAL;;
     }
@@ -511,7 +511,7 @@ int m25p_set_array_part_content(u32 type, void *userAddr, unsigned long size)
 
     if (type >= IRSENSOR_ENTIRETY_OTP || type == IRSENSOR_DEFAULT_OTP
         || 0 == userAddr || 0 == size) {
-        cam_err("%s type = %d, userAddr = %p, size = %u, invalid.", __func__, type, userAddr, (unsigned int)size);
+        cam_err("%s type = %d, userAddr = %pK, size = %u, invalid.", __func__, type, userAddr, (unsigned int)size);
         return -EINVAL;
     }
     if (size < arrayPartTab[type].partLen) {
@@ -526,7 +526,10 @@ int m25p_set_array_part_content(u32 type, void *userAddr, unsigned long size)
         return -1;
     }
     memset_s(data, size + 1 ,0, size + 1);
-
+    if(size >sizeof(data)){
+        vfree(data);
+        return -EINVAL;
+    }
     if (copy_from_user(data, argp, size)) {
         cam_err("%s copy_from_user failed.", __func__);
         vfree(data);
@@ -601,7 +604,6 @@ static void m25p_spi_cs_set(u32 control)
     }
     plat_data = &drv_data->plat_data;
 
-    //cam_info("%s control = %s.", __func__, (control==0)?"select":"diselect");
     if (SSP_CHIP_SELECT == control) {
         ret = gpio_direction_output(plat_data->spi_cs_gpio, control);
         /* cs steup time at least 10ns */

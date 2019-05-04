@@ -60,6 +60,11 @@ typedef enum mdrv_clk_acc_type
 	CLK_ACC_TYPE_MAX
 }MDRV_CLK_ACC_TYPE;
 
+typedef enum mdrv_clk_type
+{
+	CLK_TYPE_MAX
+}MDRV_CLK_TYPE;
+
 #include "mdrv_clk_common.h"
 
 #ifdef __cplusplus

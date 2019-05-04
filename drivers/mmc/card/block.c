@@ -62,7 +62,7 @@
 #include "mmc_hisi_card.h"
 #endif
 #ifdef CONFIG_HISI_MMC_SECURE_RPMB
-#include <linux/mmc/rpmb.h>
+#include <linux/hisi/rpmb.h>
 #endif
 
 
@@ -104,8 +104,10 @@ MODULE_ALIAS("mmc:block");
 #define MMC_SANITIZE_REQ_TIMEOUT 240000
 #define MMC_EXTRACT_INDEX_FROM_ARG(x) ((x & 0x00FF0000) >> 16)
 /*lint -e547*/
+#ifndef CONFIG_HISI_MMC
 #define mmc_req_rel_wr(req)	((req->cmd_flags & REQ_FUA) && \
 				  (rq_data_dir(req) == WRITE))
+#endif
 /*lint +e547*/
 #define PACKED_CMD_VER	0x01
 #define PACKED_CMD_WR	0x02
@@ -2007,7 +2009,7 @@ static int mmc_blk_packed_err_check(struct mmc_card *card,
 		return MMC_BLK_ABORT;
 	}
 
-	if (status & R1_EXCEPTION_EVENT) {
+	if ((unsigned int)status & R1_EXCEPTION_EVENT) {
 		err = mmc_get_ext_csd(card, &ext_csd);
 		if (err) {
 			pr_err("%s: error %d sending ext_csd\n",
@@ -2871,6 +2873,10 @@ void mmc_blk_hisi_stub_emmc_for_ufs(struct mmc_card *card)
 #endif /* CONFIG_HISI_MMC */
 
 #ifdef CONFIG_HISI_BLK
+#ifdef CONFIG_HISI_MMC_MANUAL_BKOPS
+extern int hisi_mmc_manual_bkops_config(struct request_queue *q);
+extern bool hisi_mmc_is_bkops_needed(struct mmc_card *card);
+#endif
 static void mmc_blk_hisi_cfg_queue_feature(struct mmc_card *card, struct mmc_blk_data *md, int area_type)
 {
 	if (area_type == MMC_BLK_DATA_AREA_MAIN) {
@@ -2882,6 +2888,11 @@ static void mmc_blk_hisi_cfg_queue_feature(struct mmc_card *card, struct mmc_blk
 			blk_queue_dump_register(md->queue.queue, NULL);
 #endif
 			blk_queue_busy_idle_enable(md->queue.queue, 1);
+#ifdef CONFIG_HISI_MMC_MANUAL_BKOPS
+			if (card->ext_csd.man_bkops_en && hisi_mmc_is_bkops_needed(card))
+				hisi_mmc_manual_bkops_config(md->queue.queue);
+#endif
+
 		} else if (mmc_card_sd(card)) {
 			blk_queue_latency_warning_set(md->queue.queue, 5000);
 			blk_queue_dump_register(md->queue.queue, NULL);
@@ -2956,7 +2967,7 @@ again:
 	md->parent = parent;
 	set_disk_ro(md->disk, md->read_only || default_ro);
 	md->disk->flags = GENHD_FL_EXT_DEVT;
-	if (area_type & (MMC_BLK_DATA_AREA_RPMB | MMC_BLK_DATA_AREA_BOOT))
+	if ((unsigned int)area_type & (MMC_BLK_DATA_AREA_RPMB | MMC_BLK_DATA_AREA_BOOT))
 		md->disk->flags |= GENHD_FL_NO_PART_SCAN;
 
 	/*
@@ -3343,6 +3354,18 @@ static const struct mmc_fixup blk_fixups[] =
 		  MMC_QUIRK_TRIM_BROKEN),
 	MMC_FIXUP("V10016", CID_MANFID_KINGSTON, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_TRIM_BROKEN),
+
+	MMC_FIXUP("S0J9B7", CID_MANFID_MICRON, CID_OEMID_ANY,
+		add_quirk_mmc, MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND),
+	MMC_FIXUP("S0J38Y", CID_MANFID_MICRON, CID_OEMID_ANY,
+		add_quirk_mmc, MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND),
+	MMC_FIXUP("S0J9F8", CID_MANFID_MICRON, CID_OEMID_ANY,
+		add_quirk_mmc, MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND),
+	MMC_FIXUP("S0J9A7", CID_MANFID_MICRON, CID_OEMID_ANY,
+		add_quirk_mmc, MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND),
+	MMC_FIXUP("S0J9D8", CID_MANFID_MICRON, CID_OEMID_ANY,
+		add_quirk_mmc, MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND),
+
 #ifdef CONFIG_HISI_MMC_FLUSH_REDUCE_WHITE_LIST
         MMC_FIXUP("Q3J97V", CID_MANFID_MICRON, CID_OEMID_ANY, en_emmc_flush_reduce,
                   0),

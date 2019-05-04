@@ -58,6 +58,27 @@
 				status = "disabled";
 			};
 
+			hi6405_codec: hi6405_codec@0{
+				compatible = "hisilicon,hi6405-codec";
+				hisilicon,mic_num = <2>;
+				hisilicon,coefficient = <2700>;
+				hisilicon,hs_3_pole_min_voltage = <0>;
+				hisilicon,hs_3_pole_max_voltage = <8>;
+				hisilicon,hs_4_pole_min_voltage = <1150>;
+				hisilicon,hs_4_pole_max_voltage = <2650>;
+				hisilicon,btn_play_min_voltage = <0>;
+				hisilicon,btn_play_max_voltage = <100>;
+				hisilicon,btn_voice_assistant_min_voltage = <110>;
+				hisilicon,btn_voice_assistant_max_voltage = <180>;
+				hisilicon,btn_volume_up_min_voltage = <181>;
+				hisilicon,btn_volume_up_max_voltage = <320>;
+				hisilicon,btn_volume_down_min_voltage = <320>;
+				hisilicon,btn_volume_down_max_voltage = <700>;
+				hisilicon,hs_extern_cable_min_voltage = <2651>;
+				hisilicon,hs_extern_cable_max_voltage = <2700>;
+				status = "disabled";
+			};
+
 			test_hi64xx_irq: test_hi64xx_irq@0 {
                                compatible = "hisilicon,test-hi64xx-irq";
                                status = "disabled";

@@ -104,11 +104,13 @@ typedef VOS_UINT32 (*AT_IMSA_MSG_PROC_FUNC)(VOS_VOID *pMsg);
  结构名    : AT_IMSA_MSG_PRO_FUNC_STRU
  结构说明  : AT与IMSA消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_IMSA_MSG_TYPE_ENUM_UINT32        ulMsgId;
     AT_IMSA_MSG_PROC_FUNC               pProcMsgFunc;
 }AT_IMSA_MSG_PRO_FUNC_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
   8 UNION定义
@@ -123,7 +125,7 @@ typedef struct
 /*****************************************************************************
   10 函数声明
 *****************************************************************************/
-VOS_VOID AT_ProcImsaMsg(AT_IMSA_MSG_STRU *pstMsg);
+VOS_VOID AT_ProcImsaMsg(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvImsaCiregSetCnf(VOS_VOID * pMsg);
 

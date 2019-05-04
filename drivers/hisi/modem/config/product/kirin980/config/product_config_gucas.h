@@ -1,4 +1,4 @@
-/* MD5: eb3800eea33cd071bf547c55fe1a9298*/
+/* MD5: 66719465cb805443acc2e1cbcbb42bb7*/
 #if !defined(__PRODUCT_CONFIG_GUCAS_H__)
 #define __PRODUCT_CONFIG_GUCAS_H__
 
@@ -60,10 +60,6 @@
 
 #ifndef VISP_IMS_NIC_CNT
 #define VISP_IMS_NIC_CNT 8 
-#endif 
-
-#ifndef TTF_MEM_POOL_CFG
-#define TTF_MEM_POOL_CFG TTF_MEM_SPECIFICATION3 
 #endif 
 
 #ifndef TTF_CF_FEATURE
@@ -156,6 +152,10 @@
 
 #ifndef FEATURE_UE_MODE_CDMA
 #define FEATURE_UE_MODE_CDMA FEATURE_ON 
+#endif 
+
+#ifndef FEATURE_CPROC_INT_OPTIMIZE
+#define FEATURE_CPROC_INT_OPTIMIZE FEATURE_OFF 
 #endif 
 
 #ifndef FEATURE_BASTET

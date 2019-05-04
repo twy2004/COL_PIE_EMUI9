@@ -251,7 +251,6 @@ typedef enum {
 
 #define FLAG_EXIST	1
 #define U8_MIN		0
-#define U8_MAX		0xFF
 enum {
 	BIT0_GND_CONNECTION = 0,
 	BIT1_TX_SNS_CH,

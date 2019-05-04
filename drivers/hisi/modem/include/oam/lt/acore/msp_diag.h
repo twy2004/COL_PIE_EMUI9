@@ -56,6 +56,13 @@ extern "C"
 
 #include <msp_diag_comm.h>
 
+/* diag debug switch */
+typedef struct
+{
+    VOS_UINT16 usMntnSwitch;    /* 1 打开 0关闭 */
+    VOS_UINT16 usMntnTime;      /*上报周期*/
+}DIAG_CMD_LOG_DIAG_MNTN_REQ_STRU;
+
 
 VOS_VOID DIAG_LogShowToFile(VOS_BOOL bIsSendMsg);
 

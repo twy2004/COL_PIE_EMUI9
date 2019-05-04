@@ -48,6 +48,8 @@
 /*lint -save -e537*/
 #include "mem_balong.h"
 #include "osl_barrier.h"
+#include <securec.h>
+
 /*lint -restore*/
 
 
@@ -120,7 +122,7 @@ typedef struct tagMEM_USED_INFO
 /* 内存分配管理信息 */
 typedef struct tagMEM_ALLOC_INFO
 {
-    void*           allocList[MEM_ALLOC_LIST_NUM];          /* 分配后回收的相应内存节点的大小*/
+    u32           allocList[MEM_ALLOC_LIST_NUM];          /* 分配后回收的相应内存节点的大小*/
     u32         allocNum[MEM_ALLOC_LIST_NUM];            /*已经分配出来的相应内存节点的数量*/
     MEM_USED_INFO   allocUsedInfoList[MEM_ALLOC_LIST_NUM];  /*调试使用*/
     MEM_POOL_INFO   memPoolInfo;                            /*内存池信息*/
@@ -356,7 +358,7 @@ void* bsp_pool_alloc(MEM_ALLOC_INFO* pAllocInfo, u32 u32Size)
    void* pvRetAddr = NULL;
    if (pAllocInfo->memPoolInfo.u32Left < u32Size)
    {
-        mem_print_error("alloc fail! left size = %x alloc size = %x", pAllocInfo->memPoolInfo.u32Left, u32Size);
+        mem_print_error("alloc fail! left size = %x alloc size = %x\n", pAllocInfo->memPoolInfo.u32Left, u32Size);
         return NULL;
    }
 
@@ -373,7 +375,7 @@ void* bsp_pool_alloc(MEM_ALLOC_INFO* pAllocInfo, u32 u32Size)
 void* bsp_get_item(MEM_ALLOC_INFO* pAllocInfo, u32 cnt, u32 u32PoolType, u32 u32Size)
 {
     void *pItem;
-    void **ppHead = &(pAllocInfo->allocList[cnt]);
+    void **ppHead = (void**)(&(pAllocInfo->allocList[cnt]));
 
     /* 如果链表中没有节点,则从内存池中分配 */
     if (!*ppHead)
@@ -497,7 +499,7 @@ void bsp_memory_free(u32 u32PoolType, void* pMem, u32 u32Size)
     else if (MEM_ICC_DDR_POOL == u32PoolType)
     {
         MEM_ITEM_NEXT(pMem) = (u32)((unsigned long)(pAllocInfo->allocList[cnt]));
-        pAllocInfo->allocList[cnt] = (void *)((unsigned long)SHD_DDR_V2P(pMem));
+        pAllocInfo->allocList[cnt] = (u32)((unsigned long)SHD_DDR_V2P(pMem));
     }
 
 #ifdef __BSP_MEM_DEBUG__
@@ -527,7 +529,7 @@ s32 bsp_mem_ccore_reset_cb(DRV_RESET_CB_MOMENT_E enParam, int userdata)
         *g_mem_init_mark = 0;
         MEM_LOCK_BY_TYPE(MEM_ICC_DDR_POOL);
         /* coverity[secure_coding] */
-        memset((void*)sg_pIccAllocInfo, 0, (sizeof(MEM_ALLOC_INFO)));
+        memset_s((void*)sg_pIccAllocInfo, sizeof(*sg_pIccAllocInfo), 0, (sizeof(MEM_ALLOC_INFO)));
         u32MaxInitNum = MEM_POOL_MAX;
         for (u32PoolType = (u32)MEM_NORM_DDR_POOL; u32PoolType < (u32)u32MaxInitNum; u32PoolType++)
         {
@@ -551,16 +553,16 @@ s32 bsp_mem_init(void)
     spin_lock_init(&g_ulMemSpinLock); /*lint !e123 */
 
     /* coverity[secure_coding] */
-    memset((void *)(SHM_BASE_ADDR + SHM_OFFSET_MEMMGR_FLAG), 0, SHM_SIZE_MEMMGR_FLAG);
+    memset_s((void *)(SHM_BASE_ADDR + SHM_OFFSET_MEMMGR_FLAG), SHM_SIZE_MEMMGR_FLAG, 0, SHM_SIZE_MEMMGR_FLAG);
 
     g_mem_init_mark = (u32* )MEM_CTX_ADDR;
     sg_pAllocSizeTbl = (u32*)(MEM_CTX_ADDR + MEM_CTX_RESERVED);
     sg_pIccAllocInfo = (MEM_ALLOC_INFO*)(MEM_CTX_ADDR + sizeof(sg_AllocListSize) + MEM_CTX_RESERVED);
 
     /* coverity[secure_coding] */
-    memset((void*)sg_pIccAllocInfo, 0, (sizeof(MEM_ALLOC_INFO)));
+    memset_s((void*)sg_pIccAllocInfo, sizeof(*sg_pIccAllocInfo), 0, (sizeof(MEM_ALLOC_INFO)));
     /* coverity[secure_coding] */
-    memcpy(sg_pAllocSizeTbl, sg_AllocListSize, sizeof(sg_AllocListSize));
+    memcpy_s(sg_pAllocSizeTbl, sizeof(sg_AllocListSize), sg_AllocListSize, sizeof(sg_AllocListSize));
     mb();
 
     u32MaxInitNum = MEM_POOL_MAX;
@@ -627,7 +629,7 @@ void* bsp_malloc(u32 u32Size, MEM_POOL_TYPE enFlags)
     if(pItem == NULL) {
         return NULL;
     }
-    memset((void*)pItem , 0 , u32Size);
+	memset_s((void*)pItem , u32Size, 0 , u32Size);
     return (void*)pItem;
 }
 EXPORT_SYMBOL(bsp_malloc);
@@ -646,7 +648,7 @@ EXPORT_SYMBOL(bsp_malloc);
 *****************************************************************************/
 void* bsp_malloc_dbg(u32 u32Size, MEM_POOL_TYPE enFlags, u8* pFileName, u32 u32Line)
 {
-    u8 *pItem = NULL;
+    u8 *pItem;
 
     /* 分配内存 */
     pItem = bsp_memory_alloc((u32)enFlags, (u32)u32Size);
@@ -729,6 +731,10 @@ void* bsp_smalloc(u32 u32Size, MEM_POOL_TYPE enFlags)
 {
     u8 *pItem;
     if(0 == *g_mem_init_mark)
+    {
+        return NULL;
+    }
+    if(enFlags >= MEM_POOL_MAX||enFlags < MEM_NORM_DDR_POOL)
     {
         return NULL;
     }

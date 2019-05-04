@@ -238,7 +238,7 @@ static void hisi_fb_set_bl_brightness(struct led_classdev *led_cdev,
 		return;
 	}
 
-	if (value < 0)
+	if (value < 0) //lint !e568
 		value = 0;
 
 	if (value > hisifd->panel_info.bl_max)

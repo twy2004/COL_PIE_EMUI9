@@ -10,6 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
 / {
     histarisp: isp@e8400000 {
         compatible          = "hisilicon,isp";
@@ -42,7 +43,7 @@
         ispsmmu-init-byap   = <0>;          /* Switch 10 for Whether Smmu Init by AP or Not */
         isp-mdc-flag        = <1>;          /* Switch 11 for Whether Use MDC or Not */
         isp-efuse-flag      = <0>;          /* Switch 12 for Whether Use efuse_deskew or Not */
-
+        useloadbin          = <1>;          /* Switch 13 for Whether Use load binary image or Not */
 
         /* Misc Items */
         isp-names           = "ISPCPU";     /* Name of MPU */
@@ -104,6 +105,15 @@
         a7-vaddr-mdc        = <0xC0900000 0x00100000 0x00000007 0x00000000 0x00000000>;  			/* Trusted ISP Page Table Mapping 14 for MDC Memory Space */
         /*                    <ispva      size       prot       offset     reserve   >*/
 
+        /* QOS Items */
+        qos-num         = <26>;
+        qos-offset      = <0x000C 0x0018 0x008C 0x0098 0x0118 0x0198 0x020C 0x0218 0x028C 0x0298
+                           0x0108 0x010C 0x0188 0x018C 0x0010 0x0014 0x0090 0x0094 0x0110 0x0114
+                           0x0190 0x0194 0x0210 0x0214 0x0290 0x0294>;
+        qos-value       = <0x0001 0x0001 0x0001 0x0001 0x0001 0x0001 0x0001 0x0001 0x0001 0x0001
+                           0x0303 0x0000 0x0303 0x0000 0x1000 0x0020 0x1000 0x0020 0x1000 0x0020
+                           0x1000 0x0020 0x1000 0x0020 0x1000 0x0020>;
+
         /* Definition for Smmu/Iommu Driver */
         iommu_info {
             start-addr      = <0xc0000000>;
@@ -137,18 +147,15 @@
               <0 0xe8320000 0 0x20000>,     // ISP FD SMMU
               <0 0xe8303000 0 0x1000>,      // smmu master reg
               <0 0xe8304000 0 0x1000>;      // JPG TOP
-        interrupts = <0 307 4>,
-                     <0 308 4>;
+        interrupts = <0 307 4>;
         isp-hfd-supply = <&ispsubsys>;
         hisi-media-supply = <&media1_subsys>;
         clocks = <&clk_gate_fdai_func &clk_gate_jpg_func>;
         clock-names = "clk_fdai_func", "clk_jpg_func";
         clock_poweroff_freq = <332000000>;
-        clock_frequency = <480000000 553333333 640000000>;
+        clock_frequency = <480000000 554000000 640000000>;
         reg-num = <4>;
         irq-num = <1>;
-        fd_pre_reg = <0x00000824 0x00000840 0x00000844 0x00000848 0x0000084c 0x00000850 0x00000854 0x00000858 0x0000085c 0x00000860 0x00000864 0x000008c0 0x00000a4c>;
-        fd_pre_val = <0x00002201 0x077f077f 0x00000000 0x00000000 0x00000000 0x00000400 0x0400064d 0x1e211f40 0x076c0400 0x00000000 0x00000001 0x00000000 0x00000002>;
         status = "ok";
     };
 };

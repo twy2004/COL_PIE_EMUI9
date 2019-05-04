@@ -104,9 +104,8 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
     /* 前两个U32保存A/C核PID个数 */
     ullen =   sizeof(g_ulDiagCfgInfo)
             + sizeof(g_stPortCfg)
-            + sizeof(VOS_UINT32) + sizeof(g_stAcpuDebugInfo)
-            + sizeof(VOS_UINT32) + sizeof(g_stVComDebugInfo);
-
+            + sizeof(VOS_UINT32) + sizeof(g_stAcpuDebugInfo);
+     ullen += sizeof(VOS_UINT32) + sizeof(g_stVComDebugInfo);
     pData = (VOS_UINT8 *)VOS_MemAlloc(DIAG_AGENT_PID, DYNAMIC_MEM_PT, ullen);
     if(VOS_NULL == pData)
     {
@@ -134,7 +133,7 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
         return ;
     }
 
-    ret = DIAG_DebugFileHeader(pFile);
+    ret = mdrv_diag_debug_file_header(pFile);
     if(VOS_OK != ret)
     {
         diag_error(" DIAG_DebugFileHeader failed .\n");
@@ -185,86 +184,13 @@ VOS_VOID DIAG_DebugCommon(VOS_VOID)
         diag_error(" mdrv_file_write pData failed.\n");
     }
 
-    DIAG_DebugFileTail(pFile, FilePath);
+    mdrv_diag_debug_file_tail(pFile, FilePath);
 
     (VOS_VOID)mdrv_file_close(pFile);
 
     VOS_MemFree(DIAG_AGENT_PID, pData);
 
     return ;
-}
-
-
-VOS_UINT32 DIAG_DebugFileHeader(void *pFile)
-{
-    VOS_UINT32 ret;
-    VOS_UINT32 ulValue;
-
-    ret = (VOS_UINT32)mdrv_file_seek(pFile, 0, DRV_SEEK_SET);
-    if(VOS_OK != ret)
-    {
-        diag_error(" mdrv_file_seek failed .\n");
-        return ERR_MSP_FAILURE;
-    }
-
-    ulValue = DIAG_DEBUG_START;
-
-    /* file start flag */
-    ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
-    if(ret != sizeof(ulValue))
-    {
-        diag_error(" mdrv_file_write start flag failed.\n");
-        return ERR_MSP_FAILURE;
-    }
-
-    ulValue = DIAG_DEBUG_VERSION;
-
-    /* debug version */
-    ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
-    if(ret != sizeof(ulValue))
-    {
-        diag_error(" mdrv_file_write debug version failed.\n");
-        return ERR_MSP_FAILURE;
-    }
-
-    ulValue = 0;
-
-    /* file size */
-    ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
-    if(ret != sizeof(ulValue))
-    {
-        diag_error(" mdrv_file_write file size failed.\n");
-        return ERR_MSP_FAILURE;
-    }
-
-    ulValue = VOS_GetSlice();
-
-    /* 当前的slice */
-    ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
-    if(ret != sizeof(ulValue))
-    {
-        diag_error(" mdrv_file_write ulTime failed.\n");
-        return ERR_MSP_FAILURE;
-    }
-
-    return ERR_MSP_SUCCESS;
-}
-
-
-
-VOS_VOID DIAG_DebugFileTail(void *pFile, VOS_CHAR *FilePath)
-{
-    VOS_UINT32 ret;
-    VOS_UINT32 ulValue;
-
-    /* file end flag */
-    ulValue = DIAG_DEBUG_END;
-    ret = (VOS_UINT32)mdrv_file_write(&ulValue, 1, sizeof(ulValue), pFile);
-    if(ret != sizeof(ulValue))
-    {
-        diag_error(" mdrv_file_write start flag failed.\n");
-    }
-
 }
 
 
@@ -364,7 +290,7 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
         return ;
     }
 
-    ret = DIAG_DebugFileHeader(pFile);
+    ret = mdrv_diag_debug_file_header(pFile);
     if(VOS_OK != ret)
     {
         diag_error(" DIAG_DebugFileHeader failed .\n");
@@ -465,7 +391,7 @@ VOS_VOID DIAG_DebugNoIndLog(VOS_VOID)
 
     diag_numberinfo(pFile);
 
-    DIAG_DebugFileTail(pFile, FilePath);
+    mdrv_diag_debug_file_tail(pFile, FilePath);
 
     (VOS_VOID)mdrv_file_close(pFile);
 

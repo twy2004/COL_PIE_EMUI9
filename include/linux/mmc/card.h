@@ -325,7 +325,7 @@ struct mmc_card {
 #define MMC_QUIRK_TRIM_BROKEN	(1<<12)		/* Skip trim */
 #define MMC_QUIRK_BROKEN_HPI	(1<<13)		/* Disable broken HPI support */
 #define MMC_QUIRK_DISABLE_PON   (1<<23)
-
+#define MMC_QUIRK_DISABLE_CMD_SEVEN_FIVE_INSUSPEND   (1<<24)	/*Cancel cmd5/cmd7 send for micron32L when sleep/awake*/
 
 	unsigned int		erase_size;	/* erase size in sectors */
  	unsigned int		erase_shift;	/* if erase unit is power 2 */

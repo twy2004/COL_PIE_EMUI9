@@ -49,7 +49,8 @@
 /*715:Symbol  not referenced, 838 Previously assigned value to variable has not been used*/
 #include <mdrv_pm.h>
 #include <bsp_pm_om.h>
-
+#include <osl_module.h>
+#include <bsp_module.h>
 #undef THIS_MODU
 #define THIS_MODU mod_pm_om
 
@@ -80,7 +81,7 @@ int mdrv_pm_info_stat_register(pm_info_cbfun pcbfun, struct pm_info_usr_data *us
 
 	if (usr_data == NULL || pcbfun == NULL)
 	{
-		pmom_pr_err("null pointer: usr_data(%p), pcbfun(%p)\n", usr_data, pcbfun);
+		pmom_pr_err("null pointer: usr_data, pcbfun\n");
 	}
 	else if (usr_data->mod_id >= PM_OM_MOD_ID_ENUM_MAX)
 	{

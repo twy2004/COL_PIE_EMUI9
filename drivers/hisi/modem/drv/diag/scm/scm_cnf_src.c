@@ -66,8 +66,6 @@
 #include "diag_system_debug.h"
 
 
-#define SOCP_CODER_SRC_CNF     SOCP_CODER_SRC_LOM_CNF1
-
 /* ****************************************************************************
   2 全局变量定义
 **************************************************************************** */
@@ -78,7 +76,7 @@ SCM_CODER_SRC_CFG_STRU      g_astSCMCnfCoderSrcCfg=
     SOCP_CODER_DST_OM_CNF,
     SOCP_DATA_TYPE_0,
     SOCP_ENCSRC_CHNMODE_CTSPACKET,
-    SOCP_CHAN_PRIORITY_2,
+    SOCP_CHAN_PRIORITY_3,
     SOCP_TRANS_ID_DIS,
     SOCP_PTR_IMG_DIS,
     SCM_CODER_SRC_BDSIZE,

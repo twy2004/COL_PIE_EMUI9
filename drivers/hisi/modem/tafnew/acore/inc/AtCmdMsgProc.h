@@ -69,6 +69,8 @@
 
 #include "TafAppCall.h"
 
+#include "TafCcmApi.h"
+
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -137,6 +139,8 @@ extern "C" {
 #define AT_CMD_TIMEQRY_HOUR_DEFAULT_VALUE                 (8)
 
 
+#define AT_SIGNAL_INVALID_VALUE            (99)
+
 #define AT_PSEUD_BTS_PARAM_ENABLE          (1)                 /* 查询伪基站是否支持 */
 #define AT_PSEUD_BTS_PARAM_TIMES           (2)                 /* 查询伪基站拦截次数 */
 
@@ -179,15 +183,33 @@ typedef VOS_UINT32 (*AT_MMA_MSG_PROC_FUNC)(VOS_VOID *pMsg);
 
 typedef VOS_UINT32 (*AT_XCALL_MSG_PROC_FUNC)(VOS_VOID *pMsg);
 
+typedef VOS_UINT32 (*AT_CCM_MSG_PROC_FUNC)(VOS_VOID *pMsg);
+
+typedef VOS_VOID (*AT_MSG_PROC_FUNC)(VOS_VOID *pMsg);
+
 /*****************************************************************************
  结构名    : DRV_AGENT_MSG_PROC_STRU
  结构说明  : 消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     DRV_AGENT_MSG_TYPE_ENUM_UINT32       ulMsgType;
     pAtProcMsgFromDrvAgentFunc           pProcMsgFunc;
 }AT_PROC_MSG_FROM_DRV_AGENT_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
+
+/*****************************************************************************
+ 结构名    : AT_MSG_PROC_STRU
+ 结构说明  : 消息与对应处理函数的结构
+*****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
+typedef struct
+{
+    VOS_UINT32                          ulSndPid;
+    AT_MSG_PROC_FUNC                    pProcMsgFunc;
+}AT_MSG_PROC_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
  Structure      : NAS_AT_OUTSIDE_RUNNING_CONTEXT_PART_ST
@@ -251,42 +273,62 @@ typedef struct
  结构名    : AT_PROC_MSG_FROM_MTA_STRU
  结构说明  : AT与MTA消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_MTA_MSG_TYPE_ENUM_UINT32         ulMsgType;
     AT_MTA_MSG_PROC_FUNC                pProcMsgFunc;
 }AT_PROC_MSG_FROM_MTA_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
  结构名    : AT_PROC_MSG_FROM_MTA_STRU
  结构说明  : AT与MTA消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     VOS_UINT32                          ulMsgName;
     AT_MMA_MSG_PROC_FUNC                pProcMsgFunc;
 }AT_PROC_MSG_FROM_MMA_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 
 /*****************************************************************************
  结构名    : AT_PROC_MSG_FROM_CALL_STRU
  结构说明  : AT与XCALL消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     TAF_CCA_MSG_TYPE_ENUM_UINT32        ulMsgName;
     AT_XCALL_MSG_PROC_FUNC              pProcMsgFunc;
 }AT_PROC_MSG_FROM_CALL_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
+
+/*****************************************************************************
+ 结构名    : AT_PROC_MSG_FROM_CCM_STRU
+ 结构说明  : AT与CCM消息与对应处理函数的结构
+*****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
+typedef struct
+{
+    TAF_CCM_MSG_TYPE_ENUM_UINT32        ulMsgName;
+    AT_CCM_MSG_PROC_FUNC                pProcMsgFunc;
+}AT_PROC_MSG_FROM_CCM_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
  结构名    : AT_PROC_MSG_FROM_XPDS_STRU
  结构说明  : AT与XPDS消息与对应处理函数的结构
 *****************************************************************************/
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     AT_XPDS_MSG_TYPE_ENUM_UINT32        ulMsgType;
     AT_MMA_MSG_PROC_FUNC                pProcMsgFunc;
 }AT_PROC_MSG_FROM_XPDS_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 /*****************************************************************************
   8 UNION定义
@@ -317,7 +359,6 @@ VOS_UINT32 At_RcvAtCcMsgStateQryCnfProc(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentHardwareQryRsp(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvDrvAgentFullHardwareQryRsp(VOS_VOID *pMsg);
-VOS_UINT32 AT_RcvDrvAgentSetRxdivCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentQryRxdivCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentSetSimlockCnf(VOS_VOID *pMsg);
 
@@ -368,14 +409,12 @@ VOS_UINT32 AT_RcvDrvAgentQryVersionRsp(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvDrvAgentQrySecuBootRsp(VOS_VOID *pMsg);
 
-VOS_UINT32 AT_RcvDrvAgentSetFchanRsp(VOS_VOID *pMsg);
-
 VOS_UINT32 AT_RcvDrvAgentQrySfeatureRsp(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvDrvAgentQryProdtypeRsp(VOS_VOID * pMsg);
 
 
-extern VOS_VOID At_CmdMsgDistr(AT_MSG_STRU *pstMsg);
+extern VOS_VOID At_CmdMsgDistr(VOS_VOID *pMsg);
 
 extern VOS_VOID At_CovertMsInternalRxDivParaToUserSet(
     VOS_UINT16                          usCurBandSwitch,
@@ -390,8 +429,6 @@ extern VOS_BOOL AT_E5CheckRight(
     VOS_UINT8                          *pucData,
     VOS_UINT16                          usLen
 );
-
-VOS_UINT32 AT_RcvDrvAgentTseLrfSetRsp(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvDrvAgentHkAdcGetRsp(VOS_VOID *pMsg);
 
@@ -433,16 +470,13 @@ VOS_UINT32 AT_RcvDrvAgentPhoneSimlockInfoQryCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentSimlockDataReadQryCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentPhonePhynumSetCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentPhonePhynumQryCnf(VOS_VOID *pMsg);
-VOS_UINT32 AT_RcvDrvAgentPortctrlTmpSetCnf(VOS_VOID *pMsg);
-VOS_UINT32 AT_RcvDrvAgentPortAttribSetCnf(VOS_VOID *pMsg);
-VOS_UINT32 AT_RcvDrvAgentPortAttribSetQryCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvDrvAgentOpwordSetCnf(VOS_VOID *pMsg);
 
 extern VOS_UINT32 AT_RcvMtaCposSetCnf(VOS_VOID *pMsg);
 extern VOS_UINT32 AT_RcvMtaCposrInd(VOS_VOID *pMsg);
 extern VOS_UINT32 AT_RcvMtaXcposrRptInd(VOS_VOID *pMsg);
 extern VOS_UINT32 AT_RcvMtaCgpsClockSetCnf(VOS_VOID *pMsg);
-extern VOS_VOID At_ProcMtaMsg(AT_MTA_MSG_STRU *pMsg);
+extern VOS_VOID AT_ProcImsaMsg(VOS_VOID *pMsg);
 
 extern VOS_VOID AT_Rpt_NV_Read( VOS_VOID );
 
@@ -506,6 +540,10 @@ VOS_UINT32 AT_ProcMtaUnsolicitedRptQryCnf(
 
 
 VOS_UINT32 AT_ProcCerssiInfoQuery(VOS_VOID *pstMsg);
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_ProcCserssiInfoQuery(VOS_VOID *pstMsg);
+#endif
+
 VOS_INT16 AT_ConvertCerssiRssiToCesqRxlev(VOS_INT16 sRssiValue);
 VOS_INT16 AT_ConvertCerssiRscpToCesqRscp(VOS_INT16 sRscpValue);
 VOS_INT8 AT_ConvertCerssiEcnoToCesqEcno(VOS_INT8 cEcno);
@@ -550,8 +588,6 @@ VOS_UINT32 AT_RcvMtaRefclkfreqSetCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaRefclkfreqQryCnf(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvMtaRefclkfreqInd(VOS_VOID *pMsg);
-
-VOS_UINT32 AT_RcvMtaRficSsiRdQryCnf(VOS_VOID *pMsg);
 
 VOS_UINT32 AT_RcvMtaHandleDectSetCnf(
     VOS_VOID                           *pMsg
@@ -977,6 +1013,21 @@ VOS_UINT32 AT_RcvMtaErrcCapQryCnf(
 );
 #endif
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_RcvMtaLendcQryCnf(
+    VOS_VOID                           *pstMsg
+);
+VOS_UINT32 AT_RcvMtaLendcInfoInd(
+    VOS_VOID                           *pMsg
+);
+
+#if (FEATURE_ON == FEATURE_PHONE_ENG_AT_CMD)
+VOS_UINT32 AT_RcvMtaNrFreqLockSetCnf(VOS_VOID * pMsg);
+VOS_UINT32 AT_RcvMtaNrFreqLockQryCnf(VOS_VOID * pMsg);
+#endif
+
+#endif
+
 VOS_UINT32 AT_RcvMtaPseucellInfoSetCnf(
     VOS_VOID                           *pstMsg
 );
@@ -1151,12 +1202,6 @@ VOS_UINT32 AT_RcvMtaTransModeQryCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaUECenterQryCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaUECenterSetCnf(VOS_VOID *pMsg);
 
-extern VOS_UINT32  At_MipiRdCnfProc( HPA_AT_MIPI_RD_CNF_STRU    *pstMsg );
-extern VOS_UINT32  At_MipiWrCnfProc( HPA_AT_MIPI_WR_CNF_STRU    *pstMsg );
-extern VOS_UINT32  At_SsiWrCnfProc( HPA_AT_SSI_WR_CNF_STRU  *pstMsg );
-extern VOS_UINT32  At_SsiRdCnfProc(HPA_AT_SSI_RD_CNF_STRU   *pstMsg );
-
-extern VOS_UINT32  At_PdmCtrlCnfProc( HPA_AT_PDM_CTRL_CNF_STRU  *pstMsg );
 VOS_UINT32 AT_RcvMmaInitLocInfoInd(
     VOS_VOID                           *pMsg
 );
@@ -1251,6 +1296,12 @@ VOS_UINT32 AT_RcvMtaPhyCommAckInd(
     VOS_VOID                           *pMsg
 );
 
+#if ( FEATURE_ON == FEATURE_DCXO_HI1102_SAMPLE_SHARE )
+VOS_UINT32 AT_RcvMtaRcmDcxoSampleQryCnf(
+    VOS_VOID                           *pMsg
+);
+#endif
+
 VOS_UINT32 AT_RcvMtaCommBoosterInd(
     VOS_VOID                           *pstMsg
 );
@@ -1286,13 +1337,8 @@ VOS_UINT32 AT_RcvMtaPseudBtsSetCnf (VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaSubClfSparamSetCnf(VOS_VOID *pMsg);
 VOS_UINT32 AT_RcvMtaSubClfSparamQryCnf(VOS_VOID *pMsg);
 
-
-VOS_VOID  At_WTxCltIndProc(
-    WPHY_AT_TX_CLT_IND_STRU            *pstMsg
-);
-
 #ifdef MBB_SLT
-VOS_UINT32 AT_RcvMtaHifiTestSetCnf(
+VOS_UINT32 AT_RcvMtaSltTestSetCnf(
     VOS_VOID                           *pstMsg
 );
 #endif
@@ -1313,6 +1359,41 @@ VOS_UINT16 AT_PrintRejinfo(
 );
 
 VOS_UINT32 AT_RcvMmaElevatorStateInd(VOS_VOID  *pMsg);
+
+VOS_UINT32 AT_RcvTafCallCnapQryCnf(VOS_VOID *pstMsg);
+
+VOS_UINT32 AT_RcvTafCcmCSChannelInfoQryCnf(VOS_VOID *pMsg);
+
+VOS_UINT32 AT_RcvTafCcmChannelInfoInd(VOS_VOID *pEvtInfo);
+
+#if (FEATURE_ON == FEATURE_IMS)
+VOS_UINT32 At_RcvTafCcmCallModifyCnf(VOS_VOID *pMsg);
+
+VOS_UINT32 At_RcvTafCcmCallAnswerRemoteModifyCnf(VOS_VOID *pMsg);
+
+VOS_UINT32 AT_RcvTafCcmQryEconfCalledInfoCnf(VOS_VOID *pMsg);
+VOS_UINT32 AT_RcvTafCcmCallModifyStatusInd(VOS_VOID *pMsg);
+#endif
+
+VOS_VOID At_TafAndDmsMsgProc(VOS_VOID *pstMsg);
+TAF_VOID At_PppMsgProc(VOS_VOID *pMsg);
+VOS_VOID AT_RcvNdisMsg(VOS_VOID *pMsg);
+VOS_VOID  At_HPAMsgProc(VOS_VOID *pstMsg);
+VOS_VOID  At_GHPAMsgProc(VOS_VOID *pstMsg);
+TAF_VOID At_MmaMsgProc(VOS_VOID *pMsg);
+VOS_VOID At_ProcMsgFromDrvAgent(VOS_VOID *pMsg);
+VOS_VOID At_ProcMsgFromVc(VOS_VOID *pMsg);
+VOS_VOID At_ProcMsgFromCc(VOS_VOID *pMsg);
+VOS_VOID At_RcvRnicMsg(VOS_VOID *pstMsg);
+TAF_VOID AT_RabmMsgProc(VOS_VOID *pMsg);
+VOS_VOID At_ProcMtaMsg(VOS_VOID *pstMsg);
+#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
+VOS_VOID  At_CHPAMsgProc(VOS_VOID *pstMsg);
+#endif
+
+VOS_VOID At_CcmMsgProc(VOS_VOID *pMsg);
+
+
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else

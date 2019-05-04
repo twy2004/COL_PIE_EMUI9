@@ -69,8 +69,6 @@ enum modem_patch_status
 
 #define NVME_COLD_PATCH_ID 260
 
-#define SECBOOT_RET_COLD_PATCH_SPLICING_FAIL (0xFFFFFF22)
-
 enum modem_patch_type
 {
     CCORE_PATCH,
@@ -83,6 +81,8 @@ enum modem_patch_type
     MAX_PATCH,
 };
 
+#pragma pack(push,1)
+
 struct modem_patch_info_s
 {
     char patch_exist;  //补丁是否存在
@@ -91,18 +91,29 @@ struct modem_patch_info_s
     char reserved2;
 };
 
+struct patch_ret_value_s
+{
+    unsigned int load_ret_val;
+    unsigned int splice_ret_val;
+};
+
 struct cold_patch_info_s
 {
    char cold_patch_status;  //补丁是否已经打上，只要任意一个补丁镜像加载、拼接成功，该成员就会被置1;
                            //modem在异常复位时，如果该成员被置为1，更新成员modem_update_fail_count
    char modem_patch_update_count; //冷补丁更新次数 
    char modem_update_fail_count;  //modem升级失败次数，当该成员超过3次后，再次启动时就不会加载补丁镜像
+   char rev;
    struct modem_patch_info_s modem_patch_info[MAX_PATCH]; //分别记录nv、dsp、ccore的补丁信息,剩下的预留
+   struct patch_ret_value_s patch_ret_value[MAX_PATCH];
 };
+
+#pragma pack(pop)
 
 int bsp_nvem_cold_patch_read(struct cold_patch_info_s *p_cold_patch_info);
 int bsp_nvem_cold_patch_write(struct cold_patch_info_s *p_cold_patch_info);
 bool bsp_modem_cold_patch_is_exist(void);
+void bsp_modem_cold_patch_update_modem_fail_count(void);
 ssize_t modem_imag_patch_status_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count);
 ssize_t modem_imag_patch_status_show(struct device *dev,struct device_attribute *attr, char *buf);
 int bsp_modem_cold_patch_init(void);

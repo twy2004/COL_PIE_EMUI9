@@ -65,6 +65,8 @@
 #include "TafAppCall.h"
 #include "ATCmdProc.h"
 
+#include "TafCcmApi.h"
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -181,11 +183,13 @@ typedef TAF_VOID (*AT_QRY_PARA_PROC_FUNC)(TAF_UINT8   ucIndex,
                                           TAF_UINT8   OpId,
                                           TAF_VOID    *pPara);
 
+/*lint -e958 -e959 ;cause:64bit*/
 typedef struct
 {
     VOS_UINT32                          QueryType;                              /* 查询类型 */
     AT_QRY_PARA_PROC_FUNC               AtQryParaProcFunc;                      /* 查询类型对应的处理函数 */
 }AT_QUERY_TYPE_FUNC_STRU;
+/*lint +e958 +e959 ;cause:64bit*/
 
 
 typedef struct
@@ -315,12 +319,10 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpErrorInd(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtPdpActivateCnf
- 功能描述  :
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_PDP_ACTIVATE_CNF事件的处理
  输入参数  : pEvtInfo                   - 事件内容(不包含EvtId)
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf(
     VOS_UINT8                           ucIndex,
@@ -329,12 +331,10 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateCnf(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtPdpActivateRej
- 功能描述  :
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_PDP_ACTIVATE_REJ事件的处理
  输入参数  : pEvtInfo                   - 事件内容(不包含EvtId)
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtPdpActivateRej(
     VOS_UINT8                           ucIndex,
@@ -413,12 +413,11 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpModifiedInd(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtPdpDeactivateCnf
- 功能描述  :
- 输入参数  : VOS_VOID                           *pEvtInfo
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_PDP_DEACTIVATE_CNF事件的处理
+ 输入参数  : ucIndex                    - 客户端索引
+             pEvtInfo                   - 事件内容, MN_PS_EVT_STRU去除EvtId
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivateCnf(
     VOS_UINT8                           ucIndex,
@@ -427,12 +426,11 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivateCnf(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtPdpDeactivatedInd
- 功能描述  :
- 输入参数  : VOS_VOID                           *pEvtInfo
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_PDP_DEACTIVATE_IND事件的处理
+ 输入参数  : ucIndex                    - 客户端索引
+             pEvtInfo                   - 事件内容, MN_PS_EVT_STRU去除EvtId
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivatedInd(
     VOS_UINT8                           ucIndex,
@@ -442,12 +440,11 @@ VOS_UINT32 AT_RcvTafPsCallEvtPdpDeactivatedInd(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtCallOrigCnf
- 功能描述  :
- 输入参数  : VOS_VOID                           *pEvtInfo
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_ORIG_CNF事件的处理
+ 输入参数  : ucIndex                    - 客户端索引
+             pEvtInfo                   - 事件内容, MN_PS_EVT_STRU去除EvtId
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf(
     VOS_UINT8                           ucIndex,
@@ -456,12 +453,11 @@ VOS_UINT32 AT_RcvTafPsCallEvtCallOrigCnf(
 
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsCallEvtCallEndCnf
- 功能描述  :
- 输入参数  : VOS_VOID                           *pEvtInfo
+ 功能描述  : A核收到ID_EVT_TAF_PS_CALL_END_CNF事件的处理
+ 输入参数  : ucIndex                    - 客户端索引
+             pEvtInfo                   - 事件内容, MN_PS_EVT_STRU去除EvtId
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsCallEvtCallEndCnf(
     VOS_UINT8                           ucIndex,
@@ -1053,11 +1049,10 @@ VOS_UINT32 AT_RcvTafPsEvtCgmtuValueChgInd(
 /*****************************************************************************
  函 数 名  : AT_RcvTafPsEvtReportDsFlowInd
  功能描述  : ID_EVT_TAF_PS_IPV6_INFO_IND事件处理函数, 用于处理IPV6的RA参数
- 输入参数  : pEvtInfo                   - 事件内容,
+ 输入参数  : VOS_UINT8                           ucIndex
+             VOS_VOID                           *pEvtInfo
  输出参数  : 无
  返 回 值  : VOS_UINT32
- 调用函数  :
- 被调函数  :
 *****************************************************************************/
 VOS_UINT32 AT_RcvTafPsEvtReportRaInfo(
     VOS_UINT8                           ucIndex,
@@ -1077,6 +1072,15 @@ VOS_VOID AT_QryParaRspCeregProc(
     VOS_VOID                           *pPara
 );
 
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_VOID AT_QryParaRspC5gregProc(
+    VOS_UINT8                           ucIndex,
+    VOS_UINT8                           ucOpId,
+    VOS_VOID                           *pPara
+);
+#endif
+
+
 VOS_UINT32 AT_RcvTafPsEvtGetDynamicDnsInfoCnf(
     VOS_UINT8                           ucIndex,
     VOS_VOID                           *pEvtInfo
@@ -1092,6 +1096,19 @@ VOS_UINT32 atReadLtecsCnfProc(VOS_UINT8   ucIndex,VOS_VOID    *pEvtInfo);
 VOS_UINT32 atReadCemodeCnfProc(VOS_UINT8   ucIndex,VOS_VOID    *pEvtInfo);
 
 
+/*****************************************************************************
+ 函 数 名  : AT_RcvTafGetLteAttachInfoCnf
+ 功能描述  : ID_MSG_TAF_PS_GET_LTE_ATTACH_INFO_CNF事件处理函数
+ 输入参数  : VOS_UINT8                  ucIndex,
+             VOS_VOID                  *pEvtInfo       - 事件内容, MN_PS_EVT_STRU去除EvtId
+ 输出参数  : 无
+ 返 回 值  : VOS_UINT32
+
+*****************************************************************************/
+VOS_UINT32 AT_RcvTafGetLteAttachInfoCnf(
+    VOS_UINT8                           ucIndex,
+    VOS_VOID                           *pEvtInfo
+);
 #endif
 
 
@@ -1167,9 +1184,6 @@ VOS_VOID AT_PhNetScanReportFailure(
 );
 
 TAF_UINT32 AT_ProcOperModeWhenLteOn(VOS_UINT8 ucIndex);
-
-
-VOS_VOID AT_RcvMnCallChannelInfoInd(VOS_VOID *pEvtInfo);
 
 
 
@@ -1289,17 +1303,10 @@ VOS_VOID At_ProcQryClccResult(
 );
 
 #if (FEATURE_ON == FEATURE_IMS)
-VOS_VOID At_RcvTafCallModifyCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-);
-VOS_VOID At_RcvTafCallAnswerRemoteModifyCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-);
-VOS_VOID At_RcvTafCallModifyStatusInd(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
+
+VOS_UINT32 At_ProcQryClccEconfResult(
+    TAF_CCM_QRY_ECONF_CALLED_INFO_CNF_STRU                 *pstCallInfos,
+    VOS_UINT8                                               ucIndex
 );
 
 VOS_VOID AT_RcvTafEconfDialCnf(
@@ -1312,10 +1319,6 @@ VOS_VOID AT_RcvTafEconfNotifyInd(
     VOS_UINT16                          usLen
 );
 
-VOS_VOID AT_RcvTafGetEconfInfoCnf(
-    MN_AT_IND_EVT_STRU                 *pstData,
-    VOS_UINT16                          usLen
-);
 
 VOS_VOID AT_RcvTafCallCcwaiSetCnf(
     MN_AT_IND_EVT_STRU                 *pstData
@@ -1522,6 +1525,21 @@ VOS_UINT32 AT_RcvTafPsEvtDataSystemChgNtf(
     VOS_UINT8                           ucIndex,
     VOS_VOID                           *pEvtInfo
 );
+#if (FEATURE_ON == FEATURE_UE_MODE_NR)
+VOS_UINT32 AT_RcvTafPsEvtSet5gQosInfoCnf(
+    VOS_UINT8                           ucIndex,
+    VOS_VOID                           *pEvtInfo
+);
+VOS_UINT32 AT_RcvTafPsEvtGet5gQosInfoCnf(
+    VOS_UINT8                           ucIndex,
+    VOS_VOID                           *pEvtInfo
+);
+
+VOS_UINT32 AT_RcvTafPsEvtGetDynamic5gQosInfoCnf(
+    VOS_UINT8                           ucIndex,
+    VOS_VOID                           *pEvtInfo
+);
+#endif
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()
 #else

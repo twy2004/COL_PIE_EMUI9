@@ -306,9 +306,12 @@ enum MN_MSG_IMS_CAUSE_ENUM
     MN_MSG_IMS_CAUSE_SMS_NO_SMSC                            = 0x07,
     MN_MSG_IMS_CAUSE_SMS_NO_IPSMGW                          = 0x08,
 
-    MN_MSG_IMS_CAUSE_UNSPECIFIED_ERR                        = 0xff
+    MN_MSG_IMS_CAUSE_IMS_FORBIDDEN                          = 0x193, /* #403 */
+    MN_MSG_IMS_CAUSE_IMS_REQUEST_TIMEOUT                    = 0x198, /* #408 */
+
+    MN_MSG_IMS_CAUSE_UNSPECIFIED_ERR                        = 0xffff
 };
-typedef VOS_UINT8  MN_MSG_IMS_CAUSE_ENUM_UINT8;
+typedef VOS_UINT16  MN_MSG_IMS_CAUSE_ENUM_UINT16;
 
 
 enum MN_MSG_IMSA_CAUSE_ENUM
@@ -317,6 +320,8 @@ enum MN_MSG_IMSA_CAUSE_ENUM
     MN_MSG_IMSA_CAUSE_SMS_OPERATING                          = 0x02,
 
     MN_MSG_IMSA_CAUSE_NO_RF                                  = 0x03,
+    MN_MSG_IMSA_CAUSE_FT_IMS_SPECIAL_FAIL_CELLULAR_ROAM_IMS_IN_WIFI = 0x04,
+    MN_MSG_IMSA_CAUSE_SEND_MESSAGE_PROTECT_TIMEOUT           = 0x05,    /* 法电需求，短信发送8s定时器超时原因值 */
 
     MN_MSG_IMSA_CAUSE_UNSPECIFIED_ERR                        = 0xff
 };
@@ -488,7 +493,7 @@ enum MN_MSG_MEM_STORE_ENUM
 {
     MN_MSG_MEM_STORE_NONE                                   = 0,                                                     /*not saved by PS*/
     MN_MSG_MEM_STORE_SIM,                                                       /*saved in USIM*/
-    MN_MSG_MEM_STORE_NV,                                                        /*saved in NVIM*/
+    MN_MSG_MEM_STORE_ME,                                                        /*saved in ME*/
     MN_MSG_MEM_STORE_MAX
 } ;
 typedef VOS_UINT8  MN_MSG_MEM_STORE_ENUM_U8;

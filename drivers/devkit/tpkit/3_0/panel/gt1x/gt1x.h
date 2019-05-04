@@ -451,6 +451,7 @@ struct gt1x_ts_data {
 	int fw_only_depend_on_lcd;//0 : fw depend on TP and others ,1 : fw only depend on lcd.
 	char lcd_panel_info[LCD_PANEL_INFO_MAX_LEN];
 	char  lcd_module_name[MAX_STR_LEN];
+	int init_delay;
 };
 
 #define IC_TYPE_9PT 0

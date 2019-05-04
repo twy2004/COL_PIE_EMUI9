@@ -808,36 +808,6 @@ static ssize_t ts_touch_window_show(struct device* dev, struct device_attribute*
 
 static ssize_t ts_loglevel_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count)
 {
-    int error = 0;
-/*    unsigned int value;
-    struct ts_kit_device_data* dev_data = g_ts_kit_platform_data.chip_data;
-
-    TS_LOG_INFO("ts_loglevel_store called\n");
-
-    if (dev == NULL)
-    {
-        TS_LOG_ERR("dev is null\n");
-        error = -EINVAL;
-        goto out;
-    }
-
-    error = sscanf(buf, "%u", &value);
-    if (!error)
-    {
-        TS_LOG_ERR("sscanf return invaild :%d\n", error);
-        error = -EINVAL;
-        goto out;
-    }
-    TS_LOG_DEBUG("sscanf value is %u\n", value);
-    g_ts_kit_log_cfg = value;
-    error = count;
-
-    if (dev_data->ops->chip_debug_switch)
-    { dev_data->ops->chip_debug_switch(g_ts_kit_log_cfg); }
-
-out:
-    TS_LOG_INFO("ts_loglevel_store done\n");
-*/
     return count;
 }
 
@@ -1205,7 +1175,7 @@ static ssize_t ts_easy_wakeup_control_store(struct device* dev,
     if (ret < 0)
     { return ret; }
 
-    if (value > TS_GESTURE_INVALID_CONTROL_NO) {
+	if (value > TS_GESTURE_INVALID_CONTROL_NO) {
 		return -1;
 	}
 
@@ -1565,7 +1535,7 @@ static ssize_t touch_special_hardware_test_store(struct device* dev, struct devi
     info->switch_value = value;
     cmd->command = TS_HARDWARE_TEST;
     cmd->cmd_param.prv_params = (void*)info;
-    ret = ts_kit_put_one_cmd(cmd, NO_SYNC_TIMEOUT);
+	ret = ts_kit_put_one_cmd(cmd, NO_SYNC_TIMEOUT);
 	if (ret) {
 		TS_LOG_ERR("%s: hardware test cmd send fail\n", __func__);
 	}
@@ -2005,8 +1975,11 @@ static ssize_t ts_tui_report_store(struct device *dev,
 	int ret = 0;
 	unsigned long value = 0;
 
-	ret = strict_strtoul(buf, "%d", &value);
-
+	ret = strict_strtoul(buf, 0, &value);
+	if (ret <= 0) {
+		TS_LOG_ERR("%s: stric_strtoul failed, ret = %d", __func__, ret);
+		return -EINVAL;
+	}
 	g_ts_kit_platform_data.chip_data->report_tui_enable = (unsigned int)value;
 
 	if (g_ts_kit_platform_data.chip_data->report_tui_enable == true) {
@@ -2163,7 +2136,7 @@ static ssize_t ts_oem_info_store(struct device *dev, struct device_attribute *at
 	}
 
 	if (strlen(buf) > TS_CHIP_TYPE_MAX_SIZE+1) {
-		TS_LOG_ERR("%s: Store TPIC type data size= %d larger than MAX input size=%d \n",
+		TS_LOG_ERR("%s: Store TPIC type data size= %lu larger than MAX input size=%d\n",
 			__func__, strlen(buf), TS_CHIP_TYPE_MAX_SIZE);
 		error = -EINVAL;
 		goto out;
@@ -2318,6 +2291,7 @@ static ssize_t ts_touch_switch_store(struct device *dev,
 	int len = 0;
 	int error = NO_ERR;
 	struct ts_cmd_node cmd;
+	struct ts_kit_device_data *chip_data = g_ts_kit_platform_data.chip_data;
 
 	TS_LOG_INFO("+\n");
 	len = strlen(buf);
@@ -2329,25 +2303,25 @@ static ssize_t ts_touch_switch_store(struct device *dev,
 	}
 
 	if ((TS_SWITCH_TYPE_DOZE !=
-		g_ts_kit_platform_data.chip_data->touch_switch_flag & TS_SWITCH_TYPE_DOZE)&&
+		(chip_data->touch_switch_flag & TS_SWITCH_TYPE_DOZE)) &&
 		(TS_SWITCH_TYPE_GAME!=
-		(g_ts_kit_platform_data.chip_data->touch_switch_flag & TS_SWITCH_TYPE_GAME))&&
+		(chip_data->touch_switch_flag & TS_SWITCH_TYPE_GAME)) &&
 		(TS_SWITCH_TYPE_SCENE!=
-		(g_ts_kit_platform_data.chip_data->touch_switch_flag & TS_SWITCH_TYPE_SCENE))&&
+		(chip_data->touch_switch_flag & TS_SWITCH_TYPE_SCENE)) &&
 		(TS_SWITCH_TYPE_FM!=
-		(g_ts_kit_platform_data.chip_data->touch_switch_flag & TS_SWITCH_TYPE_FM))){
+		(chip_data->touch_switch_flag & TS_SWITCH_TYPE_FM))) {
 		TS_LOG_INFO("tp doze,game,scene,fm switch not support\n");
 		goto out;
 	}
 
-	memset(g_ts_kit_platform_data.chip_data->touch_switch_info, 0, MAX_STR_LEN);
-	snprintf(g_ts_kit_platform_data.chip_data->touch_switch_info, MAX_STR_LEN - 1, "%s", buf);
+	memset(chip_data->touch_switch_info, 0, MAX_STR_LEN);
+	snprintf(chip_data->touch_switch_info, MAX_STR_LEN - 1, "%s", buf);
 
 	memset(&cmd, 0, sizeof(struct ts_cmd_node));
 	cmd.command = TS_TOUCH_SWITCH;
 	cmd.cmd_param.prv_params =
-	    (void *)&g_ts_kit_platform_data.chip_data->touch_switch_info;
-	if(g_ts_kit_platform_data.chip_data->is_direct_proc_cmd)
+	    (void *)&chip_data->touch_switch_info;
+	if (chip_data->is_direct_proc_cmd)
 		error = ts_kit_proc_command_directly(&cmd);
 	else
 		error = ts_kit_put_one_cmd(&cmd, SHORT_SYNC_TIMEOUT);

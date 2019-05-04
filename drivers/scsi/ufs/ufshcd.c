@@ -73,6 +73,9 @@
 #ifdef CONFIG_HISI_BOOTDEVICE
 #include "ufs-rpmb.h"
 #endif
+#ifdef CONFIG_HISI_UFS_MANUAL_BKOPS
+#include "hisi_ufs_bkops.h"
+#endif
 
 #ifdef CONFIG_HISI_DEBUG_FS
 #define HISI_UFS_BUG_ON(x) 	do {BUG_ON(x);} while(0)
@@ -81,8 +84,6 @@
 #define HISI_UFS_BUG_ON(x) 	do {} while(0)
 #define HISI_UFS_BUG() 		do {} while(0)
 #endif
-
-#define UFS_KIRIN_NO_PEER_IN_SLOW
 
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
@@ -126,10 +127,6 @@
 
 /* Maximum retries for Hibern8 enter */
 #define UIC_HIBERN8_ENTER_RETRIES 2
-
-
-/* maximum number of init retries before giving up */
-#define MAX_HOST_INIT_RETRIES 7
 
 /* Expose the flag value from utp_upiu_query.value */
 #define MASK_QUERY_UPIU_FLAG_LOC 0xFF
@@ -1329,18 +1326,6 @@ int ufshcd_map_sg(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 			prd_table[i].upper_addr =
 				cpu_to_le32(upper_32_bits(sg->dma_address));
 			prd_table[i].reserved = 0;
-
-			/*
-			 * If cmd1 has a data length not aligned with 16Byte,
-			 * and cmd2 has more than one prdt, and prdt[0]'s base
-			 * and size aligned with 16byte, but prdt[1]'s not
-			 * aligned with 16byte, some data transfered maybe
-			 * wrong.
-			 *
-			 * We just check here that high level's request
-			 * guarantees all prdt aligned with 16byte.
-			 */
-			BUG_ON(i == 1 && prd_table[i].base_addr % 16);
 		}
 	} else {
 		lrbp->utr_descriptor_ptr->prd_table_length = 0;
@@ -4095,7 +4080,7 @@ static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 		}
 		pwr_info->pwr_rx = SLOWAUTO_MODE;
 	}
-#ifdef UFS_KIRIN_NO_PEER_IN_SLOW
+#ifdef CONFIG_SCSI_UFS_GEMINI
 	pwr_info->gear_tx = 3;
 #else
 	ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_MAXRXHSGEAR),
@@ -4123,14 +4108,17 @@ void ufshcd_config_adapt(struct ufs_hba *hba, struct ufs_pa_layer_attr *pwr_mode
 	ufshcd_dme_get(hba, UIC_ARG_MIB(PA_REMOTEVERINFO),
 			&unipro_ver);
 
-	if ((unipro_ver & 0x0F) < UNIPRO_VER_1_8)
+	if (((unsigned int)unipro_ver & 0x0F) < UNIPRO_VER_1_8)
 		return;
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_HS_APT_NO);
-	if (pwr_mode->pwr_rx == FASTAUTO_MODE ||
-			pwr_mode->pwr_rx == FAST_MODE) {
-		if (pwr_mode->gear_rx >= UFS_HS_G4)
-			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_HS_APT_INITIAL);
+	if (hba->manufacturer_id == UFS_VENDOR_TOSHIBA) {
+		if ((pwr_mode->pwr_rx == FASTAUTO_MODE ||
+			    pwr_mode->pwr_rx == FAST_MODE) &&
+			(pwr_mode->gear_rx >= UFS_HS_G4)) {
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE),
+				PA_HS_APT_INITIAL);
+		}
 	}
 }
 
@@ -4453,13 +4441,15 @@ static int ufshcd_disable_tx_lcc(struct ufs_hba *hba, bool peer)
 		if (!peer)
 			err = ufshcd_dme_set(hba,
 				UIC_ARG_MIB_SEL(TX_LCC_ENABLE,
-					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(i)),
-					0);
+					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(
+						(unsigned int)i)),
+				0);
 		else
 			err = ufshcd_dme_peer_set(hba,
 				UIC_ARG_MIB_SEL(TX_LCC_ENABLE,
-					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(i)),
-					0);
+					UIC_ARG_MPHY_TX_GEN_SEL_INDEX(
+						(unsigned int)i)),
+				0);
 		if (err) {
 			dev_err(hba->dev, "%s: TX LCC Disable failed, peer = %d, lane = %d, err = %d",
 				__func__, peer, i, err);
@@ -4762,7 +4752,9 @@ static int ufshcd_slave_configure(struct scsi_device *sdev)
 
 	blk_queue_update_dma_pad(q, PRDT_DATA_BYTE_COUNT_PAD - 1);
 	blk_queue_max_segment_size(q, PRDT_DATA_BYTE_COUNT_MAX);
-
+#ifdef CONFIG_HISI_UFS_MANUAL_BKOPS
+	hisi_ufs_manual_bkops_config(sdev);
+#endif
 	return 0;
 }
 
@@ -4816,7 +4808,8 @@ static int ufshcd_task_req_compl(struct ufs_hba *hba, u32 index, u8 *resp)
 		task_rsp_upiup = (struct utp_upiu_task_rsp *)
 				task_req_descp[index].task_rsp_upiu;
 		task_result = be32_to_cpu(task_rsp_upiup->output_param1);
-		task_result = task_result & MASK_TM_SERVICE_RESP;
+		task_result =
+			((unsigned int)task_result) & MASK_TM_SERVICE_RESP;
 		ufsdbg_error_inject_dispatcher(hba,
 			ERR_INJECT_TM_RSP,
 			UPIU_TASK_MANAGEMENT_FUNC_SUCCEEDED,
@@ -5444,12 +5437,7 @@ static void ufshcd_exception_event_handler(struct work_struct *work)
 	u32 status = 0;
 	hba = container_of(work, struct ufs_hba, eeh_work);
 
-	err = pm_runtime_get_sync(hba->dev);
-	if (err < 0) {
-		dev_err(hba->dev, "%s: failed to exit from hibernate8 %d\n",
-			__func__, err);
-		goto out;
-	}
+	pm_runtime_get_sync(hba->dev);
 
 	scsi_block_requests(hba->host);
 	err = ufshcd_get_ee_status(hba, &status);
@@ -5812,7 +5800,7 @@ static void ufshcd_tmc_handler(struct ufs_hba *hba)
 
 static void ufs_idle_intr_check_timer_expire(unsigned long data)
 {
-	struct ufs_hba *hba =(struct ufs_hba *)data;
+	struct ufs_hba *hba =(struct ufs_hba *)(volatile uintptr_t)data;
 
 	dev_err(hba->dev, "Haven't got Idle interrupt over %d seconds\n",
 		    hba->idle_intr_check_timer_threshold / 1000);
@@ -6018,7 +6006,7 @@ static void ufshcd_add_idle_intr_check_timer(struct ufs_hba *hba)
 {
 	hba->idle_intr_check_timer_threshold = UFSHCD_IDLE_INTR_CHECK_INTERVAL;
 	init_timer(&hba->idle_intr_check_timer);
-	hba->idle_intr_check_timer.data = (unsigned long)hba;
+	hba->idle_intr_check_timer.data = (uintptr_t)hba;
 	hba->idle_intr_check_timer.function = ufs_idle_intr_check_timer_expire;
 	mod_timer(&hba->idle_intr_check_timer, jiffies + msecs_to_jiffies(hba->idle_intr_check_timer_threshold));
 }
@@ -6073,12 +6061,7 @@ static int ufshcd_issue_tm_cmd(struct ufs_hba *hba, int lun_id, int task_id,
 	 */
 	wait_event(hba->tm_tag_wq,
 	    ufshcd_get_tm_free_slot(hba, &free_slot));/*lint !e666*/
-	err = pm_runtime_get_sync(hba->dev);
-	if (err < 0) {
-		dev_err(hba->dev, "%s, failed exit from hibernate8, %d\n",
-			__func__, err);
-		goto out_put_tag;
-	}
+	pm_runtime_get_sync(hba->dev);
 
 	spin_lock_irqsave(host->host_lock, flags);
 	while (hba->is_hibernate) {
@@ -6143,7 +6126,6 @@ static int ufshcd_issue_tm_cmd(struct ufs_hba *hba, int lun_id, int task_id,
 	}
 
 	clear_bit(free_slot, &hba->tm_condition);
-out_put_tag:
 	ufshcd_put_tm_slot(hba, free_slot);
 	wake_up(&hba->tm_tag_wq);
 
@@ -6289,6 +6271,11 @@ static int ufshcd_abort(struct scsi_cmnd *cmd)
 		__func__, tag);
 		ufshcd_print_host_regs(hba);
 		ufshcd_print_trs(hba, 1 << tag, false);/*lint !e647*/
+
+		/* The Doorbell register has been cleared. But the CPU has not
+		 * received the interrupt, so it panic instantaneously to check
+		 * the interrupt sequence and task sequence.
+		 */
 		HISI_UFS_BUG();
 	}
 	/*
@@ -6505,11 +6492,9 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 {
 	int err = 0;
 	unsigned long flags;
-	int retries = hba->reset_retry_max;
 
-	err = pm_runtime_get_sync(hba->dev);
-	if (err)
-		dev_err(hba->dev, "%s: pm_runtime_get_sync failed !", __func__);
+	hba->ufs_reset_retries = hba->reset_retry_max;
+	pm_runtime_get_sync(hba->dev);
 
 	/*
 	 * ufs reset takes no affect with sys debug intr, which includes
@@ -6531,8 +6516,9 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 #ifdef CONFIG_SCSI_UFS_HS_ERROR_RECOVER
 		ufshcd_check_init_mode(hba, err);
 #endif
-	} while (err && --retries);
+	} while (err && --hba->ufs_reset_retries);
 
+	hba->ufs_reset_retries = hba->reset_retry_max;
 	if (ufshcd_is_auto_hibern8_allowed(hba))
 		ufshcd_enable_auto_hibern8(hba);
 
@@ -6595,6 +6581,9 @@ static int ufshcd_eh_host_reset_handler(struct scsi_cmnd *cmd)
 		dev_err(hba->dev, "%s: reset in progress\n", __func__);
 		kthread_flush_work(&hba->eh_work);
 	} while (1);
+	pm_runtime_disable(hba->dev);
+	pm_runtime_set_active(hba->dev);
+
 
 	hba->ufshcd_state = UFSHCD_STATE_RESET;
 	ufshcd_set_eh_in_progress(hba);
@@ -6613,6 +6602,7 @@ static int ufshcd_eh_host_reset_handler(struct scsi_cmnd *cmd)
 	ufshcd_clear_eh_in_progress(hba);
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
+	pm_runtime_enable(hba->dev);
 	dev_err(hba->dev, "%s: 0x%x\n", __func__, err);
 	mutex_unlock(&hba->eh_mutex);
 
@@ -6627,7 +6617,7 @@ static int ufshcd_eh_host_reset_handler(struct scsi_cmnd *cmd)
  *
  * Returns calculated max ICC level for specific regulator
  */
-static u32 ufshcd_get_max_icc_level(int sup_curr_uA, u32 start_scan, char *buff)
+static u32 ufshcd_get_max_icc_level(int sup_curr_uA, u32 start_scan, const char *buff)
 {
 	int i;
 	int curr_uA;
@@ -7141,6 +7131,9 @@ static int ufshcd_probe_hba(struct ufs_hba *hba)
 
 	hba->wlun_dev_clr_ua = true;
 
+	/* choose device refclk */
+	ufshcd_vops_set_device_refclk(hba);
+
 	if (ufshcd_get_max_pwr_mode(hba)) {
 		dev_err(hba->dev,
 			"%s: Failed getting max supported power mode\n",
@@ -7280,12 +7273,15 @@ static int __ufshcd_async_scan(struct ufs_hba *hba)
 static void ufshcd_async_scan(void *data, async_cookie_t cookie)
 {
 	int err;
-	int retries = MAX_HOST_INIT_RETRIES;
 	struct ufs_hba *hba = (struct ufs_hba *)data;
+
+	hba->ufs_init_retries = MAX_HOST_INIT_RETRIES;
 
 	err = __ufshcd_async_scan(hba);
 	if(!err)
 		goto out;
+
+	hba->ufs_init_retries--;
 
 	do {
 		/*
@@ -7306,7 +7302,7 @@ static void ufshcd_async_scan(void *data, async_cookie_t cookie)
 		if (err)
 			dev_err(hba->dev, "host init failed, HCE/Device reset "
 					  "err %d, retry %d\n",
-				err, retries);
+				err, hba->ufs_init_retries);
 
 		/*
 		 * HCE reset failed. We must trigger a hardware reset
@@ -7320,13 +7316,19 @@ static void ufshcd_async_scan(void *data, async_cookie_t cookie)
 		if (err)
 			dev_err(hba->dev, "host init failed, full reset err "
 					  "%d, retry %d\n",
-				err, retries);
+				err, hba->ufs_init_retries);
 #ifdef CONFIG_SCSI_UFS_HS_ERROR_RECOVER
 		ufshcd_check_init_mode(hba, err);
 #endif
-	} while (err && --retries);
+	} while (err && --hba->ufs_init_retries);
 
 out:
+	/*
+	 * Recover the value of hba->ufs_init_retries,so that avoid affecting the
+	 * condition about vcc power on then off.
+	 */
+	hba->ufs_init_retries = MAX_HOST_INIT_RETRIES;
+
 	/*
 	 * If we failed to initialize the device or the device is not
 	 * present, turn off the power/clocks etc.
@@ -7757,7 +7759,7 @@ static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
 
 static int ufshcd_direct_flush(struct scsi_device *sdev);
 static void ufshcd_dump_status(
-	struct Scsi_Host *host, int dump_type)
+	struct Scsi_Host *host, enum blk_dump_scenario dump_type)
 {
 	struct ufs_hba *hba = shost_priv(host);
 	struct ufshcd_lrb *lrbp;
@@ -8119,8 +8121,6 @@ static int __ufshcd_queuecommand_directly(struct ufs_hba *hba,
 
 	err = pm_runtime_get_sync(hba->dev);
 	if (err < 0) {
-		dev_err(hba->dev, "%s, failed to exit from hibernate, %d\n",
-			__func__, err);
 		spin_lock_irqsave(hba->host->host_lock, flags);
 		hba->dev_cmd.complete = NULL;
 		spin_unlock_irqrestore(hba->host->host_lock,
@@ -8259,11 +8259,6 @@ static int ufshcd_send_scsi_ssu(struct ufs_hba *hba,
 	ret = ufshcd_queuecommand_directly(hba, &cmnd, timeout, true);
 	if (ret)
 		dev_err(hba->dev, "%s: failed with err %d\n", __func__, ret);
-
-	if (sshdr) {
-		if (!scsi_normalize_sense(buffer, SCSI_SENSE_BUFFERSIZE, sshdr))
-			dev_err(hba->dev, "%s: scsi_normalize_sense return false! \r\n", __func__);
-	}
 
 	kfree(buffer);
 out:
@@ -8415,18 +8410,13 @@ static int ufshcd_sync_cache_irq_safe(struct ufs_hba *hba,
 					struct scsi_cmnd *cmd,	unsigned int query_intr_timeout)
 {
 	int err;
-	int ret;
 	int tag;
 	unsigned long flags;
 	struct ufshcd_lrb *lrbp;
 	volatile u32 ie_value = 0;
 	volatile u32 tr_doorbell = 0;
 
-	err = pm_runtime_get_sync(hba->dev);
-	if (err < 0) {
-		dev_err(hba->dev, "%s, failed to exit from hibernate, %d\n",__func__, err);
-		goto exit_h8;
-	}
+	pm_runtime_get_sync(hba->dev);
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
 	scsi_block_requests(hba->host);
@@ -8481,10 +8471,7 @@ unlock_unblock_and_enable_intr:
 		ufshcd_writel(hba, ie_value, REG_INTERRUPT_ENABLE);
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 	scsi_unblock_requests(hba->host);
-exit_h8:
-	ret = pm_runtime_put_autosuspend(hba->dev);
-	if (ret)
-		dev_err(hba->dev, "%s: pm_runtime_put_autosuspend error = %d\r\n", __func__, ret);
+	pm_runtime_put_autosuspend(hba->dev);
 	return err;
 }
 
@@ -8642,12 +8629,16 @@ static int ufshcd_set_dev_pwr_mode(struct ufs_hba *hba,
 		sdev_printk(KERN_WARNING, sdp,
 			    "START_STOP failed for power mode: %d, result %x\n",
 			    pwr_mode, ret);
-		if (driver_byte(ret) & DRIVER_SENSE)
+		if (driver_byte((unsigned int)ret) & DRIVER_SENSE)
 			scsi_print_sense_hdr(sdp, NULL, &sshdr);
 	}
 
-	if (!ret)
+	if (!ret) {
 		hba->curr_dev_pwr_mode = pwr_mode;
+		/* diable/enable vcc */
+		ufshcd_vops_vcc_power_on_off(hba);
+	}
+
 out:
 	scsi_device_put(sdp);
 	hba->host->eh_noresume = 0;

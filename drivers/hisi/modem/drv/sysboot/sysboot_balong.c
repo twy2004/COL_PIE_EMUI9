@@ -69,9 +69,7 @@ int modem_module_init_start(void *data)
 
     for (i = 0; i < sizeof(g_modem_module_init_func)/sizeof(g_modem_module_init_func[0]); i++) {
         ret = g_modem_module_init_func[i]();
-        if (ret) {
-            printk(KERN_ERR"%pF return error, ret = %d\n", g_modem_module_init_func[i], ret);
-        }
+        printk(KERN_ERR"module id %u return , ret = %d\n", i, ret);
     }
 
     printk(KERN_ERR"balong modem init done\n");

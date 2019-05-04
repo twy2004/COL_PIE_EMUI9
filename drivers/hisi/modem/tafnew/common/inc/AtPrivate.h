@@ -56,6 +56,8 @@
 #include <linux/kernel.h>
 #else
 #include "PsCommonDef.h"
+#include  "mdrv.h"
+#include  "ps_tag.h"
 #endif
 
 #ifdef __cplusplus
@@ -81,32 +83,32 @@ extern "C" {
 #if (VOS_OS_VER == VOS_LINUX)
 /*lint -emacro({717}, AT_PR_LOGH)*/
 #define AT_PR_LOGH(fmt, ...) \
-			do { \
-				pr_err("[NAS_AT]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_AT]: [HIGH] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, AT_PR_LOGE)*/
 #define AT_PR_LOGE(fmt, ...) \
-			do { \
-				pr_err("[NAS_AT]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_err("[NAS_AT]: [ERR] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, AT_PR_LOGI)*/
 #define AT_PR_LOGI(fmt, ...) \
-			do { \
-				pr_info("[NAS_AT]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_info("[NAS_AT]: [INFO] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 
 /*lint -emacro({717}, AT_PR_LOGD)*/
 #define AT_PR_LOGD(fmt, ...) \
-			do { \
-				pr_debug("[NAS_AT]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
-			} while(0)
+            do { \
+                pr_debug("[NAS_AT]: [DBG] %s "fmt"\n", __func__, ##__VA_ARGS__); \
+            } while(0)
 #else
-#define AT_PR_LOGH                                      PS_PRINTF
-#define AT_PR_LOGE                                      PS_PRINTF
-#define AT_PR_LOGI                                      PS_PRINTF
-#define AT_PR_LOGD                                      PS_PRINTF
+#define AT_PR_LOGH                                      PS_PRINTF_ERR
+#define AT_PR_LOGE                                      PS_PRINTF_WARNING
+#define AT_PR_LOGI                                      PS_PRINTF_INFO
+#define AT_PR_LOGD                                      PS_PRINTF_DEBUG
 #endif
 
 /*****************************************************************************

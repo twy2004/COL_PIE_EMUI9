@@ -80,10 +80,10 @@ const DIAG_MSGMSP_PROC_STRU g_astMsgMsp[] =
     {DIAG_CMD_GET_MODEM_NUM,        diag_GetModemNum},
     {DIAG_CMD_PID_TABLE_MSG,        diag_GetPidTable},
 
+    {DIAG_CMD_LOG_MNTN,             diag_MntnCfgProc},
     {DIAG_CMD_DEBUG_MSG,            DIAG_ApiTest},
 };
 
-VOS_UINT32 diag_MspMsgProc(DIAG_FRAME_INFO_STRU *pData);
 
 /*****************************************************************************
  Function Name   : diag_MspMsgInit
@@ -143,7 +143,6 @@ VOS_UINT32 diag_GetPidTable(VOS_UINT8* pstReq)
     mdrv_diag_PTR(EN_DIAG_PTR_GET_PID_TABLE, 0, 0, 0);
 
     num = (VOS_CPU_ID_0_PID_BUTT - VOS_PID_CPU_ID_0_DOPRAEND) + (VOS_CPU_ID_1_PID_BUTT - VOS_PID_CPU_ID_1_DOPRAEND);
-
     pulPid = (VOS_UINT32 *)VOS_MemAlloc(DIAG_AGENT_PID, DYNAMIC_MEM_PT, (num * sizeof(VOS_UINT32)));
 
     num  = 0;
@@ -172,6 +171,7 @@ VOS_UINT32 diag_GetPidTable(VOS_UINT8* pstReq)
                 pulPid[num++] = (VOS_PID_CPU_ID_0_DOPRAEND + i);
             }
         }
+
     }
 
     len = sizeof(DIAG_CMD_PID_TABLE_CNF_STRU) + (num * sizeof(VOS_UINT32));
@@ -262,6 +262,7 @@ DIAG_ERROR:
     mdrv_diag_PTR(EN_DIAG_PTR_GTR_CFG_FAIL_CNF, 1, pstDiagHead->ulCmdId, ret);
     return ret;
 }
+
 
 
 /*****************************************************************************

@@ -15,6 +15,7 @@ obj-y				+= scm_cnf_src.o
 obj-y				+= scm_common.o 
 obj-y				+= scm_debug.o 
 obj-y				+= scm_init.o 
+obj-y				+= scm_rate_ctrl.o 
 
 
 

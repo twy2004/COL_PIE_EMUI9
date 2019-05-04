@@ -15,7 +15,6 @@
 #include "hisi_dp.h"
 #include <linux/device.h>
 
-
 int hisi_dp_hpd_register(struct hisi_fb_data_type *hisifd)
 {
 	int ret = 0;

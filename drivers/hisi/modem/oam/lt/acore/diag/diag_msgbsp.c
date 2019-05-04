@@ -177,82 +177,41 @@ VOS_UINT32 diag_BspMsgProc(DIAG_FRAME_INFO_STRU *pData)
     VOS_UINT32 ulLen = 0;
     VOS_UINT32 acmd_flag = 0;
     VOS_UINT32 ccmd_flag = 0;
+    VOS_UINT32 nrmcmd_flag = 0;
 
     mdrv_diag_PTR(EN_DIAG_PTR_BSP_MSG_PROC, 1, pData->ulCmdId, 0);
 
     if(DIAG_MSG_TYPE_BSP != pData->stID.pri4b)
     {
         diag_error("Rcv Error MsgId 0x%x\n",pData->ulCmdId);
-        return ulRet;
+        return ERR_MSP_INVALID_ID;
     }
 
     acmd_flag = diag_BspIsAcoreCmd(pData->ulCmdId);
     ccmd_flag = diag_BspIsCcoreCmd(pData->ulCmdId);
-    /*nrmcmd_flag = diag_BspIsNrmCmd(pData->ulCmdId);*/
+    nrmcmd_flag = diag_BspIsNrmCmd(pData->ulCmdId);
 
-
-    if  ((VOS_TRUE == acmd_flag) && (VOS_FALSE == ccmd_flag))
-    {
-        ulRet = mdrv_hds_msg_proc((VOS_VOID *)pData);
-        if(ulRet != 0)
-        {
-            diag_error("acore msg_proc fail!\n",__FUNCTION__);
-        }
-
-        return ulRet;
-    }
-    else if ((VOS_FALSE == acmd_flag) && (VOS_TRUE == ccmd_flag))
-    {
-        /*通知ccore*/
-        DIAG_MSG_BSP_ACORE_CFG_PROC(ulLen, pData, pstInfo, ulRet);
-        return VOS_OK;
-    }
-    else if ((VOS_TRUE == acmd_flag) && (VOS_TRUE == ccmd_flag))
-    {
-        /*A核处理成功后通知ccore，A核处理不成功直接向工具回复*/
-        ulRet = mdrv_hds_msg_proc((VOS_VOID*)pData);
-        if(ulRet != 0)
-        {
-            diag_error("comm_acore msg_proc fail!\n",__FUNCTION__);
-            return ulRet;
-        }
-
-        DIAG_MSG_BSP_ACORE_CFG_PROC(ulLen, pData, pstInfo, ulRet);
-        return VOS_OK;
-    }
-    else
-    {
-        //todo...
-    }
-
-/*
     if(VOS_TRUE == acmd_flag)
-    {
+    {/*直接在acore处理*/
         ulRet = mdrv_hds_msg_proc((VOS_VOID *)pData);
         if(ulRet != 0)
         {
             diag_error("acore msg_proc fail!\n");
+            goto DIAG_ERROR;
         }
-
-        return ulRet;
     }
 
     if(VOS_TRUE == ccmd_flag)
-    {
-*/
-        /*通知ccore*/
-/*        DIAG_MSG_BSP_ACORE_CFG_PROC(ulLen, pData, pstInfo, ulRet);
-        return VOS_OK;
+    {/*通知LRCCPU*/
+       DIAG_MSG_BSP_ACORE_CFG_PROC(ulLen, pData, pstInfo, ulRet);
     }
 
     if(VOS_TRUE == nrmcmd_flag)
-    {
-        DIAG_MSG_BSP_CFG_ACOE_TO_NRM(ulLen, pData, pstInfo, ulRet);
-        return VOS_OK;
-        //todo...
+    {/*通知NRCCPU*/
+        DIAG_MSG_BSP_CFG_ACORE_TO_NRM(ulLen, pData, pstInfo, ulRet);
     }
-*/
-    return ulRet;
+
+    return VOS_OK;
 
 DIAG_ERROR:
 

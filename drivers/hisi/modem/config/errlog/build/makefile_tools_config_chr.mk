@@ -21,6 +21,8 @@ tools_config_chr_cas:
 	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/cdma/tools_config/makefile_tools_config_chr_cas.mk
 tools_config_chr_was:
 	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/gu/TOOLS_CONFIG/makefile_tools_config_chr_was.mk
+tools_config_chr_nrrc:
+	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/nr/TOOLS_CONFIG/makefile_tools_config_chr_nrrc.mk
 
 # process
 .PHONY: $(TOOLS_CONFIG_CHR_MODULES_CLEAN)
@@ -38,3 +40,5 @@ clean-tools_config_chr_cas:
 	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/cdma/tools_config/makefile_tools_config_chr_cas.mk clean
 clean-tools_config_chr_was:
 	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/gu/TOOLS_CONFIG/makefile_tools_config_chr_was.mk clean
+clean-tools_config_chr_nrrc:
+	$(MAKE)  -f $(BALONG_TOPDIR)/modem/ps/build/nr/TOOLS_CONFIG/makefile_tools_config_chr_nrrc.mk clean

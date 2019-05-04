@@ -32,6 +32,7 @@ static int lcd_kit_dbg_hiace_support(char *par);
 static int lcd_kit_dbg_xcc_support(char *par);
 static int lcd_kit_dbg_arsr1psharpness_support(char *par);
 static int lcd_kit_dbg_prefixsharptwo_d_support(char *par);
+static int lcd_kit_dbg_video_idle_mode_support(char *par);
 static int lcd_kit_dbg_cmd_type(char *par);
 static int lcd_kit_dbg_pxl_clk(char *par);
 static int lcd_kit_dbg_pxl_clk_div(char *par);
@@ -93,6 +94,7 @@ static int lcd_kit_dbg_vdd_voltage(char *par);
 static int lcd_kit_dbg_vsp_voltage(char *par);
 static int lcd_kit_dbg_vsn_voltage(char *par);
 static int lcd_kit_dbg_cmd(char *par);
+static int lcd_kit_dbg_cmdstate(char *par);
 
 lcd_kit_dbg_func item_func[] = {
 	{"PanelEsdSupport", lcd_kit_dbg_esd_support},
@@ -111,6 +113,7 @@ lcd_kit_dbg_func item_func[] = {
 	{"XccSupport", lcd_kit_dbg_xcc_support},
 	{"Arsr1pSharpnessSupport", lcd_kit_dbg_arsr1psharpness_support},
 	{"PrefixSharpTwoDSupport", lcd_kit_dbg_prefixsharptwo_d_support},
+	{"VideoIdleModeSupport", lcd_kit_dbg_video_idle_mode_support},
 	{"PanelCmdType", lcd_kit_dbg_cmd_type},
 	{"PanelPxlClk", lcd_kit_dbg_pxl_clk},
 	{"PanelPxlClkDiv", lcd_kit_dbg_pxl_clk_div},
@@ -172,6 +175,7 @@ lcd_kit_dbg_func item_func[] = {
 	{"LcdVsp", lcd_kit_dbg_vsp_voltage},
 	{"LcdVsn", lcd_kit_dbg_vsn_voltage},
 	{"PanelDbgCommand", lcd_kit_dbg_cmd},	/*send mipi cmds for debugging, both support tx and rx*/
+	{"PanelDbgCommandState", lcd_kit_dbg_cmdstate},
 };
 
 lcd_kit_dbg_cmds lcd_kit_cmd_list[] = {
@@ -570,7 +574,6 @@ int lcd_kit_dbg_parse_cmd(struct lcd_kit_dsi_panel_cmds* pcmds, char* buf, int l
 		bp += dchdr->dlen;
 		len -= dchdr->dlen;
 	}
-	pcmds->link_state = LCD_KIT_DSI_LP_MODE;
 
 	lcd_kit_dump_cmds(pcmds);
 
@@ -656,15 +659,27 @@ void lcd_kit_dbg_free(void)
 static int lcd_kit_dbg_esd_support(char *par)
 {
 	char ch = 0;
+	struct lcd_kit_dbg_ops *dbg_ops = NULL;
 
 	if (!par) {
 		LCD_KIT_ERR("par is null\n");
 		return LCD_KIT_FAIL;
 	}
+
+	dbg_ops = lcd_kit_get_debug_ops();
+	if (!dbg_ops) {
+		LCD_KIT_ERR("dbg_ops is null!\n");
+		return LCD_KIT_FAIL;
+	}
+
 	ch = *par;
 	common_info->esd.support = lcd_kit_hex_char_to_value(ch);
+	if (common_info->esd.support && dbg_ops->esd_check_func) {
+		dbg_ops->esd_check_func();
+	}
+
 	LCD_KIT_INFO("common_info->esd.support = %d\n", common_info->esd.support);
-	return 0;
+	return LCD_KIT_OK;
 }
 
 static int lcd_kit_dbg_fps_updt_support(char *par)
@@ -1016,6 +1031,29 @@ static int lcd_kit_dbg_prefixsharptwo_d_support(char *par)
 		dbg_ops->prefixsharptwo_d_support(value);
 	}
 	LCD_KIT_INFO("value = %d\n", value);
+	return LCD_KIT_OK;
+}
+
+static int lcd_kit_dbg_video_idle_mode_support(char *par)
+{
+	int value;
+	struct lcd_kit_dbg_ops *dbg_ops = NULL;
+
+	if (!par) {
+		LCD_KIT_ERR("par is null\n");
+		return LCD_KIT_FAIL;
+	}
+
+	dbg_ops = lcd_kit_get_debug_ops();
+	if (!dbg_ops) {
+		LCD_KIT_ERR("dbg_ops is null\n");
+		return LCD_KIT_FAIL;
+	}
+	value = lcd_kit_hex_char_to_value(*par);
+	if (dbg_ops->video_idle_mode_support)
+		dbg_ops->video_idle_mode_support(value);
+
+	LCD_KIT_INFO("video idle mode support = %d\n", value);
 	return LCD_KIT_OK;
 }
 
@@ -1823,16 +1861,20 @@ static int lcd_kit_dbg_effect_on_cmd(char *par)
 	return LCD_KIT_OK;
 }
 
+static struct lcd_kit_dsi_panel_cmds dbgcmds;
 static int lcd_kit_dbg_cmd(char *par)
 {
 	#define LCD_DDIC_INFO_LEN 200
 	#define PRI_LINE_LEN 8
-	struct lcd_kit_dsi_panel_cmds dbgcmds;
 	struct lcd_kit_dbg_ops *dbg_ops = NULL;
 	uint8_t readbuf[LCD_DDIC_INFO_LEN] = {0};
 	int len = 0, i = 0;
 
-	memset(&dbgcmds, 0, sizeof(struct lcd_kit_dsi_panel_cmds));
+	dbgcmds.buf = NULL;
+	dbgcmds.blen = 0;
+	dbgcmds.cmds = NULL;
+	dbgcmds.cmd_cnt = 0;
+	dbgcmds.flags = 0;
 	dbg_ops = lcd_kit_get_debug_ops();
 	if (!dbg_ops) {
 		LCD_KIT_ERR("dbg_ops is null!\n");
@@ -1871,11 +1913,26 @@ static int lcd_kit_dbg_cmd(char *par)
 			}
 		}
 		LCD_KIT_INFO("dbg_mipi_rx done.\n");
+		kfree(lcd_kit_dbg.dbg_cmds);
 		return LCD_KIT_OK;
 	} else {
 		LCD_KIT_ERR("dbg_mipi_rx is NULL!\n");
+		kfree(lcd_kit_dbg.dbg_cmds);
 		return LCD_KIT_FAIL;
 	}
+}
+
+static int lcd_kit_dbg_cmdstate(char *par)
+{
+	if (NULL == par) {
+		LCD_KIT_ERR("par is null\n");
+		return LCD_KIT_FAIL;
+	}
+
+	dbgcmds.link_state = lcd_kit_hex_char_to_value(*par);
+
+	LCD_KIT_INFO("dbgcmds link_state = %d\n", dbgcmds.link_state);
+	return LCD_KIT_OK;
 }
 
 static int lcd_kit_dbg_cabc_off_mode(char *par)

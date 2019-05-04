@@ -6,7 +6,7 @@
 * apply:
 *
 * * This program is free software; you can redistribute it and/or modify
-* * it under the terms of the GNU General Public License version 2 and 
+* * it under the terms of the GNU General Public License version 2 and
 * * only version 2 as published by the Free Software Foundation.
 * *
 * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
 * * 2) Redistributions in binary form must reproduce the above copyright
 * *    notice, this list of conditions and the following disclaimer in the
 * *    documentation and/or other materials provided with the distribution.
-* * 3) Neither the name of Huawei nor the names of its contributors may 
-* *    be used to endorse or promote products derived from this software 
+* * 3) Neither the name of Huawei nor the names of its contributors may
+* *    be used to endorse or promote products derived from this software
 * *    without specific prior written permission.
-* 
+*
 * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -166,39 +166,6 @@ extern UDI_HANDLE                              g_alAtUdiHandle[AT_CLIENT_BUTT];
   7 STRUCT定义
 *****************************************************************************/
 
-typedef struct
-{
-    UDI_DEVICE_ID_E         enAcmChannelId;   /* 目前HSIC AT通道所用的HSIC ACM通道ID为:
-                                                                UDI_ACM_HSIC_ACM0_ID
-                                                                UDI_ACM_HSIC_ACM2_ID
-                                                                UDI_ACM_HSIC_ACM4_ID */
-
-
-    AT_HSIC_REPORT_TYPE_ENUM_UINT32 enRptType;        /* 指定HSIC AT通道是否允许AT命令主动上报，
-                                                                与^APRPTPORTSEL命令配套使用，上电时默认为AT_HSIC_REPORT_ON*/
-
-    VOS_VOID                       *pReadDataCB;      /* 注册给底软的接口，用于获取底软发送给协议栈的AT码流 */
-
-    VOS_VOID                       *pFreeDlDataCB;    /* 注册给底软的接口，用于底软释放协议栈发送给底软的数据内存 */
-
-    UDI_HANDLE                      lHdlId;           /* HSIC AT的ACM通道句柄 */
-
-    AT_CLIENT_ID_ENUM_UINT16        enAtClientId;     /* HSIC AT通道所对应的AT CLIENT ID*/
-
-    AT_CLIENT_TAB_INDEX_UINT8       ucAtClientTabIdx; /* HSIC所使用的gastAtClientTab的index索引 */
-
-    AT_USER_TYPE                    ucHsicUser;       /* HSIC AT通道所对应的AT USER type */
-
-    AT_PORT_NO                      ucHsicPort;       /* HSIC AT通道所对应的AT PORT NO */
-
-    VOS_UINT8                       aucReserved[7];
-}AT_HSIC_CONTEXT_STRU;
-
-
-#if (FEATURE_ON == FEATURE_AT_HSIC)
-extern AT_HSIC_CONTEXT_STRU                    g_astAtHsicCtx[];
-#endif
-
 
 /*****************************************************************************
   8 UNION定义
@@ -224,8 +191,6 @@ extern VOS_INT32 AT_AppComEst(VOS_VOID);
 extern VOS_INT32 AT_AppSockComEst(VOS_UINT8 ucPortNo);
 extern VOS_UINT32 AT_CheckAppUser(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_CheckNdisUser(VOS_UINT8 ucIndex);
-extern VOS_UINT32 AT_CheckMuxDlci(AT_MUX_DLCI_TYPE_ENUM_UINT8 enDlci);
-extern VOS_UINT32 AT_CheckMuxUser(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_CheckModemUser(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_CheckHsUartUser(VOS_UINT8 ucIndex);
 extern VOS_UINT32 AT_CheckUserType(
@@ -254,11 +219,6 @@ extern VOS_VOID AT_GetAtMsgStruMsgLength(
            VOS_UINT32                          ulInfoLength,
            VOS_UINT32                         *pulMsgLength
        );
-extern VOS_UINT32 AT_GetMuxDlciFromClientIdx(
-           VOS_UINT8                           ucIndex,
-           AT_MUX_DLCI_TYPE_ENUM_UINT8        *penDlci
-       );
-extern VOS_UINT8 AT_GetMuxSupportFlg(VOS_VOID);
 extern VOS_VOID AT_GetUserTypeFromIndex(
            VOS_UINT8                           ucIndex,
            VOS_UINT8                          *pucUserType
@@ -273,15 +233,6 @@ extern VOS_UINT32 AT_IsConcurrentPorts(
            VOS_UINT8                           ucIndexOne,
            VOS_UINT8                           ucIndexTwo
        );
-extern VOS_UINT32 AT_IsHsicOrMuxUser(VOS_UINT8 ucIndex);
-
-#if (FEATURE_ON == FEATURE_AT_HSIC)
-extern VOS_VOID AT_MemSingleCopy(
-           VOS_UINT8                          *pucDest,
-           VOS_UINT8                          *pucSrc,
-           VOS_UINT32                          ulLen
-       );
-#endif
 
 extern VOS_VOID AT_ModemSetCtlStatus(
            VOS_UINT8                           ucIndex,
@@ -320,11 +271,6 @@ extern VOS_INT At_RcvFromUsbCom(
            VOS_UINT8                          *pData,
            VOS_UINT16                          uslength
        );
-extern VOS_VOID AT_MuxCmdStreamEcho(
-           VOS_UINT8                           ucIndex,
-           VOS_UINT8                          *pData,
-           VOS_UINT16                          usLen
-       );
 extern TAF_UINT32 At_SendCmdMsg (TAF_UINT8 ucIndex,TAF_UINT8* pData, TAF_UINT16 usLen,TAF_UINT8 ucType);
 extern VOS_UINT32 AT_SendCtrlDataFromOm(
     VOS_UINT8                          *pucVirAddr,
@@ -342,16 +288,6 @@ extern VOS_UINT32 AT_SendDiagCmdFromOm(
            VOS_UINT8                          *pData,
            VOS_UINT16                          uslength
        );
-extern VOS_UINT32 AT_SendMuxResultData(
-           VOS_UINT8                           ucIndex,
-           VOS_UINT8                          *pData,
-           VOS_UINT16                          usLen
-       );
-extern VOS_UINT32 AT_SendMuxSelResultData(
-           VOS_UINT8                           ucIndex,
-           VOS_UINT8                          *pData,
-           VOS_UINT16                          usLen
-       );
 extern VOS_UINT32 AT_SendPcuiDataFromOm(
     VOS_UINT8                          *pucVirAddr,
     VOS_UINT8                          *pucPhyAddr,
@@ -364,22 +300,15 @@ extern VOS_UINT32 AT_SendCsdZcDataToModem(
 );
 extern VOS_VOID AT_SetAtChdataCidActStatus(
            VOS_UINT16                          usClientId,
-           VOS_UINT8                           ucCid,
-           VOS_UINT32                          ulIsCidAct
+           VOS_UINT8                           ucCallId,
+           VOS_UINT8                           ucCid
        );
 extern VOS_UINT32 AT_SetModemStatus(
            VOS_UINT8                           ucIndex,
            AT_DCE_MSC_STRU                    *pstMsc
        );
-extern VOS_VOID AT_SetMuxSupportFlg(VOS_UINT8 ucMuxSupportFlg);
-extern VOS_VOID  AT_SndDipcPdpActInd(
-           VOS_UINT16                          usClientId,
-           VOS_UINT8                           ucCid,
-           VOS_UINT8                           ucRabId
-       );
-extern VOS_VOID  AT_SndDipcPdpDeactInd(
-           VOS_UINT8                           ucRabId
-       );
+
+
 extern VOS_INT32 AT_SockComEst(VOS_UINT8 ucPortNo);
 extern VOS_VOID AT_StopFlowCtrl(VOS_UINT8 ucIndex);
 extern VOS_UINT32 At_UsbCtrEst(VOS_UINT8 ucPortNo);
@@ -617,56 +546,41 @@ VOS_VOID AT_RcvTiVoiceRiExpired(REL_TIMER_MSG *pstTmrMsg);
 VOS_VOID AT_ProcFormatResultMsc(VOS_UINT8 ucIndex, VOS_UINT32 ulReturnCode);
 
 
-#if (FEATURE_ON == FEATURE_AT_HSIC)
-extern VOS_VOID AT_HsicFourFreeDlDataBuf(VOS_UINT8 *pucBuf);
-extern VOS_VOID AT_HsicFourReadDataCB( VOS_VOID );
-extern VOS_UINT32 AT_HsicEst ( VOS_UINT8   ucHsicAtCtxId );
-extern VOS_UINT32 AT_HsicFreeUlDataBuf(
-           UDI_HANDLE                          ulUdiHdl,
-           VOS_UINT8                          *pucBuf,
-           VOS_UINT32                          ulLen
-       );
-extern VOS_UINT32 AT_HsicGetUlDataBuf(
-           UDI_HANDLE                           ulUdiHdl,
-           VOS_UINT8                          **ppucBuf,
-           VOS_UINT32                          *pulLen
-       );
-extern VOS_UINT32 AT_HsicInit( VOS_VOID );
-extern VOS_UINT32 AT_HsicInitUlDataBuf(
-           UDI_HANDLE                          ulUdiHdl,
-           VOS_UINT32                          ulEachBuffSize,
-           VOS_UINT32                          ulTotalBuffNum
-       );
-extern VOS_VOID AT_HsicOneFreeDlDataBuf(VOS_UINT8 *pucBuf);
-extern VOS_VOID AT_HsicOneReadDataCB( VOS_VOID );
-extern VOS_VOID AT_HsicThreeFreeDlDataBuf(VOS_UINT8 *pucBuf);
-extern VOS_VOID AT_HsicThreeReadDataCB( VOS_VOID );
-extern VOS_VOID AT_HsicTwoFreeDlDataBuf(VOS_UINT8 *pucBuf);
-extern VOS_VOID AT_HsicTwoReadDataCB( VOS_VOID );
-extern VOS_UINT32 AT_HsicWriteData(
-           VOS_UINT8                           ucIndex,
-           VOS_UINT8                          *pucBuf,
-           VOS_UINT32                          ulLen
-       );
-extern VOS_VOID AT_InitMuxCtx(VOS_VOID);
-extern VOS_UINT32 AT_MuxEst(VOS_UINT8 ucMuxAtCtxId);
-extern VOS_VOID AT_MuxInit(VOS_VOID);
-extern VOS_UINT32 AT_MuxReadDataCB(
-           AT_MUX_DLCI_TYPE_ENUM_UINT8         enDlci,
-           VOS_UINT8                          *pData,
-           VOS_UINT16                          usDataLen
-       );
-extern VOS_UINT32 AT_SendDataToHsic(
-           VOS_UINT8                           ucIndex,
-           VOS_UINT8                          *pucDataBuf,
-           VOS_UINT16                          usLen
-       );
-extern VOS_VOID AT_HsicModemInit( VOS_VOID );
-extern VOS_VOID AT_HsicModemClose(VOS_VOID);
-extern VOS_VOID AT_HsicModemEnableCB(VOS_UINT8 ucEnable);
-extern VOS_VOID AT_HsicModemReadDataCB( VOS_VOID );
-extern VOS_VOID AT_HsicModemReadMscCB(AT_DCE_MSC_STRU *pstRcvedMsc);
-#endif
+
+typedef struct
+{
+    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
+    AT_INTER_MSG_ID_ENUM_UINT32         enMsgId;            /* 消息类型     */  /* _H2ASN_Skip */
+    VOS_UINT32                          ulPortId;           /* 端口ID */
+    AT_DCE_MSC_STRU                     stDceMscInfo;       /* 管脚信号信息 */
+
+} AT_MNTN_MSC_STRU;
+
+/*****************************************************************************
+ 函 数 名  : AT_MNTN_TraceInputMsc
+ 功能描述  : 管脚信号输入可维可测
+ 输入参数  : ucIndex   - 端口索引
+             pstDceMsc - 管脚信号信息(调用者保证非空)
+ 输出参数  : 无
+ 返 回 值  : VOS_VOID
+*****************************************************************************/
+VOS_VOID AT_MNTN_TraceInputMsc(
+    VOS_UINT8                           ucIndex,
+    AT_DCE_MSC_STRU                    *pstDceMsc
+);
+
+/*****************************************************************************
+ 函 数 名  : AT_MNTN_TraceOutputMsc
+ 功能描述  : 管脚信号输出可维可测
+ 输入参数  : ucIndex   - 端口索引
+             pstDceMsc - 管脚信号信息(调用者保证非空)
+ 输出参数  : 无
+ 返 回 值  : VOS_VOID
+*****************************************************************************/
+VOS_VOID AT_MNTN_TraceOutputMsc(
+    VOS_UINT8                           ucIndex,
+    AT_DCE_MSC_STRU                    *pstDceMsc
+);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

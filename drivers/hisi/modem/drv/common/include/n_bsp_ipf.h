@@ -57,7 +57,6 @@ extern "C"
 /**************************************************************************
   头文件包含
 **************************************************************************/
-#include "hi_ipf.h"
 #include <bsp_shared_ddr.h>
 #ifndef __CMSIS_RTOS
 #include "mdrv_ipf.h"
@@ -824,7 +823,7 @@ int bsp_get_init_status(void);
 #ifdef CONFIG_MPERF
 int ipf_perf_info(struct ipf_runtime_info* info);
 #endif
-#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__)
+#if defined(__OS_VXWORKS__) || defined(__OS_RTOSCK__)||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 int ipf_config_cd(void* pstTtf, unsigned short* pu16TotalDataLen, unsigned int* pu32BdInPtr);
 void bsp_ipf_dl_rpt1_switch(int value);
 int ipf_init(void);

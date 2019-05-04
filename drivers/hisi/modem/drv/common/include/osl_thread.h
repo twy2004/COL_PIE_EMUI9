@@ -6,7 +6,7 @@
  * apply:
  *
  * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
+ * * it under the terms of the GNU General Public License version 2 and 
  * * only version 2 as published by the Free Software Foundation.
  * *
  * * This program is distributed in the hope that it will be useful,
@@ -28,10 +28,10 @@
  * * 2) Redistributions in binary form must reproduce the above copyright
  * *    notice, this list of conditions and the following disclaimer in the
  * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
+ * * 3) Neither the name of Huawei nor the names of its contributors may 
+ * *    be used to endorse or promote products derived from this software 
  * *    without specific prior written permission.
- *
+ * 
  * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -61,8 +61,14 @@
 
 
 #ifdef __KERNEL__
+#include <linux/version.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))
+#include <linux/sched/types.h>
+#include <linux/sched/debug.h>
+#include <linux/sched/signal.h>
+#endif
 #include <linux/delay.h>
 
 /*此处用于存放任务优先级 ---begin*/
@@ -205,7 +211,7 @@ static inline int  osl_task_check(unsigned int taskid)
 	return taskIdVerify(taskid);
 }
 
-#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__)
+#elif defined(__OS_RTOSCK__) ||defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 #include "sre_task.h"
 #include <sre_sys.h>
 #include <sre_tick.h>
@@ -255,6 +261,15 @@ static inline int osl_task_delay(int ticks )
 static inline void osl_task_lock(void)
  {
      SRE_TaskLock();
+     return;
+ }
+static inline void osl_task_lock_disirq(void)
+ {
+     #ifdef __OS_RTOSCK_SMP__
+     SRE_TaskLockNoIntLock();
+     #else
+     SRE_TaskLock();
+     #endif
      return;
  }
  static inline void osl_task_unlock(void)
@@ -362,14 +377,22 @@ static __inline__ u32 osl_task_resume(OSL_TASK_ID uwTaskPID)
 {
 	return SRE_TaskResume(uwTaskPID);
 }
-#ifdef __OS_RTOSCK_SMP__
+#if defined(__OS_RTOSCK_SMP__) ||defined(__OS_RTOSCK_TVP__) ||defined(__OS_RTOSCK_TSP__)
 static __inline__ u32 osl_task_core_bind(OSL_TASK_ID uwTaskPID, UINT32 uwCoreMask)
 {
+#if defined(__OS_RTOSCK_TVP__)
+	return 0;
+#else
 	return SRE_TaskCoreBind(uwTaskPID,uwCoreMask);
+#endif
 }
 static __inline__ u32 osl_task_core_unbind(OSL_TASK_ID uwTaskPID)
 {
+#if defined(__OS_RTOSCK_TVP__)
+	return 0;
+#else
 	return SRE_TaskCoreUnBind(uwTaskPID);
+#endif
 }
 
 #else

@@ -419,7 +419,7 @@ struct device_attribute *attr, const char *buf, size_t count)
     for(i=0; i< p_ldo->ldo_num; i++){
         sum_cur = 0;
         for(j=0; j<LDO_RUN_COUNT; j++){
-            cur_val = hisi_adc_get_current(p_ldo->ldo_channel[i]);
+	    cur_val = hisi_adc_get_current(p_ldo->ldo_channel[i]);
             if(cur_val < 0){
                 cam_err("%s ldo read data error cur_val = %d\n", __func__, cur_val);
                 sum_cur = -1;

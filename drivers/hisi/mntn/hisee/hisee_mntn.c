@@ -1091,7 +1091,7 @@ return:	NA
 ********************************************************************/
 void rdr_hisee_dump_common(u32 modid,
 	u64 coreid,
-	char *pathname,
+	const char *pathname,
 	pfn_cb_dump_done pfn_cb)
 {
 	char path[HISEE_MNTN_PATH_MAXLEN] = {0};
@@ -1165,7 +1165,7 @@ void rdr_hisee_dump_common(u32 modid,
  * @note       :
 ********************************************************************************/
 void rdr_hisee_dump_pdswipe(u32 modid,
-	char *pathname)
+	const char *pathname)
 {
 	char path[HISEE_MNTN_PATH_MAXLEN] = {0};
 	int ret;

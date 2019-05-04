@@ -30,6 +30,8 @@ typedef enum
     NV_ID_GUC_CHECK_ITEM    = 0xc351,
     NV_ID_TL_CHECK_ITEM     = 0xc352,
     NV_ID_GUC_M2_CHECK_ITEM = 0xc353,
+    NV_WORKSTATION_INFO_ITEM = 0xc354,
+    NV_CRCRESULT_TEMP       = 0xc355,
     NV_ID_PRODUCT_END       = 0xcb1f,
 
     /* used by mbb product */

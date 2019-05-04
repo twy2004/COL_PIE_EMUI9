@@ -47,7 +47,6 @@
  */
 #ifndef __HARDTIMER_BALONG_H__
 #define __HARDTIMER_BALONG_H__
-#include <hi_timer.h>
 #include <linux/spinlock.h>
 #include <linux/list.h>
 #include <drv_comm.h>

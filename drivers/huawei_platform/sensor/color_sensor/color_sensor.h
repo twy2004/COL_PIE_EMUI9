@@ -33,7 +33,7 @@
  */
 
 #ifndef __COLOR_SENSOR_H__
-#define	__COLOR_SENSOR_H__
+#define __COLOR_SENSOR_H__
 
 #define UINT8   uint8_t
 #define  INT8    int8_t
@@ -42,7 +42,12 @@
 #define UINT32  uint32_t
 #define  INT32   int32_t
 
-#ifdef	__cplusplus
+//this two prams should be controled by product config micro,, and also must be set, or compile will be wrong
+#define COLOR_PRODUCT_TCS3707
+//#define COLOR_PRODUCT_BESIDES_TCS3707
+
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -148,6 +153,21 @@ typedef struct color_sensor_calibration{
 //	uint32_t  calSampleCounter;
 }color_sensor_calibration_t;
 
+enum ReportType{
+    /* invalid report type*/
+    AWB_SENSOR_RAW_SEQ_TYPE_INVALID = 0,
+
+    /*16 raw data SEQ: r,g,b,ir,0,...,0 */
+    AWB_SENSOR_RAW_SEQ_TYPE_R_G_B_IR = 1,
+
+    /*16 raw data SEQ: c,r,g,b,w,0,...,0 */
+    AWB_SENSOR_RAW_SEQ_TYPE_C_R_G_B_W = 2,
+
+    /* the final 16 raw data SEQ , must be aligned with camera HAL's data structure£º awb_sensor_info_t */
+    AWB_SENSOR_RAW_SEQ_TYPE_COMMON = 9,
+    AWB_SENSOR_RAW_SEQ_TYPE_MAX,
+};
+
 struct colorDriver_chip {
 	struct mutex lock;
 	struct i2c_client *client;
@@ -162,21 +182,24 @@ struct colorDriver_chip {
 	void * deviceCtx;
 	struct timer_list work_timer;
 	struct timer_list fd_timer;
-	struct timer_list fd_clock_calibrate_timer;
-	struct work_struct als_work;
+    struct work_struct als_work;
 	struct work_struct fd_work;
-	struct work_struct fd_clock_calibrate_work;
 	struct device *dev;
-	void (*color_show_calibrate_state)(struct rohmDriver_chip *, color_sensor_output_para*);
-	void (*color_store_calibrate_state)(struct rohmDriver_chip *, color_sensor_input_para*);
-	void (*at_color_store_calibrate_state)(struct rohmDriver_chip *, at_color_sensor_input_para*);
-	void (*at_color_show_calibrate_state)(struct rohmDriver_chip *, at_color_sensor_output_para*);
-	void (*color_enable_show_state)(struct rohmDriver_chip *, int *);
-	void (*color_enable_store_state)(struct rohmDriver_chip *, int);
+	void (*color_show_calibrate_state)(struct colorDriver_chip *, color_sensor_output_para*);
+	void (*color_store_calibrate_state)(struct colorDriver_chip *, color_sensor_input_para*);
+	void (*at_color_store_calibrate_state)(struct colorDriver_chip *, at_color_sensor_input_para*);
+	void (*at_color_show_calibrate_state)(struct colorDriver_chip *, at_color_sensor_output_para*);
+	void (*color_enable_show_state)(struct colorDriver_chip *, int *);
+	void (*color_enable_store_state)(struct colorDriver_chip *, int);
+	void (*flicker_enable_store_state)(struct colorDriver_chip *, int);
+	void (*get_flicker_data)(struct colorDriver_chip *, char *);
 	INT32 (*color_sensor_getGain)(void*);
 	INT32 (*color_sensor_setGain)(void*, int);
+	void (*flicker_enable_show_state)(struct colorDriver_chip *, int *);
+    int (*color_report_type)(void);
+//	void (*flicker_enable_store_state)(struct colorDriver_chip *, int);
 };
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

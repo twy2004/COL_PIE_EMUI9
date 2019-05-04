@@ -193,7 +193,7 @@ close:
  * @return     : void
  * @note       :
 ********************************************************************************/
-void hisee_pdswipe_add_flash_data(void *p_buf, u32 buf_size, u32 flash_offset)
+void hisee_pdswipe_add_flash_data(const void *p_buf, u32 buf_size, u32 flash_offset)
 {
 	int ret, fd_flash, cnt=0;
 	mm_segment_t old_fs;

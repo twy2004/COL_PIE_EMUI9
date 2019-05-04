@@ -1136,7 +1136,7 @@ static int synaptics_reconstruct_barcode(struct ts_oem_info_param *info)
 	len = info->buff[offset1*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		 memcpy(&(info->buff[offset1*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		 TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset1);
+		 TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset1);
 		 return retval;
 	 }
 
@@ -1144,7 +1144,7 @@ static int synaptics_reconstruct_barcode(struct ts_oem_info_param *info)
 	len = info->buff[offset2*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		 memcpy(&(info->buff[offset2*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		 TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset2);
+		 TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset2);
 		 return retval;
 	 }
 
@@ -1168,7 +1168,7 @@ static int synaptics_reconstruct_brightness(struct ts_oem_info_param *info)
 	len = info->buff[offset1*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		 memcpy(&(info->buff[offset1*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		 TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset1);
+		 TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset1);
 		 return retval;
 	}
 
@@ -1176,7 +1176,7 @@ static int synaptics_reconstruct_brightness(struct ts_oem_info_param *info)
 	len = info->buff[offset2*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		 memcpy(&(info->buff[offset2*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		 TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset2);
+		 TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset2);
 		 return retval;
 	 }
 
@@ -1200,7 +1200,7 @@ static int synaptics_reconstruct_whitepoint(struct ts_oem_info_param *info)
 	len = info->buff[offset1*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		memcpy(&(info->buff[offset1*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset1);
+		TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset1);
 		return retval;
 	}
 
@@ -1208,7 +1208,7 @@ static int synaptics_reconstruct_whitepoint(struct ts_oem_info_param *info)
 	len = info->buff[offset2*16 + 1];
 	if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 		memcpy(&(info->buff[offset2*16]), tp_type_cmd, tp_type_cmd[1]*16);
-		TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset2);
+		TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset2);
 		return retval;
 	}
 
@@ -1241,7 +1241,7 @@ static int synaptics_reconstruct_repair_recode(struct ts_oem_info_param *info)
 
 		if ((type == 0x00 && len == 0x00) ||(type == 0xFF && len == 0xFF)) {
 			memcpy(&(info->buff[offset*16]), tp_type_cmd, tp_type_cmd[1]*16);
-			TS_LOG_INFO("Will write the data to info_buff, offset is %s", offset);
+			TS_LOG_INFO("Will write the data to info_buff, offset is %d", offset);
 			break;
 		} else if( offset == TS_NV_STRUCTURE_REPAIR_OFFSET5 ) {
 			TS_LOG_INFO("%s repaire recode is full, could not write into the data\n", __func__);
@@ -1416,7 +1416,7 @@ static int synaptics_set_oem_info(struct ts_oem_info_param *info)
 	} else {
 		error = EINVAL;
 		tp_result_info[0] = TS_CHIP_WRITE_ERROR;
-		TS_LOG_INFO("%s: invalid test cmd:%s\n", __func__);
+		TS_LOG_INFO("%s: invalid test cmd\n", __func__);
 		return error;
 	}
 
@@ -1559,7 +1559,6 @@ static int synaptics_get_oem_info(struct ts_oem_info_param *info)
 	int index =0;
 	int latest_index = 0;
 	int i;
-	int count = 0;
 	int infolength = 0;
 	TS_LOG_INFO("%s called\n", __func__);
 
@@ -5009,7 +5008,6 @@ static int synaptics_rmi4_set_page_f35(struct synaptics_rmi4_data *rmi4_data,uns
 	int retval = 0;
 	unsigned char buf[PAGE_SELECT_LEN];
 	unsigned char page;
-	struct i2c_client *i2c = to_i2c_client(rmi4_data->synaptics_dev->dev.parent);
 	struct i2c_msg msg[1];
 
 	msg[0].addr = FORCE_TOUCH_I2C;
@@ -5030,13 +5028,10 @@ static int synaptics_rmi4_i2c_read_f35(struct synaptics_rmi4_data *rmi4_data,uns
 	unsigned char retry = 0;
 	unsigned char buf;
 	unsigned char rd_msgs = 1;
-	unsigned char index = 0;
 	unsigned char xfer_msgs;
 	unsigned char remaining_msgs;
 	unsigned short data_offset = 0;
 	unsigned short remaining_length = length;
-	struct i2c_client *i2c = to_i2c_client(rmi4_data->synaptics_dev->dev.parent);
-	struct i2c_adapter *adap = g_ts_data.client->adapter;
 	struct i2c_msg msg[rd_msgs + 1];
 
 	retval = synaptics_rmi4_set_page_f35(rmi4_data, addr);
@@ -5082,8 +5077,6 @@ static int synaptics_rmi4_i2c_write_f35(struct synaptics_rmi4_data *rmi4_data,un
 	int retval;
 	unsigned char retry = 0;
 	unsigned char *buf;
-	unsigned char page;
-	struct i2c_client *i2c = to_i2c_client(rmi4_data->synaptics_dev->dev.parent);
 	struct i2c_msg msg[1];
 
 	if (length >= F35_WRITE_LENGTH_MAX) {

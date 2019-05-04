@@ -48,7 +48,8 @@
 #include "PPP/Inc/pppid.h"
 #include "PPP/Inc/link.h"
 #include "PPP/Inc/hdlc_software.h"
-
+#include "TTFComm.h"
+#include "gucttf_tag.h"
 
 
 /*****************************************************************************
@@ -56,6 +57,7 @@
 *****************************************************************************/
 /*lint -e767 */
 #define    THIS_FILE_ID        PS_FILE_ID_HDLC_SOFTWARE_C
+#define    THIS_MODU           mod_ppp
 /*lint +e767 */
 
 /******************************************************************************
@@ -76,18 +78,6 @@ PPP_HDLC_SOFT_DATA_PROC_STAT_ST g_PppHdlcSoftStat = {0};
 /******************************************************************************
    5 函数实现
 ******************************************************************************/
-VOS_VOID PPP_HDLC_SOFT_MntnShowStatInfo(VOS_VOID)
-{
-    vos_printf("\n================HDLC Software STAT INFO Begin==========================\n");
-
-    vos_printf("处理上行IP类型数据个数    = %d\n", g_PppHdlcSoftStat.ulUplinkIpDataProcCnt);
-    vos_printf("处理上行PPP类型数据个数   = %d\n", g_PppHdlcSoftStat.ulUplinkPppDataProcCnt);
-    vos_printf("处理下行IP类型数据个数    = %d\n", g_PppHdlcSoftStat.ulDownlinkIpDataProcCnt);
-    vos_printf("处理下行PPP类型数据个数   = %d\n", g_PppHdlcSoftStat.ulDownlinkPppDataProcCnt);
-    vos_printf("单次处理数据最大个数   = %d\n", g_PppHdlcSoftStat.ulMaxCntOnce);
-
-    vos_printf("================HDLC Software STAT INFO End==========================\n");
-}
 
 /*lint -e574*/
 void link_PushTtfMemPacket(struct link *l, PPP_ZC_STRU *bp, VOS_INT32 pri, VOS_UINT16 proto)

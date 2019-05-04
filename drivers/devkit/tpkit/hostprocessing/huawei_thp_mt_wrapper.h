@@ -79,9 +79,16 @@ struct thp_mt_wrapper_ioctl_touch_data {
 #define KEY_F26 196
 
 enum input_mt_wrapper_keyevent {
-	INPUT_MT_WRAPPER_KEYEVENT_NULL,
-	INPUT_MT_WRAPPER_KEYEVENT_ESD,
+	INPUT_MT_WRAPPER_KEYEVENT_NULL    = 0,
+	INPUT_MT_WRAPPER_KEYEVENT_ESD    = 1 << 0,
+	INPUT_MT_WRAPPER_KEYEVENT_APPROACH = 1 << 1,
+	INPUT_MT_WRAPPER_KEYEVENT_AWAY = 1 << 2,
 };
+
+#define PROX_VALUE_LEN          3
+#define PROX_EVENT_LEN          12
+#define APPROCH_EVENT_VALUE     0
+#define AWAY_EVENT_VALUE        1
 
 /* commands */
 #define INPUT_MT_WRAPPER_IO_TYPE  (0xB9)

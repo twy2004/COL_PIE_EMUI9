@@ -43,7 +43,7 @@ static char *cfg_initflow_array[] = {
 	"DMA-Controller-wr(noc_dmac_mst_wr)", /*5 */
 	"DPCTRL(noc_dpctrl)",		      /*6 */
 	"noc_fd_mst",			      /*7 */
-	"IOMCU(noc_iomcu_ahb_mst)",	   /*8 */
+	"IOMCU(noc_iomcu_ahb_mst)",	    /*8 */
 	"IOMCU-DMA(noc_iomcu_dma_mst)",       /*9 */
 	"TZP(noc_iomcu_tzp_ahb_mst)",	 /*A */
 	"IPF(noc_ipf)",			      /*B */
@@ -678,6 +678,7 @@ const struct noc_busid_initflow hisi_filter_initflow_PHOE_es[] = {
 	{0, 24, RDR_CP},	/*socp*/
 	{0, 8, RDR_IOM3},  /* iomcu core */
 	{0, 9, RDR_IOM3},  /* iomcu dma */
+	{0, 1, RDR_HIFI},  /* hifi */
 	{ARRAY_END_FLAG, 0, RDR_AP},	/*end*/
 };
 

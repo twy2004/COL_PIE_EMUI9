@@ -353,9 +353,6 @@ static int dpe_set_pxl_clk_rate(struct hisi_fb_data_type *hisifd)
 			if (ret) {
 				HISI_FB_ERR("set pipe_clk_rate[%llu] fail, reset to [%llu], ret[%d].\n",
 					hisifd->pipe_clk_ctrl.pipe_clk_rate, pinfo->pxl_clk_rate, ret);
-
-				ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
-			} else {
 				ret = clk_set_rate(hisifd->dss_pxl0_clk, pinfo->pxl_clk_rate);
 			}
 		} else {
@@ -2557,7 +2554,7 @@ void init_igm_gmp_xcc_gm(struct hisi_fb_data_type *hisifd)
 			outp32(xcc_base + XCC_COEF_21, pinfo->xcc_table[9]);
 			outp32(xcc_base + XCC_COEF_22, pinfo->xcc_table[10]);
 			outp32(xcc_base + XCC_COEF_23, pinfo->xcc_table[11]
-				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value)
+				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value) / CHANGE_MAX
 				* color_temp_rectify_B / 32768);
 		}
 
@@ -2579,7 +2576,7 @@ void init_igm_gmp_xcc_gm(struct hisi_fb_data_type *hisifd)
 				outp32(xcc_pre_base + XCC_COEF_21, pinfo->xcc_pre_table[9]);
 				outp32(xcc_pre_base + XCC_COEF_22, pinfo->xcc_pre_table[10]);
 				outp32(xcc_pre_base + XCC_COEF_23, pinfo->xcc_pre_table[11]
-            				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value)
+            				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value) / CHANGE_MAX
             				* color_temp_rectify_B / 32768);
 
 				//enable xcc & xcc_pre
@@ -2823,7 +2820,7 @@ int dpe_set_ct_cscValue(struct hisi_fb_data_type *hisifd)
 			outp32(xcc_base + XCC_COEF_21, pinfo->xcc_table[9]);
 			outp32(xcc_base + XCC_COEF_22, pinfo->xcc_table[10]);
 			outp32(xcc_base + XCC_COEF_23, pinfo->xcc_table[11]
-				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value)
+				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value) / CHANGE_MAX
 				* color_temp_rectify_B / 32768);
 			hisifd->color_temperature_flag = 2;
 		}
@@ -2906,7 +2903,7 @@ int dpe_set_comform_ct_cscValue(struct hisi_fb_data_type *hisifd)
 			outp32(xcc_base + XCC_COEF_21, pinfo->xcc_table[9]);
 			outp32(xcc_base + XCC_COEF_22, pinfo->xcc_table[10]);
 			outp32(xcc_base + XCC_COEF_23, pinfo->xcc_table[11]
-				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value)
+				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value) / CHANGE_MAX
 				* color_temp_rectify_B / 32768);
 		}
 	}
@@ -3017,7 +3014,7 @@ int dpe_set_led_rg_ct_cscValue(struct hisi_fb_data_type *hisifd)
 			outp32(xcc_base + XCC_COEF_21, pinfo->xcc_table[9]);
 			outp32(xcc_base + XCC_COEF_22, pinfo->xcc_table[10]);
 			outp32(xcc_base + XCC_COEF_23, pinfo->xcc_table[11]
-				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value)
+				* g_led_rg_csc_value[8] / 32768 * DISCOUNT_COEFFICIENT(g_comform_value) / CHANGE_MAX
 				* color_temp_rectify_B / 32768);
 		}
 	}

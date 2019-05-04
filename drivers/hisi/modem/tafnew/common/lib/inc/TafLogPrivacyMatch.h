@@ -150,6 +150,19 @@ typedef struct
     AT_PRIVACY_FILTER_AT_PROC_FUNC      pcPrivacyAtCmd;
 }AT_LOG_PRIVACY_MAP_CMD_TO_FUNC_STRU;
 
+
+typedef VOS_VOID (*pTafIntraMsgPrivacyMatchFunc)(
+    MsgBlock                           *pstMsg
+);
+
+
+typedef struct
+{
+    VOS_UINT32                          ulMsgName;                          /* 消息类型 */
+    pTafIntraMsgPrivacyMatchFunc        pTafIntraMsgPrivacyMatchFunc;       /* 消息对应的过滤函数 */
+}TAF_LOG_PRIVACY_INTRA_MSG_MATCH_TBL_STRU;
+
+
 /*****************************************************************************
   8 UNION定义
 *****************************************************************************/
@@ -184,6 +197,15 @@ VOS_VOID*  AT_PrivacyMatchCposSetReq(
 VOS_VOID*  AT_PrivacyMatchSimLockWriteExSetReq(
     MsgBlock                           *pstMsg
 );
+
+#if (FEATURE_ON == FEATURE_IMS)
+VOS_VOID* AT_PrivacyMatchImsaImsCtrlMsg(
+    MsgBlock                                               *pstMsg
+);
+VOS_VOID* AT_PrivacyMatchImsaNickNameSetReq(
+    MsgBlock                                               *pstMsg
+);
+#endif
 
 VOS_VOID*  AT_PrivacyMatchMeidSetReq(
     MsgBlock                           *pstMsg
@@ -222,6 +244,17 @@ VOS_VOID* AT_PrivacyMatchInterRogateMsg(
 VOS_VOID* AT_PrivacyMatchErasessMsg(
     MsgBlock                           *pstMsg
 );
+
+VOS_VOID* AT_PrivacyMatchActivatessMsg(
+    MsgBlock                           *pstMsg
+);
+VOS_VOID* AT_PrivacyMatchDeactivatessMsg(
+    MsgBlock                           *pstMsg
+);
+VOS_VOID* AT_PrivacyMatchRegPwdMsg(
+    MsgBlock                           *pstMsg
+);
+
 VOS_VOID* AT_PrivacyMatchCallAppOrigReq(
     MsgBlock                           *pstMsg
 );
@@ -239,6 +272,10 @@ VOS_VOID* AT_PrivacyMatchCallAppStopDtmfReq(
 );
 
 VOS_VOID* AT_PrivacyMatchCallAppCustomEccNumReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* AT_PrivacyMatchCallAppSetUusinfoReq(
     MsgBlock                           *pstMsg
 );
 
@@ -283,7 +320,7 @@ VOS_VOID* AT_PrivacyMatchCallAppSendContReq(
     MsgBlock                           *pstMsg
 );
 
-#if (FEATURE_ON == FEATURE_AGPS)
+#if ((FEATURE_ON == FEATURE_AGPS) && (FEATURE_ON == FEATURE_XPDS))
 VOS_VOID* TAF_XPDS_PrivacyMatchAtGpsRefLocInfoCnf(
     MsgBlock                           *pstMsg
 );
@@ -379,6 +416,178 @@ VOS_VOID* TAF_DRVAGENT_PrivacyMatchAtMsidQryCnf(
     MsgBlock                           *pstMsg
 );
 
+
+VOS_VOID* AT_PrivacyMatchSmsAppMsgReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_PrivacyMatchAtCallBackSmsProc(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtEcidSetCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfClocInfoSetReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfClocInfoQryCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfPsClocInfoSetReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtEfPsClocInfoQryCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetAuthDataReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetSetPdpDnsInfoReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafSetGetPdpDnsInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchTafGetNegotiationDnsCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtSetNetMonScellCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MTA_PrivacyMatchAtSetNetMonNcellCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* AT_PrivacyMatchPseucellInfoSetReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtLocationInfoQryCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRegStatusInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtSrchedPlmnInfoInd(
+    MsgBlock                           *pstMsg
+);
+
+#if (FEATURE_ON == FEATURE_UE_MODE_CDMA)
+VOS_VOID* TAF_MMA_PrivacyMatchAtCdmaLocInfoQryCnf(
+    MsgBlock                           *pstMsg
+);
+#endif /* (FEATURE_ON == FEATURE_UE_MODE_CDMA) */
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtNetScanCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRegStateQryCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtClocInfoInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_MMA_PrivacyMatchAtRejInfoQryCnf(
+    MsgBlock                           *pstMsg
+);
+
+#if (FEATURE_ON == FEATURE_CL_INTERWORK)
+VOS_VOID* TAF_MSG_PrivacyMatchMmaRegReqProc(
+    MsgBlock                                               *pstMsg
+);
+#endif
+
+VOS_VOID* RNIC_PrivacyMatchCdsImsDataReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpActCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpActInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpManageInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpModCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpModInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpDeactCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpDeactInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsCallPdpIpv6InfoInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetPrimPdpCtxInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetTftInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetPdpIpAddrInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetDynamicTftInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsGetAuthdataInfoCnf(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_DSM_PrivacyMatchPsReportPcoInfoInd(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_PrivacyMatchDsmPsCallOrigReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_PrivacyMatchDsmPsPppDialOrigReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_PrivacyMatchDsmPsSetPrimPdpCtxInfoReq(
+    MsgBlock                           *pstMsg
+);
+
+VOS_VOID* TAF_PrivacyMatchDsmPsSetTftInfoReq(
+    MsgBlock                           *pstMsg
+);
 
 #if (VOS_OS_VER == VOS_WIN32)
 #pragma pack()

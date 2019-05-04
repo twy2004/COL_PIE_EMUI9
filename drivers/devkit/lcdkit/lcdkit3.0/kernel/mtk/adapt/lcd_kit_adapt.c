@@ -244,13 +244,16 @@ int lcd_kit_dsi_cmds_rx(void* hld, uint8_t* out, struct lcd_kit_dsi_panel_cmds* 
     return ret;
 }
 
-int lcd_kit_dsi_cmds_extern_rx(uint8_t* out, struct lcd_kit_dsi_panel_cmds* cmds)
+int lcd_kit_dsi_cmds_extern_rx(uint8_t *out,
+				struct lcd_kit_dsi_panel_cmds *cmds,
+				unsigned int len)
 {
-    int i = 0;
-	int j = 0;
-    int ret = 0;
+	unsigned int i = 0;
+	unsigned int j = 0;
+	unsigned int k = 0;
+	int ret = 0;
 	struct dsi_cmd_desc dsi_cmd;
-	uint8_t buffer[4] = {0};
+	unsigned char *buffer = NULL;
 
 	if ((cmds == NULL)  || (out == NULL)){
 		LCD_KIT_ERR("out or cmds is null point!\n");
@@ -261,13 +264,37 @@ int lcd_kit_dsi_cmds_extern_rx(uint8_t* out, struct lcd_kit_dsi_panel_cmds* cmds
 		if (lcd_kit_cmd_is_write(cmds)) {
 			mtk_mipi_dsi_cmds_extern_tx(&cmds->cmds[i], 1);
 		} else {
-			memset(buffer,0,sizeof(buffer)/sizeof(uint8_t));
 			lcd_kit_cmds_to_mtk_dsi_read_cmds(&cmds->cmds[i], &dsi_cmd);
-			dsi_cmd.payload = &buffer[0];
-			ret = do_lcm_vdo_lp_read(&dsi_cmd, 1);
-			out[j] = buffer[1];
-			LCD_KIT_INFO("j is %d data0 is 0x%x  data1 is 0x%x  data2 is 0x%x  data3 is 0x%x\n",j,buffer[0],buffer[1],buffer[2],buffer[3]);
-			j++;
+			if (dsi_cmd.dlen == 0) {
+				LCD_KIT_ERR("cmd len is 0!\n");
+				return LCD_KIT_FAIL;
+			}
+			LCD_KIT_INFO("cmd len is %d!\n", dsi_cmd.dlen);
+			buffer = kzalloc(dsi_cmd.dlen, GFP_KERNEL);
+			if (buffer == NULL) {
+				LCD_KIT_ERR("buffer is NULL!\n");
+				return LCD_KIT_FAIL;
+			}
+			dsi_cmd.payload = buffer;
+			do_lcm_vdo_lp_read(&dsi_cmd, 1);
+			if (dsi_cmd.dlen == 0) {
+				LCD_KIT_ERR("read data len is 0!\n");
+				kfree(buffer);
+				buffer = NULL;
+				return LCD_KIT_FAIL;
+			}
+			for (j = 0; j < dsi_cmd.dlen; j++) {
+				if (k >= len) {
+					LCD_KIT_ERR("out buffer is full!\n");
+					break;
+				}
+				out[k] = buffer[j];
+				k++;
+				LCD_KIT_INFO("j is %d k is %d data1 is 0x%x\n",
+					j, k, buffer[j]);
+			}
+			kfree(buffer);
+			buffer = NULL;
 		}
 	}
 
@@ -304,6 +331,10 @@ static int lcd_kit_buf_trans(const char* inbuf, int inlen, char** outbuf, int* o
  
 	/*The property is 4bytes long per element in cells: <>*/
 	bufsize = bufsize / 4;
+	if (bufsize <= 0) {
+		LCD_KIT_ERR("bufsize is less 0!\n");
+		return LCD_KIT_FAIL;
+	}
 	/*If use bype property: [], this division should be removed*/
 	buf = kzalloc(sizeof(char) * bufsize, GFP_KERNEL);
 	if (!buf) {

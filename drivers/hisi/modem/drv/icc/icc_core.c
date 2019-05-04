@@ -54,7 +54,9 @@ static u32 dynamic_channel_id = ICC_STATIC_CHN_ID_MAX;
 static u32 count = 0;
 struct icc_control g_icc_ctrl = {0};
 struct icc_dynamic_info dynamic_info[ICC_DYNAMIC_CHAN_NUM_MAX];
-
+extern unsigned long     pcie_icc_ep_bar_phyaddr, pcie_icc_ep_bar_viraddr;
+extern unsigned long     pcie_icc_rc_bar_phyaddr, pcie_icc_rc_bar_viraddr;
+extern unsigned int pcie_linkdown_flag;
 u32 fifo_put_with_header(struct icc_channel_fifo *fifo, u8 *head_buf, u32 head_len, u8 *data_buf, u32 data_len)
 {
 	s32 tail_idle_size = 0;
@@ -91,7 +93,7 @@ u32 fifo_put_with_header(struct icc_channel_fifo *fifo, u8 *head_buf, u32 head_l
 	/*再填充负载*/
 	if ( (0 == tail_idle_size) || (tail_idle_size > (s32)data_len) )
 	{
-		(void)memcpy_s((void *)(write + base_addr), buf_len, (void *)data_buf, data_len);/*lint !e124 */
+  	       (void)memcpy_s((void *)(write + base_addr), buf_len, (void *)data_buf, data_len);/*lint !e124 */
 		write += data_len;
 	}
 	else
@@ -366,14 +368,14 @@ static s32 data_send(u32 cpuid, u32 channel_id, u8* data, u32 data_len)
 		ret = ICC_SEND_ERR;
 		goto err_send; /*lint !e801 */
 	}
-
+       {
 	ret = bsp_ipc_int_send((IPC_INT_CORE_E)cpuid, (IPC_INT_LEV_E)channel->ipc_send_irq_id);
 	if(ret != 0)
 	{
 		icc_print_error("ipc send fail,ret:0x%x \n", ret);
 		goto err_send; /*lint !e801 */
 	}
-	
+       }
 	icc_debug_after_send(channel, &packet, data);
 
 	spin_unlock_irqrestore(&channel->write_lock, flags); /*lint !e123 */
@@ -586,6 +588,11 @@ void icc_ipc_isr(u32 data)
 	}
 }
 
+void icc_pcie_isr(void)
+{
+       icc_ipc_isr(ICC_SHAREDTASK_SHAREDIPC_IDX);
+}
+
 /* 根据fifo头信息初始化通道 */
 /*lint --e{578} */
 struct icc_channel *icc_channel_init(struct icc_init_info *info, s32 *ret)
@@ -732,6 +739,7 @@ static int icc_channels_node_init(struct device_node *node)
 		last_channel_addr = (unsigned long)ICC_SRAM_START_ADDR_ON_THIS_CORE;
 		icc_mem_addr_max = ICC_SRAM_ADDR_MAX;
 	}
+
 	else
 	{
 		icc_print_error("invalid ref %s\n", ref_type);
@@ -926,7 +934,6 @@ s32 bsp_icc_init(void)
 		ret = ICC_CREATE_TASK_FAIL;  /* [false alarm]:fortify */
 		goto error_task; /*lint !e801 */
 	}
-
 	g_icc_ctrl.shared_recv_ipc_irq_id = ICC_RECV_IPC_SHARED;
 
 	if (ICC_ERR == bsp_ipc_int_connect((IPC_INT_LEV_E)g_icc_ctrl.shared_recv_ipc_irq_id, (voidfuncptr)icc_ipc_isr, ICC_SHAREDTASK_SHAREDIPC_IDX))
@@ -939,7 +946,6 @@ s32 bsp_icc_init(void)
 		ret = ICC_REGISTER_INT_FAIL;
 		goto error_int; /*lint !e801 */
 	}
-
 	icc_print_error("ok\n");
 
 	g_icc_ctrl.state = ICC_INITIALIZED;
@@ -948,7 +954,6 @@ s32 bsp_icc_init(void)
 
 error_int:
 	kthread_stop((icc_task_id)g_icc_ctrl.shared_task_id); 
-
 error_task:
 	for(i = 0; i < ICC_CHN_ID_MAX; i++)
 	{
@@ -965,6 +970,7 @@ icc_channels_init_err:
 
 	return ret;
 }
+
 
 s32 bsp_icc_dynamic_event_register(u32 destcore, struct icc_dynamic_para *parameter)
 {
@@ -1214,7 +1220,7 @@ s32 bsp_icc_send(u32 cpuid, u32 channel_id, u8* data, u32 data_len)
 {
 	if(((cpuid >= ICC_CPU_MAX) || (cpuid == ICC_THIS_CPU)) || (GET_CHN_ID(channel_id) >= ICC_CHN_ID_MAX) || (!g_icc_ctrl.channels[GET_CHN_ID(channel_id)])
 	   || (GET_FUNC_ID(channel_id) >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->func_size) ||
-	   (data_len >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->fifo_send->size - sizeof(struct icc_channel_packet)) )
+	   (data_len >= g_icc_ctrl.channels[GET_CHN_ID(channel_id)]->fifo_send->size - sizeof(struct icc_channel_packet)))
 	{
 		icc_print_error("para err,cpuid=0x%x, chan_id=0x%x, data=%p, data_len=0x%x\n", cpuid, channel_id, data, data_len);
 		return ICC_INVALID_PARA;
@@ -1235,7 +1241,6 @@ s32 bsp_icc_read(u32 channel_id, u8 *buf, u32 buf_len)
 	unsigned long flags = 0;
 	u32 real_channel_id = GET_CHN_ID(channel_id);
 	u32 func_id = GET_FUNC_ID(channel_id);
-
 	UNUSED(flags);
 	if(g_icc_ctrl.channels[GET_CHN_ID(channel_id)] == NULL)
 	{

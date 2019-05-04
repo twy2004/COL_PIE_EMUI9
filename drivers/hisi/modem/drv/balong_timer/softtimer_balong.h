@@ -47,7 +47,6 @@
  */
 
 #include <hi_base.h>
-#include <hi_timer.h>
 #include <soc_interrupts.h>
 #include <bsp_memmap.h>
 #include <bsp_hardtimer.h>

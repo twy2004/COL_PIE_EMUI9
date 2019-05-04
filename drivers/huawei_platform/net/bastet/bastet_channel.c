@@ -34,6 +34,12 @@
 
 #define MOBILE_NAME						"rmnet"
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#ifndef tcp_jiffies32
+#define tcp_jiffies32 tcp_time_stamp
+#endif
+#endif
+
 typedef enum{
 	FLAGS_PROP_NONE = 0,
 	FLAGS_PROP_SEQ_ONLY,
@@ -110,8 +116,7 @@ static int32_t bastet_send_priority_data(struct sock *sk,
 		bool wq_empty)
 {
 	int32_t ret = 0;
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
-	struct iovec *iov = msg->msg_iter.iov;
+	const struct iovec *iov = msg->msg_iter.iov;
 	size_t size = iov->iov_len;
 	unsigned char __user *from = iov->iov_base;
 	uint32_t count = 0;
@@ -131,7 +136,7 @@ static int32_t bastet_send_priority_data(struct sock *sk,
 		prop->pkt_type = set_packet_type(i, count, size);
 		prop->sync_prop.seq = tcp_sk(sk)->write_seq
 			+ i * MAX_PRIORITY_DATA_PKT;
-		prop->sync_prop.ts_current = tcp_time_stamp
+		prop->sync_prop.ts_current = tcp_jiffies32
 			+ tcp_sk(sk)->tsoffset;
 		prop->len = len;
 		if (i == 0) {
@@ -151,7 +156,6 @@ static int32_t bastet_send_priority_data(struct sock *sk,
 			sizeof(struct bst_ind_priority_prop) + len);
 		memset(prop->data, 0, len);
 	}
-#endif
 	return ret;
 }
 
@@ -160,8 +164,11 @@ static void bastet_send_wq_data(struct sock *sk,
 				struct bst_ind_priority_prop *prop,
 				bool first_skb)
 {
-	struct tcp_sock *tp = tcp_sk(sk);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 10)
+#else
 	struct tcp_skb_cb *tcb = TCP_SKB_CB(skb);
+#endif
+	struct tcp_sock *tp = tcp_sk(sk);
 	uint32_t size = skb->len;
 	uint32_t count = 0;
 	uint32_t len = 0;
@@ -221,7 +228,7 @@ static void bastet_pick_wq(struct sock *sk,
 	tp->fackets_out = 0;
 	tp->sacked_out = 0;
 	tp->lost_out = 0;
-	tp->rcv_tstamp = tcp_time_stamp;
+	tp->rcv_tstamp = tcp_jiffies32;
 	sk->sk_send_head = NULL;
 
 	tcp_rearm_rto(sk);

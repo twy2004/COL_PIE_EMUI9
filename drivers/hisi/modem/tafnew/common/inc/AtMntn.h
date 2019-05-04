@@ -74,6 +74,12 @@ extern "C" {
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
+
+/* Log Print Module Define */
+#ifndef THIS_MODU
+#define THIS_MODU    ps_nas
+#endif
+
 /* 1.1: OM_GreenChannel的第二个参数usPrimId的定义*/
 #define     AT_OM_GREEN_CHANNEL_PS      (0xC001)                                /* PS相关 */
 
@@ -167,23 +173,23 @@ extern "C" {
 #ifndef TAF_LOG
 #define   TAF_LOG(Mod, SubMod, Level, String) \
           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
-                          (Mod), __FILE__, __LINE__, "%s \r\n", (String) )
+                          (Mod), NULL, __LINE__, "%s \r\n", (String) )
 
 #define   TAF_LOG1(Mod, SubMod, Level, String, Para1) \
           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
-                          (Mod), __FILE__, __LINE__, "%s, %d \r\n", (String), (VOS_INT32)(Para1) )
+                          (Mod), NULL, __LINE__, "%s, %d \r\n", (String), (VOS_INT32)(Para1) )
 
 #define   TAF_LOG2(Mod, SubMod, Level, String, Para1, Para2) \
           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
-                          (Mod), __FILE__, __LINE__, "%s, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2) )
+                          (Mod), NULL, __LINE__, "%s, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2) )
 
 #define   TAF_LOG3(Mod, SubMod, Level, String, Para1, Para2, Para3) \
           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
-                          (Mod), __FILE__, __LINE__, "%s, %d, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2), (VOS_INT32)(Para3) )
+                          (Mod), NULL, __LINE__, "%s, %d, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2), (VOS_INT32)(Para3) )
 
 #define   TAF_LOG4(Mod, SubMod, Level, String, Para1, Para2, Para3, Para4) \
           (VOS_VOID)DIAG_LogReport( DIAG_GEN_LOG_MODULE(MODEM_ID_0, DIAG_MODE_UMTS, (Level)), \
-                          (Mod), __FILE__, __LINE__, "%s, %d, %d, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2), (VOS_INT32)(Para3), (VOS_INT32)(Para4) )
+                          (Mod), NULL, __LINE__, "%s, %d, %d, %d, %d \r\n", (String), (VOS_INT32)(Para1), (VOS_INT32)(Para2), (VOS_INT32)(Para3), (VOS_INT32)(Para4) )
 #endif
 
 
@@ -255,14 +261,6 @@ typedef VOS_UINT32 AT_OM_GREENCHANNEL_ERR_ENUM_UINT32;
 *****************************************************************************/
 
 
-typedef struct
-{
-    VOS_MSG_HEADER                                                              /* _H2ASN_Skip */
-    AT_INTER_MSG_ID_ENUM_UINT32         enMsgId;            /* 消息类型     */  /* _H2ASN_Skip */
-    VOS_UINT32                          ulPortId;           /* 端口ID */
-    AT_DCE_MSC_STRU                     stDceMscInfo;       /* 管脚信号信息 */
-
-} AT_MNTN_MSC_STRU;
 
 
 typedef struct
@@ -524,32 +522,6 @@ VOS_UINT8 AT_GetUnCheckApPortFlg(VOS_VOID);
 
 VOS_VOID AT_MNTN_TraceEvent(VOS_VOID *pMsg);
 
-/*****************************************************************************
- 函 数 名  : AT_MNTN_TraceInputMsc
- 功能描述  : 管脚信号输入可维可测
- 输入参数  : ucIndex   - 端口索引
-             pstDceMsc - 管脚信号信息(调用者保证非空)
- 输出参数  : 无
- 返 回 值  : VOS_VOID
-*****************************************************************************/
-VOS_VOID AT_MNTN_TraceInputMsc(
-    VOS_UINT8                           ucIndex,
-    AT_DCE_MSC_STRU                    *pstDceMsc
-);
-
-
-/*****************************************************************************
- 函 数 名  : AT_MNTN_TraceOutputMsc
- 功能描述  : 管脚信号输出可维可测
- 输入参数  : ucIndex   - 端口索引
-             pstDceMsc - 管脚信号信息(调用者保证非空)
- 输出参数  : 无
- 返 回 值  : VOS_VOID
-*****************************************************************************/
-VOS_VOID AT_MNTN_TraceOutputMsc(
-    VOS_UINT8                           ucIndex,
-    AT_DCE_MSC_STRU                    *pstDceMsc
-);
 
 /*****************************************************************************
  函 数 名  : AT_MNTN_TraceStartFlowCtrl
@@ -617,22 +589,6 @@ VOS_VOID AT_MNTN_TraceDeregFcPoint(
  返 回 值  : VOS_VOID
 *****************************************************************************/
 VOS_VOID AT_MNTN_TraceCmdResult(
-    VOS_UINT8                           ucIndex,
-    VOS_UINT8                          *pucData,
-    VOS_UINT16                          usDataLen
-);
-
-
-/*****************************************************************************
- 函 数 名  : AT_MNTN_TraceCmdBuffer
- 功能描述  : 缓存命令可维可测
- 输入参数  : ucIndex   - 端口索引
-             pucData   - 数据内容
-             usDataLen - 数据长度
- 输出参数  : 无
- 返 回 值  : VOS_VOID
-*****************************************************************************/
-VOS_VOID AT_MNTN_TraceCmdBuffer(
     VOS_UINT8                           ucIndex,
     VOS_UINT8                          *pucData,
     VOS_UINT16                          usDataLen

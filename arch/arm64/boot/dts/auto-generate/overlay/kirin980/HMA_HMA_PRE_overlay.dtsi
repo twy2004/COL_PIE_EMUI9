@@ -23,6 +23,21 @@
     board_id = <8400>;
 };
 
+&firmware {
+    android {
+        fstab {
+            vendor {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+            odm {
+                type = "ext4";
+                mnt_flags = "ro,barrier=1";
+            };
+        };
+    };
+};
+
 &hisi_peripheral_tm {
     compatible = "hisi,hisi-peripheral-tm";
     hisi,peripheral_sensors = <11>;
@@ -995,7 +1010,7 @@
 				clock-names = "clk_out0";
 				clocks = <&clk_gate_out0>;
 				nfc_chip_type = "pn80t";
-				nfc_single_channel = "true";
+				nfc_single_channel = "false";
 				nfc_ese_type = "p61";
 			};
 			ti,lp8556{
@@ -1119,8 +1134,8 @@
 			cal_data_limit = "99999", "99999", "99999";
 
 			sec_ts-avdd-supply = <&ldo9>;
-			dvdd_value = <1850000>;
-			avdd_value = <3300000>;
+			vddio_value = <1850000>;
+			vci_value = <3300000>;
 			i2c-burstmax = <256>;
 			max_x = <1079>;
 			max_y = <2159>;
@@ -1903,7 +1918,7 @@
 				poll_interval = <80>;
 				ps_oily_threshold = <6>;
 				oily_max_near_pdata=<1000>;
-				max_oily_add_pdata=<320>;
+				max_oily_add_pdata=<280>;
 				max_near_pdata_loop=<3>;
 				oily_count_size=<8>;
 				status = "ok";
@@ -2281,7 +2296,6 @@
 				chip_id_register=<0x91>;
 				chip_id_value=<0x00>;
 				file_id=<47>;
-				sensor_list_info_id=<0x23>;
 				sensor_type="connectivity";
 				gpio1_gps_cmd_ap = <227>;
 				gpio1_gps_cmd_sh = <1027>;

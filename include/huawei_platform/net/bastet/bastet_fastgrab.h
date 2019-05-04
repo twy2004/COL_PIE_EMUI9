@@ -233,12 +233,10 @@ void BST_FG_IoCtrl(unsigned long arg);
 void BST_FG_CheckSockUid(struct sock *pstSock, int state);
 uint8_t BST_FG_HookPacket(struct sock *pstSock, uint8_t *pData,
 		uint32_t ulLength, uint32_t ulRole);
-#if defined(CONFIG_PPPOLAC) || defined(CONFIG_PPPOPNS)
 #ifdef CONFIG_HUAWEI_XENGINE
 bool BST_FG_Hook_Ul_Stub(struct sock *pstSock, struct msghdr *msg);
 #else
 void BST_FG_Hook_Ul_Stub(struct sock *pstSock, struct msghdr *msg);
-#endif
 #endif
 #ifdef CONFIG_HUAWEI_BASTET
 void BST_FG_Custom_Process(struct sock *pstSock, struct msghdr *msg, uint8_t ucProtocolBitMap);

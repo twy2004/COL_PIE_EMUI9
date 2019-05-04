@@ -921,6 +921,10 @@ static int f2fs_drop_inode(struct inode *inode)
 			sb_start_intwrite(inode->i_sb);
 			f2fs_i_size_write(inode, 0);
 
+			f2fs_submit_merged_write_cond(F2FS_I_SB(inode), inode,
+						      0, ULONG_MAX, DATA);
+			truncate_inode_pages_final(inode->i_mapping);
+
 			if (F2FS_HAS_BLOCKS(inode))
 				f2fs_truncate(inode);
 
@@ -2029,6 +2033,18 @@ static int f2fs_dquot_commit_info(struct super_block *sb, int type)
 	return ret;
 }
 
+static void f2fs_truncate_quota_inode_pages(struct super_block *sb)
+{
+	struct quota_info *dqopt = sb_dqopt(sb);
+	int type;
+
+	for (type = 0; type < MAXQUOTAS; type++) {
+		if (!dqopt->files[type])
+			continue;
+		f2fs_inode_synced(dqopt->files[type]);
+	}
+}
+
 int f2fs_get_projid(struct inode *inode, kprojid_t *projid)
 {
 	*projid = F2FS_I(inode)->i_projid;
@@ -2130,6 +2146,86 @@ static int f2fs_set_context(struct inode *inode, const void *ctx, size_t len,
 				ctx, len, fs_data, XATTR_CREATE);
 }
 
+#ifdef CONFIG_HWAA
+static int f2fs_get_hwaa_attr(struct inode *inode, void *buf, size_t len)
+{
+	return f2fs_getxattr(inode, F2FS_XATTR_INDEX_ENCRYPTION, HWAA_XATTR_NAME,
+		buf, len, NULL, NULL);
+}
+
+static int f2fs_set_hwaa_attr(struct inode *inode, const void *attr, size_t len,
+	void *fs_data)
+{
+	return f2fs_setxattr(inode, F2FS_XATTR_INDEX_ENCRYPTION, HWAA_XATTR_NAME,
+		attr, len, fs_data, XATTR_CREATE);
+}
+
+/* mainly copied from f2fs_get_sdp_encrypt_flags */
+static int f2fs_get_hwaa_flags(struct inode *inode, void *fs_data, u32 *flags)
+{
+	struct f2fs_xattr_header *hdr;
+	struct page *xpage;
+	int err;
+
+	if (!fs_data)
+		down_read(&F2FS_I(inode)->i_sem);
+
+	*flags = 0;
+	hdr = get_xattr_header(inode, (struct page *)fs_data, &xpage);
+	if (IS_ERR_OR_NULL(hdr)) {
+		err = (long)PTR_ERR(hdr);
+		goto out_unlock;
+	}
+
+	*flags = hdr->h_xattr_flags;
+	err = 0;
+	f2fs_put_page(xpage, 1);
+out_unlock:
+	if (!fs_data)
+		up_read(&F2FS_I(inode)->i_sem);
+	return err;
+}
+
+/* mainly copied from f2fs_set_sdp_encrypt_flags */
+static int f2fs_set_hwaa_flags(struct inode *inode, void *fs_data, u32 *flags)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct f2fs_xattr_header *hdr;
+	struct page *xpage = NULL;
+	int err = 0;
+
+	if (!fs_data) {
+		f2fs_lock_op(sbi);
+		down_write(&F2FS_I(inode)->i_sem);
+	}
+
+	hdr = get_xattr_header(inode, (struct page *)fs_data, &xpage);
+	if (IS_ERR_OR_NULL(hdr)) {
+		err = (long)PTR_ERR(hdr);
+		goto out_unlock;
+	}
+
+	hdr->h_xattr_flags = *flags;
+	if (fs_data)
+		set_page_dirty(fs_data);
+	else if (xpage)
+		set_page_dirty(xpage);
+
+	f2fs_put_page(xpage, 1);
+
+	f2fs_mark_inode_dirty_sync(inode, true);
+	if (S_ISDIR(inode->i_mode))
+		set_sbi_flag(sbi, SBI_NEED_CP);
+
+out_unlock:
+	if (!fs_data) {
+		up_write(&F2FS_I(inode)->i_sem);
+		f2fs_unlock_op(sbi);
+	}
+	return err;
+}
+#endif
+
 static int f2fs_get_verify_context(struct inode *inode, void *ctx, size_t len)
 {
 	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
@@ -2208,6 +2304,13 @@ static const struct fscrypt_operations f2fs_cryptops = {
 #if DEFINE_F2FS_FS_SDP_ENCRYPTION
 	.get_keyinfo          = f2fs_get_crypt_keyinfo,
 	.is_permitted_context = f2fs_is_permitted_context,
+#endif
+#ifdef CONFIG_HWAA
+	.get_keyinfo		= f2fs_get_crypt_keyinfo,
+	.set_hwaa_attr		= f2fs_set_hwaa_attr,
+	.get_hwaa_attr		= f2fs_get_hwaa_attr,
+	.get_hwaa_flags		= f2fs_get_hwaa_flags,
+	.set_hwaa_flags		= f2fs_set_hwaa_flags,
 #endif
 };
 #else
@@ -3064,6 +3167,9 @@ try_onemore:
 #endif
 
 	sbi->sb = sb;
+#ifdef CONFIG_F2FS_CHECK_FS
+	atomic_set(&sbi->in_cp, 0);
+#endif
 
 	/* Load the checksum driver */
 	sbi->s_chksum_driver = crypto_alloc_shash("crc32", 0, 0);
@@ -3337,11 +3443,9 @@ try_onemore:
 	 */
 	if (f2fs_sb_has_quota_ino(sb) && !sb_rdonly(sb)) {
 		err = f2fs_enable_quotas(sb);
-		if (err) {
+		if (err)
 			f2fs_msg(sb, KERN_ERR,
 				"Cannot turn on quotas: error %d", err);
-			goto free_sysfs;
-		}
 	}
 #endif
 	/* all the print info of sbi is created and ready now */
@@ -3441,10 +3545,10 @@ skip_recovery:
 
 free_meta:
 #ifdef CONFIG_QUOTA
+	f2fs_truncate_quota_inode_pages(sb);
 	if (f2fs_sb_has_quota_ino(sb) && !sb_rdonly(sb))
 		f2fs_quota_off_umount(sbi->sb);
 #endif
-	f2fs_sync_inode_meta(sbi);
 	/*
 	 * Some dirty meta pages can be produced by recover_orphan_inodes()
 	 * failed by EIO. Then, iput(node_inode) can trigger balance_fs_bg()
@@ -3452,9 +3556,6 @@ free_meta:
 	 * falls into an infinite loop in sync_meta_pages().
 	 */
 	truncate_inode_pages_final(META_MAPPING(sbi));
-#ifdef CONFIG_QUOTA
-free_sysfs:
-#endif
 	f2fs_unregister_sysfs(sbi);
 free_root_inode:
 	dput(sb->s_root);

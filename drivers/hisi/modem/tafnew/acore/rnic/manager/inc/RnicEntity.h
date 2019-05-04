@@ -75,9 +75,6 @@ extern "C" {
   2 宏定义
 *****************************************************************************/
 
-#define RNIC_NS_ETH_TYPE_IP             (0x0008)            /* 网络序形式, 表示IPv4包类型 */
-#define RNIC_NS_ETH_TYPE_IPV6           (0xDD86)            /* 网络序形式, 表示IPv6包类型 */
-
 #define RNIC_BUILD_EXRABID(modemid, rabid)\
             ((VOS_UINT8)((((modemid) << 6) & 0xC0) | ((rabid) & 0x3F)))
 
@@ -89,6 +86,7 @@ extern "C" {
 
 #define RNIC_GET_RMNETID_FROM_EXPARAM(ulExParam)\
             ((VOS_UINT8)((ulExParam) & 0x000000FF))
+
 
 /*******************************************************************************
   3 枚举定义

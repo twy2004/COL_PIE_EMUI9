@@ -65,6 +65,8 @@
 /include/ "hisi_soh.dtsi"
 /include/ "kirin980_coresight_noc_stm.dtsi"
 /include/ "huawei_antenna_board_match.dtsi"
+/include/ "huawei_vsys_switch.dtsi"
+/include/ "huawei_kb.dtsi"
 / {
 	#address-cells = <2>;
 	#size-cells = <2>;
@@ -165,6 +167,12 @@
 	};
 	sunwodasony_3900_110k_4400_15: sunwodasony_3900_110k_4400_15 {
 	};
+	desayatl_3900_39k_4400_16: desayatl_3900_39k_4400_16 {
+	};
+	scudlg_3900_200k_4400_16: scudlg_3900_200k_4400_16 {
+	};
+	sunwodasony_3900_110k_4400_16: sunwodasony_3900_110k_4400_16 {
+	};
 	desayatl_3900_39k_4400_polar: desayatl_3900_39k_4400_polar {
 	};
 	scudlg_3900_200k_4400_25_polar: scudlg_3900_200k_4400_25_polar {
@@ -183,13 +191,23 @@
 	};
 	desayatl_4100_snYT_4400_25: desayatl_4100_snYT_4400_25 {
 	};
+	desaysony_3650_68k_4400_25: desaysony_3650_68k_4400_25 {
+	};
+	scudatl_3650_39k_4400_25: scudatl_3650_39k_4400_25 {
+	};
+	desaysony_3650_68k_4400_16: desaysony_3650_68k_4400_16 {
+	};
+	scudatl_3650_39k_4400_16: scudatl_3650_39k_4400_16 {
+	};
 	scudmurata_4100_snCS_4400_50: scudmurata_4100_snCS_4400_50 {
 	};
 	desayatl_4900_39k_4400: desayatl_4900_39k_4400 {
 	};
+	desayatl_4900_39k_4400_24: desayatl_4900_39k_4400_24 {
+	};
 	sunwodamurata_4900_110k_4400: sunwodamurata_4900_110k_4400 {
 	};
-	sunwodamurata_3550_110k_4416_57: sunwodamurata_3550_110k_4416_57 {
+	sunwodamurata_4900_110k_4400_38: sunwodamurata_4900_110k_4400_38 {
 	};
 	desayatl_3400_snYT_4400_25: desayatl_3400_snYT_4400_25 {
 	};
@@ -197,7 +215,43 @@
 	};
 	scudguangyu_4900_22k_4400: scudguangyu_4900_22k_4400 {
 	};
+	scudguangyu_4900_22k_4400_32: scudguangyu_4900_22k_4400_32 {
+	};
+	sunwodamurata_3550_110k_4416_64: sunwodamurata_3550_110k_4416_64 {
+	};
 	desayatl_3550_39k_4416_39: desayatl_3550_39k_4416_39 {
+	};
+	sunwodaatl_3550_470k_4416_48: sunwodaatl_3550_470k_4416_48 {
+	};
+	sunwodamurata_3550_110k_4434_64: sunwodamurata_3550_110k_4434_64 {
+	};
+	desayatl_3550_39k_4434_39: desayatl_3550_39k_4434_39 {
+	};
+	sunwodaatl_3550_470k_4434_48: sunwodaatl_3550_470k_4434_48 {
+	};
+	desayatl_4100_snYA_4384_48: desayatl_4100_snYA_4384_48 {
+	};
+	desayatl_4100_snYT_4384_48: desayatl_4100_snYT_4384_48 {
+	};
+	scudmurata_4100_snCS_4384_64: scudmurata_4100_snCS_4384_64 {
+	};
+	scudmurata_4100_snCS_4400_64: scudmurata_4100_snCS_4400_64 {
+	};
+	desayatl_4100_snYA_4400_48: desayatl_4100_snYA_4400_48 {
+	};
+	desayatl_4100_snYT_4400_48: desayatl_4100_snYT_4400_48 {
+	};
+	sunwodaatl_2220_snIA_4400: sunwodaatl_2220_snIA_4400 {
+	};
+	sunwodaatl_2220_snIA_4430: sunwodaatl_2220_snIA_4430 {
+	};
+	scudmurata_4100_snCZ_4400_64: scudmurata_4100_snCZ_4400_64 {
+	};
+	desayatl_7350_39k_4400:desayatl_7350_39k_4400 {
+	};
+	scudsony_7350_110k_4400:scudsony_7350_110k_4400 {
+	};
+	sunwodaguangyu_7350_22k_4400:sunwodaguangyu_7350_22k_4400 {
 	};
 	hisi_bci_battery:battery {
 	};
@@ -211,6 +265,10 @@
 	};
 	chg_watchdog: chg_watchdog {
     };
+	vbus_channel_charger: vbus_channel_charger {
+	};
+	vbus_channel_boost_gpio: vbus_channel_boost_gpio {
+	};
     huawei_charger: huawei_charger {
 	};
 	charging_core:charging_core {
@@ -526,6 +584,9 @@
 	sound_hi6403: sound_hi6403 {
 	};
 
+	sound_hi6405: sound_hi6405 {
+	};
+
 	hi6210_hifi: hi6210_hifi {
 	};
 
@@ -612,6 +673,9 @@
 	};
 
 	usb_audio_power: usb_audio_power {
+	};
+
+	usb_audio_power_v600: usb_audio_power_v600 {
 	};
 
 	usb_audio_common: usb_audio_common {
@@ -746,6 +810,9 @@
 	huawei_aod: aod {
 	};
 
+	display_share_mem: display_share_mem {
+	};
+
 	gps_power: gps_power {
 	};
 
@@ -818,6 +885,9 @@
 	huawei_imx600imx351hybrid:huawei,imx600imx351hybrid{
 	};
 
+	huawei_imx600front:huawei,imx600front{
+	};
+
 	huawei_ov9282: huawei,ov9282 {
 	};
 
@@ -886,6 +956,66 @@
 	huawei_ov02a10: huawei,ov02a10 {
 	};
 
+	huawei_hi846:huawei,hi846 {
+    };
+
+	huawei_s5k4h7:huawei,s5k4h7 {
+	};
+
+	huawei_imx576_yal: huawei,imx576_yal {
+	};
+
+	huawei_imx616_yal: huawei,imx616_yal {
+	};
+
+	huawei_imx481_yal: huawei,imx481_yal {
+	};
+
+	huawei_ov16885_yal: huawei,ov16885_yal {
+	};
+
+	huawei_imx582_yal: huawei,imx582_yal {
+	};
+
+	huawei_imx586_yal: huawei,imx586_yal {
+	};
+
+	huawei_gc2375_yal: huawei,gc2375_yal {
+	};
+
+	huawei_gc2375micro_yal: huawei,gc2375micro_yal {
+	};
+
+	huawei_ov02a10_yal: huawei,ov02a10_yal {
+	};
+
+	huawei_ov02a10micro_yal: huawei,ov02a10micro_yal {
+	};
+
+	huawei_imx616_yalzx: huawei,imx616_yalzx {
+	};
+
+	huawei_imx481_yalzx: huawei,imx481_yalzx {
+	};
+
+	huawei_ov16885_yalzx: huawei,ov16885_yalzx {
+	};
+
+	huawei_imx586_yalzx: huawei,imx586_yalzx {
+	};
+
+	huawei_gc2375micro_yalzx: huawei,gc2375micro_yalzx {
+	};
+
+	huawei_ov02a10micro_yalzx: huawei,ov02a10micro_yalzx {
+	};
+
+	huawei_ov13855:huawei,ov13855 {
+	};
+
+	huawei_s5k3l6:huawei,s5k3l6 {
+	};
+
 	huawei_drvic_mp3336: huawei,drvic_mp3336 {
 	};
 
@@ -931,5 +1061,11 @@
 		hisi_support_casd;
 	};
 	vibrator_hw_config:vibrator_hw_config{
+	};
+	singleap_wifionly: singleap_wifionly {
+	};
+	reserved_memory:reserved-memory {
+	};
+	firmware:firmware{
 	};
 };

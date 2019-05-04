@@ -18,8 +18,10 @@
 #include <linux/wakelock.h>
 #include <linux/ion.h>
 #include <linux/hisi/hisi_ion.h>
-#include <linux/hisi/hisi-iommu.h>
-#include <linux/hisi/ion-iommu.h>
+#include <linux/hisi-iommu.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
+#include <linux/ion-iommu.h>
+#endif
 #include <linux/syscalls.h>
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0))
 #include <linux/clk-private.h>
@@ -40,9 +42,10 @@
 
 #define IVP_WDG_REG_BASE_OFFSET          (0x1000)
 #define IVP_SMMU_REG_BASE_OFFSET         (0x40000)
-//#define GIC_IRQ_CLEAR_REG                (0xe82b11a4)//0xEA0001A0
 #define IVP_IMAGE_SUFFIX                  ".bin"
-#define IVP_IMAGE_SUFFIX_LENGTH           (sizeof(IVP_IMAGE_SUFFIX)-1)
+#define IVP_INIT_SUCESS                  (0x1234ABCD)
+#define IVP_INIT_RESULT_CHECK_TIMES      (0x0A)
+#define IVP_IMAGE_SUFFIX_LENGTH          (sizeof(IVP_IMAGE_SUFFIX)-1)
 
 static struct ivp_device ivp_dev;
 extern struct dsm_client *client_ivp;
@@ -64,10 +67,6 @@ enum {
     IVP_BOOT_FROM_DDR = 1,
 };
 
-enum {
-    IVP_RUNSTALL_RUN = 0,
-    IVP_RUNSTALL_STALL = 1,
-};
 enum {
     IVP_MEM_SLEEPMODE_NORMAL = 0,
     IVP_MEM_SLEEPMODE = 1,
@@ -139,10 +138,10 @@ static int ivp_get_validate_section_info(const struct firmware* fw,struct image_
 }
 void *ivp_vmap(phys_addr_t paddr, size_t size, unsigned int * offset)
 {
-    int i;
+    unsigned int i;
     void *vaddr = NULL;
     pgprot_t pgprot;
-    int pages_count;
+    unsigned int pages_count;
     struct page **pages;
 
     *offset = paddr & ~PAGE_MASK;
@@ -416,7 +415,7 @@ inline void ivp_hw_disable_reset(struct ivp_device *devp)
     ivp_reg_write(IVP_REG_OFF_DSP_CORE_RESET_DIS, 0x02);
 }
 
-static void ivp_hw_runstall(struct ivp_device *devp, int mode)
+void ivp_hw_runstall(struct ivp_device *devp, int mode)
 {
     u32 val = (u32)mode;
     ivp_reg_write(IVP_REG_OFF_RUNSTALL, val & 0x01);
@@ -586,8 +585,6 @@ static void ivp_dev_poweroff(struct ivp_device *devp)
 {
     int ret = 0;
 
-    ivp_hw_runstall(devp, IVP_RUNSTALL_STALL);
-
     ret = ivp_poweroff_pri(devp);
     if (ret) {
         ivp_err("power on private setting failed [%d]!", ret);
@@ -603,10 +600,23 @@ static void ivp_dev_poweroff(struct ivp_device *devp)
 
 static void ivp_dev_run(struct ivp_device *devp)
 {
-    ivp_dbg("enter");
+    int i = 0;
+
     if (ivp_hw_query_runstall(devp) == IVP_RUNSTALL_RUN)
         return;
+
     ivp_hw_runstall(devp, IVP_RUNSTALL_RUN);
+
+    while (ivp_reg_read(IVP_REG_OFF_RESEVER_REG) != IVP_INIT_SUCESS && i < IVP_INIT_RESULT_CHECK_TIMES ) {
+        udelay(100);
+        if (i >= IVP_INIT_RESULT_CHECK_TIMES) {
+            ivp_err("%s ivp init fails", __func__);
+            return;
+        }
+        i++;
+    }
+
+    ivp_info("%s ivp init success!", __func__);
 }
 
 static void ivp_dev_stop(struct ivp_device *devp)
@@ -957,9 +967,11 @@ static void ivp_poweroff(struct ivp_device *pdev)
     }
     ivp_hw_clr_wdg_irq();
 
+    disable_irq(pdev->wdg_irq);
     free_irq(pdev->wdg_irq, pdev);
 
     if (NOSEC_MODE == pdev->ivp_secmode){
+        disable_irq(pdev->dwaxi_dlock_irq);
         free_irq(pdev->dwaxi_dlock_irq, pdev);
         ivp_dev_smmu_deinit(pdev);
     }
@@ -1210,7 +1222,7 @@ static long ivp_ioctl32(struct file *fd, unsigned int cmd, unsigned long arg)
 {
     long ret = 0;
     void *ptr_user = compat_ptr(arg);
-    ret = ivp_ioctl(fd, cmd, (unsigned long)ptr_user);
+    ret = ivp_ioctl(fd, cmd, (uintptr_t)ptr_user);
     return ret;
 }
 
@@ -1333,7 +1345,7 @@ static inline int ivp_setup_onchipmem_sections(struct platform_device *plat_devp
     ivp_devp->sec_sects = (struct ivp_sect_info *)kzalloc(sects_size, GFP_KERNEL);
     if (NULL == ivp_devp->sec_sects){
         ivp_err("kmalloc sec_sects fail.");
-        return -ENOMEM;
+        goto err_sects;
     }
 
     ivp_info("section count:%d.", ivp_devp->sect_count);
@@ -1357,12 +1369,13 @@ static inline int ivp_setup_onchipmem_sections(struct platform_device *plat_devp
     return 0;
 
 err_out:
-    if(ivp_devp->sects)
-        kfree(ivp_devp->sects);
     if(ivp_devp->sec_sects)
         kfree(ivp_devp->sec_sects);
-    ivp_devp->sects = NULL;
     ivp_devp->sec_sects = NULL;
+err_sects:
+    if(ivp_devp->sects)
+        kfree(ivp_devp->sects);
+    ivp_devp->sects = NULL;
     ivp_devp->sect_count = 0;
     return -EFAULT;
 }
@@ -1528,6 +1541,7 @@ static int ivp_remove(struct platform_device *plat_devp)
     pdev->sects = NULL;
     pdev->sec_sects = NULL;
     pdev->sect_count = 0;
+    ivp_release_iores(plat_devp);
 
     if (NULL != pdev->smmu_dev) {
         pdev->smmu_dev = NULL;
@@ -1605,7 +1619,10 @@ err_out_dwaxi_irq:
 err_out_wdg:
     if(ivp_dev.sects)
         kfree(ivp_dev.sects);
+    if(ivp_dev.sec_sects)
+        kfree(ivp_dev.sec_sects);
     ivp_dev.sects = NULL;
+    ivp_dev.sec_sects = NULL;
     ivp_dev.sect_count = 0;
 err_out_onchipmem:
     ivp_dev.smmu_dev = NULL;

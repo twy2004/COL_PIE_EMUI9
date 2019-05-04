@@ -90,8 +90,8 @@
 		/*ES chip_bug fix flag*/
 		phy_cal = <0>;
 
-		/* slt test connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
-		slt_device_type = <0x2>;
+		/* connected device: 0x1-BCM, 0x2-hi110x, 0x3-NVMe, 0x4-Modem, ... */
+		ep_device_type = <0x2>;
 		status = "disabled";
 	};
 

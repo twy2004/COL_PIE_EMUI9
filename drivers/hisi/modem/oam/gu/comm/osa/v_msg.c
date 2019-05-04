@@ -82,6 +82,8 @@
 #include "v_timer.h"
 #include "v_iddef.h"
 #include "v_private.h"
+#include "mdrv.h"
+#include "pam_tag.h"
 
  /* LINUX 不支持 */
 
@@ -91,6 +93,7 @@
     协议栈打印打点方式下的.C文件宏定义
 *****************************************************************************/
 #define    THIS_FILE_ID        PS_FILE_ID_V_MSG_C
+#define    THIS_MODU           mod_pam_osa
 
 /* 支持互相发送消息的多核的最大数目 */
 #define VOS_SUPPORT_CPU_NUM_MAX     (5)
@@ -285,7 +288,7 @@ VOS_VOID VOS_DRVMB_OSAMsg_CB(VOS_VOID *pUserPara, VOS_VOID *pMailHandle, VOS_UIN
 
     if (ulLen <= VOS_MSG_HEAD_LENGTH)
     {
-        LogPrint("\n VOS_DRVMB_OSAMsg_CB: The Data Len is small.\n");
+        mdrv_err("<VOS_DRVMB_OSAMsg_CB> The Data Len is small.\n");
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_MB_DATALENISNULL);
 
@@ -300,7 +303,7 @@ VOS_VOID VOS_DRVMB_OSAMsg_CB(VOS_VOID *pUserPara, VOS_VOID *pMailHandle, VOS_UIN
 
     if ( VOS_NULL_PTR == pucMsgData )
     {
-        LogPrint("\n VOS_DRVMB_OSAMsg_CB: Alloc Msg memory failed.\n");
+        mdrv_err("<VOS_DRVMB_OSAMsg_CB> Alloc Msg memory failed.\n");
 
         return ;
     }
@@ -309,7 +312,7 @@ VOS_VOID VOS_DRVMB_OSAMsg_CB(VOS_VOID *pUserPara, VOS_VOID *pMailHandle, VOS_UIN
     {
         (VOS_VOID)VOS_FreeMsg(VOS_PID_DOPRAEND, pucMsgData);
 
-        LogPrint("\n VOS_DRVMB_OSAMsg_CB: DRV_MAILBOX_READMAILDATA failed.\n");
+        mdrv_err("<VOS_DRVMB_OSAMsg_CB> DRV_MAILBOX_READMAILDATA failed.\n");
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_DRV_READ_MAIL_FAIL);
 
@@ -351,7 +354,7 @@ VOS_UINT32 VOS_DRVMB_Init(VOS_VOID)
                                 VOS_DRVMB_OSAMsg_CB,
                                 (VOS_VOID *)VOS_HIFI_TO_ACPU_VOS_MSG_NORMAL))
     {
-        LogPrint("\n VOS_DRVMB_Init: Register HIFI->ACPU Normal CB failed.\n");
+        mdrv_err("<VOS_DRVMB_Init> Register HIFI->ACPU Normal CB failed.\n");
         return VOS_ERR;
     }
 
@@ -360,7 +363,7 @@ VOS_UINT32 VOS_DRVMB_Init(VOS_VOID)
                                 VOS_DRVMB_OSAMsg_CB,
                                 (VOS_VOID *)VOS_HIFI_TO_ACPU_VOS_MSG_URGENT))
     {
-        LogPrint("\n VOS_DRVMB_Init: Register HIFI->ACPU Urgent CB failed.\n");
+        mdrv_err("<VOS_DRVMB_Init> Register HIFI->ACPU Urgent CB failed.\n");
         return VOS_ERR;
     }
 
@@ -391,7 +394,7 @@ VOS_UINT32 VOS_SendMsgByDrvMB(VOS_PID                 Pid,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_MB_PIDTERROR);
 
-        LogPrint1("\n# VOS_SendMsgByDrvMB Error Timer Sender MB Msg, Rec PID %d\n", (VOS_INT)pstMsgCtrlBlk->ulReceiverPid);
+        mdrv_err("<VOS_SendMsgByDrvMB> Timer Sender MB Msg, Rec PID=%d\n", (VOS_INT)pstMsgCtrlBlk->ulReceiverPid);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_MB_PIDTERROR, (VOS_INT)pstMsgCtrlBlk->ulReceiverPid, 0, 0, 0);
 
@@ -410,7 +413,7 @@ VOS_UINT32 VOS_SendMsgByDrvMB(VOS_PID                 Pid,
     /* 由于HIFI复位，写 mailbox通道失败会返回一个特殊值，不能复位单板 */
     if (MAILBOX_TARGET_NOT_READY == ulResult )
     {
-        LogPrint3("\n# VOS_SendMsgByDrvMB Error,HIFI Reset, File  %d. line %d. Size %d.\n",
+        mdrv_err("<VOS_SendMsgByDrvMB> HIFI Reset Fail, File=%d. line=%d. Size=%d.\n",
                     (VOS_INT)pstMsgPara->ulFileID, pstMsgPara->lLineNo,(VOS_INT)ulDataLen);
 
         return VOS_ERRNO_MSG_MAILBOX_RESET;
@@ -420,7 +423,7 @@ VOS_UINT32 VOS_SendMsgByDrvMB(VOS_PID                 Pid,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_MB_SENDERROR);
 
-        LogPrint4("\n# VOS_SendMsgByDrvMB Error,Write DRV MB Error, File  %d. line %d. Size %d result %d.\n",
+        mdrv_err("<VOS_SendMsgByDrvMB> Write DRV MB Fail, File=%d. line=%d. Size=%d result=%d.\n",
                     (VOS_INT)pstMsgPara->ulFileID, pstMsgPara->lLineNo,(VOS_INT)ulDataLen,(VOS_INT)ulResult);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_MB_SENDERROR, (VOS_INT)ulResult, 0,
@@ -553,7 +556,7 @@ MODULE_EXPORTED MsgBlock * V_AllocMsg(VOS_PID Pid, VOS_UINT32 ulLength,
     /* 如果申请的空间大小超过0x7FFFFFFF个Byte，直接返回空指针 */
     if (0x7FFFFFFF < (ulLength + VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH))
     {
-        LogPrint2("# V_AllocMsg size over 0x7FFFFFFF,FileID: %d LineNo: %d.\r\n", ulFileID, usLineNo);
+        mdrv_err("<V_AllocMsg> size over 0x7FFFFFFF,FileID=%d LineNo=%d.\n", ulFileID, usLineNo);
 
         return VOS_NULL_PTR;
     }
@@ -598,7 +601,7 @@ MsgBlock * VOS_AllocTimerMsg(VOS_PID Pid, VOS_UINT32 ulLength )
 
     if(Pid >= VOS_PID_BUTT)
     {
-        LogPrint("# Alloc Timer msg Pid too big.\r\n");
+        mdrv_err("<VOS_AllocTimerMsg> Alloc Timer msg Pid too big.\n");
         return((MsgBlock*)VOS_NULL_PTR);
     }
 
@@ -661,7 +664,7 @@ MODULE_EXPORTED VOS_UINT32 V_FreeMsg(VOS_PID Pid, VOS_VOID **ppMsg,
 
     if( VOS_NULL_PTR == *ppMsg )
     {
-        LogPrint3("# V_FreeMsg,free msg again.F %d L %d T %d.\r\n",
+        mdrv_err("<V_FreeMsg> free msg again.F=%d L=%d T=%d.\n",
             (VOS_INT)ulFileID, usLineNo, (VOS_INT)VOS_GetTick() );
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_FREE_INPUTPIDINVALID);
@@ -832,7 +835,7 @@ VOS_UINT32 V_FreeReservedMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
 
     if( VOS_NULL_PTR == *ppMsg )
     {
-        LogPrint3("# V_FreeReservedMsg,free reserved msg again.F %d L %d T %d.\r\n",
+        mdrv_err("<V_FreeReservedMsg> free reserved msg again.F=%d L=%d T=%d.\n",
             (VOS_INT)ulFileID, usLineNo, (VOS_INT)VOS_GetTick() );
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_FREE_INPUTPIDINVALID);
@@ -917,7 +920,7 @@ VOS_UINT32 V_CheckMsgPara(VOS_PID Pid, VOS_VOID **ppMsg,
 
     if ( VOS_NULL_PTR == *ppMsg )
     {
-        LogPrint2("# V_SendMsg,send msg again.F %d L %d.\r\n",
+        mdrv_err("<V_SendMsg> send msg again.F=%d L=%d.\n",
                     (VOS_INT)ulFileID, lLineNo);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_FREE_INPUTPIDINVALID);
@@ -936,7 +939,7 @@ VOS_UINT32 V_CheckMsgPara(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_CPUIDISBIG);
 
-        LogPrint1("# V_SendMsg Error,invalid CPU id, PID is %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendMsg> invalid CPU id, PID=%d.\n", (VOS_INT)ulPid);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_CPUIDISBIG,(VOS_INT)ulFileID,lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -950,7 +953,7 @@ VOS_UINT32 V_CheckMsgPara(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_PIDTOOSMALL);
 
-        LogPrint1("# V_SendMsg Error,pid too small, PID is %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendMsg> pid too small, PID=%d.\n", (VOS_INT)ulPid);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_PIDTOOSMALL,(VOS_INT)ulFileID,lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -964,7 +967,7 @@ VOS_UINT32 V_CheckMsgPara(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_POST_INPUTPIDINVALID);
 
-        LogPrint1("# V_SendMsg Error,invalid PID %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendMsg> invalid PID=%d.\n", (VOS_INT)ulPid);
 
         VOS_ProtectionReboot(OSA_SEND_MSG_PID_BIG,(VOS_INT)ulFileID,lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -1003,7 +1006,7 @@ VOS_UINT32 V_SendLocalMsg(VOS_PID Pid, VOS_VOID **ppMsg,
 
     if ( ulPid < VOS_PID_DOPRAEND )
     {
-        LogPrint1("# VOS_SendLocalMsg Rec PID %d Check error.\n", (VOS_INT)ulPid);
+        mdrv_err("<VOS_SendLocalMsg> Rec PID=%d Check error.\n", (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_PIDTOOSMALL);
 
@@ -1019,7 +1022,7 @@ VOS_UINT32 V_SendLocalMsg(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_POST_INPUTPIDINVALID);
 
-        LogPrint1("# VOS_SendLocalMsgError,invalid PID %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<VOS_SendLocalMsg> invalid PID=%d.\n", (VOS_INT)ulPid);
 
         VOS_ProtectionReboot(OSA_SEND_MSG_PID_BIG,(VOS_INT)ulFileID,lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -1033,12 +1036,9 @@ VOS_UINT32 V_SendLocalMsg(VOS_PID Pid, VOS_VOID **ppMsg,
 
     if ( (ulFid < (VOS_UINT32)VOS_FID_DOPRAEND) || (ulFid >= (VOS_UINT32)VOS_FID_BUTT) )
     {
-        LogPrint1("# *******VOS_SendLocalMsg Rec PID %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<VOS_SendLocalMsg> Send PID=%d, Rec PID=%d.\n", pMsgCtrlBlk->ulSenderPid, (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_PID_NO_FID);
-
-        /*VOS_ProtectionReboot(VOS_ERRNO_MSG_PID_NO_FID, (VOS_INT)ulFileID, lLineNo,
-                             (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);*/
 
         (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
@@ -1052,7 +1052,7 @@ VOS_UINT32 V_SendLocalMsg(VOS_PID Pid, VOS_VOID **ppMsg,
     if ( VOS_OK != VOS_MemCheck( pActualMsg, &ulBlockAdd, &ulCtrlkAdd,
                                 ulFileID, lLineNo ) )
     {
-        LogPrint("# VOS_SendLocalMsg Mem Check error.\n");
+        mdrv_err("<VOS_SendLocalMsg> Mem Check error.\n");
 
         VOS_ProtectionReboot(OSA_SEND_MSG_FAIL_TO_CHECK, (VOS_INT)ulFileID, lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -1063,13 +1063,13 @@ VOS_UINT32 V_SendLocalMsg(VOS_PID Pid, VOS_VOID **ppMsg,
     if ( VOS_OK != VOS_FixedQueueWrite( ulQid, pActualMsg, (VOS_UINT32)MSG_SEND_SIZE,
                                         VOS_NORMAL_PRIORITY_MSG, ulPid ) )
     {
-        LogPrint3("# V_SendMsg Error,queue full,Tx Pid %d Rx Pid %d Name 0x%x.\n",
+        mdrv_err("<V_SendLocalMsg> queue full,Tx Pid=%d Rx Pid=%d Name 0x%x.\n",
             (int)(pMsgCtrlBlk->ulSenderPid), (int)ulPid,
             (int)(*(VOS_UINT32 *)(pMsgCtrlBlk->aucValue)) );
 
         if (VOS_FALSE == VOS_MsgDumpCheck())
         {
-            LogPrint("V_SendLocalMsg not need dump\r\n");
+            mdrv_err("<V_SendLocalMsg> not need dump\n");
 
             (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
@@ -1157,7 +1157,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_PIDTERROR);
 
-        LogPrint1("\n# V_SendMsgByICC Error Timer Sender Icc Msg, Rec PID %d\n", (VOS_INT)pMsgCtrlBlk->ulReceiverPid);
+        mdrv_err("<V_SendMsgByICC> Timer Sender Icc Msg, Rec PID=%d\n", (VOS_INT)pMsgCtrlBlk->ulReceiverPid);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_PIDTERROR, (VOS_INT)pMsgCtrlBlk->ulReceiverPid, 0, 0, 0);
 
@@ -1173,7 +1173,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
     /* 由于C核复位，写ICC通道失败会返回一个特殊值，不能复位单板 */
     if (BSP_ERR_ICC_CCORE_RESETTING == lResult )
     {
-        LogPrint3("\n# V_SendMsgByICC Error,Ccore Reset, File  %d. line %d. Size %d .\n",
+        mdrv_err("<V_SendMsgByICC> Ccore Reset, File=%d. line=%d. Size=%d .\n",
                         (VOS_INT)ulFileID, lLineNo,(VOS_INT)ulDataLen);
 
         return VOS_ERRNO_MSG_CCORE_RESET;
@@ -1184,7 +1184,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_WRITEMSGFULL);
 
-        LogPrint4("\n# V_SendMsgByICC Error,Write ICC Channel Full, File  %d. line %d. Size %d result %d.\n", (VOS_INT)ulFileID, lLineNo,(VOS_INT)ulDataLen,lResult);
+        mdrv_err("<V_SendMsgByICC Error> Write ICC Channel Full, File=%d. line=%d. Size=%d result=%d.\n", (VOS_INT)ulFileID, lLineNo,(VOS_INT)ulDataLen,lResult);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_WRITEMSGFULL, (VOS_INT)ulFileID, lLineNo,
                              (VOS_CHAR*)&lResult, sizeof(lResult));
@@ -1196,7 +1196,7 @@ VOS_UINT32 V_SendMsgByICC(VOS_PID Pid, VOS_VOID **ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_WRITEMSGERROR);
 
-        LogPrint4("\n# V_SendMsgByICC Error,Write ICC Channel Error, File  %d. line %d. Size %d result %d.\n", (VOS_INT)ulFileID, lLineNo,(VOS_INT)ulDataLen,lResult);
+        mdrv_err("<V_SendMsgByICC Error> Write ICC Channel Error, File=%d. line=%d. Size=%d result=%d.\n", (VOS_INT)ulFileID, lLineNo,(VOS_INT)ulDataLen,lResult);
 
         VOS_ProtectionReboot(VOS_ERRNO_MSG_ICC_WRITEMSGERROR, (VOS_INT)ulFileID, lLineNo,
                              (VOS_CHAR*)&lResult, sizeof(lResult));          /*Save the UDI result*/
@@ -1243,8 +1243,8 @@ MODULE_EXPORTED VOS_UINT32 V_SendMsg(VOS_PID Pid, VOS_VOID **ppMsg,
 
     if (VOS_NULL_PTR == g_astVOSSendMsgProcTable[ulCpuID].pfSendMsg)
     {
-        LogPrint3("# V_SendMsg, send api is null.F %d L %d RecvPid %d.\r\n",
-                    (VOS_INT)ulFileID, lLineNo, (VOS_INT)ulPid);
+        mdrv_err("<V_SendMsg> send api is null.F=%d L=%d SendPid=%d RecvPid=%d.\n",
+                    (VOS_INT)ulFileID, lLineNo, pMsgCtrlBlk->ulSenderPid, (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
@@ -1298,7 +1298,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
 
     if ( lLen <= VOS_MSG_HEAD_LENGTH )
     {
-        LogPrint("\nV_ICC_OSAMsg_CB: The Data Len is small.\n");
+        mdrv_err("<V_ICC_OSAMsg_CB> The Data Len is small.\n");
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_DATALENISNULL);
 
@@ -1315,7 +1315,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
 
     if ( VOS_NULL_PTR == pucMsgData )
     {
-        LogPrint("\nV_ICC_OSAMsg_CB: Alloc Msg memory failed.\n");
+        mdrv_err("<V_ICC_OSAMsg_CB> Alloc Msg memory failed.\n");
 
         return VOS_ERR;
     }
@@ -1333,7 +1333,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
 
         (VOS_VOID)VOS_FreeMsg( VOS_PID_DOPRAEND, pucMsgData );
 
-        LogPrint("\nV_ICC_OSAMsg_CB: DRV_ICC_READ is Failed.\n");
+        mdrv_err("<V_ICC_OSAMsg_CB> DRV_ICC_READ is Failed.\n");
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_READDATAFAIL);
 
@@ -1360,7 +1360,7 @@ VOS_UINT V_ICC_OSAMsg_CB(VOS_UINT ulChannelID,VOS_INT lLen)
         }
 
 
-        (VOS_VOID)vos_printf("[PAM][OSA][C SR] %s: v_msg senderpid =: %d, receivepid =: %d, msgid =: 0x%x.\n", __FUNCTION__,
+        mdrv_err("<V_ICC_OSAMsg_CB> v_msg senderpid=%d, receivepid=%d, msgid=0x%x.\n",
             pMsgCtrlBlk->ulSenderPid, pMsgCtrlBlk->ulReceiverPid, *((VOS_UINT32*)(pMsgCtrlBlk->aucValue))); /* [false alarm]: 屏蔽Fortify错误 */
     }
 
@@ -1457,7 +1457,7 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
 
     if ( ulPid < VOS_PID_DOPRAEND )
     {
-        LogPrint1("# V_SendLocalUrgentMsg Rec PID %d Check error.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendLocalUrgentMsg> Rec PID=%d Check error.\n", (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_ICC_PIDTOOSMALL);
 
@@ -1473,7 +1473,7 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
     {
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_POST_INPUTPIDINVALID);
 
-        LogPrint1("# V_SendLocalUrgentMsg,invalid PID %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendLocalUrgentMsg> invalid PID=%d.\n", (VOS_INT)ulPid);
 
         VOS_ProtectionReboot(OSA_SEND_MSG_PID_BIG,(VOS_INT)ulFileID,lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -1488,12 +1488,9 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
     /*lint -e574*/
     if ( (ulFid < (VOS_UINT32)VOS_FID_DOPRAEND) || (ulFid >= (VOS_UINT32)VOS_FID_BUTT) )
     {
-        LogPrint1("# *******V_SendLocalUrgentMsg Rec PID %d.\n", (VOS_INT)ulPid);
+        mdrv_err("<V_SendLocalUrgentMsg> Send PID=%d, Rec PID=%d.\n", pMsgCtrlBlk->ulSenderPid, (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_PID_NO_FID);
-
-        /*VOS_ProtectionReboot(VOS_ERRNO_MSG_PID_NO_FID, (VOS_INT)ulFileID, lLineNo,
-                             (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);*/
 
         (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
@@ -1508,7 +1505,7 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
     if ( VOS_OK != VOS_MemCheck( pActualMsg, &ulBlockAdd, &ulCtrlkAdd,
                                     ulFileID, lLineNo ) )
     {
-        LogPrint("# V_SendLocalUrgentMsg Error, mem check error.\n");
+        mdrv_err("<V_SendLocalUrgentMsg> mem check error.\n");
 
         VOS_ProtectionReboot(OSA_SEND_URG_MSG_FAIL_TO_CHECK, (VOS_INT)ulFileID, lLineNo,
                              (VOS_CHAR*)pMsgCtrlBlk, VOS_MSG_BLOCK_HEAD_AND_RESERVED_LENGTH);
@@ -1519,13 +1516,13 @@ VOS_UINT32 V_SendLocalUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
     if ( VOS_OK != VOS_FixedQueueWrite( ulQid, pActualMsg, (VOS_UINT32)MSG_SEND_SIZE,
                                         VOS_EMERGENT_PRIORITY_MSG, ulPid ) )
     {
-        LogPrint3("# V_SendLocalUrgentMsg Error,queue full,Tx Pid %d Rx Pid %d Name 0x%x.\n",
+        mdrv_err("<V_SendLocalUrgentMsg> queue full,Tx Pid=%d Rx Pid=%d Name=0x%x.\n",
             (int)(pMsgCtrlBlk->ulSenderPid), (int)ulPid,
             (int)(*(VOS_UINT32 *)(pMsgCtrlBlk->aucValue)) );
 
         if (VOS_FALSE == VOS_MsgDumpCheck())
         {
-            LogPrint("V_SendLocalUrgentMsg not need dump\r\n");
+            mdrv_err("V_SendLocalUrgentMsg not need dump\n");
 
             (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
@@ -1581,6 +1578,7 @@ MODULE_EXPORTED VOS_UINT32 V_SendUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
     VOS_UINT32          ulPid;
     VOS_UINT32          ulCpuID;
     MsgBlock           *pMsgCtrlBlk;
+    VOS_UINT32          ulSpanMsg;
 
     ulResult = V_CheckMsgPara( Pid, ppMsg, ulFileID, lLineNo );
 
@@ -1595,14 +1593,25 @@ MODULE_EXPORTED VOS_UINT32 V_SendUrgentMsg(VOS_PID Pid, VOS_VOID ** ppMsg,
 
     if (VOS_NULL_PTR == g_astVOSSendMsgProcTable[ulCpuID].pfSendUrgentMsg)
     {
-        LogPrint3("# V_SendUrgentMsg, send api is null.F %d L %d RecvPid %d.\r\n",
-                    (VOS_INT)ulFileID, lLineNo, (VOS_INT)ulPid);
+        mdrv_err("<V_SendUrgentMsg> send api is null.F=%d L=%d SendPid=%d RecvPid=%d.\n",
+                    (VOS_INT)ulFileID, lLineNo, pMsgCtrlBlk->ulSenderPid, (VOS_INT)ulPid);
 
         (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
 
         (VOS_VOID)VOS_SetErrorNo(VOS_ERRNO_MSG_SEND_FUNCEMPTY);
 
         return(VOS_ERRNO_MSG_SEND_FUNCEMPTY);
+    }
+
+    ulSpanMsg = VOS_CheckMsgCPUId(ulCpuID);
+
+    /* 中断中发送跨核消息，返回错误 */
+    if ( (VOS_TRUE == ulSpanMsg)
+        && (VOS_FALSE != VOS_CheckInterrupt()) )
+    {
+        (VOS_VOID)VOS_FreeMsg( Pid, *ppMsg );
+
+        return (VOS_ERRNO_MSG_INT_MSGERROR);
     }
 
     if ( (VOS_NULL_PTR != vos_MsgHook)
@@ -1666,7 +1675,7 @@ MODULE_EXPORTED VOS_UINT32 V_PostMsg(VOS_PID Pid, VOS_VOID * pMsg,
     if ( VOS_OK != VOS_MemCheck( pActualMsg, &ulBlockAdd, &ulCtrlkAdd,
         ulFileID, usLineNo ) )
     {
-        LogPrint("# VOS_PostMsg Mem error.\n");
+        mdrv_err("<VOS_PostMsg> Mem error.\n");
         return VOS_ERR;
     }
 

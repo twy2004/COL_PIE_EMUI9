@@ -142,7 +142,7 @@ DECLARE_EVENT_CLASS(sched_vip_template,
 		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
 		__entry->pid		= p->pid;
 		__entry->prio		= p->prio;
-		memcpy(__entry->msg, msg, min(VIP_MSG_LEN, strlen(msg)+1));
+		memcpy(__entry->msg, msg, min((size_t)VIP_MSG_LEN, strlen(msg)+1));
 		__entry->target_cpu	= task_cpu(p);
 		__entry->dynamic_vip   = atomic64_read(&p->dynamic_vip);
 		__entry->vip_depth     = p->vip_depth;
@@ -952,7 +952,7 @@ TRACE_EVENT(eas_attr_store,
  */
 TRACE_EVENT(sched_tune_boost,
 
-	TP_PROTO(char *name, int boost),
+	TP_PROTO(const char *name, int boost),
 
 	TP_ARGS(name, boost),
 
@@ -1284,9 +1284,9 @@ TRACE_EVENT(sched_group_energy,
 		__bitmask(cpumask, num_possible_cpus())
 		__field( int,	idle_idx	)
 		__field( int,	cap_idx	)
-		__field( long,	group_util	)
-		__field( long,	busy_energy	)
-		__field( long,	idle_energy	)
+		__field( unsigned long,	group_util	)
+		__field( int,	busy_energy	)
+		__field( int,	idle_energy	)
 	),
 
 	TP_fast_assign(

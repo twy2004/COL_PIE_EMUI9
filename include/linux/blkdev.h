@@ -5,6 +5,7 @@
 
 #ifdef CONFIG_BLOCK
 
+
 #include <linux/major.h>
 #include <linux/genhd.h>
 #include <linux/list.h>
@@ -335,6 +336,9 @@ enum blk_freeze_obj_type {
 	BLK_QUEUE,
 };
 
+typedef void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario);
+typedef int (*blk_direct_flush_fn)(struct request_queue *);
+
 #ifdef CONFIG_HISI_BLK
 enum blk_lld_base {
 	BLK_LLD_QUEUE_BASE = 0,
@@ -426,9 +430,9 @@ struct blk_dev_lld {
 	unsigned long feature_flag; /* LLD Feature flag bit */
 #define HISI_BLK_LLD_IDLE_INTR_CAP	(1 << 3)
 	unsigned long lld_cap;
-	void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario);
+	lld_dump_status_fn dump_fn;
 	unsigned int latency_warning_threshold_ms; /* IO Latency threshold */
-	int (*blk_direct_flush_fn)(struct request_queue *);/* Emergency Flush Operation */
+	blk_direct_flush_fn flush_fn;/* Emergency Flush Operation */
 	struct blk_idle_state blk_idle; /* For busy idle feature */
 	unsigned long write_len; /* accumulated write len of the whole device */
 	unsigned long discard_len; /* accumulated discard len of the whole device */
@@ -1169,7 +1173,7 @@ do {								\
 } while (0)
 #endif
 
-extern void blk_queue_dump_register(struct request_queue *q, void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario));
+extern void blk_queue_dump_register(struct request_queue *q, lld_dump_status_fn func);
 extern int blk_register_queue(struct gendisk *disk);
 extern void blk_unregister_queue(struct gendisk *disk);
 extern blk_qc_t generic_make_request(struct bio *bio);
@@ -2147,12 +2151,11 @@ blk_update_latency_hist(struct io_latency_state *s, u_int64_t delta_us)
 	s->latency_sum += delta_us;
 }
 
-ssize_t blk_latency_hist_show(char* name, struct io_latency_state *s,
+ssize_t blk_latency_hist_show(const char* name, struct io_latency_state *s,
 		char *buf, int buf_size);
-
 #ifdef CONFIG_HISI_BLK
-extern void blk_queue_dump_register(struct request_queue *q, void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario));
-extern void blk_mq_tagset_dump_register(struct blk_mq_tag_set *tag_set, void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario));
+extern void blk_queue_dump_register(struct request_queue *q, lld_dump_status_fn func);
+extern void blk_mq_tagset_dump_register(struct blk_mq_tag_set *tag_set, lld_dump_status_fn func);
 extern void blk_mq_tagset_latency_warning_set(struct blk_mq_tag_set *tag_set, unsigned int warning_threshold_ms);
 extern void blk_queue_latency_warning_set(struct request_queue *q, unsigned int warning_threshold_ms);
 extern void blk_mq_tagset_latency_statistic_set(struct blk_mq_tag_set *tag_set);
@@ -2170,8 +2173,8 @@ extern void blk_mq_tagset_hw_idle_notify_enable(struct blk_mq_tag_set *tag_set, 
 extern void blk_mq_tagset_set_inline_crypto_flag(struct blk_mq_tag_set *tag_set, bool enable);
 extern void blk_queue_set_inline_crypto_flag(struct request_queue *q, bool enable);
 extern int is_blk_queue_support_crypto(struct request_queue *q);
-extern void blk_queue_direct_flush_register(struct request_queue *q, int (*blk_direct_flush_fn)(struct request_queue *));
-extern void blk_mq_tagset_direct_flush_register(struct blk_mq_tag_set *tag_set, int (*blk_direct_flush_fn)(struct request_queue *));
+extern void blk_queue_direct_flush_register(struct request_queue *q, blk_direct_flush_fn func);
+extern void blk_mq_tagset_direct_flush_register(struct blk_mq_tag_set *tag_set, blk_direct_flush_fn func);
 extern void blk_queue_flush_reduce_config(struct request_queue *q, bool flush_reduce_enable);
 extern void blk_mq_tagset_flush_reduce_config(struct blk_mq_tag_set *tag_set, bool flush_reduce_enable);
 extern void blk_flush_set_async( struct bio *bio);
@@ -2185,8 +2188,8 @@ extern unsigned char bio_get_streamid(struct bio *bio);
 extern unsigned char req_get_streamid(struct request *req);
 extern void blk_lld_idle_notify(struct blk_dev_lld *lld);
 #else
-static inline void blk_queue_dump_register(struct request_queue *q, void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario)) {}
-static inline void blk_mq_tagset_dump_register(struct blk_mq_tag_set *tag_set, void (*lld_dump_status_fn)(struct request_queue *, enum blk_dump_scenario)){}
+static inline void blk_queue_dump_register(struct request_queue *q, lld_dump_status_fn func) {}
+static inline void blk_mq_tagset_dump_register(struct blk_mq_tag_set *tag_set, lld_dump_status_fn func){}
 static inline void blk_mq_tagset_latency_warning_set(struct blk_mq_tag_set *tag_set, unsigned int warning_threshold_ms);
 static inline void blk_queue_latency_warning_set(struct request_queue *q, unsigned int warning_threshold_ms){}
 static inline void blk_mq_tagset_latency_statistic_set(struct blk_mq_tag_set *tag_set){}
@@ -2204,8 +2207,8 @@ static inline void blk_mq_tagset_hw_idle_notify_enable(struct blk_mq_tag_set *ta
 static inline void blk_mq_tagset_set_inline_crypto_flag(struct blk_mq_tag_set *tag_set, bool enable){}
 static inline void blk_queue_set_inline_crypto_flag(struct request_queue *q, bool enable){}
 static inline int is_blk_queue_support_crypto(struct request_queue *q){ return 0; }
-static inline void blk_queue_direct_flush_register(struct request_queue *q, int (*blk_direct_flush_fn)(struct request_queue *)){}
-static inline void blk_mq_tagset_direct_flush_register(struct blk_mq_tag_set *tag_set, int (*blk_direct_flush_fn)(struct request_queue *)){}
+static inline void blk_queue_direct_flush_register(struct request_queue *q, blk_direct_flush_fn func){}
+static inline void blk_mq_tagset_direct_flush_register(struct blk_mq_tag_set *tag_set, blk_direct_flush_fn func){}
 static inline void blk_queue_flush_reduce_config(struct request_queue *q, bool flush_reduce_enable){}
 static inline void blk_mq_tagset_flush_reduce_config(struct blk_mq_tag_set *tag_set, bool flush_reduce_enable){}
 static inline void blk_flush_set_async(struct bio *bio){}

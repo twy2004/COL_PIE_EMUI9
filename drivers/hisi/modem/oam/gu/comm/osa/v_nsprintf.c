@@ -176,34 +176,8 @@ VOS_INT VOS_nsprintf_s(VOS_CHAR *str, VOS_SIZE_T ulMaxStrLen, VOS_SIZE_T ulCount
  *****************************************************************************/
 MODULE_EXPORTED VOS_INT32 vos_printf( const VOS_CHAR * format, ... )
 {
-    VOS_UINT32 ulReturn = VOS_OK;
-
-    /*lint -e530 */
-    va_list    argument;
-    VOS_CHAR   output_info[VOS_MAX_PRINT_LEN + 4] = {0};
-
-    /*lint -e586*/
-    va_start( argument, format );
-    /*lint +e586*/
-
-    if ( VOS_NULL_PTR != format )
-    {
-    (VOS_VOID)vscnprintf(output_info, VOS_MAX_PRINT_LEN, format, argument);
-    }
-
-    /*lint -e586*/
-    va_end( argument );
-    /*lint +e586*/
-    /*lint +e530 */
-
-    output_info[VOS_MAX_PRINT_LEN - 1] = '\0';
-
-
-
-    (VOS_VOID)printk( "%s",output_info );
-
-
-    return (VOS_INT32)ulReturn;
+    /* 2018-11-14 应Balong Modem 打印日志规范和串口打印整改要求，本接口不再使用，请调用mdrv_print.h中定义接口 */
+    return VOS_OK;
 }
 
 

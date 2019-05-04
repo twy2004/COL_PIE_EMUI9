@@ -95,7 +95,7 @@ typedef struct smartpakit_info {
 	unsigned int  algo_in;
 	unsigned int  out_device;
 	unsigned int  pa_num;
-	unsigned int  two_in_one;
+	char special_name_config[SMARTPAKIT_NAME_MAX];
 
 	// smartpa chip info
 	unsigned int  algo_delay_time;

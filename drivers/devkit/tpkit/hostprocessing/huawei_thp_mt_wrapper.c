@@ -23,6 +23,10 @@
 #include "huawei_thp_mt_wrapper.h"
 #include "huawei_thp.h"
 
+#ifdef CONFIG_INPUTHUB_20
+#include "contexthub_recovery.h"
+#endif
+
 #if defined(CONFIG_HUAWEI_TS_KIT_3_0)
 #include "../3_0/trace-events-touch.h"
 #else
@@ -32,6 +36,16 @@
 #define DEVICE_NAME	"input_mt_wrapper"
 
 static struct thp_mt_wrapper_data *g_thp_mt_wrapper = 0;
+
+
+void thp_inputkey_report(unsigned int gesture_wakeup_value)
+{
+	input_report_key(g_thp_mt_wrapper->input_dev, gesture_wakeup_value, 1);
+	input_sync(g_thp_mt_wrapper->input_dev);
+	input_report_key(g_thp_mt_wrapper->input_dev, gesture_wakeup_value, 0);
+	input_sync(g_thp_mt_wrapper->input_dev);
+	THP_LOG_INFO(" [%s] -> done\n",__func__);
+}
 
 int thp_mt_wrapper_ioctl_get_events(unsigned long event)
 {
@@ -315,6 +329,7 @@ static long thp_mt_wrapper_ioctl_set_events(unsigned long arg)
 
 static int thp_mt_ioctl_report_keyevent(unsigned long arg)
 {
+	int report_value[PROX_VALUE_LEN] = {0};
 	struct input_dev *input_dev = g_thp_mt_wrapper->input_dev;
 	void __user *argp = (void __user *)arg;
 	enum input_mt_wrapper_keyevent keyevent;
@@ -334,6 +349,18 @@ static int thp_mt_ioctl_report_keyevent(unsigned long arg)
 		input_sync(input_dev);
 		input_report_key(input_dev,KEY_F26,0);
 		input_sync(input_dev);
+	} else if (keyevent == INPUT_MT_WRAPPER_KEYEVENT_APPROACH) {
+		THP_LOG_INFO("[Proximity_feature] %s: Here report [near] event !\n", __func__);
+		report_value[0] = APPROCH_EVENT_VALUE;
+		#ifdef CONFIG_INPUTHUB_20
+		thp_prox_event_report(report_value, PROX_EVENT_LEN);
+		#endif
+	} else if (keyevent == INPUT_MT_WRAPPER_KEYEVENT_AWAY) {
+		THP_LOG_INFO("[Proximity_feature] %s: Here report [far] event !\n", __func__);
+		report_value[0] = AWAY_EVENT_VALUE;
+		#ifdef CONFIG_INPUTHUB_20
+		thp_prox_event_report(report_value, PROX_EVENT_LEN);
+		#endif
 	}
 
 	return 0;
@@ -560,6 +587,7 @@ int thp_mt_wrapper_init(void)
 	__set_bit(BTN_TOOL_FINGER, input_dev->keybit);
 	__set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 	__set_bit(KEY_F26, input_dev->keybit);
+	__set_bit(TS_DOUBLE_CLICK, input_dev->keybit);
 
 	input_set_abs_params(input_dev, ABS_X,
 			     0, mt_wrapper->input_dev_config.abs_max_x - 1, 0, 0);

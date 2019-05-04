@@ -490,6 +490,10 @@ struct sock {
 #ifdef CONFIG_HW_DPIMARK_MODULE
 	unsigned long	sk_born_stamp;
 #endif
+
+#ifdef CONFIG_HW_STRICT_RST
+	bool is_strict_rst;
+#endif
 };
 
 #define __sk_user_data(sk) ((*((void __rcu **)&(sk)->sk_user_data)))

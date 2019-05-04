@@ -249,16 +249,6 @@ typedef VOS_UINT32          VOS_SPINLOCK;
 /* 先使能本地中断然后释放自旋锁 */
 #define VOS_SpinUnlockIntUnlock( s, p ) VOS_Splx( (VOS_ULONG)(p) )
 
-/* 原子变量的定义和操作 */
-typedef struct
-{
-    volatile VOS_UINT32 ulCounter;
-}atomic_t;
-
-#define atomic_set(v,i) (((v)->ulCounter) = (i))
-
-VOS_UINT32 atomic_inc_return( atomic_t *pstV );
-
 #endif
 
 #if (VOS_NUCLEUS == VOS_OS_VER)

@@ -81,6 +81,7 @@ static FSC_U8                   ProtocolCRC[4];
 	   FSC_BOOL					g_crcsent_lock;
         TIMER          ProtocolTimer;                               // Multi-function timer for the different policy states
 
+extern VdmDiscoveryState_t             AutoVdmState;
 /////////////////////////////////////////////////////////////////////////////
 //                  Timer Interrupt service routine
 /////////////////////////////////////////////////////////////////////////////
@@ -95,12 +96,12 @@ void InitializePDProtocolVariables(void)
 }
 
 // ##################### USB PD Protocol Layer Routines ##################### //
-
 void USBPDProtocol(void)
 {
     if (Registers.Status.I_HARDRST || Registers.Status.I_HARDSENT)
     {
         FSC_PRINT("FUSB %s Hard Reset Detected\n", __func__);
+        AutoVdmState = AUTO_VDM_INIT;
         ResetProtocolLayer(TRUE);                                               // Reset the protocol layer
         if (PolicyIsSource)                                                     // If we are the source...
         {
@@ -179,10 +180,9 @@ void ProtocolResetWait(void)
 void ProtocolGetRxPacket(void)
 {
     FSC_U32 i, j;
-    FSC_U8 data[3];
+    FSC_U8 data[3] = {0};
     SopType rx_sop;
     //B.Yang debug 0718
-    FSC_U8 reg41h = 0;
 	FSC_U8 doublecheck = 0;
     //End
 #ifdef FSC_DEBUG
@@ -453,7 +453,7 @@ void ProtocolSendingMessage(void)
 void ProtocolVerifyGoodCRC(void)
 {
     FSC_U32 i, j;
-    FSC_U8 data[7];
+    FSC_U8 data[7] = {0};
     SopType s;
 
     DeviceRead(regFIFO, 7, &data[0]);                                          // Read the Rx token and two header bytes

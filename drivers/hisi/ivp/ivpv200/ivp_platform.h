@@ -15,6 +15,11 @@
 #define ADDR_IVP_CFG_SEC_REG_FAMA_ADDR_REMAP0_1    (0x0538)
 #define ADDR_IVP_CFG_SEC_REG_FAMA_ADDR_REMAP0_2    (0x053C)
 
+#define IVP_CLK_LEVEL_DEFAULT         0
+#define IVP_CLK_LEVEL_LOW             1
+#define IVP_CLK_LEVEL_MEDIUM          2
+#define IVP_CLK_LEVEL_HIGH            3
+
 #define LISTENTRY_SIZE         (0x00600000)
 #define GIC_IRQ_CLEAR_REG      (0xe82b11a4)
 

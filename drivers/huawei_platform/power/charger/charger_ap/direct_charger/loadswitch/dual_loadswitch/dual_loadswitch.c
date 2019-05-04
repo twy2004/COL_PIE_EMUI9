@@ -1,3 +1,21 @@
+/*
+ * dual_loadswitch.c
+ *
+ * dual loadswitch driver
+ *
+ * Copyright (c) 2012-2018 Huawei Technologies Co., Ltd.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -15,13 +33,6 @@ static struct dual_loadswitch_info *dli;
 static struct loadswitch_ops *g_main_ops;
 static struct loadswitch_ops *g_aux_ops;
 
-/**********************************************************
-*  Function:     loadswitch_main_ops_register
-*  Discription:  register loadswitch operation, this function
-*                should be called by main loadswitch driver
-*  Parameters:   ops
-*  return value:  0-sucess or others-fail
-**********************************************************/
 int loadswitch_main_ops_register(struct loadswitch_ops *ops)
 {
 	int ret = 0;
@@ -29,22 +40,14 @@ int loadswitch_main_ops_register(struct loadswitch_ops *ops)
 	if (ops != NULL) {
 		g_main_ops = ops;
 		hwlog_info("dual loadswitch main ops register ok\n");
-	}
-	else {
-		hwlog_info("dual loadswitch main ops has registered!\n");
+	} else {
+		hwlog_info("dual loadswitch main ops has registered\n");
 		ret = -1;
 	}
 
 	return ret;
 }
 
-/**********************************************************
-*  Function:     loadswitch_aux_ops_register
-*  Discription:  register loadswitch operation, this function
-*                should be called by aux loadswitch driver
-*  Parameters:   ops
-*  return value:  0-sucess or others-fail
-**********************************************************/
 int loadswitch_aux_ops_register(struct loadswitch_ops *ops)
 {
 	int ret = 0;
@@ -52,31 +55,24 @@ int loadswitch_aux_ops_register(struct loadswitch_ops *ops)
 	if (ops != NULL) {
 		g_aux_ops = ops;
 		hwlog_info("dual loadswitch aux ops register ok\n");
-	}
-	else {
-		hwlog_info("dual loadswitch aux ops has registered!\n");
+	} else {
+		hwlog_info("dual loadswitch aux ops has registered\n");
 		ret = -1;
 	}
 
 	return ret;
 }
 
-/**********************************************************
-*  Function:        dual_loadswitch_charge_status
-*  Discription:     return the status of cur module
-*  Parameters:    void
-*  return value:   0-sucess or others-fail
-**********************************************************/
 static int dual_loadswitch_charge_status(void)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->ls_status)
+	if (g_main_ops != NULL && g_main_ops->ls_status != NULL)
 		ret |= g_main_ops->ls_status();
 	else
 		ret |= -1;
 
-	if (g_aux_ops && g_aux_ops->ls_status)
+	if (g_aux_ops != NULL && g_aux_ops->ls_status != NULL)
 		ret |= g_aux_ops->ls_status();
 	else
 		ret |= -1;
@@ -84,128 +80,89 @@ static int dual_loadswitch_charge_status(void)
 	return ret;
 }
 
-/**********************************************************
-*  Function:       dual_loadswitch_init
-*  Discription:    dual loadswitch initialization
-*  Parameters:   NULL
-*  return value:  0-sucess or others-fail
-**********************************************************/
 static int dual_loadswitch_charge_init(void)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->ls_init)
+	if (g_main_ops != NULL && g_main_ops->ls_init != NULL)
 		ret |= g_main_ops->ls_init();
 
-	if (g_aux_ops && g_aux_ops->ls_init)
+	if (g_aux_ops != NULL && g_aux_ops->ls_init != NULL)
 		ret |= g_aux_ops->ls_init();
 
 	return ret;
 }
 
-/**********************************************************
-*  Function:       dual_loadswitch_exit
-*  Discription:    dual loadswitch exit
-*  Parameters:   NULL
-*  return value:  0-sucess or others-fail
-**********************************************************/
 static int dual_loadswitch_charge_exit(void)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->ls_exit)
+	if (g_main_ops != NULL && g_main_ops->ls_exit != NULL)
 		ret |= g_main_ops->ls_exit();
 
-	if (g_aux_ops && g_aux_ops->ls_exit)
+	if (g_aux_ops != NULL && g_aux_ops->ls_exit != NULL)
 		ret |= g_aux_ops->ls_exit();
 
 	return ret;
 }
-/**********************************************************
-*  Function:       dual_loadswitch_enable
-*  Discription:    dual loadswitch enable
-*  Parameters:   enable
-*  return value:  0-sucess or others-fail
-**********************************************************/
+
 static int dual_loadswitch_enable(int enable)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->ls_enable)
+	if (g_main_ops != NULL && g_main_ops->ls_enable != NULL)
 		ret |= g_main_ops->ls_enable(enable);
 
-	if (g_aux_ops && g_aux_ops->ls_enable)
+	if (g_aux_ops != NULL && g_aux_ops->ls_enable != NULL)
 		ret |= g_aux_ops->ls_enable(enable);
 
 	return ret;
 }
 
-/**********************************************************
-*  Function:       dual_loadswitch_discharge
-*  Discription:    dual loadswitch discharge
-*  Parameters:   enable
-*  return value:  0-sucess or others-fail
-**********************************************************/
 static int dual_loadswitch_discharge(int enable)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->ls_discharge)
+	if (g_main_ops != NULL && g_main_ops->ls_discharge != NULL)
 		ret |= g_main_ops->ls_discharge(enable);
 
-	if (g_aux_ops && g_aux_ops->ls_discharge)
+	if (g_aux_ops != NULL && g_aux_ops->ls_discharge != NULL)
 		ret |= g_aux_ops->ls_discharge(enable);
 
 	return ret;
 }
-/**********************************************************
-*  Function:       dual_loadswitch_is_ls_close
-*  Discription:    dual loadswitch is ls close
-*  Parameters:   enable
-*  return value:  0-open or others-close
-**********************************************************/
+
 static int dual_loadswitch_is_ls_close(void)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->is_ls_close)
+	if (g_main_ops != NULL && g_main_ops->is_ls_close != NULL)
 		ret |= g_main_ops->is_ls_close();
 
-	if (g_aux_ops && g_aux_ops->is_ls_close)
+	if (g_aux_ops != NULL && g_aux_ops->is_ls_close != NULL)
 		ret |= g_aux_ops->is_ls_close();
 
 	return ret;
 }
-/**********************************************************
-*  Function:       dual_loadswitch_get_ls_id
-*  Discription:    dual loadswitch get_ls_id
-*  Parameters: NULL
-*  return value:  device id
-**********************************************************/
+
 static int dual_loadswitch_get_ls_id(void)
 {
 	int ret = -1;
 
-	if (g_main_ops && g_main_ops->get_ls_id)
+	if (g_main_ops != NULL && g_main_ops->get_ls_id != NULL)
 		ret = g_main_ops->get_ls_id();
 
 	return ret;
 }
 
-/**********************************************************
-*  Function:        dual_loadswitch_config_watchdog_ms
-*  Discription:     dual loadswitch watchdog time config
-*  Parameters:      watchdog time
-*  return value:    0-sucess or others-fail
-**********************************************************/
 static int dual_loadswitch_config_watchdog_ms(int time)
 {
 	int ret = 0;
 
-	if (g_main_ops && g_main_ops->watchdog_config_ms)
+	if (g_main_ops != NULL && g_main_ops->watchdog_config_ms != NULL)
 		ret |= g_main_ops->watchdog_config_ms(time);
 
-	if (g_aux_ops && g_aux_ops->watchdog_config_ms)
+	if (g_aux_ops != NULL && g_aux_ops->watchdog_config_ms != NULL)
 		ret |= g_aux_ops->watchdog_config_ms(time);
 
 	return ret;
@@ -222,13 +179,6 @@ struct loadswitch_ops dual_loadswitch_ops = {
 	.watchdog_config_ms = dual_loadswitch_config_watchdog_ms,
 };
 
-/**********************************************************
-*  Function:       dual_loadswitch_probe
-*  Discription:    dual_loadswitch module probe
-*  Parameters:   device:platform_device
-*  return value:  0-sucess or others-fail
-**********************************************************/
-
 static int dual_loadswitch_probe(struct platform_device *pdev)
 {
 	struct dual_loadswitch_info *info = NULL;
@@ -236,36 +186,40 @@ static int dual_loadswitch_probe(struct platform_device *pdev)
 
 	hwlog_info("probe begin\n");
 
-	info = devm_kzalloc(&pdev->dev, sizeof(struct dual_loadswitch_info), GFP_KERNEL);
-	if (!info) {
-		hwlog_err("error: kzalloc failed!\n");
+	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
+	if (info == NULL)
 		return -ENOMEM;
-	}
+
 	dli = info;
 
 	info->pdev = pdev;
 	info->dev = &pdev->dev;
-	if (NULL == info->pdev || NULL == info->dev || NULL == info->dev->of_node) {
-		hwlog_err("error: device_node is null!\n");
-		goto free_mem;
+	if (info->pdev == NULL || info->dev == NULL ||
+		info->dev->of_node == NULL) {
+		hwlog_err("device_node is null\n");
+		goto dual_loadswitch_fail_0;
 	}
 
 	ret = loadswitch_ops_register(&dual_loadswitch_ops);
 	if (ret) {
-		hwlog_err("error: dual loadswitch ops register failed!\n");
+		hwlog_err("dual loadswitch ops register failed\n");
 		goto dual_loadswitch_fail_0;
 	}
 
-	if ((NULL == g_main_ops) || (NULL == g_main_ops->ls_init)
-		|| (NULL == g_main_ops->ls_enable) || (NULL == g_main_ops->ls_exit)) {
-		hwlog_err("error: main loadswitch ops is null!\n");
+	if (g_main_ops == NULL ||
+		g_main_ops->ls_init == NULL ||
+		g_main_ops->ls_enable == NULL ||
+		g_main_ops->ls_exit == NULL) {
+		hwlog_err("main loadswitch ops is null\n");
 		ret = -EINVAL;
 		goto dual_loadswitch_fail_1;
 	}
 
-	if ((NULL == g_aux_ops) || (NULL == g_aux_ops->ls_init)
-		|| (NULL == g_aux_ops->ls_enable) || (NULL == g_aux_ops->ls_exit)) {
-		hwlog_err("error: aux loadswitch ops is null!\n");
+	if (g_aux_ops == NULL ||
+		g_aux_ops->ls_init == NULL ||
+		g_aux_ops->ls_enable == NULL ||
+		g_aux_ops->ls_exit == NULL) {
+		hwlog_err("aux loadswitch ops is null\n");
 		ret = -EINVAL;
 		goto dual_loadswitch_fail_2;
 	}
@@ -280,7 +234,6 @@ dual_loadswitch_fail_2:
 dual_loadswitch_fail_1:
 	g_main_ops = NULL;
 dual_loadswitch_fail_0:
-free_mem:
 	devm_kfree(&pdev->dev, info);
 	dli = NULL;
 
@@ -302,12 +255,12 @@ static int dual_loadswitch_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct of_device_id dual_loadswitch_match_table[] = {
+static const struct of_device_id dual_loadswitch_match_table[] = {
 	{
 		.compatible = "dual_loadswitch",
 		.data = NULL,
 	},
-	{ },
+	{},
 };
 
 static struct platform_driver dual_loadswitch_driver = {
@@ -320,23 +273,11 @@ static struct platform_driver dual_loadswitch_driver = {
 	},
 };
 
-/**********************************************************
-*  Function:       dual_loadswitch_init
-*  Discription:    dual_loadswitch initialization
-*  Parameters:   pdev:platform_device
-*  return value:  0-sucess or others-fail
-**********************************************************/
 static int __init dual_loadswitch_init(void)
 {
 	return platform_driver_register(&dual_loadswitch_driver);
 }
 
-/**********************************************************
-*  Function:       dual_loadswitch_exit
-*  Discription:    dual_loadswitch exit
-*  Parameters:   NULL
-*  return value:  NULL
-**********************************************************/
 static void __exit dual_loadswitch_exit(void)
 {
 	platform_driver_unregister(&dual_loadswitch_driver);
@@ -345,6 +286,6 @@ static void __exit dual_loadswitch_exit(void)
 device_initcall_sync(dual_loadswitch_init);
 module_exit(dual_loadswitch_exit);
 
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("dual_loadswitch module driver");
-MODULE_AUTHOR("HUAWEI Inc");
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("dual loadswitch module driver");
+MODULE_AUTHOR("Huawei Technologies Co., Ltd.");
