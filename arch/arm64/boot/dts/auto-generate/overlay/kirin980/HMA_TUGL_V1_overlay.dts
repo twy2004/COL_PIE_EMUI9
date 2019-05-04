@@ -13,9 +13,6 @@
 /include/ "desayatl_3900_39k_4400.dtsi"
 /include/ "scudlg_3900_200k_4400_25.dtsi"
 /include/ "sunwodasony_3900_110k_4400_15.dtsi"
-/include/ "desayatl_3900_39k_4400_polar.dtsi"
-/include/ "sunwodasony_3900_110k_4400_15_polar.dtsi"
-/include/ "scudlg_3900_200k_4400_25_polar.dtsi"
 /include/ "HMA_HMA_PRE_overlay.dtsi"
 /include/ "HMA_TUGL_V1_pin.dtsi"
 /include/ "HMA_TUGL_V1_modem_pin.dtsi"
@@ -116,8 +113,8 @@
 				status = "disabled";
 				phone_type = /bits/ 16 <0x04>;// 1:ALPS  2:BLANC  3:EMILY  4:NEO  5:CHARLOTTE
 				to_ap_threshold = /bits/ 16 <0xc8>;
-				to_modem_threshold = /bits/ 16 <0x7530 0x7FFF 0x3E8 0x1388 0xE74 0x384 0x00 0x00>;
-				init_reg_val = <0x00000014 0x23012447 0x281F2A37 0x2B102C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x43024430 0x293D2600 0x27472080 0x00000000>;
+				to_modem_threshold = /bits/ 16 <0x7530 0x7FFF 0x3E8 0x1388 0xE72 0x514 0x00 0x00>;
+				init_reg_val = <0x00000014 0x23012447 0x281F2A37 0x2B102C12 0x2D0B301B 0x340B3500 0x362C3708 0x10164219 0x43024430 0x293D2600 0x27472080 0x00000000>;
 				ph = <0x2f>;
 				calibrate_thred = /bits/ 16 <7780 12967 8450 22279>;//for the factory far and near calibrate
 				sensorlist_name="CAP_PROX sensor-sx9323";
@@ -964,13 +961,7 @@
 		sleep_cutoff_vol_mv = <3100>;
 		status = "ok";
 	};
-	&coul_polar {
-		fifo_interval = <250>;
-		fifo_depth = <10>;
-		polar_batt_cnt = <3>;
-		polar_batt_name = <&desayatl_3900_39k_4400_polar &sunwodasony_3900_110k_4400_15_polar &scudlg_3900_200k_4400_25_polar>;
-		status = "ok";
-	};
+
 	&hisi_battery {
 		batt_name = <&desayatl_3900_39k_4400 &scudlg_3900_200k_4400_25 &sunwodasony_3900_110k_4400_15>;
 		status = "ok";

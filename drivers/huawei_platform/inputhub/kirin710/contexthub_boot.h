@@ -40,8 +40,11 @@
 #define VITAL_TPLCD (11)
 #define TM_TPLCD (12)
 #define AUO_TPLCD (13)
+<<<<<<< HEAD
 #define TCL_TPLCD 14
 #define CMI_TPLCD (15)
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define DTS_COMP_LG_ER69006A "hisilicon,mipi_lg_eR69006A"
 #define DTS_COMP_JDI_NT35695_CUT3_1 "hisilicon,mipi_jdi_NT35695_cut3_1"
@@ -76,6 +79,7 @@
 #define DTS_COMP_EBBG_NT35596S_5P2 "ebbg_nt35596s_5p2_1080p_video"
 #define DTS_COMP_JDI_ILI7807E_5P2 "jdi_ili7807e_5p2_1080p_video"
 
+<<<<<<< HEAD
 #define DTS_COMP_BOE_NT36682A "boe_nt36682a_6p5_1080p_video"
 #define DTS_COMP_INX_NT36682A "inx_nt36682a_6p59_1080p_video"
 #define DTS_COMP_TCL_NT36682A "tcl_nt36682a_6p59_1080p_video"
@@ -89,6 +93,8 @@
 #define DTS_COMP_TM_TD4330 "tm_td4330_6p15_1080p_video"
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 enum SENSOR_POWER_CHECK {
 	SENSOR_POWER_STATE_OK = 0,
 	SENSOR_POWER_STATE_INIT_NOT_READY,

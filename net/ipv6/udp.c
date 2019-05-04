@@ -59,10 +59,13 @@
 #include <huawei_platform/net/himos/hw_himos_udp_stats.h>
 #endif
 
+<<<<<<< HEAD
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 #include <hwnet/ipv4/wifi_delayst.h>
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static u32 udp6_ehashfn(const struct net *net,
 			const struct in6_addr *laddr,
 			const u16 lport,
@@ -449,11 +452,14 @@ try_again:
 	if (flags & MSG_TRUNC)
 		err = ulen;
 
+<<<<<<< HEAD
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 	if(DELAY_STATISTIC_SWITCH_ON) {
 		delay_record_rcv_combine(skb,sk,TP_SKB_TYPE_UDP);
 	}
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	__skb_free_datagram_locked(sk, skb, peeking ? -err : err);
 	return err;
 
@@ -1271,16 +1277,16 @@ back_from_confirm:
 				   msg->msg_flags, &sockc);
 		err = PTR_ERR(skb);
 		if (!IS_ERR_OR_NULL(skb))
+<<<<<<< HEAD
 #ifdef CONFIG_WIFI_DELAY_STATISTIC
 		{
 			if(DELAY_STATISTIC_SWITCH_ON) {
 				delay_record_first_combine(sk,skb,TP_SKB_DIRECT_SND,TP_SKB_TYPE_UDP);
 			}
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			err = udp_v6_send_skb(skb, &fl6);
-#ifdef CONFIG_WIFI_DELAY_STATISTIC
-		}
-#endif
 		goto release_dst;
 	}
 

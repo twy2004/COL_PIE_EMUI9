@@ -100,7 +100,7 @@
 	interval = <5000>;
 	bias = <0>;
 	count = <4>;
-	tsensor_para = "4000","100000","0";
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
@@ -132,57 +132,70 @@
 	interval = <5000>;
 	bias = <0>;
 	count = <6>;
-	shell_temp_step = <200>;
-	shell_temp_step_range = <400>;
-	tsensor_para = "4000","100000","0";
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
 		sensor0 {
 			type = "usb_port";
-			coef = "3956","2347","1036","-550","-423","-1791";
+			coef = "3040","1849","686","-1037","-1249","-2503";
 		};
 		sensor1 {
 			type = "Battery";
-			coef = "5267","2338","2456","1570","354","3921";
+			coef = "8128","1137","3311","1285","-655","4486";
 		};
 		sensor2 {
 			type = "system_h";
-			coef = "4234","-1984","1866","-2379","-15830","64880";
+			coef = "7787","-3755","815","-1360","-12579","59642";
 		};
 		sensor3 {
 			type = "charger";
-			coef = "1837","989","346","1180","-2248","-6450";
+			coef = "-3805","4944","1783","-992","-5930","-19388";
 		};
 		sensor4 {
 			type = "pa_0";
-			coef = "-2130","-1555","-1094","-1304","152","8872";
+			coef = "-3273","-994","1941","5850","11080","12120";
 		};
 		sensor5 {
 			type = "rfboard";
-			coef = "10081","8390","6169","4230","1597","-1783";
+			coef = "10035","8699","5996","4166","381","-3378";
 		};
 	};
 };
+
 
 &shell_back {
 	compatible = "hisi,shell-temp";
 	interval = <5000>;
 	bias = <0>;
-	count = <4>;
-	shell_temp_step = <200>;
-	shell_temp_step_range = <400>;
-	tsensor_para = "4000","100000","0";
+	count = <5>;
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
 		sensor0 {
-			type = "system_h";
-			coef = "10641","-5299","-10609","58251";
+			type = "usb_port";
+			coef = "2524","-985","-3742","-5920","-8886";
 		};
 		sensor1 {
+			type = "Battery";
+			coef = "-116","-561","-1500","-623","-4820";
+		};
+		sensor2 {
+			type = "system_h";
+			coef = "7600","-938","870","-10942","57543";
+		};
+		sensor3 {
+			type = "charger";
+			coef = "12319","330","596","-991","18454";
+		};
+		sensor4 {
+			type = "pa_0";
+			coef = "-7981","-9505","-8700","-7597","-2381";
+		};
+		sensor5 {
 			type = "rfboard";
-			coef = "18646","13583","8283","4282";
+			coef = "29607","22434","14629","7632","-166";
 		};
 	};
 };
@@ -1458,7 +1471,6 @@
 				hs_detect_extern_cable = <1>;
 				fm_enable = <1>;
 				hisilicon,hs_det_trigger = <1>;
-				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 

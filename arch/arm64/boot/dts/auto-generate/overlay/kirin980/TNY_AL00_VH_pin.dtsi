@@ -194,6 +194,34 @@
                      pinctrl-single,pins = <0x014    0x0>;
 		};
 
+		gpio007_pmx_func {
+                     pinctrl-single,pins = <0x700    0x0>;
+		};
+		gpio007_pmx_idle {
+                     pinctrl-single,pins = <0x700    0x0>;
+		};
+
+		gpio008_pmx_func {
+                     pinctrl-single,pins = <0x704    0x0>;
+		};
+		gpio008_pmx_idle {
+                     pinctrl-single,pins = <0x704    0x0>;
+		};
+
+		gpio009_pmx_func {
+                     pinctrl-single,pins = <0x708    0x0>;
+		};
+		gpio009_pmx_idle {
+                     pinctrl-single,pins = <0x708    0x0>;
+		};
+
+		gpio010_pmx_func {
+                     pinctrl-single,pins = <0x70C    0x0>;
+		};
+		gpio010_pmx_idle {
+                     pinctrl-single,pins = <0x70C    0x0>;
+		};
+
 		gpio011_pmx_func {
                      pinctrl-single,pins = <0x710    0x0>;
 		};
@@ -1505,6 +1533,66 @@
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 
+		gpio007_cfg_func {
+                     pinctrl-single,pins = <0x700  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+		gpio007_cfg_idle {
+                     pinctrl-single,pins = <0x700  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+
+		gpio008_cfg_func {
+                     pinctrl-single,pins = <0x704  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+		gpio008_cfg_idle {
+                     pinctrl-single,pins = <0x704  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+
+		gpio009_cfg_func {
+                     pinctrl-single,pins = <0x708  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+		gpio009_cfg_idle {
+                     pinctrl-single,pins = <0x708  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+
+		gpio010_cfg_func {
+                     pinctrl-single,pins = <0x70C  0>;
+                     pinctrl-single,bias-pulldown = <2 2 0 2>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+		gpio010_cfg_idle {
+                     pinctrl-single,pins = <0x70C  0>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
+                     pinctrl-single,drive-strength = <0x00 0x70>;
+                     pinctrl-single,slew-rate = <0x0 0x80>;
+		};
+
 		gpio011_cfg_func {
                      pinctrl-single,pins = <0x710  0>;
                      pinctrl-single,bias-pulldown = <0 2 0 2>;
@@ -2320,15 +2408,15 @@
 
 		gpio184_cfg_func {
                      pinctrl-single,pins = <0x040  0>;
-                     pinctrl-single,bias-pulldown = <2 2 0 2>;
-                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 		gpio184_cfg_idle {
                      pinctrl-single,pins = <0x040  0>;
-                     pinctrl-single,bias-pulldown = <2 2 0 2>;
-                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};
@@ -2500,15 +2588,15 @@
 
 		gpio196_cfg_func {
                      pinctrl-single,pins = <0x068  0>;
-                     pinctrl-single,bias-pulldown = <2 2 0 2>;
-                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 		gpio196_cfg_idle {
                      pinctrl-single,pins = <0x068  0>;
-                     pinctrl-single,bias-pulldown = <2 2 0 2>;
-                     pinctrl-single,bias-pullup = <0 1 0 1>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
+                     pinctrl-single,bias-pullup = <1 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};

@@ -30,6 +30,7 @@ config DIRECT_CHARGER
 config WIRELESS_CHARGER
 	bool "wireless charger"
 	default n
+<<<<<<< HEAD
 config BQ25882_CHARGER
 	bool "bq25882 charger"
 	default n
@@ -38,4 +39,8 @@ config SERIES_BATT
 	default n
 config BATTERY_BALANCE
 	bool "battery balance"
+=======
+config WIRED_CHANNEL_SWITCH
+	bool "wired channel switch"
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	default n

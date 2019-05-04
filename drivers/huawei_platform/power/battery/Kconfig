@@ -1,3 +1,16 @@
+<<<<<<< HEAD
 source "drivers/huawei_platform/power/battery/battery_ct/Kconfig"
 source "drivers/huawei_platform/power/battery/battery_voltage/Kconfig"
 source "drivers/huawei_platform/power/battery/battery_temp/Kconfig"
+=======
+menu "Battery certification support"
+
+menuconfig HUAWEI_BATTERY_INFORMATION
+	bool
+	prompt "Certificate battery by information of IC."
+	default n
+
+source "drivers/huawei_platform/power/battery/MAXIM/Kconfig"
+
+endmenu
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

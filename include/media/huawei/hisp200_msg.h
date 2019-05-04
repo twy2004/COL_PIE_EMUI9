@@ -65,7 +65,7 @@ typedef enum
 
 typedef enum
 {
-    STREAM_ISP_TOF_EMBEDED = 0,
+    STREAM_REP_YUV_IN = 0,
     STREAM_REP_RAW_IN = 1,
     STREAM_ISP_YUV_OUT_PREVIEW = 2,
     STREAM_ISP_YUV_OUT_VIDEO = 3,
@@ -189,11 +189,14 @@ typedef enum
     COMMAND_ACQUIRE_DOT_PROJECTOR,
     COMMAND_RELEASE_DOT_PROJECTOR,
     COMMAND_GET_DOT_OTP,
+<<<<<<< HEAD
     COMMAND_PQ_SETTING_CONFIG,
     COMMAND_FBDRAW_REQUEST,
     COMMAND_DEVICE_CTL,
     COMMAND_RELEASE_I2C,
     COMMAND_BATCH_REQUEST,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     /* Response items. */
     QUERY_CAPABILITY_RESPONSE = 0x2000,
     ACQUIRE_CAMERA_RESPONSE,
@@ -261,11 +264,14 @@ typedef enum
     ACQUIRE_DOT_PROJECTOR_RESPONSE,
     RELEASE_DOT_PROJECTOR_RESPONSE,
     GET_DOT_OTP_RESPONSE,
+<<<<<<< HEAD
     PQ_SETTING_CONFIG_RESPONSE,
     FBDRAW_REQUEST_RESPONSE,
     DEVICE_CTL_RESPONSE,
     RELEASE_I2C_RESPONSE,
     BATCH_REQUEST_RESPONSE,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     /* Event items sent to AP. */
     MSG_EVENT_SENT           = 0x3000,
 } api_id_e;
@@ -502,7 +508,6 @@ typedef struct _msg_req_acquire_camera_t
     hisp_phy_info_t   phy_info;
     char         sensor_name[NAME_LEN];
     char         product_name[NAME_LEN];
-    char         extend_name[NAME_LEN];
     unsigned int input_otp_buffer;
     unsigned int input_calib_buffer;
     unsigned int buffer_size;
@@ -785,25 +790,6 @@ typedef struct _msg_ack_request_offline_t
     unsigned int timestampH;
     unsigned int status;
 } msg_ack_request_offline_t;
-
-typedef struct _msg_batch_req_request_t
-{
-    unsigned int cam_id;
-    unsigned int count;
-    unsigned int requests_buf;
-    unsigned int requests_buf_size;
-} msg_batch_req_request_t;
-
-typedef struct _msg_batch_ack_request_t
-{
-    unsigned int cam_id;
-    unsigned int count;
-    unsigned int acks_buf;
-    unsigned int acks_buf_size;
-    unsigned int timestampL;
-    unsigned int timestampH;
-    unsigned int system_couter_rate;
-} msg_batch_ack_request_t;
 
 typedef struct _msg_req_jpeg_encode_t
 {
@@ -2061,6 +2047,7 @@ typedef enum
     SUBCMD_SMART_ZOOM_ENABLE = 211,
     SUBCMD_IR_LIGHT_SWITCH_MODE = 212,
     SUBCMD_SET_UNDER_WATER_MODE = 213,
+<<<<<<< HEAD
     SUBCMD_SET_AF_DEPTH_DATA = 214,
     SUBCMD_TOF_CONFIG = 215,
     SUBCMD_TOF_SET_CALIB_DATA = 216,
@@ -2073,6 +2060,8 @@ typedef enum
     SUBCMD_SET_RGB2YUV_OFFLINE_INFO  = 223,
     SUBCMD_SET_CAP_LSC_PARAM = 224,
     SUBCMD_SET_DISABLE_TAE = 225,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     SUBCMD_MAX,
 } extendset_info_e;
@@ -2343,9 +2332,12 @@ typedef struct _isp_msg_t
         msg_req_release_dot_projector_t req_release_dot_projector;
         msg_req_get_dot_otp_t           req_get_dot_otp;
 
+<<<<<<< HEAD
         msg_batch_req_request_t         req_batch_request;
         msg_req_pq_setting_config_t     req_pq_setting_config;
         //msg_req_device_ctl_t                req_device_ctl;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
         /* Response items. */
         msg_ack_query_capability_t      ack_query_capability;
@@ -2417,9 +2409,12 @@ typedef struct _isp_msg_t
         msg_ack_get_dot_otp_t           ack_get_dot_otp;
         msg_ack_pq_setting_config_t     ack_pq_setting_config;
 
+<<<<<<< HEAD
         msg_batch_ack_request_t         ack_batch_request;
         msg_ack_fbdraw_request_t        ack_fbdraw_request;
         //msg_ack_device_ctl_t                ack_device_ctl;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         /* Event items sent to AP. */
         msg_event_sent_t                event_sent;
     }u;

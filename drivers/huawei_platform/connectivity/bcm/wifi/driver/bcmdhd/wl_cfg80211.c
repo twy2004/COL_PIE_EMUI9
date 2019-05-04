@@ -4563,7 +4563,7 @@ bcm_cfg80211_add_ibss_if(struct wiphy *wiphy, char *name)
 	/* generate a new MAC address for the IBSS interface */
 	get_primary_mac(cfg, &cfg->ibss_if_addr);
 	cfg->ibss_if_addr.octet[4] ^= 0x40;
-	memset(&aibss_if, 0, sizeof(aibss_if));
+	memset(&aibss_if, sizeof(aibss_if), 0);
 	memcpy(&aibss_if.addr, &cfg->ibss_if_addr, sizeof(aibss_if.addr));
 	aibss_if.chspec = 0;
 	aibss_if.len = sizeof(aibss_if);
@@ -7829,7 +7829,6 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 	s32 chload;
 	u32 ekvr_opclass;
 	u32 ekvr_freq, band;
-	int pm = -1;
 #endif
 #ifndef  BRCM_RSDB
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0))
@@ -7968,14 +7967,6 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		if (memcmp(mac, curmacp, ETHER_ADDR_LEN)) {
 			WL_ERR(("Wrong Mac address: "MACDBG" != "MACDBG"\n",
 				MAC2STRDBG(mac), MAC2STRDBG(curmacp)));
-		}
-
-		if (dhd->early_suspended) {
-			err = wldev_ioctl(dev, WLC_GET_PM, &pm, sizeof(pm), true);
-			if (err) {
-				WL_ERR(("Could not get PM (%d)\n", err));
-			}
-			WL_ERR(("now pm is %d\n",pm));
 		}
 
 		/* Report the current tx rate */
@@ -12665,7 +12656,7 @@ wl_cfg80211_sched_scan_start(struct wiphy *wiphy,
 #else
 	if (!request->n_ssids || !request->n_match_sets) {
 #endif
-		WL_ERR(("Invalid sched scan req!!"));
+		WL_ERR(("Invalid sched scan req!! n_ssids:%d \n", request->n_ssids));
 		return -EINVAL;
 	}
 
@@ -15831,7 +15822,7 @@ static s32 wl_ch_to_chanspec(struct net_device *dev, int ch, struct wl_join_para
 static s32 wl_update_bss_info(struct bcm_cfg80211 *cfg, struct net_device *ndev, bool roam)
 {
 #ifndef  BRCM_RSDB
-	struct cfg80211_bss *bss = NULL;
+	struct cfg80211_bss *bss;
 #endif
 	struct wl_bss_info *bi;
 #ifndef  BRCM_RSDB
@@ -15862,17 +15853,14 @@ static s32 wl_update_bss_info(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	curbssid = wl_read_prof(cfg, ndev, WL_PROF_BSSID);
 	ASSERT(curbssid);
 #ifndef  BRCM_RSDB
-        if (ssid) {
-	        bss = cfg80211_get_bss(wiphy, NULL, curbssid,
+	bss = cfg80211_get_bss(wiphy, NULL, curbssid,
 		ssid->SSID, ssid->SSID_len, WLAN_CAPABILITY_ESS,
 		WLAN_CAPABILITY_ESS);
-        }
 #endif
 	mutex_lock(&cfg->usr_sync);
 	buf = kzalloc(WL_EXTRA_BUF_MAX, GFP_ATOMIC);
 	if (!buf) {
 		WL_ERR(("buffer alloc failed.\n"));
-                mutex_unlock(&cfg->usr_sync);
 		return BCME_NOMEM;
 	}
 	*(u32 *)buf = htod32(WL_EXTRA_BUF_MAX);
@@ -18451,8 +18439,11 @@ static s32 wl_escan_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 			wl_notify_escan_complete(cfg, ndev, false, false);
 		}
 		wl_escan_increment_sync_id(cfg, SCAN_BUF_NEXT);
-
-#ifdef CUSTOMER_HW4_DEBUG
+#ifndef  BRCM_RSDB
+	}
+	else if (status == WLC_E_STATUS_ABORT) {
+#else
+	#ifdef CUSTOMER_HW4_DEBUG
 		if (wl_scan_timeout_dbg_enabled)
 			wl_scan_timeout_dbg_clear();
 #endif /* CUSTOMER_HW4_DEBUG */
@@ -18463,12 +18454,13 @@ static s32 wl_escan_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 		(status == WLC_E_STATUS_11HQUIET) || (status == WLC_E_STATUS_CS_ABORT) ||
 		(status == WLC_E_STATUS_NEWASSOC)) {
 		/* Handle all cases of scan abort */
-
+#endif
 		cfg->escan_info.escan_state = WL_ESCAN_STATE_IDLE;
 		wl_escan_print_sync_id(status, escan_result->sync_id,
 			cfg->escan_info.cur_sync_id);
-		WL_ERR(("ESCAN ABORT reason: %d\n", status));
-
+#ifdef  BRCM_RSDB
+		WL_DBG(("ESCAN ABORT reason: %d\n", status));
+#endif
 		if (wl_get_drv_status_all(cfg, FINDING_COMMON_CHANNEL)) {
 			WL_INFORM(("ACTION FRAME SCAN DONE\n"));
 			wl_clr_drv_status(cfg, SCANNING, cfg->afx_hdl->dev);
@@ -18511,6 +18503,12 @@ static s32 wl_escan_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 #endif
 		}
 		wl_escan_increment_sync_id(cfg, SCAN_BUF_CNT);
+#ifndef  BRCM_RSDB
+	} else if (status == WLC_E_STATUS_NEWSCAN) {
+		WL_ERR(("WLC_E_STATUS_NEWSCAN : scan_request[%p]\n", cfg->scan_request));
+		WL_ERR(("sync_id[%d], bss_count[%d]\n", escan_result->sync_id,
+			escan_result->bss_count));
+#endif
 	} else if (status == WLC_E_STATUS_TIMEOUT) {
 		WL_ERR(("WLC_E_STATUS_TIMEOUT : scan_request[%p]\n", cfg->scan_request));
 		WL_ERR(("reason[0x%x]\n", e->reason));

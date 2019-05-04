@@ -7,7 +7,6 @@
 #include <linux/hisi/hi64xx/hi6405.h>
 
 static struct utils_config *s_utils_config = NULL;
-static unsigned int cdc_type = HI64XX_CODEC_TYPE_BUTT;
 
 extern void hi64xx_resmgr_dump(struct hi64xx_resmgr *resmgr);
 
@@ -31,7 +30,7 @@ EXPORT_SYMBOL_GPL(hi64xx_update_bits);
 
 
 int hi64xx_utils_init(struct snd_soc_codec *codec, struct hi_cdc_ctrl *cdc_ctrl, const struct utils_config *config,
-	struct hi64xx_resmgr* resmgr, unsigned int codec_type)
+	struct hi64xx_resmgr* resmgr)
 {
 
 	s_utils_config = kzalloc(sizeof(struct utils_config), GFP_KERNEL);
@@ -41,7 +40,6 @@ int hi64xx_utils_init(struct snd_soc_codec *codec, struct hi_cdc_ctrl *cdc_ctrl,
 	}
 	memcpy(s_utils_config, config, sizeof(struct utils_config));
 
-	cdc_type = codec_type;
 
 	return 0;
 
@@ -64,6 +62,7 @@ void hi64xx_utils_deinit(void)
 }
 EXPORT_SYMBOL(hi64xx_utils_deinit);
 
+<<<<<<< HEAD
 int hisi_codec_get_dieid(char *dieid, unsigned int len)
 {
 	if (cdc_type == HI64XX_CODEC_TYPE_6405) {
@@ -72,6 +71,8 @@ int hisi_codec_get_dieid(char *dieid, unsigned int len)
 	return -1;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 MODULE_DESCRIPTION("hi64xx util");
 MODULE_AUTHOR("liujinhong <liujinhong@hisilicon.com>");
 MODULE_LICENSE("GPL");

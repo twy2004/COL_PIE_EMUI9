@@ -539,8 +539,8 @@ int himax_read_result_data(void)
 	int i=0;
 	int retval = -1;
 	int addr_result = 0x96;
-	uint8_t cmdbuf[4] = {0};
-	uint8_t databuf[10] = {0};
+	uint8_t cmdbuf[4];
+	uint8_t databuf[10];
 
 	cmdbuf[0] = HX_REG_SRAM_TEST_MODE_EN;
 	retval = i2c_himax_write(HX_REG_SRAM_SWITCH, &cmdbuf[0], 1, sizeof(cmdbuf), DEFAULT_RETRY_CNT);//read result
@@ -928,6 +928,7 @@ void himax_print_rawdata(int mode)
 	uint8_t *self_buff = NULL;
 	uint8_t *mutual_buff = NULL;
 
+<<<<<<< HEAD
 	if(!x_channel || x_channel > HX_MAX_X_CHAN || !y_channel || y_channel > HX_MAX_Y_CHAN) {
 		TS_LOG_ERR("%s, x, y larger than defined\n", __func__);
 		return;
@@ -940,6 +941,8 @@ void himax_print_rawdata(int mode)
 		return;
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	switch(mode)
 	{
 		case BANK_CMD:
@@ -959,24 +962,6 @@ void himax_print_rawdata(int mode)
 			self_num	= x_channel + y_channel;
 			memcpy(mutual_buff, mutual_iir, mutual_num);
 			memcpy(self_buff, self_iir, self_num);
-			break;
-		case DC_CMD:
-			mutual_num	= x_channel * y_channel;
-			self_num	= x_channel + y_channel;
-			memcpy(mutual_buff, mutual_dc, mutual_num);
-			memcpy(self_buff, self_dc, self_num);
-			break;
-		case GOLDEN_BASEC_CMD:
-			mutual_num	= x_channel * y_channel;
-			self_num	= x_channel + y_channel;
-			memcpy(mutual_buff, mutual_golden_basec, mutual_num);
-			memcpy(self_buff, self_golden_basec, self_num);
-			break;
-		case BASEC_CMD:
-			mutual_num	= x_channel * y_channel;
-			self_num	= x_channel + y_channel;
-			memcpy(mutual_buff, mutual_basec, mutual_num);
-			memcpy(self_buff, self_basec, self_num);
 			break;
 	}
 
@@ -1353,26 +1338,13 @@ static int himax_iq_self_test(void)
 static int hx852xf_self_test(void)
 {
 	int retval = NO_ERR;
-	int retry_time = 0;
 	uint8_t cmdbuf[4] = {0};
 	int iq_test_result = 0;
 	TS_LOG_INFO("%s: start \n", __func__);
 
 	himax_int_enable(g_himax_ts_data->tskit_himax_data->ts_platform_data->irq_id,IRQ_DISABLE);
 
-	if (g_himax_ts_data->support_retry_self_test == 0) {
-		iq_test_result = himax_iq_self_test();//iq_test_result   :  0 pass   1  fail
-	} else {
-		for (retry_time = 0; retry_time < DEFAULT_RETRY_CNT; retry_time++) {
-			iq_test_result = himax_iq_self_test();//iq_test_result   :  0 pass   1  fail
-			if (iq_test_result != 1) {// 1:self test fail, need retry
-				break;
-			}
-			TS_LOG_ERR("%s, himax_iq_self_test failed retry:%d\n", __func__, retry_time);
-			himax_HW_reset(HX_LOADCONFIG_EN, HX_INT_EN);
-		}
-	}
-
+	iq_test_result = himax_iq_self_test();//iq_test_result   :  0 pass   1  fail
 	if(iq_test_result != 0 )
 	{
 		TS_LOG_ERR("himax_iq_self_test error!\n");
@@ -1524,26 +1496,15 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 	uint16_t mutual_num = 0;
 	uint16_t rx = getXChannel();
 	uint16_t tx = getYChannel();
-	struct file *fn = NULL;
-	if(!g_himax_ts_data || !g_himax_ts_data->tskit_himax_data) {
-		TS_LOG_ERR("%s, param is null\n", __func__);
-		return -EINVAL;
-	}
+	struct file *fn;
 
 	mutual_num	= rx * tx;
 	self_num	= rx + tx;
 
-	if(atomic_read(&hmx_mmi_test_status)){
-		TS_LOG_ERR("%s factory test already has been called.\n",__func__);
-		return FACTORY_RUNNING;
-	}
-
-	atomic_set(&hmx_mmi_test_status, 1);
-
 	fac_dump_buffer= kzalloc((mutual_num+self_num)*10 * sizeof(uint8_t), GFP_KERNEL);
 	if (!fac_dump_buffer){
 		TS_LOG_ERR("device, fac_dump_buffer is NULL \n");
-		goto out;
+		return HX_ERROR;
 	}
 
 	memset(fac_dump_buffer,0x00,(mutual_num+self_num)*10 );
@@ -1564,7 +1525,7 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 	if(g_himax_ts_data->suspended)
 	{
 		TS_LOG_ERR("%s: Already suspended. Can't do factory test. \n", __func__);
-		goto out;
+		return SUSPEND_IN;
 	}
 
 	retval = himax_parse_threshold_file();
@@ -1573,8 +1534,14 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 		TS_LOG_ERR("%s: Parse .CSV file Fail.\n", __func__);
 	}
 
+	if(atomic_read(&hmx_mmi_test_status)){
+		TS_LOG_ERR("%s factory test already has been called.\n",__func__);
+		return FACTORY_RUNNING;
+	}
+
+	atomic_set(&hmx_mmi_test_status, 1);
 	memset(buf_test_result, 0, RESULT_LEN);
-	//memcpy(buf_test_result, "result: ", strlen("result: ")+1);
+	memcpy(buf_test_result, "result: ", strlen("result: ")+1);
 
 	TS_LOG_INFO("himax_gold_self_test enter \n");
 
@@ -1612,7 +1579,6 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 	himax_fac_dump(fac_dump_step,mutual_num,self_num,mutual_golden_basec,self_golden_basec);
 
 	//=============Show test result===================
-	strncat(buf_test_result, ";",strlen(";")+1);
 	strncat(buf_test_result, STR_IC_VENDOR,strlen(STR_IC_VENDOR)+1);
 	strncat(buf_test_result, "-",strlen("-")+1);
 	strncat(buf_test_result, ts->tskit_himax_data->ts_platform_data->chip_data->chip_name,strlen(ts->tskit_himax_data->ts_platform_data->chip_data->chip_name)+1);
@@ -1629,12 +1595,6 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 	himax_print_rawdata(BANK_CMD);
 	himax_print_rawdata(RTX_DELTA_CMD);
 	himax_print_rawdata(IIR_CMD);
-
-	if(g_himax_ts_data->tskit_himax_data->is_ic_rawdata_proc_printf) {// print all data
-		himax_print_rawdata(BASEC_CMD);
-		himax_print_rawdata(DC_CMD);
-		himax_print_rawdata(GOLDEN_BASEC_CMD);
-	}
 	info->used_size = current_index;
 #ifdef HX_FAC_LOG_PRINT
 	//=====debug log======
@@ -1646,30 +1606,26 @@ int hx852xf_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info_
 	//=====debug log=====
 #endif
 	//========write file into system===========
-	if(!(g_himax_ts_data->tskit_himax_data->is_ic_rawdata_proc_printf)) {
-		TS_LOG_INFO("%s: fac write file start\n",__func__);
-		fn = filp_open(HX_RAW_DUMP_FILE,O_CREAT | O_WRONLY ,0);
-		if (!IS_ERR(fn))
-		{
-			TS_LOG_INFO("%s: fac write file \n",__func__);
-			fn->f_op->write(fn,fac_dump_buffer,(mutual_num+self_num)*10*sizeof(uint8_t),&fn->f_pos);
-			filp_close(fn,NULL);
-		}
-		else
-			TS_LOG_INFO("%s: open file fail\n",__func__);
+	TS_LOG_INFO("%s: fac write file start\n",__func__);
+	fn = filp_open(HX_RAW_DUMP_FILE,O_CREAT | O_WRONLY ,0);
+	if (!IS_ERR(fn))
+	{
+		TS_LOG_INFO("%s: fac write file \n",__func__);
+		fn->f_op->write(fn,fac_dump_buffer,(mutual_num+self_num)*10*sizeof(uint8_t),&fn->f_pos);
+		filp_close(fn,NULL);
 	}
+	else
+		TS_LOG_INFO("%s: open file fail\n",__func__);
+	kfree(fac_dump_buffer);
+	fac_dump_buffer=NULL;
 	//================================
+	TS_LOG_INFO("%s: End \n",__func__);
+
+	himax_HW_reset(HX_LOADCONFIG_EN,HX_INT_DISABLE);
 
 err_alloc:
-	himax_HW_reset(HX_LOADCONFIG_EN,HX_INT_DISABLE);
 	wake_unlock(&g_himax_ts_data->ts_flash_wake_lock);
-out:
-	if(fac_dump_buffer) {
-		kfree(fac_dump_buffer);
-		fac_dump_buffer = NULL;
-	}
 	atomic_set(&hmx_mmi_test_status, 0);
-	TS_LOG_INFO("%s: End \n",__func__);
 	return retval;
 }
 #define ADDR_IRQ_MODE_SW 0xF4
@@ -2303,6 +2259,7 @@ int hx852xes_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info
 	}
 
 	memset(buf_test_result, 0, RESULT_LEN);
+	memcpy(buf_test_result, "result: ", strlen("result: ") + 1);
 
 	/* step0: bus test*/
 	hx_result_status[test0] = himax_get_raw_stack(test0); // bus test
@@ -2325,7 +2282,6 @@ int hx852xes_factory_start(struct himax_ts_data *ts,struct ts_rawdata_info *info
 	strncat(buf_test_result, ts->tskit_himax_data->ts_platform_data->chip_data->chip_name,strlen(ts->tskit_himax_data->ts_platform_data->chip_data->chip_name)+1);
 	strncat(buf_test_result, "-",strlen("-")+1);
 	strncat(buf_test_result, ts->tskit_himax_data->ts_platform_data->product_name,strlen(ts->tskit_himax_data->ts_platform_data->product_name)+1);
-	strncat(buf_test_result, ";",strlen(";"));
 
 	strncat(info->result,buf_test_result,strlen(buf_test_result)+1);
 
@@ -2362,28 +2318,10 @@ err_alloc:
 static int himax_parse_threshold_file(void)
 {
 	int retval = 0;
-	char file_name[HIMAX_THRESHOLD_NAME_LEN] = {0};
-	struct himax_ts_data *cd = NULL;
 
-	if (!g_himax_ts_data || !g_himax_ts_data->tskit_himax_data
-		|| !g_himax_ts_data->tskit_himax_data->ts_platform_data
-		|| !g_himax_ts_data->tskit_himax_data->ts_platform_data->chip_data) {
-		TS_LOG_ERR("param error\n");
-		return -EINVAL;
-	}
+	struct himax_ts_data *cd = g_himax_ts_data;
 
-	cd = g_himax_ts_data;
-	if (g_himax_ts_data->threshold_associated_with_projectid) {
-		snprintf(file_name, sizeof(file_name) - 1, "ts/%s_%s_%s_%s_threshold.csv",
-			g_himax_ts_data->tskit_himax_data->ts_platform_data->product_name,
-			g_himax_ts_data->tskit_himax_data->ts_platform_data->chip_data->chip_name,
-			himax_product_id,
-			g_himax_ts_data->tskit_himax_data->ts_platform_data->chip_data->module_name);
-	} else {
-		strncpy(file_name, "ts/CHOPIN_auo_threshold.csv", strlen("ts/CHOPIN_auo_threshold.csv") + 1);
-	}
-	TS_LOG_INFO("%s: threshold file name:%s\n", __func__, file_name);
-	retval = request_firmware(&fw_entry, file_name, cd->dev);
+	retval = request_firmware(&fw_entry, "ts/CHOPIN_auo_threshold.csv", cd->dev);
 	if (retval < 0) {
 		TS_LOG_ERR("%s: Fail request firmware\n", __func__);
 		goto exit;
@@ -2484,6 +2422,10 @@ static int himax_parse_threshold_file_method(const char *buf, uint32_t file_size
 						}
 					}
 					continue;
+					default:
+					{
+						break;
+					}
 		}
 	}
 

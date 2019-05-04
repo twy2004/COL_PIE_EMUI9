@@ -99,13 +99,22 @@ extern int thp_project_id_provider(char *project_id);
 int ts_kit_ops_register(struct ts_kit_ops *ops);
 int ts_kit_get_gesture_mode(void);
 int tskit_get_status_by_type(int type, int *status);
+<<<<<<< HEAD
 int ts_gamma_data_info(u8 *buf, int len);
 
+=======
+#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
+int ts_gamma_data_info(u8 *buf, int len);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 struct ts_kit_ops ts_kit_ops = {
 	.ts_power_notify = ts_kit_power_control_notify,
 	.get_tp_status_by_type = tskit_get_status_by_type,
 	.read_otp_gamma  = ts_gamma_data_info,
 };
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int ts_gamma_data_info(u8 *buf, int len)
 {
 	int error = NO_ERR;
@@ -113,6 +122,7 @@ int ts_gamma_data_info(u8 *buf, int len)
 	struct ts_oem_info_param *info = NULL;
 
 	TS_LOG_INFO("%s: called\n", __func__);
+<<<<<<< HEAD
 	if (TS_UNINIT == atomic_read(&g_ts_kit_platform_data.state)) {
 		TS_LOG_INFO("ts is not init");
 		return -EINVAL;
@@ -124,6 +134,13 @@ int ts_gamma_data_info(u8 *buf, int len)
 		goto out;
 	}
 	if ((buf == NULL) || (len > TS_GAMMA_DATA_LEN)) {
+=======
+	if (!g_ts_kit_platform_data.chip_data->support_gammadata_in_tp){
+		TS_LOG_INFO("%s no support gammadata \n", __func__);
+		goto out;
+	}
+	if(!buf || (len > TS_GAMMA_DATA_LEN)){
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		TS_LOG_INFO("%s invalid buf \n", __func__);
 			goto out;
 	}
@@ -182,9 +199,11 @@ int tskit_get_status_by_type(int type, int *status)
 		return -EINVAL;
 	}
 	switch (type) {
+#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
 	case TS_GESTURE_FUNCTION:
 		*status = ts_kit_gesture_func;
 		break;
+#endif
 	default:
 		TS_LOG_ERR("not support type\n");
 		ret = -EINVAL;
@@ -897,47 +916,25 @@ static void rawdata_proc_newformat_printf(struct seq_file *m,
 		if(rawdatanode->size > 0)
 	seq_printf(m, "%s begin\n",rawdatanode->test_name);
 		if(rawdatanode->typeindex == RAW_DATA_TYPE_TrxDelta && rawdatanode->size > 0){
-			if (g_ts_kit_platform_data.chip_data->print_all_trx_diffdata_for_newformat_flag) {
-				seq_puts(m, "RX:\n");
-				for (index = 0; index < rawtest_size; index++) {
-					seq_printf(m, "%d,", rawdatanode->values[index]);
-					tx_n++;
-					if (tx_n == info->tx) {
-						seq_puts(m, "\n");
-						tx_n = 0;
-					}
+			seq_printf(m, "RX:\n");
+			for(index = 0; index < (rawtest_size - info->tx); index++) {
+				seq_printf(m, "%d,", rawdatanode->values[index]);
+				tx_n++;
+				if(tx_n == info->tx){
+					seq_printf(m, "\n");
+					tx_n = 0;
 				}
-				seq_puts(m, "\nTX:\n");
-				for (index = 0; index < rawtest_size; index++) {
-					seq_printf(m, "%d,", rawdatanode->values[rawtest_size + index]);
-					rx_n++;
-					if (rx_n == info->tx) {
-						seq_puts(m, "\n");
-						rx_n = 0;
-					}
-				}
-				seq_puts(m, "\n");
-			} else {
-				seq_printf(m, "RX:\n");
-				for(index = 0; index < (rawtest_size - info->tx); index++) {
-					seq_printf(m, "%d,", rawdatanode->values[index]);
-					tx_n++;
-					if(tx_n == info->tx){
-						seq_printf(m, "\n");
-						tx_n = 0;
-					}
-				}
-				seq_printf(m, "\nTX:\n");
-				for(index = 0; index < (rawtest_size - info->rx); index++) {
-					seq_printf(m, "%d,", rawdatanode->values[rawtest_size + index]);
-					rx_n++;
-					if(rx_n == info->tx-1){
-						seq_printf(m, "\n");
-						rx_n = 0;
-					}
-				}
-				seq_printf(m, "\n");
 			}
+			seq_printf(m, "\nTX:\n");
+			for(index = 0; index < (rawtest_size - info->rx); index++) {
+				seq_printf(m, "%d,", rawdatanode->values[rawtest_size + index]);
+				rx_n++;
+				if(rx_n == info->tx-1){
+					seq_printf(m, "\n");
+					rx_n = 0;
+				}
+			}
+			seq_printf(m, "\n");
 		}
 		else if (rawdatanode->typeindex == RAW_DATA_TYPE_SelfCap && rawdatanode->size > 0){
 			seq_printf(m, "rx:\n");
@@ -1860,7 +1857,6 @@ static int charger_detect_notifier_callback(struct notifier_block *self,
 	case VCHRG_CHARGE_DONE_EVENT:
 	case VCHRG_POWER_SUPPLY_OVERVOLTAGE:
 	case VCHRG_POWER_SUPPLY_WEAKSOURCE:
-	case VCHRG_CURRENT_FULL_EVENT:
 	case VCHRG_NOT_CHARGING_EVENT:
 		charger_state = USB_PIUG_IN;
 		break;
@@ -2407,10 +2403,9 @@ static int ts_kit_chip_init(void)
 	if (g_ts_kit_platform_data.chip_data->is_direct_proc_cmd == 0) {
 		if (dev->ops->chip_init) {
 			error = dev->ops->chip_init();
+			if (error)
+				TS_LOG_ERR("chip init failed\n");
 		}
-	}
-	if (error) {
-		TS_LOG_ERR("chip init failed\n");
 	}
 
 #ifdef CONFIG_HUAWEI_DSM
@@ -2961,12 +2956,15 @@ static int ts_proc_command(struct ts_cmd_node *cmd)
 	case TS_INPUT_ALGO:
 		ts_algo_calibrate(proc_cmd, out_cmd);
 		break;
+<<<<<<< HEAD
 	case TS_PALM_KEY:
 		ts_palm_report(proc_cmd,out_cmd);
 		break;
 	case TS_REPORT_KEY:
 		ts_report_key_event(proc_cmd, out_cmd);
 		break;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	case TS_REPORT_INPUT:
 		ts_report_input(proc_cmd, out_cmd);
 		break;
@@ -3657,7 +3655,6 @@ static int ts_parse_captest_config(struct device_node *np,
 
 	ts_of_property_read_u32_quiet(np, "is_ic_rawdata_proc_printf",&chip_data->is_ic_rawdata_proc_printf);
 	ts_of_property_read_u8(np, "rawdata_newformatflag",&chip_data->rawdata_newformatflag);
-	ts_of_property_read_u8(np, "print_all_trx_diffdata_for_newformat_flag",&chip_data->print_all_trx_diffdata_for_newformat_flag);
 	ts_of_property_read_u32_quiet(np, "boot_detection_addr", &chip_data->boot_detection_addr);
 	ts_of_property_read_u32_quiet(np, "boot_detection_threshold", &chip_data->boot_detection_threshold);
 	ts_of_property_read_u8(np, "boot_detection_flag", &chip_data->boot_detection_flag);
@@ -4152,6 +4149,7 @@ int ts_event_notify(ts_notify_event_type event)	// for panel use to notify event
 
 int ts_kit_get_pt_station_status(int *status)
 {
+#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
 	struct lcd_kit_ops *lcd_ops = lcd_kit_get_ops();
 	int retval;
 
@@ -4165,7 +4163,7 @@ int ts_kit_get_pt_station_status(int *status)
 			return retval;
 		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -4207,13 +4205,13 @@ static int __init huawei_ts_module_init(void)
 	}
 
 	ts_init_flag = 1;
-
+#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
 	error = ts_kit_ops_register(&ts_kit_ops);
 	if (error) {
 		TS_LOG_ERR("ts_kit_ops_register failed :%d\n", error);
 		goto err_put_platform_dev;
 	}
-
+#endif
 	g_ts_kit_platform_data.ts_init_task =
 	    kthread_create(ts_kit_init, &g_ts_kit_platform_data,
 			   "ts_init_thread:%d", 0);

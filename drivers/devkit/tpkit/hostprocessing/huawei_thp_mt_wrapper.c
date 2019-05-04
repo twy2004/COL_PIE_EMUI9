@@ -37,6 +37,7 @@
 
 static struct thp_mt_wrapper_data *g_thp_mt_wrapper = 0;
 
+<<<<<<< HEAD
 
 void thp_inputkey_report(unsigned int gesture_wakeup_value)
 {
@@ -48,23 +49,20 @@ void thp_inputkey_report(unsigned int gesture_wakeup_value)
 }
 
 int thp_mt_wrapper_ioctl_get_events(unsigned long event)
+=======
+int thp_mt_wrapper_ioctl_get_events(int * event)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
+	THP_LOG_ERR("%s:call.\n", __func__);
 	int t = 0;
-	int __user *events = (int *)event;
 	struct thp_core_data *cd = thp_get_core_data();
-
-	if (!cd || !events) {
-		THP_LOG_INFO("%s: input null\n", __func__);
-		return -ENODEV;
+	if (!cd) {
+		THP_LOG_ERR("%s: core not inited\n", __func__);
+		return -EFAULT;
 	}
-
 	THP_LOG_INFO("%d: cd->event_flag \n",cd->event_flag);
 	if (cd->event_flag) {
-		if(copy_to_user(events, &cd->event, sizeof(cd->event))) {
-			THP_LOG_ERR("%s:copy events failed\n", __func__);
-			return -EFAULT;
-		}
-
+		*event = cd->event;
 		cd->event_flag = false;
 	} else {
 		cd->thp_event_waitq_flag = WAITQ_WAIT;
@@ -242,7 +240,7 @@ static int thp_mt_wrapper_ioctl_read_scene_info(unsigned long arg)
 
 static int thp_mt_wrapper_ioctl_get_window_info(unsigned long arg)
 {
-	struct thp_window_info __user *window_info = (struct thp_window_info *)arg;
+	struct thp_window_info __user *window_info = (struct thp_scene_info *)arg;
 	struct thp_core_data *cd = thp_get_core_data();
 
 	if (!cd || !window_info) {
@@ -263,7 +261,7 @@ static int thp_mt_wrapper_ioctl_get_window_info(unsigned long arg)
 
 static int thp_mt_wrapper_ioctl_get_projectid(unsigned long arg)
 {
-	char __user *project_id = (char __user *)arg;
+	char __user *project_id = (struct thp_scene_info *)arg;
 	struct thp_core_data *cd = thp_get_core_data();
 
 	if (!cd || !project_id) {
@@ -274,7 +272,7 @@ static int thp_mt_wrapper_ioctl_get_projectid(unsigned long arg)
 	THP_LOG_INFO("%s:project id:%s\n", __func__, cd->project_id);
 
 	if(copy_to_user(project_id, cd->project_id, sizeof(cd->project_id))) {
-		THP_LOG_ERR("%s:copy project_id failed\n", __func__);
+		THP_LOG_ERR("%s:copy window_info failed\n", __func__);
 		return -EFAULT;
 	}
 
@@ -283,7 +281,7 @@ static int thp_mt_wrapper_ioctl_get_projectid(unsigned long arg)
 
 static int thp_mt_wrapper_ioctl_set_roi_data(unsigned long arg)
 {
-	short __user *roi_data = (short __user *)arg;
+	short __user *roi_data = (struct thp_scene_info *)arg;
 	struct thp_core_data *cd = thp_get_core_data();
 
 	if (!cd || !roi_data) {
@@ -327,6 +325,7 @@ static long thp_mt_wrapper_ioctl_set_events(unsigned long arg)
 	return ret;
 }
 
+<<<<<<< HEAD
 static int thp_mt_ioctl_report_keyevent(unsigned long arg)
 {
 	int report_value[PROX_VALUE_LEN] = {0};
@@ -366,6 +365,8 @@ static int thp_mt_ioctl_report_keyevent(unsigned long arg)
 	return 0;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static long thp_mt_wrapper_ioctl(struct file *filp, unsigned int cmd,
 				unsigned long arg)
 {
@@ -400,9 +401,6 @@ static long thp_mt_wrapper_ioctl(struct file *filp, unsigned int cmd,
 		break;
 	case INPUT_MT_WRAPPER_IOCTL_SET_ROI_DATA:
 		ret = thp_mt_wrapper_ioctl_set_roi_data(arg);
-		break;
-	case INPUT_MT_WRAPPER_IOCTL_CMD_REPORT_KEYEVENT:
-		ret = thp_mt_ioctl_report_keyevent(arg);
 		break;
 	default:
 		THP_LOG_ERR("cmd unkown.\n");
@@ -586,8 +584,11 @@ int thp_mt_wrapper_init(void)
 	__set_bit(BTN_TOUCH, input_dev->keybit);
 	__set_bit(BTN_TOOL_FINGER, input_dev->keybit);
 	__set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
+<<<<<<< HEAD
 	__set_bit(KEY_F26, input_dev->keybit);
 	__set_bit(TS_DOUBLE_CLICK, input_dev->keybit);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	input_set_abs_params(input_dev, ABS_X,
 			     0, mt_wrapper->input_dev_config.abs_max_x - 1, 0, 0);

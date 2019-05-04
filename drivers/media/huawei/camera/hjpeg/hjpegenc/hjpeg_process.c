@@ -65,7 +65,6 @@
 #define I2hjpegenc(i) container_of(i, hjpeg_base_t, intf)
 
 #define ENCODE_FINISH (1<<4)
-#define IRQ_MERGE_ENCODE_FINISH (1<<1)
 
 typedef struct _tag_hjpeg_base
 {
@@ -89,10 +88,15 @@ typedef struct _tag_hjpeg_base
 } hjpeg_base_t;
 
 int is_hjpeg_qos_update(void);
+<<<<<<< HEAD
 int get_hjpeg_iova_update(void);
 int get_hjpeg_wr_port_addr_update(void);
 int is_pixel_fmt_update(void);
 int is_cvdr_cfg_update(void);
+=======
+int is_hjpeg_iova_update(void);
+int is_hjpeg_wr_port_addr_update(void);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static void hjpeg_isr_do_tasklet(unsigned long data);
 DECLARE_TASKLET(hjpeg_isr_tasklet, hjpeg_isr_do_tasklet, (unsigned long)0);
@@ -114,10 +118,6 @@ static int hjpeg_power_on(hjpeg_intf_t *i);
 static int hjpeg_power_off(hjpeg_intf_t *i);
 static int hjpeg_get_reg(hjpeg_intf_t *i, void* cfg);
 static int hjpeg_set_reg(hjpeg_intf_t *i, void* cfg);
-
-static void hjpeg_irq_clr(void __iomem* subctrl1);
-static void hjpeg_irq_mask(void __iomem* subctrl1, bool enable);
-static void hjpeg_encode_finish(void __iomem* jpegenc, void __iomem* subctl);
 
 static hjpeg_vtbl_t
 s_vtbl_hjpeg =
@@ -152,12 +152,17 @@ MODULE_DEVICE_TABLE(of, s_hjpeg_dt_match);
 static struct timeval s_timeval_start;
 static struct timeval s_timeval_end;
 static int is_qos_update = 0;
+<<<<<<< HEAD
 static int iova_update_version = 0;
 static int wr_port_addr_update_version = 0;
 static int pixel_format_update = 0;
 static int cvdr_cfg_update = 0;
 static int is_irq_merge = 0;
 static int clk_ctl_offset = 0;
+=======
+static int is_iova_update = 0;
+static int is_wr_port_addr_update = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 extern int memset_s(void *dest, size_t destMax, int c, size_t count);
 
@@ -168,9 +173,29 @@ static void hjpeg_isr_do_tasklet(unsigned long data)
 
 static irqreturn_t hjpeg_irq_handler(int irq, void *dev_id)
 {
+<<<<<<< HEAD
     hjpeg_encode_finish(s_hjpeg.hw_ctl.jpegenc_viraddr
             , s_hjpeg.hw_ctl.subctrl_viraddr);
+=======
+    void __iomem *base = s_hjpeg.hw_ctl.jpegenc_viraddr;
+    u32 value;
 
+    do_gettimeofday(&s_timeval_end);
+    value = get_reg_val((void __iomem*)((char*)base + JPGENC_JPE_STATUS_RIS_REG));
+    cam_debug("RIS status:%x", value);
+    if (value & ENCODE_FINISH) {
+        tasklet_schedule(&hjpeg_isr_tasklet);
+    } else {
+        cam_err("err irq status 0x%x ", value);
+
+        #if defined( HISP120_CAMERA )
+            hjpeg_120_dump_reg();
+        #endif
+    }
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+
+    /*clr jpeg irq*/
+    set_reg_val((void __iomem*)((char*)base + JPGENC_JPE_STATUS_ICR_REG), 0x30);
     return IRQ_HANDLED;
 }
 
@@ -302,6 +327,7 @@ static int check_config(jpgenc_config_t* config)
     }
     return check_buffer_vaild(config);
 }
+
 /* set picture format
   called by config_jpeg
 */
@@ -526,11 +552,16 @@ static void hjpeg_config_jpeg(jpgenc_config_t* config)
     set_picture_quality(base_addr, config->buffer.quality);
 
     //set input buffer address
+<<<<<<< HEAD
     if (CVDR_IOVA_ADDR_34BITS == get_hjpeg_iova_update()) {
         U_JPEGENC_ADDRESS addr_y;
         addr_y.bits.address = config->buffer.input_buffer_y >> 4;
         addr_y.bits.reserved = 0;
         set_reg_val((void __iomem*)((char*)base_addr + JPGENC_ADDRESS_Y_REG), addr_y.reg32);
+=======
+    if (is_hjpeg_iova_update()) {
+        SET_FIELD_TO_REG((void __iomem*)((char*)base_addr + JPGENC_ADDRESS_Y_REG),JPGENC_ADDRESS_Y,config->buffer.input_buffer_y >> 6);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         if (JPGENC_FORMAT_YUV420 == (config->buffer.format & JPGENC_FORMAT_BIT)) {
             U_JPEGENC_ADDRESS addr_uv;
             addr_uv.bits.address = config->buffer.input_buffer_uv >> 4;
@@ -575,22 +606,14 @@ static void hjpeg_disable_autogating(void)
 
 static void hjpeg_disabe_irq(void)
 {
-    if (is_irq_merge) {
-        hjpeg_irq_mask(s_hjpeg.hw_ctl.subctrl_viraddr, false);
-    } else {
-        void __iomem *base_addr = s_hjpeg.hw_ctl.jpegenc_viraddr;
-        set_reg_val((void __iomem*)((char*)base_addr + JPGENC_JPE_STATUS_IMR_REG), 0x00);
-    }
+    void __iomem *base_addr = s_hjpeg.hw_ctl.jpegenc_viraddr;
+    set_reg_val((void __iomem*)((char*)base_addr + JPGENC_JPE_STATUS_IMR_REG), 0x00);
 }
 
 static void hjpeg_enable_irq(void)
 {
-    if (is_irq_merge) {
-        hjpeg_irq_mask(s_hjpeg.hw_ctl.subctrl_viraddr, true);
-    } else {
-        void __iomem *base_addr = s_hjpeg.hw_ctl.jpegenc_viraddr;
-        set_reg_val((void __iomem*)((char*)base_addr + JPGENC_JPE_STATUS_IMR_REG), 0x30);
-    }
+    void __iomem *base_addr = s_hjpeg.hw_ctl.jpegenc_viraddr;
+    set_reg_val((void __iomem*)((char*)base_addr + JPGENC_JPE_STATUS_IMR_REG), 0x30);
 }
 
 // IOCTL HJPEG_ENCODE_PROCESS
@@ -669,7 +692,7 @@ static int hjpeg_encode_process(hjpeg_intf_t *i, void *cfg)
     if (down_timeout(&s_hjpeg.buff_done, jiff)) {
         cam_err("time out wait for jpeg encode");
         ret = -1;
-        hjpeg_irq_clr(s_hjpeg.hw_ctl.subctrl_viraddr);
+
         #if defined( HISP120_CAMERA )
             hjpeg_120_dump_reg();
         #endif
@@ -773,7 +796,6 @@ static int hjpeg_power_on(hjpeg_intf_t *i)
         cam_err("%s(%d) failed to enable jpeg clock , prepare to power down!",__func__, __LINE__);
         goto POWERUP_ERROR;
     }
-
     // init qtable\hufftable etc.
     hjpeg_init_hw_param(phjpeg->hw_ctl.jpegenc_viraddr, phjpeg->hw_ctl.power_controller, bypass_smmu());
 
@@ -1426,6 +1448,7 @@ static int hjpeg_get_dts(struct platform_device* pDev)
     s_hjpeg.hw_ctl.chip_type = chip_type;
     cam_info("%s: chip_type=%d", __func__, chip_type);
 
+<<<<<<< HEAD
     // clk_ctl_offset
     ret = of_property_read_u32(np, "huawei,clk_ctl_offset", &clk_ctl_offset);
     if (ret == 0) {
@@ -1436,6 +1459,27 @@ static int hjpeg_get_dts(struct platform_device* pDev)
     ret = of_property_read_u32(np, "huawei,irq-merge", &is_irq_merge);
     if (ret == 0) {
         cam_info("%s: update irq_merge=%u.", __func__, is_irq_merge);
+=======
+    //is_qos_update
+    ret = of_property_read_u32(np, "huawei,qos_update", &is_qos_update);
+    if (ret < 0) {
+        cam_err("%s: get qos_update flag failed.", __func__);
+        return -1;
+    }
+
+    //is_iova_update
+    ret = of_property_read_u32(np, "huawei,iova_update", &is_iova_update);
+    if (ret < 0) {
+        cam_err("%s: get iova_update flag failed.", __func__);
+        return -1;
+    }
+
+    //is_wr_port_addr_update
+    ret = of_property_read_u32(np, "huawei,wr_port_addr_update", &is_wr_port_addr_update);
+    if (ret < 0) {
+        cam_err("%s: get wr_port_addr_update flag failed.", __func__);
+        return -1;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     }
 
     ret = get_dts_cvdr_prop(pdev);
@@ -1544,26 +1588,19 @@ static void hjpeg_setclk_disable(hjpeg_base_t* pJpegDev, int idx)
 
 static int hjpeg_clk_ctrl(void __iomem* subctrl1, bool enable)
 {
-    u32 set_clk;
-    u32 cur_clk;
+    uint32_t set_clk;
+    uint32_t cur_clk;
     int ret = 0;
-    u32 offset;
-
-    if (clk_ctl_offset) {
-        offset = JPGENC_CRG_CFG0;
-    } else {
-        offset = 0;
-    }
 
     cam_info("%s enter\n",__func__);
 
     if (enable) {
-        set_reg_val(subctrl1 + offset, get_reg_val(subctrl1)|0x1);
+        set_reg_val(subctrl1, get_reg_val(subctrl1)|0x1);
     } else {
-        set_reg_val(subctrl1 + offset, get_reg_val(subctrl1)&0xFFFFFFFE);   /* [false alarm]:it is a dead code */
+        set_reg_val(subctrl1, get_reg_val(subctrl1)&0xFFFFFFFE);   /* [false alarm]:it is a dead code */
     }
     set_clk = enable ? 0x1 : 0x0;
-    cur_clk = get_reg_val(subctrl1 + offset);
+    cur_clk = get_reg_val(subctrl1);
     if (set_clk != cur_clk) {
         cam_err("%s(%d) isp jpeg clk status %d, clk write failed",__func__, __LINE__, cur_clk);
         ret = -EIO;
@@ -1573,6 +1610,7 @@ static int hjpeg_clk_ctrl(void __iomem* subctrl1, bool enable)
     return ret;
 }
 
+<<<<<<< HEAD
 static void hjpeg_irq_clr(void __iomem* subctrl1)
 {
     u32 set_val;
@@ -1643,6 +1681,8 @@ static void hjpeg_encode_finish(void __iomem* jpegenc, void __iomem* subctl)
     }
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static struct platform_driver
 s_hjpeg_driver =
 {
@@ -1702,16 +1742,16 @@ int is_hjpeg_qos_update(void)
     return is_qos_update;
 }
 
-int get_hjpeg_iova_update(void)
+int is_hjpeg_iova_update(void)
 {
-    cam_debug("%s iova_update_version=%d.", __func__, iova_update_version);
-    return iova_update_version;
+    cam_debug("%s is_iova_update=%d.", __func__, is_iova_update);
+    return is_iova_update;
 }
 
-int get_hjpeg_wr_port_addr_update(void)
+int is_hjpeg_wr_port_addr_update(void)
 {
-    cam_debug("%s wr_port_addr_update_version=%d.", __func__, wr_port_addr_update_version);
-    return wr_port_addr_update_version;
+    cam_debug("%s is_wr_port_addr_update=%d.", __func__, is_wr_port_addr_update);
+    return is_wr_port_addr_update;
 }
 
 int is_cvdr_cfg_update(void)

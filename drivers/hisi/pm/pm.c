@@ -281,7 +281,7 @@ static int hisi_pm_enter(suspend_state_t state)
 	core = ((mpidr & MPIDR_CLUSTER_MASK) >> MPIDR_AFFINITY_BITS);
 	cluster = CLUSTER_ID(core);
 
-	pr_debug("%s: mpidr is 0x%lx, cluster = %d, core = %d.\n", __func__, mpidr, cluster, core);
+	pr_err("%s: mpidr is 0x%lx, cluster = %d, core = %d.\n", __func__, mpidr, cluster, core);
 
 	pm_gic_dump();
 	get_ip_regulator_state();

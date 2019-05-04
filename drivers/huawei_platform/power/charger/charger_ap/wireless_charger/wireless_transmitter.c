@@ -389,8 +389,12 @@ static int wireless_tx_power_supply(struct wireless_tx_device_info *di)
 			return WL_TX_FAIL;
 		}
 		count++;
+<<<<<<< HEAD
 		hwlog_info("[%s] tx_vin = %dmV, charger_vbus = %dmV, "
 			"retry times = %d!\n", __func__, tx_vin, charger_vbus, count);
+=======
+		hwlog_info("[%s] tx_vin = %dmV, retry times = %d!\n", __func__, tx_vin, count);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	} while (count < WL_TX_VIN_RETRY_CNT2);
 
 	hwlog_err("%s: power supply for TX fail!\n", __func__);
@@ -457,7 +461,11 @@ static void wireless_tx_check_in_tx_mode(struct wireless_tx_device_info *di)
 			di->stop_reverse_charge = true;
 		} else if (di->tx_mode_err_cnt >= WL_TX_MODE_ERR_CNT) {
 			hwlog_err("%s: not in tx mode, reinit TX!\n",__func__);
+<<<<<<< HEAD
 			ret = wireless_tx_chip_init(di);
+=======
+			wireless_tx_chip_init(di);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			if (ret) {
 				hwlog_err("%s: chip_init fail\n", __func__);
 			}

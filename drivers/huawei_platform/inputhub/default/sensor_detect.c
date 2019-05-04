@@ -115,8 +115,6 @@ extern int vishay_vcnl36658_ps_flag;
 extern int ams_tof_flag;
 extern int sharp_tof_flag;
 extern int apds9253_006_ps_flag;
-extern int ams_tcs3701_rgb_flag;
-extern int ams_tcs3701_ps_flag;
 
 extern struct CONFIG_ON_DDR* pConfigOnDDr;
 extern void select_als_para(struct device_node *dn);
@@ -124,7 +122,6 @@ extern int iom3_need_recovery(int modid, exp_source_t f);
 extern t_ap_sensor_ops_record all_ap_sensor_operations[TAG_SENSOR_END];
 uint8_t is_close = 0;
 static int _device_detect(struct device_node *dn, int index, struct sensor_combo_cfg *p_succ_ret);
-int get_combo_bus_tag(const char *bus, uint8_t *tag);
 int hall_number = 1 ;
 int hall_sen_type = 0;
 int mag_opend = 0;
@@ -503,7 +500,7 @@ void read_sensorlist_info(struct device_node *dn, int sensor)
 		hwlog_info("sensor SENSOR_DETECT_LIST %d get vendor %s\n", sensor, sensorlist_info[sensor].vendor);
 	}
 	else
-		sensorlist_info[sensor].vendor[0] = '\0';
+		sensorlist_info[sensor].name[0] = '\0';
 
 	if (0 == of_property_read_u32(dn, "version", &temp))
 	{
@@ -586,6 +583,7 @@ void read_chip_info(struct device_node *dn, SENSOR_DETECT_LIST sname)
 
 static void read_aux_file_list(uint16_t fileid, uint16_t tag)
 {
+<<<<<<< HEAD
 	aux_req->file_list[aux_req->file_count * 2] = fileid;
 	aux_req->file_list[aux_req->file_count * 2 + 1] = tag;
 	aux_req->file_count++;
@@ -596,6 +594,9 @@ static void read_acc_data_from_dts(struct device_node *dn, struct sensor_detect_
 	int temp = 0, aux = 0;
 	const char *bus_type;
 	struct g_sensor_platform_data *gsensor_data = (struct g_sensor_platform_data *)sm->spara;
+=======
+	int temp = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	read_chip_info(dn, sm->sensor_id);
 
@@ -719,6 +720,7 @@ static void read_acc_data_from_dts(struct device_node *dn, struct sensor_detect_
 		gsensor_data->wakeup_duration = (uint8_t) temp;
 	}
 
+<<<<<<< HEAD
 	if (of_property_read_string(dn, "bus_type", &bus_type)) {
 		hwlog_warn("%s:acc %s bus_type not configured\n", __func__, sm->sensor_name_str);
 	} else {
@@ -749,6 +751,9 @@ static void read_acc_data_from_dts(struct device_node *dn, struct sensor_detect_
 	hwlog_info("sensor_in_board_status order:%s\n", sensor_in_board_status);
 
 	read_sensorlist_info(dn, sm->sensor_id);
+=======
+	read_sensorlist_info(dn, ACC);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static void read_mag_data_from_dts(struct device_node *dn, struct sensor_detect_manager *sm)
@@ -902,9 +907,13 @@ static void read_mag_data_from_dts(struct device_node *dn, struct sensor_detect_
 
 static void read_gyro_data_from_dts(struct device_node *dn, struct sensor_detect_manager *sm)
 {
+<<<<<<< HEAD
 	const char *bus_type;
 	int temp = 0, aux = 0;
 	struct gyro_platform_data *gyro_data = (struct gyro_platform_data *)sm->spara;
+=======
+	int temp = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	read_chip_info(dn, sm->sensor_id);
 
@@ -1011,6 +1020,7 @@ static void read_gyro_data_from_dts(struct device_node *dn, struct sensor_detect
 		gyro_range = gyro_data->gyro_range;
 		hwlog_info("%s:read %s gyro gyro_range %d\n", __func__, sm->sensor_name_str, temp);
 	}
+<<<<<<< HEAD
 
 	if (of_property_read_string(dn, "bus_type", &bus_type)) {
 		hwlog_warn("%s:gyro %s bus_type not configured\n", __func__, sm->sensor_name_str);
@@ -1037,6 +1047,9 @@ static void read_gyro_data_from_dts(struct device_node *dn, struct sensor_detect
 	}
 
 	read_sensorlist_info(dn, sm->sensor_id);
+=======
+	read_sensorlist_info(dn, GYRO);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 void read_als_data_from_dts(struct device_node *dn)
@@ -1071,11 +1084,6 @@ void read_als_data_from_dts(struct device_node *dn)
 	if (!strncmp(chip_info, "huawei,ams_tmd3725",sizeof("huawei,ams_tmd3725"))) {
 		ams_tmd3725_rgb_flag = 1;
 		hwlog_err("%s:ams_tmd3725 i2c_address suc,%d \n", __func__,temp);
-	}
-
-	if (!strncmp(chip_info, "huawei,ams_tcs3701",sizeof("huawei,ams_tcs3701"))) {
-		ams_tcs3701_rgb_flag = 1;
-		hwlog_err("%s:ams_tcs3701 i2c_address suc,%d \n", __func__,temp);
 	}
 
 	if (!strncmp(chip_info, "huawei,liteon_ltr582",sizeof("huawei,liteon_ltr582"))) {
@@ -1273,11 +1281,6 @@ static void read_ps_data_from_dts(struct device_node *dn)
 		hwlog_err("%s:ams-tmd3725_ps i2c_address suc,%d \n", __func__, temp);
 	}
 
-	if (!strncmp(sensor_chip_info[PS], "huawei,ams_tcs3701",sizeof("huawei,ams_tcs3701"))) {
-		ams_tcs3701_ps_flag = 1;
-		hwlog_err("%s:ams_tcs3701_ps i2c_address suc,%d \n", __func__, temp);
-	}
-
        if (!strncmp(sensor_chip_info[PS], "huawei,liteon-ltr582",sizeof("huawei,liteon-ltr582"))) {
 		liteon_ltr582_ps_flag = 1;
 		hwlog_err("%s:liteon-ltr582_ps i2c_address suc,%d \n", __func__, temp);
@@ -1298,7 +1301,7 @@ static void read_ps_data_from_dts(struct device_node *dn)
 		hwlog_err("%s:vishay-vcnl36658_ps i2c_address suc,%d \n", __func__, temp);
 	}
 
-	if (!strncmp(sensor_chip_info[PS], "huawei,avago_apds9253_006",sizeof("huawei,avago_apds9253_006"))) {
+	if (!strncmp(sensor_chip_info[PS], "avago_apds9253_006",sizeof("huawei,avago_apds9253_006"))) {
 		apds9253_006_ps_flag = 1;
 		hwlog_info("%s:apds9253_006_ps i2c_address suc,%d \n", __func__, temp);
 	}
@@ -2869,28 +2872,7 @@ static int fingerprint_ud_sensor_detect(struct device_node *dn, int index, struc
 
 	ret = of_property_read_string(dn, "compatible", (const char **)&sensor_vendor);
 	if (!ret) {
-		/* compare the string, and len is 15 */
-		if(!strncmp(sensor_vendor, "goodix,goodixG2", 15)) {
-			gpio_direction_output(gpio_reset, 1);
-			msleep(10);
-			gpio_direction_output(gpio_reset, 0);
-			msleep(10);
-			gpio_direction_output(gpio_reset, 1);
-			msleep(10);
-			ctrl.data = gpio_cs;
-
-			tx[0] = 0xC0; /* cmd */
-			tx_len = 1;
-			ret = mcu_spi_rw(2, ctrl, tx, tx_len, NULL, 0); /*set sensor to idle mode */
-
-			msleep(100);
-			tx[0] = 0xF0; /* addr of the cmd */
-			tx[1] = 0x43;
-			tx[2] = 0x04;
-			tx_len = 3;
-			ret = mcu_spi_rw(2, ctrl, tx, tx_len, NULL, 0); /* write cmd & address,2 is bus num */
-		}
-		else if(!strncmp(sensor_vendor, "goodix", 6)) {
+		if(!strncmp(sensor_vendor, "goodix", 6)) {
 			gpio_direction_output(gpio_reset, 1);
 			msleep(10);
 			gpio_direction_output(gpio_reset, 0);
@@ -2929,13 +2911,6 @@ static int fingerprint_ud_sensor_detect(struct device_node *dn, int index, struc
 			_device_detect(dn, index, cfg);
 			hwlog_info("%s: fingerprint device %s detect bypass\n", __func__, sensor_vendor);
 			return FINGERPRINT_SENSOR_DETECT_SUCCESS;
-		}else if(!strncmp(sensor_vendor, "silead", 6)) {
-			gpio_direction_output(gpio_reset, 1);
-			msleep(10);
-			gpio_direction_output(gpio_reset, 0);
-			msleep(10);
-			gpio_direction_output(gpio_reset, 1);
-			msleep(5);
 		}
 		hwlog_info("%s: fingerprint device %s\n", __func__, sensor_vendor);
 		ret = 0;
@@ -2958,7 +2933,7 @@ static int fingerprint_ud_sensor_detect(struct device_node *dn, int index, struc
 	return ret;
 }
 
-__weak const char* ts_kit_get_vendor_name(void) { return NULL; }
+extern const char* ts_kit_get_vendor_name(void);
 int get_combo_bus_tag(const char *bus, uint8_t *tag);
 
 static int tp_ud_sensor_detect(struct device_node *dn)
@@ -3149,6 +3124,7 @@ static void read_tp_ud_from_dts(struct device_node *dn)
 	} else {
 		tp_ud_data.i2c_max_speed_hz = (GPIO_NUM_TYPE) temp;
 	}
+<<<<<<< HEAD
 	if (of_property_read_u32(dn, "fw_power_config_reg", &temp)){
 		hwlog_err("%s:read fw_power_config_reg not config\n", __func__);
 		tp_ud_data.fw_power_config_reg = 0;
@@ -3231,6 +3207,8 @@ static void read_tp_ud_from_dts(struct device_node *dn)
 		hwlog_err("%s:read tp_sensor_spi_sync_cs_low_delay_us = %d\n",
 			__func__, tp_ud_data.tp_sensor_spi_sync_cs_low_delay_us);
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return;
 }
 

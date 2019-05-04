@@ -12,7 +12,8 @@
 */
 
 #include "hisi_fb.h"
-#include "lcd_kit_common.h"
+#include "lcdkit_fb_util.h"
+#include "lcdkit_panel.h"
 /*
 ** for debug, S_IRUGO
 ** /sys/module/hisifb/parameters
@@ -195,9 +196,7 @@ void dss_underflow_debug_func(struct work_struct *work)
 	if (lcd_dclient) {
 		if (!dsm_client_ocuppy(lcd_dclient)) {
 			if (hisifd->index == PRIMARY_PANEL_IDX) {
-				hisifb_activate_vsync(hisifd);
 				dpp_dbg_value = inp32(hisifd->dss_base + DSS_DPP_OFFSET + DPP_DBG_CNT);
-				hisifb_deactivate_vsync(hisifd);
 				dsm_client_record(lcd_dclient,"ldi underflow, curr_ddr = %u, frame_no = %d, dpp_dbg = 0x%x!\n",
 					curr_ddr, hisifd->ov_req.frame_no, dpp_dbg_value);
 			}
@@ -225,14 +224,6 @@ void hisifb_debug_register(struct platform_device *pdev)
 
 	// dsm lcd
 	if(!lcd_dclient) {
-		if (PRIMARY_PANEL_IDX == hisifd->index) {
-			if (common_info->panel_model) {
-				dsm_lcd.module_name = common_info->panel_model;
-			}else if (common_info->panel_name) {
-				dsm_lcd.module_name = common_info->panel_name;
-			}
-		}
-
 		lcd_dclient = dsm_register_client(&dsm_lcd);
 	}
 

@@ -56,7 +56,7 @@
 #define PREALLOC_CNT     (64UL * SZ_1M / PAGE_SIZE)
 #define PREALLOC_NWK     (PREALLOC_CNT * 4U)
 
-#define DMA_CAMERA_WATER_MARK (512 * SZ_1M)
+#define DMA_CAMERA_WATER_MARK (100 * SZ_1M)
 
 static void pre_alloc_wk_func(struct work_struct *work);
 
@@ -114,7 +114,11 @@ void ion_register_dma_camera_cma(void *p)
 {
 	struct cma *cma = (struct cma *)p;
 	if (cma
+<<<<<<< HEAD
 	    && cma_get_size(cma) >= DMA_CAMERA_WATER_MARK) {
+=======
+	    && cma_get_size(cma) > DMA_CAMERA_WATER_MARK){
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		ion_dma_camera_cma = cma;
 		pr_info("register_dma_camera_cma is ok\n");
 	} else {

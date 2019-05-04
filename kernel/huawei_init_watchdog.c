@@ -94,7 +94,6 @@ static int check_key_process(void){
 
 static void init_watchdog_check(void)
 {
-	struct task_struct *p = NULL;
     if (!init_watchdog_enable || !init_watchdog_firstkick) {
         pr_info("InitWatchdog: init_watchdog is not enabled!\n");
         goto no_block;
@@ -103,7 +102,7 @@ static void init_watchdog_check(void)
         init_watchdog_status = 0;
         goto no_block;
     }
-    p = pid_task(find_vpid(1), PIDTYPE_PID);
+    struct task_struct *p = pid_task(find_vpid(1), PIDTYPE_PID);
     if (NULL == p) {
         pr_err("InitWatchdog: can not find pid 1!");
         return;

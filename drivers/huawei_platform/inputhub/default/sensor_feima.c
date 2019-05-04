@@ -20,12 +20,15 @@
 
 #define MIN_CAP_PROX_MODE 0
 #define MAZ_CAP_PROX_MODE 2
+<<<<<<< HEAD
 #define ALS_UNDER_TP_RAWDATA_LEN 4
 #define ALS_UNDER_TP_RGB_DATA_LEN 16
 #define ELE_PHONE_TYPE	47
 #define HALF_LENGTH	45
 #define MAX_ALS_UD_CMD_BUF_ARGC (2)
 #define ALS_UNDER_TP_RGB_DATA 4
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 struct class *sensors_class;
 int sleeve_test_enabled = 0;
@@ -39,8 +42,11 @@ static als_ud_cmd_map_t als_ud_cmd_map[] = {
 static bool rpc_motion_request;
 static time_t get_data_last_time;
 static unsigned long sar_service_info = 0;
+<<<<<<< HEAD
 static int als_under_tp_cal_rawdata[ALS_UNDER_TP_RAWDATA_LEN] = {0};
 static int als_under_tp_rgb_data[ALS_UNDER_TP_RGB_DATA_LEN] = {0};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 extern u8 phone_color;
 extern struct sleeve_detect_pare sleeve_detect_paremeter[MAX_PHONE_COLOR_NUM];
 extern volatile int vibrator_shake;
@@ -52,7 +58,6 @@ extern TMD3725_ALS_PARA_TABLE tmd3725_als_para_diff_tp_color_table[];
 extern LTR582_ALS_PARA_TABLE ltr582_als_para_diff_tp_color_table[];
 extern APDS9999_ALS_PARA_TABLE apds9999_als_para_diff_tp_color_table[];
 extern TMD3702_ALS_PARA_TABLE tmd3702_als_para_diff_tp_color_table[];
-extern TCS3701_ALS_PARA_TABLE tcs3701_als_para_diff_tp_color_table[];
 extern VCNL36658_ALS_PARA_TABLE vcnl36658_als_para_diff_tp_color_table[];
 static RET_TYPE airpress_calibration_res = RET_INIT;	/*airpress  calibrate result*/
 extern int rohm_rgb_flag;
@@ -64,7 +69,6 @@ extern int als_para_table;
 extern int apds9999_rgb_flag;
 extern int  ams_tmd3702_rgb_flag;
 extern int  apds9253_rgb_flag;
-extern int ams_tcs3701_rgb_flag;
 extern int vishay_vcnl36658_als_flag;
 extern uint8_t gyro_position;
 extern struct als_platform_data als_data;
@@ -88,7 +92,6 @@ extern int mag_threshold_for_als_calibrate;
 extern int ps_support_abs_threshold;
 extern struct airpress_touch_calibrate_data pressure_touch_calibrate_data;
 extern struct airpress_platform_data airpress_data;
-extern struct als_under_tp_calidata als_under_tp_cal_data;
 extern int hall_sen_type;
 extern void create_debug_files(void);
 extern bool str_fuzzy_match(const char *cmd_buf, const char *target);
@@ -101,9 +104,12 @@ extern struct semaphore sem_als_ud_rgbl_block;
 
 extern uint8_t sem_als_ud_rgbl_block_flag;
 
+<<<<<<< HEAD
 static bool camera_set_rpc_flag = false;
 static DECLARE_WAIT_QUEUE_HEAD(sensorhub_als_block_waitq);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int rpc_commu(unsigned int cmd, unsigned int pare, uint16_t motion)
 {
 	int ret = -1;
@@ -219,6 +225,7 @@ static int rpc_status_change(void)
 	}
 	return ret;
 }
+<<<<<<< HEAD
 
 /*
 *add for Txx front&wide camera radio frequency interference
@@ -252,6 +259,8 @@ int rpc_status_change_for_camera(unsigned int status)
 
 EXPORT_SYMBOL_GPL(rpc_status_change_for_camera);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static ssize_t store_rpc_motion_req(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
 {
 	unsigned long value = 0;
@@ -282,10 +291,13 @@ static ssize_t store_rpc_sar_service_req(struct device *dev, struct device_attri
 		return size;
 	}
 	hwlog_info("%s: rpc sar service request val (%lu), buf is %s.\n", __FUNCTION__, sar_service, buf);
+<<<<<<< HEAD
 	if (camera_set_rpc_flag) {
 		sar_service = sar_service | 0x400;//camera set bit10
 		hwlog_info("%s: camera_set_rpc_flag, rpc sar service val (%lu).\n", __FUNCTION__, sar_service);
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	sar_service_info = sar_service;
 	rpc_status_change();
 	return size;
@@ -493,6 +505,7 @@ static ssize_t show_get_sensor_id(struct device *dev,
 {
 	struct sensor_cookie *data = (struct sensor_cookie *)dev_get_drvdata(dev);
 	CHECK_SENSOR_COOKIE(data);
+<<<<<<< HEAD
 	hwlog_info("feima %s tag=%d\n", __func__, data->tag);
 	return show_get_sensors_id(data->tag, dev, attr, buf);
 }
@@ -503,6 +516,9 @@ static ssize_t show_calibrate(struct device *dev,
 	struct sensor_cookie *data = (struct sensor_cookie *)dev_get_drvdata(dev);
 	CHECK_SENSOR_COOKIE(data);
 	hwlog_info("feima %s tag=%d\n", __func__, data->tag);
+=======
+	hwlog_info( "feima show_calibrate tag=%d\n",data->tag);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	return sensors_calibrate_show(data->tag, dev, attr, buf);
 }
@@ -574,15 +590,6 @@ static ssize_t show_als_debug_data(struct device *dev, struct device_attribute *
 		als_debug_para[6] = tmd3702_als_para_diff_tp_color_table[als_para_table].tmd3702_para[5];//g_coef
 		als_debug_para[7] = tmd3702_als_para_diff_tp_color_table[als_para_table].tmd3702_para[6];//b_coef
 		hwlog_info("%s:ams_tmd3702_rgb_flag is true and als_para_table=%d.\n", __FUNCTION__,als_para_table);
-	}else if (ams_tcs3701_rgb_flag == 1) { //tmd3702_para
-		als_debug_para[1] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[0];//atime
-		als_debug_para[2] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[1];//again
-		als_debug_para[3] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[2];//dgf
-		als_debug_para[4] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[3];//c_coef
-		als_debug_para[5] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[4];//r_coef
-		als_debug_para[6] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[5];//g_coef
-		als_debug_para[7] = tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[6];//b_coef
-		hwlog_info("%s:ams_tcs3701_rgb_flag is true and als_para_table=%d.\n", __FUNCTION__,als_para_table);
 	} else if (vishay_vcnl36658_als_flag ==1){
 		als_debug_para[1] = vcnl36658_als_para_diff_tp_color_table[als_para_table].vcnl36658_para[0];
 		als_debug_para[2] = vcnl36658_als_para_diff_tp_color_table[als_para_table].vcnl36658_para[1];
@@ -683,17 +690,6 @@ static ssize_t store_als_debug_data(struct device *dev, struct device_attribute 
 		hwlog_info("%s:tmd3725_rgb_flag is true and als_para_table=%d.\n", __FUNCTION__,als_para_table);
 		memcpy(als_data.als_extend_data, tmd3702_als_para_diff_tp_color_table[als_para_table].tmd3702_para,
 			sizeof(tmd3702_als_para_diff_tp_color_table[als_para_table].tmd3702_para)>SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE?SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE:sizeof(tmd3725_als_para_diff_tp_color_table[als_para_table].tmd3725_para));
-	}else if (ams_tcs3701_rgb_flag == 1) {//tcs3701
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[0]= als_debug_para[1];//atime
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[1]= als_debug_para[2];//again
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[2]= als_debug_para[3];//dgf
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[3]= als_debug_para[4];//c_coef
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[4]= als_debug_para[5];//r_coef
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[5]= als_debug_para[6];//g_coef
-		tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para[6]= als_debug_para[7];//b_coef
-		hwlog_info("%s:tcs3701_rgb_flag is true and als_para_table=%d.\n", __FUNCTION__,als_para_table);
-		memcpy(als_data.als_extend_data, tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para,
-			sizeof(tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para)>SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE?SENSOR_PLATFORM_EXTEND_ALS_DATA_SIZE:sizeof(tcs3701_als_para_diff_tp_color_table[als_para_table].tcs3701_para));
 	}else if (vishay_vcnl36658_als_flag ==1 ){
 		vcnl36658_als_para_diff_tp_color_table[als_para_table].vcnl36658_para[0]= als_debug_para[1];
 		vcnl36658_als_para_diff_tp_color_table[als_para_table].vcnl36658_para[1]= als_debug_para[2];
@@ -1527,6 +1523,7 @@ static ssize_t attr_airpress_set_tp_info_store(struct device *dev, struct device
 
 static DEVICE_ATTR(airpress_set_tp_info, 0220, NULL, attr_airpress_set_tp_info_store);
 
+<<<<<<< HEAD
 static ssize_t attr_als_calibrate_under_tp_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	write_info_t pkg_ap;
@@ -1856,6 +1853,8 @@ static ssize_t attr_ps_calibrate_after_sale_show(
 static DEVICE_ATTR(ps_calibrate_after_sale, 0440,
 	attr_ps_calibrate_after_sale_show, NULL);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static ssize_t attr_cap_prox_data_mode_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	unsigned long val = 0;
@@ -2051,12 +2050,15 @@ static struct attribute *als_sensor_attrs[] = {
 	&dev_attr_als_sensorlist_info.attr,
 	&dev_attr_calibrate_threshold_from_mag.attr,
 	&dev_attr_als_offset_data.attr,
+<<<<<<< HEAD
 	&dev_attr_als_calibrate_under_tp.attr,
 	&dev_attr_set_als_under_tp_calidata.attr,
 	&dev_attr_als_rgb_data_under_tp.attr,
 	&dev_attr_als_ud_rgbl.attr,
 	&dev_attr_als_ud_rgbl_block.attr,
 	&dev_attr_als_calibrate_after_sale.attr,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	NULL,
 };
 

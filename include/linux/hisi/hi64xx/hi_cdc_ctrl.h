@@ -1,4 +1,3 @@
-
 /*
  * hi_cdc_ctrl.h -- hisilicon codec controller
  *
@@ -31,6 +30,7 @@ enum bustype_select {
 	BUSTYPE_SELECT_SSI = 2,
 };
 
+<<<<<<< HEAD
 enum {
 	HI64XX_CODEC_TYPE_6402,
 	HI64XX_CODEC_TYPE_6403,
@@ -40,6 +40,8 @@ enum {
 	HI64XX_CODEC_TYPE_BUTT,
 };
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 struct hi_cdc_ctrl {
 	/* device of codec controller */
 	struct device *dev;

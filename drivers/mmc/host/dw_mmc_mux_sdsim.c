@@ -60,6 +60,7 @@ GPIO164              GPIO               SD_DATA2       -
 GPIO165              GPIO               SD_DATA3       -
 */
 
+<<<<<<< HEAD
 
 int GPIO_current_number_for_SD_CLK   = GPIO_DEFAULT_NUMBER_FOR_SD_CLK;
 int GPIO_current_number_for_SD_CMD   = GPIO_DEFAULT_NUMBER_FOR_SD_CMD;
@@ -67,6 +68,15 @@ int GPIO_current_number_for_SD_DATA0 = GPIO_DEFAULT_NUMBER_FOR_SD_DATA0;
 int GPIO_current_number_for_SD_DATA1 = GPIO_DEFAULT_NUMBER_FOR_SD_DATA1;
 int GPIO_current_number_for_SD_DATA2 = GPIO_DEFAULT_NUMBER_FOR_SD_DATA2;
 int GPIO_current_number_for_SD_DATA3 = GPIO_DEFAULT_NUMBER_FOR_SD_DATA3;
+=======
+#define GPIO_160 160
+#define GPIO_161 161
+#define GPIO_162 162
+#define GPIO_163 163
+#define GPIO_164 164
+#define GPIO_165 165
+#define GPIO_171 171
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 
 
@@ -425,18 +435,8 @@ static void vdd_vcc_disable(struct dw_mci *host)
 	if (!(host->vmmc))
 		return;
 
-	if (!(host->vmmcmosen))
-	{
-		ret = regulator_disable(host->vmmc);
-		printk("%s %s vmmc regulator disable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-	}
-
-	if (!(host->vmmcmosen))
-		return;
-
-	ret = regulator_disable(host->vmmcmosen);
-	printk("%s %s vmmcmosen regulator disable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-
+	ret = regulator_disable(host->vmmc);
+	printk("%s %s vmmc regulator disable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
 }
 
 int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int need_sleep)
@@ -537,11 +537,27 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 		if(dw_mci_check_himntn(HIMNTN_SD2JTAG) || dw_mci_check_himntn(HIMNTN_SD2DJTAG))
 		{
+<<<<<<< HEAD
 			switch_gpio_change(SWITCH_GPIO_SD_SIDE);
 		}
 		else
 		{
 			switch_gpio_change(SWITCH_GPIO_SIM_SIDE);
+=======
+			/*SD2JTAG enable, set GPIO171 HIGH*/
+			(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+			gpio_direction_output(GPIO_171,1);
+			gpio_set_value(GPIO_171, 1);
+			gpio_free(GPIO_171);
+		}
+		else
+		{
+			/*resume to SIM mode for NFC*/
+			(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+			gpio_direction_output(GPIO_171,0);
+			gpio_set_value(GPIO_171, 0);
+			gpio_free(GPIO_171);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 
 		up(&sem_mux_sdsim_detect);
@@ -596,30 +612,10 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 					ret = regulator_set_voltage(host->vmmc, 1800000, 1800000);
 					printk("%s %s vmmc set 1.8v ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-
-					if(!host->vmmcmosen)
-					{
-						ret = regulator_enable(host->vmmc);
-						printk("%s %s vmmc enable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-					}
+					ret = regulator_enable(host->vmmc);
+					printk("%s %s vmmc enable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
 					usleep_range(1000, 1500);
 				}
-
-
-				if (host->vmmcmosen) {
-					/*temp value for work around after modem set raw register here,but ap can't set same value again*/
-					ret = regulator_set_voltage(host->vmmcmosen, 2950000, 2950000);
-					printk("%s %s vmmcmosen set 2.95v ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-
-					ret = regulator_set_voltage(host->vmmcmosen, 3000000, 3000000);
-					printk("%s %s vmmcmosen set 3.00v ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-
-					ret = regulator_enable(host->vmmcmosen);
-					printk("%s %s vmmcmosen enable ret=%d\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-					usleep_range(1000, 1500);
-				}
-
-
 			}
 			else
 			{
@@ -628,13 +624,25 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 			config_sdsim_gpio_mode(SDSIM_MODE_GPIO_DETECT);
 
+<<<<<<< HEAD
 			switch_gpio_change(SWITCH_GPIO_SD_SIDE);
+=======
+			(void)gpio_request(GPIO_161, "sd_cmd_and_sim1_vpp");
+			(void)gpio_request(GPIO_162, "sd_data0_and_sim1_rst");
+			(void)gpio_request(GPIO_164, "sd_data2");
+			(void)gpio_request(GPIO_165, "sd_data3");
+			(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+
+			gpio_direction_output(GPIO_171,1);
+			gpio_set_value(GPIO_171, 1);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 			(void)gpio_request(GPIO_current_number_for_SD_CMD, "sd_cmd_and_sim1_vpp");
 			(void)gpio_request(GPIO_current_number_for_SD_DATA0, "sd_data0_and_sim1_rst");
 			(void)gpio_request(GPIO_current_number_for_SD_DATA2, "sd_data2");
 			(void)gpio_request(GPIO_current_number_for_SD_DATA3, "sd_data3");
 
+<<<<<<< HEAD
 			(void)gpio_direction_input(GPIO_current_number_for_SD_CMD);
 			(void)gpio_direction_input(GPIO_current_number_for_SD_DATA0);
 			(void)gpio_direction_input(GPIO_current_number_for_SD_DATA2);
@@ -644,6 +652,13 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 			gpio_free(GPIO_current_number_for_SD_DATA0);
 			gpio_free(GPIO_current_number_for_SD_DATA2);
 			gpio_free(GPIO_current_number_for_SD_DATA3);
+=======
+			gpio_free(GPIO_161);
+			gpio_free(GPIO_162);
+			gpio_free(GPIO_164);
+			gpio_free(GPIO_165);
+			gpio_free(GPIO_171);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 			usleep_range(1000, 1500);
 
@@ -702,7 +717,15 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 			if(0 == cmd1_result)
 			{
+<<<<<<< HEAD
 				switch_gpio_change(SWITCH_GPIO_SD_SIDE);
+=======
+				(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+				gpio_direction_output(GPIO_171,1);
+				gpio_set_value(GPIO_171, 1);
+				gpio_free(GPIO_171);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 				sd_sim_detect_status_current = SD_SIM_DETECT_STATUS_SD;
 
 				printk("%s %s SD is inserted and detected now(CMD1 success),go with SD.\n",MUX_SDSIM_LOG_TAG,__func__);
@@ -721,7 +744,15 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 #ifdef SDSIM_MUX_DETECT_SOLUTION_CMD1_ONLY
 			else
 			{
+<<<<<<< HEAD
 				switch_gpio_change(SWITCH_GPIO_SIM_SIDE);
+=======
+				(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+				gpio_direction_output(GPIO_171,0);
+				gpio_set_value(GPIO_171, 0);
+				gpio_free(GPIO_171);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 				config_sdsim_gpio_mode(SDSIM_MODE_SIM_NORMAL);
 
 				sd_sim_detect_status_current = SD_SIM_DETECT_STATUS_SIM;
@@ -753,7 +784,16 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 					if(SD_SIM_DETECT_STATUS_SIM == g_array[i].actual_card_type)
 					{
+<<<<<<< HEAD
 						switch_gpio_change(SWITCH_GPIO_SIM_SIDE);
+=======
+						(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+						gpio_direction_output(GPIO_171,0);
+						gpio_set_value(GPIO_171, 0);
+						gpio_free(GPIO_171);
+
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 						config_sdsim_gpio_mode(SDSIM_MODE_SIM_NORMAL);
 
 						sd_sim_detect_status_current = SD_SIM_DETECT_STATUS_SIM;
@@ -774,7 +814,16 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 					}
 					else if(SD_SIM_DETECT_STATUS_SD == g_array[i].actual_card_type)
 					{
+<<<<<<< HEAD
 						switch_gpio_change(SWITCH_GPIO_SD_SIDE);
+=======
+
+						(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+						gpio_direction_output(GPIO_171,1);
+						gpio_set_value(GPIO_171, 1);
+						gpio_free(GPIO_171);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 						sd_sim_detect_status_current = SD_SIM_DETECT_STATUS_SD;
 
 						printk("%s %s SD is inserted and detected now(4-PIN status success),go with SD.\n",MUX_SDSIM_LOG_TAG,__func__);
@@ -797,6 +846,10 @@ int sd_sim_detect_run(void *dw_mci_host, int status, int current_module, int nee
 
 			if (i >= (int)(sizeof(g_array)/sizeof(detect_gpio_status_array_s)))
 			{
+				(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+				gpio_direction_output(GPIO_171,0);
+				gpio_set_value(GPIO_171, 0);
+				gpio_free(GPIO_171);
 
 				printk("%s %s SD_SIM_DETECT_STATUS_ERROR detected,but just go with SIM.\n", MUX_SDSIM_LOG_TAG, __func__);
 				switch_gpio_change(SWITCH_GPIO_SIM_SIDE);
@@ -963,6 +1016,10 @@ void notify_sim_while_sd_fail(struct mmc_host *mmc)
 
 	if(SD_SIM_DETECT_STATUS_SD == sd_sim_detect_status_current)
 	{
+		(void)gpio_request(GPIO_171, "sd_cmd_and_sim1_vpp_switch_gpio");
+		gpio_direction_output(GPIO_171,0);
+		gpio_set_value(GPIO_171, 0);
+		gpio_free(GPIO_171);
 
 		printk("%s %s SD card init fail now,retry go with SIM.\n",MUX_SDSIM_LOG_TAG,__func__);
 

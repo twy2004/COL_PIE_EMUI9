@@ -6583,14 +6583,13 @@ schedtune_margin(unsigned long signal, long boost)
 	if (boost >= 0) {
 		margin  = SCHED_CAPACITY_SCALE - signal;
 		margin *= boost;
-	} else {
+	} else
 		margin = -signal * boost;
-	}
 
 	margin  = reciprocal_divide(margin, schedtune_spc_rdiv);
+
 	if (boost < 0)
 		margin *= -1;
-
 	return margin;
 }
 
@@ -8064,28 +8063,18 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 			delta = task_util(p);
 #endif
 
+		/* Not enough spare capacity on previous cpu */
 #ifdef CONFIG_HISI_EAS_SCHED
-		/* Avoid prev_cpu if it is overutilized or high irqload */
 		if (__cpu_overutilized(prev_cpu, delta) ||
 		    walt_cpu_high_irqload(prev_cpu)) {
-			/* Compare next_cpu and bakcup_cpu */
-			eenv.cpu[EAS_CPU_PRV].cpu_id = next_cpu;
-			select_energy_cpu_idx(&eenv);
-
-			schedstat_inc(p->se.statistics.nr_wakeups_secb_insuff_cap);
-			schedstat_inc(this_rq()->eas_stats.secb_insuff_cap);
-			target_cpu = eenv.cpu[eenv.next_idx].cpu_id;
-			goto unlock;
-		}
 #else
-		/* Not enough spare capacity on previous cpu */
 		if (__cpu_overutilized(prev_cpu, delta)) {
+#endif
 			schedstat_inc(p->se.statistics.nr_wakeups_secb_insuff_cap);
 			schedstat_inc(this_rq()->eas_stats.secb_insuff_cap);
 			target_cpu = next_cpu;
 			goto unlock;
 		}
-#endif
 
 		/* Check if EAS_CPU_NXT is a more energy efficient CPU */
 		if (select_energy_cpu_idx(&eenv) != EAS_CPU_PRV) {
@@ -10602,6 +10591,7 @@ static int need_active_balance(struct lb_env *env)
 			return 1;
 	}
 
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_EAS_SCHED
 #ifdef CONFIG_SCHED_HISI_USE_WALT
 	if ((env->idle == CPU_IDLE) &&
@@ -10613,6 +10603,8 @@ static int need_active_balance(struct lb_env *env)
 	    env->src_rq->misfit_task)
 		return 1;
 #else
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if ((capacity_of(env->src_cpu) < capacity_of(env->dst_cpu)) &&
 	    ((capacity_orig_of(env->src_cpu) < capacity_orig_of(env->dst_cpu))) &&
 				env->src_rq->cfs.h_nr_running == 1 &&
@@ -10620,7 +10612,6 @@ static int need_active_balance(struct lb_env *env)
 				!cpu_overutilized(env->dst_cpu)) {
 			return 1;
 	}
-#endif
 
 	return unlikely(sd->nr_balance_failed > sd->cache_nice_tries+2);
 }

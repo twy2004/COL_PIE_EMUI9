@@ -1,50 +1,4 @@
-/*
- * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
- * foss@huawei.com
- *
- * If distributed as part of the Linux kernel, the following license terms
- * apply:
- *
- * * This program is free software; you can redistribute it and/or modify
- * * it under the terms of the GNU General Public License version 2 and
- * * only version 2 as published by the Free Software Foundation.
- * *
- * * This program is distributed in the hope that it will be useful,
- * * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * * GNU General Public License for more details.
- * *
- * * You should have received a copy of the GNU General Public License
- * * along with this program; if not, write to the Free Software
- * * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA
- *
- * Otherwise, the following license terms apply:
- *
- * * Redistribution and use in source and binary forms, with or without
- * * modification, are permitted provided that the following conditions
- * * are met:
- * * 1) Redistributions of source code must retain the above copyright
- * *    notice, this list of conditions and the following disclaimer.
- * * 2) Redistributions in binary form must reproduce the above copyright
- * *    notice, this list of conditions and the following disclaimer in the
- * *    documentation and/or other materials provided with the distribution.
- * * 3) Neither the name of Huawei nor the names of its contributors may
- * *    be used to endorse or promote products derived from this software
- * *    without specific prior written permission.
- *
- * * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- */
+
 
 #ifndef __APPRRCINTERFACE_H__
 #define __APPRRCINTERFACE_H__
@@ -77,7 +31,11 @@ extern "C" {
 #define RRC_APP_CELL_MAX_COUNT           (32)
 #define RRC_APP_MAX_NUM_OF_MCC           (3)
 
+<<<<<<< HEAD
 
+=======
+/* gaojishan */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*typedef DT_CMD_ENUM_UINT8 APP_CMD_ENUM_UINT8;*/
 /*typedef DT_RESULT_ENUM_UINT32 APP_RESULT_ENUM_UINT32;*/
 
@@ -120,7 +78,6 @@ extern "C" {
 /* 受限列表中保存最大的条目数 */
 #define RRC_APP_MAX_LIMITED_ITEM_COUNT         (32)
 /* add for AT&T LRRC DAM end */
-/* 新增测量消息中上报小区最大个数*/
 #define LRRC_LCSEL_INTRA_CELL_REPORT_NUM 4
 #define LRRC_LCSEL_INTER_CELL_REPORT_NUM 4
 #define LRRC_LCSEL_UTRAN_CELL_REPORT_NUM 4
@@ -132,7 +89,10 @@ extern "C" {
 #define LRRC_UTRAN_CELL_MAX_NUM 16
 #define LRRC_GERAN_CELL_MAX_NUM 16
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define LRRC_ECELL_QRY_CELL_REPORT_NUM 9
 #define LRRC_ECELL_QRY_NBRCELL_NUM 8
 #define LRRC_ECELL_QRY_SELL_REPORT_NUM 4
@@ -145,11 +105,16 @@ extern "C" {
 
 #define LRRC_GURRC_GERAN_ARFCN_MAX_NUM                      32
 
+<<<<<<< HEAD
 
 /* 存放BAND信息最大的数组 */
 #define LRRC_APP_MAX_BAND_IND_ARRAY_NUM                     (8)
 
 
+=======
+/* 存放BAND信息最大的数组 */
+#define LRRC_APP_MAX_BAND_IND_ARRAY_NUM                     (8)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define LRRC_APP_LWCLASH_MAX_SCELL_NUM                      (4)
 
@@ -176,13 +141,18 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_RRC_PTL_STATE_QUERY_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x06),   /* _H2ASN_MsgChoice APP_RRC_PTL_STATE_QUERY_REQ_STRU */
     ID_APP_RRC_CELL_INFO_QUERY_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x07),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_LWCLASH_REQ              = (PS_MSG_ID_APP_TO_RRC_BASE + 0x08),   /* _H2ASN_MsgChoice APP_RRC_PTL_LWCLASH_REQ_STRU */
+<<<<<<< HEAD
 
+=======
+    /* niuxiufan DT begin */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_RRC_SERVING_CELL_INFO_QUERY_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x09),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_CSEL_INFO_QUERY_REQ           = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0a),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_UE_CAP_INFO_QUERY_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0b),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_AC_BARRING_INFO_QUERY_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0c),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
     ID_APP_RRC_DRX_INFO_QUERY_REQ            = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0d),   /* _H2ASN_MsgChoice APP_RRC_CELL_INFO_QUERY_REQ_STRU */
 
+<<<<<<< HEAD
     
     ID_APP_RRC_NMR_REQ                  = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0e),   /* _H2ASN_MsgChoice APP_RRC_NMR_REQ_STRU */
     ID_APP_RRC_CELLID_REQ               = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0f),   /* _H2ASN_MsgChoice APP_RRC_CELLID_REQ_STRU */
@@ -191,10 +161,21 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_LRRC_RESEL_OFFSET_CFG_NTF         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x10),   /* _H2ASN_MsgChoice APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU  */
     ID_APP_LRRC_CON_TO_IDLE_NTF          = (PS_MSG_ID_APP_TO_RRC_BASE + 0x11),   /* _H2ASN_MsgChoice APP_LRRC_CON_TO_IDLE_NTF_STRU  */
     
+=======
+    /* niuxiufan DT end */
+    ID_APP_RRC_NMR_REQ                  = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0e),   /* _H2ASN_MsgChoice APP_RRC_NMR_REQ_STRU */
+    ID_APP_RRC_CELLID_REQ               = (PS_MSG_ID_APP_TO_RRC_BASE + 0x0f),   /* _H2ASN_MsgChoice APP_RRC_CELLID_REQ_STRU */
+
+    /* gaojishan-dcom-resel-cfg */
+    ID_APP_LRRC_RESEL_OFFSET_CFG_NTF         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x10),   /* _H2ASN_MsgChoice APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU  */
+    ID_APP_LRRC_CON_TO_IDLE_NTF          = (PS_MSG_ID_APP_TO_RRC_BASE + 0x11),   /* _H2ASN_MsgChoice APP_LRRC_CON_TO_IDLE_NTF_STRU  */
+    /* gaojishan-fast-dorm-cfg */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_LRRC_FAST_DORM_CFG_NTF          = (PS_MSG_ID_APP_TO_RRC_BASE + 0x12),   /* _H2ASN_MsgChoice APP_LRRC_FAST_DORM_CFG_NTF_STRU  */
 	
     ID_APP_LRRC_GET_NCELL_INFO_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x13),   /* _H2ASN_MsgChoice APP_LRRC_GET_NCELL_INFO_REQ_STRU  */
 
+<<<<<<< HEAD
     ID_APP_LRRC_INQ_TCFG_TXPOWER_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x14),   /* _H2ASN_MsgChoice APP_RRC_INQ_TCFG_TXPOWER_REQ_STRU */
 
 
@@ -202,6 +183,13 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_RRC_BARCELL_ACCESS_REQ        = (PS_MSG_ID_APP_TO_RRC_BASE + 0x16),/*_H2ASN_MsgChoice APP_RRC_BARCELL_ACCESS_REQ_STRU*/
 
 
+=======
+    /* yangfan Prob Begin */
+    ID_APP_LRRC_INQ_TCFG_TXPOWER_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x14),   /* _H2ASN_MsgChoice APP_RRC_INQ_TCFG_TXPOWER_REQ_STRU */
+    /* yangfan Prob End */
+    ID_APP_RRC_FORCE_HOANDCSEL_REQ        = (PS_MSG_ID_APP_TO_RRC_BASE + 0x15),/*_H2ASN_MsgChoice APP_RRC_FORCE_HOANDCSEL_REQ_STRU*/
+    ID_APP_RRC_BARCELL_ACCESS_REQ        = (PS_MSG_ID_APP_TO_RRC_BASE + 0x16),/*_H2ASN_MsgChoice APP_RRC_BARCELL_ACCESS_REQ_STRU*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_LRRC_SET_UE_REL_VERSION_REQ      = (PS_MSG_ID_APP_TO_RRC_BASE + 0x17), /* _H2ASN_MsgChoice APP_LRRC_SET_UE_REL_VERSION_REQ_STRU  */
 
     /* begin:add for 路测融合 */
@@ -209,6 +197,7 @@ enum APP_RRC_MSG_ID_ENUM
     ID_DT_LRRC_SYNC_REPORT_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x19),
     /* end:add for 路测融合 */
 
+<<<<<<< HEAD
 
     ID_APP_LRRC_GET_UE_CAP_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1a),   /* _H2ASN_MsgChoice APP_LRRC_GET_UE_CAP_INFO_REQ_STRU */
 
@@ -221,6 +210,14 @@ enum APP_RRC_MSG_ID_ENUM
     ID_APP_RRC_QUERY_ECELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1c),  /* _H2ASN_MsgChoice APP_RRC_QUERY_ECELL_INFO_REQ_STRU */
     ID_APP_RRC_QUERY_SCELL_INFO_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1d),   /* _H2ASN_MsgChoice APP_RRC_QUERY_SCELL_INFO_REQ_STRU */
 
+=======
+    ID_APP_LRRC_GET_UE_CAP_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1a),   /* _H2ASN_MsgChoice APP_LRRC_GET_UE_CAP_INFO_REQ_STRU */
+
+    ID_APP_RRC_SCELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1b),   /* _H2ASN_MsgChoice APP_RRC_SCELL_INFO_REQ_STRU */
+
+    ID_APP_RRC_QUERY_ECELL_INFO_REQ    = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1c),  /* _H2ASN_MsgChoice APP_RRC_QUERY_ECELL_INFO_REQ_STRU */
+    ID_APP_RRC_QUERY_SCELL_INFO_REQ   = (PS_MSG_ID_APP_TO_RRC_BASE + 0x1d),   /* _H2ASN_MsgChoice APP_RRC_QUERY_SCELL_INFO_REQ_STRU */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     ID_APP_LRRC_SET_TLPS_PRINT2LAYER_REQ    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x18),
 
@@ -257,7 +254,11 @@ enum APP_RRC_MSG_ID_ENUM
     ID_RRC_APP_GERAN_CSEL_INFO_IND        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1a),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_DRX_INFO_QUERY_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1b),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
     ID_RRC_APP_DRX_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1c),   /* _H2ASN_MsgChoice RRC_APP_CELL_INFO_QUERY_CNF_STRU */
+<<<<<<< HEAD
 
+=======
+    /*niuxiufan DT end */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_RRC_APP_NMR_CNF                    = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1d),   /* _H2ASN_MsgChoice RRC_APP_NMR_CNF_STRU */
     ID_RRC_APP_CELLID_CNF                 = (PS_MSG_ID_RRC_TO_APP_BASE + 0x1e),   /* _H2ASN_MsgChoice RRC_APP_CELLID_CNF_STRU */
 
@@ -265,10 +266,16 @@ enum APP_RRC_MSG_ID_ENUM
 
 
     ID_LRRC_APP_SET_UE_REL_VERSION_CNF      = (PS_MSG_ID_RRC_TO_APP_BASE + 0x40),/* _H2ASN_MsgChoice LRRC_APP_SET_UE_REL_VERSION_CNF_STRU  */
+<<<<<<< HEAD
 
     ID_APP_RRC_FORCE_HOANDCSEL_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x41),/* _H2ASN_MsgChoice RRC_APP_FORCE_HOANDCSEL_CNF_STRU */
     ID_APP_RRC_BARCELL_ACCESS_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x42),/* _H2ASN_MsgChoice RRC_APP_BARCELL_ACCESS_CNF_STRU */
    
+=======
+    ID_APP_RRC_FORCE_HOANDCSEL_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x41),/* _H2ASN_MsgChoice RRC_APP_FORCE_HOANDCSEL_CNF_STRU */
+    ID_APP_RRC_BARCELL_ACCESS_CNF        = (PS_MSG_ID_RRC_TO_APP_BASE + 0x42),/* _H2ASN_MsgChoice RRC_APP_BARCELL_ACCESS_CNF_STRU */
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_LRRC_APP_SET_TLPS_PRINT2LAYER_CNF = (PS_MSG_ID_RRC_TO_APP_BASE + 0x47),
 
    
@@ -279,6 +286,7 @@ enum APP_RRC_MSG_ID_ENUM
     ID_LRRC_DT_OUT_OF_SYNC_INFO_IND = (0x90f),                 /* 根据对外接口，路测测量Ind消息id为0x90f，等于id_lrrc_lphy_out_of_sync_info_ind */
    
 
+<<<<<<< HEAD
     ID_RRC_APP_SERVING_CELL_CA_INFO_IND   = (PS_MSG_ID_RRC_TO_DT_BASE + 0x12),
     ID_LRRC_APP_GET_UE_CAP_INFO_CNF       = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4a), /* _H2ASN_MsgChoice LRRC_APP_GET_UE_CAP_INFO_CNF_STRU */
     ID_LRRC_APP_FGI_INFO_IND              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4b), /* _H2ASN_MsgChoice LRRC_APP_FGI_INFO_IND_STRU */
@@ -288,12 +296,22 @@ enum APP_RRC_MSG_ID_ENUM
 
 
 
+=======
+    ID_RRC_APP_SERVING_CELL_CA_INFO_IND          = (PS_MSG_ID_RRC_TO_DT_BASE + 0x12),
+
+    ID_LRRC_APP_GET_UE_CAP_INFO_CNF       = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4a), /* _H2ASN_MsgChoice LRRC_APP_GET_UE_CAP_INFO_CNF_STRU */
+
+    ID_LRRC_APP_FGI_INFO_IND              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4b), /* _H2ASN_MsgChoice LRRC_APP_FGI_INFO_IND_STRU */
+    ID_RRC_APP_DBG_SYSINFO_IND           = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4c),  /* _H2ASN_MsgChoice  LRRC_APP_DBG_SYSINFO_IND_STRU */
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_RRC_DEBUG_STUB_SET_3HOUR_REQ       = (PS_MSG_ID_APP_TO_RRC_BASE + 0x20),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_SET_3HOUR_REQ_STRU */
     ID_APP_RRC_DEBUG_STUB_HO_FAIL_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x21),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_HO_FAIL_REQ_STRU */
     ID_APP_RRC_DEBUG_STUB_REL_ALL_REQ         = (PS_MSG_ID_APP_TO_RRC_BASE + 0x22),   /* _H2ASN_MsgChoice APP_RRC_DEBUG_STUB_REL_ALL_REQ_STRU */
 
     ID_RRC_APP_DEBUG_STUB_CMD_CNF             = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4d),   /* _H2ASN_MsgChoice RRC_APP_DEBUG_STUB_CMD_CNF_STRU */
 
+<<<<<<< HEAD
 
 
     ID_RRC_APP_SCELL_INFO_CNF              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4e), /* _H2ASN_MsgChoice RRC_APP_SCELL_INFO_CNF_STRU */
@@ -313,6 +331,18 @@ enum APP_RRC_MSG_ID_ENUM
 
     ID_APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x23),
 
+=======
+    ID_RRC_APP_SCELL_INFO_CNF              = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4e), /* _H2ASN_MsgChoice RRC_APP_SCELL_INFO_CNF_STRU */
+
+    ID_RRC_CLOUD_CA_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x4f),
+
+    ID_RRC_APP_QUERY_ECELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x51), /* _H2ASN_MsgChoice RRC_APP_QUERY_ECELL_INFO_CNF_STRU */
+    ID_RRC_APP_QUERY_SCELL_INFO_CNF         = (PS_MSG_ID_RRC_TO_APP_BASE + 0x52), /* _H2ASN_MsgChoice RRC_APP_QUERY_SCELL_INFO_CNF_STRU */
+
+    ID_RRC_PLMN_FEATURE_INFO_IND               = (PS_MSG_ID_RRC_TO_APP_BASE + 0x53),
+
+    ID_APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ     = (PS_MSG_ID_APP_TO_RRC_BASE + 0x23),
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_RRC_MSG_ID_BUTT
 };
 typedef VOS_UINT32    APP_RRC_MSG_ID_ENUM_UINT32;
@@ -445,7 +475,10 @@ enum APP_STATE_FLAG_ENUM
 };
 typedef VOS_UINT8 APP_STATE_FLAG_ENUM_UINT8;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  枚举名    : LRRC_CA_CC_NUM_ENUM
  枚举说明  :
@@ -458,7 +491,10 @@ enum LRRC_CA_CC_NUM_ENUM
     LRRC_CA_CC_NUM_BUTT
 };
 typedef VOS_UINT8 LRRC_CA_CC_NUM_ENUM_UINT8;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
    5 STRUCT
@@ -729,7 +765,10 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_LOCK_WORK_INFO_CNF_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    :APP_LRRC_GET_UE_CAP_INFO_REQ_STRU
  结构说明  :HIDS下发的获取关键UE能力信息的结构体
@@ -794,7 +833,10 @@ typedef struct
                                                                                    ，目前主要用于扩展CA组合，因为
                                                                                    CA组合占用空间很大 */
 }LRRC_APP_GET_UE_CAP_INFO_CNF_STRU;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名    : APP_RRC_TRANSPARENT_CMD_REQ
@@ -1096,7 +1138,10 @@ typedef struct
     VOS_UINT32                          ulOpId;             /* MSP直接将此ID做为CmdID发给Prob */
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_PTL_STATE_QUERY_CNF_STRU;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名    : RRC_APP_PTL_STATE_CHANGE_IND_STRU
@@ -1110,7 +1155,11 @@ typedef struct
     VOS_UINT32                          ulMsgId;            /*_H2ASN_Skip*/
     VOS_UINT32                          ulCurrentState;     /* RRC协议状态, 0:表示IDLE态 1:表示CONNECTED 2:表示协议状态无效 */
 }RRC_APP_PTL_STATE_CHANGE_IND_STRU;
+<<<<<<< HEAD
 
+=======
+/*niuxiufan DT begin */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    : RRC_APP_PTL_STATE_CHANGE_IND_STRU
  协议表格  :
@@ -1126,7 +1175,11 @@ typedef struct
     VOS_UINT32                          ulCurrentState;     /* RRC协议状态, 0:表示IDLE态 1:表示CONNECTED 2:表示协议状态无效 */
 }RRC_APP_DT_PTL_STATE_IND_STRU;
 
+<<<<<<< HEAD
 
+=======
+/*niuxiufan DT end */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名    :APP_RRC_PTL_STATE_QUERY_REQ_STRU
@@ -1156,7 +1209,11 @@ typedef struct
     VOS_UINT8                           aucReserved[3];
 }RRC_APP_CELL_INFO_QUERY_CNF_STRU;
 
+<<<<<<< HEAD
 
+=======
+/* niuxiufan DT begin */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 typedef struct
 {
     VOS_MSG_HEADER                                          /*_H2ASN_Skip*/
@@ -1186,6 +1243,10 @@ typedef struct
     VOS_UINT32                          ulOpId;
 }APP_RRC_INQ_CMD_IND_HEADER_STRU;
 
+<<<<<<< HEAD
+=======
+/* niuxiufan DT end */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 typedef struct
 {
@@ -1223,7 +1284,10 @@ typedef struct
     VOS_UINT8                           ucRsv[3];
 }APP_RRC_BARCELL_ACCESS_REQ_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名    : APP_RRC_MSG_DATA
@@ -1282,7 +1346,10 @@ typedef struct
     APP_MSG_HEADER
     VOS_UINT32                          ulOpId;
 } APP_RRC_LWCLASH_REQ_STRU;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*********************************************************
  枚举名    : APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM
  协议表格  :
@@ -1296,17 +1363,25 @@ enum APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM
     APP_RRC_ANTENNA_EIGHT_LAYERS,             /* UE MIMO层数8层 */
 };
 typedef VOS_UINT8    APP_RRC_ANTENNA_MAX_LAYERS_MIMO_ENUM_UINT8;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    : RRC_APP_LWCLASH_PARA_STRU
 结构说明  : RRC上报的消息
 *****************************************************************************/
 typedef struct
 {
+<<<<<<< HEAD
 
     VOS_UINT32                              ulUlFreq;          /*上行中心频率 单位:100Khz*/
     VOS_UINT32                              ulDlFreq;          /*下行中心频率 单位:100Khz*/
 
+=======
+    VOS_UINT32                              ulUlFreq;          /*上行中心频率 单位:100Khz*/
+    VOS_UINT32                              ulDlFreq;          /*下行中心频率 单位:100Khz*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usUlBandwidth;     /*上行带宽 */
     RRC_APP_BAND_WIDTH_ENUM_UINT16          usDlBandwidth;     /*上行带宽 */
     APP_CAMPED_FLAG_ENUM_UINT8              enCamped;          /*是否驻留 */
@@ -1476,7 +1551,10 @@ typedef struct
     VOS_UINT8                           aucValue[4];  /*消息体有效内容的指针*/
 }APP_LPS_MSG_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    : APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU
  协议表格  :
@@ -1488,11 +1566,17 @@ typedef struct
     VOS_MSG_HEADER                         /*_H2ASN_Skip*/
     VOS_UINT32             ulMsgId;        /*_H2ASN_Skip*/
     APP_MSG_HEADER
+<<<<<<< HEAD
 
     VOS_UINT32             ulOpId;
     VOS_UINT32             ulFlag;
+=======
+    VOS_UINT32                          ulOpId;
+    VOS_UINT32                           ulFlag;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }APP_LRRC_RESEL_OFFSET_CFG_NTF_STRU;
 
+/* gaojishan-dcom-resel-cfg */
 /*****************************************************************************
  结构名    : APP_LRRC_CON_TO_IDLE_NTF_STRU
  协议表格  :
@@ -1574,7 +1658,10 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 } LRRC_APP_SET_UE_REL_VERSION_CNF_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    :APP_RRC_SCELL_INFO_REQ_STRU
  结构说明  :AT下发的查询SCELL信息的结构体
@@ -1827,7 +1914,10 @@ typedef struct
     LRRC_APP_GERAN_SIGNLE_FREQ_MEAS_RESULT_STRU   astGeranFreqMesRslt[LRRC_GURRC_GERAN_ARFCN_MAX_NUM];
 }LRRC_APP_IDLE_GERAN_INFO_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    : LRRC_APP_CELL_MEAS_RSLT_STRU
  协议表格  :
@@ -2101,7 +2191,10 @@ typedef struct
      VOS_UINT8           aucPara[4];    /* 参数内容 */
 }APP_OM_MSG_REDF_STRU;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名    :APP_RRC_DEBUG_STUB_SET_3HOUR_REQ_STRU
@@ -2154,8 +2247,11 @@ typedef struct
     APP_RESULT_ENUM_UINT32              enResult;
 }RRC_APP_DEBUG_STUB_CMD_CNF_STRU;
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    :APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU
  结构说明  :打桩坏小区列表
@@ -2184,8 +2280,11 @@ typedef struct
 }APP_RRC_DEBUG_STUB_ADD_BAD_CELL_REQ_STRU;
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    :LTE_CA_STATE_INFO_STRU
  协议表格  :
@@ -2311,7 +2410,10 @@ typedef struct
     VOS_UINT32                 ulOpId;
     LTE_CA_STATE_INFO_STRU     stSCellInfo;      /*CA小区信息*/
 }RRC_APP_QUERY_SCELL_INFO_CNF_STRU;
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 
 extern PS_BOOL_ENUM_UINT8  LRRC_COMM_LoadDspAlready( MODEM_ID_ENUM_UINT16 enModemId);
@@ -2327,7 +2429,10 @@ extern 	VOS_UINT32 LHPA_InitDsp_ForAT( VOS_VOID );
 extern VOS_UINT32 LHPA_InitDspNvForLteTdsCBT(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_UINT32 LHPA_LoadDspForLteCBT(MODEM_ID_ENUM_UINT16 enModemId);
 extern VOS_VOID   LHPA_DbgSetSlaveModeThenMasterMode(MODEM_ID_ENUM_UINT16 enModemId);
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
   8 Fuction Extern

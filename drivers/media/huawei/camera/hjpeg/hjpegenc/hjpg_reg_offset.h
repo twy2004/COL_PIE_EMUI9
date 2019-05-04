@@ -86,6 +86,7 @@
 #define JPGENC_DBG_12_REG                0x230
 #define JPGENC_DBG_13_REG                0x234
 
+<<<<<<< HEAD
 /*
    IRQ related cfg register
    reg of jpg_sub_ctrl module
@@ -108,4 +109,6 @@ typedef union
 } U_JPEGENC_ADDRESS;
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif // __HJPG_REG_OFFSET_H__

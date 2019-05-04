@@ -122,9 +122,7 @@ static inline void *pzalloc(struct gen_pool *pool, size_t size, gfp_t gfp)
 static inline void *pmalloc_array(struct gen_pool *pool, size_t n,
 				  size_t size, gfp_t flags)
 {
-	size_t total_size = n * size;
-
-	if (unlikely(!(pool && n && size && (total_size / n == size))))
+	if (unlikely(!(pool && n && size)))
 	    return NULL;
 	return pmalloc(pool, n * size, flags);
 }

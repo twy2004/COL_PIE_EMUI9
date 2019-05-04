@@ -37,13 +37,12 @@
 #include <linux/irq.h>
 #include <linux/notifier.h>
 #include <linux/mutex.h>
-#include <linux/raid/pq.h>
-
 #include <linux/hisi/usb/hisi_usb.h>
 #include <huawei_platform/log/hw_log.h>
 #ifdef CONFIG_HUAWEI_HW_DEV_DCT
 #include <huawei_platform/devdetect/hw_dev_dec.h>
 #endif
+#include <linux/raid/pq.h>
 #include <huawei_platform/power/huawei_charger.h>
 #ifdef CONFIG_HISI_BCI_BATTERY
 #include <linux/power/hisi/hisi_bci_battery.h>
@@ -58,33 +57,62 @@
 HWLOG_REGIST();
 
 struct bq2429x_device_info *g_bq2429x_dev;
+<<<<<<< HEAD
 
 #define MSG_LEN                      (2)
 #define BUF_LEN                      (26)
 
+=======
+/**********************************************************
+*  Function:       params_to_reg
+*  Discription:    turn the setting parameter to register value
+*  Parameters:   const int tbl[], int tbl_size, int val
+*  return value:  register value
+**********************************************************/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int params_to_reg(const int tbl[], int tbl_size, int val)
 {
 	int i;
 
 	for (i = 1; i < tbl_size; i++) {
 		if (val < tbl[i])
+<<<<<<< HEAD
 			return (i - 1);
+=======
+			return i - 1;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
-
 	return (tbl_size - 1);
 }
 
+<<<<<<< HEAD
 static int bq2429x_write_block(struct bq2429x_device_info *di,
 	u8 *value, u8 reg, unsigned int num_bytes)
+=======
+/**********************************************************
+*  Function:       bq2429x_write_block
+*  Discription:    register write block interface
+*  Parameters:   di:bq2429x_device_info
+*                      value:register value
+*                      reg:register name
+*                      num_bytes:bytes number
+*  return value:  0-sucess or others-fail
+**********************************************************/
+static int bq2429x_write_block(struct bq2429x_device_info *di, u8 *value,
+			       u8 reg, unsigned num_bytes)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	struct i2c_msg msg[1];
 	int ret = 0;
 
+<<<<<<< HEAD
 	if (di == NULL || value == NULL) {
 		hwlog_err("di is null or value is null\n");
 		return -EIO;
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	*value = reg;
 
 	msg[0].addr = di->client->addr;
@@ -96,7 +124,11 @@ static int bq2429x_write_block(struct bq2429x_device_info *di,
 
 	/* i2c_transfer returns number of messages transferred */
 	if (ret != 1) {
+<<<<<<< HEAD
 		hwlog_err("write_block failed[%x]\n", reg);
+=======
+		hwlog_err("i2c_write failed to transfer all messages\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (ret < 0)
 			return ret;
 		else
@@ -106,18 +138,35 @@ static int bq2429x_write_block(struct bq2429x_device_info *di,
 	}
 }
 
+<<<<<<< HEAD
 static int bq2429x_read_block(struct bq2429x_device_info *di,
 	u8 *value, u8 reg, unsigned int num_bytes)
+=======
+/**********************************************************
+*  Function:       bq2429x_read_block
+*  Discription:    register read block interface
+*  Parameters:   di:bq2429x_device_info
+*                      value:register value
+*                      reg:register name
+*                      num_bytes:bytes number
+*  return value:  0-sucess or others-fail
+**********************************************************/
+static int bq2429x_read_block(struct bq2429x_device_info *di, u8 *value,
+			      u8 reg, unsigned num_bytes)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
-	struct i2c_msg msg[MSG_LEN];
+	struct i2c_msg msg[2];
 	u8 buf = 0;
 	int ret = 0;
 
+<<<<<<< HEAD
 	if (di == NULL || value == NULL) {
 		hwlog_err("di is null or value is null\n");
 		return -EIO;
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	buf = reg;
 
 	msg[0].addr = di->client->addr;
@@ -130,11 +179,16 @@ static int bq2429x_read_block(struct bq2429x_device_info *di,
 	msg[1].buf = value;
 	msg[1].len = num_bytes;
 
-	ret = i2c_transfer(di->client->adapter, msg, MSG_LEN);
+	ret = i2c_transfer(di->client->adapter, msg, 2);
 
 	/* i2c_transfer returns number of messages transferred */
+<<<<<<< HEAD
 	if (ret != MSG_LEN) {
 		hwlog_err("read_block failed[%x]\n", reg);
+=======
+	if (ret != 2) {
+		hwlog_err("i2c_write failed to transfer all messages\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (ret < 0)
 			return ret;
 		else
@@ -148,7 +202,11 @@ static int bq2429x_write_byte(u8 reg, u8 value)
 {
 	struct bq2429x_device_info *di = g_bq2429x_dev;
 	/* 2 bytes offset 1 contains the data offset 0 is used by i2c_write */
+<<<<<<< HEAD
 	u8 temp_buffer[MSG_LEN] = {0};
+=======
+	u8 temp_buffer[2] = { 0 };
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	/* offset 1 contains the data */
 	temp_buffer[1] = value;
@@ -187,9 +245,14 @@ static int bq2429x_read_mask(u8 reg, u8 mask, u8 shift, u8 *value)
 	ret = bq2429x_read_byte(reg, &val);
 	if (ret < 0)
 		return ret;
+<<<<<<< HEAD
 
 	val &= mask;
 	val >>= shift;
+=======
+	val &= MASK;
+	val >>= SHIFT;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	*value = val;
 
 	return 0;
@@ -202,12 +265,22 @@ static int bq2429x_read_mask(u8 reg, u8 mask, u8 shift, u8 *value)
  * Provide sysfs access to them so they can be examined and possibly modified
  * on the fly.
  */
+<<<<<<< HEAD
 #define BQ2429X_SYSFS_FIELD(_name, r, f, m, store) \
 { \
 	.attr = __ATTR(_name, m, bq2429x_sysfs_show, store), \
 	.reg = BQ2429X_REG_##r, \
 	.mask = BQ2429X_REG_##r##_##f##_MASK, \
 	.shift = BQ2429X_REG_##r##_##f##_SHIFT, \
+=======
+
+#define BQ2429X_SYSFS_FIELD(_name, r, f, m, store)                  \
+{                                                   \
+    .attr = __ATTR(_name, m, bq2429x_sysfs_show, store),    \
+    .reg = BQ2429X_REG_##r,                      \
+    .mask = BQ2429X_REG_##r##_##f##_MASK,                       \
+    .shift = BQ2429X_REG_##r##_##f##_SHIFT,                     \
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 #define BQ2429X_SYSFS_FIELD_RW(_name, r, f) \
@@ -217,9 +290,16 @@ static int bq2429x_read_mask(u8 reg, u8 mask, u8 shift, u8 *value)
 	BQ2429X_SYSFS_FIELD(_name, r, f, 0444, NULL)
 
 static ssize_t bq2429x_sysfs_show(struct device *dev,
+<<<<<<< HEAD
 	struct device_attribute *attr, char *buf);
 static ssize_t bq2429x_sysfs_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count);
+=======
+				  struct device_attribute *attr, char *buf);
+static ssize_t bq2429x_sysfs_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 struct bq2429x_sysfs_field_info {
 	struct device_attribute attr;
@@ -291,7 +371,11 @@ static void bq2429x_sysfs_init_attrs(void)
 	for (i = 0; i < limit; i++)
 		bq2429x_sysfs_attrs[i] = &bq2429x_sysfs_field_tbl[i].attr.attr;
 
+<<<<<<< HEAD
 	bq2429x_sysfs_attrs[limit] = NULL;
+=======
+	bq2429x_sysfs_attrs[limit] = NULL;	/* Has additional entry for this */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static struct bq2429x_sysfs_field_info *bq2429x_sysfs_field_lookup(
@@ -299,10 +383,16 @@ static struct bq2429x_sysfs_field_info *bq2429x_sysfs_field_lookup(
 {
 	int i, limit = ARRAY_SIZE(bq2429x_sysfs_field_tbl);
 
+<<<<<<< HEAD
 	for (i = 0; i < limit; i++) {
 		if (!strcmp(name, bq2429x_sysfs_field_tbl[i].attr.attr.name))
 			break;
 	}
+=======
+	for (i = 0; i < limit; i++)
+		if (!strcmp(name, bq2429x_sysfs_field_tbl[i].attr.attr.name))
+			break;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	if (i >= limit)
 		return NULL;
@@ -311,17 +401,24 @@ static struct bq2429x_sysfs_field_info *bq2429x_sysfs_field_lookup(
 }
 
 static ssize_t bq2429x_sysfs_show(struct device *dev,
+<<<<<<< HEAD
 	struct device_attribute *attr, char *buf)
+=======
+				  struct device_attribute *attr, char *buf)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	struct bq2429x_sysfs_field_info *info;
 	int ret;
 	u8 v;
 
 	info = bq2429x_sysfs_field_lookup(attr->attr.name);
+<<<<<<< HEAD
 	if (info == NULL) {
 		hwlog_err("get sysfs entries failed\n");
+=======
+	if (!info)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -EINVAL;
-	}
 
 	ret = bq2429x_read_mask(info->reg, info->mask, info->shift, &v);
 	if (ret)
@@ -331,23 +428,34 @@ static ssize_t bq2429x_sysfs_show(struct device *dev,
 }
 
 static ssize_t bq2429x_sysfs_store(struct device *dev,
+<<<<<<< HEAD
 	struct device_attribute *attr, const char *buf, size_t count)
+=======
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	struct bq2429x_sysfs_field_info *info;
 	int ret;
 	u8 v;
 
 	info = bq2429x_sysfs_field_lookup(attr->attr.name);
+<<<<<<< HEAD
 	if (info == NULL) {
 		hwlog_err("get sysfs entries failed\n");
+=======
+	if (!info)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -EINVAL;
-	}
 
 	ret = kstrtou8(buf, 0, &v);
+<<<<<<< HEAD
 	if (ret < 0) {
 		hwlog_err("get kstrtou8 failed\n");
+=======
+	if (ret < 0)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return ret;
-	}
 
 	ret = bq2429x_write_mask(info->reg, info->mask, info->shift, v);
 	if (ret)
@@ -367,10 +475,13 @@ static void bq2429x_sysfs_remove_group(struct bq2429x_device_info *di)
 {
 	sysfs_remove_group(&di->dev->kobj, &bq2429x_sysfs_attr_group);
 }
-
 #else
+<<<<<<< HEAD
 
 static inline int bq2429x_sysfs_create_group(struct bq2429x_device_info *di)
+=======
+static int bq2429x_sysfs_create_group(struct bq2429x_device_info *di)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	return 0;
 }
@@ -378,8 +489,12 @@ static inline int bq2429x_sysfs_create_group(struct bq2429x_device_info *di)
 static inline void bq2429x_sysfs_remove_group(struct bq2429x_device_info *di)
 {
 }
+<<<<<<< HEAD
 
 #endif /* CONFIG_SYSFS */
+=======
+#endif
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static int bq2429x_check_ic_type(void)
 {
@@ -387,17 +502,32 @@ static int bq2429x_check_ic_type(void)
 	int ret = 0;
 
 	ret = bq2429x_read_byte(BQ2429X_REG_VPRS, &reg);
+<<<<<<< HEAD
 	if (ret < 0)
+=======
+	if (ret < 0) {
+		hwlog_err("read charger version erro !\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return ret;
 
+<<<<<<< HEAD
 	hwlog_info("check_ic_type [%x]=0x%x\n", BQ2429X_REG_VPRS, reg);
 
 	if ((0 == (reg & BQ2429X_REG_VPRS_REV_MASK)) &&
 		(reg & BQ2429X_REG_VPRS_PN_MASK))
+=======
+	if ((0 == (reg & BQ2429X_REG_VPRS_REV_MASK))
+	    && (reg & BQ2429X_REG_VPRS_PN_MASK)) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return BQ2429X_REG_VPRS_PN_24296;
 
+<<<<<<< HEAD
 	if ((reg & BQ2419X_REG_VPRS_DEV_REG_MASK) &&
 		(reg & BQ2419X_REG_VPRS_PN_MASK))
+=======
+	if ((reg & BQ2419X_REG_VPRS_DEV_REG_MASK)
+	    && (reg & BQ2419X_REG_VPRS_PN_MASK)) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return BQ2419X_REG_VPRS_PN_24192;
 
 	return 0;
@@ -405,6 +535,7 @@ static int bq2429x_check_ic_type(void)
 
 static int bq2429x_device_check(void)
 {
+<<<<<<< HEAD
 	if ((bq2429x_check_ic_type() == BQ2429X_REG_VPRS_PN_24296) ||
 		(bq2429x_check_ic_type() == BQ2419X_REG_VPRS_PN_24192)) {
 		hwlog_info("bq2429x is good\n");
@@ -413,30 +544,45 @@ static int bq2429x_device_check(void)
 
 	hwlog_err("bq2429x is bad\n");
 	return CHARGE_IC_BAD;
+=======
+	if ((BQ2429X_REG_VPRS_PN_24296 == bq2429x_check_ic_type())
+	    || (BQ2419X_REG_VPRS_PN_24192 == bq2429x_check_ic_type())) {
+		hwlog_info("bq2429x is good.\n");
+		return CHARGE_IC_GOOD;
+	} else {
+		hwlog_err("bq2429x is bad.\n");
+		return CHARGE_IC_BAD;
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_5v_chip_init(struct bq2429x_device_info *di)
 {
 	int ret = 0;
 
-	/* boost mode current limit = 1000mA */
-	/* kick watchdog in bq2429x chip_init */
+	/*boost mode current limit = 1000mA */
+	/*kick watchdog in bq2429x chip_init*/
 	ret = bq2429x_write_byte(BQ2429X_REG_POC, 0x5a);
-
-	/* I2C watchdog timer setting = 80s */
-	/* fast charge timer setting = 12h */
+	/*I2C watchdog timer setting = 80s */
+	/*fast charge timer setting = 12h */
 	ret |= bq2429x_write_byte(BQ2429X_REG_CTTC, 0x2d);
 
+<<<<<<< HEAD
 	/* IR compensation voatge clamp = 48mV */
 	/* IR compensation resistor setting = 40mohm */
 	if (bq2429x_check_ic_type() != BQ2429X_REG_VPRS_PN_24296)
+=======
+	if (BQ2429X_REG_VPRS_PN_24296 != bq2429x_check_ic_type()) {
+		/*IR compensation voatge clamp = 48mV */
+		/*IR compensation resistor setting = 40mohm */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		ret |= bq2429x_write_byte(BQ2429X_REG_BVTRC, 0x8f);
 
-	/* enable charging */
-	gpio_set_value(di->gpio_cd, 0);
+	gpio_set_value(di->gpio_cd, 0);	/*enable charging*/
 
 	return ret;
 }
+<<<<<<< HEAD
 
 static int bq2429x_chip_init(struct chip_init_crit *init_crit)
 {
@@ -456,8 +602,24 @@ static int bq2429x_chip_init(struct chip_init_crit *init_crit)
 	default:
 		hwlog_err("invaid init_crit vbus mode\n");
 		break;
+=======
+static int bq2429x_chip_init(struct chip_init_crit* init_crit)
+{
+	int ret = -1;
+	struct bq2429x_device_info *di = g_bq2429x_dev;
+	if (!di || !init_crit) {
+		hwlog_err("%s: di or init_crit is null\n", __func__);
+		return -ENOMEM;
 	}
-
+	switch(init_crit->vbus) {
+		case ADAPTER_5V:
+			ret = bq2429x_5v_chip_init(di);
+			break;
+		default:
+			hwlog_err("%s: init mode err\n", __func__);
+			break;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+	}
 	return ret;
 }
 
@@ -472,13 +634,15 @@ static int bq2429x_set_input_current(int value)
 		return bq2429x_iin_values[0];
 
 	val = params_to_reg(bq2429x_iin_values, array_size, value);
-
-	hwlog_info("set_input_current [%x]=0x%x\n", BQ2429X_REG_ISC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_ISC,
+<<<<<<< HEAD
 			BQ2429X_REG_ISC_IINLIM_MASK,
 			BQ2429X_REG_ISC_IINLIM_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_ISC_IINLIM_MASK,
+				  BQ2429X_REG_ISC_IINLIM_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_charge_current(int value)
@@ -491,6 +655,7 @@ static int bq2429x_set_charge_current(int value)
 	if (value > bq2429x_ichg_values[array_size - 1])
 		return bq2429x_ichg_values[array_size - 1];
 
+<<<<<<< HEAD
 	/*
 	 * 1. If currentmA is below ICHG_512,
 	 * we can set the ICHG to 5*currentmA and set the FORCE_20PCT in REG02
@@ -499,29 +664,46 @@ static int bq2429x_set_charge_current(int value)
 	 * we need set the ICHG (lower than 1024mA) to
 	 * 5*currentmA and set the FORCE_20PCT in REG02.
 	 */
+=======
+	/* 1.If currentmA is below ICHG_512, we can set the ICHG to 5*currentmA and
+	   set the FORCE_20PCT in REG02 to make the true current 20% of the ICHG
+	   2.To slove the OCP BUG of bq2429x, we need set the ICHG(lower than 1024mA)
+	   to 5*currentmA and set the FORCE_20PCT in REG02. */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	else if (value < 1024) {
 		value *= 5;
 		force_20pct_en = 1;
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (value < bq2429x_ichg_values[0])
 		value = bq2429x_ichg_values[0];
 
 	ret = bq2429x_write_mask(BQ2429X_REG_CCC,
+<<<<<<< HEAD
 				BQ2429X_REG_CCC_FORCE_20PCT_MASK,
 				BQ2429X_REG_CCC_FORCE_20PCT_SHIFT,
 				force_20pct_en);
+=======
+				 BQ2429X_REG_CCC_FORCE_20PCT_MASK,
+				 BQ2429X_REG_CCC_FORCE_20PCT_SHIFT,
+				 force_20pct_en);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (ret < 0)
 		return ret;
 
 	val = params_to_reg(bq2429x_ichg_values, array_size, value);
-
-	hwlog_info("set_charge_current [%x]=0x%x\n", BQ2429X_REG_CCC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_CCC,
+<<<<<<< HEAD
 			BQ2429X_REG_CCC_ICHG_MASK,
 			BQ2429X_REG_CCC_ICHG_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_CCC_ICHG_MASK,
+				  BQ2429X_REG_CCC_ICHG_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_terminal_voltage(int value)
@@ -535,13 +717,15 @@ static int bq2429x_set_terminal_voltage(int value)
 		return bq2429x_vreg_values[0];
 
 	val = params_to_reg(bq2429x_vreg_values, array_size, value);
-
-	hwlog_info("set_terminal_voltage [%x]=0x%x\n", BQ2429X_REG_CVC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_CVC,
+<<<<<<< HEAD
 			BQ2429X_REG_CVC_VREG_MASK,
 			BQ2429X_REG_CVC_VREG_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_CVC_VREG_MASK,
+				  BQ2429X_REG_CVC_VREG_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_dpm_voltage(int value)
@@ -555,13 +739,15 @@ static int bq2429x_set_dpm_voltage(int value)
 		return bq2429x_vindpm_values[0];
 
 	val = params_to_reg(bq2429x_vindpm_values, array_size, value);
-
-	hwlog_info("set_dpm_voltage [%x]=0x%x\n", BQ2429X_REG_ISC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_ISC,
+<<<<<<< HEAD
 			BQ2429X_REG_ISC_VINDPM_MASK,
 			BQ2429X_REG_ISC_VINDPM_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_ISC_VINDPM_MASK,
+				  BQ2429X_REG_ISC_VINDPM_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_terminal_current(int value)
@@ -575,13 +761,15 @@ static int bq2429x_set_terminal_current(int value)
 		return bq2429x_iterm_values[0];
 
 	val = params_to_reg(bq2429x_iterm_values, array_size, value);
-
-	hwlog_info("set_terminal_current [%x]=0x%x\n", BQ2429X_REG_PCTCC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_PCTCC,
+<<<<<<< HEAD
 			BQ2429X_REG_PCTCC_ITERM_MASK,
 			BQ2429X_REG_PCTCC_ITERM_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_PCTCC_ITERM_MASK,
+				  BQ2429X_REG_PCTCC_ITERM_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_charge_enable(int enable)
@@ -589,11 +777,15 @@ static int bq2429x_set_charge_enable(int enable)
 	struct bq2429x_device_info *di = g_bq2429x_dev;
 
 	gpio_set_value(di->gpio_cd, !enable);
-
 	return bq2429x_write_mask(BQ2429X_REG_POC,
+<<<<<<< HEAD
 			BQ2429X_REG_POC_CHG_CONFIG_MASK,
 			BQ2429X_REG_POC_CHG_CONFIG_SHIFT,
 			enable);
+=======
+				  BQ2429X_REG_POC_CHG_CONFIG_MASK,
+				  BQ2429X_REG_POC_CHG_CONFIG_SHIFT, enable);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_otg_enable(int enable)
@@ -604,24 +796,41 @@ static int bq2429x_set_otg_enable(int enable)
 	gpio_set_value(di->gpio_cd, !enable);
 	val = enable << 1;
 
+<<<<<<< HEAD
 	/* notice:
 	 * why enable irq when entry to OTG mode only?
 	 * because we care VBUS overloaded OCP or OVP's interrupt in boost mode
+=======
+	/*NOTICE:
+	   why enable irq when entry to OTG mode only?
+	   because we care VBUS overloaded OCP or OVP's interrupt in boost mode
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	 */
 	if ((!di->irq_active) && (enable)) {
-		di->irq_active = 1; /* ACTIVE */
+		di->irq_active = 1;
 		enable_irq(di->irq_int);
 	} else if ((di->irq_active) && (!enable)) {
+<<<<<<< HEAD
 		di->irq_active = 0; /* INACTIVE */
 		disable_irq(di->irq_int);
 	} else {
 		/* do nothing */
+=======
+		di->irq_active = 0;
+		disable_irq(di->irq_int);
+	} else {
+		/*do nothing!!*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
 	return bq2429x_write_mask(BQ2429X_REG_POC,
 			BQ2429X_REG_POC_CHG_CONFIG_MASK,
+<<<<<<< HEAD
 			BQ2429X_REG_POC_CHG_CONFIG_SHIFT,
 			val);
+=======
+			BQ2429X_REG_POC_CHG_CONFIG_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_reset_otg(void)
@@ -631,34 +840,53 @@ static int bq2429x_reset_otg(void)
 	struct bq2429x_device_info *di = g_bq2429x_dev;
 
 	gpio_set_value(di->gpio_cd, !(FALSE));
-
 	val = (FALSE) << 1;
 	ret = bq2429x_write_mask(BQ2429X_REG_POC,
+<<<<<<< HEAD
 			BQ2429X_REG_POC_CHG_CONFIG_MASK,
 			BQ2429X_REG_POC_CHG_CONFIG_SHIFT,
 			val);
 	if (ret)
+=======
+				 BQ2429X_REG_POC_CHG_CONFIG_MASK,
+				 BQ2429X_REG_POC_CHG_CONFIG_SHIFT, val);
+	if (ret) {
+		hwlog_info("bq2429x_reset_otg false fail \n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return ret;
 
 	gpio_set_value(di->gpio_cd, !(TRUE));
-
 	val = (TRUE) << 1;
 	ret = bq2429x_write_mask(BQ2429X_REG_POC,
+<<<<<<< HEAD
 			BQ2429X_REG_POC_CHG_CONFIG_MASK,
 			BQ2429X_REG_POC_CHG_CONFIG_SHIFT,
 			val);
 	if (ret)
 		return ret;
 
+=======
+				 BQ2429X_REG_POC_CHG_CONFIG_MASK,
+				 BQ2429X_REG_POC_CHG_CONFIG_SHIFT, val);
+	if (ret) {
+		hwlog_info("bq2429x_reset_otg true fail \n");
+		return ret;
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return 0;
 }
 
 static int bq2429x_set_term_enable(int enable)
 {
 	return bq2429x_write_mask(BQ2429X_REG_CTTC,
+<<<<<<< HEAD
 			BQ2429X_REG_CTTC_EN_TERM_MASK,
 			BQ2429X_REG_CTTC_EN_TERM_SHIFT,
 			enable);
+=======
+				  BQ2429X_REG_CTTC_EN_TERM_MASK,
+				  BQ2429X_REG_CTTC_EN_TERM_SHIFT, enable);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_get_charge_state(unsigned int *state)
@@ -667,9 +895,12 @@ static int bq2429x_get_charge_state(unsigned int *state)
 	int ret = 0;
 
 	ret = bq2429x_read_byte(BQ2429X_REG_SS, &reg);
+<<<<<<< HEAD
 
 	hwlog_info("get_charge_state [%x]=0x%x\n", BQ2429X_REG_SS, reg);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if ((reg & BQ2429X_REG_SS_PG) == BQ2429X_REG_SS_NOTPG)
 		*state |= CHAGRE_STATE_NOT_PG;
 
@@ -681,9 +912,12 @@ static int bq2429x_get_charge_state(unsigned int *state)
 
 	ret |= bq2429x_read_byte(BQ2429X_REG_F, &reg);
 	ret |= bq2429x_read_byte(BQ2429X_REG_F, &reg);
+<<<<<<< HEAD
 
 	hwlog_info("get_charge_state [%x]=0x%x\n", BQ2429X_REG_F, reg);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if ((reg & BQ2429X_REG_F_WDT_TIMEOUT) == BQ2429X_REG_F_WDT_TIMEOUT)
 		*state |= CHAGRE_STATE_WDT_FAULT;
 
@@ -699,9 +933,14 @@ static int bq2429x_get_charge_state(unsigned int *state)
 static int bq2429x_reset_watchdog_timer(void)
 {
 	return bq2429x_write_mask(BQ2429X_REG_POC,
+<<<<<<< HEAD
 			BQ2429X_REG_POC_WDT_RESET_MASK,
 			BQ2429X_REG_POC_WDT_RESET_SHIFT,
 			0x01);
+=======
+				  BQ2429X_REG_POC_WDT_RESET_MASK,
+				  BQ2429X_REG_POC_WDT_RESET_SHIFT, 0x01);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_check_charger_plugged(void)
@@ -710,6 +949,7 @@ static int bq2429x_check_charger_plugged(void)
 	int ret = 0;
 
 	ret = bq2429x_read_byte(BQ2429X_REG_SS, &reg);
+<<<<<<< HEAD
 
 	hwlog_info("check_charger_plugged [%x]=0x%x\n", BQ2429X_REG_SS, reg);
 
@@ -717,6 +957,12 @@ static int bq2429x_check_charger_plugged(void)
 		BQ2429X_REG_SS_VBUS_PLUGGED)
 		return TRUE;
 
+=======
+	if (BQ2429X_REG_SS_VBUS_PLUGGED ==
+	    (reg & BQ2429X_REG_SS_VBUS_STAT_MASK)) {
+		return TRUE;
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return FALSE;
 }
 
@@ -726,11 +972,19 @@ static int bq2429x_check_input_dpm_state(void)
 	int ret = -1;
 
 	ret = bq2429x_read_byte(BQ2429X_REG_SS, &reg);
+<<<<<<< HEAD
 	if (ret < 0)
+=======
+	if (ret < 0) {
+		hwlog_err("bq2429x_check_input_dpm_state err\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return ret;
 
+<<<<<<< HEAD
 	hwlog_info("check_input_dpm_state [%x]=0x%x\n", BQ2429X_REG_SS, reg);
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (reg & BQ2429X_REG_SS_DPM_STAT_MASK)
 		return TRUE;
 	else
@@ -739,43 +993,54 @@ static int bq2429x_check_input_dpm_state(void)
 
 static int bq2429x_dump_register(char *reg_value)
 {
+<<<<<<< HEAD
 	u8 reg[BQ2429X_REG_NUM] = {0};
 	char buff[BUF_LEN] = {0};
+=======
+	u8 reg[BQ2429X_REG_NUM] = { 0 };
+	char buff[26] = { 0 };
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	int i = 0;
 
 	memset(reg_value, 0, CHARGELOG_SIZE);
-
 	for (i = 0; i < BQ2429X_REG_NUM; i++) {
 		bq2429x_read_byte(i, &reg[i]);
 		bq2429x_read_byte(i, &reg[i]);
-		snprintf(buff, BUF_LEN, "0x%-8.2x", reg[i]);
+		sprintf(buff, "0x%-8.2x", reg[i]);
 		strncat(reg_value, buff, strlen(buff));
 	}
-
 	return 0;
 }
 
 static int bq2429x_get_register_head(char *reg_head)
 {
+<<<<<<< HEAD
 	char buff[BUF_LEN] = {0};
+=======
+	char buff[26] = { 0 };
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	int i = 0;
 
 	memset(reg_head, 0, CHARGELOG_SIZE);
-
 	for (i = 0; i < BQ2429X_REG_NUM; i++) {
-		snprintf(buff, BUF_LEN, "Reg[%d]    ", i);
+		sprintf(buff, "Reg[%d]    ", i);
 		strncat(reg_head, buff, strlen(buff));
 	}
-
 	return 0;
 }
 
 static int bq2429x_set_batfet_disable(int disable)
 {
 	return bq2429x_write_mask(BQ2429X_REG_MOC,
+<<<<<<< HEAD
 			BQ2429X_REG_MOC_BATFET_DISABLE_MASK,
 			BQ2429X_REG_MOC_BATFET_DISABLE_SHIFT,
 			disable);
+=======
+				  BQ2429X_REG_MOC_BATFET_DISABLE_MASK,
+				  BQ2429X_REG_MOC_BATFET_DISABLE_SHIFT,
+				  disable);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_get_ilim(void)
@@ -785,6 +1050,7 @@ static int bq2429x_get_ilim(void)
 	u32 state = 0;
 
 	ret |= bq2429x_get_charge_state(&state);
+<<<<<<< HEAD
 	if (ret)
 		return -1;
 
@@ -800,6 +1066,21 @@ static int bq2429x_get_ilim(void)
 	ibus = 1000; /* fake current value for Running test */
 	/* temperary log for RT flag */
 	hwlog_info("bq2429x: ibus = %d, RunningTest Begin\n", ibus);
+=======
+	if(ret)
+	{
+		hwlog_err("[%s] get_charge_state fail,ret:%d\n",__func__,ret);
+		return -1;
+	}
+	if(CHAGRE_STATE_NOT_PG & state)
+	{
+		hwlog_info("[%s] CHAGRE_STATE_NOT_PG ,state:%d\n",__func__,state);
+		return 0;
+	}
+	/*bq2429x do not support get-ibus function, for RunnintTest, we return a fake vulue*/
+	ibus = 1000;//fake current value for Running test
+	hwlog_info("bq2429x: ibus = %d, RunningTest Begin!\n", ibus);//Temperary log for RT flag
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	return ibus;
 }
@@ -815,13 +1096,15 @@ static int bq2429x_set_watchdog_timer(int value)
 		return bq2429x_watchdog_values[0];
 
 	val = params_to_reg(bq2429x_watchdog_values, array_size, value);
-
-	hwlog_info("set_watchdog_timer [%x]=0x%x\n", BQ2429X_REG_CTTC, val);
-
 	return bq2429x_write_mask(BQ2429X_REG_CTTC,
+<<<<<<< HEAD
 			BQ2429X_REG_CTTC_WATCHDOG_MASK,
 			BQ2429X_REG_CTTC_WATCHDOG_SHIFT,
 			val);
+=======
+				  BQ2429X_REG_CTTC_WATCHDOG_MASK,
+				  BQ2429X_REG_CTTC_WATCHDOG_SHIFT, val);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static int bq2429x_set_charger_hiz(int enable)
@@ -830,6 +1113,7 @@ static int bq2429x_set_charger_hiz(int enable)
 
 	if (enable > 0)
 		ret |= bq2429x_write_mask(BQ2429X_REG_ISC,
+<<<<<<< HEAD
 				BQ2429X_REG_ISC_EN_HIZ_MASK,
 				BQ2429X_REG_ISC_EN_HIZ_SHIFT,
 				TRUE);
@@ -839,6 +1123,15 @@ static int bq2429x_set_charger_hiz(int enable)
 				BQ2429X_REG_ISC_EN_HIZ_SHIFT,
 				FALSE);
 
+=======
+					  BQ2429X_REG_ISC_EN_HIZ_MASK,
+					  BQ2429X_REG_ISC_EN_HIZ_SHIFT, TRUE);
+	} else {
+		ret |= bq2429x_write_mask(BQ2429X_REG_ISC,
+					  BQ2429X_REG_ISC_EN_HIZ_MASK,
+					  BQ2429X_REG_ISC_EN_HIZ_SHIFT, FALSE);
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return ret;
 }
 
@@ -868,6 +1161,7 @@ struct charge_device_ops bq2429x_ops = {
 
 static void bq2429x_irq_work(struct work_struct *work)
 {
+<<<<<<< HEAD
 	struct bq2429x_device_info *di;
 	u8 reg = 0;
 
@@ -875,26 +1169,34 @@ static void bq2429x_irq_work(struct work_struct *work)
 
 	msleep(250); /* sleep 250ms */
 
-	bq2429x_read_byte(BQ2429X_REG_F, &reg);
-	bq2429x_read_byte(BQ2429X_REG_F, &reg);
+=======
+	struct bq2429x_device_info *di =
+	    container_of(work, struct bq2429x_device_info, irq_work);
+	u8 reg = 0;
 
-	hwlog_err("boost_ovp_reg [%x]=0x%x\n", BQ2429X_REG_F, reg);
+	msleep(250);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+	bq2429x_read_byte(BQ2429X_REG_F, &reg);
+	bq2429x_read_byte(BQ2429X_REG_F, &reg);
 
 	if (reg & BQ2429X_REG_F_BOOST_OCP) {
-		hwlog_info("CHARGE_FAULT_BOOST_OCP happened\n");
-
-		/* retry otg once */
+		hwlog_info("CHARGE_FAULT_BOOST_OCP once!! \n");
+		/*retry otg once*/
 		bq2429x_reset_otg();
-
-		msleep(100); /* sleep 100ms */
-
+		msleep(100);
 		bq2429x_read_byte(BQ2429X_REG_F, &reg);
 		bq2429x_read_byte(BQ2429X_REG_F, &reg);
 		if (reg & BQ2429X_REG_F_BOOST_OCP) {
+<<<<<<< HEAD
 			hwlog_info("CHARGE_FAULT_BOOST_OCP happened twice\n");
 
 			atomic_notifier_call_chain(&fault_notifier_list,
 				CHARGE_FAULT_BOOST_OCP, NULL);
+=======
+			hwlog_info("CHARGE_FAULT_BOOST_OCP twice!! \n");
+			atomic_notifier_call_chain(&fault_notifier_list,
+						   CHARGE_FAULT_BOOST_OCP, NULL);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 	}
 
@@ -908,6 +1210,7 @@ static irqreturn_t bq2429x_interrupt(int irq, void *_di)
 {
 	struct bq2429x_device_info *di = _di;
 
+<<<<<<< HEAD
 	if (di == NULL) {
 		hwlog_err("di is null\n");
 		return -1;
@@ -915,14 +1218,22 @@ static irqreturn_t bq2429x_interrupt(int irq, void *_di)
 
 	hwlog_info("bq2429x int happened (%d)\n", di->irq_active);
 
+=======
+	hwlog_info("bq2429x interrupt\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (di->irq_active == 1) {
 		di->irq_active = 0;
 		disable_irq_nosync(di->irq_int);
 		schedule_work(&di->irq_work);
 	} else {
+<<<<<<< HEAD
 		hwlog_info("the irq is not enable, do nothing\n");
 	}
 
+=======
+		hwlog_info("The irq is not enable,do nothing!\n");
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return IRQ_HANDLED;
 }
 
@@ -931,9 +1242,11 @@ static int bq2429x_probe(struct i2c_client *client,
 {
 	int ret = 0;
 	struct bq2429x_device_info *di = NULL;
+	struct charge_device_ops *ops = NULL;
 	struct device_node *np = NULL;
 	struct class *power_class = NULL;
 
+<<<<<<< HEAD
 	hwlog_info("probe begin\n");
 
 	if (client == NULL || id == NULL) {
@@ -943,21 +1256,23 @@ static int bq2429x_probe(struct i2c_client *client,
 
 	di = kzalloc(sizeof(*di), GFP_KERNEL);
 	if (di == NULL)
+=======
+	di = kzalloc(sizeof(*di), GFP_KERNEL);
+	if (!di) {
+		hwlog_err("bq2429x_device_info is NULL!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -ENOMEM;
 
 	g_bq2429x_dev = di;
-
 	di->dev = &client->dev;
 	np = di->dev->of_node;
 	di->client = client;
 	i2c_set_clientdata(client, di);
 
 	INIT_WORK(&di->irq_work, bq2429x_irq_work);
-
 	di->gpio_cd = of_get_named_gpio(np, "gpio_cd", 0);
-	hwlog_info("gpio_cd=%d\n", di->gpio_cd);
-
 	if (!gpio_is_valid(di->gpio_cd)) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_cd) is not valid\n");
 		ret = -EINVAL;
 		goto bq2429x_fail_0;
@@ -976,29 +1291,49 @@ static int bq2429x_probe(struct i2c_client *client,
 		goto bq2429x_fail_1;
 	}
 
-	di->gpio_int = of_get_named_gpio(np, "gpio_int", 0);
-	hwlog_info("gpio_int=%d\n", di->gpio_int);
-
-	if (!gpio_is_valid(di->gpio_int)) {
-		hwlog_err("gpio(gpio_int) is not valid\n");
+=======
+		hwlog_err("gpio_cd is not valid\n");
 		ret = -EINVAL;
-		goto bq2429x_fail_1;
+		goto bq2429x_fail_0;
 	}
-
-	ret = gpio_request(di->gpio_int, "charger_int");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+	di->gpio_int = of_get_named_gpio(np, "gpio_int", 0);
+	if (!gpio_is_valid(di->gpio_int)) {
+<<<<<<< HEAD
+		hwlog_err("gpio(gpio_int) is not valid\n");
+=======
+		hwlog_err("gpio_int is not valid\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+		ret = -EINVAL;
+		goto bq2429x_fail_0;
+	}
+	/*set gpio to control CD pin to disable/enable bq2429x IC */
+	ret = gpio_request(di->gpio_cd, "charger_cd");
 	if (ret) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_int) request fail\n");
 		goto bq2429x_fail_1;
+=======
+		hwlog_err("could not request gpio_cd\n");
+		ret = -ENOMEM;
+		goto bq2429x_fail_0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
-
-	ret = gpio_direction_input(di->gpio_int);
+	gpio_direction_output(di->gpio_cd, 0);
+	ret = gpio_request(di->gpio_int, "charger_int");
 	if (ret) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_int) set input fail\n");
 		goto bq2429x_fail_2;
+=======
+		hwlog_err("could not request gpio_int\n");
+		goto bq2429x_fail_1;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
-
+	gpio_direction_input(di->gpio_int);
 	di->irq_int = gpio_to_irq(di->gpio_int);
 	if (di->irq_int < 0) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_int) map to irq fail\n");
 		ret = -EINVAL;
 		goto bq2429x_fail_2;
@@ -1008,21 +1343,36 @@ static int bq2429x_probe(struct i2c_client *client,
 		"charger_int_irq", di);
 	if (ret) {
 		hwlog_err("gpio(gpio_int) irq request fail\n");
-		di->irq_int = -1;
+=======
+		hwlog_err("could not map gpio_int to irq\n");
 		goto bq2429x_fail_2;
 	}
 
+	ret =
+	    request_irq(di->irq_int, bq2429x_interrupt, IRQF_TRIGGER_FALLING,
+			"charger_int_irq", di);
+	if (ret) {
+		hwlog_err("could not request irq_int\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+		di->irq_int = -1;
+		goto bq2429x_fail_2;
+	}
 	disable_irq(di->irq_int);
 	di->irq_active = 0;
 
-	ret = charge_ops_register(&bq2429x_ops);
+	ops = &bq2429x_ops;
+	ret = charge_ops_register(ops);
 	if (ret) {
+<<<<<<< HEAD
 		hwlog_err("bq2429x charge ops register fail\n");
+=======
+		hwlog_err("register charge ops failed!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		goto bq2429x_fail_3;
 	}
-
 	ret = bq2429x_sysfs_create_group(di);
 	if (ret)
+<<<<<<< HEAD
 		hwlog_err("sysfs group create failed\n");
 
 	power_class = hw_power_get_class();
@@ -1035,11 +1385,25 @@ static int bq2429x_probe(struct i2c_client *client,
 			"bq2429x");
 		if (ret) {
 			hwlog_err("sysfs link create failed\n");
+=======
+		hwlog_err("create sysfs entries failed!\n");
+	power_class = hw_power_get_class();
+	if (power_class) {
+		if (charge_dev == NULL)
+			charge_dev = device_create(power_class, NULL, 0, NULL, "charger");
+		ret = sysfs_create_link(&charge_dev->kobj, &di->dev->kobj, "bq2429x");
+		if (ret) {
+			hwlog_err("create link to bq2429x fail.\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			goto bq2429x_fail_4;
 		}
 	}
 
+<<<<<<< HEAD
 	hwlog_info("probe end\n");
+=======
+	hwlog_info("bq2429x probe ok!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return 0;
 
 bq2429x_fail_4:
@@ -1062,11 +1426,10 @@ static int bq2429x_remove(struct i2c_client *client)
 {
 	struct bq2429x_device_info *di = i2c_get_clientdata(client);
 
-	hwlog_info("remove begin\n");
-
 	bq2429x_sysfs_remove_group(di);
 
 	gpio_set_value(di->gpio_cd, 1);
+<<<<<<< HEAD
 
 	if (di->gpio_cd)
 		gpio_free(di->gpio_cd);
@@ -1077,19 +1440,29 @@ static int bq2429x_remove(struct i2c_client *client)
 	if (di->gpio_int)
 		gpio_free(di->gpio_int);
 
+=======
+	if (di->gpio_cd) {
+		gpio_free(di->gpio_cd);
+	}
+	if (di->irq_int) {
+		free_irq(di->irq_int, di);
+	}
+	if (di->gpio_int) {
+		gpio_free(di->gpio_int);
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	kfree(di);
-
-	hwlog_info("remove end\n");
 	return 0;
 }
 
 MODULE_DEVICE_TABLE(i2c, bq24192);
 static const struct of_device_id bq2429x_of_match[] = {
 	{
-		.compatible = "huawei,bq2429x_charger",
-		.data = NULL,
-	},
-	{},
+	 .compatible = "huawei,bq2429x_charger",
+	 .data = NULL,
+	 },
+	{
+	 },
 };
 
 static const struct i2c_device_id bq2429x_i2c_id[] = {
@@ -1101,10 +1474,10 @@ static struct i2c_driver bq2429x_driver = {
 	.remove = bq2429x_remove,
 	.id_table = bq2429x_i2c_id,
 	.driver = {
-		.owner = THIS_MODULE,
-		.name = "bq2429x_charger",
-		.of_match_table = of_match_ptr(bq2429x_of_match),
-	},
+		   .owner = THIS_MODULE,
+		   .name = "bq2429x_charger",
+		   .of_match_table = of_match_ptr(bq2429x_of_match),
+		   },
 };
 
 static int __init bq2429x_init(void)
@@ -1113,7 +1486,11 @@ static int __init bq2429x_init(void)
 
 	ret = i2c_add_driver(&bq2429x_driver);
 	if (ret)
+<<<<<<< HEAD
 		hwlog_err("i2c_add_driver error\n");
+=======
+		hwlog_err("%s: i2c_add_driver error!!!\n", __func__);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	return ret;
 }
@@ -1125,7 +1502,11 @@ static void __exit bq2429x_exit(void)
 
 module_init(bq2429x_init);
 module_exit(bq2429x_exit);
+<<<<<<< HEAD
 
 MODULE_LICENSE("GPL v2");
+=======
+MODULE_LICENSE("GPL");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 MODULE_DESCRIPTION("bq2429x charger module driver");
 MODULE_AUTHOR("Huawei Technologies Co., Ltd.");

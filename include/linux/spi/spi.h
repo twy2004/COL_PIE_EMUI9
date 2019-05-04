@@ -1316,10 +1316,18 @@ spi_transfer_is_last(struct spi_master *master, struct spi_transfer *xfer)
 {
 	return list_is_last(&xfer->transfer_list, &master->cur_msg->transfers);
 }
+<<<<<<< HEAD
 #if defined CONFIG_HISI_SPI
 void disable_spi(struct spi_master *master);
 int pl022_runtime_suspend(struct device *dev);
 int pl022_runtime_resume(struct device *dev);
 #endif
 
+=======
+
+void show_spi_register(struct spi_master *master);
+void show_dma_register(struct spi_master *master, int channel_id);
+void pl022_resume_all(struct spi_master *master);
+bool spi_use_dma_transmode(struct spi_message *msg);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif /* __LINUX_SPI_H */

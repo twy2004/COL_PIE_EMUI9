@@ -1,13 +1,25 @@
+<<<<<<< HEAD
 /* MD5: 4e8635e3bdaedc7c165e9597a74fddb5*/
+=======
+/* MD5: b40e9b28e72e657ace57b98469f4d15c*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #if !defined(__PRODUCT_CONFIG_VERSION_H__)
 #define __PRODUCT_CONFIG_VERSION_H__
 
 #ifndef PRODUCT_FULL_VERSION_STR
+<<<<<<< HEAD
 #define PRODUCT_FULL_VERSION_STR "Atlanta V100R001C20B353" 
 #endif 
 
 #ifndef PRODUCT_DLOAD_SOFTWARE_VER
 #define PRODUCT_DLOAD_SOFTWARE_VER "21C20B353S000C000" 
+=======
+#define PRODUCT_FULL_VERSION_STR "Atlanta V100R001C10B685" 
+#endif 
+
+#ifndef PRODUCT_DLOAD_SOFTWARE_VER
+#define PRODUCT_DLOAD_SOFTWARE_VER "21C10B685S000C000" 
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif 
 
 #endif /*__PRODUCT_CONFIG_H__*/ 

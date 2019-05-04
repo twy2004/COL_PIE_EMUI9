@@ -1579,6 +1579,15 @@ static int gen10g_resume(struct phy_device *phydev)
 
 static int __set_phy_supported(struct phy_device *phydev, u32 max_speed)
 {
+<<<<<<< HEAD
+=======
+	/* The default values for phydev->supported are provided by the PHY
+	 * driver "features" member, we want to reset to sane defaults first
+	 * before supporting higher speeds.
+	 */
+	phydev->supported &= PHY_DEFAULT_FEATURES;
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	switch (max_speed) {
 	case SPEED_10:
 		phydev->supported &= ~PHY_100BT_FEATURES;

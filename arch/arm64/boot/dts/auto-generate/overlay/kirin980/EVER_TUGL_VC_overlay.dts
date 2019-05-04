@@ -17,9 +17,14 @@
 /include/ "usb_short_circuit_protect_dto.dtsi"
 /include/ "lcdkit3.0/default/devkit_lcd_kit.dtsi"
 /include/ "lcdkit3.0/ever_tugl/devkit_lcd_kit.dtsi"
+<<<<<<< HEAD
 /include/ "desayatl_4900_39k_4400_24.dtsi"
 /include/ "sunwodamurata_4900_110k_4400_38.dtsi"
 /include/ "scudguangyu_4900_22k_4400_32.dtsi"
+=======
+/include/ "desayatl_4900_39k_4400.dtsi"
+/include/ "sunwodamurata_4900_110k_4400.dtsi"
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 / {
     board_id = <8452>;
@@ -427,7 +432,11 @@
 	};
 
 	&hisi_battery {
+<<<<<<< HEAD
 		batt_name = <&desayatl_4900_39k_4400_24 &sunwodamurata_4900_110k_4400_38 &scudguangyu_4900_22k_4400_32>;
+=======
+		batt_name = <&desayatl_4900_39k_4400 &sunwodamurata_4900_110k_4400>;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		status = "ok";
 	};
 
@@ -1745,7 +1754,6 @@
 				fm_enable = <1>;
 				micbias_modify = <1>; //MICBIAS output 2.7V factory test, change from MAINMIC to MIC4.
 				hisilicon,hs_det_trigger = <1>;
-				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -2680,10 +2688,10 @@
 				status = "disabled";
 				phone_type = /bits/ 16 <0x06>;// 1:ALPS  2:BLANC  3:EMILY  4:NEO  5:CHARLOTTE 6:after EVER
 				to_ap_threshold = /bits/ 16 <0xc8>;
-				to_modem_threshold = /bits/ 16 <0x74CC 0xDAC 0x514 0x00 0x00 0x00 0x00 0x00>;
-				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x431A44FF 0x293D2600 0x273F2080 0x00000000>;
+				to_modem_threshold = /bits/ 16 <0x74CC 0x1A90 0x9C4 0x00 0x00 0x00 0x00 0x00>;
+				init_reg_val = <0x00000014 0x23012447 0x28372A37 0x2B302C12 0x2D0B301B 0x340B3500 0x36213708 0x10164219 0x430744FF 0x293D2600 0x273F2080 0x00000000>;
 				ph = <0x2f>;
-				calibrate_thred = /bits/ 16 <9500 14452 8357 22032>;//for the factory far and near calibrate
+				calibrate_thred = /bits/ 16 <8671 14452 8357 22032>;//for the factory far and near calibrate
 				sensorlist_name="CAP_PROX sensor-sx9323";
 				vendor="semtech";
 			};

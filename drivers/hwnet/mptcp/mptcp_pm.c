@@ -27,7 +27,6 @@
  *      2 of the License, or (at your option) any later version.
  */
 
-
 #include <linux/module.h>
 #include <net/mptcp.h>
 
@@ -104,8 +103,7 @@ void mptcp_get_default_path_manager(char *name)
 
 	rcu_read_lock();
 	pm = list_entry(mptcp_pm_list.next, struct mptcp_pm_ops, list);
-	(void)strncpy(name, pm->name, MPTCP_PM_NAME_MAX);
-	name[MPTCP_PM_NAME_MAX - 1] = '\0';
+	strncpy(name, pm->name, MPTCP_PM_NAME_MAX);
 	rcu_read_unlock();
 }
 

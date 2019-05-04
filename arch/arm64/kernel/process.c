@@ -382,7 +382,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
 		memset(childregs, 0, sizeof(struct pt_regs));
 		childregs->pstate = PSR_MODE_EL1h;
 		if (IS_ENABLED(CONFIG_ARM64_UAO) &&
-		    cpus_have_const_cap(ARM64_HAS_UAO))
+		    cpus_have_cap(ARM64_HAS_UAO))
 			childregs->pstate |= PSR_UAO_BIT;
 
 		if (arm64_get_ssbd_state() == ARM64_SSBD_FORCE_DISABLE)

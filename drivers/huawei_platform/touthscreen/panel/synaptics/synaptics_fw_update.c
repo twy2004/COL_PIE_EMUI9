@@ -1218,7 +1218,6 @@ bool synaptics_check_fw_version(void)
 	enum flash_area flash_area;
 	struct image_header_data header;
 	const unsigned char *fw_image = fwu->fw_image;
-	int size = 0;
 
 	parse_header(&header, fw_image);
 
@@ -1236,7 +1235,7 @@ bool synaptics_check_fw_version(void)
 		return false;
 	}
 
-	size = FW_IMAGE_OFFSET + header.firmware_size;
+	int size = FW_IMAGE_OFFSET + header.firmware_size;
 	if(fwu->fw_entry_boot->size <size) {
 			TS_LOG_ERR("config_data = %pK , fw_image = %pK  , header size  =%d\n",fwu->config_data ,fw_image,header.firmware_size);
 			return false;

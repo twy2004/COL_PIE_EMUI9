@@ -22,6 +22,7 @@
 #include <linux/sched.h>
 #include <linux/scatterlist.h>
 #include <linux/vmalloc.h>
+<<<<<<< HEAD
 #include <linux/ion-iommu.h>
 #ifdef CONFIG_HISI_LB
 #include <linux/hisi/hisi_lb.h>
@@ -29,6 +30,9 @@
 #ifdef CONFIG_HISI_SVM
 #include <linux/hisi/hisi_svm.h>
 #endif
+=======
+#include <linux/hisi/ion-iommu.h>
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #include "ion.h"
 #include "ion_priv.h"
@@ -46,19 +50,23 @@ void *ion_heap_map_kernel(struct ion_heap *heap,
 	struct page **tmp = pages;
 
 	if (!pages)
-		return ERR_PTR(-ENOMEM);
+		return NULL;
 
 	if (buffer->flags & ION_FLAG_CACHED)
 		pgprot = PAGE_KERNEL;
 	else
 		pgprot = pgprot_writecombine(PAGE_KERNEL);
 
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_LB
 	if (buffer->plc_id)
 		lb_pid_prot_build(buffer->plc_id, &pgprot);
 #endif
 
 	for_each_sg(table->sgl, sg, table->nents, i) {/*lint !e574*/
+=======
+	for_each_sg(table->sgl, sg, table->nents, i) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		int npages_this_entry = PAGE_ALIGN(sg->length) / PAGE_SIZE;
 		struct page *page = sg_page(sg);
 
@@ -91,12 +99,16 @@ int ion_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 	int i;
 	int ret;
 
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_LB
 	if (buffer->plc_id)
 		lb_pid_prot_build(buffer->plc_id, &vma->vm_page_prot);
 #endif
 
 	for_each_sg(table->sgl, sg, table->nents, i) {/*lint !e574*/
+=======
+	for_each_sg(table->sgl, sg, table->nents, i) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		struct page *page = sg_page(sg);
 		unsigned long remainder = vma->vm_end - addr;
 		unsigned long len = sg->length;

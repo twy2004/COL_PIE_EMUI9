@@ -49,6 +49,7 @@ static int __init rtc_hctosys(void)
 
 	tv64.tv_sec = rtc_tm_to_time64(&tm);
 
+<<<<<<< HEAD
 #if BITS_PER_LONG == 32
 	if (tv64.tv_sec > INT_MAX) {
 		err = -ERANGE;
@@ -56,6 +57,8 @@ static int __init rtc_hctosys(void)
 	}
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	err = do_settimeofday64(&tv64);
 
 	dev_info(rtc->dev.parent,

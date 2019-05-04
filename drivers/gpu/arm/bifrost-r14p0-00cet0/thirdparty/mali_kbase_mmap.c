@@ -113,8 +113,7 @@ static bool align_and_check(unsigned long *gap_end, unsigned long gap_start,
  * Return: address of the found gap end (high limit) if area is found;
  *         -ENOMEM if search is unsuccessful
 */
-/*lint -e570*/
-/*lint -e527*/
+
 static unsigned long kbase_unmapped_area_topdown(struct vm_unmapped_area_info
 		*info, bool is_shader_code)
 {
@@ -212,8 +211,7 @@ check_current:
 
 	return -ENOMEM;
 }
-/*lint +e527*/
-/*lint +e570*/
+
 
 /* This function is based on Linux kernel's arch_get_unmapped_area, but
  * simplified slightly. Modifications come from the fact that some values
@@ -238,12 +236,12 @@ unsigned long kbase_get_unmapped_area(struct file *filp,
 
 	/* err on fixed address */
 	if ((flags & MAP_FIXED) || addr)
-		return -EINVAL;//lint !e570
+		return -EINVAL;
 
 #ifdef CONFIG_64BIT
 	/* too big? */
 	if (len > TASK_SIZE - SZ_2M)
-		return -ENOMEM;//lint !e570
+		return -ENOMEM;
 
 	if (!kbase_ctx_flag(kctx, KCTX_COMPAT)) {
 
@@ -272,7 +270,7 @@ unsigned long kbase_get_unmapped_area(struct file *filp,
 					kctx->pending_regions[cookie];
 
 			if (!reg)
-				return -EINVAL;//lint !e570
+				return -EINVAL;
 
 			if (!(reg->flags & KBASE_REG_GPU_NX)) {
 				if (cpu_va_bits > gpu_pc_bits) {

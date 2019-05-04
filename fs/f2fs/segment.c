@@ -34,7 +34,7 @@ static struct kmem_cache *discard_cmd_slab;
 static struct kmem_cache *sit_entry_set_slab;
 static struct kmem_cache *inmem_entry_slab;
 
-static struct discard_policy dpolicys[MAX_DPOLICY] = {
+static struct discard_policy dpolicy[MAX_DPOLICY] = {
         /* discard_policy       min_gran            	io_aware	io_aware_gran          req_sync */
 	{DPOLICY_BG,		DISCARD_GRAN_BG,	false,  	MAX_PLIST_NUM,   	true,		/* >= 2M */
 		/* max_req      interval(ms) 	min_interval	mid_interval			max_interval */
@@ -239,9 +239,15 @@ static inline bool need_SSR_by_type(struct f2fs_sb_info *sbi , int type, int con
 	int node_secs = get_blocktype_secs(sbi, F2FS_DIRTY_NODES);
 	int dent_secs = get_blocktype_secs(sbi, F2FS_DIRTY_DENTS);
 	int imeta_secs = get_blocktype_secs(sbi, F2FS_DIRTY_IMETA);
+<<<<<<< HEAD
 	u32 valid_blocks = sbi->total_valid_block_count;
 	u32 total_blocks = MAIN_SEGS(sbi) << sbi->log_blocks_per_seg;
 	u64 left_space = (total_blocks - valid_blocks) << 2;
+=======
+	u64 valid_blocks = sbi->total_valid_block_count;
+	u64 total_blocks = le64_to_cpu(sbi->raw_super->block_count);
+	u64 left_space = (total_blocks - valid_blocks)<<2;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	unsigned int free_segs = free_segments(sbi);
 	unsigned int ovp_segments = overprovision_segments(sbi);
 	unsigned int lower_limit = 0;
@@ -1372,9 +1378,9 @@ static int __queue_discard_cmd(struct f2fs_sb_info *sbi,
 }
 
 static void select_sub_discard_policy(struct discard_sub_policy **spolicy,
-					int index, struct discard_policy *dpolicy)
+							int index, int discard_type)
 {
-	if (DPOLICY_FSTRIM == dpolicy->type) {
+	if (DPOLICY_FSTRIM == discard_type) {
 		*spolicy = &dpolicy->sub_policy[SUB_POLICY_BIG];
 		return;
 	}
@@ -1410,7 +1416,7 @@ static int __issue_discard_cmd(struct f2fs_sb_info *sbi,
 		if (i + 1 < dpolicy->granularity)
 			break;
 
-		select_sub_discard_policy(&spolicy, i, dpolicy);
+		select_sub_discard_policy(&spolicy, i, dpolicy->type);
 
 		pend_list = &dcc->pend_list[i];
 
@@ -1951,18 +1957,18 @@ void init_discard_policy(struct discard_policy *policy,
 				int discard_type, unsigned int granularity)
 {
 	if (discard_type == DPOLICY_BG) {
-		*policy = dpolicys[DPOLICY_BG];
+		*policy = dpolicy[DPOLICY_BG];
 	} else if (discard_type == DPOLICY_BL) {
-		*policy = dpolicys[DPOLICY_BL];
+		*policy = dpolicy[DPOLICY_BL];
 	} else if (discard_type == DPOLICY_FORCE) {
-		*policy = dpolicys[DPOLICY_FORCE];
+		*policy = dpolicy[DPOLICY_FORCE];
 	} else if (discard_type == DPOLICY_FSTRIM) {
-		*policy = dpolicys[DPOLICY_FSTRIM];
+		*policy = dpolicy[DPOLICY_FSTRIM];
 		/* min_len receive from user */
 		if (policy->granularity != granularity)
 			policy->granularity = granularity;
 	} else if (discard_type == DPOLICY_UMOUNT) {
-		*policy = dpolicys[DPOLICY_UMOUNT];
+		*policy = dpolicy[DPOLICY_UMOUNT];
 	}
 }
 
@@ -2913,7 +2919,7 @@ static unsigned int __issue_discard_cmd_range(struct f2fs_sb_info *sbi,
 	unsigned int cur = start;
 
 	/* fstrim each time 8 discard and wait */
-	select_sub_discard_policy(&spolicy, 0, dpolicy);
+	select_sub_discard_policy(&spolicy, 0, dpolicy->type);
 	if (dcc->rbtree_check) {
 		mutex_lock(&dcc->cmd_lock);
 		f2fs_bug_on(sbi, !__check_rb_tree_consistence(sbi,
@@ -3135,13 +3141,14 @@ int allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 
 	if (from_gc && GET_SEGNO(sbi, old_blkaddr) == NULL_SEGNO) {
 		struct inode *ino = NULL;
+		struct f2fs_inode *ri;
 		if (page && page->mapping) {
 			ino = page->mapping->host;
 			f2fs_msg(sbi->sb, KERN_ERR,
-			"invalid old_blk %x, page index %lu, status %lx",
+			"invalid old_blk %x, page index %lu, status %x",
 					old_blkaddr, page->index, page->flags);
 			f2fs_msg(sbi->sb, KERN_ERR,
-			"ino %lu i_mode %x,i_size %llu, i_advise %x, flags %lx",
+			"ino %lu i_mode %x,i_size %llu, i_advise %x, flags %x",
 					ino->i_ino, ino->i_mode, ino->i_size,
 					F2FS_I(ino)->i_advise, F2FS_I(ino)->flags);
 		}
@@ -3561,13 +3568,9 @@ void f2fs_wait_on_page_writeback(struct page *page,
 	}
 }
 
-void f2fs_wait_on_block_writeback(struct inode *inode, block_t blkaddr)
+void f2fs_wait_on_block_writeback(struct f2fs_sb_info *sbi, block_t blkaddr)
 {
-	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
 	struct page *cpage;
-
-	if (!f2fs_encrypted_file(inode))
-		return;
 
 	if (!is_valid_data_blkaddr(sbi, blkaddr))
 		return;
@@ -3577,15 +3580,6 @@ void f2fs_wait_on_block_writeback(struct inode *inode, block_t blkaddr)
 		f2fs_wait_on_page_writeback(cpage, DATA, true);
 		f2fs_put_page(cpage, 1);
 	}
-}
-
-void f2fs_wait_on_block_writeback_range(struct inode *inode, block_t blkaddr,
-								block_t len)
-{
-	block_t i;
-
-	for (i = 0; i < len; i++)
-		f2fs_wait_on_block_writeback(inode, blkaddr + i);
 }
 
 static int read_compacted_summaries(struct f2fs_sb_info *sbi)

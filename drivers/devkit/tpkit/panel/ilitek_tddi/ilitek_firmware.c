@@ -191,6 +191,12 @@ int tddi_check_fw_upgrade(void)
 
     mdelay(30);
 
+    if (ilitek_config_set_watch_dog(false) < 0) {
+        ilitek_err("Failed to disable watch dog, check failed\n");
+        ret = CHECK_FW_FAIL;
+        goto out;
+    }
+
     for(i = 0; i < ARRAY_SIZE(g_flash_block_info); i++) {
         start_addr = g_flash_block_info[i].start_addr;
         end_addr = g_flash_block_info[i].end_addr;
@@ -214,7 +220,6 @@ int tddi_check_fw_upgrade(void)
 
 out:
     ilitek_config_ice_mode_disable();
-    ilitek_chip_reset();
     return ret;
 }
 
@@ -481,6 +486,8 @@ static int iram_upgrade(void)
 
     mdelay(20);
 
+    ilitek_config_set_watch_dog(false);
+
     ilitek_debug(DEBUG_FIRMWARE, "nStartAddr = 0x%06X, nEndAddr = 0x%06X, nChecksum = 0x%06X\n",
         core_firmware->start_addr, core_firmware->end_addr, core_firmware->checksum);
 
@@ -564,6 +571,15 @@ static int tddi_fw_upgrade(bool isIRAM)
 
     mdelay(25);
 
+    if (ilitek_config_set_watch_dog(false) < 0) {
+        ilitek_err("Failed to disable watch dog\n");
+        res = -EINVAL;
+#if defined (CONFIG_HUAWEI_DSM)
+        ts_platform_data->dsm_info.constraints_UPDATE_status = ILITEK_DISABLE_WATCHDOG_FAIL;
+#endif
+        goto out;
+    }
+
     /* Disable flash protection from being written */
     core_flash_enable_protect(false);
 
@@ -619,6 +635,13 @@ static int tddi_fw_upgrade(bool isIRAM)
     }
 
 out:
+    if (ilitek_config_set_watch_dog(true) < 0) {
+        ilitek_err("Failed to enable watch dog\n");
+#if defined (CONFIG_HUAWEI_DSM)
+        ts_platform_data->dsm_info.constraints_UPDATE_status = ILITEK_ENABLE_WATCHDOG_FAIL;
+#endif
+        res = -EINVAL;
+    }
     ilitek_config_ice_mode_disable();
     return res;
 }

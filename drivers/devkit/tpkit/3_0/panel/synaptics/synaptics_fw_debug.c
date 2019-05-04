@@ -433,6 +433,7 @@ clean_up:
 	}
 unlock:
 	mutex_unlock(&(dev_data->file_mutex));
+
 	return retval;
 }
 
@@ -555,6 +556,7 @@ static int rmidev_release(struct inode *inp, struct file *filp)
 
 	if (!dev_data)
 		return -EACCES;
+
 	mutex_lock(&(dev_data->file_mutex));
 	rmi4_data->reset_device(rmi4_data);
 

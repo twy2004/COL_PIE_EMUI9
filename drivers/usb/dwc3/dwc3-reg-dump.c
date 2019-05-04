@@ -6,16 +6,6 @@
 #define IS_SET_BIT(reg, n) ((reg) & (1ul << (n)))
 #define IS_CLR_BIT(reg, n) (!IS_SET_BIT(reg, n))
 
-#define USB_MISC_REG_PHY_CR_PARA_STATUS   0x5C
-#define USB31PHY_CR_PHY0_SRAM_INIT_DONE BIT(7)
-#define USB31PHY_CR_PHY0_SRAM_EXT_LD_DONE BIT(3)
-#define USB31PHY_CR_PHY0_SRAM_BYPASS BIT(2)
-
-#define IP_RST_USB3OTG_MISC		(1 << 7)
-#define IP_RST_USB3OTG_32K		(1 << 6)
-
-#define PERI_CRG_PERRSTSTAT4		0x98
-
 #define PCTRL_PERI_CTRL3                0x10
 #define USB_TCXO_EN			(1 << 1)
 #define SCTRL_SCPERSTAT4		SOC_SCTRL_SCPERSTAT4_ADDR(SOC_ACPU_SCTRL_BASE_ADDR)

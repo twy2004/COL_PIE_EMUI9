@@ -36,6 +36,7 @@ static struct hdcp_ctrl hdcp_control;
 
 static int GetKSVListFromDPCD(struct dp_ctrl *dptx, uint8_t* sha1_buffer, uint32_t* plength)
 {
+<<<<<<< HEAD
 	uint32_t dev_count,  i;
 	uint8_t temp[16];
 	uint32_t ptr=0;
@@ -104,6 +105,76 @@ static int GetKSVListFromDPCD(struct dp_ctrl *dptx, uint8_t* sha1_buffer, uint32
 
 	*plength = len;
 	return 0;
+=======
+    uint32_t dev_count,  i;
+    uint8_t temp[16];
+    uint32_t ptr=0;
+    uint8_t* pKSVList;
+    uint32_t len = 10;
+    int retval;
+
+    if ((dptx == NULL) || (sha1_buffer == NULL)) {
+        HISI_FB_ERR("NULL Pointer\n");
+        return -1;
+    }
+
+    pKSVList = sha1_buffer;
+
+    retval = dptx_read_bytes_from_dpcd(dptx, 0x6802A, g_Binfo, 2);
+    if (retval) {
+        HISI_FB_ERR("failed to dptx_read_bytes_from_dpcd Binfo, retval=%d.\n", retval);
+        return retval;
+    }
+    HISI_FB_DEBUG("dptx_read Binfo:%x,%x!\n", g_Binfo[0],g_Binfo[1]);
+    dev_count = g_Binfo[0];
+
+    while (dev_count>0)
+    {
+        if (dev_count >=3)
+        {
+            retval = dptx_read_bytes_from_dpcd(dptx, 0x6802C, temp, 15);
+            if (retval) {
+                HISI_FB_ERR("failed to dptx_read_bytes_from_dpcd KSVlist, retval=%d.\n", retval);
+                return retval;
+            }
+            for(i=0; i<15; i++)
+            {
+                pKSVList[ptr++] = temp[i];
+            }
+            dev_count -= 3;
+        }
+        else
+        {
+            retval = dptx_read_bytes_from_dpcd(dptx, 0x6802C, temp, dev_count*5);
+            if (retval) {
+                HISI_FB_ERR("failed to dptx_read_bytes_from_dpcd KSVlist, retval=%d.\n", retval);
+                return retval;
+            }
+            for(i=0; i<dev_count*5; i++)
+            {
+                pKSVList[ptr++] = temp[i];
+            }
+            dev_count = 0;
+        }
+    }
+    len += ptr;
+    HISI_FB_DEBUG("Read %d KSV:\n", ptr);
+    pKSVList[ptr++] = g_Binfo[0];
+    pKSVList[ptr++] = g_Binfo[1];
+
+    /*for(i=0; i<8; i++)
+    {
+        pKSVList[ptr++]  = (M0>>(i*8)) & 0xFF;
+    }*/
+
+    //test print
+    //HISI_FB_ERR("sha1_buffer:\n");
+    //for (i=0; i<len; i++)
+    //    HISI_FB_ERR("%d:%x\n", i,pKSVList[i]);
+
+    *plength = len;
+    return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 
@@ -177,6 +248,7 @@ int HDCP_Read_TEInfo(struct dp_ctrl *dptx)
 
 int HDCP_GetSHA1Buffer(uint8_t* pSHA1buffer, uint32_t* plength, uint8_t* pV_prime)
 {
+<<<<<<< HEAD
 	struct hisi_fb_data_type *hisifd;
 	struct dp_ctrl *dptx;
 
@@ -186,6 +258,12 @@ int HDCP_GetSHA1Buffer(uint8_t* pSHA1buffer, uint32_t* plength, uint8_t* pV_prim
 	}
 
 	if (g_dp_pdev == NULL) {
+=======
+    struct hisi_fb_data_type *hisifd;
+    struct dp_ctrl *dptx;
+  
+    if (g_dp_pdev == NULL) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		HISI_FB_ERR("g_dp_pdev is NULL!\n");
 		return -1;
 	}
@@ -259,6 +337,7 @@ static int hdcp_polling_thread(void *p)
 	struct hdcp_params *hparams;
 	struct dp_ctrl *dptx;
 
+<<<<<<< HEAD
 	dptx = (struct dp_ctrl *)p;
 	if(!dptx){
 		HISI_FB_ERR("dptx is null!\n");
@@ -300,6 +379,87 @@ static int hdcp_polling_thread(void *p)
 		up(&g_hdcp_poll_sem);
 	}
 	return 0;
+=======
+    dptx = (struct dp_ctrl *)p;
+    hparams = &dptx->hparams;
+
+    while(!kthread_should_stop()) {
+        msleep(1000);
+        if (hdcp_polling_flag)
+        {
+            if (!g_dp_on)
+            {
+                HISI_FB_WARNING("dp is off, no access hdcp register!\n");
+                hdcp_polling_flag = 0;
+                i = 0;
+                continue;
+            }
+
+            if (hdcp_stop_polling)
+            {
+                hdcp_stop_polling = 0;
+                HISI_FB_DEBUG("Auth already have result, stop polling!\n");
+                hdcp_polling_flag = 0;
+                i = 0;
+                continue;
+            }
+
+            if (link_error_count >= MAX_LINK_ERROR_COUNT)
+            {
+                HISI_FB_INFO("Auth Repeater fail, Re-try auth mannually!!\n");
+                HDCP13_enable(dptx, 0);
+                msleep(10);
+                HDCP13_enable(dptx, 1);
+                i = 0;
+                continue;
+            }
+
+            if (dptx->hisifd->secure_ctrl.hdcp_reg_get)
+                temp_value = dptx->hisifd->secure_ctrl.hdcp_reg_get(DPTX_HDCP_OBS);
+            else
+            {
+                hdcp_polling_flag = 0;
+                i = 0;
+                continue;
+            }
+            HISI_FB_DEBUG("Current state is:0x%x!\n", temp_value);
+            if (((temp_value & 0xFFFF) != REPEATER_STATE) && (i<6) )
+            {
+                i++;
+                continue;
+            }
+
+            if ((temp_value & 0xFFFF) != REPEATER_STATE)
+            {
+                HISI_FB_WARNING("Not stop at repeater state A9, at 0x%x!!!\n", temp_value);
+                hparams->auth_fail_count++;
+                //disable output
+                HDCP13_enable(dptx, 0);
+                if (hparams->auth_fail_count > DPTX_HDCP_MAX_REPEATER_AUTH_RETRY)
+                {
+                    if(dptx->hisifd->secure_ctrl.hdcp_enc_mode)
+                        dptx->hisifd->secure_ctrl.hdcp_enc_mode(1);
+                    hdcp_polling_flag = 0;
+                    HISI_FB_ERR("Disable DP output becasue of reach max allowed retries count=%d.\n", hparams->auth_fail_count);
+                }
+                else
+                {
+                    HISI_FB_INFO("Repeater state error, Re-try auth again:%d!!\n", hparams->auth_fail_count);
+                    msleep(10);
+                    HDCP13_enable(dptx, 1);
+                }
+                i = 0;
+                continue;
+            }
+
+            HISI_FB_INFO("Stop at repeater state A9!!!\n");
+            switch_set_state(&dptx->sdev, Hot_Plug_HDCP13);
+            hdcp_polling_flag = 0;
+            i = 0;
+        }
+    }
+    return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 void HDCP_Stop_Polling_task(uint8_t stop)

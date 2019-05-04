@@ -117,6 +117,7 @@ int lcd_kit_get_power_status(void)
 	return uc_panel_is_power_on;
 }
 
+<<<<<<< HEAD
 static int lcd_kit_set_elvss_dim_lp(struct hisi_fb_data_type* hisifd)
 {
 	int ret = LCD_KIT_OK;
@@ -159,6 +160,8 @@ static int lcd_kit_set_elvss_dim_lp(struct hisi_fb_data_type* hisifd)
 	return ret;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int lcd_kit_update_gamma_from_tpic(struct hisi_fb_data_type* hisifd)
 {
 	#define GAMMA_HEAD_LEN	2
@@ -211,6 +214,7 @@ static int lcd_kit_update_gamma_from_tpic(struct hisi_fb_data_type* hisifd)
 	return ret;
 }
 
+<<<<<<< HEAD
 static void check_pcd_errflag_report(struct hisi_fb_data_type *hisifd)
 {
 	if (!hisifd) {
@@ -220,6 +224,8 @@ static void check_pcd_errflag_report(struct hisi_fb_data_type *hisifd)
 	(void)lcd_kit_check_pcd_errflag_check(hisifd);
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int lcd_kit_on(struct platform_device* pdev)
 {
 	struct hisi_fb_data_type* hisifd = NULL;
@@ -263,7 +269,7 @@ static int lcd_kit_on(struct platform_device* pdev)
 			}
 			pinfo->lcd_init_step = LCD_INIT_MIPI_LP_SEND_SEQUENCE;
 			panel_name = common_info->panel_model != NULL ? common_info->panel_model : disp_info->compatible;
-			LCD_KIT_INFO("lcd_name is %s\n", panel_name);
+			//LCD_KIT_INFO("lcd_name is %s\n", panel_name);
 			LOG_JANK_D(JLID_KERNEL_LCD_POWER_ON, "%s", "LCD_POWER_ON");
 			break;
 		case LCD_INIT_MIPI_LP_SEND_SEQUENCE:
@@ -273,7 +279,12 @@ static int lcd_kit_on(struct platform_device* pdev)
 			}
 			/*update gamma*/
 			lcd_kit_update_gamma_from_tpic(hisifd);
+<<<<<<< HEAD
 			lcd_kit_set_elvss_dim_lp(hisifd);
+=======
+			/*read power status*/
+			lcd_kit_read_power_status(hisifd);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			pinfo->lcd_init_step = LCD_INIT_MIPI_HS_SEND_SEQUENCE;
 			break;
 		case LCD_INIT_MIPI_HS_SEND_SEQUENCE:
@@ -326,7 +337,6 @@ static int lcd_kit_off(struct platform_device* pdev)
 	struct hisi_fb_data_type* hisifd = NULL;
 	struct hisi_panel_info* pinfo = NULL;
 	struct lcd_kit_ops *lcd_ops = NULL;
-	char *panel_name = common_info->panel_model != NULL ? common_info->panel_model : disp_info->compatible;
 
 	if (NULL == pdev) {
 		LCD_KIT_ERR("NULL Pointer\n");
@@ -359,10 +369,13 @@ static int lcd_kit_off(struct platform_device* pdev)
 	}
 	switch (pinfo->lcd_uninit_step) {
 		case LCD_UNINIT_MIPI_HS_SEND_SEQUENCE:
+<<<<<<< HEAD
 			/*check pcd errflag and report dmd*/
 			check_pcd_errflag_report(hisifd);
 			// check mipi errors
 			common_ops->mipi_check(hisifd, panel_name, disp_info->quickly_sleep_out.panel_on_record_tv.tv_sec);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			// backlight off
 			hisi_lcd_backlight_off(pdev);
 			if (common_ops->panel_off_hs) {
@@ -914,9 +927,16 @@ static int lcd_kit_set_fastboot(struct platform_device* pdev)
 			LCD_KIT_INFO("read panel version fail.\n");
 		}
 	}
+<<<<<<< HEAD
 
 	fastboot_check_dsm_ocuppy();
 
+=======
+	/*check backlight short for fastboot*/
+	if (common_info->check_thread.check_bl_support) {
+		fastboot_bl_short_check();
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	/*update gamma*/
 	lcd_kit_update_gamma_from_tpic(hisifd);
 	return LCD_KIT_OK;
@@ -1211,9 +1231,7 @@ static int lcd_kit_probe(struct platform_device* pdev)
 	/*7.init panel ops*/
 	lcd_kit_panel_init();
 	/*8.init debug*/
-#ifdef LCD_KIT_DEBUG_ENABLE
 	lcd_kit_dbg_init();
-#endif
 	/*9.probe driver*/
 	if (hisi_fb_device_probe_defer(pinfo->type, pinfo->bl_set_type)) {
 		goto err_probe_defer;

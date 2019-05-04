@@ -727,15 +727,14 @@ static int acm_notify_serial_state(struct f_acm *acm)
 
 static int acm_notify_flow_control(struct f_acm *acm)
 {
-	int status;
-	u16 value;
-
 	if (!acm) {
 		pr_err("%s:acm NULL pointer\n", __func__);
 		return -EINVAL;
 	}
 
-	value = (acm->rx_is_on ? 0x1 : 0x0) | (acm->tx_is_on ? 0x2 : 0x0);
+	int status;
+	u16 value = (acm->rx_is_on ? 0x1 : 0x0) | (acm->tx_is_on ? 0x2 : 0x0);
+
 	spin_lock(&acm->lock);
 	if (acm->notify_req) {
 		status = acm_cdc_notify(acm, USB_CDC_VENDOR_NTF_FLOW_CONTROL,
@@ -1107,23 +1106,28 @@ static struct configfs_item_operations acm_item_ops = {
 #endif
 };
 
+<<<<<<< HEAD
 #if (KERNEL_VERSION(4, 4, 0) <= LINUX_VERSION_CODE)
 static ssize_t f_acm_port_num_show(struct config_item *item, char *page)
-{
-	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
-}
-
-CONFIGFS_ATTR_RO(f_acm_, port_num);
-static struct configfs_attribute *acm_attrs[] = {
-	&f_acm_attr_port_num,
-	NULL,
-};
-#else
+=======
 static ssize_t f_acm_port_num_show(struct f_serial_opts *opts, char *page)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	return sprintf(page, "%u\n", opts->port_num);
 }
 
+<<<<<<< HEAD
+CONFIGFS_ATTR_RO(f_acm_, port_num);
+=======
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+
+CONFIGFS_ATTR_RO(f_acm_port_, num);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+static struct configfs_attribute *acm_attrs[] = {
+	&f_acm_port_attr_num,
+	NULL,
+};
+#else
 static struct f_serial_opts_attribute f_acm_port_num =
 	__CONFIGFS_ATTR_RO(port_num, f_acm_port_num_show);
 

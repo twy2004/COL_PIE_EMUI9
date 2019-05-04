@@ -5295,7 +5295,7 @@ int workqueue_sysfs_register(struct workqueue_struct *wq)
 
 	ret = device_register(&wq_dev->dev);
 	if (ret) {
-		put_device(&wq_dev->dev);
+		kfree(wq_dev);
 		wq->wq_dev = NULL;
 		return ret;
 	}

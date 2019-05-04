@@ -881,7 +881,7 @@ static void sdhci_arasan_hw_reset(struct sdhci_host *host)
 	sdhci_of_arasan_PHY_init(host);
 }
 
-int sdhci_of_arasan_chk_busy_before_send_cmd(struct sdhci_host *host,
+void sdhci_of_arasan_chk_busy_before_send_cmd(struct sdhci_host *host,
 	struct mmc_command* cmd)
 {
 	unsigned long timeout;
@@ -894,15 +894,15 @@ int sdhci_of_arasan_chk_busy_before_send_cmd(struct sdhci_host *host,
 			if (timeout == 0) {
 				pr_err("%s: wait busy 10s time out.\n", mmc_hostname(host->mmc));
 				sdhci_dumpregs(host);
-				cmd->error = -ENOMSG;
+				cmd->error = -EIO;
 				tasklet_schedule(&host->finish_tasklet);
-				return -ENOMSG;
+				return;
 			}
 			timeout--;
 			mdelay(1);
 		}
 	}
-	return 0;
+	return;
 }
 
 int sdhci_arasan_enable_dma(struct sdhci_host *host)
@@ -1309,13 +1309,6 @@ void sdhci_dsm_handle(struct sdhci_host *host, struct mmc_request *mrq)
 			queue_work(system_freezable_wq, &sdhci_arasan->dsm_work);
 		}
 	}
-}
-
-void sdhci_dsm_report(struct mmc_host *host, struct mmc_request *mrq)
-{
-	struct sdhci_host *sdhci_host = mmc_priv(host);
-	sdhci_dsm_set_host_status(sdhci_host, SDHCI_INT_TIMEOUT);
-	sdhci_dsm_handle(sdhci_host, mrq);
 }
 #endif
 

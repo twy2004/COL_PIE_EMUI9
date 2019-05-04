@@ -80,8 +80,14 @@ extern "C" {
 /*****************************************************************************
   1 宏定义
 *****************************************************************************/
+<<<<<<< HEAD
 
 #define OM_SYSCTRL_MAGIC        (0x5B5C5C5B)
+=======
+#define RDR_MODEM_NR_MOD_ID_START          0xb0000000
+#define RDR_MODEM_NR_MOD_ID_END            0xbfffffff
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 
 /* dump侵入内核修改 begin */

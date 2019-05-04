@@ -86,9 +86,9 @@ int flash_find_ptn(const char* str, char* pblkname)
 	int current_ptn_num = 0;
 	struct partition *current_partition_table = NULL;
 	enum bootdevice_type boot_device_type = BOOT_DEVICE_EMMC;
-	char partition_name_tmp[MAX_PARTITION_NAME_LENGTH];
 #ifdef CONFIG_HISI_AB_PARTITION
 	enum AB_PARTITION_TYPE storage_boot_partition_type;
+	char partition_name_tmp[MAX_PARTITION_NAME_LENGTH];
 #endif
 
 	if ((NULL == pblkname) || (NULL == str)) {
@@ -119,6 +119,8 @@ int flash_find_ptn(const char* str, char* pblkname)
 			return 0;
 		}
 	}
+#ifdef CONFIG_HISI_AB_PARTITION
+	storage_boot_partition_type = get_device_boot_partition_type();
 
 	if(strlen(str) > (sizeof(partition_name_tmp) - 3))
 	{
@@ -128,9 +130,6 @@ int flash_find_ptn(const char* str, char* pblkname)
 
 	memset(partition_name_tmp,0,sizeof(partition_name_tmp));/* unsafe_function_ignore: memset */
 	strncpy(partition_name_tmp, str, sizeof(partition_name_tmp) - 3);/* unsafe_function_ignore: strncpy */
-
-#ifdef CONFIG_HISI_AB_PARTITION
-	storage_boot_partition_type = get_device_boot_partition_type();
 	if (BOOT_XLOADER_A == storage_boot_partition_type) {
 		strncpy(partition_name_tmp + strlen(partition_name_tmp), "_a", (unsigned long)3);/* unsafe_function_ignore: strncpy */
 	} else if (BOOT_XLOADER_B == storage_boot_partition_type) {
@@ -147,19 +146,12 @@ int flash_find_ptn(const char* str, char* pblkname)
 			return 0;
 		}
 	}
-#else
-	strncpy(partition_name_tmp + strlen(partition_name_tmp), "_a", (unsigned long)3);/* unsafe_function_ignore: strncpy */
-	current_ptn_num = get_cunrrent_total_ptn_num();
-
-	for(n = 0; n < current_ptn_num; n++) {
-		if(!strcmp((current_partition_table + n)->name, partition_name_tmp)) {/*[false alarm]:current_partition_table!=NULL*/
-			strncpy(pblkname, device_path, strlen(device_path));/* unsafe_function_ignore: strncpy */
-			strncpy(pblkname + strlen(device_path), str, strlen(str)+1);/* unsafe_function_ignore: strncpy */
-			return 0;
-		}
-	}
 #endif
+<<<<<<< HEAD
 	pr_err("[%s]partition is not found, str = %s, pblkname = %s\n",__func__,str, pblkname);
+=======
+	printk(KERN_ERR "partition is not found\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return -1;
 }
 EXPORT_SYMBOL(flash_find_ptn);
@@ -173,9 +165,9 @@ int flash_get_ptn_index(const char* pblkname)
 	int current_ptn_num;
 	struct partition *current_partition_table = NULL;
 	enum bootdevice_type boot_device_type;
-	char partition_name_tmp[MAX_PARTITION_NAME_LENGTH];
 #ifdef CONFIG_HISI_AB_PARTITION
 	enum AB_PARTITION_TYPE storage_boot_partition_type;
+	char partition_name_tmp[MAX_PARTITION_NAME_LENGTH];
 #endif
 	if (NULL == pblkname) {
 		pr_err("Input partition name is NULL\n");
@@ -199,7 +191,11 @@ int flash_get_ptn_index(const char* pblkname)
 	current_ptn_num = get_cunrrent_total_ptn_num();
 
 	if(!strcmp(PART_XLOADER, pblkname)) {
+<<<<<<< HEAD
 		pr_err("[%s]This is boot partition\n",__func__);
+=======
+		printk(KERN_ERR "This is boot partition\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -1;
 	}
 
@@ -210,6 +206,9 @@ int flash_get_ptn_index(const char* pblkname)
 		}
 	}
 
+#ifdef CONFIG_HISI_AB_PARTITION
+	storage_boot_partition_type = get_device_boot_partition_type();
+
 	if(strlen(pblkname) > (sizeof(partition_name_tmp) - 3))
 	{
 		pr_err("Invalid input pblkname\n");
@@ -218,10 +217,6 @@ int flash_get_ptn_index(const char* pblkname)
 
 	memset(partition_name_tmp,0,sizeof(partition_name_tmp));/* unsafe_function_ignore: memset */
 	strncpy(partition_name_tmp, pblkname, sizeof(partition_name_tmp) - 3);/* unsafe_function_ignore: strncpy */
-
-#ifdef CONFIG_HISI_AB_PARTITION
-	/*A/B partition*/
-	storage_boot_partition_type = get_device_boot_partition_type();
 	if (BOOT_XLOADER_A == storage_boot_partition_type) {
 		strncpy(partition_name_tmp + strlen(partition_name_tmp), "_a", 3);/* unsafe_function_ignore: strncpy */
 	} else if (BOOT_XLOADER_B == storage_boot_partition_type) {
@@ -229,17 +224,20 @@ int flash_get_ptn_index(const char* pblkname)
 	} else {
 		return -1;
 	}
-#else
-	strncpy(partition_name_tmp + strlen(partition_name_tmp), "_a", 3);/* unsafe_function_ignore: strncpy */
-#endif
 
+	/*A/B partition*/
 	for(n = 0; n < current_ptn_num; n++) {
 		if (!strcmp((current_partition_table + n)->name, partition_name_tmp)) {
 			return n;
 		}
 	}
+#endif
 
+<<<<<<< HEAD
 	pr_err("[%s]Input partition(%s) is not found\n",__func__,pblkname);
+=======
+	printk(KERN_ERR "Input partition is not found\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return -1;
 }
 EXPORT_SYMBOL(flash_get_ptn_index);

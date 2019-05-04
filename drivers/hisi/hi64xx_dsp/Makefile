@@ -9,7 +9,7 @@ EXTRA_CFLAGS += -Idrivers/hisi/mntn/blackbox/platform_hifi/
 EXTRA_CFLAGS += -Idrivers/hisi/soundtrigger/
 EXTRA_CFLAGS += -Isound/soc/codecs/hisi/hi6xxx_fpga_test/
 
-ifeq ($(CONFIG_HISI_AUDIO_DEBUG),y)
+ifneq ($(TARGET_BUILD_VARIANT),user)
 ifeq ($(kcov),true)
 EXTRA_CFLAGS += -DENABLE_AUDIO_KCOV
 else
@@ -40,10 +40,18 @@ endif
 obj-$(CONFIG_HI6402_HIFI_MISC) += hi64xx_hifi_misc.o
 obj-$(CONFIG_HI6402_HIFI_MISC) += hi6403_hifi_config.o
 
+<<<<<<< HEAD
 ifeq ($(CONFIG_SND_SOC_HI6405),y)
 obj-$(CONFIG_SND_SOC_HI6405) += hi6405_hifi_config.o
 endif
 
+=======
+#ifneq ($(TARGET_BUILD_VARIANT),user)
+#ifeq ($(CONFIG_SND_SOC_CODEC_STUB),y)
+#	obj-$(CONFIG_HI6402_HIFI_MISC) += hi6405es_hifi_config.o
+#endif
+#endif
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 obj-$(CONFIG_HI6402_HIFI_MISC) += hi64xx_hifi_img_dl.o
 obj-$(CONFIG_HI6402_HIFI_MISC) += hi64xx_hifi_om.o

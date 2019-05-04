@@ -45,5 +45,4 @@ struct mmc_blk_data {
 #define mmc_req_rel_wr(req)	((req->cmd_flags & REQ_FUA) && \
 				 (rq_data_dir(req) == WRITE))
 
-extern int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host, int type);
 #endif

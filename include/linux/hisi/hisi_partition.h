@@ -242,10 +242,13 @@ enum {
 #define PART_MODEM_PATCH_NV_A         "modem_patch_nv_a"
 #define PART_MODEM_PATCH_NV           "modem_patch_nv"
 #define PART_MODEM_DRIVER_A           "modem_driver_a"
+<<<<<<< HEAD
 #define PART_MODEM_DRIVER             "modem_driver"
 #define PART_HIEPS                    "hieps"
 #define PART_HIEPS_A                  "hieps_a"
 #define PART_HIEPS_B                  "hieps_b"
 #define PART_DICE                  "dice"
 #define PART_NPU                  "npu"
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif

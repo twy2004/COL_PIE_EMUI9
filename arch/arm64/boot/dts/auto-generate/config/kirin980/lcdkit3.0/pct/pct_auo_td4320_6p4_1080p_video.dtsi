@@ -23,7 +23,7 @@
 		lcd-kit,panel-type = <0x01>;
 		lcd-kit,panel-xres = <1080>;
 		lcd-kit,panel-yres = <2310>;
-		lcd-kit,panel-width = <69>;
+		lcd-kit,panel-width = <68>;
 		lcd-kit,panel-height = <147>;
 		lcd-kit,panel-on-cmds = <0x05 0x01 0x00 0x00 0x0a 0x00 0x02 0x29 0x00
 			0x05 0x01 0x00 0x00 0x50 0x01 0x02 0x11 0x00>;
@@ -39,19 +39,13 @@
 			0x29 0x01 0x00 0x00 0x12 0x00 0x09 0xc6 0x00 0x0a 0x08 0xff 0xff 0xff 0xff 0x00
 			0x29 0x01 0x00 0x00 0x0a 0x00 0x02 0xb0 0x03>;
 		lcd-kit,esd-reg-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a
+			0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0e
 			0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0xda>;
 		lcd-kit,esd-reg-cmds-state = "dsi_lp_mode";
-		lcd-kit,esd-value = <0x1c 0x0100>;
+		lcd-kit,esd-value = <0x1c 0x00 0x0100>;
 		lcd-kit,check-reg-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
 		lcd-kit,check-reg-cmds-state = "dsi_lp_mode";
-		lcd-kit,check-reg-value = <0x1c>;
-		lcd-kit,check-reg-on-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
-		lcd-kit,check-reg-on-value = <0x9c>;
-		lcd-kit,check-reg-off-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x0a>;
-		lcd-kit,check-reg-off-value = <0x08>;
-		lcd-kit,mipi-check-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0x05>;
-		lcd-kit,mipi-check-cmds-state = "dsi_lp_mode";
-		lcd-kit,mipi-check-value = <0x00>;
+		lcd-kit,check-reg-value = <0x9c>;
 		lcd-kit,project-id-cmds = <0x06 0x01 0x00 0x00 0x0a 0x00 0x40 0xBF 0x37 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00>;
 		lcd-kit,project-id-cmds-state = "dsi_lp_mode";
 		lcd-kit,panel-bl-maxnit-command = <0x06 0x01 0x00 0x00 0x0a 0x00 0x01 0xdb>;
@@ -85,9 +79,12 @@
 		lcd-kit,quickly-sleep-out-interval = <0>;
 		lcd-kit,esd-support = <1>;
 		lcd-kit,project-id-support = <1>;
+<<<<<<< HEAD
 		lcd-kit,default-project-id = "PRIN69170";
 		lcd-kit,dpi01-set-change = <0>;
 		lcd-kit,pxl-clk-to-pll2 = <0>;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		lcd-kit,oem-info-support = <0>;
 		lcd-kit,oem-barcode-2d-support = <0>;
 		lcd-kit,dirty-region-support = <0>;
@@ -102,15 +99,20 @@
 		lcd-kit,dirty-top-start = <0xffff>;
 		lcd-kit,dirty-bott-start = <0xffff>;
 		lcd-kit,panel-bl-type = <4>;
-		lcd-kit,panel-bl-min = <25>;
-		lcd-kit,panel-bl-max = <7350>;
+		lcd-kit,panel-bl-min = <100>;
+		lcd-kit,panel-bl-max = <9260>;
 		lcd-kit,panel-bl-def = <4000>;
 		lcd-kit,panel-bl-pwm-preci-type = <1>;
 		lcd-kit,panel-bl-ic-ctrl-type = <6>;
+<<<<<<< HEAD
 		lcd-kit,h-back-porch = <26>;
 		lcd-kit,h-front-porch = <180>;
 		lcd-kit,ldi-dpi0-overlap-size = <0>;
 		lcd-kit,ldi-dpi1-overlap-size = <0>;
+=======
+		lcd-kit,h-back-porch = <22>;
+		lcd-kit,h-front-porch = <184>;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		lcd-kit,h-pulse-width = <6>;
 		lcd-kit,v-back-porch = <60>;
 		lcd-kit,v-front-porch = <4>;
@@ -121,16 +123,16 @@
 		lcd-kit,ldi-data-en-plr = <0>;
 		lcd-kit,ldi-dpi-a-overlap-size = <0>;
 		lcd-kit,ldi-dpi-b-overlap-size = <0>;
-		lcd-kit,mipi-dsi-upt-support = <1>;
+		lcd-kit,mipi-dsi-upt-support = <0>;
 		lcd-kit,mipi-lane-nums = <3>;
 		lcd-kit,mipi-color-mode = <5>;
 		lcd-kit,video-idle-mode-support = <0>;
 		lcd-kit,mipi-vc = <0>;
-		lcd-kit,mipi-dsi-bit-clk = <552>;
+		lcd-kit,mipi-dsi-bit-clk = <548>;
 		lcd-kit,mipi-burst-mode = <2>;
 		lcd-kit,mipi-max-tx-esc-clk = <10>;
-		lcd-kit,mipi-dsi-bit-clk-val1 = <562>;
-		lcd-kit,mipi-dsi-bit-clk-val2 = <552>;
+		lcd-kit,mipi-dsi-bit-clk-val1 = <0>;
+		lcd-kit,mipi-dsi-bit-clk-val2 = <0>;
 		lcd-kit,mipi-dsi-bit-clk-val3 = <0>;
 		lcd-kit,mipi-dsi-bit-clk-val4 = <0>;
 		lcd-kit,mipi-dsi-bit-clk-val5 = <0>;
@@ -145,6 +147,7 @@
 		lcd-kit,inversion-support = <1>;
 		lcd-kit,scan-support = <0>;
 		lcd-kit,check-reg-support = <1>;
+<<<<<<< HEAD
 		lcd-kit,check-reg-on-support = <1>;
 		lcd-kit,check-reg-on-support-dsm-report = <0>;
 		lcd-kit,check-reg-off-support = <1>;
@@ -152,6 +155,8 @@
 		lcd-kit,check-reg-off-support-dsm-report = <0>;
 		lcd-kit,mipi-check-support = <1>;
 		lcd-kit,panel-mipi-error-report-threshold = <1>;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		lcd-kit,checksum-support = <0>;
 		lcd-kit,current-det-support = <0>;
 		lcd-kit,lv-det-support = <0>;
@@ -176,16 +181,16 @@
 		lcd-kit,tp-reset = <2 15 0>;
 		lcd-kit,lcd-te0 = <2 3 0>;
 		lcd-kit,lcd-backlight = <2 0 0>;
-		lcd-kit,power-on-stage = <2 1 11>;
-		lcd-kit,lp-on-stage = <0 0 10
-				3 1 5
-				4 1 5
-				7 1 2
-				5 1 20
-				8 1 0
-				0 0 10
+		lcd-kit,power-on-stage = <2 1 11
+				3 1 10
+				4 1 12>;
+		lcd-kit,lp-on-stage = <0 1 10
+				7 1 0
+				5 1 6
+				5 0 1
+				5 1 15
 				6 1 0>;
-		lcd-kit,hs-on-stage = <0 0 0>;
+		lcd-kit,hs-on-stage = <8 1 0>;
 		lcd-kit,hs-off-stage = <6 0 0
 				7 0 5
 				8 0 0>;
@@ -197,7 +202,7 @@
 				2 0 10>;
 		lcd-kit,tp-color-support = <1>;
 		lcd-kit,panel-bl-max-nit = <500>;
-		lcd-kit,cabc-support = <0>;
+		lcd-kit,cabc-support = <1>;
 		lcd-kit,rgbw-support = <0>;
 		lcd-kit,blpwm-disable = <1>;
 		lcd-kit,blpwm-div = <0>;
@@ -212,7 +217,7 @@
 		lcd-kit,hbm-fp-prepare-support = <0>;
 		lcd-kit,hbm-level-max = <0>;
 		lcd-kit,vr-support = <0>;
-		lcd-kit,gamma-cal-support = <0>;
+		lcd-kit,gamma-cal-support = <1>;
 		lcd-kit,sbl-support = <0>;
 		lcd-kit,sbl-stren-limit = <128>;
 		lcd-kit,sbl-cal-a = <60>;
@@ -234,9 +239,13 @@
 		lcd-kit,brightness-color-uniform-support = <0>;
 		lcd-kit,dbv-curve-mapped-support = <0>;
 		lcd-kit,gamma-support = <1>;
+<<<<<<< HEAD
 		lcd-kit,cascade-ic-support = <0>;
 		lcd-kit,otp-gamma-support = <0>;
 		lcd-kit,pcd-cmds-support = <0>;
+=======
+		lcd-kit,otp-gamma-support = <0>;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		lcd-kit,ce-support = <0>;
 		lcd-kit,effect-on-support = <0>;
 		lcd-kit,gmp-support = <1>;

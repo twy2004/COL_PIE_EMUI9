@@ -44,9 +44,7 @@
 #include <linux/ion-iommu.h>
 #include <linux/atomic.h>
 #include <linux/platform_device.h>
-#ifdef CONFIG_HISI_LB
-#include <linux/hisi/hisi_lb.h>
-#endif
+
 #include <linux/hisi/rdr_hisi_ap_hook.h>
 #include "ion.h"
 #include "ion_priv.h"
@@ -56,7 +54,6 @@
 
 #define HISI_ION_FLUSH_ALL_CPUS_CACHES	(0x800000) /*8MB*/
 
-static atomic_long_t ion_magic;
 static atomic_long_t ion_total_size;
 
 bool ion_buffer_fault_user_mappings(struct ion_buffer *buffer)
@@ -134,7 +131,6 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	if (!buffer)
 		return ERR_PTR(-ENOMEM);
 
-	buffer->magic = atomic64_inc_return(&ion_magic);
 	buffer->heap = heap;
 	buffer->flags = flags;
 	kref_init(&buffer->ref);
@@ -309,6 +305,7 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 
 	if (WARN_ON(buffer->kmap_cnt > 0))
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
+<<<<<<< HEAD
 
 #ifdef CONFIG_HISI_LB
 	/*
@@ -319,6 +316,8 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 		(void)lb_sg_detach(buffer->plc_id, buffer->sg_table->sgl,
 				 buffer->sg_table->nents);
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	buffer->heap->ops->free(buffer);
 	vfree(buffer->pages);
 	kfree(buffer);

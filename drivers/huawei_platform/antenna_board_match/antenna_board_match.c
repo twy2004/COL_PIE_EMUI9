@@ -29,8 +29,12 @@ struct antenna_sysfs_field_info {
 };
 
 static struct antenna_sysfs_field_info antenna_tb[] = {
+<<<<<<< HEAD
 	ANTENNA_SYSFS_FIELD_RO(antenna_board_match,    BOARD_MATCH),
 	ANTENNA_SYSFS_FIELD_RO(antenna_board_voltage,  BOARD_VOLTAGE),
+=======
+    ANTENNA_SYSFS_FIELD_RO(antenna_board_match,    BOARD_MATCH),
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 static struct attribute *antenna_sysfs_attrs[ARRAY_SIZE(antenna_tb) + 1];
@@ -78,6 +82,7 @@ static inline void antenna_match_sysfs_remove_group(
 static ssize_t antenna_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
+<<<<<<< HEAD
 	int adc_ret = 0;
 	struct antenna_sysfs_field_info *info = NULL;
 	struct antenna_device_info *di = dev_get_drvdata(dev);
@@ -102,6 +107,28 @@ static ssize_t antenna_show(struct device *dev,
 		break;
 	}
 	return 0;
+=======
+    int adc_ret = 0;
+    struct antenna_sysfs_field_info *info = NULL;
+    struct antenna_device_info *di = dev_get_drvdata(dev);
+
+    if (NULL == di) {
+        hwlog_err("[%s]di is NULL!\n",__func__);
+        return -ENODEV;
+    }
+    info = antenna_board_lookup(attr->attr.name);
+    if (!info)
+        return -EINVAL;
+    switch(info->name){
+        case ANTENNA_BOARD_MATCH:
+            adc_ret = di->ops->get_antenna_match_status();
+            return snprintf(buf, PAGE_SIZE, "%d\n", adc_ret);
+        default:
+            hwlog_err("(%s)NODE ERR!!HAVE NO THIS NODE:(%d)\n",__func__,info->name);
+            break;
+    }
+    return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static struct class *hw_antenna_class;
@@ -142,6 +169,7 @@ int antenna_match_ops_register(struct antenna_device_ops *ops)
 
 static int antenna_board_match_probe(struct platform_device *pdev)
 {
+<<<<<<< HEAD
 	int ret = 0;
 	struct antenna_device_info *di;
 
@@ -190,6 +218,57 @@ static int antenna_board_match_probe(struct platform_device *pdev)
 	}
 	hwlog_info("huawei antenna board match probe ok!\n");
 	return 0;
+=======
+    int ret;
+    struct antenna_device_info *di;
+
+    di = kzalloc(sizeof(*di), GFP_KERNEL);
+    if (!di)
+    {
+        hwlog_err("alloc di failed\n");
+        return -ENOMEM;
+    }
+    di->dev = &pdev->dev;
+    di->ops = g_antenna_board_match_ops;
+
+    //match ops
+    if( (NULL == di->ops)||(di->ops->get_antenna_match_status == NULL))
+    {
+        hwlog_err("antenna_board_match ops is NULL!\n");
+        goto Antenna_board_failed_0;
+    }
+
+    platform_set_drvdata(pdev, di);
+
+    ret = antenna_match_sysfs_create_group(di);
+    if (ret) {
+        hwlog_err("can't create antenna_match sysfs entries\n");
+        goto Antenna_board_failed_0;
+    }
+    antenna_board_match_class = hw_antenna_get_class();
+    if(antenna_board_match_class)
+    {
+        if(antenna_adc_dev == NULL)
+        antenna_adc_dev = device_create(antenna_board_match_class, NULL, 0, NULL,"antenna_board");
+        if(IS_ERR(antenna_adc_dev))
+        {
+            antenna_adc_dev = NULL;
+            hwlog_err("create rf_dev failed!\n");
+            goto Antenna_board_failed_1;
+        }
+        ret = sysfs_create_link(&antenna_adc_dev->kobj, &di->dev->kobj, "antenna_board_data");
+        if(ret)
+        {
+            hwlog_err("create link to board_match fail.\n");
+            goto Antenna_board_failed_1;
+        }
+    }else{
+        hwlog_err("get antenna_match_class fail.\n");
+        goto Antenna_board_failed_1;
+    }
+    hwlog_info("huawei antenna board match probe ok!\n");
+    return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 Antenna_board_failed_1:
 	antenna_match_sysfs_remove_group(di);

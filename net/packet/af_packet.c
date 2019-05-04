@@ -2914,17 +2914,20 @@ static int packet_snd(struct socket *sock, struct msghdr *msg, size_t len)
 	if (skb == NULL)
 		goto out_unlock;
 
-	skb_reset_network_header(skb);
+	skb_set_network_header(skb, reserve);
 
 	err = -EINVAL;
 	if (sock->type == SOCK_DGRAM) {
 		offset = dev_hard_header(skb, dev, ntohs(proto), addr, NULL, len);
 		if (unlikely(offset < 0))
 			goto out_free;
+<<<<<<< HEAD
 	} else if (reserve) {
 		skb_reserve(skb, -reserve);
 		if (len < reserve)
 			skb_reset_network_header(skb);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
 	/* Returns -EFAULT on error */
@@ -4307,8 +4310,13 @@ static int packet_set_ring(struct sock *sk, union tpacket_req_u *req_u,
 			goto out;
 		min_frame_size = po->tp_hdrlen + po->tp_reserve;
 		if (po->tp_version >= TPACKET_V3 &&
+<<<<<<< HEAD
 		    req->tp_block_size <
 		    BLK_PLUS_PRIV((u64)req_u->req3.tp_sizeof_priv) + min_frame_size)
+=======
+		    req->tp_block_size <=
+			  BLK_PLUS_PRIV((u64)req_u->req3.tp_sizeof_priv))
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			goto out;
 		if (unlikely(req->tp_frame_size < min_frame_size))
 			goto out;

@@ -84,15 +84,11 @@ int hisi_jpu_dec_err_config(struct hisi_jpu_data_type *hisijd)
 		return -EINVAL;
 	}
 
-	HISI_JPU_INFO("+");
-
 	if (g_debug_jpu_dec) {
 		HISI_JPU_ERR("jpu decode err!\n");
 	}
 
 	hisi_jpu_dec_error_reset(hisijd);
-
-	HISI_JPU_INFO("-");
 
 	return 0;
 }
@@ -104,11 +100,7 @@ int hisi_jpu_dec_other_config(struct hisi_jpu_data_type *hisijd)
 		return -EINVAL;
 	}
 
-	HISI_JPU_INFO("+");
-
 	hisi_jpu_dec_error_reset(hisijd);
-
-	HISI_JPU_INFO("-");
 
 	return 0;
 }
@@ -148,8 +140,6 @@ irqreturn_t hisi_jpu_dec_err_isr(int irq, void *ptr)
 	int isr_s1 = 0;
 	int ret = 0;
 
-	HISI_JPU_INFO("+");
-
 	hisijd = (struct hisi_jpu_data_type *)ptr;
 	if (!hisijd) {
 		HISI_JPU_ERR("hisijd is NULL!\n");
@@ -168,8 +158,6 @@ irqreturn_t hisi_jpu_dec_err_isr(int irq, void *ptr)
 	ret = hisi_jpu_dec_err_config(hisijd);
 	if (ret)
 		HISI_JPU_ERR("hisi_jpu_dec_err_config failed!\n");
-
-	HISI_JPU_INFO("-");
 
 err_out:
 	return IRQ_HANDLED;

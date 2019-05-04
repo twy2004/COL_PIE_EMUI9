@@ -1,5 +1,3 @@
-#include <linux/fdtable.h>
-#include <linux/sched.h>
 /**
  * This C file is included by ion.c, so it is the extension of ion.c
  * in fact. Function hisi_ion_total is  called at lowmemory case.
@@ -32,6 +30,7 @@ unsigned long hisi_ion_total(void)
 #endif
 }
 
+<<<<<<< HEAD
 /* this func must be in ion.c */
 static inline struct ion_buffer *get_ion_buf(struct dma_buf *dbuf)
 {
@@ -100,6 +99,8 @@ int hisi_ion_proecss_info(void)
 }
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int hisi_ion_memory_info(bool verbose)
 {
 	struct rb_node *n;
@@ -120,7 +121,6 @@ int hisi_ion_memory_info(bool verbose)
 #endif
 	if (!verbose)
 		return 0;
-
 	down_read(&dev->client_lock);
 	for (n = rb_first(&dev->clients); n; n = rb_next(n)) {
 		struct ion_client *client = rb_entry(n,
@@ -153,8 +153,5 @@ int hisi_ion_memory_info(bool verbose)
 				buffer->pid, buffer->size);
 	}
 	mutex_unlock(&dev->buffer_lock);
-
-	hisi_ion_proecss_info();
-
 	return 0;
 }

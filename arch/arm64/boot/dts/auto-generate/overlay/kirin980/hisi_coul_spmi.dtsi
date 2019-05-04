@@ -35,7 +35,6 @@ coul_polar:coul_polar{
 		startup_delta_soc = <10>;
 		dischg_ocv_enable = <0>;
 		dischg_ocv_soc = <5>;
-		check_ocv_data_enable = <1>;
 		status = "disabled";
    };
    spmi: spmi@FFF24000 {

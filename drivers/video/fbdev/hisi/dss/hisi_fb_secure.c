@@ -448,6 +448,7 @@ void hisi_drm_layer_online_clear(struct hisi_fb_data_type *hisifd, dss_overlay_t
 	dss_overlay_block_t *pov_h_block_infos = NULL;
 	dss_overlay_block_t *pov_h_block = NULL;
 	struct hisifb_secure *secure_ctrl = NULL;
+<<<<<<< HEAD
 
 	if (hisifd == NULL) {
 		HISI_FB_ERR("hisifd is null!\n");
@@ -462,6 +463,11 @@ void hisi_drm_layer_online_clear(struct hisi_fb_data_type *hisifd, dss_overlay_t
 		return;
 	}
 
+=======
+	int compose_mode, cmd_mode;
+	compose_mode = (hisifd->index == PRIMARY_PANEL_IDX) ? ONLINE_COMPOSE_MODE : OVL1_ONLINE_COMPOSE_MODE;
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	secure_ctrl = &(hisifd->secure_ctrl);//lint !e838
 	pov_h_block_infos = (dss_overlay_block_t *)(pov_req_prev->ov_block_infos_ptr);//lint !e838
 

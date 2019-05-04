@@ -307,7 +307,6 @@ int kbase_pm_policy_init(struct kbase_device *kbdev)
 			kbasep_pm_do_gpu_poweroff_callback;
 
 #ifdef CONFIG_MALI_PM_DEMAND
-	/* Use always_on in cs */
 	if (kbase_has_hi_feature(kbdev, KBASE_FEATURE_HI0013)) {
 		kbdev->pm.backend.pm_current_policy = policy_list[2];
 	}else
@@ -599,7 +598,7 @@ void kbase_pm_update_cores_state_nolock(struct kbase_device *kbdev)
 		kbasep_pm_do_poweroff_cores(kbdev);
 
 	/* Don't need 'cores_are_available', because we don't return anything */
-	CSTD_UNUSED(cores_are_available);//lint !e644
+	CSTD_UNUSED(cores_are_available);
 }
 
 void kbase_pm_update_cores_state(struct kbase_device *kbdev)

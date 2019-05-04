@@ -472,9 +472,6 @@ struct mipi_dsi_phy_ctrl {
 	uint32_t rg_0p8v;
 	uint32_t rg_lpf_r;
 	uint32_t rg_cp;
-	uint32_t rg_pll_fbkdiv;
-	uint32_t rg_pll_prediv;
-	uint32_t rg_pll_posdiv;
 	uint32_t t_prepare;
 	uint32_t t_lpx;
 	uint32_t t_prebegin;

@@ -117,7 +117,7 @@
 #define LCDKIT_TS_RESUME_AFTER_DIS_ON   BIT(0)
 #define LCDKIT_TS_RESUME_BEFORE_LCD_RST  BIT(1)
 
-#define LCDKIT_MAX_PANEL_NAME_LEN (128)
+
 #define MAX_BUF 60
 #define LCD_REG_LENGTH_MAX 200
 #define LCD_REG_NUM 50
@@ -914,11 +914,6 @@ struct lcdkit_panel_infos
     u8 reset_pull_high_flag;
     u8 tprst_before_lcdrst;
     u8 tpfw_early_lcdinit;
-    u8 tp_before_lcdsleep;
-
-    /*for tp_reset after lcd reset low*/
-    u8 tp_after_lcd_reset;
-    u8 tp_befor_vsn_low_delay;
 
     /*control reset shutdown timing*/
     u8 reset_shutdown_later;
@@ -977,7 +972,6 @@ struct lcdkit_panel_infos
     struct lcdkit_dsi_panel_cmds host_2d_barcode_enter_cmds;
     struct lcdkit_dsi_panel_cmds host_2d_barcode_cmds;
     struct lcdkit_dsi_panel_cmds host_2d_barcode_exit_cmds;
-    u8 block_num_offset;
     /*Host project ID support*/
     u32 eml_read_reg_flag;
     struct lcdkit_dsi_panel_cmds host_project_id_enter_cmds;
@@ -1013,7 +1007,6 @@ struct lcdkit_panel_infos
     uint32_t delay_af_LP11;
     uint32_t delay_af_tp_reset;
     uint32_t delay_af_tp_after_resume;
-    uint32_t delay_af_tp_before_suspend;
     u8 rst_after_vbat_flag;
     u8 lcdph_delay_set_flag;
 

@@ -1458,6 +1458,7 @@ out:
 	return ret;
 }
 
+<<<<<<< HEAD
 static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
 {
 	unsigned int op =	  (encoded_op & 0x70000000) >> 28;
@@ -1505,6 +1506,8 @@ static int futex_atomic_op_inuser(unsigned int encoded_op, u32 __user *uaddr)
 	}
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*
  * Wake up all waiters hashed on the physical page that is mapped
  * to this virtual address:

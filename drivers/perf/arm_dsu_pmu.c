@@ -29,7 +29,6 @@
 #include <linux/smp.h>
 #include <linux/sysfs.h>
 #include <linux/types.h>
-#include <linux/cpu_pm.h>
 
 #include <asm/arm_dsu_pmu.h>
 #include <asm/local64.h>
@@ -123,9 +122,6 @@ struct dsu_pmu {
 	struct hlist_node		cpuhp_node;
 	s8				num_counters;
 	int				irq;
-	struct notifier_block	cpu_pm_nb;
-	bool fcm_idle;
-	spinlock_t fcm_idle_lock;
 	DECLARE_BITMAP(cpmceid_bitmap, DSU_PMU_MAX_COMMON_EVENTS);
 };
 
@@ -342,6 +338,7 @@ static inline void dsu_pmu_set_event(struct dsu_pmu *dsu_pmu,
 					struct perf_event *event)
 {
 	int idx = event->hw.idx;
+	unsigned long flags;
 
 	if (!dsu_pmu_counter_valid(dsu_pmu, idx)) {
 		dev_err(event->pmu->dev,
@@ -349,7 +346,9 @@ static inline void dsu_pmu_set_event(struct dsu_pmu *dsu_pmu,
 		return;
 	}
 
+	raw_spin_lock_irqsave(&dsu_pmu->pmu_lock, flags);
 	__dsu_pmu_set_event(idx, event->hw.config_base);
+	raw_spin_unlock_irqrestore(&dsu_pmu->pmu_lock, flags);
 }
 
 static void dsu_pmu_event_update(struct perf_event *event)
@@ -421,34 +420,24 @@ static irqreturn_t dsu_pmu_handle_irq(int irq_num, void *dev)
 static void dsu_pmu_start(struct perf_event *event, int pmu_flags)
 {
 	struct dsu_pmu *dsu_pmu = to_dsu_pmu(event->pmu);
-	unsigned long flags;
 
 	/* We always reprogram the counter */
 	if ((unsigned int)pmu_flags & PERF_EF_RELOAD)
 		WARN_ON(!(event->hw.state & PERF_HES_UPTODATE));
-
 	dsu_pmu_set_event_period(event);
-	event->hw.state = 0;
-
-	raw_spin_lock_irqsave(&dsu_pmu->pmu_lock, flags);
 	if (event->hw.idx != DSU_PMU_IDX_CYCLE_COUNTER)
 		dsu_pmu_set_event(dsu_pmu, event);
+	event->hw.state = 0;
 	dsu_pmu_enable_counter(dsu_pmu, event->hw.idx);
-	raw_spin_unlock_irqrestore(&dsu_pmu->pmu_lock, flags);
 }
 
 static void dsu_pmu_stop(struct perf_event *event, int pmu_flags)
 {
 	struct dsu_pmu *dsu_pmu = to_dsu_pmu(event->pmu);
-	unsigned long flags;
 
 	if (event->hw.state & PERF_HES_STOPPED)
 		return;
-
-	raw_spin_lock_irqsave(&dsu_pmu->pmu_lock, flags);
 	dsu_pmu_disable_counter(dsu_pmu, event->hw.idx);
-	raw_spin_unlock_irqrestore(&dsu_pmu->pmu_lock, flags);
-
 	dsu_pmu_event_update(event);
 	event->hw.state |= PERF_HES_STOPPED | PERF_HES_UPTODATE;
 }
@@ -616,13 +605,11 @@ static struct dsu_pmu *dsu_pmu_alloc(struct platform_device *pdev)
 		return ERR_PTR(-ENOMEM);
 
 	raw_spin_lock_init(&dsu_pmu->pmu_lock);
-	spin_lock_init(&dsu_pmu->fcm_idle_lock);
 	/*
 	 * Initialise the number of counters to -1, until we probe
 	 * the real number on a connected CPU.
 	 */
 	dsu_pmu->num_counters = -1; /*lint !e570*/
-	dsu_pmu->fcm_idle = false;
 	return dsu_pmu;
 }
 
@@ -703,6 +690,7 @@ static void dsu_pmu_init_pmu(struct dsu_pmu *dsu_pmu)
 	dsu_pmu_get_reset_overflow();
 }
 
+<<<<<<< HEAD
 struct cpu_pm_dsu_pmu_args {
 	struct dsu_pmu	*dsu_pmu;
 	unsigned long	cmd;
@@ -855,6 +843,8 @@ static void cpu_pm_dsu_pmu_common(void *info) { }
 #endif
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int dsu_pmu_device_probe(struct platform_device *pdev)
 {
 	int irq, rc;
@@ -911,20 +901,12 @@ static int dsu_pmu_device_probe(struct platform_device *pdev)
 		.attr_groups	= dsu_pmu_attr_groups,
 	};
 
-	rc = cpu_pm_dsu_pmu_register(dsu_pmu);
-	if(rc){
-		cpuhp_state_remove_instance(dsu_pmu_cpuhp_state,
-						 &dsu_pmu->cpuhp_node);
-		irq_set_affinity_hint(dsu_pmu->irq, NULL);
-	}
-
 #ifdef CONFIG_HISI_L3C_DEVFREQ
 	rc = perf_pmu_register(&dsu_pmu->pmu, name, PERF_TYPE_DSU);
 #else
 	rc = perf_pmu_register(&dsu_pmu->pmu, name, -1);
 #endif
 	if (rc) {
-		cpu_pm_dsu_pmu_unregister(dsu_pmu);
 		cpuhp_state_remove_instance(dsu_pmu_cpuhp_state,
 						 &dsu_pmu->cpuhp_node);
 		irq_set_affinity_hint(dsu_pmu->irq, NULL);
@@ -938,7 +920,6 @@ static int dsu_pmu_device_remove(struct platform_device *pdev)
 	struct dsu_pmu *dsu_pmu = platform_get_drvdata(pdev);
 
 	perf_pmu_unregister(&dsu_pmu->pmu);
-	cpu_pm_dsu_pmu_unregister(dsu_pmu);
 	cpuhp_state_remove_instance(dsu_pmu_cpuhp_state, &dsu_pmu->cpuhp_node);
 	irq_set_affinity_hint(dsu_pmu->irq, NULL);
 

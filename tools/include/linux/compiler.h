@@ -1,14 +1,6 @@
 #ifndef _TOOLS_LINUX_COMPILER_H_
 #define _TOOLS_LINUX_COMPILER_H_
 
-#ifdef __GNUC__
-#include <linux/compiler-gcc.h>
-#endif
-
-#ifndef __compiletime_error
-# define __compiletime_error(message)
-#endif
-
 /* Optimization barrier */
 /* The "volatile" is due to gcc bugs */
 #define barrier() __asm__ __volatile__("": : :"memory")
@@ -29,8 +21,6 @@
 #endif
 
 #define __user
-#define __rcu
-#define __read_mostly
 
 #ifndef __attribute_const__
 # define __attribute_const__
@@ -59,8 +49,6 @@
 #ifndef unlikely
 # define unlikely(x)		__builtin_expect(!!(x), 0)
 #endif
-
-#define uninitialized_var(x) x = *(&(x))
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 
@@ -140,7 +128,11 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 
 
 #ifndef __fallthrough
-# define __fallthrough
+# if defined(__GNUC__) && __GNUC__ >= 7
+#  define __fallthrough __attribute__ ((fallthrough))
+# else
+#  define __fallthrough
+# endif
 #endif
 
 #endif /* _TOOLS_LINUX_COMPILER_H */

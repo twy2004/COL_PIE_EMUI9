@@ -23,7 +23,7 @@
 	&huawei_imx316{
 		compatible = "huawei,sensor";
 		huawei,sensor_name = "IMX316";
-		huawei,sensor_index = <5>;//rear_second
+		huawei,sensor_index = <2>;
 		huawei,is_fpga = <0>;
 		huawei,pd_valid = <1>;
 		huawei,reset_valid = <1>;
@@ -58,7 +58,7 @@
 			"sensor_iovdd",
 			"sensor_mclk",
 			"sensor_rst";
-		huawei,cam-power-seq-cfg-val = <2800000 1205000 0 0 1800000 0 0>;
+		huawei,cam-power-seq-cfg-val = <2800000 1100000 0 0 1800000 0 0>;
 		huawei,cam-power-seq-sensor-index = <0xFF 0xFF 0xFF 0xFF 0xFF 2 0xFF>;
 		huawei,cam-power-seq-delay = <0 0 0 0 0 0 1>;
 
@@ -70,13 +70,11 @@
 			"sensor_avdd2_en",
 			"sensor_dvdd",
 			"sensor_avdd1";
-		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 0 0 1205000 2800000>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 0 0 1100000 2800000>;
 		huawei,cam-power-down-seq-sensor-index = <0xFF 2 0xFF 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <1 0 0 0 0 0 0>;
-		huawei,ext_type = <1>;
-		huawei,ext_name = "liteon_lumentum";//for TOF Tx
 
-		status = "ok";
+		status = "disabled";
 	};
 
 	&huawei_lcd_panel {
@@ -89,14 +87,3 @@
 		iovcc_ctrl_mode = <1>;
 		lcd_panel_type = "auo_otm1901a_5p2_1080p_video";
 	};
-
-	&amba {
-
-		i2c@FDF0D000 {
-			nfc@28{
-				nfc_chip_type = "pn80t";
-				nfc_ese_type = "p61";
-				nfc_ese_num = <0x2>;
-			};
-		};
-	};	

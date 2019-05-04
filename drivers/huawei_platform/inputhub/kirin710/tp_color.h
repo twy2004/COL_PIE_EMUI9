@@ -41,9 +41,12 @@ enum PHONE_TYPE {
 	JKM = 44,
 	HRY = 45,
 	POT = 46,
+<<<<<<< HEAD
 	MAR = 47,
 	STK = 48,
 	GLK = 49,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 enum PHONE_VERSION {
@@ -662,8 +665,8 @@ PINHOLE_ALS_PARA_TABLE pinhole_als_para_diff_tp_color_table[] = {
 
 	{JSN, V4, LTR578, TS_PANEL_UNKNOWN, {800, 269, 342, 308, 389, 0, 1631, 2030, 6000, 300}},
 	{JSN, V4, APDS9922, TS_PANEL_UNKNOWN, {895, 294, 175, 145, 185, 0, 3375, 4270, 6000, 300}},
-	{JKM, V4, LTR578, TS_PANEL_UNKNOWN, {1340, 394, 573, 522, 725, 0, 704, 948, 6000, 300}},
-	{JKM, V4, APDS9922, TS_PANEL_UNKNOWN, {1806, 517, 318, 371, 399, 0, 1304, 1997, 6000,300}},
+	{JKM, V4, LTR578, TS_PANEL_UNKNOWN, {1340, 394, 745, 585, 906, 0, 704, 948, 6000, 300}},
+	{JKM, V4, APDS9922, TS_PANEL_UNKNOWN, {1806, 517, 382, 295, 538, 0, 1304, 1997, 6000,300}},
 };
 
 TMD2745_ALS_PARA_TABLE tmd2745_als_para_diff_tp_color_table[] = {
@@ -734,16 +737,14 @@ TSL2591_ALS_PARA_TABLE tsl2591_als_para_diff_tp_color_table[] = {
 	{POT, V4, TS_PANEL_UNKNOWN,
 	 {8108, 1550, 1936, 3195, 0, 0, 0, 0, 0, 0, 674, 113, 30000, 0} },
 
-	{MAR, V4, TS_PANEL_UNKNOWN,
-	 {9278, 1510, 4337, 7547, 2742, 4396, 500, 0, 690, 290, 1122, 218, 10000, 100} },
-
 };
 
 BH1726_ALS_PARA_TABLE bh1726_als_para_diff_tp_color_table[] = {
 	{HRY, V4, TS_PANEL_UNKNOWN,
-	 {881, 930, 515, 515, 436, 550, 144, 144, 768, 931, 3775, 3775, 2199, 299, 5000, 300} },
+	 {945, 784, 531, 531, 475, 301, 112, 112, 924, 1333, 4718, 4718, 2199, 299, 30000, 100} },
 
 	{POT, V4, TS_PANEL_UNKNOWN,
+<<<<<<< HEAD
 	 {496, 600, 296, 296, 275, 390, 85, 85, 694, 923, 3254, 3254, 4197, 563, 5000, 300} },
 
 	{MAR, V4, TS_PANEL_UNKNOWN,
@@ -814,4 +815,9 @@ als_para_normal_table ltr2568_als_para_diff_tp_color_table[] = {
 	{ 230, 50, 512, 514, 418, 0, 10000, 1660, 7500, 200} },
 };
 
+=======
+	 {494, 414, 272, 272, 261, 174, 62, 62, 914, 1277, 4309, 4309, 4197, 563, 30000, 100} },
+};
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif //__LINUX_LCDPARA_H__

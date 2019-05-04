@@ -557,7 +557,6 @@ void touch_report(struct ts_fingers *info)
 	const struct syna_tcm_board_data *bdata = NULL;
 	unsigned char esd_report = 0;
 	unsigned char touch_report_fw = 0;
-	static int last_touch_count = 0;
 
 	if((!touch_hcd)||(!touch_hcd->tcm_hcd)||(!touch_hcd->tcm_hcd->bdata)) {
 		TS_LOG_ERR("%s, touch_hcd is _NULL\n", __func__);
@@ -586,7 +585,7 @@ void touch_report(struct ts_fingers *info)
 	if (SYNA_FW_SUPPORT_ESD == tcm_hcd->device_status_check) {
 		touch_report_fw = (unsigned char)(tcm_hcd->device_status & 0xff); /* If the INT is TOUCH, the value is 0x01, otherwise is 0x00. */
 		esd_report = (unsigned char)(tcm_hcd->device_status >> 8); /* If the INT is ESD, the value is 0x01, otherwise is 0x00.  */
-		TS_LOG_DEBUG("touch_report = %x, esd_report = %x\n", touch_report_fw, esd_report);
+		TS_LOG_DEBUG("touch_report = %x, esd_report = %x\n", touch_report, esd_report);
 	}
 	/************************************************************************************************/
 	/* if not goto ESD case(firmware not support ESD report), 'device_status_check' value is false.	*/
@@ -641,6 +640,7 @@ void touch_report(struct ts_fingers *info)
 				info->fingers[idx].xer = (object_data[idx].grip_data >> 16) & 0xFF;
 				info->fingers[idx].ewy = (object_data[idx].grip_data >> 8) & 0xFF;
 				info->fingers[idx].ewx = (object_data[idx].grip_data >> 0) & 0xFF;
+				TS_LOG_DEBUG("Finger %d: x = %d, y = %d\n", idx, x, y);
 				TS_LOG_DEBUG("Finger %d: ewx= %d, ewy= %d\n",
 					idx, info->fingers[idx].ewx , info->fingers[idx].ewy);
 				TS_LOG_DEBUG("Finger %d: xer= %d, yer= %d\n", idx, info->fingers[idx].xer, info->fingers[idx].yer);
@@ -653,11 +653,10 @@ void touch_report(struct ts_fingers *info)
 		}
 
 		info->cur_finger_number = touch_count;
-		last_touch_count = touch_count;
 	}
 	tcm_hcd->esd_report_status = NOT_NEED_REPORT;
 	/* firmware support ESD repoert and this INT is ESD */
-	if (!last_touch_count && !touch_count && NEED_REPORT == esd_report && SYNA_FW_SUPPORT_ESD == tcm_hcd->device_status_check) {
+	if (NEED_REPORT == esd_report && SYNA_FW_SUPPORT_ESD == tcm_hcd->device_status_check) {
 		tcm_hcd->esd_report_status = NEED_REPORT;
 	}
 exit:
@@ -693,9 +692,6 @@ static int touch_get_input_params(void)
 	}
 
 	report_config = kzalloc(TOUCH_REPORT_CONFIG_SIZE + 4, GFP_KERNEL);
-	if (!report_config) {
-		TS_LOG_ERR("%s: kzalloc fail\n", __func__);
-	}
 
 	LOCK_BUFFER(tcm_hcd->config);
 	retval = syna_tcm_alloc_mem(tcm_hcd,

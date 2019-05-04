@@ -38,6 +38,7 @@
 
 int do_swap_page(struct fault_env *fe, pte_t orig_pte);
 
+<<<<<<< HEAD
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 static inline bool vma_has_changed(struct fault_env *vmf)
 {
@@ -54,6 +55,8 @@ static inline bool vma_has_changed(struct fault_env *vmf)
 }
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *start_vma,
 		unsigned long floor, unsigned long ceiling);
 

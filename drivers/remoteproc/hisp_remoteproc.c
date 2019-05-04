@@ -235,7 +235,6 @@ struct rproc_boot_device {
     struct hisi_isp_vring_s hisi_isp_vring[HISI_ISP_VRING_NUM];
 #endif
     int probe_finished;
-    int sec_thread_wake;
     struct hisi_isp_clk_dump_s hisi_isp_clk;
     unsigned char isp_efuse_flag;
     void* isp_bin_vaddr;
@@ -628,6 +627,7 @@ void hisp_rproc_resource_cleanup(struct rproc *rproc)
 		list_del(&cache_entry->node);
 		kfree(cache_entry);
 	}
+<<<<<<< HEAD
 	/*clean up sec tsctable mem*/
     if (is_use_secisp()) {
         if (use_sec_isp())
@@ -635,18 +635,24 @@ void hisp_rproc_resource_cleanup(struct rproc *rproc)
         else if(is_use_loadbin())
             hisp_free_rsctable();
     }
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	/* clean dynamic mem pool */
 	hisp_dynamic_mem_pool_clean();
 }
 
 void hisp_virtio_boot_complete(struct rproc *rproc, int flag)
 {
+<<<<<<< HEAD
     if (!rproc) {
         pr_err("%s: rproc is NULL \n", __func__);
         return;
     }
 
 	if (flag != 0) {
+=======
+	if (flag) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		rproc->rproc_enable_flag = false;
 		pr_err("[%s] Failed : handle resources flag.%d\n", __func__, flag);
 	} else {
@@ -964,6 +970,7 @@ int sec_rproc_boot(struct rproc *rproc)
 	    pr_err("[%s] Failed : rproc_find_rsc_table.%pK\n", __func__, table);
 		return -EINVAL;
 	}
+
 	/* Verify that resource table in loaded fw is unchanged */
 	if (rproc->table_csum != crc32(0, table, tablesz)) {
 		dev_err(dev, "Failed : resource checksum 0x%x = 0x%x\n", rproc->table_csum, crc32(0, table, tablesz));
@@ -1014,6 +1021,7 @@ clean_up:
     return ret;
 }
 
+<<<<<<< HEAD
 int hisp_rproc_rsctable_init(void)
 {
     struct rproc_boot_device *rproc_dev = &rproc_boot_dev;
@@ -1034,9 +1042,14 @@ int hisp_rproc_rsctable_init(void)
 }
 
 int hisi_firmware_load_func(struct rproc *rproc)
+=======
+void sec_rscwork_func(struct work_struct *work)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
-    int ret = 0;
+    struct rproc *rproc;
+    int ret;
 
+<<<<<<< HEAD
     if (is_use_secisp()) {
         if (use_sec_isp()) {
             if ((ret = hisp_rsctable_init()) < 0) {
@@ -1049,11 +1062,17 @@ int hisi_firmware_load_func(struct rproc *rproc)
                 return ret;
             }
         }
+=======
+    if ((ret = hisp_rsctable_init()) < 0) {
+        pr_err("[%s] Failed : hisp_rsctable_init.%d\n", __func__, ret);
+        return;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     }
 
+    rproc = container_of(work, struct rproc, sec_rscwork);
     rproc_fw_config_virtio(NULL, rproc);
-    return 0;
 }
+
 struct rproc_shared_para *rproc_get_share_para(void)
 {
     pr_debug("%s: enter.\n", __func__);
@@ -2067,10 +2086,10 @@ static void hisi_isp_efuse_deskew(void)
     }
 
     if ((ret = get_efuse_deskew_value(&efuse, 1, 1000)) < 0) {
-        pr_err("[%s] Failed: ret.%d\n", __func__, ret);
+        pr_err("[%s] Failed: pefuse.%d, ret.%d\n", __func__, efuse, ret);
     }
+    pr_err("[%s] : efuse.%d\n", __func__, efuse);
 
-    pr_err("[%s] : efuse.%d\n", __func__, ret);
     hisp_lock_sharedbuf();
     share_para = rproc_get_share_para();
     if (!share_para) {
@@ -2913,7 +2932,6 @@ static int isp_mbox_rx_thread(void *context)
             mutex_unlock(&rproc_dev->hisi_isp_power_mutex);
             return -ENODEV;
         }
-        hisp_recvthread();
         isp_mbox_rx_work();
         mutex_unlock(&rproc_dev->hisi_isp_power_mutex);
     }
@@ -3518,6 +3536,7 @@ int hisi_isp_rproc_enable(void)
         RPROC_INFO("Failed : isp_rproc.%pK\n", rproc_dev->isp_rproc);
         return -ENOMEM;
     }
+
     if (atomic_read(&rproc_dev->rproc_enable_status) > 0 ) {
         pr_err("[%s] hisi_isp_rproc had been enabled, rproc_enable_status.0x%x\n", __func__, atomic_read(&rproc_dev->rproc_enable_status));
         return -ENODEV;
@@ -3525,6 +3544,7 @@ int hisi_isp_rproc_enable(void)
     else
         atomic_set(&rproc_dev->rproc_enable_status, 1);
 
+<<<<<<< HEAD
     if (is_use_loadbin()) {
         if ((err = wakeup_ispbin_kthread()) != 0) {
             RPROC_ERR("Failed : wakeup_ispbin_kthread.0x%x\n", err);
@@ -3553,6 +3573,8 @@ int hisi_isp_rproc_enable(void)
     }
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     rproc = rproc_dev->isp_rproc->rproc;
 
     if (!rproc_get_sync_flag()) {
@@ -4247,8 +4269,7 @@ static int hisi_rproc_probe(struct platform_device *pdev)
     int ret;
 
     RPROC_INFO("+\n");
-    rproc_dev->probe_finished  = 0;
-    rproc_dev->sec_thread_wake = 0;
+    rproc_dev->probe_finished = 0;
     rproc_dev->isp_pdev = pdev;
     rproc_dev->isp_bin_state = 0;
     rproc_dev->isp_bin_vaddr = NULL;
@@ -4327,6 +4348,7 @@ static int hisi_rproc_probe(struct platform_device *pdev)
             }
         }
     }
+
 	if ((data = hisi_rproc_data_dtget(dev)) == NULL ) {
 		dev_err(&pdev->dev, "hisi_rproc_data_dtget: %pK\n", data);
 		goto free_regaddr_init;
@@ -4398,9 +4420,7 @@ static int hisi_rproc_probe(struct platform_device *pdev)
 #ifdef ISP_CORESIGHT
     coresight_mem_init(dev);
 #endif
-    if ((ret = hisp_rpmsg_rdr_init()) < 0 ) {
-        dev_err(&pdev->dev, "Fail :hisp_rpmsg_rdr_init: %d\n", ret);
-    }
+
     if (!client_isp)
         client_isp = dsm_register_client(&dev_isp);
     rproc_dev->probe_finished = 1;
@@ -4474,8 +4494,6 @@ static int hisi_rproc_remove(struct platform_device *pdev)
         free_mdc_ion(MEM_MDC_SIZE);
     }
     hisp_regaddr_deinit();
-    if ((ret = hisp_rpmsg_rdr_deinit()) < 0 )
-        RPROC_ERR("Fail :hisp_rpmsg_rdr_deinit: %d\n", ret);
 
     hisp_qos_free();
 

@@ -93,6 +93,5 @@ config SND_AUTO_TEST
 	tristate "Auto test sound support"
 	help
 		This option enables sound auto tesrt.
-
 endmenu
 

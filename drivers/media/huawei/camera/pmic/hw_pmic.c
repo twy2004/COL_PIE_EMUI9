@@ -225,6 +225,7 @@ int hisi_pmic_get_dt_data(struct hisi_pmic_ctrl_t *pmic_ctrl)
 		goto fail;
 	}
 
+
 fail:
 	return rc;
 }

@@ -1138,11 +1138,8 @@ void rproc_fw_config_virtio(const struct firmware *fw, void *context)
 
 	/* if rproc is marked always-on, request it to boot */
 	if (rproc->auto_boot)
-#ifdef CONFIG_HISI_REMOTEPROC
-		ret = rproc_boot_nowait(rproc);
-#else
 		rproc_boot_nowait(rproc);
-#endif
+
 	release_firmware(fw);
 	/* allow rproc_del() contexts, if any, to proceed */
 	complete_all(&rproc->firmware_loading_complete);
@@ -1158,11 +1155,19 @@ int rproc_add_virtio_devices(struct rproc *rproc)
 {
 	int ret;
 
+#ifdef CONFIG_HISI_REMOTEPROC
+	if (use_sec_isp()) {
+		init_completion(&rproc->firmware_loading_complete);
+		INIT_WORK(&rproc->sec_rscwork, sec_rscwork_func);
+		schedule_work(&rproc->sec_rscwork);
+		return 0;
+	}
+
+	pr_info("[%s] +\n", __func__);
+#endif
 	/* rproc_del() calls must wait until async loader completes */
 	init_completion(&rproc->firmware_loading_complete);
-#ifdef CONFIG_HISI_REMOTEPROC
-	ret = hisi_firmware_load_func(rproc);
-#else
+
 	/*
 	 * We must retrieve early virtio configuration info from
 	 * the firmware (e.g. whether to register a virtio device,
@@ -1174,7 +1179,6 @@ int rproc_add_virtio_devices(struct rproc *rproc)
 	ret = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
 				      rproc->firmware, &rproc->dev, GFP_KERNEL,
 				      rproc, rproc_fw_config_virtio);
-#endif
 	if (ret < 0) {
 		dev_err(&rproc->dev, "request_firmware_nowait err: %d\n", ret);
 		complete_all(&rproc->firmware_loading_complete);

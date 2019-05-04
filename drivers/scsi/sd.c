@@ -2456,7 +2456,6 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
 	int res;
 	struct scsi_device *sdp = sdkp->device;
 	struct scsi_mode_data data;
-	int disk_ro = get_disk_ro(sdkp->disk);
 	int old_wp = sdkp->write_prot;
 
 	set_disk_ro(sdkp->disk, 0);
@@ -2497,6 +2496,7 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
 			  "Test WP failed, assume Write Enabled\n");
 	} else {
 		sdkp->write_prot = ((data.device_specific & 0x80) != 0);
+<<<<<<< HEAD
 
 #ifdef CONFIG_HUAWEI_STORAGE_ROFA_FAULT_INJECT
 		if (storage_rochk_filter_sd(sdp)) {
@@ -2523,6 +2523,9 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
 
 		set_disk_ro(sdkp->disk, sdkp->write_prot || disk_ro);
 
+=======
+		set_disk_ro(sdkp->disk, sdkp->write_prot);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (sdkp->first_scan || old_wp != sdkp->write_prot) {
 			sd_printk(KERN_NOTICE, sdkp, "Write Protect is %s\n",
 				  sdkp->write_prot ? "on" : "off");
@@ -3326,14 +3329,13 @@ static void scsi_disk_release(struct device *dev)
 	struct scsi_disk *sdkp = to_scsi_disk(dev);
 	struct gendisk *disk = sdkp->disk;
 
-	dev_info(dev, "%s ++\n", __func__);
-	disk->private_data = NULL;
-	put_disk(disk);
-	put_device(&sdkp->device->sdev_gendev);
-
 	spin_lock(&sd_index_lock);
 	ida_remove(&sd_index_ida, sdkp->index);
 	spin_unlock(&sd_index_lock);
+
+	disk->private_data = NULL;
+	put_disk(disk);
+	put_device(&sdkp->device->sdev_gendev);
 
 	kfree(sdkp);
 }

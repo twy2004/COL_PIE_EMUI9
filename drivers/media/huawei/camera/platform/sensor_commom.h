@@ -54,15 +54,6 @@ struct sensor_cfg_data;
 #define VIDIOC_HISI_CSI_DISABLE \
     _IOWR('V', BASE_VIDIOC_PRIVATE + 13, struct sensor_cfg_data)
 
-#define EXT_NAME_NUM                   (5)
-#define EXT_THRESHOLD_NUM              (EXT_NAME_NUM*2)
-
-typedef enum _ext_type
-{
-    NO_EXT_INFO = 0,
-    EXT_INFO_NO_ADC = 1,
-    EXT_INFO_ADC = 2,
-}ext_type;
 
 
 /***************************** cfg type define *******************************/
@@ -87,7 +78,6 @@ typedef enum _ext_type
 #define SENSOR_INDEX_INVALID        0xFFFFFFFF
 #define LDO_VOLTAGE_1P0V            1000000
 #define LDO_VOLTAGE_1P05V           1050000
-#define LDO_VOLTAGE_1P08V           1080000
 #define LDO_VOLTAGE_1P1V            1100000
 #define LDO_VOLTAGE_1P13V           1130000
 #define LDO_VOLTAGE_1P145V          1145000
@@ -354,12 +344,6 @@ typedef enum {
     PIN_LEVEL_HIGH
 } pin_level_t;
 
-typedef struct _tag_rpc_info_t {
-    struct workqueue_struct *rpc_work_queue;
-    struct work_struct rpc_work;
-    int camera_status;
-} rpc_info_t;
-
 typedef struct _tag_hwsensor_board_info
 {
     const char *name;   /* sensor name */
@@ -406,9 +390,8 @@ typedef struct _tag_hwsensor_board_info
     int module_type;
     int flash_pos_type;//0-alone 1-mix
     int reset_type;
-    int release_value;  //reset gpio release active value
-    int hold_value;  //reset gpio hold activity value
     int topology_type;//hardware topology type for structured light
+<<<<<<< HEAD
     int            phyinfo_valid;
     phy_info_t     phyinfo;
     /*add for TOF Tx name*/
@@ -425,6 +408,11 @@ typedef struct _tag_hwsensor_board_info
     unsigned int mipisw_enable_value0;
     unsigned int mipisw_enable_value1;
     int lpm3_gpu_buck; // for the camera is disturbed by lpm3
+=======
+
+	int            phyinfo_valid;
+	phy_info_t     phyinfo;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 } hwsensor_board_info_t;
 
 struct hisi_sensor_awb_otp {

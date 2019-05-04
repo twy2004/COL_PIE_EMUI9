@@ -861,5 +861,5 @@ static int __init kasan_memhotplug_init(void)
 	return 0;
 }
 
-core_initcall(kasan_memhotplug_init);
+module_init(kasan_memhotplug_init);
 #endif

@@ -240,9 +240,6 @@ static void __mptcp_reinject_data(struct sk_buff *orig_skb, struct sock *meta_sk
 		if (!after(end_seq, TCP_SKB_CB(skb1)->seq))
 			break;
 
-		if (before(end_seq, TCP_SKB_CB(skb1)->end_seq))
-			break;
-
 		__skb_unlink(skb1, &mpcb->reinject_queue);
 		__kfree_skb(skb1);
 	}
@@ -425,7 +422,7 @@ static int mptcp_write_dss_data_seq(const struct tcp_sock *tp, struct sk_buff *s
 	 */
 	memset(TCP_SKB_CB(skb)->dss, 0, mptcp_dss_len);
 
-	return mptcp_dss_len/sizeof(*ptr);
+	return mptcp_dss_len / sizeof(*ptr);
 }
 
 static bool mptcp_skb_entail(struct sock *sk, struct sk_buff *skb, int reinject)
@@ -459,7 +456,7 @@ static bool mptcp_skb_entail(struct sock *sk, struct sk_buff *skb, int reinject)
 	 *    (e.g., in the case of TFO retransmissions).
 	 */
 	if (skb->ip_summed == CHECKSUM_PARTIAL &&
-	    (!sk_check_csum_caps(sk) || tp->mpcb->dss_csum)) {
+	    (!(sk->sk_route_caps & NETIF_F_ALL_CSUM) || tp->mpcb->dss_csum)) {
 		subskb->csum = skb->csum = skb_checksum(skb, 0, skb->len, 0);
 		subskb->ip_summed = skb->ip_summed = CHECKSUM_NONE;
 	}
@@ -494,16 +491,20 @@ static bool mptcp_skb_entail(struct sock *sk, struct sk_buff *skb, int reinject)
 		sk->sk_wmem_queued += subskb->truesize;
 		sk_mem_charge(sk, subskb->truesize);
 	} else {
+		int err;
+
 		/* Necessary to initialize for tcp_transmit_skb. mss of 1, as
 		 * skb->len = 0 will force tso_segs to 1.
 		 */
 		tcp_init_tso_segs(subskb, 1);
+		/* Empty data-fins are sent immediatly on the subflow */
+		err = tcp_transmit_skb(sk, subskb, 1, GFP_ATOMIC);
 
-		/* Empty data-fins are sent immediately on the subflow */
-		if (tcp_transmit_skb(sk, subskb, 0, GFP_ATOMIC) != 0) {
-			kfree_skb(subskb);
+		/* It has not been queued, we can free it now. */
+		kfree_skb(subskb);
+
+		if (err)
 			return false;
-		}
 	}
 
 	if (!tp->mptcp->fully_established) {
@@ -657,7 +658,7 @@ window_probe:
 }
 
 bool mptcp_write_xmit(struct sock *meta_sk, unsigned int mss_now, int nonagle,
-		     int push_one, gfp_t gfp)
+		      int push_one, gfp_t gfp)
 {
 	struct tcp_sock *meta_tp = tcp_sk(meta_sk), *subtp;
 	struct sock *subsk = NULL;
@@ -711,18 +712,11 @@ bool mptcp_write_xmit(struct sock *meta_sk, unsigned int mss_now, int nonagle,
 		 * tcp_write_xmit has a TSO-level nagle check which is not
 		 * subject to the MPTCP-level. It is based on the properties of
 		 * the subflow, not the MPTCP-level.
-		 * When the segment is a reinjection or redundant scheduled
-		 * segment, nagle check at meta-level may prevent
-		 * sending. This could hurt with certain schedulers, as they
-		 * to reinjection to recover from a window-stall or reduce latency.
-		 * Therefore, Nagle check should be disabled in that case.
 		 */
-		if (!reinject &&
-		    unlikely(!tcp_nagle_test(meta_tp, skb, mss_now,
+		if (unlikely(!tcp_nagle_test(meta_tp, skb, mss_now,
 					     (tcp_skb_is_last(meta_sk, skb) ?
 					      nonagle : TCP_NAGLE_PUSH))))
 			break;
-
 		limit = mss_now;
 		/* skb->len > mss_now is the equivalent of tso_segs > 1 in
 		 * tcp_write_xmit. Otherwise split-point would return 0.
@@ -818,7 +812,7 @@ u32 __mptcp_select_window(struct sock *sk)
 	mss = icsk->icsk_ack.rcv_mss;
 	free_space = tcp_space(meta_sk);
 	full_space = min_t(int, meta_tp->window_clamp,
-			tcp_full_space(meta_sk));
+			   tcp_full_space(meta_sk));
 
 	if (mss > full_space)
 		mss = full_space;
@@ -890,8 +884,11 @@ void mptcp_syn_options(const struct sock *sk, struct tcp_out_options *opts,
 		*remaining -= MPTCP_SUB_LEN_CAPABLE_SYN_ALIGN;
 		opts->mp_capable.sender_key = tp->mptcp_loc_key;
 		opts->dss_csum = !!sysctl_mptcp_checksum;
+<<<<<<< HEAD
 
 		mptcp_hw_add_syn_options(sk, opts, remaining);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	} else {
 		const struct mptcp_cb *mpcb = tp->mpcb;
 
@@ -1045,13 +1042,6 @@ void mptcp_established_options(struct sock *sk, struct sk_buff *skb,
 		if (skb)
 			tp->mptcp->send_mp_prio = 0;
 		*size += MPTCP_SUB_LEN_PRIO_ALIGN;
-	} else if (unlikely(tp->mptcp->send_mp_other_prio) &&
-	    MAX_TCP_OPTION_SPACE - *size >= MPTCP_SUB_LEN_PRIO_ALIGN) {
-		opts->options |= OPTION_MPTCP;
-		opts->mptcp_options |= OPTION_MP_OTHER_PRIO;
-		if (skb)
-			tp->mptcp->send_mp_other_prio = 0;
-		*size += MPTCP_SUB_LEN_PRIO_ALIGN;
 	}
 
 	return;
@@ -1163,7 +1153,7 @@ void mptcp_options_write(__be32 *ptr, struct tcp_sock *tp,
 			}
 		}
 
-		MPTCP_INC_STATS(sock_net((struct sock *)tp), MPTCP_MIB_ADDADDRTX);
+		MPTCP_INC_STATS_BH(sock_net((struct sock *)tp), MPTCP_MIB_ADDADDRTX);
 	}
 	if (unlikely(OPTION_REMOVE_ADDR & opts->mptcp_options)) {
 		struct mp_remove_addr *mprem = (struct mp_remove_addr *)ptr;
@@ -1191,7 +1181,7 @@ void mptcp_options_write(__be32 *ptr, struct tcp_sock *tp,
 
 		ptr += len_align >> 2;
 
-		MPTCP_INC_STATS(sock_net((struct sock *)tp), MPTCP_MIB_REMADDRTX);
+		MPTCP_INC_STATS_BH(sock_net((struct sock *)tp), MPTCP_MIB_REMADDRTX);
 	}
 	if (unlikely(OPTION_MP_FAIL & opts->mptcp_options)) {
 		struct mp_fail *mpfail = (struct mp_fail *)ptr;
@@ -1235,39 +1225,12 @@ void mptcp_options_write(__be32 *ptr, struct tcp_sock *tp,
 		mpprio->addr_id = TCPOPT_NOP;
 
 		ptr += MPTCP_SUB_LEN_PRIO_ALIGN >> 2;
-	} else if (unlikely(OPTION_MP_OTHER_PRIO & opts->mptcp_options)) {
-		struct mp_prio *mpprio = (struct mp_prio *)ptr;
-		struct mptcp_cb *mpcb = tp->mpcb;
-		struct sock *other_subsk = NULL;
-		struct tcp_sock *other_subtp = NULL;
-
-		/* support at most two subflow active this version only for tencent.
-		it can be extended in future. */
-		mptcp_for_each_sk(mpcb, other_subsk) {
-			if (other_subsk->sk_state != TCP_ESTABLISHED)
-				continue;
-			other_subtp = tcp_sk(other_subsk);
-			if (other_subtp != tp) {
-				break;
-			}
-		}
-
-		if (other_subsk && other_subtp) {
-			mpprio->kind = TCPOPT_MPTCP;
-			mpprio->len = MPTCP_SUB_LEN_PRIO_ADDR;
-			mpprio->sub = MPTCP_SUB_PRIO;
-			mpprio->rsv = 0;
-			mpprio->b = other_subtp->mptcp->low_prio;
-			mpprio->addr_id = other_subtp->mptcp->loc_id;
-
-			ptr += MPTCP_SUB_LEN_PRIO_ALIGN >> 2;
-		} else {
-			if (tp->mptcp)
-				tp->mptcp->send_mp_other_prio = 1;
-		}
 	}
+<<<<<<< HEAD
 
 	mptcp_hw_add_options_write(ptr, tp, opts, skb);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 /* Sends the datafin */
@@ -1286,7 +1249,7 @@ void mptcp_send_fin(struct sock *meta_sk)
 	 */
 	mss_now = mptcp_current_mss(meta_sk);
 
-	if (tcp_send_head(meta_sk) != NULL) {
+	if (tcp_send_head(meta_sk)) {
 		TCP_SKB_CB(skb)->mptcp_flags |= MPTCPHDR_FIN;
 		TCP_SKB_CB(skb)->end_seq++;
 		meta_tp->write_seq++;
@@ -1329,7 +1292,6 @@ void mptcp_send_active_reset(struct sock *meta_sk, gfp_t priority)
 	 */
 	if (!sk || mpcb->infinite_mapping_snd || mpcb->send_infinite_mapping ||
 	    mpcb->infinite_mapping_rcv) {
-
 		/* tcp_done must be handled with bh disabled */
 		if (!in_serving_softirq())
 			local_bh_disable();
@@ -1340,7 +1302,6 @@ void mptcp_send_active_reset(struct sock *meta_sk, gfp_t priority)
 			local_bh_enable();
 		return;
 	}
-
 
 	tcp_sk(sk)->send_mp_fclose = 1;
 	/** Reset all other subflows */
@@ -1371,10 +1332,9 @@ void mptcp_send_active_reset(struct sock *meta_sk, gfp_t priority)
 
 static void mptcp_ack_retransmit_timer(struct sock *sk)
 {
-	struct inet_connection_sock *icsk = inet_csk(sk);
-	struct tcp_sock *tp = tcp_sk(sk);
-	struct net *net = sock_net(sk);
 	struct sk_buff *skb;
+	struct tcp_sock *tp = tcp_sk(sk);
+	struct inet_connection_sock *icsk = inet_csk(sk);
 
 	if (inet_csk(sk)->icsk_af_ops->rebuild_header(sk))
 		goto out; /* Routing failure or similar */
@@ -1383,7 +1343,7 @@ static void mptcp_ack_retransmit_timer(struct sock *sk)
 		tp->retrans_stamp = tcp_time_stamp ? : 1;
 
 	if (tcp_write_timeout(sk)) {
-		MPTCP_INC_STATS(sock_net(sk), MPTCP_MIB_JOINACKRTO);
+		MPTCP_INC_STATS_BH(sock_net(sk), MPTCP_MIB_JOINACKRTO);
 		tp->mptcp->pre_established = 0;
 		sk_stop_timer(sk, &tp->mptcp->mptcp_ack_timer);
 		tp->ops->send_active_reset(sk, GFP_ATOMIC);
@@ -1391,7 +1351,7 @@ static void mptcp_ack_retransmit_timer(struct sock *sk)
 	}
 
 	skb = alloc_skb(MAX_TCP_HEADER, GFP_ATOMIC);
-	if (skb == NULL) {
+	if (!skb) {
 		sk_reset_timer(sk, &tp->mptcp->mptcp_ack_timer,
 			       jiffies + icsk->icsk_rto);
 		return;
@@ -1401,7 +1361,7 @@ static void mptcp_ack_retransmit_timer(struct sock *sk)
 	skb_reserve(skb, MAX_TCP_HEADER);
 	tcp_init_nondata_skb(skb, tp->snd_una, TCPHDR_ACK);
 
-	MPTCP_INC_STATS(sock_net(sk), MPTCP_MIB_JOINACKRXMIT);
+	MPTCP_INC_STATS_BH(sock_net(sk), MPTCP_MIB_JOINACKRXMIT);
 
 	if (tcp_transmit_skb(sk, skb, 0, GFP_ATOMIC) > 0) {
 		/* Retransmission failed because of local congestion,
@@ -1414,12 +1374,11 @@ static void mptcp_ack_retransmit_timer(struct sock *sk)
 		return;
 	}
 
-
 	icsk->icsk_retransmits++;
 	icsk->icsk_rto = min(icsk->icsk_rto << 1, TCP_RTO_MAX);
 	sk_reset_timer(sk, &tp->mptcp->mptcp_ack_timer,
 		       jiffies + icsk->icsk_rto);
-	if (retransmits_timed_out(sk, net->ipv4.sysctl_tcp_retries1 + 1, 0, 0))
+	if (retransmits_timed_out(sk, sysctl_tcp_retries1 + 1, 0, 0))
 		__sk_dst_reset(sk);
 
 out:;
@@ -1520,7 +1479,7 @@ int mptcp_retransmit_skb(struct sock *meta_sk, struct sk_buff *skb)
 	skb_mstamp_get(&skb->skb_mstamp);
 
 	/* Update global TCP statistics. */
-	MPTCP_INC_STATS(sock_net(meta_sk), MPTCP_MIB_RETRANSSEGS);
+	MPTCP_INC_STATS_BH(sock_net(meta_sk), MPTCP_MIB_RETRANSSEGS);
 
 	/* Diff to tcp_retransmit_skb */
 
@@ -1534,7 +1493,7 @@ int mptcp_retransmit_skb(struct sock *meta_sk, struct sk_buff *skb)
 	return 0;
 
 failed:
-	__NET_INC_STATS(sock_net(meta_sk), LINUX_MIB_TCPRETRANSFAIL);
+	NET_INC_STATS_BH(sock_net(meta_sk), LINUX_MIB_TCPRETRANSFAIL);
 	return err;
 }
 
@@ -1593,7 +1552,7 @@ void mptcp_meta_retransmit_timer(struct sock *meta_sk)
 		return;
 
 	if (meta_icsk->icsk_retransmits == 0)
-		__NET_INC_STATS(sock_net(meta_sk), LINUX_MIB_TCPTIMEOUTS);
+		NET_INC_STATS_BH(sock_net(meta_sk), LINUX_MIB_TCPTIMEOUTS);
 
 	meta_icsk->icsk_ca_state = TCP_CA_Loss;
 
@@ -1670,8 +1629,8 @@ void mptcp_sub_retransmit_timer(struct sock *sk)
 
 /* Modify values to an mptcp-level for the initial window of new subflows */
 void mptcp_select_initial_window(int __space, __u32 mss, __u32 *rcv_wnd,
-				__u32 *window_clamp, int wscale_ok,
-				__u8 *rcv_wscale, __u32 init_rcv_wnd,
+				 __u32 *window_clamp, int wscale_ok,
+				 __u8 *rcv_wscale, __u32 init_rcv_wnd,
 				 const struct sock *sk)
 {
 	const struct mptcp_cb *mpcb = tcp_sk(sk)->mpcb;
@@ -1786,13 +1745,13 @@ static unsigned int mptcp_select_size_mss(struct sock *sk)
 	return tcp_sk(sk)->mss_cache;
 }
 
-int mptcp_select_size(const struct sock *meta_sk, bool sg, bool first_skb)
+int mptcp_select_size(const struct sock *meta_sk, bool sg)
 {
 	unsigned int mss = __mptcp_current_mss(meta_sk, mptcp_select_size_mss);
 
 	if (sg) {
 		if (mptcp_sk_can_gso(meta_sk)) {
-			mss = linear_payload_sz(first_skb);
+			mss = SKB_WITH_OVERHEAD(2048 - MAX_TCP_HEADER);
 		} else {
 			int pgbreak = SKB_MAX_HEAD(MAX_TCP_HEADER);
 
@@ -1823,7 +1782,7 @@ int mptcp_check_snd_buf(const struct tcp_sock *tp)
 	}
 
 	bw_est = div64_u64(((u64)tp->snd_cwnd * rtt_max) << 16,
-				(u64)tp->srtt_us);
+			   (u64)tp->srtt_us);
 
 	return max_t(unsigned int, (u32)(bw_est >> 16),
 			tp->reordering + 1);

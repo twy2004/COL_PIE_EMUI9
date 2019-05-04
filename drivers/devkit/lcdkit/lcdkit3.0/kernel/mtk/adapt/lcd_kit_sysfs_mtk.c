@@ -29,11 +29,15 @@
 extern struct LCM_DRIVER lcdkit_mtk_common_panel;
 /*extern declare*/
 extern int hisi_adc_get_value(int adc_channel);
+<<<<<<< HEAD
 extern int is_mipi_cmd_panel(void);
 extern bool runmode_is_factory(void);
 extern int lcd_kit_dsi_cmds_extern_tx(struct lcd_kit_dsi_panel_cmds* cmds);
 extern int do_lcm_vdo_lp_write(struct dsi_cmd_desc *write_table, unsigned int count);
 extern unsigned int lcm_get_panel_state(void);
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static ssize_t lcd_model_show(struct device* dev,
 										struct device_attribute* attr, char* buf)
 {
@@ -45,34 +49,14 @@ static ssize_t lcd_model_show(struct device* dev,
 	return ret;
 }
 
-static ssize_t lcd_type_show(struct device* dev,
-										struct device_attribute* attr, char* buf)
-{
-	if (NULL == buf){
-		LCD_KIT_ERR("NULL_PTR ERROR!\n");
-		return -EINVAL;
-	}
-	return snprintf(buf, PAGE_SIZE, "%d\n", is_mipi_cmd_panel() ? 1 : 0);
-}
-
 static ssize_t lcd_panel_info_show(struct device* dev,
 		struct device_attribute* attr, char* buf)
 {
-	#define PANEL_MAX	10
 	int ret = LCD_KIT_OK;
-	char panel_type[PANEL_MAX] = {0};
 
-	if (common_info->panel_type == LCD_TYPE) {
-		strncpy(panel_type, "LCD", strlen("LCD"));
-	} else if (common_info->panel_type == AMOLED_TYPE) {
-		strncpy(panel_type, "AMOLED", strlen("AMOLED"));
-	} else {
-		strncpy(panel_type, "INVALID", strlen("INVALID"));
+	if (common_ops->get_panel_info) {
+		ret = common_ops->get_panel_info(buf);
 	}
-
-	ret = snprintf(buf, PAGE_SIZE, "blmax:%u,blmin:%u,blmax_nit_actual:%d,blmax_nit_standard:%d,lcdtype:%s,\n",
-				   common_info->bl_level_max, common_info->bl_level_min, \
-				   common_info->actual_bl_max_nit, common_info->bl_max_nit, panel_type);
 	return ret;
 }
 
@@ -122,24 +106,6 @@ static ssize_t lcd_inversion_mode_show(struct device* dev,
 static ssize_t lcd_inversion_mode_store(struct device* dev, struct device_attribute* attr,
 		const char* buf, size_t count)
 {
-	unsigned long val = 0;
-	int ret = LCD_KIT_OK;
-
-	val = simple_strtoul(buf, NULL, 0);
-	if (common_info->inversion.support) {
-		switch (val) {
-			case COLUMN_MODE:
-				ret = lcd_kit_dsi_cmds_extern_tx(&common_info->inversion.column_cmds);
-				break;
-			case DOT_MODE:
-				ret = lcd_kit_dsi_cmds_extern_tx(&common_info->inversion.dot_cmds);
-				break;
-			default:
-				return LCD_KIT_FAIL;
-		}
-		common_info->inversion.mode = (int)val;
-		LCD_KIT_INFO("common_info->inversion.support = %d, common_info->inversion.mode = %d\n", common_info->inversion.support, common_info->inversion.mode);
-	}
 	return count;
 }
 
@@ -164,6 +130,7 @@ static ssize_t lcd_check_reg_show(struct device* dev,
 		struct device_attribute* attr, char* buf)
 {
 	int ret = LCD_KIT_OK;
+<<<<<<< HEAD
 	uint8_t read_value[MAX_REG_READ_COUNT] = {0};
 	int i = 0;
 	char* expect_ptr = NULL;
@@ -201,6 +168,8 @@ static ssize_t lcd_check_reg_show(struct device* dev,
 		LCD_KIT_ERR("panel is power off!\n");
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return ret;
 }
 
@@ -315,21 +284,12 @@ static ssize_t lcd_test_config_show(struct device* dev,
 {
 	int ret = LCD_KIT_OK;
 
-	if (common_ops->get_test_config) {
-		ret = common_ops->get_test_config(buf);
-	}
-
-	return ret;
+	return snprintf(buf, PAGE_SIZE, "%d", ret);
 }
 
 static ssize_t lcd_test_config_store(struct device* dev, struct device_attribute* attr,
 		const char* buf, size_t count)
 {
-	int ret = LCD_KIT_OK;
-
-	if (common_ops->set_test_config) {
-		ret = common_ops->set_test_config(buf);
-	}
 	return count;
 }
 
@@ -419,14 +379,8 @@ static ssize_t lcd_current_detect_show(struct device* dev,
 
 static int lcd_check_support(int index)
 {
-	if(runmode_is_factory()) {
-		return SYSFS_SUPPORT;
-	}
-
 	switch (index) {
 		case LCD_MODEL_INDEX:
-			return SYSFS_SUPPORT;
-		case LCD_TYPE_INDEX:
 			return SYSFS_SUPPORT;
 		case PANEL_INFO_INDEX:
 			return SYSFS_SUPPORT;
@@ -492,7 +446,6 @@ static int lcd_check_support(int index)
 struct lcd_kit_sysfs_ops g_lcd_sysfs_ops = {
 	.check_support = lcd_check_support,
 	.model_show = lcd_model_show,
-	.type_show = lcd_type_show,
 	.panel_info_show = lcd_panel_info_show,
 	.inversion_mode_show = lcd_inversion_mode_show,
 	.inversion_mode_store = lcd_inversion_mode_store,

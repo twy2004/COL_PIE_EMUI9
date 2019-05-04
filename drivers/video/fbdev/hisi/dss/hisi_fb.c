@@ -280,6 +280,7 @@ struct platform_device *hisi_fb_add_device(struct platform_device *pdev)
 	return this_dev;
 }
 
+<<<<<<< HEAD
 static void hisifb_fb1_blank_sem0_lock_unlock(struct hisi_fb_data_type *hisifd)
 {
 	static int locked = 0;
@@ -320,16 +321,13 @@ static void hisi_fb_displayeffect_update(struct hisi_fb_data_type *hisifd)
 
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int hisi_fb_blank_sub(int blank_mode, struct fb_info *info)
 {
 	struct hisi_fb_data_type *hisifd = NULL;
 	int ret = 0;
 	int curr_pwr_state = 0;
-
-	if (NULL == info) {
-		HISI_FB_ERR("info is NULL");
-		return -EINVAL;
-	}
 
 	hisifd = (struct hisi_fb_data_type *)info->par;//lint !e838
 	if (NULL == hisifd) {
@@ -342,15 +340,17 @@ int hisi_fb_blank_sub(int blank_mode, struct fb_info *info)
 	down(&hisifd->blank_sem_effect);
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
+<<<<<<< HEAD
 		hisi_fb_displayeffect_update(hisifd);
 		hisifb_fb1_blank_sem0_lock_unlock(hisifd);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (!hisifd->panel_power_on) {
 			ret = hisifd->on_fnc(hisifd);
 			if (ret == 0) {
 				hisifd->panel_power_on = true;
 			}
 		}
-		hisifb_fb1_blank_sem0_lock_unlock(hisifd);
 		break;
 
 	case FB_BLANK_VSYNC_SUSPEND:
@@ -398,7 +398,9 @@ int hisi_fb_blank_sub(int blank_mode, struct fb_info *info)
 	up(&hisifd->blank_sem_effect);
 	up(&hisifd->blank_sem0);
 	up(&hisifd->blank_sem);
-
+	if ((hisifd->index == PRIMARY_PANEL_IDX) && (blank_mode == FB_BLANK_UNBLANK)) {
+		hisifb_pipe_clk_updt_handler(hisifd, true);
+	}
 	return ret;
 }
 
@@ -577,8 +579,12 @@ static void hisi_fb_unblank_wq_handle(struct work_struct *work)
 		ret = hisi_fb_blank_sub(FB_BLANK_UNBLANK, info);
 		if (ret != 0) {
 			HISI_FB_ERR("fb%d, blank_mode(%d) failed!\n", hisifd->index, FB_BLANK_UNBLANK);
+<<<<<<< HEAD
 			up(&hisifd->fast_unblank_sem);
 			return;
+=======
+			return ret;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 
 		{
@@ -595,15 +601,23 @@ static void hisi_fb_unblank_wq_handle(struct work_struct *work)
 		ret = hisifb_ce_service_blank(FB_BLANK_UNBLANK, info);
 		if (ret != 0) {
 			HISI_FB_ERR("fb%d, blank_mode(%d) hisifb_ce_service_blank() failed!\n", hisifd->index, FB_BLANK_UNBLANK);
+<<<<<<< HEAD
 			up(&hisifd->fast_unblank_sem);
 			return;
+=======
+			return ret;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 
 		ret = hisifb_display_engine_blank(FB_BLANK_UNBLANK, info);
 		if (ret != 0) {
 			HISI_FB_ERR("fb%d, blank_mode(%d) hisifb_display_engine_blank() failed!\n", hisifd->index, FB_BLANK_UNBLANK);
+<<<<<<< HEAD
 			up(&hisifd->fast_unblank_sem);
 			return;
+=======
+			return ret;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 	}
 
@@ -619,7 +633,7 @@ void hisi_aod_schedule_wq(void)
 	hisifd = g_hisifd_fb0;
 	if (NULL == hisifd) {
 		HISI_FB_ERR("NULL Pointer\n");
-		return;
+		return -EINVAL;
 	}
 	hisifd->enable_fast_unblank = TRUE;
 	queue_work(hisifd->aod_ud_fast_unblank_workqueue, &hisifd->aod_ud_fast_unblank_work);
@@ -821,11 +835,6 @@ static int hisi_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info
 	struct hisi_fb_data_type *hisifd = NULL;
 
 	if (NULL == info) {
-		HISI_FB_ERR("NULL Pointer\n");
-		return -EINVAL;
-	}
-
-	if (NULL == var) {
 		HISI_FB_ERR("NULL Pointer\n");
 		return -EINVAL;
 	}
@@ -1431,6 +1440,7 @@ static int hisi_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long a
 		if (hisifd->dp_get_color_bit_mode)
 			ret = hisifd->dp_get_color_bit_mode(hisifd, argp);
 		break;
+<<<<<<< HEAD
 	case HISIFB_DPTX_GET_SOURCE_MODE:
 		if (hisifd->dp_get_source_mode)
 			ret = hisifd->dp_get_source_mode(hisifd, argp);
@@ -1443,6 +1453,8 @@ static int hisi_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long a
 		ret = hisi_dss_buffer_unmap_iova(info, argp);
 		break;
 #else
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	case HISIFB_GRALLOC_GET_PHYS:
 		ret = hisifb_get_ion_phys(info, argp);
 		break;
@@ -2199,16 +2211,12 @@ static int hisi_fb_register(struct hisi_fb_data_type *hisifd)
 */
 static void hisi_create_aod_wq(struct hisi_fb_data_type *hisifd)
 {
-	if (NULL ==  hisifd) {
-		HISI_FB_ERR("hisifd NULL Pointer!\n");
-		return;
-	}
 	/*creat aod workqueue*/
 	if (hisifd->index == PRIMARY_PANEL_IDX) {
 		hisifd->aod_ud_fast_unblank_workqueue= create_singlethread_workqueue("aod_ud_fast_unblank");
 		if (!hisifd->aod_ud_fast_unblank_workqueue) {
 			HISI_FB_ERR("creat aod work queue failed!\n");
-			return;
+			return -1;
 		}
 		INIT_WORK(&hisifd->aod_ud_fast_unblank_work, hisi_fb_unblank_wq_handle);
 
@@ -2768,6 +2776,31 @@ static int hisi_fb_pm_suspend(struct device *dev)
 	return 0;
 }
 
+/**
+static int hisi_fb_pm_resume(struct device *dev)
+{
+	struct hisi_fb_data_type *hisifd = NULL;
+	int ret = 0;
+
+	hisifd = dev_get_drvdata(dev);
+	if (!hisifd)
+		return 0;
+
+	if (hisifd->index != PRIMARY_PANEL_IDX)
+		return 0;
+
+	HISI_FB_INFO("fb%d, +.\n", hisifd->index);
+
+	ret = hisi_fb_resume_sub(hisifd);
+	if (ret != 0) {
+		HISI_FB_ERR("fb%d, failed to hisi_fb_resume_sub! ret=%d\n", hisifd->index, ret);
+	}
+
+	HISI_FB_INFO("fb%d, -.\n", hisifd->index);
+
+	return 0;
+}
+*/
 
 static void hisi_fb_shutdown(struct platform_device *pdev)
 {

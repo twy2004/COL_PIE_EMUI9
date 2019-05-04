@@ -727,9 +727,7 @@ static int rpmsg_recv_single(struct virtproc_info *vrp, struct device *dev,
 	if (ept) {
 		/* make sure ept->cb doesn't go away while we use it */
 		mutex_lock(&ept->cb_lock);
-#ifdef CONFIG_HISI_REMOTEPROC
-		hisp_recvin((void *)msg->data);
-#endif
+
 		if (ept->cb)
 			ept->cb(ept->rpdev, msg->data, msg->len, ept->priv,
 				msg->src);
@@ -781,6 +779,9 @@ static void rpmsg_recv_done(struct virtqueue *rvq)
 			break;
 
 		msgs_received++;
+#ifdef CONFIG_HISI_REMOTEPROC
+        hisp_recvin();
+#endif
 		msg = virtqueue_get_buf(rvq, &len);
 	}
 

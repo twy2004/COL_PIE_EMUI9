@@ -9263,7 +9263,7 @@ oal_uint32  wal_regdomain_update_sta_etc(oal_uint8 uc_vap_id)
 
     oal_net_device_stru           *pst_net_dev;
     oal_int32                      l_ret;
-    oal_bool_enum_uint8            us_updata_rd_by_ie_switch = OAL_FALSE;
+    oal_bool_enum_uint8            us_updata_rd_by_ie_switch;
 
     hmac_vap_get_updata_rd_by_ie_switch_etc(uc_vap_id, &us_updata_rd_by_ie_switch);
 

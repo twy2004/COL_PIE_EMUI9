@@ -38,8 +38,12 @@
 #define NETWORK_STATUS_FOR_CHR      3
 #define NETWORK_STATUS_APP_QOE_NORMAL  4
 #define NETWORK_STATUS_APP_QOE_GENERAL_SLOW 5
+<<<<<<< HEAD
 #define NETWORK_STATUS_NETWORK_NORMAL  6
 #define NETWORK_STATUS_NETWORK_SLOW 7
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*RTT threshold*/
 #define RTT_THRED (255)
 

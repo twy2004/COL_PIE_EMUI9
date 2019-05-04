@@ -156,9 +156,6 @@ hwfpga_subdev_config(
         case HWCAM_FPGA_CLOSE:
             rc = s->hw->vtbl->close(s->hw);
             break;
-        case HWCAM_FPGA_CHECKDEVICE:
-            rc = s->hw->vtbl->checkdevice(s->hw);
-            break;
         default:
             HWCAM_CFG_ERR("invalid cfgtype(%d)! \n", data->cfgtype);
             break;

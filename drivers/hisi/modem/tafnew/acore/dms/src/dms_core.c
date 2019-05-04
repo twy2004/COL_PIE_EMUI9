@@ -901,7 +901,7 @@ VOS_INT DMS_NLK_Send(
     pstPlayload->ulLength = ulLength;
     pstPlayload->ucMode = enMode;
 
-    memcpy(pstPlayload->aucData, pucData, ulLength); /* unsafe_function_ignore: memcpy */
+    memcpy(pstPlayload->aucData, pucData, ulLength);
 
     /* ·¢ËÍ netlink ÏûÏ¢ */
     lRet = netlink_unicast(DMS_GET_NLK_SOCK(), pstSkb, NETLINK_CB(pstSkb).portid, 0);

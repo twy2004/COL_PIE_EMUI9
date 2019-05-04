@@ -143,7 +143,10 @@ struct ctl_table_header
 	struct ctl_table_set *set;
 	struct ctl_dir *parent;
 	struct ctl_node *node;
+<<<<<<< HEAD
 	struct hlist_head inodes; /* head for proc_inode->sysctl_inodes */
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 struct ctl_dir {

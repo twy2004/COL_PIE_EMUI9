@@ -163,8 +163,20 @@ static int is_extension_exist(const unsigned char *s, const char *sub)
 	for (i = 1; i < slen - sublen; i++) {
 		if (s[i] != '.')
 			continue;
-		if (!strncasecmp((const char *)s + i + 1, sub, sublen))
+		if (!strncasecmp((const char *)s + i + 1, sub, sublen)) {
+#ifdef CONFIG_ACM
+			/*
+			 * ".*.hwbk" is the renaming rule in the framework,
+			 * we should not treate the renaming file as a multimedia_file.
+			 */
+			if (!strncasecmp((const char *)s + slen - 4, "hwbk", 4))
+				return 2;
+			else
+				return 1;
+#else
 			return 1;
+#endif
+		}
 	}
 
 	return 0;
@@ -264,37 +276,6 @@ int update_extension_list(struct f2fs_sb_info *sbi, const char *name,
 }
 
 #ifdef CONFIG_ACM
-#define MIN_FNAME_LEN 2
-static int is_media_extension(const unsigned char *s, const char *sub)
-{
-	size_t slen = strlen((const char *)s);
-	size_t sublen = strlen(sub);
-	size_t hwbk_ext_len = strlen(".hwbk");
-	int hwbklen = 0;
-
-	/*
-	 * filename format of multimedia file should be defined as:
-	 * "filename + '.' + extension".
-	 */
-	if (slen < sublen + MIN_FNAME_LEN)
-		return 0;
-
-	/*
-	 * ".*.hwbk" is the renaming rule in the framework,
-	 * we should not treate the renaming file as a multimedia_file.
-	 */
-	if (slen >= sublen + (hwbk_ext_len + MIN_FNAME_LEN) &&
-	    !strncasecmp((const char *)s + slen - hwbk_ext_len, ".hwbk", hwbk_ext_len))
-		hwbklen = hwbk_ext_len;
-
-	if (s[slen - sublen - hwbklen - 1] != '.')
-		return 0;
-
-	if (!strncasecmp((const char *)s + slen - sublen - hwbklen, sub, sublen))
-		return hwbklen ? 2 : 1;
-	return 0;
-}
-
 static int is_photo_file(struct dentry *dentry)
 {
 	static const char * const ext[] = { "jpg", "jpe", "jpeg", "gif", "png",
@@ -304,7 +285,7 @@ static int is_photo_file(struct dentry *dentry)
 	int i, ret = 0;
 
 	for (i = 0; ext[i]; i++) {
-		ret = is_media_extension(dentry->d_name.name, ext[i]);
+		ret = is_extension_exist(dentry->d_name.name, ext[i]);
 		if (ret == 1)
 			return ACM_PHOTO;
 		else if (ret == 2)
@@ -324,7 +305,7 @@ static int is_video_file(struct dentry *dentry)
 	int i, ret = 0;
 
 	for (i = 0; ext[i]; i++) {
-		ret = is_media_extension(dentry->d_name.name, ext[i]);
+		ret = is_extension_exist(dentry->d_name.name, ext[i]);
 		if (ret == 1)
 			return ACM_VIDEO;
 		else if (ret == 2)
@@ -370,19 +351,6 @@ static void inherit_parent_flag(struct inode *dir, struct inode *inode)
 		F2FS_I(inode)->i_flags |= F2FS_UNRM_PHOTO_FL;
 	if (F2FS_I(dir)->i_flags & F2FS_UNRM_VIDEO_FL)
 		F2FS_I(inode)->i_flags |= F2FS_UNRM_VIDEO_FL;
-}
-
-static void get_real_pkg_name(char *pkgname, int len)
-{
-	int i;
-
-	pkgname[len - 1] = '\0';
-	for (i = 0; i < len && pkgname[i] != '\0'; i++) {
-		if (pkgname[i] == ':') {
-			pkgname[i] = '\0';
-			break;
-		}
-	}
 }
 #endif
 
@@ -683,7 +651,7 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 #ifdef CONFIG_ACM
 	/* oversea users do not need monitor*/
 	if (logusertype != OVERSEA_USER && logusertype != OVERSEA_COMMERCIAL_USER) {
-		struct task_struct *tsk, *p_tsk = NULL, *pp_tsk = NULL;
+		struct task_struct *tsk, *p_tsk, *pp_tsk;
 		struct dentry *dent;
 		char *pkg;
 		uid_t uid;
@@ -694,17 +662,15 @@ static int f2fs_unlink(struct inode *dir, struct dentry *dentry)
 
 		if (file_type) {
 			tsk = current->group_leader;
-			if (!tsk) {
-				err = -EINVAL;
-				goto fail;
-			}
-			if (tsk->parent == NULL)
-				goto always_report;
+			if (!tsk && tsk->parent == NULL)
+				goto acm_monitor;
 			p_tsk = tsk->parent->group_leader;
-			if (!p_tsk || p_tsk->parent == NULL)
-				goto always_report;
+			if (!p_tsk && p_tsk->parent == NULL)
+				goto acm_monitor;
 			pp_tsk = p_tsk->parent->group_leader;
-always_report:
+			if (!pp_tsk)
+				goto acm_monitor;
+
 			if (is_dir)
 				dent = dentry;
 			else
@@ -712,9 +678,7 @@ always_report:
 			event = kmalloc(300UL, GFP_NOFS);
 			if (event) {
 				scnprintf(event, 299UL, "UNLINK=%s@%s@%s@%s@%d",
-						tsk->comm,
-						p_tsk ? p_tsk->comm : "null",
-						pp_tsk ? pp_tsk->comm : "null",
+						tsk->comm, p_tsk->comm, pp_tsk->comm,
 						dent->d_name.name, is_dir);
 				envp[0] = event;
 				envp[1] = NULL;
@@ -725,11 +689,9 @@ always_report:
 				else if (err)
 					pr_err("F2FS-fs: %s: failed to send uevent err %d\n",
 							__func__, err);
-			} else {
-				err = -ENOMEM;
-				goto fail;
 			}
 
+acm_monitor:
 			pkg = (char *)kzalloc(100, GFP_NOFS);
 			if(!pkg) {
 				err = -ENOMEM;
@@ -749,7 +711,6 @@ always_report:
 				}
 			}
 			get_cmdline(tsk, pkg, 100);
-			get_real_pkg_name(pkg, 100);
 			uid = __kuid_val(task_uid(tsk));
 
 			pr_err("F2FS-fs: %s: dentry %pd PID %d cmdline %s uid %d\n",
@@ -768,6 +729,7 @@ always_report:
 			kfree(pkg);
 		}
 	}
+skip_report:
 #endif
 
 	de = f2fs_find_entry(dir, &dentry->d_name, &page);

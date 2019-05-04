@@ -3,7 +3,7 @@
         compatible = "hisi,vbat_drop_protect";
         interrupt-parent       = <&gic>;
 	interrupts             = <0 325 1>;
-	vbat_drop_vol_mv       = <3000>;
+	vbat_drop_vol_mv       = <3200>;
 	big_cpu_auto_div_en    = <1>;
 	middle_cpu_auto_div_en = <1>;
 	little_cpu_auto_div_en = <1>;

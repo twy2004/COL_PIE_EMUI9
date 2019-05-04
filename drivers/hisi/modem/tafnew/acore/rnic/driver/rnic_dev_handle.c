@@ -334,7 +334,7 @@ STATIC void rnic_net_rx_skb(struct sk_buff *skb,
 	eth = (skb->protocol == RNIC_NS_ETH_TYPE_IP) ?
 					&priv->v4_eth_header : &priv->v6_eth_header;
 	skb_push(skb, ETH_HLEN);
-	memcpy(skb->data, eth, ETH_HLEN); /* unsafe_function_ignore: memcpy */
+	memcpy(skb->data, eth, ETH_HLEN);
 
 	skb->protocol = eth_type_trans(skb, priv->netdev);
 

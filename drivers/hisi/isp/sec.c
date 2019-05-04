@@ -155,7 +155,6 @@ struct hisi_atfisp_s {
     void *atfshrd_vaddr;
     unsigned long long atfshrd_paddr;
     void *rsctable_vaddr;
-    void *rsctable_vaddr_const;
     unsigned long long rsctable_paddr;
     unsigned int rsctable_offset;
     unsigned int rsctable_size;
@@ -195,7 +194,6 @@ struct hisi_atfisp_s {
     struct hisi_isp_ion_s *sec_smmuerr_ion;
     struct workqueue_struct *wq;
     struct work_struct free_secmem;
-    unsigned int seckthread_nice;
 } atfisp_dev;
 
 
@@ -448,6 +446,7 @@ int hisp_bsp_read_bin(const char *partion_name, unsigned int offset,
         pr_err("partion_name(%pK) or buffer(%pK) is null", partion_name, buffer);
         return -1;
     }
+
     /*get resource*/
     pathlen = sizeof(DEVICE_PATH) + strnlen(partion_name, (unsigned long)PART_NAMELEN);
     pathname = kmalloc(pathlen, GFP_KERNEL);
@@ -943,8 +942,8 @@ static int hisp_rsctablemem_init(struct hisi_atfisp_s *dev)
 {
     dma_addr_t dma_addr = 0;
 
-    if ((dev->rsctable_vaddr_const= dma_alloc_coherent(dev->device, dev->rsctable_size, &dma_addr, GFP_KERNEL)) == NULL) {
-        pr_err("[%s] rsctable_vaddr_const.%pK\n", __func__, dev->rsctable_vaddr_const);
+    if ((dev->rsctable_vaddr = dma_alloc_coherent(dev->device, dev->rsctable_size, &dma_addr, GFP_KERNEL)) == NULL) {
+        pr_err("[%s] rsctable_vaddr.%pK\n", __func__, dev->rsctable_vaddr);
         return -ENOMEM;
     }
     dev->rsctable_paddr = (unsigned long long)dma_addr;
@@ -1174,13 +1173,6 @@ static int hisi_atf_getdts(struct platform_device *pdev)
         pr_err("Failed : hisi_truset_mem_getdts.%d\n", ret);
         return ret;
     }
-
-    if ((ret = of_property_read_u32(np, "isp-seckthread-nice", (unsigned int *)(&dev->seckthread_nice))) < 0 ) {
-        pr_err("[%s] Failed: isp-seckthread-nice of_property_read_u32.%d\n", __func__, ret);
-        return -EINVAL;
-    }
-    pr_info("isp-seckthread-nice.0x%x of_property_read_u32.%d\n", dev->seckthread_nice, ret);
-
     return 0;
 }
 
@@ -1790,17 +1782,19 @@ int hisp_mem_pool_free_carveout(unsigned int  iova, size_t size)
 int hisp_rsctable_init(void)
 {
     struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
+    int ret;
 
     pr_info("[%s] +\n", __func__);
-    if (!dev->rsctable_vaddr_const) {
-        pr_err("[%s] rsctable_vaddr_const.%pK\n", __func__, dev->rsctable_vaddr_const);
-        return -ENOMEM;
-    }
-    dev->rsctable_vaddr = kmemdup(dev->rsctable_vaddr_const, dev->rsctable_size, GFP_KERNEL);
     if (!dev->rsctable_vaddr) {
-        pr_err("%s: kmalloc failed.\n", __func__);
+        pr_err("[%s] rsctable_vaddr.%pK\n", __func__, dev->rsctable_vaddr);
         return -ENOMEM;
     }
+
+    if ((ret = bsp_read_bin("isp_firmware", dev->rsctable_offset, dev->rsctable_size, dev->rsctable_vaddr)) < 0) {
+        pr_err("[%s] bsp_read_bin.%d\n", __func__, ret);
+        return ret;
+    }
+
     pr_info("[%s] -\n", __func__);
 
     return 0;
@@ -1830,11 +1824,6 @@ static u64 get_fw_sec_phyaddr(void)
             return hisi_secmem_ion->sec_fw_phymem_addr;
     }
     return 0;
-}
-
-void hisi_secisp_dump(void)
-{
-    atfisp_params_dump(get_boot_sec_phyaddr());
 }
 
 static unsigned long hisp_set_secmem_addr_pa(unsigned int etype, unsigned int vaddr, unsigned int offset)
@@ -1977,16 +1966,8 @@ static int set_share_pararms(void)
     }
     return 0;
 }
-/*lint -save -e429*/
-void free_secmem_rsctable(void)
-{
-    struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
-    if(dev->rsctable_vaddr != NULL) {
-        kfree(dev->rsctable_vaddr);
-        dev->rsctable_vaddr = NULL;
-    }
-}
 
+/*lint -save -e429*/
 static void free_secmem_ion(struct work_struct *work)
 {
     struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
@@ -2138,7 +2119,7 @@ static int secisp_work_fn(void *data)
     int ret, cpu_no;
 
     pr_info("[%s] +\n", __func__);
-    set_user_nice(current, (int)(-1*(dev->seckthread_nice)));
+    set_user_nice(current, -10);
     cpumask_clear(&cpu_mask);
 
     for (cpu_no = 1; cpu_no < 4; cpu_no++)
@@ -2155,11 +2136,14 @@ static int secisp_work_fn(void *data)
         pr_err("[%s] Failed : set_share_pararms.%d\n", __func__, ret);
     }
 
+<<<<<<< HEAD
     if ((ret = hisp_bsp_read_bin("isp_firmware", dev->rsctable_offset, dev->rsctable_size, dev->rsctable_vaddr_const)) < 0) {
         pr_err("[%s] hisp_bsp_read_bin.%d\n", __func__, ret);
         return ret;
     }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     while (1) {
         if (kthread_should_stop())
             break;
@@ -2216,13 +2200,6 @@ void hisi_ispsec_share_para_set(void)
             hisi_isp_rproc_case_get());
 }
 
-void wakeup_secisp_kthread(void)
-{
-    struct hisi_atfisp_s *dev = (struct hisi_atfisp_s *)&atfisp_dev;
-
-    wake_up_process(dev->secisp_kthread);
-}
-
 int hisi_atfisp_probe(struct platform_device *pdev)
 {
     unsigned long iova_start = 0;
@@ -2234,8 +2211,6 @@ int hisi_atfisp_probe(struct platform_device *pdev)
 
     dev->map_req_flag               = 0;
     dev->map_dts_flag               = 0;
-    dev->rsctable_vaddr             = NULL;
-    dev->rsctable_vaddr_const       = NULL;
     dev->device                     = &pdev->dev;
     atfisp_ops.refs_ispsrt_subsys   = UNINITIAL;
     atfisp_ops.refs_isp_module      = UNINITIAL;
@@ -2309,6 +2284,8 @@ int hisi_atfisp_probe(struct platform_device *pdev)
         goto out;
     }
 
+    wake_up_process(dev->secisp_kthread);
+
     dev->wq = create_singlethread_workqueue("secispmemfree");
     if (!dev->wq) {
         pr_err("%s: create_singlethread_workqueue failed.\n", __func__);
@@ -2361,3 +2338,7 @@ MODULE_DESCRIPTION("Hisilicon atfisp module");
 MODULE_AUTHOR("chentao20@huawei.com");
 MODULE_LICENSE("GPL");
 
+void hisi_secisp_dump(void)
+{
+    atfisp_params_dump(get_boot_sec_phyaddr());
+}

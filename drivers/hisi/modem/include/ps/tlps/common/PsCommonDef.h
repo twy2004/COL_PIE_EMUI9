@@ -65,6 +65,7 @@ extern "C" {
 #define PS_PRINTF
 #endif
 
+<<<<<<< HEAD
 /* 协议栈日志打印新接口 */
 #ifndef L2_LIBFUZZ_TEST
 #define PS_PRINTF_FATAL(fmt, ...)               (mdrv_fatal(fmt, ##__VA_ARGS__))
@@ -82,6 +83,8 @@ extern "C" {
 
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /* 内存操作封装 */
 #ifdef _lint
 
@@ -213,6 +216,7 @@ extern "C" {
 
 #else
 /*Modified by dongying for UT,2010-2-1,end*/
+<<<<<<< HEAD
 /*内存拷贝宏定义*/
 
 #define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
@@ -233,10 +237,16 @@ extern "C" {
 /*内存移动宏定义*/
 #define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
             VOS_MemMove_s( pucDestBuffer, ulBufferLen, pucSrcBuffer, ulBufferLen )
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define PS_MEM_CMP( pucDestBuffer, pucSrcBuffer, ulBufferLen ) \
             VOS_MemCmp( pucDestBuffer, pucSrcBuffer, ulBufferLen )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*申请消息包,申请的长度包括消息报头长度*/
 /*lint -emacro({586}, PS_ALLOC_MSG_WITH_HEADER_LEN)*/
 #define PS_ALLOC_MSG_WITH_HEADER_LEN(ulPid , ulLen)  \
@@ -256,6 +266,21 @@ extern "C" {
   Ps_SendMsg函数,以便于向PC STUB桩转发消息.后续OSA支持WIN32版本后,这里可统一处理*/
     #if(VOS_OS_VER == VOS_WIN32 )
 
+<<<<<<< HEAD
+=======
+/*内存拷贝宏定义*/
+#define PS_MEM_CPY(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+                (VOS_VOID)memcpy(pucDestBuffer, pucSrcBuffer, ulBufferLen)    // unsafe_function_ignore: memcpy
+
+/*内存内容填充宏定义*/
+#define PS_MEM_SET(pucBuffer, ucData, ulBufferLen) \
+                (VOS_VOID)memset(pucBuffer, ucData, ulBufferLen)     // unsafe_function_ignore: memset
+
+/*内存移动宏定义*/
+#define PS_MEM_MOVE(pucDestBuffer, pucSrcBuffer, ulBufferLen) \
+                memmove(pucDestBuffer, pucSrcBuffer, ulBufferLen)   // unsafe_function_ignore: memmove
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         /*消息发送*/
         #ifdef __RECUR_TEST__
 
@@ -436,15 +461,25 @@ When phTm is VOS_NULL_PTR, ucMode is not allowed to be VOS_RELTIMER_LOOP.
 #define    LPS_CacheFlush(pDataAddr, ulDataLen)         (VOS_VOID)OSAL_CacheFlush(OSAL_DATA_CACHE, (VOS_VOID *)(pDataAddr), (ulDataLen))
 #define    LPS_CacheInvalidate(pDataAddr, ulDataLen)    (VOS_VOID)OSAL_CacheInvalid(OSAL_DATA_CACHE, (VOS_VOID *)(pDataAddr), (ulDataLen))
 #endif
+<<<<<<< HEAD
 /* 增加函数入参: 字节对其方式enAlignPow */
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /* #else: VOS_UnCacheMemAlloc --> VOS_UnCacheMemAllocDebug */
 /* #if: OSAL_CacheDmaMalloc --> VOS_UnCacheMemAllocDebug */
 /* #if: OSAL_CacheDmaFree --> VOS_UnCacheMemFree */
 #if (VOS_OS_VER == VOS_RTOSCK)
+<<<<<<< HEAD
 #define    LPS_CacheDmaMalloc(ulSize,enAlignPow,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,enAlignPow,pDataAddr,uwCookie)
 #define    LPS_CacheDmaFree(pBuf,ulSize)                        VOS_UnCacheMemFree(pBuf,pBuf,ulSize)
 #else
 #define    LPS_CacheDmaMalloc(ulSize,enAlignPow,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,enAlignPow,pDataAddr,uwCookie)
+=======
+#define    LPS_CacheDmaMalloc(ulSize,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,pDataAddr,uwCookie)
+#define    LPS_CacheDmaFree(pBuf,ulSize)                        VOS_UnCacheMemFree(pBuf,pBuf,ulSize)
+#else
+#define    LPS_CacheDmaMalloc(ulSize,pDataAddr,uwCookie)        VOS_UnCacheMemAllocDebug(ulSize,pDataAddr,uwCookie)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define    LPS_CacheDmaFree(pBuf,ulSize)                        VOS_UnCacheMemFree(pBuf,pBuf,ulSize)
 #endif
 #endif

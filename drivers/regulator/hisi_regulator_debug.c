@@ -61,12 +61,6 @@ extern struct list_head *get_regulator_list(void);
 #define REGULATOR_NAME_LEN (16)
 #define REGULATOR_MAGIC_NUM (0x16022602U)
 
-#ifdef CONFIG_GCOV_KERNEL
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 typedef struct {
 	unsigned int dump_magic;
 	unsigned int buffer_size;
@@ -356,7 +350,7 @@ static void track_regulator_dump(u32 modid, u32 etype, u64 coreid,
 	pr_info("%s dump!\n", __func__);
 }
 
-STATIC int track_regulator_rdr_register(struct rdr_register_module_result *result)
+static int track_regulator_rdr_register(struct rdr_register_module_result *result)
 {
 	struct rdr_module_ops_pub s_module_ops = {
 		.ops_dump = NULL,
@@ -444,7 +438,7 @@ int regulator_buffer_init(u8 *addr, u32 size, BUF_TYPE_EN buf_type)
 	return regulator_percpu_buffer_init(addr, size, sizeof(regulator_record_info), REGULATOR_MAGIC_NUM, record_ratio, buf_type);
 }
 
-STATIC int __init track_regulator_record_init(void)
+static int __init track_regulator_record_init(void)
 {
 	int ret;
 	struct rdr_register_module_result regulator_rdr_info;
@@ -484,7 +478,7 @@ STATIC int __init track_regulator_record_init(void)
 	return 0;
 }
 
-STATIC void __exit track_regulator_record_exit(void)
+static void __exit track_regulator_record_exit(void)
 {
 	return;
 }

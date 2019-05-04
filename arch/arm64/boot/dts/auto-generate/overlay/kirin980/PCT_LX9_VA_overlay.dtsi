@@ -19,6 +19,7 @@
 		hisi,product_id = <0x37610C00>;
 		hisi,product_name = "PCT-LX9";
 	};
+<<<<<<< HEAD
 	&audio_hw_config {
 		audio_capability {
 			/*
@@ -137,3 +138,5 @@
     &hisi_cust_cfg {
         ini_file_name = "/vendor/etc/cfg_pct_lx9.ini";
     };
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

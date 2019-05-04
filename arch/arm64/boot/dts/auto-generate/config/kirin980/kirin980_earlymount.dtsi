@@ -16,17 +16,29 @@
 				vendor {
 					compatible = "android,vendor";
 					dev = "/dev/block/by-name/vendor";
+<<<<<<< HEAD
 					type = "erofs";
 					mnt_flags = "ro";
 					fsmgr_flags = "wait,avb";
+=======
+					type = "ext4";
+					mnt_flags = "ro,barrier=1";
+					fsmgr_flags = "wait,slotselect,avb";
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 					status = "ok";
 				};
 				odm {
 					compatible = "android,odm";
 					dev = "/dev/block/by-name/odm";
+<<<<<<< HEAD
 					type = "erofs";
 					mnt_flags = "ro";
 					fsmgr_flags = "wait,avb";
+=======
+					type = "ext4";
+					mnt_flags = "ro,barrier=1";
+					fsmgr_flags = "wait,slotselect,avb";
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 					status = "ok";
 				};
 			};

@@ -36,7 +36,7 @@ static int dump_cvdr_reg(hjpeg_hw_ctl_t *hw_ctl)
     }
 
     if (hw_ctl->cvdr_prop.wr_port == WR_PORT_25) {
-        if (get_hjpeg_wr_port_addr_update()) {
+        if (is_hjpeg_wr_port_addr_update()) {
             cam_debug("%s: CVDR reg: 0x%08x=0x%08x", __func__,
                 CVDR_SRT_VP_WR_CFG_25_OFFSET_UPDATE,
                 get_reg_val((void __iomem*)((char*)viraddr+CVDR_SRT_VP_WR_CFG_25_OFFSET_UPDATE)));
@@ -155,7 +155,7 @@ static int cvdr_fmt_desc_vp_wr(u32 wr_port, jpgenc_config_t* config, cvdr_wr_fmt
         }
         case WR_PORT_25:
         {
-            if (get_hjpeg_wr_port_addr_update()) {
+            if (is_hjpeg_wr_port_addr_update()) {
                 desc->access_limiter = ACCESS_LIMITER_VP_WR_0;
                 desc->line_stride = 0x3F;
                 desc->line_wrap   = 0x3FFF;
@@ -175,6 +175,7 @@ static int cvdr_fmt_desc_vp_wr(u32 wr_port, jpgenc_config_t* config, cvdr_wr_fmt
 
     return 0;
 }
+<<<<<<< HEAD
 
 // register addr changed,but no struct change
 void hjpeg_vp_wr_axi_line_config(void __iomem *cvdr_srt_base, cvdr_wr_fmt_desc_t *desc, u32 offset)
@@ -411,14 +412,27 @@ void hjpeg_config_vp_wr(hjpeg_hw_ctl_t *hw_ctl, cvdr_wr_fmt_desc_t *desc)
     }
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define PREFETCH_BY_PASS (1 << 31)
 static int set_vp_wr_ready(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config)
 {
     int ret;
+    U_VP_WR_CFG tmp_cfg;
+    U_VP_WR_CFG_UPDATE tmp_cfg_update;
+    U_VP_WR_AXI_LINE tmp_line;
+    U_VP_WR_AXI_FS tmp_fs;
     U_CVDR_SRT_LIMITER_VP_WR_0 lmt;
 
+    u32 vp_wr_cfg_offset;
+    u32 vp_wr_axi_line_offset;
     u32 vp_wr_if_cfg_offset;
+<<<<<<< HEAD
     u32 cvdr_axi_limiter_vp_wr_offset;
+=======
+    u32 vp_wr_axi_fs_offset;
+    u32 buf_addr;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     cvdr_wr_fmt_desc_t desc;
 
@@ -435,6 +449,9 @@ static int set_vp_wr_ready(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config)
     switch(wr_port) {
         case WR_PORT_0:
         {
+            vp_wr_cfg_offset      = CVDR_AXI_JPEG_VP_WR_CFG_0_OFFSET;
+            vp_wr_axi_line_offset = CVDR_AXI_JPEG_VP_WR_AXI_LINE_0_OFFSET;
+            vp_wr_axi_fs_offset   = CVDR_AXI_JPEG_VP_WR_AXI_FS_0_OFFSET;
             // for smmu bypass
             vp_wr_if_cfg_offset   = CVDR_AXI_JPEG_VP_WR_IF_CFG_0_OFFSET;
             cvdr_axi_limiter_vp_wr_offset = CVDR_AXI_JPEG_LIMITER_VP_WR_0_OFFSET;
@@ -442,10 +459,16 @@ static int set_vp_wr_ready(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config)
         }
         case WR_PORT_25:
         {
-            if (get_hjpeg_wr_port_addr_update()) {
+            if (is_hjpeg_wr_port_addr_update()) {
+                vp_wr_cfg_offset      = CVDR_SRT_VP_WR_CFG_25_OFFSET_UPDATE;
+                vp_wr_axi_line_offset = CVDR_SRT_VP_WR_AXI_LINE_25_OFFSET_UPDATE;
+                vp_wr_axi_fs_offset   = CVDR_SRT_VP_WR_AXI_FS_25_OFFSET_UPDATE;
                 // for smmu bypass
                 vp_wr_if_cfg_offset   = CVDR_SRT_VP_WR_IF_CFG_25_OFFSET_UPDATE;
             } else {
+                vp_wr_cfg_offset      = CVDR_SRT_VP_WR_CFG_25_OFFSET;
+                vp_wr_axi_line_offset = CVDR_SRT_VP_WR_AXI_LINE_25_OFFSET;
+                vp_wr_axi_fs_offset   = CVDR_SRT_VP_WR_AXI_FS_25_OFFSET;
                 // for smmu bypass
                 vp_wr_if_cfg_offset   = CVDR_SRT_VP_WR_IF_CFG_25_OFFSET;
             }
@@ -472,10 +495,34 @@ static int set_vp_wr_ready(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config)
     set_reg_val((void __iomem*)((char*)cvdr_srt_base + cvdr_axi_limiter_vp_wr_offset), lmt.reg32);
 
     // config vp wr cfg
-    hjpeg_config_vp_wr(hw_ctl, &desc);
+    if (is_hjpeg_iova_update()) {
+        tmp_cfg_update.reg32 = get_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_cfg_offset));
+        tmp_cfg_update.bits.vpwr_pixel_format    = desc.pix_fmt;
+        tmp_cfg_update.bits.vpwr_pixel_expansion = desc.pix_expan;
+        tmp_cfg_update.bits.vpwr_last_page       = desc.last_page;
+        tmp_cfg_update.bits.reserved_1 = 0x0;
+        if (WR_PORT_25 == wr_port) {
+           // FIXME:no vpwr_access_limiter in register table ON ES
+           tmp_cfg_update.bits.vpwr_access_limiter = desc.access_limiter;
+       }
+        set_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_cfg_offset), tmp_cfg_update.reg32);
+    } else {
+        tmp_cfg.reg32 = get_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_cfg_offset));
+        tmp_cfg.bits.vpwr_pixel_format    = desc.pix_fmt;
+        tmp_cfg.bits.vpwr_pixel_expansion = desc.pix_expan;
+        tmp_cfg.bits.vpwr_last_page       = desc.last_page;
+        if (WR_PORT_25 == wr_port) {
+            // FIXME:no vpwr_access_limiter in register table ON ES
+            tmp_cfg.bits.vpwr_access_limiter = desc.access_limiter;
+        }
+        set_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_cfg_offset), tmp_cfg.reg32);
+   }
 
     // config vp wr axi line
-    hjpeg_config_axi_line(hw_ctl, &desc);
+    tmp_line.reg32 = get_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_axi_line_offset));
+    tmp_line.bits.vpwr_line_stride = desc.line_stride;
+    tmp_line.bits.vpwr_line_wrap   = desc.line_wrap;
+    set_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_axi_line_offset), tmp_line.reg32);
 
     // smmu bypass
     if (hw_ctl->smmu_bypass == BYPASS_YES)
@@ -484,8 +531,20 @@ static int set_vp_wr_ready(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config)
             (get_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_if_cfg_offset))|(PREFETCH_BY_PASS)));  /*lint !e648*/
     }
 
+<<<<<<< HEAD
+=======
+    buf_addr = config->buffer.output_buffer + JPGENC_HEAD_SIZE;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     // config vp wr axi fs
-    hjpeg_config_axi_fs(hw_ctl, config);
+    tmp_fs.reg32 = get_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_axi_fs_offset));
+
+    tmp_fs.bits.vpwr_address_frame_start = buf_addr >> 4;
+
+    if (is_hjpeg_iova_update()) {
+        set_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_axi_fs_offset), tmp_fs.reg32 >> 2);
+    } else {
+        set_reg_val((void __iomem*)((char*)cvdr_srt_base + vp_wr_axi_fs_offset), tmp_fs.reg32);
+    }
 
     return 0;
 }

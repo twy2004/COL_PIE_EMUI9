@@ -72,3 +72,109 @@
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
 
+<<<<<<< HEAD
+=======
+
+char * lphy_image_ddr_addr = NULL;
+char * lphy1_image_ddr_addr = NULL;
+/*****************************************************************************
+* 函 数 名  : dump_save_lphy_log
+* 功能描述  : 保存lphy全部的log文件
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+*****************************************************************************/
+void dump_save_lphy_log(char* data,char* dst_path, u32 file_size)
+{
+    char file_name[128] = {0};
+    if(file_size > (u32)DDR_TLPHY_IMAGE_SIZE)
+    {
+        dump_error("save %s failed, file_size: 0x%x\n", file_name, file_size);
+        file_size = (u32)DDR_TLPHY_IMAGE_SIZE;
+    }
+    /* coverity[HUAWEI DEFECT] */
+    memset_s(file_name, sizeof(file_name), 0, sizeof(file_name));
+    /* coverity[HUAWEI DEFECT] */
+    snprintf_s(file_name, sizeof(file_name), (sizeof(file_name)-1), "%slphy_dump.bin", dst_path);
+    file_name[127]='\0';
+    dump_save_file(file_name, data, file_size);
+    dump_ok("save %s ok\n", file_name);
+}
+/*****************************************************************************
+* 函 数 名  : dump_save_all_tcm
+* 功能描述  : 保存全部的tcm文件
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_all_tcm(char* data,char* dst_path)
+{
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_save_some_tcm
+* 功能描述  : 保存全部的dtcm和itcm文件
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_some_tcm(char* data,char* dst_path)
+{
+}
+/*****************************************************************************
+* 函 数 名  : dump_save_lphy_tcm
+* 功能描述  : 保存tldsp的镜像
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_lphy_tcm(char * dst_path)
+{
+    DUMP_FILE_CFG_STRU* cfg = dump_get_file_cfg();
+
+    if(DUMP_PHONE == dump_get_product_type()
+        && DUMP_ACCESS_MDD_DDR_NON_SEC != dump_get_access_mdmddr_type())
+    {
+        return;
+    }
+
+    if(cfg->file_list.file_bits.lphy_tcm == 0)
+    {
+        return;
+    }
+
+    lphy_image_ddr_addr = (char *)ioremap_wc(NXDSP_MDDR_FAMA(DDR_TLPHY_IMAGE_ADDR), DDR_TLPHY_IMAGE_SIZE);
+    if(NULL == lphy_image_ddr_addr)
+    {
+        dump_error("ioremap DDR_TLPHY_IMAGE_ADDR fail\n");
+        return;
+    }
+    dump_save_lphy_log(lphy_image_ddr_addr,dst_path,(u32)readl(lphy_image_ddr_addr+0x18));
+/* ltev存log */
+    iounmap(lphy_image_ddr_addr);
+    return;
+}
+void dump_lphy_init(void)
+{
+}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

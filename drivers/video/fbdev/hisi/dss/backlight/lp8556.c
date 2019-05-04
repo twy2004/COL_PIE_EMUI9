@@ -100,11 +100,6 @@ static int lp8556_parse_dts(struct device_node *np)
 	int ret = 0;
 	int i = 0;
 
-	if(np == NULL){
-		LP8556_ERR("np is null pointer\n");
-		return -1;
-	}
-
 	for (i = 0;i < LP8556_RW_REG_MAX;i++ ) {
 		ret = of_property_read_u32(np, lp8556_dts_string[i], &lp8556_bl_info.lp8556_reg[i]);
 		if (ret < 0) {
@@ -138,11 +133,6 @@ static int lp8556_config_write(struct lp8556_chip_data *pchip,
 	int ret = 0;
 	unsigned int i = 0;
 
-	if((pchip == NULL) || (reg == NULL) || (val == NULL)){
-		LP8556_ERR("pchip or reg or val is null pointer\n");
-		return -1;
-	}
-
 	for(i = 0;i < size;i++) {
 		/*judge reg is invalid*/
 		if (val[i] != 0xffff) {
@@ -164,11 +154,6 @@ static int lp8556_config_read(struct lp8556_chip_data *pchip,
 	int ret = 0;
 	unsigned int i = 0;
 
-	if((pchip == NULL) || (reg == NULL) || (val == NULL)){
-		LP8556_ERR("pchip or reg or val is null pointer\n");
-		return -1;
-	}
-
 	for(i = 0;i < size;i++) {
 		ret = regmap_read(pchip->regmap, reg[i],&val[i]);
 		if (ret < 0) {
@@ -189,11 +174,6 @@ static int lp8556_chip_init(struct lp8556_chip_data *pchip)
 	int ret = -1;
 
 	LP8556_INFO("in!\n");
-
-	if(pchip == NULL){
-		LP8556_ERR("pchip is null pointer\n");
-		return -1;
-	}
 
 	ret = lp8556_config_write(pchip, lp8556_reg_addr, lp8556_bl_info.lp8556_reg, LP8556_RW_REG_MAX);
 	if (ret < 0) {
@@ -322,10 +302,6 @@ static ssize_t lp8556_reg_store(struct device *dev,
 	}
 
 	pchip = dev_get_drvdata(dev);
-	if(!pchip){
-		LP8556_ERR("pchip is null\n");
-		return ret;
-	}
 
 	ret = sscanf(buf, "reg=0x%x, mask=0x%x, val=0x%x", &reg, &mask, &val);
 	if (ret < 0) {
@@ -490,11 +466,6 @@ static int lp8556_test_led_open(struct lp8556_chip_data *pchip, int led_num)
 	unsigned int enable_leds = LP8556_ENABLE_ALL_LEDS;
 	int bl_led_num = lp8556_bl_info.bl_led_num;
 
-	if(pchip == NULL){
-		LP8556_ERR("pchip is null pointer\n");
-		return -1;
-	}
-
 	for (i = bl_led_num; i < LP8556_LED_NUM; i++) {
 		enable_leds &= ~(1 << i);
 	}
@@ -549,11 +520,6 @@ static int lp8556_test_led_short(struct lp8556_chip_data *pchip, int led_num)
 	int ret;
 	int result = TEST_OK;
 
-	if(pchip == NULL){
-		LP8556_ERR("pchip is null pointer\n");
-		return -1;
-	}
-
 	/* Enable only LEDx string. */
 	ret = regmap_write(pchip->regmap, LP8556_LED_ENABLE, (1<<(unsigned int)led_num));
 	if (ret < 0) {
@@ -602,11 +568,6 @@ static ssize_t lp8556_self_test(void)
 	int i;
 
 	pchip = lp8556_g_chip;
-	if(!pchip){
-		LP8556_ERR("pchip is null\n");
-		return -1;
-	}
-
 	client = pchip->client;
 	if (!client) {
 		LP8556_ERR("client is null\n");
@@ -732,18 +693,12 @@ static struct lcd_kit_bl_ops bl_ops = {
 static int lp8556_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-	struct i2c_adapter *adapter = NULL;
+	struct i2c_adapter *adapter = client->adapter;
 	struct lp8556_chip_data *pchip = NULL;
 	int ret = -1;
 	struct device_node *np = NULL;
 
 	LP8556_INFO("in!\n");
-
-	if(!client){
-		LP8556_ERR("client is null pointer\n");
-		return -1;
-	}
-	adapter = client->adapter;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c functionality check fail.\n");
@@ -823,11 +778,6 @@ err_out:
 
 static int lp8556_remove(struct i2c_client *client)
 {
-	if(!client){
-		LP8556_ERR("client is null pointer\n");
-		return -1;
-	}
-
 	sysfs_remove_group(&client->dev.kobj, &lp8556_group);
 
 	return 0;

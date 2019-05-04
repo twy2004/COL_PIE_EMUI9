@@ -19,7 +19,10 @@
 #include <linux/hisi/hisi_ion.h>
 #include <linux/version.h>
 #include <linux/hisi/page_tracker.h>
+<<<<<<< HEAD
 #include <log/log_usertype.h>
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #include <linux/slub_def.h>
 
 #include "lowmem_killer.h"
@@ -103,16 +106,7 @@ static void dump_tasks(bool verbose)
 
 static void lowmem_dump(struct work_struct *work)
 {
-	bool verbose;
-	int logusertype = get_logusertype_flag();
-
-	/*
-	* for internal debug, we hope print more lowmemory info.
-	*/
-	if (logusertype == BETA_USER || logusertype == OVERSEA_USER)
-		verbose = true;
-	else
-		verbose = (work == &lowmem_dbg_verbose_wk) ? true : false;
+	bool verbose = (work == &lowmem_dbg_verbose_wk) ? true : false;
 
 	mutex_lock(&lowmem_dump_mutex);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0))

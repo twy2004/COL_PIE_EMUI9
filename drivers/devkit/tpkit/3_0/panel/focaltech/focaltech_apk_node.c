@@ -142,10 +142,10 @@ focal_proc_read(struct file *filp, char __user *buff, size_t count, loff_t *ppos
 		ret = focal_read_reg(regaddr, &regvalue);
 		if (ret < 0)
 			num_read_chars =
-			snprintf(buf, sizeof(buf), "%s", "get fw ver failed.");
+			sprintf(buf, "%s", "get fw ver failed.");
 		else
 			num_read_chars =
-			snprintf(buf, sizeof(buf), "cur fw ver:0x%02x", regvalue);
+			sprintf(buf, "cur fw ver:0x%02x", regvalue);
 		break;
 	case PROC_READ_REGISTER:
 		readlen = 1;

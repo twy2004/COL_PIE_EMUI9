@@ -49,6 +49,7 @@
 		btf_ichg_para = "0";
 		btf_fitting_para = "0", "0", "0", "0", "0";
 	};
+<<<<<<< HEAD
 	vbat_hkadc: vbat_hkadc {
 		compatible = "huawei,vbat_hkadc";
 		status = "diabled";
@@ -80,6 +81,8 @@
 		compatible = "huawei,series_batt_charger";
 		status = "disabled";
 	};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	wireless_sc: wireless_sc {
 		compatible = "huawei,wireless_sc";
 		need_wired_sw_on = <1>;
@@ -178,13 +181,6 @@
 	};
 	vbat_ovp: vbat_ovp{
 		compatible = "vbat,ovp";
-		status = "disabled";
-	};
-	ltc7820: ltc7820 {
-		compatible = "huawei,ltc7820";
-		gpio_en = <&gpio21 1 0>;
-		gpio_freq = <&gpio31 7 0>;
-		gpio_int = <&gpio23 2 0>;
 		status = "disabled";
 	};
 	direct_charge_ps: direct_charge_ps {
@@ -470,6 +466,7 @@
 				rx_ss_good_lth = <95>;
 				status = "disabled";
 			};
+<<<<<<< HEAD
 			ina231_i2c6: ina231_i2c6@41 {
 				compatible = "huawei,ina231_for_charge";
 				reg = <0x41>;
@@ -488,6 +485,8 @@
 				reg = <0x6C>;
 				status = "disabled";
 			};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		};
 	};
 };

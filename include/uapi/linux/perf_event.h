@@ -35,9 +35,12 @@ enum perf_type_id {
 #ifdef CONFIG_ARM_DSU_PMU
 	PERF_TYPE_DSU,
 #endif
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_KARMA_PMU
 	PERF_TYPE_KARMA,
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	PERF_TYPE_MAX,				/* non-ABI */
 };

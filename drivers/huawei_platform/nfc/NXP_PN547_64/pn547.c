@@ -58,7 +58,6 @@ HWLOG_REGIST();
 
 #define SET_PMU_REG_BIT(reg_val, bit_pos) ((reg_val) |= 1<<(bit_pos))
 #define CLR_PMU_REG_BIT(reg_val, bit_pos) ((reg_val) &= ~(1<<(bit_pos)))
-#define RSSI_MAX 65535
 
 /*lint -save -e528 -e529*/
 static bool ven_felica_status;
@@ -1307,7 +1306,8 @@ failed:
 static ssize_t nfc_fwupdate_store(struct device *dev, struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	if ((buf != NULL) && ('1' == buf[0])) {
+
+	if ('1' == buf[0]) {
 		firmware_update = 1;
 		hwlog_info("%s:firmware update success\n", __func__);
 	}
@@ -1323,7 +1323,7 @@ static ssize_t nfc_fwupdate_show(struct device *dev, struct device_attribute *at
 static ssize_t nfc_switch_state_store(struct device *dev, struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	if((buf!=NULL) && (buf[0]>=CHAR_0) && (buf[0]<=CHAR_9))
+	if(buf!=NULL)
 	{
 		nfc_switch_state=buf[0]-CHAR_0; /*file storage str*/
 	}
@@ -1338,7 +1338,7 @@ static ssize_t nfc_switch_state_show(struct device *dev, struct device_attribute
 static ssize_t nfc_at_result_store(struct device *dev, struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	if((buf!=NULL) && (buf[0]>=CHAR_0) && (buf[0]<=CHAR_9))
+	if(buf!=NULL)
 	{
 		nfc_at_result=buf[0]-CHAR_0; /*file storage str*/
 	}
@@ -1353,6 +1353,21 @@ static ssize_t nfc_at_result_show(struct device *dev, struct device_attribute *a
 static ssize_t nfc_get_rssi_store(struct device *dev, struct device_attribute *attr,
             const char *buf, size_t count)
 {
+#if 0
+    long num;
+    hwlog_info("start:%s:%s,%d\n", __func__, buf, nfc_get_rssi);
+    num = simple_strtol(buf, NULL, 0);
+    if (num < -65535)
+    {
+        return -1;
+    }
+
+    nfc_get_rssi = num;
+    hwlog_info("end  :%s:%s,%d\n", __func__, buf, nfc_get_rssi);
+
+    return (ssize_t)count;
+#endif
+#if 1
     int i = 0;
     int flag = 1;
     nfc_get_rssi = 0;
@@ -1367,16 +1382,26 @@ static ssize_t nfc_get_rssi_store(struct device *dev, struct device_attribute *a
         while (buf[i] != '\0')
         {
             //hwlog_info("%s:%s,%d,%d, %d\n", __func__, buf,i, nfc_get_rssi, count);
-            if((buf[i] >= CHAR_0) && (buf[i] <= CHAR_9) && (nfc_get_rssi <= RSSI_MAX))
-            {
-                nfc_get_rssi=(long)(nfc_get_rssi*10) + (buf[i]-CHAR_0); /*file storage str*/
-            }
+            nfc_get_rssi=(long)(nfc_get_rssi*10) + (buf[i]-CHAR_0); /*file storage str*/
             i++;
         }
         nfc_get_rssi = flag * nfc_get_rssi;
     }
     //hwlog_info("%s:%s,%d, %d\n", __func__, buf, nfc_get_rssi, count);
     return (ssize_t)count;
+<<<<<<< HEAD
+=======
+#endif    
+ #if 0
+    hwlog_info("%s:%s,%d, %d\n", __func__, buf, nfc_get_rssi, count);
+    if(buf!=NULL)
+    {
+        nfc_get_rssi=buf[0]-CHAR_0; /*file storage str*/
+    }
+    hwlog_info("%s:%s,%d, %d\n", __func__, buf, nfc_get_rssi, count);
+    return (ssize_t)count;
+#endif    
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static ssize_t nfc_get_rssi_show(struct device *dev, struct device_attribute *attr, char *buf)

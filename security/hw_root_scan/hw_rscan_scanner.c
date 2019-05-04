@@ -25,6 +25,7 @@ static char *g_whitelist_proc = RPROC_WHITE_LIST_STR;
 static int g_rs_data_init = RSCAN_UNINIT;
 static int g_root_scan_hot_fix;
 
+<<<<<<< HEAD
 static struct item_bits itembits[MAX_NUM_OF_ITEM] = {
 	// kcode
 	{
@@ -64,6 +65,8 @@ static struct item_bits itembits[MAX_NUM_OF_ITEM] = {
 	},
 };
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 struct rscan_skip_flags g_rscan_skip_flag = {
 	.skip_kcode = NOT_SKIP,
 	.skip_syscall = NOT_SKIP,
@@ -155,6 +158,7 @@ static void upload_to_stp(int ree_status, int tee_status,
 {
 	int item_status;
 	int item_version = 0;
+<<<<<<< HEAD
 	int item_credible;
 	int item_tee_status;
 	int need_upload;
@@ -208,6 +212,42 @@ static void upload_to_stp(int ree_status, int tee_status,
 			(void)kernel_stp_upload(item, rootproc);
 		} else {
 			(void)kernel_stp_upload(item, NULL);
+=======
+	int item_credible = STP_REFERENCE;
+	int item_tee_status = 0;
+	int ret = 0;
+	int need_upload = 0;
+	int i = 0;
+
+	struct stp_item item;
+
+	for (i = 0; i < MAX_NUM_OF_ITEM; ++i) {
+		item_status = check_status(ree_status, itembits[i].item_ree_bit);
+		item_tee_status = check_status(tee_status, itembits[i].item_tee_bit);
+		need_upload = need_to_upload(mask, itembits[i].item_ree_mask, item_status, item_tee_status, flag);
+		if (need_upload != 0) {
+			item_credible = get_credible_of_item(item_status, item_tee_status);
+			if ( i == ROOT_PROCS || i == SE_HOOK) {
+				/*
+				if (rootproc != NULL && strstr(rootproc, "adbd") != NULL)
+					item_credible = STP_CREDIBLE;
+				else
+					item_credible = STP_REFERENCE;
+				*/
+
+				item_credible = STP_REFERENCE;
+			}
+			if ( i == KCODE) {
+				if (item_credible == STP_REFERENCE && root_scan_hot_fix != 0)
+					item_credible = STP_CREDIBLE;
+			}
+			set_stp_item(&item, item_info[i].id, item_status, item_credible, item_version, item_info[i].name);
+			if ( i == ROOT_PROCS)
+				(void)kernel_stp_upload(item, rootproc);
+			else
+				(void)kernel_stp_upload(item, NULL);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 	}
 
@@ -512,6 +552,7 @@ int rscan_get_status(struct rscan_status *status)
 
 int load_rproc_whitelist(char *whitelist, size_t len)
 {
+<<<<<<< HEAD
 	size_t min_len = strlen(g_whitelist_proc);
 
 	if (whitelist == NULL) {
@@ -531,6 +572,27 @@ int load_rproc_whitelist(char *whitelist, size_t len)
 	}
 
 	return 0;
+=======
+        if (NULL == whitelist) {
+                RSLogError(TAG, "input parameter is invalid");
+                return -EINVAL;
+        }
+        size_t min_len = strlen(G_WHITELIST_PROC);
+        if (min_len >= len)
+        {
+                RSLogWarning(TAG, "The G_WHITELIST_PROC lenth is too long");
+                return -1;
+        }
+        else if (min_len <= 0)
+        {
+                RSLogWarning(TAG, "G_WHITELIST_PROC is null");
+                return -1;
+        }
+
+        strncpy(whitelist, G_WHITELIST_PROC, min_len);
+        whitelist[min_len]='\0';
+        return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 int rscan_init_data(void)
@@ -642,9 +704,15 @@ static int __root_scan_pause(unsigned int op_mask, void *reserved)
 /* @reserved is reserved parameters for external module */
 static int __root_scan_resume(unsigned int op_mask, void *reserved)
 {
+<<<<<<< HEAD
 	unsigned int resume_mask = 0;
 
 	VAR_NOT_USED(reserved);
+=======
+	VAR_NOT_USED(reserved);
+
+	unsigned int resume_mask = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #ifdef CONFIG_HW_ROOT_SCAN_ENG_DEBUG
 	g_r_p_flag = 0;
 #endif
@@ -675,14 +743,23 @@ static int __root_scan_resume(unsigned int op_mask, void *reserved)
 /* @reserved is reserved parameters for external module */
 int root_scan_pause(unsigned int op_mask, void *reserved)
 {
+<<<<<<< HEAD
+=======
+	VAR_NOT_USED(reserved);
+
+	int result = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	int scan_err_code = 0;
 	int result = 0;
 	int root_status;
 	int dynamic_ops;
 	struct rscan_result_dynamic *scan_result_buf;
 	struct timeval tv;
+<<<<<<< HEAD
 
 	VAR_NOT_USED(reserved);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	do_gettimeofday(&tv);
 	RSLogTrace(TAG, "pause item:%d, time:%ld:%ld",
@@ -719,12 +796,21 @@ int root_scan_pause(unsigned int op_mask, void *reserved)
 /* @reserved is reserved parameters for external module */
 int root_scan_resume(unsigned int op_mask, void *reserved)
 {
+<<<<<<< HEAD
 	struct timeval tv;
 	int result;
 
 	VAR_NOT_USED(reserved);
 
 	g_root_scan_hot_fix = 1;    /* have been done HotFix */
+=======
+	VAR_NOT_USED(reserved);
+
+	int result = 0;
+
+	root_scan_hot_fix = 1;
+	struct timeval tv;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	do_gettimeofday(&tv);
 	RSLogTrace(TAG, "resume item:%d, time:%ld:%ld",

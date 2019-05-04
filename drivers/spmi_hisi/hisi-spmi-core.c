@@ -39,12 +39,6 @@ static DEFINE_IDR(ctrl_idr);
 #define spmi_device_attr_gr NULL
 #define spmi_device_uevent NULL
 
-#ifdef CONFIG_GCOV_KERNEL
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 static void spmi_dev_release(struct device *dev)
 {
 	struct spmi_device *spmidev = to_spmi_device(dev);
@@ -726,7 +720,7 @@ static void __exit spmi_exit(void)
 	bus_unregister(&spmi_bus_type);
 }
 
-STATIC int __init spmi_init(void)
+static int __init spmi_init(void)
 {
 	int retval;
 

@@ -6,6 +6,7 @@
 
 #include <linux/tracepoint.h>
 
+<<<<<<< HEAD
 TRACE_EVENT(l3c_devfreq_counter_info,/* [false alarm]:原生宏定义 */
 	TP_PROTO(unsigned long l3_count, unsigned long ba_count, unsigned long acp_count),
 	TP_ARGS(l3_count, ba_count, acp_count),
@@ -30,20 +31,41 @@ TRACE_EVENT(l3c_devfreq_bw_info,/* [false alarm]:原生宏定义 */
 		 unsigned long l3c_bw, unsigned long hit_bw),
 	TP_ARGS(usec_delta, cur_freq, l3c_bw, hit_bw),
 	TP_STRUCT__entry(
+=======
+TRACE_EVENT(l3c_devfreq_calc_next_freq,/* [false alarm]:原生宏定义 */
+	TP_PROTO(unsigned long l3_count, unsigned long ba_count, unsigned long cycle_count, unsigned long usec_delta, unsigned long cur_freq,
+		 unsigned long l3c_bw, unsigned long hit_bw),
+	TP_ARGS(l3_count, ba_count, cycle_count, usec_delta, cur_freq, l3c_bw, hit_bw),
+	TP_STRUCT__entry(
+		__field(unsigned long, l3_count)
+		__field(unsigned long, ba_count)
+		__field(unsigned long, cycle_count)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		__field(unsigned long, usec_delta)
 		__field(unsigned long, cur_freq)
 		__field(unsigned long, l3c_bw)
 		__field(unsigned long, hit_bw)
 	),
 	TP_fast_assign(
+<<<<<<< HEAD
+=======
+		__entry->l3_count = l3_count;
+		__entry->ba_count = ba_count;
+		__entry->cycle_count = cycle_count;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		__entry->usec_delta = usec_delta;
 		__entry->cur_freq = cur_freq;
 		__entry->l3c_bw = l3c_bw;
 		__entry->hit_bw = hit_bw;
 	),
 
+<<<<<<< HEAD
 	TP_printk("usec_delta=%lu cur_freq=%lu l3c_bw=%lu hit_bw=%lu",
 		  __entry->usec_delta, __entry->cur_freq,
+=======
+	TP_printk("l3_count=%lu ba_count=%lu cy_count = %lu usec_delta=%lu cur_freq=%lu l3c_bw = %lu hit_bw = %lu",
+		  __entry->l3_count, __entry->ba_count, __entry->cycle_count, __entry->usec_delta, __entry->cur_freq,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		  __entry->l3c_bw, __entry->hit_bw)
 );
 

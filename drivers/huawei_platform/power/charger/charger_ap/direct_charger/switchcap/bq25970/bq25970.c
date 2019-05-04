@@ -34,9 +34,12 @@
 #include <linux/irq.h>
 #include <linux/notifier.h>
 #include <linux/mutex.h>
-#include <linux/raid/pq.h>
 
 #include <huawei_platform/log/hw_log.h>
+#ifdef CONFIG_HUAWEI_HW_DEV_DCT
+#include <huawei_platform/devdetect/hw_dev_dec.h>
+#endif
+#include <linux/raid/pq.h>
 #include <huawei_platform/power/direct_charger.h>
 #include "bq25970.h"
 #include <huawei_platform/power/power_thermalzone.h>
@@ -60,10 +63,23 @@ static int switching_frequency = BQ2597X_SW_FREQ_550KHZ;
 static int bq25970_init_finish_flag = BQ2597X_NOT_INIT;
 static int bq25970_int_notify_enable_flag = BQ2597X_DISABLE_INT_NOTIFY;
 
+<<<<<<< HEAD
 #define MSG_LEN                      (2)
 
 static int bq25970_write_block(struct bq25970_device_info *di,
 	u8 *value, u8 reg, unsigned int num_bytes)
+=======
+/**********************************************************
+*  Function:       bq25970_write_block
+*  Discription:    register write block interface
+*  Parameters:   di:bq25970_device_info
+*                      value:register value
+*                      reg:register name
+*                      num_bytes:bytes number
+*  return value:  0-sucess or others-fail
+**********************************************************/
+static int bq25970_write_block(struct bq25970_device_info *di, u8 *value, u8 reg, unsigned num_bytes)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	struct i2c_msg msg[1];
 	int ret = 0;
@@ -99,10 +115,23 @@ static int bq25970_write_block(struct bq25970_device_info *di,
 	}
 }
 
+<<<<<<< HEAD
 static int bq25970_read_block(struct bq25970_device_info *di,
 	u8 *value, u8 reg, unsigned int num_bytes)
+=======
+/**********************************************************
+*  Function:       bq25970_read_block
+*  Discription:    register read block interface
+*  Parameters:   di:bq25970_device_info
+*                      value:register value
+*                      reg:register name
+*                      num_bytes:bytes number
+*  return value:  0-sucess or others-fail
+**********************************************************/
+static int bq25970_read_block(struct bq25970_device_info *di,u8 *value, u8 reg, unsigned num_bytes)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
-	struct i2c_msg msg[MSG_LEN];
+	struct i2c_msg msg[2];
 	u8 buf = 0;
 	int ret = 0;
 
@@ -128,11 +157,16 @@ static int bq25970_read_block(struct bq25970_device_info *di,
 	msg[1].buf = value;
 	msg[1].len = num_bytes;
 
-	ret = i2c_transfer(di->client->adapter, msg, MSG_LEN);
+	ret = i2c_transfer(di->client->adapter, msg, 2);
 
 	/* i2c_transfer returns number of messages transferred */
+<<<<<<< HEAD
 	if (ret != MSG_LEN) {
 		hwlog_err("read_block failed[%x]\n", reg);
+=======
+	if (ret != 2) {
+		hwlog_err("error: i2c_read failed to transfer all messages!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (ret < 0)
 			return ret;
 		else
@@ -145,8 +179,17 @@ static int bq25970_read_block(struct bq25970_device_info *di,
 static int bq25970_write_byte(u8 reg, u8 value)
 {
 	struct bq25970_device_info *di = g_bq25970_dev;
+<<<<<<< HEAD
 	 /* 2 bytes offset 1 contains the data offset 0 is used by i2c_write */
 	u8 temp_buffer[MSG_LEN] = {0};
+=======
+	u8 temp_buffer[2] = { 0 }; /* 2 bytes offset 1 contains the data offset 0 is used by i2c_write */
+
+	if (NULL == di) {
+		hwlog_err("error: di is null!\n");
+		return -ENOMEM;
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	/* offset 1 contains the data */
 	temp_buffer[1] = value;
@@ -191,7 +234,6 @@ static void bq25970_dump_register(void)
 		hwlog_info("reg [%x]=0x%x\n", i, val);
 	}
 }
-
 static int bq25970_reg_reset(void)
 {
 	int ret;
@@ -950,7 +992,11 @@ static irqreturn_t bq25970_interrupt(int irq, void *_di)
 	if (bq25970_init_finish_flag == BQ2597X_INIT_FINISH)
 		bq25970_int_notify_enable_flag = BQ2597X_ENABLE_INT_NOTIFY;
 
+<<<<<<< HEAD
 	hwlog_info("bq25970 int happened(%d)\n", bq25970_init_finish_flag);
+=======
+	hwlog_err("interrupt happened (%d)!\n", bq25970_init_finish_flag);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	disable_irq_nosync(di->irq_int);
 	schedule_work(&di->irq_work);
@@ -986,11 +1032,12 @@ static void bq25970_parse_dts(struct device_node *np,
 		switching_frequency = BQ2597X_SW_FREQ_550KHZ;
 	}
 	hwlog_info("switching_frequency=%d\n", switching_frequency);
+
 }
 
-static struct loadswitch_ops bq25970_sysinfo_ops = {
+static struct loadswitch_ops  bq25970_sysinfo_ops ={
 	.ls_init = bq25970_charge_init,
-	.ls_exit = bq25970_charge_exit,
+	.ls_exit= bq25970_charge_exit,
 	.ls_enable = bq25970_charge_enable,
 	.ls_discharge = bq25970_discharge,
 	.is_ls_close = bq25970_is_device_close,
@@ -1042,17 +1089,22 @@ static int bq25970_probe(struct i2c_client *client,
 
 	bq25970_parse_dts(np, di);
 
-	di->gpio_int = of_get_named_gpio(np, "gpio_int", 0);
-	hwlog_info("gpio_int=%d\n", di->gpio_int);
+	di->gpio_int = of_get_named_gpio(np, "switchcap_int", 0);
+	hwlog_info("switchcap_int=%d\n", di->gpio_int);
 
 	if (!gpio_is_valid(di->gpio_int)) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_int) is not valid\n");
+=======
+		hwlog_err("error: gpio(switchcap_int) is not valid!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		ret = -EINVAL;
 		goto bq25970_fail_0;
 	}
 
-	ret = gpio_request(di->gpio_int, "bq25970_gpio_int");
+	ret = gpio_request(di->gpio_int, "switchcap_int");
 	if (ret < 0) {
+<<<<<<< HEAD
 		hwlog_err("gpio(gpio_int) request fail\n");
 		goto bq25970_fail_0;
 	}
@@ -1074,6 +1126,23 @@ static int bq25970_probe(struct i2c_client *client,
 		IRQF_TRIGGER_FALLING, "bq25970_int_irq", di);
 	if (ret) {
 		hwlog_err("gpio(gpio_int) irq request fail\n");
+=======
+		hwlog_err("error: gpio(switchcap_int) request fail!\n");
+		ret = -EINVAL;
+		goto bq25970_fail_0;
+	}
+
+	gpio_direction_input(di->gpio_int);
+	di->irq_int = gpio_to_irq(di->gpio_int);
+	if (di->irq_int < 0) {
+		hwlog_err("error: gpio_int(switchcap_int) map to irq fail!\n");
+		goto bq25970_fail_1;
+	}
+
+	ret = request_irq(di->irq_int, bq25970_interrupt, IRQF_TRIGGER_FALLING, "switchcap_int_irq", di);
+	if (ret) {
+		hwlog_err("error: gpio_int(switchcap_int) irq request fail!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		di->irq_int = -1;
 		goto bq25970_fail_1;
 	}
@@ -1160,7 +1229,11 @@ static void bq25970_shutdown(struct i2c_client *client)
 }
 
 MODULE_DEVICE_TABLE(i2c, bq25970);
+<<<<<<< HEAD
 static const struct of_device_id bq25970_of_match[] = {
+=======
+static struct of_device_id bq25970_of_match[] = {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	{
 		.compatible = "bq25970",
 		.data = NULL,
@@ -1187,7 +1260,6 @@ static struct i2c_driver bq25970_driver = {
 static int __init bq25970_init(void)
 {
 	int ret = 0;
-
 	ret = i2c_add_driver(&bq25970_driver);
 	if (ret)
 		hwlog_err("i2c_add_driver error\n");

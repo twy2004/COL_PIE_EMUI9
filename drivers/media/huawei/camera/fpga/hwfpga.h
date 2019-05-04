@@ -58,7 +58,6 @@ typedef struct _tag_hwfpga_vtbl
     int (*close)(const hwfpga_intf_t *i);
     int (*fpga_get_dt_data) (const hwfpga_intf_t *, struct device_node *);
     int (*fpga_register_attribute)(const hwfpga_intf_t *, struct device *);
-    int (*checkdevice)(const hwfpga_intf_t *i);
 } hwfpga_vtbl_t;
 
 typedef struct _tag_hwfpga_intf

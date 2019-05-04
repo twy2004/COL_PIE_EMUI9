@@ -83,6 +83,7 @@ static int g_alpha_filter_change_thresh = 0;
 static unsigned int g_no_rx_thresh = 2;
 static unsigned long g_no_rx_time_stamp = 0;
 
+<<<<<<< HEAD
 static int g_network_detect_window = 5;/*seconds*/
 static int g_network_status = NETWORK_STATUS_NETWORK_NORMAL;
 static int g_slow_count = 0;
@@ -92,6 +93,8 @@ static int g_normal_count = 0;
 static int g_rsrp = 0;
 static int g_dbm = 0;
 static unsigned int g_app_rtt;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /********************************
 *	Function variables
 *********************************/
@@ -694,6 +697,7 @@ static void hidata_app_qoe_ai_predict(void)
 }
 #endif
 
+<<<<<<< HEAD
 static void predict_network_normal_or_slow(void)
 {
 	int para[10] = {0};
@@ -790,6 +794,8 @@ static void predict_network_normal_or_slow(void)
 	}
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*Update the index for the statistics array*/
 static unsigned int idx_update(struct pkt_stat_swth *stat_ptr)
 {
@@ -828,9 +834,12 @@ static unsigned int idx_update(struct pkt_stat_swth *stat_ptr)
 			hidata_app_qoe_ai_predict();
 		}
 #endif
+<<<<<<< HEAD
 		if (&g_stat == stat_ptr) {
 			predict_network_normal_or_slow();
 		}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		stat_ptr->idx = index;
 		stat_ptr->time_stamp = time_stamp;
 

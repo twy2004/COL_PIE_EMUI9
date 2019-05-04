@@ -39,6 +39,7 @@ int hisee_total_slt_func(void *buf, int para);
 int hisee_chiptest_rt_run_func(void * buf, int para);
 int hisee_chiptest_rt_stop_func(void * buf, int para);
 #endif
+<<<<<<< HEAD
 
 /* hisee high temp switch mode */
 #ifdef CONFIG_HISEE_HIGH_TEMP_PROTECT_SWITCH
@@ -52,10 +53,21 @@ typedef enum _HISEE_TEMP_CFG_STATE {
 #endif
 
 int hisee_factory_check_func(void *buf, int para);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
-#ifdef CONFIG_HISEE_SUPPORT_OVERSEA
-int hisee_smx_misc_upgrade(void *buf);
+/* hisee high temp switch mode */
+#ifdef CONFIG_HISEE_HIGH_TEMP_PROTECT_SWITCH
+#define HISEE_HIGH_TEMP_PROTECT_ADDR    	(SOC_SCTRL_SCBAKDATA22_ADDR(SOC_ACPU_SCTRL_BASE_ADDR))
+#define HISEE_HIGH_TEMP_PROTECT_DISABLE_BIT		(30)
+
+typedef enum _HISEE_TEMP_CFG_STATE {
+    HISEE_TEMP_CFG_ON = 0x5A5AA5A5,
+    HISEE_TEMP_CFG_OFF = 0xA5A55A5A
+} hisee_tmp_cfg_state;
 #endif
+
+int hisee_factory_check_func(void *buf, int para);
 
 ssize_t hisee_at_result_show(struct device *dev, struct device_attribute *attr, char *buf);
 

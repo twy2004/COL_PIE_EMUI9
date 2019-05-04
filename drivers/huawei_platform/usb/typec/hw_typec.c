@@ -153,13 +153,13 @@ static int typec_clean_int_mask(void)
 
 /**
  * typec_open_otg() - start otg work by calling related modules.
- * usbswitch_common_manual_sw() is to connect USB signal path.
+ * fsa9685_manual_sw() is to connect USB signal path.
  * hisi_usb_id_change() is to open VBUS to charge slave devices.
  */
 static void typec_open_otg(void)
 {
-    usbswitch_common_dcd_timeout_enable(true);
-    usbswitch_common_manual_sw(FSA9685_USB1_ID_TO_IDBYPASS);
+    fsa9685_dcd_timeout_enable(true);
+    fsa9685_manual_sw(FSA9685_USB1_ID_TO_IDBYPASS);
     mdelay(10);
     hisi_usb_id_change(ID_FALL_EVENT);
 }
@@ -169,7 +169,7 @@ static void typec_open_otg(void)
  */
 static void typec_close_otg(void)
 {
-    usbswitch_common_dcd_timeout_enable(false);
+    fsa9685_dcd_timeout_enable(false);
     hisi_usb_id_change(ID_RISE_EVENT);
 }
 

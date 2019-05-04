@@ -676,7 +676,7 @@ bool jd_done_nolock(struct kbase_jd_atom *katom,
 
 			if (node->status != KBASE_JD_ATOM_STATE_COMPLETED &&
 					!kbase_ctx_flag(kctx, KCTX_DYING)) {
-				need_to_try_schedule_context |= jd_run_atom(node);//lint !e514
+				need_to_try_schedule_context |= jd_run_atom(node);
 			} else {
 				node->event_code = katom->event_code;
 
@@ -688,7 +688,15 @@ bool jd_done_nolock(struct kbase_jd_atom *katom,
 						continue;
 				} else if (node->core_req &
 							BASE_JD_REQ_SOFT_JOB) {
-					WARN_ON(!list_empty(&node->queue));
+					/* If this is a fence wait soft job
+					 * then remove it from the list of sync
+					 * waiters.
+					 */
+					if (BASE_JD_REQ_SOFT_FENCE_WAIT == node->core_req) {
+						dev_err(kbdev->dev, "kctx %pK atom=%pK fence wait removed for dying context\n", (void *)kctx, node);
+						kbasep_remove_waiting_soft_job(node);
+					}
+
 					kbase_finish_soft_job(node);
 				}
 				node->status = KBASE_JD_ATOM_STATE_COMPLETED;
@@ -790,7 +798,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 	int sched_prio;
 	bool ret;
 	bool will_fail = false;
-/*lint -e648*/
+
 	/* Update the TOTAL number of jobs. This includes those not tracked by
 	 * the scheduler: 'not ready to run' and 'dependency-only' jobs. */
 	jctx->job_nr++;
@@ -824,7 +832,6 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 
 	katom->age = kctx->age_count++;
 
-	INIT_LIST_HEAD(&katom->queue);
 	INIT_LIST_HEAD(&katom->jd_item);
 #ifdef CONFIG_MALI_DMA_FENCE
 	kbase_fence_dep_count_set(katom, -1);
@@ -850,9 +857,9 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 				 * dependencies. */
 				KBASE_TLSTREAM_TL_NEW_ATOM(
 						katom,
-						kbase_jd_atom_id(kctx, katom));//lint !e648
+						kbase_jd_atom_id(kctx, katom));
 				KBASE_TLSTREAM_TL_RET_ATOM_CTX(
-						katom, kctx);//lint !e648
+						katom, kctx);
 				KBASE_TLSTREAM_TL_ATTRIB_ATOM_STATE(katom,
 						TL_ATOM_STATE_IDLE);
 
@@ -898,7 +905,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 			KBASE_TLSTREAM_TL_NEW_ATOM(
 					katom,
 					kbase_jd_atom_id(kctx, katom));
-			KBASE_TLSTREAM_TL_RET_ATOM_CTX(katom, kctx);//lint !e648
+			KBASE_TLSTREAM_TL_RET_ATOM_CTX(katom, kctx);
 			KBASE_TLSTREAM_TL_ATTRIB_ATOM_STATE(katom,
 					TL_ATOM_STATE_IDLE);
 
@@ -918,7 +925,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 			queued = 1;
 		}
 	}
-/*lint +e648*/
+
 	if (will_fail) {
 		if (!queued) {
 			if (katom->core_req & BASE_JD_REQ_SOFT_JOB) {
@@ -960,7 +967,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 		 * that depends on a previous atom with the same number behaves
 		 * as expected */
 		katom->event_code = BASE_JD_EVENT_DONE;
-		katom->status = KBASE_JD_ATOM_STATE_QUEUED;//lint !e648
+		katom->status = KBASE_JD_ATOM_STATE_QUEUED;
 	}
 
 	/* For invalid priority, be most lenient and choose the default */
@@ -972,17 +979,17 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 	/* Create a new atom recording all dependencies it was set up with. */
 	KBASE_TLSTREAM_TL_NEW_ATOM(
 			katom,
-			kbase_jd_atom_id(kctx, katom));//lint !e648
+			kbase_jd_atom_id(kctx, katom));
 	KBASE_TLSTREAM_TL_ATTRIB_ATOM_STATE(katom, TL_ATOM_STATE_IDLE);
 	KBASE_TLSTREAM_TL_ATTRIB_ATOM_PRIORITY(katom, katom->sched_priority);
-	KBASE_TLSTREAM_TL_RET_ATOM_CTX(katom, kctx);//lint !e648
+	KBASE_TLSTREAM_TL_RET_ATOM_CTX(katom, kctx);
 	for (i = 0; i < 2; i++)
 		if (BASE_JD_DEP_TYPE_INVALID != kbase_jd_katom_dep_type(
 					&katom->dep[i])) {
 			KBASE_TLSTREAM_TL_DEP_ATOM_ATOM(
 					(void *)kbase_jd_katom_dep_atom(
 						&katom->dep[i]),
-					(void *)katom);//lint !e648
+					(void *)katom);
 		} else if (BASE_JD_DEP_TYPE_INVALID !=
 				user_atom->pre_dep[i].dependency_type) {
 			/* Resolved dependency. */
@@ -993,7 +1000,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 
 			KBASE_TLSTREAM_TL_RDEP_ATOM_ATOM(
 					(void *)dep_atom,
-					(void *)katom);//lint !e648
+					(void *)katom);
 		}
 
 	/* Reject atoms with job chain = NULL, as these cause issues with soft-stop */
@@ -1118,7 +1125,7 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
  out:
 	return ret;
 }
-/*lint -e574*/
+
 int kbase_jd_submit(struct kbase_context *kctx,
 		void __user *user_addr, u32 nr_atoms, u32 stride,
 		bool uk6_atom)
@@ -1177,10 +1184,10 @@ while (false)
 #endif
 		compiletime_assert((1 << (8*sizeof(user_atom.atom_number))) ==
 					BASE_JD_ATOM_COUNT,
-			"BASE_JD_ATOM_COUNT and base_atom_id type out of sync");//lint !e1564
+			"BASE_JD_ATOM_COUNT and base_atom_id type out of sync");
 		compiletime_assert(sizeof(user_atom.pre_dep[0].atom_id) ==
 					sizeof(user_atom.atom_number),
-			"BASE_JD_ATOM_COUNT and base_atom_id type out of sync");//lint !e1564
+			"BASE_JD_ATOM_COUNT and base_atom_id type out of sync");
 #ifdef compiletime_assert_defined
 #undef compiletime_assert
 #undef compiletime_assert_defined
@@ -1217,7 +1224,7 @@ while (false)
 		}
 
 		need_to_try_schedule_context |=
-				       jd_submit_atom(kctx, &user_atom, katom);//lint !e514
+				       jd_submit_atom(kctx, &user_atom, katom);
 
 		/* Register a completed job as a disjoint event when the GPU is in a disjoint state
 		 * (ie. being reset or replaying jobs).
@@ -1232,7 +1239,7 @@ while (false)
 
 	return err;
 }
-/*lint +e574*/
+
 KBASE_EXPORT_TEST_API(kbase_jd_submit);
 
 void kbase_jd_done_worker(struct work_struct *data)

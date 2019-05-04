@@ -153,7 +153,7 @@ int __init bfmr_init(void)
 
 static void __exit bfmr_exit(void)
 {
-    return ;
+    return 0;
 }
 
 fs_initcall(bfmr_init);

@@ -28,10 +28,15 @@
 
 extern void hjpeg_config_cvdr(hjpeg_hw_ctl_t *hw_ctl, jpgenc_config_t* config);
 extern int is_hjpeg_qos_update(void);
+<<<<<<< HEAD
 extern int get_hjpeg_wr_port_addr_update(void);
 extern int get_hjpeg_iova_update(void);
 extern int is_pixel_fmt_update(void);
 extern int is_cvdr_cfg_update(void);
+=======
+extern int is_hjpeg_wr_port_addr_update(void);
+extern int is_hjpeg_iova_update(void);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define EXP_PIX                              1
 #define ACCESS_LIMITER                       7
@@ -81,6 +86,7 @@ extern int is_cvdr_cfg_update(void);
 #define CVDR_AXI_JPEG_NR_RD_CFG_4                   0x1570
 #define CVDR_AXI_JPEG_LIMITER_NR_RD_4               0x1578
 
+<<<<<<< HEAD
 typedef enum _cvdr_wr_port_update
 {
    CVDR_WR_PORT_UPDATE_0,
@@ -94,6 +100,8 @@ typedef enum _cvdr_iova_update
    CVDR_IOVA_ADDR_34BITS // 34bit addr
 } cvdr_iova_update;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 typedef enum _cvdr_pix_fmt_e
 {
     DF_1PF8 = 0x0,
@@ -272,6 +280,7 @@ typedef union
     /* Define the struct bits */
     struct
     {
+<<<<<<< HEAD
         uint32_t    vpwr_pixel_format     : 5   ; /* [4..0]  */
         uint32_t    vpwr_pixel_expansion  : 1   ; /* [5]  */
         uint32_t    reserved_0            : 7   ; /* [12..6]  */
@@ -288,6 +297,8 @@ typedef union
     /* Define the struct bits */
     struct
     {
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         uint32_t    vpwr_line_stride      : 10  ; /* [9..0]  */
         uint32_t    reserved_0            : 5   ; /* [14..10]  */
         uint32_t    vpwr_line_wrap        : 14  ; /* [28..15]  */
@@ -304,10 +315,15 @@ typedef union
     /* Define the struct bits */
     struct
     {
+<<<<<<< HEAD
         uint32_t    vpwr_line_stride          : 11  ; /* [10..0]  */
         uint32_t    vpwr_line_start_wstrb_4   : 4   ; /* [14..11]  */
         uint32_t    vpwr_line_wrap            : 14  ; /* [28..15]  */
         uint32_t    reserved_1                : 3   ; /* [31..29]  */
+=======
+        uint32_t    reserved_0            : 4   ; /* [3..0]  */
+        uint32_t    vpwr_address_frame_start : 28  ; /* [31..4]  */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     } bits;
 
     /* Define an unsigned member */
@@ -315,6 +331,7 @@ typedef union
 
 } U_VP_WR_AXI_LINE_UPDATE_2;
 
+<<<<<<< HEAD
 //for 32bit
 typedef union
 {
@@ -345,6 +362,8 @@ typedef union
 
 } U_VP_WR_AXI_FS_UPDATE;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /* Define the union U_CVDR_SRT_NR_RD_CFG_1 */
 typedef union
 {

@@ -44,7 +44,6 @@ static int g_force_resume_bl_flag = RESUME_IDLE;
 static int g_resume_bl_duration = 0;  /* default not support auto resume*/
 static enum hrtimer_restart lm36274_bl_resume_hrtimer_fnc(struct hrtimer *timer);
 static void lm36274_bl_resume_workqueue_handler(struct work_struct *work);
-extern int bl_lvl_map(int level);
 
 struct backlight_information {
 	/* whether support lm36274 or not */
@@ -107,11 +106,6 @@ static int lm36274_parse_dts(struct device_node *np)
 	int ret = 0;
 	int i = 0;
 
-	if(np == NULL){
-		LM36274_ERR("np is NULL pointer \n");
-		return -1;
-	}
-
 	for (i = 0;i < LM36274_RW_REG_MAX;i++ ) {
 		ret = of_property_read_u32(np, lm36274_dts_string[i], &bl_info.lm36274_reg[i]);
 		if (ret < 0) {
@@ -130,11 +124,6 @@ static int lm36274_config_write(struct lm36274_chip_data *pchip,
 {
 	int ret = 0;
 	unsigned int i = 0;
-
-	if((pchip == NULL) || (reg == NULL) || (val == NULL)){
-		LM36274_ERR("pchip or reg or val is NULL pointer \n");
-		return -1;
-	}
 
 	for(i = 0;i < size;i++) {
 		ret = regmap_write(pchip->regmap, reg[i], val[i]);
@@ -156,11 +145,6 @@ static int lm36274_config_read(struct lm36274_chip_data *pchip,
 	int ret = 0;
 	unsigned int i = 0;
 
-	if((pchip == NULL) || (reg == NULL) || (val == NULL)){
-		LM36274_ERR("pchip or reg or val is NULL pointer \n");
-		return -1;
-	}
-
 	for(i = 0;i < size;i++) {
 		ret = regmap_read(pchip->regmap, reg[i],&val[i]);
 		if (ret < 0) {
@@ -179,11 +163,6 @@ static void lm36274_bl_mode_reg_init(unsigned int reg[],unsigned int val[],unsig
 {
 	unsigned int i;
 	unsigned int reg_element_num = 0;
-
-	if((reg == NULL) || (val == NULL)){
-		LM36274_ERR("reg or val is NULL pointer\n");
-		return;
-	}
 
 	LM36274_INFO("lm36274_bl_mode_reg_init in \n");
 	memset(&g_bl_work_mode_reg_indo, 0, sizeof(struct backlight_work_mode_reg_info));
@@ -275,11 +254,6 @@ static int lm36274_set_hidden_reg(struct lm36274_chip_data *pchip)
 	int ret = 0;
 	unsigned int val = 0;
 
-	if(pchip == NULL){
-		LM36274_ERR("pchip is NULL pointer\n");
-		return -1;
-	}
-
 	ret = regmap_write(pchip->regmap, REG_SET_SECURITYBIT_ADDR, REG_SET_SECURITYBIT_VAL);
 	if (ret < 0) {
 		LM36274_ERR("write lm36274_set_hidden_reg register 0x%x failed\n",REG_SET_SECURITYBIT_ADDR);
@@ -332,15 +306,10 @@ out:
 static int lm36274_chip_init(struct lm36274_chip_data *pchip)
 {
     int ret = -1;
-    struct device_node *np = NULL;
+    struct device_node *np;
     unsigned int enable_reg = 0;
 
     LM36274_INFO("in!\n");
-
-	if(pchip == NULL){
-		LM36274_ERR("pchip is NULL pointer\n");
-		return -1;
-	}
 
     memset(&bl_info, 0, sizeof(struct backlight_information));
 
@@ -477,7 +446,6 @@ static int lm36274_check_ovp_error(void)
 err_out:
     return ret;
 }
-
 /**
  * lm36274_set_backlight_reg(): Set Backlight working mode
  *
@@ -505,9 +473,6 @@ int lm36274_set_backlight_reg(unsigned int bl_level)
 		LM36274_INFO("Now in test mode\n");
 		return 0;
 	}
-
-	bl_level = bl_lvl_map(bl_level);
-
 	LM36274_INFO("lm36274_set_backlight_reg bl_level = %u \n", bl_level);
 
 	//blkit_force_resume_reg_proc();
@@ -651,17 +616,10 @@ static ssize_t lm36274_reg_bl_store(struct device *dev,
 					const char *buf, size_t size)
 {
 	ssize_t ret = -1;
-	struct lm36274_chip_data *pchip = NULL;
+	struct lm36274_chip_data *pchip = dev_get_drvdata(dev);
 	unsigned int bl_level = 0;
 	unsigned int bl_msb = 0;
 	unsigned int bl_lsb = 0;
-
-	if (!dev)
-		return snprintf((char *)buf, PAGE_SIZE, "dev is null\n");
-
-	pchip = dev_get_drvdata(dev);
-	if (!pchip)
-		return snprintf((char *)buf, PAGE_SIZE, "data is null\n");
 
 	ret = kstrtouint(buf, 10, &bl_level);
 	if (ret) {
@@ -746,17 +704,10 @@ static ssize_t lm36274_reg_store(struct device *dev,
 					const char *buf, size_t size)
 {
 	ssize_t ret = -1;
-	struct lm36274_chip_data *pchip = NULL;
+	struct lm36274_chip_data *pchip = dev_get_drvdata(dev);
 	unsigned int reg = 0;
 	unsigned int mask = 0;
 	unsigned int val = 0;
-
-	if (!dev)
-		return snprintf((char *)buf, PAGE_SIZE, "dev is null\n");
-
-	pchip = dev_get_drvdata(dev);
-	if (!pchip)
-		return snprintf((char *)buf, PAGE_SIZE, "data is null\n");
 
 	ret = sscanf(buf, "reg=0x%x, mask=0x%x, val=0x%x",&reg,&mask,&val);
 	if (ret < 0) {
@@ -1066,23 +1017,12 @@ static struct lcd_kit_bl_ops bl_ops = {
 static int lm36274_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-	struct i2c_adapter *adapter = NULL;
+	struct i2c_adapter *adapter = client->adapter;
 	struct lm36274_chip_data *pchip = NULL;
 	int ret = -1;
 	unsigned int val = 0;
 
 	LM36274_INFO("in!\n");
-
-	if(client == NULL){
-		LM36274_ERR("client is NULL pointer\n");
-		return -1;
-	}
-
-	adapter = client->adapter;
-	if(adapter == NULL){
-		LM36274_ERR("adapter is NULL pointer\n");
-		return -1;
-	}
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "i2c functionality check fail.\n");

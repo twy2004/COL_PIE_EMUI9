@@ -71,6 +71,8 @@
 #define FAN53880_MASK_BOOST_5V (0x80)
 #define FAN53880_MASK_UVP_INT (0x20)
 #define FAN53880_MASK_BST_IPK_INT (0x80)
+//GPIO
+#define FAN53880_ENABLE_GPIO (75)
 
 //LDO2
 #define FAN53880_LDO2_CTRL 1
@@ -539,7 +541,6 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
     i2c_client = pmic_ctrl->pmic_i2c_client;
     i2c_func = pmic_ctrl->pmic_i2c_client->i2c_func_tbl;
     pdata = (struct fan53880_private_data_t *)pmic_ctrl->pdata;
-    cam_info("%s pmic_ctrl->pdata pin = %d.",__func__,pdata->pin);
 
     // PMU_STAT
     i2c_func->i2c_read(i2c_client, FAN53880_PMU_STATUS_REG, &pmu_status);
@@ -579,9 +580,9 @@ static int pmic_check_state_exception(struct hisi_pmic_ctrl_t *pmic_ctrl)
         }
     }
     //reset fan53889 ENABLE
-    gpio_set_value(pdata->pin,FAN53880_PIN_DISABLE);
+    gpio_set_value(FAN53880_ENABLE_GPIO,FAN53880_PIN_DISABLE);
     udelay(1000);
-    gpio_set_value(pdata->pin,FAN53880_PIN_ENABLE);
+    gpio_set_value(FAN53880_ENABLE_GPIO,FAN53880_PIN_ENABLE);
     return 0;
 }
 

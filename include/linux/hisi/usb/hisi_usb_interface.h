@@ -13,6 +13,13 @@ enum misc_ctrl_type {
 int hisi_usb_combophy_notify(enum phy_change_type type);
 int dwc3_misc_ctrl_get(enum misc_ctrl_type type);
 void dwc3_misc_ctrl_put(enum misc_ctrl_type type);
+<<<<<<< HEAD
 u32 usb31phy_cr_read(u32 addr);
 int usb31phy_cr_write(u32 addr, u32 value);
+=======
+volatile unsigned int hisi_dwc3_usbcore_read(u32 offset);
+void hisi_dwc3_usbcore_write(u32 offset, u32 value);
+u16 usb31phy_cr_read(u32 addr);
+int usb31phy_cr_write(u32 addr, u16 value);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif /* hisi_usb_interface.h */

@@ -1005,6 +1005,7 @@ static int chip_init(void)
 	return 0;
 }
 
+<<<<<<< HEAD
 static int rt9748_charge_status(void)
 {
 	struct rt9748_device_info *di = g_rt9748_dev;
@@ -1022,6 +1023,9 @@ static int rt9748_charge_status(void)
 }
 
 static int rt9748_charge_init(void)
+=======
+static int rt9748_charge_init(void )
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	int ret = 0;
 	struct rt9748_device_info *di = g_rt9748_dev;
@@ -1049,7 +1053,11 @@ static int rt9748_charge_init(void)
 	ret |= rt9748_config_ibus_ocp_threshold_ma(5800);
 	if (ret)
 		return -1;
+<<<<<<< HEAD
 
+=======
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return 0;
 }
 
@@ -1076,9 +1084,12 @@ static int rt9748_charge_exit(void)
 		hwlog_err("di is null\n");
 		return -1;
 	}
+<<<<<<< HEAD
 
 	di->chip_already_init = 0;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	ret = rt9748_charge_enable(0);
 	if (ret) {
 		hwlog_err("close fail\n");
@@ -1094,8 +1105,13 @@ static int rt9748_charge_exit(void)
 		hwlog_err("reset pull down fail\n");
 		return -1;
 	}
+<<<<<<< HEAD
 
 	usleep_range(10000, 11000); /* wait for 10ms */
+=======
+	di->chip_already_init = 0;
+	msleep(10);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return ret;
 }
 
@@ -1126,7 +1142,6 @@ static struct loadswitch_ops rt9748_sysinfo_ops = {
 	.ls_discharge = rt9748_discharge,
 	.is_ls_close = rt9748_is_ls_close,
 	.get_ls_id = loadswitch_get_device_id,
-	.ls_status = rt9748_charge_status,
 };
 
 static struct batinfo_ops rt9748_batinfo_ops = {
@@ -1246,8 +1261,11 @@ static int rt9748_probe(struct i2c_client *client,
 		return -ENOMEM;
 
 	g_rt9748_dev = di;
+<<<<<<< HEAD
 
 	di->chip_already_init = 0;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	di->dev = &client->dev;
 	np = di->dev->of_node;
 	di->client = client;

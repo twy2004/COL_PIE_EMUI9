@@ -120,7 +120,11 @@ int synap_set_oem_data(unsigned char *oem_data, unsigned short leng);
 #endif
 int synaptics_get_gamma_data(unsigned char *pm_data, unsigned short leng);
 int synaptics_set_gamma_data(unsigned char *pm_data, unsigned short leng);
+<<<<<<< HEAD
 //static int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng);
+=======
+static int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 extern struct synaptics_rmi4_data *rmi4_data;
 extern void synap_parse_chip_specific_dts(struct ts_kit_device_data *chip_data);
 
@@ -2425,7 +2429,6 @@ static int fwu_read_f34_blocks(unsigned short block_cnt, unsigned char cmd)
 	return retval;
 }
 
-#if 0
 static int fwu_get_image_firmware_id(unsigned int *fw_id)
 {
 	int retval = NO_ERR;
@@ -2469,22 +2472,18 @@ static int fwu_get_image_firmware_id(unsigned int *fw_id)
 
 	return 0;
 }
-#endif
+
 bool GetHexCharValue(char cHex, unsigned char * byValue)
 {
 	int i = 0;
-
-
-	struct HexValue stHexValue[] = {
+	struct HexValue stHexValue[] ={
 		{'0', 0}, {'1', 1}, {'2', 2}, {'3', 3}, {'4', 4},{'5', 5}, {'6', 6}, {'7', 7}, {'8', 8}, {'9', 9},
 		{'a', 10}, {'b', 11}, {'c', 12}, {'d', 13}, {'e', 14}, {'f', 15},
 		{'A', 10}, {'B', 11}, {'C', 12}, {'D', 13}, {'E', 14}, {'F', 15}};
-
 	if(NULL == byValue)
 	{
 		return false;
 	}
-
 	for ( i = 0; i < (int)(sizeof(stHexValue) / sizeof(struct HexValue)); i++)
 	{
 		if (stHexValue[i].m_cHexChar == cHex)
@@ -2933,6 +2932,7 @@ static int fwu_erase_utility_parameter(void)
 static int fwu_erase_guest_code(void)
 {
 	int retval = NO_ERR;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	retval = fwu_write_f34_command(CMD_ERASE_GUEST_CODE);
 	if (retval < 0)
@@ -2942,7 +2942,7 @@ static int fwu_erase_guest_code(void)
 		return retval;
 	return 0;
 }
-#if 0
+
 static int fwu_erase_lockdown_data(void)
 {
 	int retval = NO_ERR;
@@ -2958,7 +2958,7 @@ static int fwu_erase_lockdown_data(void)
 	return 0;
 }
 
-#endif
+
 static int fwu_erase_all(void)
 {
 	int retval = NO_ERR;
@@ -3041,7 +3041,11 @@ static int fwu_write_bootloader(void)
 static int fwu_read_utility_parameter(void)
 {
 	int retval = NO_ERR;
+	//unsigned char checksum_array[4];
 	unsigned short utility_param_size = 0;
+	//unsigned long checksum;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
+	int i = 0;
 
 	utility_param_size = fwu->blkcount.utility_param * fwu->block_size;
 	retval = fwu_allocate_read_config_buf(utility_param_size);
@@ -3064,6 +3068,7 @@ static int fwu_write_utility_parameter(void)
 	unsigned char checksum_array[4] = { 0 };
 	unsigned short utility_param_size = 0;
 	unsigned long checksum = 0;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	utility_param_size = fwu->blkcount.utility_param * fwu->block_size;
 	retval = fwu_allocate_read_config_buf(utility_param_size);
@@ -3127,7 +3132,7 @@ static int fwu_write_dp_configuration(void)
 
 	return fwu_write_configuration();
 }
-#if 0
+
 static int fwu_write_lockdown_data(void)
 {
 	int retval = NO_ERR;
@@ -3140,7 +3145,7 @@ static int fwu_write_lockdown_data(void)
 	rmi4_data->reset_device(rmi4_data);
 	return 0;
 }
-#endif
+
 static int fwu_write_flash_configuration(void)
 {
 	int retval = NO_ERR;
@@ -3186,7 +3191,7 @@ static int fwu_write_guest_code(void)
 
 	return 0;
 }
-#if 0
+
 static int fwu_write_lockdown(void)
 {
 	unsigned short lockdown_block_count = 0;
@@ -3196,11 +3201,12 @@ static int fwu_write_lockdown(void)
 	return fwu_write_f34_blocks((unsigned char *)fwu->img.lockdown.data,
 				    lockdown_block_count, CMD_WRITE_LOCKDOWN);
 }
-#endif
+
 static int fwu_write_partition_table(void)
 {
 	int retval = 0;
 	unsigned short block_count = 0;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	block_count = fwu->blkcount.bl_config;
 	fwu->config_area = BL_CONFIG_AREA;
@@ -3262,7 +3268,6 @@ static int fwu_write_partition_table_v8(void)
 	return 0;
 }
 
-#if 0
 static int fwu_write_partition_table_v7(void)
 {
 	int retval = 0;
@@ -3299,7 +3304,6 @@ static int fwu_write_partition_table_v7(void)
 
 	return 0;
 }
-#endif
 static int fwu_write_bl_area_v7(void)
 {
 	int retval = NO_ERR;
@@ -3945,6 +3949,9 @@ static void fwu_startup_fw_update_work(struct work_struct *work)
 static int synaptics_read_lockdown_data(void)
 {
 	int retval = -EINVAL;
+	int index = 0;
+	unsigned short block_count = 0;
+	unsigned char test[10] = { 0 };
 
 	if (fwu->bl_version != BL_V6) {
 		TS_LOG_ERR("%s: Not support lockdown data in bl v.%d\n", __func__, fwu->bl_version);
@@ -3969,6 +3976,7 @@ out:
 static int fwu_erase_oem_data(void)
 {
 	int retval = NO_ERR;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	retval = fwu_write_f34_command(CMD_ERASE_OEM_DATA);
 	if (retval < 0)
@@ -3990,6 +3998,7 @@ static int fwu_erase_oem_data(void)
 static int synaptics_read_oem_data(void)
 {
 	int retval = -EINVAL;
+	int index = 0;
 	unsigned short block_count = 0;
 
 	if (fwu->bl_version != BL_V6) {
@@ -4372,11 +4381,14 @@ int synaptics_set_gamma_data(unsigned char *pm_data, unsigned short leng)
 	unsigned short block_count = 0;
 	unsigned short config_area = 0;
 
+<<<<<<< HEAD
 	if(!pm_data){
 		TS_LOG_ERR("%s: NULL Failed \n", __func__);
 		return -EIO;
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	retval = synap_fw_data_s3718_init(rmi4_data);
 	if(retval) {
 		TS_LOG_ERR("%s: synap_fw_data_s3718_init Failed \n", __func__);
@@ -4425,7 +4437,7 @@ static int get_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 	memcpy(lockdown_data, fwu->read_config_buf + 4, leng);
 	return retval;
 }
-#if 0
+
 int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 {
 	int retval = -EINVAL;
@@ -4463,7 +4475,6 @@ static int synaptics_get_project_id(unsigned char *projectid, int plen)
 	snprintf(projectid, plen, "%s", project_id);
 	return 0;
 }
-#endif
 
 static int synaptics_read_project_id(void)
 {
@@ -4770,4 +4781,5 @@ void synap_fw_data_s3718_release(void)
 {
 	TS_LOG_INFO("s3718 release fw resource\n");
 	//Do not need to release hw data during the test
+	return 0;
 }

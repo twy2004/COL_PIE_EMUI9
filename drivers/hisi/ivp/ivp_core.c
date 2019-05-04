@@ -42,6 +42,10 @@
 
 #define IVP_WDG_REG_BASE_OFFSET          (0x1000)
 #define IVP_SMMU_REG_BASE_OFFSET         (0x40000)
+<<<<<<< HEAD
+=======
+#define IVP_IMAGE_DDR_DEFAULT_INDEX      (0x12)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define IVP_IMAGE_SUFFIX                  ".bin"
 #define IVP_INIT_SUCESS                  (0x1234ABCD)
 #define IVP_INIT_RESULT_CHECK_TIMES      (0x0A)
@@ -180,26 +184,16 @@ static int ivp_load_section(const struct firmware* fw,struct image_section_heade
     unsigned long ivp_ddr_addr = 0;
     unsigned int *mem_addr = NULL;
     void *mem = NULL;
-    bool ddr_flag;
-
     iova = image_sect.vaddr;
     size = image_sect.size;
 
     source = (unsigned int*)(fw->data+image_sect.offset);
     type = image_sect.type;
-    if ((image_sect.vaddr >= ivp_dev.sects[3].ivp_addr)
-        && (image_sect.vaddr <= (ivp_dev.sects[3].ivp_addr + ivp_dev.sects[3].len)))
-    {
-        ddr_flag = true;
-    }
-    else
-    {
-        ddr_flag = false;
-    }
+
     switch(type) {
     case IMAGE_SECTION_TYPE_EXEC:
     case IMAGE_SECTION_TYPE_DATA: {
-        if(true == ddr_flag) {
+        if(image_sect.index >= IVP_IMAGE_DDR_DEFAULT_INDEX) {
             ivp_ddr_addr = (ivp_dev.sects[3].acpu_addr<<4) + iova - ivp_dev.sects[3].ivp_addr;
             mem = ivp_vmap(ivp_ddr_addr,image_sect.size,&offset);
         }
@@ -211,7 +205,7 @@ static int ivp_load_section(const struct firmware* fw,struct image_section_heade
             return -EINVAL;
         }
         mem_addr = (unsigned int *)mem;
-        if(true == ddr_flag) {
+        if(image_sect.index >= IVP_IMAGE_DDR_DEFAULT_INDEX) {
             memcpy_s(mem_addr, image_sect.size, source, image_sect.size);
         } else {
             for(i = 0; i < image_sect.size/4; i++) {
@@ -231,7 +225,7 @@ static int ivp_load_section(const struct firmware* fw,struct image_section_heade
     }
     }
     if(mem != NULL) {
-        if(true == ddr_flag) {
+        if(image_sect.index >= IVP_IMAGE_DDR_DEFAULT_INDEX) {
             vunmap(mem-offset);
         }
         else {
@@ -376,6 +370,7 @@ inline u32 ivp_gic_reg_read(unsigned int off)
     u32 val = readl(reg);
     return val;
 }
+
 inline void ivp_hw_clr_wdg_irq(void)
 {
     //unlock reg
@@ -406,6 +401,13 @@ inline void ivp_hw_clockgate(struct ivp_device *devp, int state)
 {
     u32 val = (u32)state;
     ivp_reg_write(IVP_REG_OFF_DSPCORE_GATE, val & 0x01);
+}
+
+inline void ivp_hw_enable_reset(struct ivp_device *devp)
+{
+    ivp_reg_write(IVP_REG_OFF_DSP_CORE_RESET_EN, 0x02);
+    ivp_reg_write(IVP_REG_OFF_DSP_CORE_RESET_EN, 0x01);
+    ivp_reg_write(IVP_REG_OFF_DSP_CORE_RESET_EN, 0x04);
 }
 
 inline void ivp_hw_disable_reset(struct ivp_device *devp)
@@ -585,6 +587,13 @@ static void ivp_dev_poweroff(struct ivp_device *devp)
 {
     int ret = 0;
 
+<<<<<<< HEAD
+=======
+    ivp_hw_runstall(devp, IVP_RUNSTALL_STALL);
+
+    ivp_hw_enable_reset(devp);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ret = ivp_poweroff_pri(devp);
     if (ret) {
         ivp_err("power on private setting failed [%d]!", ret);
@@ -1010,6 +1019,15 @@ static int ivp_release(struct inode *inode, struct file *fd)
     return 0;
 }
 
+static void ivp_dev_hwa_enable(void)
+{
+    ivp_info("ivp will enable hwa.");
+    ivp_reg_write(IVP_REG_OFF_APB_GATE_CLOCK, 0x00003FFF);
+    ivp_reg_write(IVP_REG_OFF_TIMER_WDG_RST_DIS, 0x0000007F);
+
+    return;
+}
+
 static long ivp_ioctl(struct file *fd, unsigned int cmd, unsigned long args)
 {
     long ret = 0;
@@ -1205,7 +1223,8 @@ static long ivp_ioctl(struct file *fd, unsigned int cmd, unsigned long args)
             ivp_err("Invalid input param size.");
             return -EINVAL;
         }
-        ivp_change_clk(pdev, level);
+        pdev->clk_level = level;
+        ivp_change_clk(pdev);
         break;
     }
 
@@ -1434,7 +1453,6 @@ static void ivp_release_iores(struct platform_device *plat_devp)
         return;
     }
 
-
     if (NULL != pdev->io_res.gic_base_addr) {
         devm_iounmap(&plat_devp->dev, pdev->io_res.gic_base_addr);
         pdev->io_res.gic_base_addr = NULL;
@@ -1515,6 +1533,7 @@ static int ivp_init_reg_res(struct platform_device *pdev, struct ivp_device *ivp
         ret = -ENOMEM;
         goto ERR_EXIT;
     }
+
     return ret;
 
 ERR_EXIT:
@@ -1685,7 +1704,7 @@ int ivp_ion_phys(struct ion_client *client, struct ion_handle *handle,dma_addr_t
     sgl = sgt->sgl;
     if (sgl == NULL) {
         ivp_err("[%s] Failed : sgl.NULL\n", __func__);
-        goto err_sgl;
+        goto err_dma_buf_map_attachment;
     }
 
     // Get physical addresses from scatter list
@@ -1693,8 +1712,7 @@ int ivp_ion_phys(struct ion_client *client, struct ion_handle *handle,dma_addr_t
 
     ivp_dbg("[%s] -\n", __func__);
     ret = 0;
-err_sgl:
-    dma_buf_unmap_attachment(attach, sgt, DMA_BIDIRECTIONAL);
+
 err_dma_buf_map_attachment:
     dma_buf_detach(buf, attach);
 err_dma_buf_attach:

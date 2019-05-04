@@ -29,9 +29,9 @@ enum {
 	SHMEM_MSG_TYPE_NORMAL,
 	SHMEM_MSG_TYPE_SHORT,
 };
-
+#ifdef CONFIG_INPUTHUB_20
 #define SHMEM_IMPROVEMENT_SHORT_BLK
-
+#endif
 
 static LIST_HEAD(shmem_client_list);
 static DEFINE_MUTEX(shmem_recv_lock); /*lint !e651 !e708 !e570 !e64 !e785*/
@@ -68,7 +68,9 @@ static int shmem_ipc_send(unsigned char cmd, obj_tag_t module_id,
 			  unsigned int size, bool is_lock)
 {
 	struct shmem_ipc pkt;
+#ifdef CONFIG_INPUTHUB_20
 	write_info_t winfo;
+#endif
 
 	if (memset_s(&pkt, sizeof(pkt), 0, sizeof(pkt))) {
 		pr_err("%s memset_s fail\n", __func__);
@@ -94,11 +96,11 @@ static int shmem_ipc_send(unsigned char cmd, obj_tag_t module_id,
 		return inputhub_mcu_write_cmd(&pkt, sizeof(pkt)); //send msg no lock no resp
 	}
 #else
-	winfo.tag = TAG_SHAREMEM;
-	winfo.cmd = cmd;
-	winfo.wr_buf = &pkt.data;
-	winfo.wr_len = sizeof(struct shmem_ipc_data);
-	return write_customize_cmd(&winfo, NULL);
+	pkt.hd.tag = TAG_SHAREMEM;
+	pkt.hd.cmd = cmd;
+	pkt.hd.resp = 0;
+	pkt.hd.length = sizeof(struct shmem_ipc_data);
+	return inputhub_mcu_write_cmd_adapter(&pkt, (unsigned int)sizeof(pkt), NULL);
 #endif
 }
 

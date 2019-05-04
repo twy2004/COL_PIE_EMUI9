@@ -667,15 +667,9 @@ static inline void __update_cgrp_time(struct perf_cgroup *cgrp)
 
 static inline void update_cgrp_time_from_cpuctx(struct perf_cpu_context *cpuctx)
 {
-	struct perf_cgroup *cgrp = cpuctx->cgrp;
-	struct cgroup_subsys_state *css;
-
-	if (cgrp) {
-		for (css = &cgrp->css; css; css = css->parent) {
-			cgrp = container_of(css, struct perf_cgroup, css);
-			__update_cgrp_time(cgrp);
-		}
-	}
+	struct perf_cgroup *cgrp_out = cpuctx->cgrp;
+	if (cgrp_out)
+		__update_cgrp_time(cgrp_out);
 }
 
 static inline void update_cgrp_time_from_event(struct perf_event *event)
@@ -703,7 +697,6 @@ perf_cgroup_set_timestamp(struct task_struct *task,
 {
 	struct perf_cgroup *cgrp;
 	struct perf_cgroup_info *info;
-	struct cgroup_subsys_state *css;
 
 	/*
 	 * ctx->lock held by caller
@@ -714,12 +707,8 @@ perf_cgroup_set_timestamp(struct task_struct *task,
 		return;
 
 	cgrp = perf_cgroup_from_task(task, ctx);
-
-	for (css = &cgrp->css; css; css = css->parent) {
-		cgrp = container_of(css, struct perf_cgroup, css);
-		info = this_cpu_ptr(cgrp->info);
-		info->timestamp = ctx->timestamp;
-	}
+	info = this_cpu_ptr(cgrp->info);
+	info->timestamp = ctx->timestamp;
 }
 
 #define PERF_CGROUP_SWOUT	0x1 /* cgroup switch out every event */
@@ -5841,8 +5830,7 @@ static void perf_output_read_group(struct perf_output_handle *handle,
 	if (read_format & PERF_FORMAT_TOTAL_TIME_RUNNING)
 		values[n++] = running;
 
-	if ((leader != event) &&
-	    (leader->state == PERF_EVENT_STATE_ACTIVE))
+	if (leader != event)
 		leader->pmu->read(leader);
 
 	values[n++] = perf_event_count(leader);

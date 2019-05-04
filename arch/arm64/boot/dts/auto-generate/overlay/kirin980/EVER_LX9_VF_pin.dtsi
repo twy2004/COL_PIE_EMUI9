@@ -931,10 +931,10 @@
 		};
 
 		gpio257_pmx_func {
-                     pinctrl-single,pins = <0x0E8    0x0>;
+                     pinctrl-single,pins = <0x0E8    0x2>;
 		};
 		gpio257_pmx_idle {
-                     pinctrl-single,pins = <0x0E8    0x0>;
+                     pinctrl-single,pins = <0x0E8    0x2>;
 		};
 
 		gpio258_pmx_func {
@@ -2696,13 +2696,13 @@
 		gpio236_cfg_func {
                      pinctrl-single,pins = <0x748  0>;
                      pinctrl-single,bias-pulldown = <0 2 0 2>;
-                     pinctrl-single,bias-pullup = <1 1 0 1>;
+                     pinctrl-single,bias-pullup = <0 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;
 		};
 		gpio236_cfg_idle {
                      pinctrl-single,pins = <0x748  0>;
-                     pinctrl-single,bias-pulldown = <2 2 0 2>;
+                     pinctrl-single,bias-pulldown = <0 2 0 2>;
                      pinctrl-single,bias-pullup = <0 1 0 1>;
                      pinctrl-single,drive-strength = <0x00 0x70>;
                      pinctrl-single,slew-rate = <0x0 0x80>;

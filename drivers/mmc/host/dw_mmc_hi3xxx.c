@@ -67,26 +67,23 @@ static int hs_timing_config_cancer_cs_sd_ppll2[TUNING_INIT_CONFIG_NUM] = {960000
 static int hs_timing_config_cancer_cs_sdio_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 4, 2, 9, 0, 192000000};
 static int hs_timing_config_libra_sd_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 3, 2, 9, 0, 192000000};
 static int hs_timing_config_libra_sdio_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 3, 2, 9, 0, 192000000};
+<<<<<<< HEAD
 static int hs_timing_config_taurus_sd_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 2, 3, 9, 0, 192000000};
 static int hs_timing_config_taurus_sdio_ppll2[TUNING_INIT_CONFIG_NUM] = {1572000000, 7, 7, 6, 15, 0, 196500000};
 static int hs_timing_config_capricorn_sd_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 3, 2, 9, 0, 192000000};
 static int hs_timing_config_capricorn_sdio_ppll2[TUNING_INIT_CONFIG_NUM] = {960000000, 4, 3, 2, 9, 0, 192000000};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #endif
 
 #define ENABLE_CLK 0x10000
 #define IS_CS_TIMING_CONFIG 0x1
 
-#ifdef CONFIG_SD_TIMEOUT_RESET
-#define VOLT_HOLD_CLK_08V 0x1
-#define VOLT_TO_1S 0x1
-#endif
-
 void __iomem *pericrg_base = NULL;
 static void __iomem *sys_base = NULL;
 static void __iomem *mmc1_sys_ctrl_base = NULL;
 static void __iomem *hsdt_crg_base = NULL;
-static void __iomem *mmc0_crg_base = NULL;
 
 /* Common capabilities of hi3650 SoC */
 static unsigned long hs_dwmmc_caps[3] = {
@@ -473,12 +470,12 @@ static int hs_timing_config_taurus[][TUNING_INIT_TIMING_MODE][TUNING_INIT_CONFIG
         },
         { /*SD*/
                 {3200000, 7, 7, 0, 15, 15, 400000},             /* 0: LEGACY 400k */
-                {120000000, 4, 3, 0, 9, 9, 24000000},           /* 1: MMC_HS */
-                {240000000, 4, 2, 0, 9, 9, 48000000},           /* 2: SD_HS */
-                {120000000, 4, 3, 0, 9, 9, 24000000}, /* 3: SDR12 */
-                {240000000, 4, 2, 0, 2, 2, 48000000},           /* 4: SDR25 */
-                {480000000, 4, 3, 0, 5, 0, 96000000}, /* 5: SDR50 */
-                {960000000, 4, 2, 3, 9, 0, 192000000},        /* 6: SDR104 */
+                {240000000, 9, 8, 0, 3, 3, 24000000},           /* 1: MMC_HS */
+                {480000000, 9, 7, 0, 4, 4, 48000000},           /* 2: SD_HS */
+                {240000000, 9, 8, 0, 19, 19, 24000000}, /* 3: SDR12 */
+                {480000000, 9, 7, 0, 2, 2, 48000000},           /* 4: SDR25 */
+                {960000000, 9, 4, 0, 11, 0, 96000000}, /* 5: SDR50 */
+                {1920000000, 9, 3, 7, 19, 0, 192000000},        /* 6: SDR104 */
                 {0},                                    /* 7: DDR50 */
                 {0},                                    /* 8: DDR52 */
                 {0},                                    /* 9: HS200 */
@@ -486,11 +483,11 @@ static int hs_timing_config_taurus[][TUNING_INIT_TIMING_MODE][TUNING_INIT_CONFIG
         { /*SDIO*/
                 {3200000, 7, 7, 0, 15, 15, 400000},             /* 0: LEGACY 400k */
                 {0},                                    /* 1: MMC_HS */
-                {0}, /* 2: SD_HS */
-                {19700000, 7, 8, 0, 15, 15, 25000000}, /* 3: SDR12 */
-                {394000000, 7, 7, 0, 15, 15, 49000000},           /* 4: SDR25 */
-                {787000000, 7, 5, 0, 8, 0,  98000000}, /* 5: SDR50 */
-                {1573000000, 7, 7, 6, 15, 0, 197000000},        /* 6: SDR104 */
+                {480000000, 9, 7, 0, 19, 19, 48000000}, /* 2: SD_HS */
+                {240000000, 9, 8, 0, 19, 19, 24000000}, /* 3: SDR12 */
+                {480000000, 9, 7, 0, 19, 19, 48000000},           /* 4: SDR25 */
+                {960000000, 9, 4, 0, 12, 0,  96000000}, /* 5: SDR50 */
+                {1920000000, 9, 7, 7, 19, 0, 192000000},        /* 6: SDR104 */
                 {0},                                    /* 7: DDR50 */
                 {0},                                    /* 8: DDR52 */
                 {0},                                    /* 9: HS200 */
@@ -777,15 +774,20 @@ static void dw_mci_hs_set_timing(struct dw_mci *host, int id, int timing, int sa
 	/* first disabl clk */
 	/* mci_writel(host, GPIO, ~GPIO_CLK_ENABLE); */
 	mci_writel(host, GPIO, 0x0);
-	udelay(50);
+	udelay(10);
 
 	reg_value = SDMMC_UHS_REG_EXT_VALUE((unsigned int)sam_phase_val, sam_dly, drv_phase);
 	mci_writel(host, UHS_REG_EXT, reg_value);
 
 	mci_writel(host, ENABLE_SHIFT, enable_shift);
 
+<<<<<<< HEAD
 	reg_value = SDMMC_GPIO_VALUE((unsigned int)cclk_div, (unsigned int)use_sam_dly);
 	udelay(50);
+=======
+	reg_value = SDMMC_GPIO_VALUE(cclk_div, use_sam_dly);
+	udelay(10);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	mci_writel(host, GPIO, (unsigned int)reg_value | GPIO_CLK_ENABLE);
 
 	if (!(slot && slot->sdio_wakelog_switch))
@@ -975,36 +977,10 @@ static void dw_mci_hs_power_off(struct dw_mci *host, struct mmc_ios *ios)
 		dw_mci_hs_check_result(host, ret, "egulator_disable vqmmc failed\n");
 	}
 
-#ifdef CONFIG_MMC_DW_MUX_SDSIM
-	if(host->hw_mmc_id == DWMMC_SD_ID && priv->mux_sdsim)
-	{
-		if (host->vmmc) {
-			if ( !(host->vmmcmosen) || (MUX_SDSIM_VCC_STATUS_1_8_0_V != priv->mux_sdsim_vcc_status) )
-			{
-				ret = regulator_disable(host->vmmc);
-				dw_mci_hs_check_result(host, ret, "egulator_disable vmmc failed\n");
-			}
-		}
-
-		if (host->vmmcmosen) {
-			ret = regulator_disable(host->vmmcmosen);
-			dw_mci_hs_check_result(host, ret, "egulator_disable vmmcmosen failed\n");
-		}
-	}
-	else
-	{
-		if (host->vmmc) {
-			ret = regulator_disable(host->vmmc);
-			dw_mci_hs_check_result(host, ret, "egulator_disable vmmc failed\n");
-		}
-	}
-
-#else
 	if (host->vmmc) {
 		ret = regulator_disable(host->vmmc);
 		dw_mci_hs_check_result(host, ret, "egulator_disable vmmc failed\n");
 	}
-#endif
 }
 
 static void dw_mci_hs_power_up(struct dw_mci *host, struct mmc_ios *ios)
@@ -1085,11 +1061,6 @@ static void dw_mci_hs_power_up(struct dw_mci *host, struct mmc_ios *ios)
 					ret = regulator_set_voltage(host->vmmc, 2950000, 2950000);
 					dev_info(host->dev, "%s %s LDO16 VCC set for 2.95V ret = %d.\n",MUX_SDSIM_LOG_TAG,__func__,ret);
 				}
-
-				if (host->vmmcmosen) {
-					ret = regulator_set_voltage(host->vmmcmosen, 3000000, 3000000);
-					dev_info(host->dev, "%s %s LDO12 VCC set for 3.00V ret = %d.\n",MUX_SDSIM_LOG_TAG,__func__,ret);
-				}
 			}
 			else
 			{
@@ -1100,36 +1071,9 @@ static void dw_mci_hs_power_up(struct dw_mci *host, struct mmc_ios *ios)
 #endif
 			dw_mci_hs_check_result(host, ret, "regulator_set_voltage vmmc failed!\n");
 
-
-#ifdef CONFIG_MMC_DW_MUX_SDSIM
-			if(priv->mux_sdsim)
-			{
-				if ( !(host->vmmcmosen) || (MUX_SDSIM_VCC_STATUS_1_8_0_V != priv->mux_sdsim_vcc_status) )
-				{
-					ret = regulator_enable(host->vmmc);
-					dw_mci_hs_check_result(host, ret, "regulator_enable vmmc failed!\n");
-					usleep_range(1000, 1500);
-				}
-
-				if(host->vmmcmosen)
-				{
-					ret = regulator_enable(host->vmmcmosen);
-					dw_mci_hs_check_result(host, ret, "regulator_enable vmmcmosen failed!\n");
-					usleep_range(1000, 1500);
-				}
-			}
-			else
-			{
-				ret = regulator_enable(host->vmmc);
-				dw_mci_hs_check_result(host, ret, "regulator_enable vmmc failed!\n");
-				usleep_range(1000, 1500);
-			}
-#else
 			ret = regulator_enable(host->vmmc);
 			dw_mci_hs_check_result(host, ret, "regulator_enable vmmc failed!\n");
 			usleep_range(1000, 1500);
-#endif
-
 		}
 
 		/*Before enable GPIO,disable clk*/
@@ -1325,6 +1269,7 @@ static int get_resource_hsdt_crg_base(void)
 	return 0;
 }
 
+<<<<<<< HEAD
 /**********************************************************
 *name:get_resource_mmc0_crg_base
 *func:soc platform get mmc0_crg_base address of taurus from DTS
@@ -1408,9 +1353,32 @@ static int dw_mci_hs_get_dt_taurus_pltfm_resource(struct dw_mci *host, struct de
 	host->bit_sdcard_o_sel18 |= BIT_VOLT_VALUE_18_TAURUS;
 	host->sdio_rst |= BIT_RST_SDIO_TAURUS;
 	host->odio_sd_mask_bit = BIT_VOLT_VALUE_18_MASK_TAURUS;
+=======
+static int dw_mci_hs_get_dt_pltfm_resource(struct dw_mci *host, struct device_node  *of_node)
+{
+	struct device_node *np = NULL;
+	if (of_device_is_compatible(of_node, "hisilicon,taurus-dw-mshc")) {
+		host->scperctrls         |= BIT_VOLT_OFFSET;
+		host->bit_sdcard_o_sel18 |= BIT_VOLT_VALUE_18;
+		host->sdio_rst |= BIT_RST_SDIO_TAURUS;
+		memcpy(hs_timing_config, hs_timing_config_taurus, sizeof(hs_timing_config));/* unsafe_function_ignore: memcpy */
+		if (_get_resource_hsdt())
+			return -ENODEV;
+	} else if (of_device_is_compatible(of_node, "hisilicon,libra-dw-mshc")) {
+		host->scperctrls         |= BIT_VOLT_OFFSET;
+		host->bit_sdcard_o_sel18 |= BIT_VOLT_VALUE_18;
+		host->sdio_rst |= BIT_RST_SDIO_LIBRA;
+		memcpy(hs_timing_config, hs_timing_config_libra, sizeof(hs_timing_config));/* unsafe_function_ignore: memcpy */
+	} else if (of_device_is_compatible(of_node, "hisilicon,cancer-dw-mshc")) {
+		host->scperctrls         |= BIT_VOLT_OFFSET_CANCER;
+		host->bit_sdcard_o_sel18 |= BIT_VOLT_VALUE_18_CANCER;
+		host->sdio_rst |= BIT_HRST_SDIO_CANCER;
+		host->odio_sd_mask_bit = BIT_VOLT_VALUE_18_MASK_CANCER;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	memcpy(hs_timing_config, hs_timing_config_taurus, sizeof(hs_timing_config)); /* unsafe_function_ignore: memcpy */
 
+<<<<<<< HEAD
 	if (get_resource_hsdt_crg_base() || get_resource_mmc0_crg_base())
 		return -ENODEV;
 
@@ -1533,6 +1501,31 @@ static int dw_mci_hs_get_dt_pltfm_resource(struct dw_mci *host, struct device_no
 		ret = dw_mci_hs_get_dt_cancer_pltfm_resource(host, of_node);
 	} else if (of_device_is_compatible(of_node, "hisilicon,kirin970-dw-mshc")) {
 		ret = dw_mci_hs_get_dt_kirin970_pltfm_resource(host, of_node);
+=======
+		if (!mmc1_sys_ctrl_base) {
+			np = of_find_compatible_node(NULL, NULL, "Hisilicon,mmc1_sysctrl");
+			if (!np) {
+				printk("can't find mmc1sysctrl!\n");
+				return -1;
+			}
+
+			mmc1_sys_ctrl_base = of_iomap(np, 0);
+			if (!mmc1_sys_ctrl_base) {
+				printk("mmc1sysctrl iomap error!\n");
+				return -1;
+			}
+		}
+	}else if (of_device_is_compatible(of_node, "hisilicon,kirin970-dw-mshc")) {
+		host->scperctrls         |= BIT_VOLT_OFFSET;
+		host->bit_sdcard_o_sel18 |= BIT_VOLT_VALUE_18;
+		host->sdio_rst |= BIT_RST_SDIO_BOSTON;
+		if(of_find_property(of_node, "cs_sd_timing_config", (int *)NULL)){
+			memcpy(hs_timing_config, hs_timing_config_kirin970_cs, sizeof(hs_timing_config));/* unsafe_function_ignore: memcpy */
+		}
+		else{
+			memcpy(hs_timing_config, hs_timing_config_kirin970, sizeof(hs_timing_config));/* unsafe_function_ignore: memcpy */
+		}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	} else if (of_device_is_compatible(of_node, "hisilicon,hi3660-dw-mshc")) {
 		ret = dw_mci_hs_get_dt_hi3660_pltfm_resource(host, of_node);
 	} else if (of_device_is_compatible(of_node, "hisilicon,hi6250-dw-mshc")) {
@@ -1631,15 +1624,10 @@ void dw_mci_hs_reset(struct dw_mci *host, int id)
 			writel(BIT_RST_EMMC, pericrg_base + PERI_CRG_RSTEN4);
 		dev_info(host->dev, "rest emmc \n");
 	} else if (1 == id) {
-		if (mmc0_crg_base)
-			writel(BIT_RST_SD_TAURUS, mmc0_crg_base + MMC0_CRG_SD_HRST);
-		else
-			writel(BIT_RST_SD, pericrg_base + PERI_CRG_RSTEN4);
+		writel(BIT_RST_SD, pericrg_base + PERI_CRG_RSTEN4);
 		dev_info(host->dev, "rest sd \n");
 	} else if (2 == id) {
-		if (hsdt_crg_base)
-			writel(host->sdio_rst, hsdt_crg_base + HSDT_CRG_PERRSTEN0);
-		else if (mmc1_sys_ctrl_base)
+		if (mmc1_sys_ctrl_base)
 			writel(host->sdio_rst, mmc1_sys_ctrl_base + MMC1_SYSCTRL_PERRSTEN0);
 		else
 			writel(host->sdio_rst, pericrg_base + PERI_CRG_RSTEN4);
@@ -1658,16 +1646,18 @@ void dw_mci_hs_unreset(struct dw_mci *host, int id)
 			writel(BIT_RST_EMMC, pericrg_base + PERI_CRG_RSTDIS4);
 		dev_info(host->dev, "unrest emmc \n");
 	} else if (1 == id) {
+<<<<<<< HEAD
 		if (mmc0_crg_base)
 			writel(BIT_URST_SD_TAURUS, mmc0_crg_base + MMC0_CRG_SD_HURST);
 		else
 			writel(BIT_RST_SD, pericrg_base + PERI_CRG_RSTDIS4);
 
+=======
+		writel(BIT_RST_SD, pericrg_base + PERI_CRG_RSTDIS4);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		dev_info(host->dev, "unrest sd \n");
 	} else if (2 == id) {
-		if (hsdt_crg_base)
-			writel(host->sdio_rst, hsdt_crg_base + HSDT_CRG_PERRSTDIS0);
-		else if (mmc1_sys_ctrl_base)
+		if (mmc1_sys_ctrl_base)
 			writel(host->sdio_rst, mmc1_sys_ctrl_base + MMC1_SYSCTRL_PERRSTDIS0);
 		else
 			writel(host->sdio_rst, pericrg_base + PERI_CRG_RSTDIS4);
@@ -2043,23 +2033,6 @@ static int dw_mci_hs_parse_dt(struct dw_mci *host)
 
 	if(1 == priv->mux_sdsim)
 	{
-
-		value = 0;
-		if (of_property_read_u32(np, "vmmcmosen_switch", &value)) {
-			dev_info(host->dev, "vmmcmosen_switch property not found, using " "value of 0 as default\n");
-			value = 0;
-		}
-		dev_info(host->dev, "vmmcmosen_switch = 0x%x \n", value);
-		if( 0x01 == value )
-		{
-			host->sd_vmmcmosen_switch = 1;
-		}
-		else
-		{
-			host->sd_vmmcmosen_switch = 0;
-		}
-
-
 		value = SD_CLK_DRIVER_DEFAULT;
 		if (of_property_read_u32(np, "driverstrength_clk", &value)) {
 			dev_info(host->dev, "driverstrength_clk property not found, using " "value of SD_CLK_DRIVER_DEFAULT as default\n");
@@ -2718,10 +2691,6 @@ static int dw_mci_hs_tuning_find_condition(struct dw_mci *host, int timing)
 					dev_info(host->dev, "tuning OK: timing is " "%d, tuning sample = " "%d, tuning_flag = 0x%x",
 							timing, host->tuning_init_sample, host->tuning_sample_flag);
 					ret = 0;
-#ifdef CONFIG_SD_TIMEOUT_RESET
-					host->set_sd_data_tras_timeout = 0;
-					host->set_sdio_data_tras_timeout = 0;
-#endif
 					break;
 				}
 			}
@@ -2797,6 +2766,7 @@ int dw_mci_sdio_wakelog_switch(struct mmc_host *mmc, bool enable)
 EXPORT_SYMBOL(dw_mci_sdio_wakelog_switch);
 
 #ifdef CONFIG_SD_SDIO_CRC_RETUNING
+<<<<<<< HEAD
 
 /*************************************************
 *name:dw_mci_hisi_change_timing_config_cancer
@@ -2900,6 +2870,8 @@ static void dw_mci_hisi_change_timing_config_kirin970(struct dw_mci *host)
 	}
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 void dw_mci_hs_change_timing_config(struct dw_mci *host)
 {
 	struct device_node *np = host->dev->of_node;
@@ -2909,9 +2881,25 @@ void dw_mci_hs_change_timing_config(struct dw_mci *host)
 	} else if (of_device_is_compatible(np, "hisilicon,cancer-dw-mshc")) {
 		dw_mci_hisi_change_timing_config_cancer(host);
 	} else if (of_device_is_compatible(np, "hisilicon,libra-dw-mshc")) {
+<<<<<<< HEAD
 		dw_mci_hisi_change_timing_config_libra(host);
 	} else if (of_device_is_compatible(np, "hisilicon,taurus-dw-mshc")) {
 		dw_mci_hisi_change_timing_config_taurus(host);
+=======
+		if (DWMMC_SD_ID == host->hw_mmc_id) {
+			memcpy(hs_timing_config[DWMMC_SD_ID][MMC_TIMING_UHS_SDR104], hs_timing_config_libra_sd_ppll2, sizeof(hs_timing_config_libra_sd_ppll2));/* unsafe_function_ignore: memcpy */
+			host->use_samdly_range[0] = 5;
+                        host->use_samdly_range[1] = 8;
+                        host->enable_shift_range[0] = 3;
+                        host->enable_shift_range[1] = 8;
+		} else if (DWMMC_SDIO_ID == host->hw_mmc_id) {
+			memcpy(hs_timing_config[DWMMC_SDIO_ID][MMC_TIMING_UHS_SDR104], hs_timing_config_libra_sdio_ppll2, sizeof(hs_timing_config_libra_sdio_ppll2));/* unsafe_function_ignore: memcpy */
+			host->use_samdly_range[0] = 5;
+			host->use_samdly_range[1] = 8;
+			host->enable_shift_range[0] = 3;
+			host->enable_shift_range[1] = 8;
+		}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	} else {
 		dw_mci_hisi_change_timing_config_kirin970(host);
 	}
@@ -3212,6 +3200,7 @@ static int dw_mci_hs_suspend(struct device *dev)
 	if (!IS_ERR(host->ciu_clk))
 		clk_disable_unprepare(host->ciu_clk);
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 	if (!IS_ERR(host->volt_hold_sd_clk) && (VOLT_HOLD_CLK_08V == host->volt_hold_clk_sd))
 		clk_disable_unprepare(host->volt_hold_sd_clk);
@@ -3220,6 +3209,8 @@ static int dw_mci_hs_suspend(struct device *dev)
 		clk_disable_unprepare(host->volt_hold_sdio_clk);
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	dw_mci_hs_set_controller(host, 1);
 
 	host->current_speed = 0;
@@ -3231,6 +3222,7 @@ static int dw_mci_hs_suspend(struct device *dev)
 	return 0;
 }
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 void dw_mci_set_clk_08v(struct dw_mci *host)
 {
@@ -3246,6 +3238,8 @@ void dw_mci_set_clk_08v(struct dw_mci *host)
 }
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int dw_mci_hs_resume(struct device *dev)
 {
 	int ret;
@@ -3266,10 +3260,13 @@ static int dw_mci_hs_resume(struct device *dev)
 			dev_err(host->dev, "ciu_clk clk_prepare_enable failed\n");
 	}
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 	dw_mci_set_clk_08v(host);
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	dw_mci_hs_set_controller(host, 0);
 
 	for (i = 0; i < host->num_slots; i++) {
@@ -3323,6 +3320,7 @@ static int dw_mci_hs_runtime_suspend(struct device *dev)
 	if (!IS_ERR(host->ciu_clk))
 		clk_disable_unprepare(host->ciu_clk);
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 	if (!IS_ERR(host->volt_hold_sd_clk) && (VOLT_HOLD_CLK_08V == host->volt_hold_clk_sd))
 		clk_disable_unprepare(host->volt_hold_sd_clk);
@@ -3331,6 +3329,8 @@ static int dw_mci_hs_runtime_suspend(struct device *dev)
 		clk_disable_unprepare(host->volt_hold_sdio_clk);
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	dev_vdbg(host->dev, " %s -- \n", __func__);
 
 	return 0;
@@ -3351,6 +3351,7 @@ static int dw_mci_hs_runtime_resume(struct device *dev)
 			dev_err(host->dev, "ciu_clk clk_prepare_enable failed\n");
 	}
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 	if (!IS_ERR(host->volt_hold_sd_clk) && (VOLT_HOLD_CLK_08V == host->volt_hold_clk_sd)) {
 		if (clk_prepare_enable(host->volt_hold_sd_clk))
@@ -3363,6 +3364,8 @@ static int dw_mci_hs_runtime_resume(struct device *dev)
 	}
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	dev_vdbg(host->dev, " %s -- \n", __func__);
 
 	return 0;
@@ -3769,6 +3772,7 @@ void dw_mci_slowdown_clk(struct mmc_host *mmc, int timing)
 
 extern void dw_mci_request_end(struct dw_mci *host, struct mmc_request *mrq);
 extern void dw_mci_stop_dma(struct dw_mci *host);
+<<<<<<< HEAD
 
 #ifdef CONFIG_SD_TIMEOUT_RESET
 void dw_mci_set_clk_peri_08v(struct dw_mci *host)
@@ -3793,6 +3797,8 @@ void dw_mci_set_clk_peri_08v(struct dw_mci *host)
 }
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*lint -save -e570 -e650*/
 void dw_mci_timeout_timer(unsigned long data)
 {
@@ -3811,10 +3817,13 @@ void dw_mci_timeout_timer(unsigned long data)
 				" state = %d\n", host->state);
 			dw_mci_reg_dump(host);
 
+<<<<<<< HEAD
 #ifdef CONFIG_SD_TIMEOUT_RESET
 			dw_mci_set_clk_peri_08v(host);
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			host->sg = NULL;
 			host->data = NULL;
 			host->cmd = NULL;

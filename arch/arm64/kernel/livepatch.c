@@ -147,6 +147,13 @@ void notrace klp_walk_stackframe(struct stackframe *frame,
 
 	while (1) {
 		int ret;
+<<<<<<< HEAD
+=======
+
+		if (!frame->fp || !frame->sp)
+			break;
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (fn(frame, data))
 			break;
 		ret = unwind_frame(NULL, frame);
@@ -254,11 +261,9 @@ int arch_klp_enable_func(struct klp_func *func)
 
 	func_node = klp_find_func_node(func->old_addr);
 	if (!func_node) {
-		func_node = kzalloc(sizeof(*func_node), GFP_ATOMIC);
-		if (!func_node) {
-			pr_err("livepatch: failed to apply for memory\n");
+		func_node = kzalloc(sizeof(*func_node), GFP_KERNEL);
+		if (!func_node)
 			return -ENOMEM;
-		}
 		memory_flag = 1;
 
 		INIT_LIST_HEAD(&func_node->func_stack);
@@ -327,105 +332,90 @@ ERR_OUT:
 		list_del_rcu(&func_node->node);
 		kfree(func_node);
 	}
-	return -EPERM;
+    return -EPERM;
 }
 
-int aarch64_insn_patch_text_func(void *pc, u32 insn, unsigned long token)
-{
-	int ret;
-	if (is_hkip_enabled()) {
-		ret = aarch64_insn_patch_text_hkip(pc, insn, hkip_token);
-	} else {
-		ret = aarch64_insn_patch_text_nosync(pc, insn);
-	}
-	return ret;
-}
-
-#ifdef CONFIG_ARM64_MODULE_PLTS
-int arch_klp_disable_func(struct klp_func *func)
+void arch_klp_disable_func(struct klp_func *func)
 {
 	struct klp_func_node *func_node;
 	struct klp_func *next_func;
 	unsigned long pc, new_addr;
 	u32 insn;
+#ifdef CONFIG_ARM64_MODULE_PLTS
 	int i;
 	u32 insns[4];
-
+#endif
 	func_node = klp_find_func_node(func->old_addr);
-	if (!func_node) {
-		pr_err("livepatch: func_node is null\n");
-		return -EPERM;
-	 }
+	BUG_ON(!func_node);
 	pc = func_node->old_addr;
 	if (list_is_singular(&func_node->func_stack)) {
+#ifdef CONFIG_ARM64_MODULE_PLTS
 		for (i = 0; i < 4; i++)
 			insns[i] = func_node->old_insns[i];
+#else
+		insn = func_node->old_insn;
+#endif
 		list_del_rcu(&func->stack_node);
 		list_del_rcu(&func_node->node);
 		kfree(func_node);
 
+#ifdef CONFIG_ARM64_MODULE_PLTS
 		for (i = 0; i < 4; i++) {
-			aarch64_insn_patch_text_func(((u32 *)pc) + i, insns[i], hkip_token);
+			if (is_hkip_enabled()) {
+				aarch64_insn_patch_text_hkip(((u32 *)pc) + i, insns[i], hkip_token);
+			} else {
+				aarch64_insn_patch_text_nosync(((u32 *)pc) + i, insns[i]);
+			}
 		}
-
+#else
+        if (is_hkip_enabled()) {
+            aarch64_insn_patch_text_hkip((void *)pc, insn, hkip_token);
+        } else {
+            aarch64_insn_patch_text_nosync((void *)pc, insn);
+        }
+#endif
 	} else {
 		list_del_rcu(&func->stack_node);
 		next_func = list_first_or_null_rcu(&func_node->func_stack,
 					struct klp_func, stack_node);
-		if (!next_func) {
-			pr_err("livepatch: next_func is null\n");
-			return -EPERM;
-		}
+		BUG_ON(!next_func);
 		new_addr = (unsigned long)next_func->new_func;
+#ifdef CONFIG_ARM64_MODULE_PLTS
 		if (offset_in_range(pc, new_addr, SZ_128M)) {
 			insn = aarch64_insn_gen_branch_imm(pc, new_addr,
 					AARCH64_INSN_BRANCH_NOLINK);
-			aarch64_insn_patch_text_func((void *)pc, insn, hkip_token);
+
+			if (is_hkip_enabled()) {
+				aarch64_insn_patch_text_hkip((void *)pc, insn, hkip_token);
+			} else {
+				aarch64_insn_patch_text_nosync((void *)pc, insn);
+			}
 		} else {
 			insns[0] = cpu_to_le32(0x92800010 | (((~new_addr      ) & 0xffff)) << 5);
 			insns[1] = cpu_to_le32(0xf2a00010 | ((( new_addr >> 16) & 0xffff)) << 5);
 			insns[2] = cpu_to_le32(0xf2c00010 | ((( new_addr >> 32) & 0xffff)) << 5);
 			insns[3] = cpu_to_le32(0xd61f0200);
 			for (i = 0; i < 4; i++) {
-				aarch64_insn_patch_text_func(((u32 *)pc) + i, insns[i], hkip_token);
+				if (is_hkip_enabled()) {
+					aarch64_insn_patch_text_hkip(((u32 *)pc) + i, insns[i], hkip_token);
+				} else {
+					aarch64_insn_patch_text_nosync(((u32 *)pc) + i, insns[i]);
+				}
 			}
 		}
-
-	}
-	return 0;
-}
 #else
-int arch_klp_disable_func(struct klp_func *func)
-{
-	struct klp_func_node *func_node;
-	struct klp_func *next_func;
-	unsigned long pc, new_addr;
-	u32 insn;
-	func_node = klp_find_func_node(func->old_addr);
-	if (!func_node) {
-		pr_err("livepatch: func_node is null\n");
-		return -EPERM;
-	 }
-	pc = func_node->old_addr;
-	if (list_is_singular(&func_node->func_stack)) {
-		insn = func_node->old_insn;
-		list_del_rcu(&func->stack_node);
-		list_del_rcu(&func_node->node);
-		kfree(func_node);
-		aarch64_insn_patch_text_func((void *)pc, insn, hkip_token);
-	} else {
-		list_del_rcu(&func->stack_node);
-		next_func = list_first_or_null_rcu(&func_node->func_stack,
-					struct klp_func, stack_node);
-		if (!next_func) {
-			pr_err("livepatch: next_func is null\n");
-			return -EPERM;
-		}
-		new_addr = (unsigned long)next_func->new_func;
 		insn = aarch64_insn_gen_branch_imm(pc, new_addr,
 				AARCH64_INSN_BRANCH_NOLINK);
-		aarch64_insn_patch_text_func((void *)pc, insn, hkip_token);
-	}
-	return 0;
-}
+
+		if (is_hkip_enabled()) {
+			aarch64_insn_patch_text_hkip((void *)pc, insn,hkip_token);
+		} else {
+			aarch64_insn_patch_text_nosync((void *)pc, insn);
+		}
 #endif
+	}
+}
+<<<<<<< HEAD
+#endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

@@ -446,12 +446,15 @@ oal_uint8 *mac_find_ie_etc(oal_uint8 uc_eid, oal_uint8 *puc_ies, oal_int32 l_len
         return OAL_PTR_NULL;
     }
 
+<<<<<<< HEAD
     /* buffer长度超过1500字节认为入参异常，不做查找操作 */
     if (l_len > 1500)
     {
         return OAL_PTR_NULL;
     }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     while (l_len > MAC_IE_HDR_LEN && puc_ies[0] != uc_eid)
     {
         l_len   -= puc_ies[1] + MAC_IE_HDR_LEN;

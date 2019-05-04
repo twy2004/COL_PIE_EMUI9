@@ -93,8 +93,11 @@ static int lcd_kit_dbg_iovcc_voltage(char *par);
 static int lcd_kit_dbg_vdd_voltage(char *par);
 static int lcd_kit_dbg_vsp_voltage(char *par);
 static int lcd_kit_dbg_vsn_voltage(char *par);
+<<<<<<< HEAD
 static int lcd_kit_dbg_cmd(char *par);
 static int lcd_kit_dbg_cmdstate(char *par);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 lcd_kit_dbg_func item_func[] = {
 	{"PanelEsdSupport", lcd_kit_dbg_esd_support},
@@ -174,13 +177,16 @@ lcd_kit_dbg_func item_func[] = {
 	{"LcdVdd", lcd_kit_dbg_vdd_voltage},
 	{"LcdVsp", lcd_kit_dbg_vsp_voltage},
 	{"LcdVsn", lcd_kit_dbg_vsn_voltage},
+<<<<<<< HEAD
 	{"PanelDbgCommand", lcd_kit_dbg_cmd},	/*send mipi cmds for debugging, both support tx and rx*/
 	{"PanelDbgCommandState", lcd_kit_dbg_cmdstate},
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 lcd_kit_dbg_cmds lcd_kit_cmd_list[] = {
 	{LCD_KIT_DBG_LEVEL_SET,                      "set_debug_level"},
-	{LCD_KIT_DBG_PARAM_CONFIG,                   "set_param_config"},
+	{LCD_KIT_DBG_PARAM_CONFIG, 					 "set_param_config"},
 };
 
 struct lcd_kit_debug lcd_kit_dbg;
@@ -506,8 +512,7 @@ int lcd_kit_dbg_parse_cmd(struct lcd_kit_dsi_panel_cmds* pcmds, char* buf, int l
 {
 	int blen = 0, len = 0;
 	char *bp = NULL;
-	struct lcd_kit_dsi_ctrl_hdr* dchdr = NULL;
-	struct lcd_kit_dsi_cmd_desc* newcmds = NULL;
+	struct lcd_kit_dsi_ctrl_hdr* dchdr;
 	int i = 0, cnt = 0;
 
 	if (!pcmds || !buf) {
@@ -541,15 +546,10 @@ int lcd_kit_dbg_parse_cmd(struct lcd_kit_dsi_panel_cmds* pcmds, char* buf, int l
 		return LCD_KIT_FAIL;
 	}
 
-	newcmds = kzalloc(cnt * sizeof(struct lcd_kit_dsi_cmd_desc), GFP_KERNEL);
-	if (newcmds == NULL) {
-		LCD_KIT_ERR("kzalloc fail\n");
+	if (!pcmds->cmds) {
+		LCD_KIT_ERR("pcmds->cmds is null!\n");
 		return LCD_KIT_FAIL;
 	}
-	if (pcmds->cmds != NULL) {
-		kfree(pcmds->cmds);
-	}
-	pcmds->cmds = newcmds;
 
 	pcmds->cmd_cnt = cnt;
 	pcmds->buf = buf;
@@ -1861,6 +1861,7 @@ static int lcd_kit_dbg_effect_on_cmd(char *par)
 	return LCD_KIT_OK;
 }
 
+<<<<<<< HEAD
 static struct lcd_kit_dsi_panel_cmds dbgcmds;
 static int lcd_kit_dbg_cmd(char *par)
 {
@@ -1935,6 +1936,8 @@ static int lcd_kit_dbg_cmdstate(char *par)
 	return LCD_KIT_OK;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int lcd_kit_dbg_cabc_off_mode(char *par)
 {
 	int len = 0;

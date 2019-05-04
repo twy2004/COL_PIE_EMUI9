@@ -106,7 +106,7 @@ void direct_charge_sc_check(void)
 		}
 		return;
 	}
-	if (0 == di->sysfs_enable_charger)
+	if (0 == di->sysfs_enable_charger ||0 == di->vbat_ovp_enable_charger)
 	{
 		hwlog_info("%s direct_charge is disabled\n",__func__);
 		di->direct_charge_succ_flag = DIRECT_CHARGE_ERROR_CHARGE_DISABLED;
@@ -286,12 +286,6 @@ static void direct_charge_fault_work(struct work_struct *work)
 		power_dsm_dmd_report(POWER_DSM_DIRECT_CHARGE_SC, DSM_DIRECT_CHARGE_SC_FAULT_CONV_OCP, buf);
 		chg_set_adaptor_test_result(TYPE_SC, 3);
 		di->sc_conv_ocp_count++;
-		break;
-	case DIRECT_CHARGE_FAULT_LTC7820:
-		hwlog_err("ltc7820 chip error happened!\n");
-		snprintf(buf, sizeof(buf), "ltc7820 chip error happened\n");
-		strncat(buf, reg_info, strlen(reg_info));
-		//power_dsm_dmd_report(POWER_DSM_DIRECT_CHARGE_SC, DSM_DIRECT_CHARGE_SC_FAULT_IBUS_OCP, buf);
 		break;
 	default:
 		hwlog_err("unknow fault: %d happened!\n", di->charge_fault);
@@ -637,6 +631,7 @@ static int direct_charge_sc_probe(struct platform_device	*pdev)
 	direct_charge_get_g_cable_detect_ops(&g_cable_detect_ops);
 	di->scp_ops = g_scp_ops;
 	di->scp_ps_ops = g_scp_ps_ops;
+	di->vbat_ovp_enable_charger = 1;
 	di->ls_ops = g_sc_ops;
 	di->bi_ops = g_bi_sc_ops;
 	di->direct_charge_cable_detect = g_cable_detect_ops;
@@ -647,6 +642,7 @@ static int direct_charge_sc_probe(struct platform_device	*pdev)
 	di->direct_charge_succ_flag = DIRECT_CHARGE_ERROR_ADAPTOR_DETECT;
 	di->scp_stop_charging_complete_flag = 1;
 	di->dc_err_report_flag = FALSE;
+
 	if (INVALID == is_direct_charge_ops_valid(di))
 	{
 		hwlog_err("direct charge ops is	NULL!\n");

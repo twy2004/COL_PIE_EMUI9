@@ -45,5 +45,9 @@ obj-$(CONFIG_HUAWEI_EMCOM) += emcom/
 obj-$(CONFIG_HUAWEI_DTV_MMTUNER) += mm_tuner/
 obj-$(CONFIG_DP_AUX_SWITCH) += dp_aux_switch/
 obj-$(CONFIG_HW_DP_SOURCE) += dp_source/
+<<<<<<< HEAD
 obj-$(CONFIG_HUAWEI_VENDOR_EXCEPTION) += vendor_exception/
 obj-$(CONFIG_HWAA) += hwaa/
+=======
+obj-$(CONFIG_HW_SW_DEVICES)   += sw/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

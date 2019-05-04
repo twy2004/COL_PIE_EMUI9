@@ -37,7 +37,7 @@
 
 #include <uapi/linux/dma-buf.h>
 
-int is_dma_buf_file(struct file *);
+static inline int is_dma_buf_file(struct file *);
 
 struct dma_buf_list {
 	struct list_head head;
@@ -311,14 +311,18 @@ static const struct file_operations dma_buf_fops = {
 /*
  * is_dma_buf_file - Check if struct file* is associated with dma_buf
  */
-int is_dma_buf_file(struct file *file)
+static inline int is_dma_buf_file(struct file *file)
 {
 	return file->f_op == &dma_buf_fops;
 }
+<<<<<<< HEAD
 struct dma_buf * file_to_dma_buf(struct file *file)
 {
 	return file->private_data;
 }
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /**
  * dma_buf_export - Creates a new dma_buf, and associates an anon file
  * with this buffer, so it can be exported.
@@ -554,7 +558,7 @@ EXPORT_SYMBOL_GPL(dma_buf_detach);
 struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
 					enum dma_data_direction direction)
 {
-	struct sg_table *sg_table;
+	struct sg_table *sg_table = ERR_PTR(-EINVAL);
 
 	might_sleep();
 

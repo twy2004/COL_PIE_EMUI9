@@ -150,7 +150,7 @@ static inline int copy_from_client(void *dest, const void __user *src, size_t si
 			}
 		} else {
 			tloge("copy_from_client check kernel addr %llx failed.\n", (uint64_t)src);
-			return  -EFAULT;
+			return -EFAULT;
 		}
 	} else {
 		/* buffer is in user space(CA call TEE API) */
@@ -797,11 +797,11 @@ static int fill_token_info(TC_NS_SMC_CMD *smc_cmd,
 					TIMESTAMP_SAVE_INDEX,
 					temp_libteec_token,
 					TIMESTAMP_SAVE_INDEX)) {
-			tloge("copy buffer failed!\n");
+			tloge("copy temp_libteec_token failed!\n");
 			ret_s = memset_s(tc_ns_token->token_buffer, TOKEN_BUFFER_LEN,
 					0, TOKEN_BUFFER_LEN);
 			if (ret_s != EOK) {
-				tloge("memset_s buffer error=%d\n", ret_s);
+				tloge("fill_token_info memset_s error=%d\n", ret_s);
 			}
 			return -EFAULT;
 		}
@@ -814,7 +814,7 @@ static int fill_token_info(TC_NS_SMC_CMD *smc_cmd,
 			ret_s = memset_s(tc_ns_token->token_buffer, TOKEN_BUFFER_LEN,
 					0, TOKEN_BUFFER_LEN);
 			if (ret_s != EOK) {
-				tloge("fill buffer memset_s error=%d\n", ret_s);
+				tloge("fill_token_info memset_s error=%d\n", ret_s);
 			}
 			return -EFAULT;
 		}
@@ -860,7 +860,7 @@ static int load_security_enhance_info(TC_NS_SMC_CMD *smc_cmd,
 		ret = fill_token_info(smc_cmd, client_context, tc_ns_token,
 			dev_file, global, mb_pack->token, sizeof(mb_pack->token));
 		if (EOK != ret) {
-			tloge("fill info failed. \
+			tloge("fill_token_info  failed. \
 				global=%d, cmd_id=%d, session_id=%d\n",
 				global, smc_cmd->cmd_id, smc_cmd->context_id);
 			return -EFAULT;
@@ -1212,7 +1212,7 @@ int tc_client_call(TC_NS_ClientContext *client_context,
 						tc_ns_token, dev_file, global,
 						mb_pack->token, sizeof(mb_pack->token));
 				if (EOK != ret) {
-					tloge("append teec's member failed. \
+					tloge("append_teec_token  failed. \
 						global=%d, cmd_id=%d, session_id=%d\n",
 						global, smc_cmd->cmd_id, smc_cmd->context_id);
 					goto error;

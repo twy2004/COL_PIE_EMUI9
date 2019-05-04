@@ -2,8 +2,8 @@
 
 
 /{
-	l3_share: l3_share {
-		compatible = "hisi,l3share";
+	l3_cache: l3_cache {
+		compatible = "hisilicon,l3cache";
 		#reg = <0x0 0xfff32000 0x0 0x1000>;
 		plat-name = "kirin980";
 		#fpga_flag = <0>;

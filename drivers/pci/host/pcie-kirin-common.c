@@ -213,7 +213,7 @@ void kirin_pcie_config_l0sl1(u32 rc_id, enum link_aspm_state aspm_state)
 	}
 }
 
-void enable_req_clk(struct kirin_pcie *pcie, u32 enable_flag)
+static void enable_req_clk(struct kirin_pcie *pcie, u32 enable_flag)
 {
 	u32 val;
 
@@ -609,7 +609,7 @@ int kirin_pcie_phy_init(struct kirin_pcie *pcie)
 
 	/* pull down phy_test_powerdown signal */
 	reg_val = kirin_apb_phy_readl(pcie, SOC_PCIEPHY_CTRL0_ADDR);
-	reg_val &= ~PHY_TEST_POWERDOWN;
+	reg_val &= ~(0x1 << 22);
 	kirin_apb_phy_writel(pcie, reg_val, SOC_PCIEPHY_CTRL0_ADDR);
 
 	if (pcie->dtsinfo.eco)
@@ -617,10 +617,7 @@ int kirin_pcie_phy_init(struct kirin_pcie *pcie)
 
 	/* deassert controller perst_n */
 	reg_val = kirin_elb_readl(pcie, SOC_PCIECTRL_CTRL12_ADDR);
-	if (pcie->dtsinfo.ep_flag)
-		reg_val |= PERST_IN_EP;
-	else
-		reg_val |= PERST_IN_RC;
+	reg_val |= (0x1 << 2);
 	kirin_elb_writel(pcie, reg_val, SOC_PCIECTRL_CTRL12_ADDR);
 	udelay(10);
 
@@ -655,7 +652,8 @@ void kirin_pcie_natural_cfg(struct kirin_pcie *pcie)
 		/* cfg as rc */
 		val = kirin_elb_readl(pcie, SOC_PCIECTRL_CTRL0_ADDR);
 		val &= ~(PCIE_TYPE_MASK << PCIE_TYPE_SHIFT);
-		val |= (PCIE_TYPE_RC << PCIE_TYPE_SHIFT);
+		if (!pcie->dtsinfo.ep_flag)
+			val |= (PCIE_TYPE_RC << PCIE_TYPE_SHIFT);
 		kirin_elb_writel(pcie, val, SOC_PCIECTRL_CTRL0_ADDR);
 
 		/* output, pull down */
@@ -827,20 +825,30 @@ u32 show_link_state(u32 rc_id)
 }
 EXPORT_SYMBOL_GPL(show_link_state);
 
-void pcie_memcpy(ulong dst, ulong src, uint32_t size)
+#if defined(CONFIG_KIRIN_PCIE_APR)
+int pcie_memcpy(ulong dst, ulong src, uint32_t size)
 {
+	memcpy((void *)dst, (void *)src, size);
+	return 0;
+}
+#else
+int pcie_memcpy(ulong dst, ulong src, uint32_t size)
+{
+<<<<<<< HEAD
 	int ret;
+=======
+	int error = 0;
+	uint dsize;
+	uint64_t data_64 = 0;
+	uint64_t data_32 = 0;
+	uint64_t data_8 = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	ulong dst_t = dst;
 	ulong src_t = src;
-
-	if (IS_ENABLED(CONFIG_KIRIN_PCIE_MAR)) {
-		uint dsize;
-		uint64_t data_64 = 0;
-		uint64_t data_32 = 0;
-		uint64_t data_8 = 0;
 #if defined(CONFIG_64BIT)
-		bool is_64bit_unaligned = (dst_t & 0x7);
+	bool is_64bit_unaligned = (dst_t & 0x7);
 #endif
+<<<<<<< HEAD
 		dsize = sizeof(uint64_t);
 
 		/* Do the transfer(s) */
@@ -862,22 +870,51 @@ void pcie_memcpy(ulong dst, ulong src, uint32_t size)
 				dsize = sizeof(uint8_t);
 				data_8= pcie_rd_8((char *)(uintptr_t)src_t);
 				pcie_wr_8(data_8, (char *)(uintptr_t)dst_t);
-			}
+=======
 
-			/* Adjust for next transfer (if any) */
-			if ((size -= dsize)) {
-				src_t += dsize;
-				dst_t += dsize;
+	dsize = sizeof(uint64_t);
+
+	/* Do the transfer(s) */
+	while (size) {
+		if (size >= sizeof(uint64_t)) {
+			if (is_64bit_unaligned) {
+				data_32= pcie_rd_32((char *)src_t);
+				pcie_wr_32(data_32, (char *)dst_t);
+				size -= 4;
+				dst_t += 4;
+				src_t += 4;
+				is_64bit_unaligned = (dst_t & 0x7);
+				continue;
+			} else {
+				data_64= pcie_rd_64((char *)src_t);
+				pcie_wr_64(data_64, (char *)dst_t);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			}
+		} else {
+			dsize = sizeof(uint8_t);
+			data_8= pcie_rd_8((char *)src_t);
+			pcie_wr_8(data_8, (char *)dst_t);
 		}
+
+		/* Adjust for next transfer (if any) */
+		if ((size -= dsize)) {
+			src_t += dsize;
+			dst_t += dsize;
+		}
+<<<<<<< HEAD
 	}else{
 		ret = memcpy_s((void *)(uintptr_t)dst_t, size, (void *)(uintptr_t)src_t, size);
 		if (ret) {
 			PCIE_PR_ERR("%s:Fail to do memcpy\n", __func__);
 			return;
 		}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
+
+	return error;
 }
+#endif
 
 #ifdef CONFIG_KIRIN_PCIE_TEST
 int wlan_on(u32 rc_id, int on)
@@ -1056,11 +1093,6 @@ int show_link_speed(u32 rc_id)
 	}
 
 	return val;
-}
-
-int limit_link_speed(struct kirin_pcie *pcie)
-{
-	return set_link_speed(pcie->rc_id, pcie->speed_limit);
 }
 
 u32 kirin_pcie_find_capability(struct pcie_port *pp, int cap)

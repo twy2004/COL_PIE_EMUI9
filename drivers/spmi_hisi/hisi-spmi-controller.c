@@ -53,12 +53,6 @@
                                                            (((u32)(X) & 0x0000ff00) << 8) | \
                                                            (((u32)(X) & 0x000000ff) << 24))
 
-#ifdef CONFIG_GCOV_KERNEL
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 /* Command Opcodes */
 /*lint -e749 -esym(749,*)*/
 enum spmi_controller_cmd_op_code {
@@ -396,13 +390,13 @@ static struct platform_driver spmi_controller_driver = {
 	},/*lint !e785*/
 };/*lint !e785*/
 /*lint -e528 -esym(528,*)*/
-STATIC int __init spmi_controller_init(void)
+static int __init spmi_controller_init(void)
 {
 	return platform_driver_register(&spmi_controller_driver);/*lint !e64*/
 }
 postcore_initcall(spmi_controller_init);
 
-STATIC void __exit spmi_controller_exit(void)
+static void __exit spmi_controller_exit(void)
 {
 	platform_driver_unregister(&spmi_controller_driver);
 }

@@ -42,7 +42,6 @@
 
 #define DMA_ADDR_INVALID        (~(dma_addr_t)0)
 
-
 /**
  * dwc3_gadget_set_test_mode - Enables USB2 Test Modes
  * @dwc: pointer to our context structure
@@ -218,8 +217,12 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
 		pm_runtime_put(dwc->dev);
 }//lint !e454
 
+<<<<<<< HEAD
 
 int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param)//lint !e516
+=======
+int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	u32		timeout = 500;
 	int		status = 0;
@@ -298,6 +301,7 @@ static int dwc3_check_gadget_ep_cmd_status(struct dwc3 *dwc, unsigned cmd, unsig
 	return ret;
 }
 
+<<<<<<< HEAD
 static void dwc3_cmd_tmo_debug_notify(void)
 {
 	atomic_notifier_call_chain(&device_event_nh, DEVICE_EVENT_CMD_TMO,
@@ -305,6 +309,8 @@ static void dwc3_cmd_tmo_debug_notify(void)
 }
 
 /*lint -e453*/
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		struct dwc3_gadget_ep_cmd_params *params)
 {
@@ -410,8 +416,15 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 	} while (--timeout);
 
 	if (timeout == 0) {
-		pr_err("[USB.DBG] cmd:%x reg:%x time out!\n", cmd, reg);
-		dwc3_cmd_tmo_debug_notify();
+		pr_err("[USB.DBG] cmd:%x reg:%x time out!\n",
+				cmd, reg);
+		pr_err("DCFG:0x%x\n", dwc3_readl(dwc->regs, DWC3_DCFG));
+		pr_err("DCTL:0x%x\n", dwc3_readl(dwc->regs, DWC3_DCTL));
+		pr_err("DEVTEN:0x%x\n", dwc3_readl(dwc->regs, DWC3_DEVTEN));
+		pr_err("DSTS:0x%x\n", dwc3_readl(dwc->regs, DWC3_DSTS));
+		pr_err("DGCMDPAR:0x%x\n", dwc3_readl(dwc->regs, DWC3_DGCMDPAR));
+		pr_err("DGCMD:0x%x\n", dwc3_readl(dwc->regs, DWC3_DGCMD));
+		pr_err("DALEPENA:0x%x\n", dwc3_readl(dwc->regs, DWC3_DALEPENA));
 		ret = -ETIMEDOUT;
 		cmd_status = -ETIMEDOUT;
 	}
@@ -2626,12 +2639,21 @@ static void dwc3_resume_gadget(struct dwc3 *dwc)
 	}
 }//lint !e454 !e456
 
+ATOMIC_NOTIFIER_HEAD(reset_nh);
 
+int dwc3_reset_notifier_register(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&reset_nh, nb);
+}
+
+int dwc3_reset_notifier_unregister(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&reset_nh, nb);
+}
 
 static void dwc3_reset_notify(void)
 {
-	atomic_notifier_call_chain(&device_event_nh, DEVICE_EVENT_RESET,
-		NULL);
+	atomic_notifier_call_chain(&reset_nh, 0, NULL);
 }
 
 static void dwc3_reset_gadget(struct dwc3 *dwc)
@@ -2855,11 +2877,21 @@ static void dwc3_update_ram_clk_sel(struct dwc3 *dwc, u32 speed)
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
 }
 
+ATOMIC_NOTIFIER_HEAD(conndone_nh);
+
+int dwc3_conndone_notifier_register(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&conndone_nh, nb);
+}
+
+int dwc3_conndone_notifier_unregister(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&conndone_nh, nb);
+}
 
 static void dwc3_conndone_notify(enum usb_device_speed speed)
 {
-	atomic_notifier_call_chain(&device_event_nh, DEVICE_EVENT_CONNECT_DONE,
-		(void*)&speed);
+	atomic_notifier_call_chain(&conndone_nh, (unsigned long)speed, NULL);
 }
 
 static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
@@ -2921,6 +2953,7 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 
 	pr_info("USB CONNDONE, %s\n", usb_speed_string(dwc->gadget.speed));
 	dwc3_conndone_notify(dwc->gadget.speed);
+
 	dwc->eps[1]->endpoint.maxpacket = dwc->gadget.ep0->maxpacket;
 
 	/* Enable USB2 LPM Capability */
@@ -3480,6 +3513,7 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 		dev_err(dwc->dev, "failed to register udc\n");
 		goto err6;
 	}
+
 	return 0;
 
 err6:

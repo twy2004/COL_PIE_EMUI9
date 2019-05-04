@@ -21,6 +21,7 @@
 #include <linux/sizes.h>
 #include <linux/version.h>
 
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_LB
 #include <linux/hisi/hisi_lb.h>
 enum ion_lb_pid_ids {
@@ -40,6 +41,8 @@ enum ion_lb_pid_ids {
 };
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /**
  * These are the only ids that should be used for Ion heap ids.
  * The ids listed are the order in which allocation will be attempted

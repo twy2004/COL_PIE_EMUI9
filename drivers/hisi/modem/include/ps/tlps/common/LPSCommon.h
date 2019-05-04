@@ -386,7 +386,11 @@ enum PS_MSG_ID_SECTION_ENUM
 
     /*L2发给IMSA消息的基址*/
     PS_MSG_ID_L2_TO_IMSA_BASE = PS_MSG_ID_ERRC_TO_IMSA_BASE + 0x20,
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     /* zhangdongfeng, 00353461 , add it for cellular prefer project, begin in 2016-09-28 */
     /* IMSA和CAS之间的消息接口取值范围 */
     PS_MSG_ID_IMSA_TO_CAS_BASE   = PS_MSG_ID_L2_TO_IMSA_BASE + 0x20, /* 0x2525 */

@@ -69,6 +69,7 @@
 
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
+<<<<<<< HEAD
 void dump_save_file(char * file_name, void * addr,void * phy_addr, u32 len)
 {
     return;
@@ -76,6 +77,11 @@ void dump_save_file(char * file_name, void * addr,void * phy_addr, u32 len)
 void dump_save_log_notifier_init(void)
 {
     return;
+=======
+void dump_save_log_notifier_init(void)
+{
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* name)
@@ -84,6 +90,8 @@ s32 bsp_dump_register_log_notifier(u32 modem_type,log_save_fun save_fun,char* na
 }
 
 s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun)
+<<<<<<< HEAD
+=======
 {
     return BSP_OK;
 }
@@ -91,3 +99,72 @@ s32 bsp_dump_unregister_log_notifier(log_save_fun save_fun)
 void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
 {
 }
+void bsp_om_save_reboot_log(const char * func_name, const void* caller)
+{
+}
+void dump_optional_log_init(void)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+{
+    return BSP_OK;
+}
+
+<<<<<<< HEAD
+void bsp_dump_log_notifer_callback(u32 modem_type,char* path)
+{
+}
+=======
+/*****************************************************************************
+* 函 数 名  : dump_save_modem_bin
+* 功能描述  : 保存modem_dump.bin
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_mntn_bin(char* dir_name)
+{
+    struct dump_global_area_ctrl_s global_area = {0,};
+    char file_name[MODEM_DUMP_FILE_NAME_LENGTH] = {0,};
+    s32 ret;
+    DUMP_FILE_CFG_STRU* cfg = dump_get_file_cfg();
+
+    if(cfg->file_list.file_bits.mdm_dump == 1  && (dump_get_product_type()== DUMP_PHONE))
+    {
+        memset_s(file_name, sizeof(file_name), 0, sizeof(file_name));
+        /*coverity[secure_coding]*/
+        snprintf(file_name, (sizeof(file_name) - 1), "%smodem_dump.bin", dir_name);/* unsafe_function_ignore: snprintf */
+        ret = dump_get_global_info(&global_area);
+        if(ret == BSP_OK && global_area.virt_addr != NULL)
+        {
+            dump_save_file(file_name, (u8 *)global_area.virt_addr, global_area.length);
+            dump_ok("save %s ok\n", file_name);
+        }
+
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_save_mandatory_logs
+* 功能描述  :保存lr系统的必选文件
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_mandatory_logs(char* dir_name)
+{
+    dump_save_mntn_bin(dir_name);
+    dump_save_lphy_tcm(dir_name);
+}
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

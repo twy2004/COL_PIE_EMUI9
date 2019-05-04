@@ -63,7 +63,6 @@
 #define WORD_8BITS     (8)
 #define WORD_16BITS    (16)
 extern int memset_s(void *dest, size_t destMax, int c, size_t count);
-extern int memcpy_s(void *dest, size_t destMax, const void *src, size_t count);
 
 struct m25p_spi_plat_data {
     int spi_cs_gpio;
@@ -136,6 +135,8 @@ static int norflash_spi_read_stack(u8 *send, u16 send_len,
 {
     struct m25p_spi_priv_data *drv_data = spi_drv_data;
     struct spi_transfer xfer[2];
+    char *txBuf = send;
+    char *rxBuf = recieve;
     int status;
 
     if (NULL == send || NULL == recieve || NULL == drv_data) {
@@ -143,19 +144,17 @@ static int norflash_spi_read_stack(u8 *send, u16 send_len,
         return -1;
     }
 
-    memcpy_s(drv_data->tx_buf, send_len, send, send_len);
-    memset_s(drv_data->rx_buf, recieve_len, 0, recieve_len);
-    if (0xFF != drv_data->tx_buf[send_len-1]) {
+    if (0xFF != txBuf[send_len-1]) {
         cam_err("%s the last byter of send buffer must be 0xFF.", __func__);
         return -1;
     }
 
-    memset_s(&xfer, sizeof(xfer), 0, sizeof(xfer));
-    xfer[0].tx_buf = &drv_data->tx_buf[0],
+    memset_s(&xfer, sizeof(xfer),0, sizeof(xfer));
+    xfer[0].tx_buf = &txBuf[0],
     xfer[0].len = send_len-1,
     xfer[0].bits_per_word = 8,
-    xfer[1].tx_buf = &drv_data->tx_buf[send_len-1],
-    xfer[1].rx_buf = drv_data->rx_buf,
+    xfer[1].tx_buf = &txBuf[send_len-1],
+    xfer[1].rx_buf = rxBuf,
     xfer[1].len = recieve_len,
 
     mutex_lock(&drv_data->busy_lock);
@@ -167,7 +166,6 @@ static int norflash_spi_read_stack(u8 *send, u16 send_len,
     }
     mutex_unlock(&drv_data->busy_lock);
 
-    memcpy_s(recieve, recieve_len, drv_data->rx_buf, recieve_len);
     return status;
 }
 
@@ -178,14 +176,13 @@ static int norflash_spi_write_stack(u8 *send, u16 send_len)
     struct spi_message  m;
     int status;
 
-    if (!drv_data || !send) {
-        cam_err("%s - drv_data or send is NULL.",__func__);
+    if (!drv_data) {
+        cam_err("%s - drv_data is NULL.",__func__);
         return -EINVAL;
     }
 
-    memcpy_s(drv_data->tx_buf, send_len, send, send_len);
     memset_s(&xfer, sizeof(xfer), 0, sizeof(xfer));
-    xfer.tx_buf = drv_data->tx_buf;
+    xfer.tx_buf = send;
     xfer.rx_buf = NULL;
     xfer.len = send_len;
 
@@ -211,24 +208,19 @@ static void WREN(void)
 
 static u8 RDSR(void)
 {
-    u8 SR = 0;
+    u8 SR;
     char buf[2] = {0x05, 0xFF};
     norflash_spi_read_stack(buf, 2, &SR, 1);
     return SR;
 }
 
-/* get chip id */
+/* get chip id, maybe use later
 static void RDID(u8 *ID_buf)
 {
     char buf[2] = {0x9f, 0xFF};
-
-    if (!ID_buf) {
-        cam_err("%s [%d]: m25p80_norflash failed.", __func__, __LINE__);
-        return;
-    }
     norflash_spi_read_stack(buf, 2, ID_buf, 3);
 }
-
+*/
 static int toggle_SR(int ms)
 {
     int SR;
@@ -251,12 +243,6 @@ static int Page_program(int addr,u8 *buf,int byte_num,int overtime)
 {
     u8 PP_buf[300];
     int i;
-
-    if (!buf) {
-        cam_err("%s [%d]: m25p80_norflash failed.", __func__, __LINE__);
-        return 0xaa;
-    }
-
     WREN();
     if((RDSR()&0x02)!=0x02)
     {
@@ -335,10 +321,6 @@ int fast_read_nbyte(int addr, u8 *rd_buf, int byte_num)
     u8 RD_buf[300];
     int status = 0;
 
-    if (!rd_buf) {
-        cam_err("%s [%d]: m25p80_norflash failed.", __func__, __LINE__);
-        return 0xaa;
-    }
     RD_buf[0]=0x0B;
     RD_buf[1]=addr >> 16;
     RD_buf[2]=addr >> 8;
@@ -363,7 +345,6 @@ int m25p_get_array_part_content(u32 type, void *userAddr, unsigned long size)
     u32 starAddr = 0;
     u32 one_read_sz = 0;
     u32 read_sz = 0;
-    u8 m25p_id[3] = {0};
     void __user* argp = (void __user*)userAddr;
 
     cam_info("%s enter, type = %d, size = 0x%x.",  __func__, type, (unsigned int)size);
@@ -379,10 +360,6 @@ int m25p_get_array_part_content(u32 type, void *userAddr, unsigned long size)
             (unsigned int)arrayPartTab[type].partLen);
         return -EINVAL;;
     }
-
-    /* check reading correct, value: 0xEF 0x60 0x15 */
-    RDID(m25p_id);
-    cam_info("m25p_id = 0x%x 0x%x 0x%x", m25p_id[0], m25p_id[1], m25p_id[2]);
 
     buff = (u8 *)vmalloc(sizeof(u8) * (size + 1));
     if (!buff) {
@@ -753,9 +730,9 @@ static int m25p_probe(struct spi_device *spi)
 
     drv_data->tx_buf  = (void *)__get_free_pages(GFP_KERNEL|GFP_DMA, get_order(2*PAGE_SIZE));
     drv_data->rx_buf  = (void *)__get_free_pages(GFP_KERNEL|GFP_DMA, get_order(2*PAGE_SIZE));
-    cam_info("%s tx_buf=0x%pK rx_buf=0x%pK",
+    cam_info("%s tx_buf=0x%pK rx_buf=0x%pK ext_buf=0x%pK",
         __func__,
-        drv_data->tx_buf, drv_data->rx_buf);
+        drv_data->tx_buf, drv_data->rx_buf, drv_data->ext_buf);
     if ((!drv_data->tx_buf) || (!drv_data->rx_buf)) {
         cam_err("%s can not alloc dma buf page", __func__);
         ret = -ENOMEM;

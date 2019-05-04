@@ -1,6 +1,10 @@
 VERSION = 4
 PATCHLEVEL = 9
+<<<<<<< HEAD
 SUBLEVEL = 148
+=======
+SUBLEVEL = 97
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 EXTRAVERSION =
 NAME = Roaring Lionus
 
@@ -360,8 +364,14 @@ ifeq ($(strip $(clang)), true)
 CC		= $(SOURCEANALYZER) $(wildcard $(CCACHE)) $(CLANG_CROSS_COMPILE_PRE)clang
 else
 CC		= $(SOURCEANALYZER) $(wildcard $(CCACHE)) $(CROSS_COMPILE)gcc
+<<<<<<< HEAD
 endif
+=======
+AS		= $(CROSS_COMPILE)as
+LD		= $(CROSS_COMPILE)ld
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 LDGOLD		= $(CROSS_COMPILE)ld.gold
+CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(SOURCEANALYZER) $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -722,7 +732,6 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
-KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 
 ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
 KBUILD_CFLAGS	+= $(call cc-option,-ffunction-sections,)

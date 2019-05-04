@@ -42,9 +42,6 @@
 #include <mali_kbase_hw.h>
 #include <mali_kbase_tlstream.h>
 #include <mali_kbase_gmc.h>
-#ifdef CONFIG_HISI_LAST_BUFFER
-#include <platform/hisilicon/last_buffer/mali_kbase_hisi_lb_callback.h>
-#endif
 
 /* Forward declarations */
 static void free_partial_locked(struct kbase_context *kctx,
@@ -647,13 +644,13 @@ void kbase_region_tracker_term_rbtree(struct rb_root *rbtree)
 {
 	kbase_region_tracker_erase_rbtree(rbtree);
 }
-/*lint -e666*/
+
 static size_t kbase_get_same_va_bits(struct kbase_context *kctx)
 {
 	return min(kbase_get_num_cpu_va_bits(kctx),
 			(size_t) kctx->kbdev->gpu_props.mmu.va_bits);
 }
-/*lint +e666*/
+
 /**
  * Initialize the region tracker data structure.
  */
@@ -833,7 +830,6 @@ int kbase_mem_init(struct kbase_device *kbdev)
 	ret = kbase_mem_pool_init(&kbdev->mem_pool,
 			KBASE_MEM_POOL_MAX_SIZE_KBDEV,
 			KBASE_MEM_POOL_4KB_PAGE_TABLE_ORDER,
-			0,
 			kbdev,
 			NULL);
 	if (ret)
@@ -842,23 +838,10 @@ int kbase_mem_init(struct kbase_device *kbdev)
 	ret = kbase_mem_pool_init(&kbdev->lp_mem_pool,
 			(KBASE_MEM_POOL_MAX_SIZE_KBDEV >> 9),
 			KBASE_MEM_POOL_2MB_PAGE_TABLE_ORDER,
-			0,
 			kbdev,
 			NULL);
 	if (ret)
 		kbase_mem_pool_term(&kbdev->mem_pool);
-
-#ifdef CONFIG_HISI_LAST_BUFFER
-	lb_pools_callbacks *pools_cbs = kbase_hisi_get_lb_pools_cbs(kbdev);
-	KBASE_DEBUG_ASSERT(pools_cbs);
-	ret = pools_cbs->init_dev_pools(kbdev);
-	if (ret) {
-		/* We have terminated the lb_pools if init failed, so free the normal pools.
-		 */
-		kbase_mem_pool_term(&kbdev->lp_mem_pool);
-		kbase_mem_pool_term(&kbdev->mem_pool);
-	}
-#endif
 
 	return ret;
 }
@@ -883,15 +866,12 @@ void kbase_mem_term(struct kbase_device *kbdev)
 
 	kbase_mem_pool_term(&kbdev->mem_pool);
 	kbase_mem_pool_term(&kbdev->lp_mem_pool);
-
-#ifdef CONFIG_HISI_LAST_BUFFER
-	lb_pools_callbacks *pools_cbs = kbase_hisi_get_lb_pools_cbs(kbdev);
-	KBASE_DEBUG_ASSERT(pools_cbs);
-	pools_cbs->term_dev_pools(kbdev);
-#endif
 }
 
 KBASE_EXPORT_TEST_API(kbase_mem_term);
+
+
+
 
 /**
  * @brief Allocate a free region object.
@@ -1145,7 +1125,7 @@ KBASE_EXPORT_TEST_API(kbase_gpu_mmap);
 
 static void kbase_jd_user_buf_unmap(struct kbase_context *kctx,
 		struct kbase_mem_phy_alloc *alloc, bool writeable);
-/*lint -e648*/
+
 int kbase_gpu_munmap(struct kbase_context *kctx, struct kbase_va_region *reg)
 {
 	int err;
@@ -1189,7 +1169,7 @@ int kbase_gpu_munmap(struct kbase_context *kctx, struct kbase_va_region *reg)
 	err = kbase_remove_va_region(reg);
 	return err;
 }
-/*lint +e648*/
+
 static struct kbase_cpu_mapping *kbasep_find_enclosing_cpu_mapping(
 		struct kbase_context *kctx,
 		unsigned long uaddr, size_t size, u64 *offset)
@@ -1283,7 +1263,7 @@ int kbasep_find_enclosing_gpu_mapping_start_and_offset(struct kbase_context *kct
 }
 
 KBASE_EXPORT_TEST_API(kbasep_find_enclosing_gpu_mapping_start_and_offset);
-/*lint -e668*/
+
 void kbase_sync_single(struct kbase_context *kctx,
 		struct tagged_addr t_cpu_pa, struct tagged_addr t_gpu_pa,
 		off_t offset, size_t size, enum kbase_sync_type sync_fn)
@@ -1327,7 +1307,7 @@ void kbase_sync_single(struct kbase_context *kctx,
 			src = ((unsigned char *)kmap(gpu_page)) + offset;
 			dst = ((unsigned char *)kmap(cpu_page)) + offset;
 		}
-		memcpy(dst, src, size);//lint !e578
+		memcpy(dst, src, size);
 		kunmap(gpu_page);
 		kunmap(cpu_page);
 		if (sync_fn == KBASE_SYNC_TO_DEVICE)
@@ -1336,8 +1316,7 @@ void kbase_sync_single(struct kbase_context *kctx,
 					size, DMA_BIDIRECTIONAL);
 	}
 }
-/*lint +e668*/
-/*lint -e578*/
+
 static int kbase_do_syncset(struct kbase_context *kctx,
 		struct basep_syncset *sset, enum kbase_sync_type sync_fn)
 {
@@ -1427,7 +1406,7 @@ out_unlock:
 	kbase_os_mem_map_unlock(kctx);
 	return err;
 }
-/*lint +e578*/
+
 int kbase_sync_now(struct kbase_context *kctx, struct basep_syncset *sset)
 {
 	int err = -EINVAL;
@@ -1654,40 +1633,6 @@ int kbase_update_region_flags(struct kbase_context *kctx,
 	return 0;
 }
 
-struct kbase_mem_pool* kbase_mem_select_pool(struct kbase_context *kctx, unsigned int lb_policy_id, bool large_page)
-{
-	struct kbase_mem_pool *pool;
-	struct kbase_device *kbdev;
-
-	KBASE_DEBUG_ASSERT(kctx);
-	pool =  large_page ? &kctx->lp_mem_pool  : &kctx->mem_pool;
-
-	kbdev = kctx->kbdev;
-	KBASE_DEBUG_ASSERT(kbdev);
-
-#ifdef CONFIG_HISI_LAST_BUFFER
-	if (lb_policy_id != 0) {
-		struct kbase_hisi_lb_pools *lb_pools = &kctx->hisi_ctx_data.lb_pools;
-		KBASE_DEBUG_ASSERT(lb_pools);
-		struct list_head *pool_list =  large_page ? &lb_pools->lp_mem_pools : &lb_pools->mem_pools;
-
-		lb_pools_callbacks *pools_cbs = kbase_hisi_get_lb_pools_cbs(kbdev);
-		KBASE_DEBUG_ASSERT(pools_cbs);
-		pool = pools_cbs->find_pool(lb_policy_id, pool_list);
-		if (!pool) {
-			dev_err(kctx->kbdev->dev, "Can not find the specific memory pool of policy id(%d).\n", lb_policy_id);
-			BUG_ON(1);
-		}
-	}
-#endif
-
-	WARN_ON(lb_policy_id != pool->lb_policy_id);
-	(void)kbdev;
-
-	return pool;
-}
-/*lint -e571*/
-/*lint -e648*/
 int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 		size_t nr_pages_requested)
 {
@@ -1696,7 +1641,6 @@ int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 	int res;
 	struct kbase_context *kctx;
 	struct tagged_addr *tp;
-	struct kbase_mem_pool *pool = NULL;
 
 	KBASE_DEBUG_ASSERT(alloc->type == KBASE_MEM_TYPE_NATIVE);
 	KBASE_DEBUG_ASSERT(alloc->imported.kctx);
@@ -1710,9 +1654,6 @@ int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 
 	if (nr_pages_requested == 0)
 		goto done; /*nothing to do*/
-
-	pool = kbase_mem_select_pool(kctx, alloc->lb_policy_id, false);
-	KBASE_DEBUG_ASSERT(pool);
 
 	new_page_count = kbase_atomic_add_pages(
 			nr_pages_requested, &kctx->used_pages);
@@ -1731,9 +1672,8 @@ int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 	 */
 	if (nr_left >= (SZ_2M / SZ_4K)) {
 		int nr_lp = nr_left / (SZ_2M / SZ_4K);
-		struct kbase_mem_pool *lp_pool = kbase_mem_select_pool(kctx, alloc->lb_policy_id, true);
-		KBASE_DEBUG_ASSERT(lp_pool);
-		res = kbase_mem_pool_alloc_pages(lp_pool,
+
+		res = kbase_mem_pool_alloc_pages(&kctx->lp_mem_pool,
 						 nr_lp * (SZ_2M / SZ_4K),
 						 tp,
 						 true);
@@ -1782,10 +1722,10 @@ int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 			do {
 				int err;
 
-				np = kbase_mem_pool_alloc(lp_pool);
+				np = kbase_mem_pool_alloc(&kctx->lp_mem_pool);
 				if (np)
 					break;
-				err = kbase_mem_pool_grow(lp_pool, 1);
+				err = kbase_mem_pool_grow(&kctx->lp_mem_pool, 1);
 				if (err)
 					break;
 			} while (1);
@@ -1797,7 +1737,7 @@ int kbase_alloc_phy_pages_helper(struct kbase_mem_phy_alloc *alloc,
 
 				sa = kmalloc(sizeof(*sa), GFP_KERNEL);
 				if (!sa) {
-					kbase_mem_pool_free(lp_pool, np, false);
+					kbase_mem_pool_free(&kctx->lp_mem_pool, np, false);
 					goto no_new_partial;
 				}
 
@@ -1826,7 +1766,7 @@ no_new_partial:
 #endif
 
 	if (nr_left) {
-		res = kbase_mem_pool_alloc_pages(pool,
+		res = kbase_mem_pool_alloc_pages(&kctx->mem_pool,
 						 nr_left,
 						 tp,
 						 false);
@@ -1865,6 +1805,7 @@ alloc_failed:
 invalid_request:
 	return -ENOMEM;
 }
+
 struct tagged_addr *kbase_alloc_phy_pages_helper_locked(
 		struct kbase_mem_phy_alloc *alloc, struct kbase_mem_pool *pool,
 		size_t nr_pages_requested,
@@ -2059,9 +2000,8 @@ alloc_failed:
 invalid_request:
 	return NULL;
 }
-/*lint +e648*/
-/*lint +e571*/
-static void free_partial(struct kbase_context *kctx, struct kbase_mem_pool *pool, struct tagged_addr tp)
+
+static void free_partial(struct kbase_context *kctx, struct tagged_addr tp)
 {
 	struct page *p, *head_page;
 	struct kbase_sub_alloc *sa;
@@ -2073,7 +2013,7 @@ static void free_partial(struct kbase_context *kctx, struct kbase_mem_pool *pool
 	clear_bit(p - head_page, sa->sub_pages);
 	if (bitmap_empty(sa->sub_pages, SZ_2M / SZ_4K)) {
 		list_del(&sa->link);
-		kbase_mem_pool_free(pool, head_page, true);
+		kbase_mem_pool_free(&kctx->lp_mem_pool, head_page, true);
 		kfree(sa);
 	} else if (bitmap_weight(sa->sub_pages, SZ_2M / SZ_4K) ==
 		   SZ_2M / SZ_4K - 1) {
@@ -2082,8 +2022,7 @@ static void free_partial(struct kbase_context *kctx, struct kbase_mem_pool *pool
 	}
 	spin_unlock(&kctx->mem_partials_lock);
 }
-/*lint -e648*/
-/*lint -e571*/
+
 int kbase_free_phy_pages_helper(
 	struct kbase_mem_phy_alloc *alloc,
 	size_t nr_pages_to_free)
@@ -2094,8 +2033,6 @@ int kbase_free_phy_pages_helper(
 	struct tagged_addr *start_free;
 	int new_page_count __maybe_unused;
 	size_t freed = 0;
-	struct kbase_mem_pool *pool = NULL;
-	struct kbase_mem_pool *lp_pool = NULL;
 
 	KBASE_DEBUG_ASSERT(alloc->type == KBASE_MEM_TYPE_NATIVE);
 	KBASE_DEBUG_ASSERT(alloc->imported.kctx);
@@ -2104,12 +2041,6 @@ int kbase_free_phy_pages_helper(
 	/* early out if nothing to do */
 	if (0 == nr_pages_to_free)
 		return 0;
-
-	pool = kbase_mem_select_pool(kctx, alloc->lb_policy_id, false);
-	KBASE_DEBUG_ASSERT(pool);
-
-	lp_pool = kbase_mem_select_pool(kctx, alloc->lb_policy_id, true);
-	KBASE_DEBUG_ASSERT(lp_pool);
 
 	start_free = alloc->pages + alloc->nents - nr_pages_to_free;
 
@@ -2127,7 +2058,7 @@ int kbase_free_phy_pages_helper(
 			/* This is a 2MB entry, so free all the 512 pages that
 			 * it points to
 			 */
-			kbase_mem_pool_free_pages(lp_pool,
+			kbase_mem_pool_free_pages(&kctx->lp_mem_pool,
 					512,
 					start_free,
 					syncback,
@@ -2136,7 +2067,7 @@ int kbase_free_phy_pages_helper(
 			start_free += 512;
 			freed += 512;
 		} else if (is_partial(*start_free)) {
-			free_partial(kctx, lp_pool, *start_free);
+			free_partial(kctx, *start_free);
 			nr_pages_to_free--;
 			start_free++;
 			freed++;
@@ -2150,7 +2081,7 @@ int kbase_free_phy_pages_helper(
 				local_end_free++;
 				nr_pages_to_free--;
 			}
-			kbase_mem_pool_free_pages(pool,
+			kbase_mem_pool_free_pages(&kctx->mem_pool,
 					local_end_free - start_free,
 					start_free,
 					syncback,
@@ -2180,8 +2111,7 @@ int kbase_free_phy_pages_helper(
 
 	return 0;
 }
-/*lint +e571*/
-/*lint +e648*/
+
 static void free_partial_locked(struct kbase_context *kctx,
 		struct kbase_mem_pool *pool, struct tagged_addr tp)
 {
@@ -2205,8 +2135,7 @@ static void free_partial_locked(struct kbase_context *kctx,
 		list_add(&sa->link, &kctx->mem_partials);
 	}
 }
-/*lint -e571*/
-/*lint -e648*/
+
 void kbase_free_phy_pages_helper_locked(struct kbase_mem_phy_alloc *alloc,
 		struct kbase_mem_pool *pool, struct tagged_addr *pages,
 		size_t nr_pages_to_free)
@@ -2300,8 +2229,7 @@ void kbase_free_phy_pages_helper_locked(struct kbase_mem_phy_alloc *alloc,
 				(u64)new_page_count);
 	}
 }
-/*lint +e571*/
-/*lint +e648*/
+
 void kbase_mem_kref_free(struct kref *kref)
 {
 	struct kbase_mem_phy_alloc *alloc;
@@ -2484,7 +2412,7 @@ bool kbase_check_import_flags(unsigned long flags)
 
 	return true;
 }
-/*lint -e504*/
+
 int kbase_check_alloc_sizes(struct kbase_context *kctx, unsigned long flags,
 		u64 va_pages, u64 commit_pages, u64 large_extent)
 {
@@ -2519,7 +2447,7 @@ int kbase_check_alloc_sizes(struct kbase_context *kctx, unsigned long flags,
 				(unsigned long long)va_pages,
 				(unsigned long long)gpu_pc_pages_max);
 
-		return -EINVAL;//lint !e455
+		return -EINVAL;
 	}
 
 	if ((flags & (BASE_MEM_GROW_ON_GPF | BASE_MEM_TILER_ALIGN_TOP)) &&
@@ -2567,29 +2495,27 @@ int kbase_check_alloc_sizes(struct kbase_context *kctx, unsigned long flags,
 	return 0;
 #undef KBASE_MSG_PRE
 }
-/*lint +e504*/
+
 /**
  * @brief Acquire the per-context region list lock
  */
-/*lint -e454*/
 void kbase_gpu_vm_lock(struct kbase_context *kctx)
 {
 	KBASE_DEBUG_ASSERT(kctx != NULL);
 	mutex_lock(&kctx->reg_lock);
 }
-/*lint +e454*/
+
 KBASE_EXPORT_TEST_API(kbase_gpu_vm_lock);
 
 /**
  * @brief Release the per-context region list lock
  */
-/*lint -e455*/
 void kbase_gpu_vm_unlock(struct kbase_context *kctx)
 {
 	KBASE_DEBUG_ASSERT(kctx != NULL);
 	mutex_unlock(&kctx->reg_lock);
 }
-/*lint +e455*/
+
 KBASE_EXPORT_TEST_API(kbase_gpu_vm_unlock);
 
 #ifdef CONFIG_HISI_DEBUG_FS
@@ -2851,7 +2777,7 @@ static int kbase_jit_grow(struct kbase_context *kctx,
 	size_t delta;
 	size_t pages_required;
 	size_t old_size;
-	struct kbase_mem_pool *pool = NULL;
+	struct kbase_mem_pool *pool;
 	int ret = -ENOMEM;
 	struct tagged_addr *gpu_pages;
 	struct kbase_sub_alloc *prealloc_sas[2] = { NULL, NULL };
@@ -2888,15 +2814,13 @@ static int kbase_jit_grow(struct kbase_context *kctx,
 	}
 
 	if (pages_required >= (SZ_2M / SZ_4K)) {
-		pool = kbase_mem_select_pool(kctx, reg->gpu_alloc->lb_policy_id, true);
-		KBASE_DEBUG_ASSERT(pool);
+		pool = &kctx->lp_mem_pool;
 		/* Round up to number of 2 MB pages required */
 		pages_required += ((SZ_2M / SZ_4K) - 1);
 		pages_required /= (SZ_2M / SZ_4K);
 	} else {
 #endif
-		pool = kbase_mem_select_pool(kctx, reg->gpu_alloc->lb_policy_id, false);
-		KBASE_DEBUG_ASSERT(pool);
+		pool = &kctx->mem_pool;
 #ifdef CONFIG_MALI_2MB_ALLOC
 	}
 #endif
@@ -3144,7 +3068,7 @@ update_failed_unlocked:
 out_unlocked:
 	return NULL;
 }
-/*lint -e666*/
+
 void kbase_jit_free(struct kbase_context *kctx, struct kbase_va_region *reg)
 {
 	u64 old_pages;
@@ -3196,7 +3120,7 @@ void kbase_jit_free(struct kbase_context *kctx, struct kbase_va_region *reg)
 
 	mutex_unlock(&kctx->jit_evict_lock);
 }
-/*lint +e666*/
+
 void kbase_jit_backing_lost(struct kbase_va_region *reg)
 {
 	struct kbase_context *kctx = kbase_reg_flags_to_kctx(reg);
@@ -3339,8 +3263,8 @@ static int kbase_jd_user_buf_map(struct kbase_context *kctx,
 			pages, NULL, NULL);
 #endif
 
-	if (pinned_pages <= 0)//lint !e574
-		return pinned_pages;//lint !e574
+	if (pinned_pages <= 0)
+		return pinned_pages;
 
 	if (pinned_pages != alloc->imported.user_buf.nr_pages) {
 		for (i = 0; i < pinned_pages; i++)
@@ -3398,7 +3322,7 @@ unwind:
 
 	return err;
 }
-/*lint -e574*/
+
 static void kbase_jd_user_buf_unmap(struct kbase_context *kctx,
 		struct kbase_mem_phy_alloc *alloc, bool writeable)
 {
@@ -3549,7 +3473,7 @@ static void kbase_jd_umm_unmap(struct kbase_context *kctx,
 	alloc->nents = 0;
 }
 #endif				/* CONFIG_DMA_SHARED_BUFFER */
-/*lint +e574*/
+
 struct kbase_mem_phy_alloc *kbase_map_external_resource(
 		struct kbase_context *kctx, struct kbase_va_region *reg,
 		struct mm_struct *locked_mm)

@@ -15,15 +15,17 @@ EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/osal
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/common
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/scene/kirin
 EXTRA_CFLAGS += -fno-pic
+EXTRA_CFLAGS += -DOMXVDEC_TVP_CONFLICT
 
 ifneq ($(TARGET_BUILD_VARIANT), user)
 EXTRA_CFLAGS += -DUSER_DISABLE_VDEC_PROC
 endif
 
-ifneq ($(CONFIG_VCODEC_PLATFORM_HIVCODECV500), y)
+ifeq ($(TARGET_BOARD_PLATFORM), kirin970)
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiSCDV300
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/product/HiVCodecV200
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiVDHV500R002
+<<<<<<< HEAD
 else
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiSCDV310
 EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/product/HiVCodecV500
@@ -31,29 +33,43 @@ EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiV
 endif
 
 ifeq ($(TARGET_BOARD_PLATFORM), kirin970)
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 EXTRA_CFLAGS +=-DPLATFORM_KIRIN970
 endif
 
 ifeq ($(CONFIG_VCODEC_PLATFORM_HIVCODECV300), y)
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiSCDV300
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/product/HiVCodecV200
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiVDHV500R002
 EXTRA_CFLAGS += -DPLATFORM_HIVCODECV300
 EXTRA_CFLAGS += -DVDEC_AVS_LOW_CFG
 endif
 
+<<<<<<< HEAD
 ifeq ($(CONFIG_VCODEC_PLATFORM_HIVCODECV500), y)
 EXTRA_CFLAGS += -DPLATFORM_HIVCODECV500
 EXTRA_CFLAGS += -DLOWER_FREQUENCY_SUPPORT
 endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 ifeq ($(CONFIG_VCODEC_PLATFORM_HIVCODECV210), y)
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiSCDV300
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/product/HiVCodecV200
+EXTRA_CFLAGS += -Idrivers/vcodec/hi_vcodec/vdec_hivna/vfmw_v4.0/firmware/hal/HiVDHV500R002
 EXTRA_CFLAGS += -DPLATFORM_HIVCODECV210
 endif
 
+<<<<<<< HEAD
 ifeq ($(CONFIG_VCODEC_PLATFORM_HIVCODECV310), y)
 EXTRA_CFLAGS += -DPLATFORM_HIVCODECV310
 EXTRA_CFLAGS += -DLOWER_FREQUENCY_SUPPORT
 endif
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 ifeq ($(es_low_freq),true)
 EXTRA_CFLAGS += -DCONFIG_ES_VDEC_LOW_FREQ
 endif

@@ -35,7 +35,7 @@
 #define WATCHDOG_TIMEOUT_S 2
 #define FORCE_TIMEOUT_100MS 10
 #define MAX_I2C_MSG_LENS 0x3F
-/*#define STATUS_WORK_INTERVAL 20 ms */
+/*#define STATUS_WORK_INTERVAL 20 /* ms */
 /*Add synaptics capacitor test function */
 #define MMITEST
 /*
@@ -2894,12 +2894,12 @@ static void mmi_rawimage_report(unsigned char *buffer)
 	int i = 0, j = 0, k = 0;
 	short *DataArray = NULL;
 	short temp = 0;
-	size_t len =0;
 	enum mmi_results TestResult = TEST_PASS;
 	char buf[DATA_TEMP_BUFF_SIZE] = { 0 };
 	memset(g_mmi_buf_f54raw_data, 0,
 	       (rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE));
 	sprintf(g_mmi_buf_f54raw_data, "RawImageData:\n");
+
 	DataArray = (short *)kmalloc(sizeof(short) * tx * rx, GFP_KERNEL);
 	if (DataArray == NULL) {
 		TS_LOG_ERR("%s:kmalloc failed\n",__func__);
@@ -2913,8 +2913,7 @@ static void mmi_rawimage_report(unsigned char *buffer)
 			k = k + 2;
 
 			snprintf(buf, sizeof(buf)-1, "%d ", temp);
-			len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE - strlen(g_mmi_buf_f54raw_data) - 1;
-			strncat(g_mmi_buf_f54raw_data, buf, len);
+			strncat(g_mmi_buf_f54raw_data, buf, sizeof(buf));
 		}
 		strncat(g_mmi_buf_f54raw_data, "\n", 1);
 	}
@@ -2949,7 +2948,6 @@ static int RxtoRx1ShortTest(unsigned char *buffer)
 {
 
 	int i, j, k = 0;
-	size_t len = 0;
 	int count = 0;
 	int DiagonalUpperLimit = RxDiagonalUpperLimit;
 	int DiagonalLowerLimit = RxDiagonalLowerLimit;
@@ -2964,9 +2962,8 @@ static int RxtoRx1ShortTest(unsigned char *buffer)
 			snprintf(buf,sizeof(buf), "%5d ", ImageArray);
 
 			if (i == j) {
-				len = 6 * rx + F54_MAX_CAP_TITLE_SIZE - strlen(g_mmi_RxtoRxshort_report) - 1;
 				strncat(g_mmi_RxtoRxshort_report, buf,
-					len);
+					sizeof(buf));
 				if ((ImageArray <= DiagonalUpperLimit)
 				    && (ImageArray >= DiagonalLowerLimit))
 					count++;
@@ -2984,7 +2981,6 @@ static int RxtoRx2ShortTest(unsigned char *buffer)
 {
 
 	int i, j, k = 0;
-	size_t len = 0;
 	int count = 0;
 	int DiagonalUpperLimit = RxDiagonalUpperLimit;
 	int DiagonalLowerLimit = RxDiagonalLowerLimit;
@@ -2999,9 +2995,8 @@ static int RxtoRx2ShortTest(unsigned char *buffer)
 			sprintf(buf, "%5d ", ImageArray);
 
 			if ((i + tx) == j) {
-				len = 6 * rx + F54_MAX_CAP_TITLE_SIZE - strlen(g_mmi_RxtoRxshort_report) - 1;
 				strncat(g_mmi_RxtoRxshort_report, buf,
-					len);
+					sizeof(buf));
 				if ((ImageArray <= DiagonalUpperLimit)
 				    && (ImageArray >= DiagonalLowerLimit))
 					count++;
@@ -3142,14 +3137,13 @@ static void mmi_maxmincapacitance_report(unsigned char *buffer)
 	short mincapacitance = FullRawMinCap;
 	short max = 0;
 	short min = 0;
-	size_t len = 0;
 	char buf[2 * DATA_TEMP_BUFF_SIZE] = { 0 };
 	memset(g_mmi_maxmincapacitance_report, 0,
 	       (2 * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE));
 	sprintf(g_mmi_maxmincapacitance_report, "maxmincapacitance:\n");
-	len = 2 * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE - strlen(g_mmi_maxmincapacitance_report) - 1;
 	max = (buffer[0]) | (buffer[1] << 8);
 	min = (buffer[2]) | (buffer[3] << 8);
+
 	if ((max < maxcapacitance) && (min > mincapacitance)) {
 		/*TestResult = TEST_PASS;*/
 		strcat(g_mmi_buf_f54test_result, "5P-");
@@ -3161,7 +3155,7 @@ static void mmi_maxmincapacitance_report(unsigned char *buffer)
 	}
 
 	sprintf(buf, " %d %d", max, min);
-	strncat(g_mmi_maxmincapacitance_report, buf, len);
+	strncat(g_mmi_maxmincapacitance_report, buf, sizeof(buf));
 	strncat(g_mmi_maxmincapacitance_report, "\n", 1);
 
 	return;
@@ -3171,14 +3165,13 @@ static void mmi_highresistance_report(unsigned char *buffer)
 {
 	int i = 0, k = 0;
 	short temp = 0;
-	size_t len = 0;
 	enum mmi_results TestResult = TEST_PASS;
 	short HighResistanceResult[3] = { 0 };
 	char buf[DATA_TEMP_BUFF_SIZE] = { 0 };
 	memset(g_mmi_highresistance_report, 0,
 	       (3 * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE));
 	sprintf(g_mmi_highresistance_report, "highresistance:\n");
-	len = 3 * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE - strlen(g_mmi_highresistance_report) -1 ;
+
 	for (i = 0; i < 3; i++, k += 2) {
 		temp = buffer[k] | (buffer[k + 1] << 8);
 		HighResistanceResult[i] = temp;
@@ -3191,7 +3184,7 @@ static void mmi_highresistance_report(unsigned char *buffer)
 			     __func__, i, HighResistanceResult[i]);
 		}
 		sprintf(buf, " %d ", HighResistanceResult[i]);
-		strncat(g_mmi_highresistance_report, buf, len);
+		strncat(g_mmi_highresistance_report, buf, sizeof(buf));
 	}
 
 	strncat(g_mmi_highresistance_report, "\n", 1);
@@ -3211,15 +3204,13 @@ static void mmi_delta_report(unsigned char *buffer)
 	int i = 0, j = 0, k = 0;
 	short *DataArray = NULL;
 	short temp = 0;
-	size_t len = 0;
 	char buf[DATA_TEMP_BUFF_SIZE] = { 0 };
 	TS_LOG_INFO("mmi_delta_report\n");
 	memset(g_buf_debug_data, 0,
 	       (rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
 		F54_MAX_CAP_TITLE_SIZE));
 	sprintf(g_buf_debug_data, "delta_data:\n");
-	len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) -1;
+
 	DataArray = (short *)kmalloc(sizeof(short) * tx * rx, GFP_KERNEL);
 	if (DataArray == NULL) {
 		TS_LOG_ERR("%s:kmalloc failed\n",__func__);
@@ -3232,7 +3223,7 @@ static void mmi_delta_report(unsigned char *buffer)
 			k = k + 2;
 
 			snprintf(buf, sizeof(buf)-1, "%d ", temp);
-			strncat(g_buf_debug_data, buf, len);
+			strncat(g_buf_debug_data, buf, sizeof(buf));
 		}
 		strcat(g_buf_debug_data, "\n");
 	}
@@ -3513,7 +3504,7 @@ static int read_debug_reg_status(unsigned char *buffer)
 	int retval = 0;
 	unsigned char command;
 	char buf[6];
-	size_t len = 0;
+
 	TS_LOG_ERR("read_debug_reg_status_begin\n");
 	retval = f54->fn_ptr->read(f54->rmi4_data,
 				   0x0051, &command, sizeof(command));
@@ -3524,9 +3515,7 @@ static int read_debug_reg_status(unsigned char *buffer)
 		TS_LOG_INFO("Device Control1=0x%x\n", command);
 		strcat(g_buf_debug_data, "Device Control1:");
 		sprintf(buf, "0x%x ", command);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 	retval = f54->fn_ptr->read(f54->rmi4_data,
 				   0x0052, &command, sizeof(command));
@@ -3537,9 +3526,7 @@ static int read_debug_reg_status(unsigned char *buffer)
 		TS_LOG_INFO("Interrupt Enable=0x%x\n", command);
 		strcat(g_buf_debug_data, "Interrupt Enable:");
 		sprintf(buf, "0x%x ", command);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 
 	retval = f54->fn_ptr->read(f54->rmi4_data,
@@ -3551,9 +3538,7 @@ static int read_debug_reg_status(unsigned char *buffer)
 		TS_LOG_INFO("Device Status=0x%x\n", command);
 		strcat(g_buf_debug_data, "Device Status:");
 		sprintf(buf, "0x%x ", command);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 
 	retval = f54->fn_ptr->read(f54->rmi4_data,
@@ -3565,9 +3550,7 @@ static int read_debug_reg_status(unsigned char *buffer)
 		TS_LOG_INFO("Interrupt Status=0x%x\n", command);
 		strcat(g_buf_debug_data, "Interrupt Status:");
 		sprintf(buf, "0x%x ", command);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 		strncat(g_buf_debug_data, "\0", 1);
 	}
 
@@ -3578,7 +3561,7 @@ static int read_debug_power_pin_status(unsigned char *buffer)
 {
 	int retval = 0;
 	char buf[10];
-	size_t len = 0;
+
 	retval =
 	    gpio_get_value(f54->rmi4_data->synaptics_chip_data->reset_gpio);
 	if (retval < 0) {
@@ -3588,9 +3571,7 @@ static int read_debug_power_pin_status(unsigned char *buffer)
 		TS_LOG_INFO("reset_gpio=%d\n", retval);
 		strcat(g_buf_debug_data, "reset_gpio value is:");
 		sprintf(buf, "0x%x ", retval);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 	retval = gpio_get_value(f54->rmi4_data->synaptics_chip_data->irq_gpio);
 	if (retval < 0) {
@@ -3600,9 +3581,7 @@ static int read_debug_power_pin_status(unsigned char *buffer)
 		TS_LOG_INFO("irq_gpio=%d\n", retval);
 		strcat(g_buf_debug_data, "irq_gpio value is:");
 		sprintf(buf, "0x%x ", retval);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 
 	retval =
@@ -3614,9 +3593,7 @@ static int read_debug_power_pin_status(unsigned char *buffer)
 		TS_LOG_INFO("vci_gpio_ctrl=%d\n", retval);
 		strcat(g_buf_debug_data, "vci_gpio_ctrl value is:");
 		sprintf(buf, "0x%x ", retval);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 
 	retval =
@@ -3629,16 +3606,12 @@ static int read_debug_power_pin_status(unsigned char *buffer)
 		TS_LOG_INFO("vddio_gpio_ctrl=%d\n", retval);
 		strcat(g_buf_debug_data, "vddio_gpio_ctrl value is:");
 		sprintf(buf, "0x%x ", retval);
-		len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-		strncat(g_buf_debug_data, buf, len);
+		strncat(g_buf_debug_data, buf, sizeof(buf));
 	}
 
 	strcat(g_buf_debug_data, "g_ts_data.state is:");
 	sprintf(buf, "%d ", atomic_read(&g_ts_data.state));
-	len = rx * tx * DATA_TEMP_BUFF_SIZE + F54_MAX_CAP_TITLE_SIZE + F54_MAX_CAP_TITLE_SIZE +
-		F54_MAX_CAP_TITLE_SIZE - strlen(g_buf_debug_data) - 1;
-	strncat(g_buf_debug_data, buf, len);
+	strncat(g_buf_debug_data, buf, sizeof(buf));
 
 	return retval;
 }
@@ -3727,7 +3700,7 @@ exit:
 
 static ssize_t hw_synaptics_mmi_test_show(struct kobject *dev,
 					  struct kobj_attribute *attr,
-					  char *buf)
+					  const char *buf)
 {
 	struct synaptics_rmi4_data *rmi4_data = f54->rmi4_data;
 	struct device *cdev = &rmi4_data->input_dev->dev;
@@ -3740,7 +3713,7 @@ static ssize_t hw_synaptics_mmi_test_show(struct kobject *dev,
 
 static ssize_t hw_synaptics_debug_test_show(struct kobject *dev,
 					    struct kobj_attribute *attr,
-					    char *buf)
+					    const char *buf)
 {
 	struct synaptics_rmi4_data *rmi4_data = f54->rmi4_data;
 	struct device *cdev = &rmi4_data->input_dev->dev;
@@ -3753,7 +3726,7 @@ static ssize_t hw_synaptics_debug_test_show(struct kobject *dev,
 
 static ssize_t hw_synaptics_trigger_log_show(struct kobject *dev,
 					     struct kobj_attribute *attr,
-					     char *buf)
+					     const char *buf)
 {
 	TS_LOG_ERR("g_synaptics_trigger_log_flag show is %d\n",
 		   g_synaptics_trigger_log_flag);
@@ -3761,8 +3734,8 @@ static ssize_t hw_synaptics_trigger_log_show(struct kobject *dev,
 	return sprintf(buf, "%d\n", g_synaptics_trigger_log_flag);
 }
 
-static ssize_t hw_synaptics_trigger_log_store(struct kobject *dev,
-					      struct kobj_attribute *attr,
+static ssize_t hw_synaptics_trigger_log_store(struct device *dev,
+					      struct device_attribute *attr,
 					      const char *buf, size_t count)
 {
 	int retval;

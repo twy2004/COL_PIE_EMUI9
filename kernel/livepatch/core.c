@@ -48,7 +48,7 @@ struct patch_data {
  * under mutex protection (except in klp_ftrace_handler(), which uses RCU to
  * ensure it gets consistent data).
  */
-extern struct mutex klp_mutex;
+static DEFINE_MUTEX(klp_mutex);
 
 static LIST_HEAD(klp_patches);
 
@@ -326,22 +326,17 @@ static int klp_write_object_relocations(struct module *pmod,
 	return 0;
 }
 
-int __weak arch_klp_disable_func(struct klp_func *func)
+void __weak arch_klp_disable_func(struct klp_func *func)
 {
-	return 0;
 }
 
-static int klp_disable_func(struct klp_func *func)
+static void klp_disable_func(struct klp_func *func)
 {
-	int ret;
 	WARN_ON(func->state != KLP_ENABLED);
 	WARN_ON(!func->old_addr);
 
-	ret = arch_klp_disable_func(func);
-	if (!ret) {
-        	func->state = KLP_DISABLED;
-	}
-	return ret;
+	arch_klp_disable_func(func);
+	func->state = KLP_DISABLED;
 }
 #define KLP_PATCH_STATE_IMONITOR_ID     (940000002)
 #define UPLOADTYPE_INIT_FAIL    (1)
@@ -385,11 +380,9 @@ static int klp_enable_func(struct klp_func *func)
 		return -EINVAL;
 
 	ret = arch_klp_enable_func(func);
-	if (!ret) {
-		func->state = KLP_ENABLED;
-	}
+	func->state = KLP_ENABLED;
 
-	return ret;
+	return 0;
 }
 
 static inline int klp_unload_hook(struct klp_object *obj)
@@ -402,19 +395,15 @@ static inline int klp_unload_hook(struct klp_object *obj)
 	return 0;
 }
 
-static int klp_disable_object(struct klp_object *obj)
+static void klp_disable_object(struct klp_object *obj)
 {
 	struct klp_func *func;
-	int ret = 0;
-	for (func = obj->funcs; func->old_name; func++) {
-		if (func->state == KLP_ENABLED) {
-			ret += klp_disable_func(func);
-		}
-	}
-	if (!ret) {
-		obj->state = KLP_DISABLED;
-	}
-	return ret;
+
+	for (func = obj->funcs; func->old_name; func++)
+		if (func->state == KLP_ENABLED)
+			klp_disable_func(func);
+
+	obj->state = KLP_DISABLED;
 }
 
 static inline int klp_load_hook(struct klp_object *obj)
@@ -465,21 +454,18 @@ void __weak arch_klp_code_modify_post_process(void)
  */
 int disable_patch(struct klp_patch *patch)
 {
-	int ret = 0;
 	struct klp_object *obj;
 
 	pr_notice("disabling patch '%s'\n", patch->mod->name);
 
 	for (obj = patch->objs; obj->funcs; obj++) {
-		if (obj->state == KLP_ENABLED) {
-			ret += klp_disable_object(obj);
-		}
+		if (obj->state == KLP_ENABLED)
+			klp_disable_object(obj);
 	}
-	if (!ret) {
-		patch->state = KLP_DISABLED;
-	}
+
+	patch->state = KLP_DISABLED;
 	module_put(patch->mod);
-	return ret;
+	return 0;
 }
 
 int klp_try_disable_patch(void *data)
@@ -488,9 +474,9 @@ int klp_try_disable_patch(void *data)
 	int ret = 0;
 
 	ret = klp_check_calltrace(patch, 0);
-	if (ret) {
+	if (ret)
 		return ret;
-	}
+
 	ret = disable_patch(patch);
 	return ret;
 }

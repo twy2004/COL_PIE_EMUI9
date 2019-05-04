@@ -12,6 +12,7 @@ config BQ25970
 	  This architecture and the integrated FETs are optimized to enable
 	  a 50% duty cycle.
 
+<<<<<<< HEAD
 config LTC7820
 	bool "ltc7820"
 	default n
@@ -21,3 +22,5 @@ config LTC7820
 	  and charge pump controller.
 	  This device achieves a 2:1 step-down ratio form an input voltage as
 	  high as 72v.
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

@@ -60,7 +60,8 @@ static int do_alg_tests(void)
 	return 0;
 }
 
-static long tcrypt_base_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+
+static long tcrypt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
 
@@ -90,6 +91,7 @@ static long tcrypt_base_ioctl(struct file *file, unsigned int cmd, unsigned long
 	return ret;
 }
 
+<<<<<<< HEAD
 static long tcrypt_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	return tcrypt_base_ioctl(file, cmd, arg);
@@ -99,6 +101,8 @@ static long tcrypt_compat_ioctl(struct file *file, unsigned int cmd, unsigned lo
 {
 	return tcrypt_base_ioctl(file, cmd, (unsigned long)compat_ptr(arg));
 }
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static int tcrypt_open(struct inode *inode, struct file *file)
 {
@@ -107,12 +111,18 @@ static int tcrypt_open(struct inode *inode, struct file *file)
 
 /* fops define */
 static const struct file_operations tcrypt_fops = {
+<<<<<<< HEAD
 	.owner	 = THIS_MODULE,
 	.unlocked_ioctl = tcrypt_ioctl,
 	.open = tcrypt_open,
 #ifdef CONFIG_COMPAT
 	.compat_ioctl   = tcrypt_compat_ioctl,
 #endif
+=======
+    .owner	 = THIS_MODULE,
+    .unlocked_ioctl = tcrypt_ioctl,
+    .open = tcrypt_open,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 /* miscdev define */

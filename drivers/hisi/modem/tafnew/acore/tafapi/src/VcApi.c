@@ -83,12 +83,6 @@ VOS_UINT32  APP_VC_SetVoiceVolume(
         return VOS_ERR;
     }
 
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
-
     pstMsg->clientId                    = ClientId;
     pstMsg->opId                        = OpId;
     pstMsg->enMsgName                   = APP_VC_MSG_REQ_SET_VOLUME;
@@ -129,12 +123,6 @@ VOS_UINT32  APP_VC_SetVoiceMode(
         AT_ERR_LOG("APP_VC_SetVoiceMode: ALLOC MSG FAIL.");
         return VOS_ERR;
     }
-
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
 
     pstMsg->clientId                    = ClientId;
     pstMsg->opId                        = OpId;
@@ -177,12 +165,6 @@ VOS_UINT32 APP_VC_SetVoicePort(
         return VOS_ERR;
     }
 
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
-
     pstMsg->clientId                    = ClientId;
     pstMsg->opId                        = OpId;
     pstMsg->enMsgName                   = APP_VC_MSG_REQ_SET_PORT;
@@ -222,12 +204,6 @@ VOS_UINT32 APP_VC_GetVoiceMode(
         return VOS_ERR;
     }
 
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
-
     pstMsg->clientId                    = ClientId;
     pstMsg->opId                        = OpId;
     pstMsg->enMsgName                   = APP_VC_MSG_REQ_QRY_MODE;
@@ -266,12 +242,6 @@ VOS_UINT32 APP_VC_GetVoicePort(
         AT_ERR_LOG("APP_VC_GetVoicePort: ALLOC MSG FAIL.");
         return VOS_ERR;
     }
-
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
 
     /* 组装消息 */
     pstMsg->clientId                    = ClientId;
@@ -364,12 +334,6 @@ VOS_UINT32  APP_VC_GetVoiceVolume(
         AT_ERR_LOG("APP_VC_GetVoiceVolume: ALLOC MSG FAIL.");
         return VOS_ERR;
     }
-
-    /* 初始化消息 */
-    TAF_MEM_SET_S((VOS_CHAR *)pstMsg + VOS_MSG_HEAD_LENGTH,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH),
-               0x00,
-               (VOS_SIZE_T)(sizeof(APP_VC_REQ_MSG_STRU) - VOS_MSG_HEAD_LENGTH));
 
     pstMsg->clientId                    = ClientId;
     pstMsg->opId                        = OpId;

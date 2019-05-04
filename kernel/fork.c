@@ -197,9 +197,6 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
 			continue;
 		this_cpu_write(cached_stacks[i], NULL);
 
-		/* Clear stale pointers from reused stack. */
-		memset(s->addr, 0, THREAD_SIZE);
-
 		tsk->stack_vm_area = s;
 		local_irq_enable();
 		return s->addr;
@@ -637,11 +634,7 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		if (!tmp)
 			goto fail_nomem;
 		*tmp = *mpnt;
-#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
-		INIT_VMA(tmp);
-#else
 		INIT_LIST_HEAD(&tmp->anon_vma_chain);
-#endif
 		retval = vma_dup_policy(mpnt, tmp);
 		if (retval)
 			goto fail_nomem_policy;
@@ -807,9 +800,6 @@ static struct mm_struct *mm_init(struct mm_struct *mm, struct task_struct *p,
 	mm->mmap = NULL;
 	mm->mm_rb = RB_ROOT;
 	mm->vmacache_seqnum = 0;
-#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
-	rwlock_init(&mm->mm_rb_lock);
-#endif
 	atomic_set(&mm->mm_users, 1);
 	atomic_set(&mm->mm_count, 1);
 	init_rwsem(&mm->mmap_sem);
@@ -1602,6 +1592,7 @@ static __latent_entropy struct task_struct *copy_process(
 
 	retval = hkip_check_xid_root();
 	if (retval)
+<<<<<<< HEAD
 		goto bad_fork_free;
 	/*
 	 * This _must_ happen before we call free_task(), i.e. before we jump
@@ -1614,6 +1605,9 @@ static __latent_entropy struct task_struct *copy_process(
 	 * Clear TID on mm_release()?
 	 */
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
+=======
+		goto fork_out;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	ftrace_graph_init_task(p);
 

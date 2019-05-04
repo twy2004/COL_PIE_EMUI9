@@ -166,11 +166,17 @@ static unsigned int hw_usb_get_usb_speed(void)
 static ssize_t hw_usb_speed_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
+<<<<<<< HEAD
 	int len;
 
 	switch (hw_usb_get_usb_speed()) {
 	case USB_SPEED_UNKNOWN:
 		len = scnprintf(buf, PAGE_SIZE, "%s", "unknown");
+=======
+	switch(hw_usb_get_usb_speed()) {
+		case USB_SPEED_UNKNOWN:
+			return scnprintf(buf, PAGE_SIZE, "%s", "unknown");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		break;
 
 	/* fall through: low speed also defined full speed */
@@ -225,11 +231,17 @@ static unsigned int usb_host_get_abnormal_event(void)
 static ssize_t hw_usb_host_abnormal_event_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
+<<<<<<< HEAD
 	int len;
 
 	switch (usb_host_get_abnormal_event()) {
 	case USB_HOST_EVENT_NORMAL:
 		len = scnprintf(buf, PAGE_SIZE, "%s", "normal");
+=======
+	switch(usb_host_get_abnormal_event()) {
+		case USB_HOST_EVENT_NORMAL:
+			return scnprintf(buf, PAGE_SIZE, "%s", "normal");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		break;
 
 	case USB_HOST_EVENT_POWER_INSUFFICIENT:

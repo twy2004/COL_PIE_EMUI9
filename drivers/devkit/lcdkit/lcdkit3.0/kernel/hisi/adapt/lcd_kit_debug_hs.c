@@ -539,7 +539,7 @@ static int dbg_mipi_dsi_bit_clk(int val)
 		LCD_KIT_ERR("pinfo is null\n");
 		return LCD_KIT_FAIL;
 	}
-	pinfo->mipi.dsi_bit_clk_upt = val;
+	pinfo->mipi.dsi_bit_clk = val;
 	LCD_KIT_INFO("pinfo->mipi.dsi_bit_clk = %d\n", pinfo->mipi.dsi_bit_clk);
 	return LCD_KIT_OK;
 }
@@ -926,6 +926,7 @@ static int dbg_set_voltage(void)
 	return ret;
 }
 
+<<<<<<< HEAD
 static int dbg_dsi_cmds_rx(uint8_t* out, struct lcd_kit_dsi_panel_cmds* cmds)
 {
 	struct hisi_fb_data_type* hisifd = hisifd_list[PRIMARY_PANEL_IDX];
@@ -974,6 +975,8 @@ static void dbg_esd_check_func(void)
 	}
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 struct lcd_kit_dbg_ops hisi_dbg_ops = {
 	.fps_updt_support = dbg_fps_updt_support,
 	.quickly_sleep_out_support = dbg_quickly_sleep_out_support,
@@ -1026,9 +1029,12 @@ struct lcd_kit_dbg_ops hisi_dbg_ops = {
 	.barcode_2d_cmd = dbg_barcode_2d_cmd,
 	.brightness_color_cmd = dbg_brightness_color_cmd,
 	.set_voltage = dbg_set_voltage,
+<<<<<<< HEAD
 	.dbg_mipi_rx = dbg_dsi_cmds_rx,
 	.panel_power_on = dbg_panel_power_on,
 	.esd_check_func = dbg_esd_check_func,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 int lcd_kit_dbg_init(void)
 {

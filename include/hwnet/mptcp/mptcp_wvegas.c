@@ -54,10 +54,9 @@ struct wvegas {
 	u32 queue_delay; /* queue delay*/
 };
 
-
 static inline u64 mptcp_wvegas_scale(u32 val, int scale)
 {
-	return (u64) val << scale;
+	return (u64)val << scale;
 }
 
 static void wvegas_enable(const struct sock *sk)
@@ -99,16 +98,15 @@ static inline u64 mptcp_wvegas_rate(u32 cwnd, u32 rtt_us)
 	return div_u64(mptcp_wvegas_scale(cwnd, MPTCP_WVEGAS_SCALE), rtt_us);
 }
 
-static void mptcp_wvegas_pkts_acked(struct sock *sk,
-				    const struct ack_sample *sample)
+static void mptcp_wvegas_pkts_acked(struct sock *sk, u32 cnt, s32 rtt_us)
 {
 	struct wvegas *wvegas = inet_csk_ca(sk);
 	u32 vrtt;
 
-	if (sample->rtt_us < 0)
+	if (rtt_us < 0)
 		return;
 
-	vrtt = sample->rtt_us + 1;
+	vrtt = rtt_us + 1;
 
 	if (vrtt < wvegas->base_rtt)
 		wvegas->base_rtt = vrtt;
@@ -149,7 +147,6 @@ static u64 mptcp_wvegas_weight(const struct mptcp_cb *mpcb, const struct sock *s
 	if (!mpcb)
 		return wvegas->weight;
 
-
 	mptcp_for_each_sk(mpcb, sub_sk) {
 		struct wvegas *sub_wvegas = inet_csk_ca(sub_sk);
 
@@ -189,7 +186,7 @@ static void mptcp_wvegas_cong_avoid(struct sock *sk, u32 ack, u32 acked)
 			diff = div_u64((u64)tp->snd_cwnd * (rtt - wvegas->base_rtt), rtt);
 
 			if (diff > gamma && tcp_in_slow_start(tp)) {
-				tp->snd_cwnd = min(tp->snd_cwnd, (u32)target_cwnd+1);
+				tp->snd_cwnd = min(tp->snd_cwnd, (u32)target_cwnd + 1);
 				tp->snd_ssthresh = mptcp_wvegas_ssthresh(tp);
 
 			} else if (tcp_in_slow_start(tp)) {
@@ -234,7 +231,6 @@ static void mptcp_wvegas_cong_avoid(struct sock *sk, u32 ack, u32 acked)
 	else if (tcp_in_slow_start(tp))
 		tcp_slow_start(tp, acked);
 }
-
 
 static struct tcp_congestion_ops mptcp_wvegas __read_mostly = {
 	.init		= mptcp_wvegas_init,

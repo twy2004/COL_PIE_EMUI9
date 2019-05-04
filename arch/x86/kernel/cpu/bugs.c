@@ -342,6 +342,7 @@ static enum spectre_v2_mitigation_cmd __init spectre_v2_parse_cmdline(void)
 >>>>>>> 432e99b... x86/speculation/l1tf: Add sysfs reporting for l1tf
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 static bool stibp_needed(void)
@@ -767,3 +768,5 @@ ssize_t cpu_show_l1tf(struct device *dev, struct device_attribute *attr, char *b
 }
 #endif
 >>>>>>> 24e4dd9... x86/bugs: Expose /sys/../spec_store_bypass
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

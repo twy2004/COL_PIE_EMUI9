@@ -106,10 +106,10 @@ void NM_CTRL_SendMsg(void* pDataBuffer, unsigned int len)
     }
 
     /* 屏蔽告警 */
-    memset(pstListEntry, 0, sizeof(NM_CTRL_CDEV_DATA_STRU) + len); /* unsafe_function_ignore: memset */
+    memset(pstListEntry, 0, sizeof(NM_CTRL_CDEV_DATA_STRU) + len); /* unsafe function ignore: memset */
 
     pstListEntry->ulLen = len;
-    memcpy(pstListEntry->aucData, pDataBuffer, len); /* unsafe_function_ignore: memcpy */
+    memcpy(pstListEntry->aucData, pDataBuffer, len); /* unsafe function ignore: memcpy */
 
 
     /* 获取信号量 */
@@ -356,7 +356,7 @@ int __init NM_CTRL_Init(VOS_VOID)
     NM_CTRL_LOGI("Enter.");
 
     /* 屏蔽告警 */
-    memset(&g_stNmCtrlCtx, 0, sizeof(NM_CTRL_CTX_STRU)); /* unsafe_function_ignore: memset */
+    memset(&g_stNmCtrlCtx, 0, sizeof(NM_CTRL_CTX_STRU)); /* unsafe function ignore: memset */
 
     ret = alloc_chrdev_region(&devno, 0, 1, NM_CTRL_DEVICE_NAME);
 
@@ -431,7 +431,7 @@ STATIC ssize_t nm_bind_pid_read(struct file *file, char __user *user_buf,
 		return 0;
 	}
 
-	memset(buf, 0, sizeof(buf)); /* unsafe_function_ignore: memset */
+	memset(buf, 0, sizeof(buf));
 	scnprintf(buf, sizeof(buf), "%u", nm_bind_pid);
 
 	bytes_read = simple_read_from_buffer(user_buf, count, ppos, buf, strlen(buf));
@@ -465,7 +465,7 @@ STATIC ssize_t nm_bind_pid_write(struct file *file, const char __user *user_buf,
 		return 0;
 	}
 
-	memset(buf, 0, sizeof(buf)); /* unsafe_function_ignore: memset */
+	memset(buf, 0, sizeof(buf));
 	buf_size = count < (sizeof(buf) - 1) ? count : (sizeof(buf) - 1);
 
 	bytes_written = simple_write_to_buffer(buf, buf_size, ppos, user_buf, count);

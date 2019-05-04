@@ -1,4 +1,5 @@
 /*
+<<<<<<< HEAD
  * ina231.c
  *
  * ina231 driver
@@ -17,27 +18,28 @@
  */
 
 #include <linux/init.h>
+=======
+ * Driver for ina230 or ina231 power monitor chips
+ *
+ * Copyright (c) 2013- Hisilicon Technologies CO., Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#include <linux/kernel.h>
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/delay.h>
-#include <linux/jiffies.h>
-#include <linux/platform_device.h>
+#include <linux/init.h>
+#include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/i2c.h>
-#include <linux/io.h>
-#include <linux/gpio.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
-#include <linux/of_address.h>
-#include <linux/of_gpio.h>
-#include <linux/interrupt.h>
-#include <linux/irq.h>
-#include <linux/notifier.h>
-#include <linux/mutex.h>
-#include <linux/raid/pq.h>
-
+#include <linux/delay.h>
+#include <linux/regulator/consumer.h>
 #include <huawei_platform/log/hw_log.h>
 #include <huawei_platform/power/direct_charger.h>
+<<<<<<< HEAD
 #include <huawei_platform/power/battery_voltage.h>
 #ifdef CONFIG_WIRELESS_CHARGER
 #include <huawei_platform/power/wireless_direct_charger.h>
@@ -50,10 +52,34 @@
 #ifdef HWLOG_TAG
 #undef HWLOG_TAG
 #endif
+=======
+
+struct ina231_data *g_idata;
+/* common register definitions */
+#define INA231_CONFIG			0x00
+#define INA231_SHUNT_VOLTAGE	0x01 /* readonly */
+#define INA231_BUS_VOLTAGE	0x02 /* readonly */
+#define INA231_POWER			0x03 /* readonly */
+#define INA231_CURRENT			0x04 /* readonly */
+#define INA231_CALIBRATION		0x05
+#define INA231_MASK_ENABLE	0x06
+#define INA231_ALERT_LIMIT		0x07
+
+/* register count */
+#define INA231_MAX_REGS		8
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define HWLOG_TAG ina231_for_charge
 HWLOG_REGIST();
+struct ina231_config {
+	u16 config_sleep_in;
+	u16 config_reset;
+	u16 config_work;
+	u16 calibrate_content;
+	u16 mask_enable_content;
+	u16 alert_limit_content;
 
+<<<<<<< HEAD
 struct ina231_device_info *g_ina231_dev;
 
 static int ina231_init_finish_flag = INA231_NOT_INIT;
@@ -98,12 +124,14 @@ static struct ina231_config_data ina231_config = {
 
 	/* ALERT_LIMIT [0x0] */
 	.alert_limit_content = 0x0,
+=======
+	int bus_voltage_lsb;	/* uV */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
-	.shunt_voltage_lsb = 2500, /* 2500 nV/bit */
-	.bus_voltage_lsb = 1250, /* 1250 uV/bit */
-	.current_lsb = 500, /* 500 uA/bit */
+	int current_lsb;	/* uA */
 };
 
+<<<<<<< HEAD
 #ifdef CONFIG_HUAWEI_POWER_DEBUG
 static ssize_t ina231_dbg_show(void *dev_data, char *buf, size_t size)
 {
@@ -144,9 +172,31 @@ static ssize_t ina231_dbg_store(void *dev_data, const char *buf, size_t size)
 	return size;
 }
 #endif /* CONFIG_HUAWEI_POWER_DEBUG */
+=======
+struct ina231_data {
+	struct device *dev;
+	struct i2c_client *client;
+	const struct ina231_config *config;
+	struct regulator *vs_regu;
+	int vs_on;
+	int need_to_power_vs;
+};
 
-static int ina231_get_shunt_voltage_mv(int *val)
+static  struct ina231_config ina231_config = {
+	.config_sleep_in = 0x4124, /*config ina231 to powerdown mode, number of averages:1, Vbus conversion time is 1.1ms, Vsh conversion time is 1.1ms*/
+	.config_reset = 0x8000, /*reset the whole chip*/
+	.config_work = 0x4377, /*config ina231 to shunt and bus continous mode, nuber of averages:4, Vbus conversion time is 2.116ms, Vsh conversion time is 4.156ms*/
+	.calibrate_content = 0x1000, /*current_LSB: 0.5ma, */
+	.mask_enable_content = 0x0,
+	.alert_limit_content = 0x0,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+
+	.bus_voltage_lsb = 1250, /* 1250uV/bit */
+	.current_lsb = 500, /* 500uA/bit */
+};
+static int enable_vs_supply(void)
 {
+<<<<<<< HEAD
 	struct ina231_device_info *di = g_ina231_dev;
 	struct i2c_client *client = NULL;
 	s16 reg_value = 0;
@@ -171,16 +221,27 @@ static int ina231_get_shunt_voltage_mv(int *val)
 	*val = (int)(reg_value * lsb_value) / INA231_NV_TO_MV;
 
 	hwlog_info("shunt_voltage=%d, VOLTAGE_REG=0x%x\n", *val, reg_value);
+=======
+	struct ina231_data *idata = g_idata;
+	int ret;
+	if (idata->vs_regu)
+	{
+		ret = regulator_enable(idata->vs_regu);
+		if (ret)
+		{
+			hwlog_err("[%s]fail!\n", __func__);
+			return -1;
+		}
+	}
+	hwlog_info("[%s]succ!\n", __func__);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return 0;
 }
 
-static int ina231_get_bus_voltage_mv(int *val)
+static int ina231_init(void)
 {
-	struct ina231_device_info *di = g_ina231_dev;
-	struct i2c_client *client = NULL;
-	s16 reg_value = 0;
-	int lsb_value = 0;
 	int ret = 0;
+<<<<<<< HEAD
 
 	if (di == NULL || di->client == NULL) {
 		hwlog_err("di or client is null\n");
@@ -206,11 +267,12 @@ static int ina231_get_bus_voltage_mv(int *val)
 static int ina231_get_current_ma(int *val)
 {
 	struct ina231_device_info *di = g_ina231_dev;
+=======
+	struct ina231_data *idata = g_idata;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	struct i2c_client *client = NULL;
-	s16 reg_value = 0;
-	int lsb_value = 0;
-	int ret = 0;
 
+<<<<<<< HEAD
 	if (di == NULL || di->client == NULL) {
 		hwlog_err("di or client is null\n");
 		return -1;
@@ -240,31 +302,56 @@ static int ina231_get_vbat_mv(void)
 static int ina231_get_ibat_ma(int *val)
 {
 	*val =  -hisi_battery_current();
-
-	return 0;
-}
-
-static int ina231_get_device_temp(int *temp)
-{
-	*temp = INA231_DEVICE_DEFAULT_TEMP;
-
-	return 0;
-}
-
-static int ina231_dump_register(void)
-{
-	struct ina231_device_info *di = g_ina231_dev;
-	struct i2c_client *client = NULL;
-	int i = 0;
-	int shunt_volt = 0;
-	int bus_volt = 0;
-	int cur = 0;
-
-	if (di == NULL || di->client == NULL) {
-		hwlog_err("di or client is null\n");
+=======
+	if (!idata->vs_on)
+	{
+		hwlog_err("[%s]vs_on is 0, fail!\n", __func__);
 		return -1;
 	}
+	client = idata->client;
+	ret = i2c_smbus_write_word_swapped(client, INA231_CONFIG, idata->config->config_work);
+	ret |= i2c_smbus_write_word_swapped(client, INA231_CALIBRATION, idata->config->calibrate_content);
+	ret |= i2c_smbus_write_word_swapped(client, INA231_MASK_ENABLE, idata->config->mask_enable_content);
+	ret |= i2c_smbus_write_word_swapped(client, INA231_ALERT_LIMIT, idata->config->alert_limit_content);
+	if (ret)
+	{
+		hwlog_err("[%s]fail!\n", __func__);
+		return -1;
+	}
+	msleep(100);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
+	return 0;
+}
+
+static int ina231_exit(void)
+{
+	return 0;
+}
+static int ina231_get_bus_voltage_mv(void)
+{
+	s16 reg;
+	int ret = 0;
+	int bus_voltage_lsb; /* 0mV/bit */
+	struct ina231_data *idata = g_idata;
+	struct i2c_client *client = NULL;
+
+<<<<<<< HEAD
+	if (di == NULL || di->client == NULL) {
+		hwlog_err("di or client is null\n");
+=======
+	client = idata->client;
+	bus_voltage_lsb = idata->config->bus_voltage_lsb;
+	ret = i2c_smbus_read_word_swapped(client, INA231_BUS_VOLTAGE);
+	if (ret < 0)
+	{
+		hwlog_err("[%s]fail, ret = 0x%x!\n", __func__, ret);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+		return -1;
+	}
+	reg = (s16) ret;
+
+<<<<<<< HEAD
 	client = di->client;
 
 	for (i = 0; i < INA231_MAX_REGS; ++i) {
@@ -280,13 +367,16 @@ static int ina231_dump_register(void)
 		shunt_volt, bus_volt, cur);
 
 	return 0;
+=======
+	return (int) (reg* bus_voltage_lsb)/1000;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
-static int ina231_device_reset(void)
+static int ina231_get_current_ma(int* val)
 {
-	struct ina231_device_info *di = g_ina231_dev;
-	struct i2c_client *client = NULL;
+	s16 reg;
 	int ret = 0;
+<<<<<<< HEAD
 
 	if (di == NULL || di->client == NULL) {
 		hwlog_err("di or client is null\n");
@@ -339,15 +429,26 @@ static int ina231_reg_init(void)
 		INA231_ALERT_LIMIT_REG, di->config->alert_limit_content);
 	if (ret) {
 		hwlog_err("reg_init fail\n");
+=======
+	int current_lsb; /* 0mV/bit */
+	struct ina231_data *idata = g_idata;
+	struct i2c_client *client = NULL;
+
+	client = idata->client;
+	current_lsb = idata->config->current_lsb;
+	ret= i2c_smbus_read_word_swapped(client, INA231_CURRENT);
+	if (ret < 0)
+	{
+		hwlog_err("[%s]fail, reg = 0x%x!\n", __func__, ret);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -1;
 	}
 
-	msleep(100);
-
-	ina231_init_finish_flag = INA231_INIT_FINISH;
-
+	reg = (s16) ret;
+	*val = (int) (reg* current_lsb)/1000;
 	return 0;
 }
+<<<<<<< HEAD
 
 static int ina231_batinfo_exit(void)
 {
@@ -400,27 +501,34 @@ static irqreturn_t ina231_interrupt(int irq, void *_di)
 	schedule_work(&di->irq_work);
 
 	return IRQ_HANDLED;
+=======
+static int ina231_get_bat_temp(void)
+{
+	return 25;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
-static struct batinfo_ops ina231_batinfo_ops = {
-	.init = ina231_reg_init,
-	.exit = ina231_batinfo_exit,
-	.get_bat_btb_voltage = ina231_get_vbat_mv,
-	.get_bat_package_voltage = ina231_get_vbat_mv,
-	.get_vbus_voltage = ina231_get_bus_voltage_mv,
-	.get_bat_current = ina231_get_ibat_ma,
-	.get_ls_ibus = ina231_get_current_ma,
-	.get_ls_temp = ina231_get_device_temp,
+struct batinfo_ops ina231_ops = {
+	.init = ina231_init,
+	.exit = ina231_exit,
+	.get_bat_btb_voltage = ina231_get_bus_voltage_mv,
+	.get_bat_package_voltage = ina231_get_bus_voltage_mv,
+	.get_bat_current = ina231_get_current_ma,
+	.get_bat_temperature = ina231_get_bat_temp,
 };
 
 static int ina231_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
-	int ret = 0;
-	struct ina231_device_info *di = NULL;
+	struct i2c_adapter *adapter = client->adapter;
+	struct ina231_data *idata;
 	struct device_node *np = NULL;
+	int ret = -ENODEV;
+	int ibat = 0;
+	int i;
 	unsigned int calibrate_content;
 
+<<<<<<< HEAD
 	hwlog_info("probe begin\n");
 
 	if (client == NULL || id == NULL) {
@@ -431,23 +539,31 @@ static int ina231_probe(struct i2c_client *client,
 	if (!i2c_check_functionality(client->adapter,
 		I2C_FUNC_SMBUS_WORD_DATA)) {
 		hwlog_err("i2c_check failed\n");
+=======
+	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_WORD_DATA))
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return -ENODEV;
-	}
 
+<<<<<<< HEAD
 	di = devm_kzalloc(&client->dev, sizeof(*di), GFP_KERNEL);
 	if (di == NULL)
 		return -ENOMEM;
 
 	g_ina231_dev = di;
+=======
+	idata = devm_kzalloc(&client->dev, sizeof(*idata), GFP_KERNEL);
+	if (!idata)
+		return -ENOMEM;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
-	di->config = &ina231_config;
-	di->dev = &client->dev;
-	np = di->dev->of_node;
-	di->client = client;
-	i2c_set_clientdata(client, di);
-	INIT_WORK(&di->irq_work, ina231_interrupt_work);
+	g_idata = idata;
+	idata->config = &ina231_config;
+	idata->client = client;
+	idata->dev = &client->dev;
 
+	np = idata->dev->of_node;
 	ret = of_property_read_u32(np, "calibrate_content", &calibrate_content);
+<<<<<<< HEAD
 	if (ret == 0) {
 		ina231_config.calibrate_content = (u16)calibrate_content;
 		hwlog_info("calibrate_content=0x%x (use dts value)\n",
@@ -497,8 +613,49 @@ static int ina231_probe(struct i2c_client *client,
 	if (ret) {
 		hwlog_err("ina231 batinfo ops register fail\n");
 		goto ina231_fail_2;
+=======
+	if (ret)
+	{
+		hwlog_err("get calibrate_content failed\n");
+		goto fail0;
 	}
+	ina231_config.calibrate_content = (u16)calibrate_content;
+	hwlog_info("calibrate_content = 0x%x\n", ina231_config.calibrate_content);
+	ret = of_property_read_u32(np, "need_to_power_vs", &(idata->need_to_power_vs));
+	if (ret)
+	{
+		hwlog_err("get need_to_power_vs failed\n");
+		goto fail0;
+	}
+	hwlog_info("need_to_power_vs = %d\n", idata->need_to_power_vs);
+	if (idata->need_to_power_vs)
+	{
+		idata->vs_regu = devm_regulator_get(&client->dev, "vs");
+		if (IS_ERR(idata->vs_regu))
+		{
+			hwlog_err("[%s]can not get vs-supply!\n", __func__);
+			ret = -ENODEV;
+			goto fail0;
+		}
+		if (enable_vs_supply())
+		{
+			ret = -ENODEV;
+			goto fail0;
+		}
+	}
+	idata->vs_on = 1;
 
+	/* communication check and reset device*/
+	ret = i2c_smbus_write_word_swapped(client, INA231_CONFIG, idata->config->config_reset);
+	if (ret < 0)
+	{
+		hwlog_err("%s reset failed\n", client->name);
+		goto fail0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+	}
+	mdelay(20);
+
+<<<<<<< HEAD
 	ret = batinfo_sc_ops_register(&ina231_batinfo_ops);
 	if (ret) {
 		hwlog_err("ina231 batinfo ops register fail\n");
@@ -533,25 +690,41 @@ static int ina231_probe(struct i2c_client *client,
 		hwlog_err("ina231 reg init fail\n");
 		di->chip_already_init = 0;
 		goto ina231_fail_2;
+=======
+	/* goto sleep */
+	i2c_smbus_write_word_swapped(client, INA231_CONFIG, idata->config->config_sleep_in);
+
+	i2c_set_clientdata(client, idata);
+	ret = batinfo_lvc_ops_register(&ina231_ops);
+	if (ret)
+	{
+		hwlog_err("register ina231 ops failed!\n");
+		goto fail0;
 	}
 
-	ina231_dump_register();
-
-	hwlog_info("probe end\n");
+	ina231_init();
+	for (i = 0; i < 8; ++i)
+	{
+		hwlog_info("reg[%d] = 0x%x\n", i, i2c_smbus_read_word_swapped(client, i));
+	}
+	ret = ina231_get_current_ma(&ibat);
+	if (ret)
+	{
+		hwlog_err("get current failed!\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
+	}
+	hwlog_info("bat_vol = %d, bat_cur = %d\n", ina231_get_bus_voltage_mv(), ibat);
+	hwlog_info("name:%s(address:0x%x) probe successfully\n", client->name, client->addr);
 	return 0;
-
-ina231_fail_2:
-	free_irq(di->irq_int, di);
-ina231_fail_1:
-	gpio_free(di->gpio_int);
-ina231_fail_0:
-	g_ina231_dev = NULL;
-	devm_kfree(&client->dev, di);
+fail0:
+	kfree(idata);
+	idata = NULL;
 	return ret;
 }
 
 static int ina231_remove(struct i2c_client *client)
 {
+<<<<<<< HEAD
 	struct ina231_device_info *di = i2c_get_clientdata(client);
 
 	hwlog_info("remove begin\n");
@@ -573,6 +746,18 @@ static void ina231_shutdown(struct i2c_client *client)
 
 MODULE_DEVICE_TABLE(i2c, ina231);
 static const struct of_device_id ina231_of_match[] = {
+=======
+	return 0;
+}
+
+static const struct i2c_device_id ina231_id[] = {
+	{"ina231_for_charge", 0},
+	{ },
+};
+MODULE_DEVICE_TABLE(i2c, ina231_id);
+
+static struct of_device_id ina231_match_table[] = {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	{
 		.compatible = "huawei,ina231_for_charge",
 		.data = NULL,
@@ -580,41 +765,48 @@ static const struct of_device_id ina231_of_match[] = {
 	{},
 };
 
+<<<<<<< HEAD
 static const struct i2c_device_id ina231_i2c_id[] = {
 	{"ina231_for_charge", 0}, {}
 };
+=======
+MODULE_DEVICE_TABLE(of, ina231_of_match);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static struct i2c_driver ina231_driver = {
-	.probe = ina231_probe,
-	.remove = ina231_remove,
-	.shutdown = ina231_shutdown,
-	.id_table = ina231_i2c_id,
+	.probe		= ina231_probe,
+	.remove		= ina231_remove,
+	.shutdown = NULL,
 	.driver = {
-		.owner = THIS_MODULE,
 		.name = "huawei_ina231_for_charge",
-		.of_match_table = of_match_ptr(ina231_of_match),
+		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(ina231_match_table),
 	},
+	.id_table = ina231_id,
 };
 
-static int __init ina231_init(void)
+static int __init ina231_module_init(void)
 {
 	int ret = 0;
 
 	ret = i2c_add_driver(&ina231_driver);
 	if (ret)
+<<<<<<< HEAD
 		hwlog_err("i2c_add_driver error\n");
+=======
+		hwlog_err("Unable to register ina231 driver\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	return ret;
 }
 
-static void __exit ina231_exit(void)
-{
-	i2c_del_driver(&ina231_driver);
-}
+module_init(ina231_module_init);
 
-module_init(ina231_init);
-module_exit(ina231_exit);
-
+<<<<<<< HEAD
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("ina231 module driver");
 MODULE_AUTHOR("Huawei Technologies Co., Ltd.");
+=======
+MODULE_DESCRIPTION("ina231 driver");
+MODULE_LICENSE("GPL");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

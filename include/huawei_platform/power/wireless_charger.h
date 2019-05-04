@@ -454,11 +454,16 @@ struct wireless_charge_device_info {
 	unsigned long curr_power_time_out;
 	enum tx_power_state tx_pg_state;
 	struct completion wc_af_completion;
+<<<<<<< HEAD
 	int antifake_key_index;
 	int pwroff_reset_flag;
 	int hvc_need_5vbst;
 	int bst5v_ignore_vbus_only;
 	int extra_pwr_good_flag;
+=======
+	u8 antifake_key_index;
+	int pwroff_reset_flag;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 enum wireless_charge_sysfs_type {
 	WIRELESS_CHARGE_SYSFS_CHIP_ID = 0,

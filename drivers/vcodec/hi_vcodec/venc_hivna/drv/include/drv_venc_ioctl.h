@@ -40,6 +40,7 @@ typedef struct
 
 typedef struct
 {
+<<<<<<< HEAD
 	HI_U32 recLumaSize;
 	HI_U32 recChromaSize;
 	HI_U32 recLumaHeadSize;
@@ -59,6 +60,8 @@ typedef struct
 
 typedef struct
 {
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	CMD_TYPE cmd;
 
 	HI_BOOL bResetReg;
@@ -69,7 +72,6 @@ typedef struct
 	S_HEVC_AVC_REGS_TYPE_CFG all_reg;
 	VENC_CLK_TYPE clk_type;
 	VENC_MEM_INFO_S mem_info;
-	VENC_BUFFER_ALLOC_INFO venc_inter_buffer;
 }VENC_REG_INFO_S;
 
 #define CMD_VENC_START_ENCODE          _IOWR(IOC_TYPE_VENC, 0x32, VENC_REG_INFO_S)

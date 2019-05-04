@@ -21,6 +21,7 @@ config ARM_DSU_PMU
 	  system, control logic. The PMU allows counting various events related
 	  to DSU.
 
+<<<<<<< HEAD
 config HISI_KARMA_PMU
 	depends on PERF_EVENTS && ARM64
 	bool "HISI KARMA PMU framework"
@@ -35,6 +36,8 @@ config HISI_KARMA_PMU_DEBUG
 	help
 	  Say y if you want to use KARMA PMU debug function.
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 config XGENE_PMU
         depends on PERF_EVENTS && ARCH_XGENE
         bool "APM X-Gene SoC PMU"

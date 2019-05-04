@@ -29,6 +29,7 @@
  /*lint -e551 -e551*/
 #include "hisi_fb.h"
 #include "../mipi_lcd_utils.h"
+<<<<<<< HEAD
 #define DTS_COMP_SHARP_NT36870 "hisilicon,mipi_sharp_NT36870"
 static int g_lcd_fpga_flag;
 extern int tps65132_dbg_set_bias_for_hisi(int vpos, int vneg);
@@ -39,6 +40,11 @@ struct ts_kit_ops *ts_ops = NULL;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
+=======
+#include "lcdkit_ext.h"
+#define DTS_COMP_SHARP_NT36870 "hisilicon,mipi_sharp_NT36870"
+static int g_lcd_fpga_flag;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 //#define AS_EXT_LCD_ON_ASIC
 
 /*lint -save -e569, -e574, -e527, -e572*/
@@ -619,26 +625,6 @@ static char CMD_136[] = {
 	0xED,
 	0x2B,
 };
-static char CMD_F0[] = {
-	0xFF,
-	0xF0,
-};
-static char CMD_FB[] = {
-	0xFB,
-	0x01,
-};
-static char CMD_D7[] = {
-	0xD7,
-	0x04,
-};
-static char CMD_9C[] = {
-	0x9C,
-	0x00,
-};
-static char CMD_2D[] = {
-	0x2D,
-	0x10,
-};
 static char CMD_137[] = {
 	0xFF,
 	0x10,
@@ -1154,26 +1140,11 @@ static struct dsi_cmd_desc lcd_display_init_cmds_part3[] = {
 		sizeof(CMD_135), CMD_135},
 	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
 		sizeof(CMD_136), CMD_136},
-};
-
-static struct dsi_cmd_desc lcd_display_init_cmds_part4[] = {
-	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
-		sizeof(CMD_F0), CMD_F0},
-	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
-		sizeof(CMD_FB), CMD_FB},
-	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
-		 sizeof(CMD_D7), CMD_D7},
-	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
-		 sizeof(CMD_9C), CMD_9C},
-	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
-		 sizeof(CMD_2D), CMD_2D},
-};
-
-static struct dsi_cmd_desc lcd_display_init_cmds_part5[] = {
 	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
 		sizeof(CMD_137), CMD_137},
 	{DTYPE_DCS_WRITE1, 0,10, WAIT_TYPE_US,
 		sizeof(CMD_138), CMD_138},
+
 };
 
 static char display_off[] = {
@@ -1207,7 +1178,7 @@ static struct vcc_desc lcd_vcc_init_cmds[] = {
 	/* vcc set voltage */
 	{DTYPE_VCC_SET_VOLTAGE, VCC_LCDANALOG_NAME, &vcc_lcdanalog, 3100000, 3100000, WAIT_TYPE_MS, 0},
 	/* io set voltage */
-	{DTYPE_VCC_SET_VOLTAGE, VCC_LCDIO_NAME, &vcc_lcdio, 1850000, 1850000, WAIT_TYPE_MS, 0},
+	{DTYPE_VCC_SET_VOLTAGE, VCC_LCDIO_NAME, &vcc_lcdio, 1800000, 1800000, WAIT_TYPE_MS, 0},
 };
 
 static struct vcc_desc lcd_vcc_finit_cmds[] = {
@@ -1422,15 +1393,15 @@ static struct gpio_desc asic_lcd_gpio_lowpower_cmds[] = {
 	/* backlight enable */
 	{DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 5,
 		GPIO_LCD_BL_ENABLE_NAME, &gpio_lcd_bl_enable, 0},
-	/* reset */
-	{DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 20,
-		GPIO_LCD_RESET_NAME, &gpio_lcd_reset, 0},
 	/* AVEE_-5.5V */
 	{DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 20,
 		GPIO_LCD_N5V5_ENABLE_NAME, &gpio_lcd_n5v5_enable, 0},
 	/* AVDD_5.5V*/
 	{DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 20,
 		GPIO_LCD_P5V5_ENABLE_NAME, &gpio_lcd_p5v5_enable, 0},
+	/* reset */
+	{DTYPE_GPIO_OUTPUT, WAIT_TYPE_MS, 20,
+		GPIO_LCD_RESET_NAME, &gpio_lcd_reset, 0},
 
 	/* backlight enable input */
 	{DTYPE_GPIO_INPUT, WAIT_TYPE_US, 100,
@@ -1442,8 +1413,8 @@ static struct gpio_desc asic_lcd_gpio_lowpower_cmds[] = {
 	{DTYPE_GPIO_INPUT, WAIT_TYPE_MS, 5,
 		GPIO_LCD_P5V5_ENABLE_NAME, &gpio_lcd_p5v5_enable, 0},
 	/* reset input */
-	//{DTYPE_GPIO_INPUT, WAIT_TYPE_US, 100,
-		//GPIO_LCD_RESET_NAME, &gpio_lcd_reset, 0},
+	{DTYPE_GPIO_INPUT, WAIT_TYPE_US, 100,
+		GPIO_LCD_RESET_NAME, &gpio_lcd_reset, 0},
 };
 
 static struct gpio_desc asic_lcd_gpio_free_cmds[] = {
@@ -1547,10 +1518,6 @@ static int mipi_sharp_NT36870_panel_on(struct platform_device *pdev)
 
 	HISI_FB_INFO("fb%d, +.\n", hisifd->index);
 
-#ifdef CONFIG_TP_ERR_DEBUG
-	ts_ops = ts_kit_get_ops();
-#endif
-
 	pinfo = &(hisifd->panel_info);
 	mipi_dsi0_base = hisifd->mipi_dsi0_base;
 
@@ -1577,7 +1544,11 @@ static int mipi_sharp_NT36870_panel_on(struct platform_device *pdev)
 			gpio_cmds_tx(fpga_lcd_gpio_on_cmds, \
 				ARRAY_SIZE(fpga_lcd_gpio_on_cmds));
 		}
+<<<<<<< HEAD
 		tps65132_dbg_set_bias_for_hisi(5800000, 5800000);
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		pinfo->lcd_init_step = LCD_INIT_MIPI_LP_SEND_SEQUENCE;
 
 	} else if (pinfo->lcd_init_step == LCD_INIT_MIPI_LP_SEND_SEQUENCE) {
@@ -1612,19 +1583,8 @@ static int mipi_sharp_NT36870_panel_on(struct platform_device *pdev)
 
 		mipi_dsi_cmds_tx(lcd_display_init_cmds_part3, \
 			ARRAY_SIZE(lcd_display_init_cmds_part3), mipi_dsi0_base);
-		if (g_lcd_fpga_flag == 1) {
-			mipi_dsi_cmds_tx(lcd_display_init_cmds_part4, \
-				ARRAY_SIZE(lcd_display_init_cmds_part4), mipi_dsi0_base);
-		}
-		mipi_dsi_cmds_tx(lcd_display_init_cmds_part5, \
-			ARRAY_SIZE(lcd_display_init_cmds_part5), mipi_dsi0_base);
-
 	#ifdef CONFIG_TP_ERR_DEBUG
-		if(ts_ops) {
-			ts_ops->ts_power_notify(TS_RESUME_DEVICE, NO_SYNC);
-		} else {
-			HISI_FB_ERR("ts_ops is null,can't notify thp power_on\n");
-		}
+		lcdkit_notifier_call_chain(LCDKIT_TS_RESUME_DEVICE, NULL);
 	#endif
 
 		// check lcd power state
@@ -1646,9 +1606,7 @@ static int mipi_sharp_NT36870_panel_on(struct platform_device *pdev)
 
 	} else if (pinfo->lcd_init_step == LCD_INIT_MIPI_HS_SEND_SEQUENCE) {
 	#ifdef CONFIG_TP_ERR_DEBUG
-		if(ts_ops) {
-			ts_ops->ts_power_notify(TS_AFTER_RESUME, NO_SYNC);
-		}
+		lcdkit_notifier_call_chain(LCDKIT_TS_AFTER_RESUME, NULL);
 	#endif
 	} else {
 		HISI_FB_ERR("failed to init lcd!\n");
@@ -1679,12 +1637,7 @@ static int mipi_sharp_NT36870_panel_off(struct platform_device *pdev)
 
 	if (pinfo->lcd_uninit_step == LCD_UNINIT_MIPI_HS_SEND_SEQUENCE) {
 	#ifdef CONFIG_TP_ERR_DEBUG
-		ts_ops = ts_kit_get_ops();
-		if(ts_ops) {
-			ts_ops->ts_power_notify(TS_EARLY_SUSPEND, NO_SYNC);
-		} else {
-			HISI_FB_ERR("ts_ops is null,can't notify thp power_off\n");
-		}
+		lcdkit_notifier_call_chain(LCDKIT_TS_EARLY_SUSPEND, NULL);
 	#endif
 		hisi_lcd_backlight_off(pdev);
 
@@ -1692,10 +1645,8 @@ static int mipi_sharp_NT36870_panel_off(struct platform_device *pdev)
 			ARRAY_SIZE(lcd_display_off_cmds), mipi_dsi0_base);
 		pinfo->lcd_uninit_step = LCD_UNINIT_MIPI_LP_SEND_SEQUENCE;
 	#ifdef CONFIG_TP_ERR_DEBUG
-		if(ts_ops) {
-			ts_ops->ts_power_notify(TS_BEFORE_SUSPEND, NO_SYNC);
-			ts_ops->ts_power_notify(TS_SUSPEND_DEVICE, NO_SYNC);
-		}
+		lcdkit_notifier_call_chain(LCDKIT_TS_BEFORE_SUSPEND, NULL);
+		lcdkit_notifier_call_chain(LCDKIT_TS_SUSPEND_DEVICE, NULL);
 	#endif
 	} else if (pinfo->lcd_uninit_step == LCD_UNINIT_MIPI_LP_SEND_SEQUENCE) {
 		pinfo->lcd_uninit_step = LCD_UNINIT_POWER_OFF;
@@ -2027,8 +1978,6 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 	uint32_t bl_type = 0;
 	uint32_t lcd_display_type = 0;
 	uint32_t lcd_ifbc_type = 0;
-	const char *lcd_bl_ic_name;
-	char lcd_bl_ic_name_buf[LCD_BL_IC_NAME_MAX];
 
 	HISI_FB_INFO("mipi_sharp_NT36870_probe+!\n");
 	g_mipi_lcd_name = SHARP_2LANE_NT36870;
@@ -2055,14 +2004,7 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 		HISI_FB_ERR("get lcd_bl_type failed!\n");
 		bl_type = BL_SET_BY_MIPI;
 	}
-	HISI_FB_INFO("bl_type=0x%x.\n", bl_type);
-
-	ret = of_property_read_string_index(np, "lcd-bl-ic-name", 0, &lcd_bl_ic_name);
-	if (ret != 0) {
-		memcpy(lcd_bl_ic_name_buf, "INVALID", strlen("INVALID"));
-	} else {
-		memcpy(lcd_bl_ic_name_buf, lcd_bl_ic_name, strlen(lcd_bl_ic_name) + 1);
-	}
+	HISI_FB_INFO("bl_type=0x%x.", bl_type);
 
 	if (hisi_fb_device_probe_defer(lcd_display_type, bl_type))
 		goto err_probe_defer;
@@ -2074,8 +2016,6 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 		HISI_FB_WARNING("need to get g_lcd_fpga_flag resource in fpga, not needed in asic!\n");
 	}
 
-	HISI_FB_INFO("g_lcd_fpga_flag=%d.\n", g_lcd_fpga_flag);
-
 	if (g_lcd_fpga_flag == 1) {
 		gpio_lcd_p5v8_enable = of_get_named_gpio(np, "gpios", 1);
 		gpio_lcd_n5v8_enable = of_get_named_gpio(np, "gpios", 2);
@@ -2083,7 +2023,6 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 		gpio_lcd_bl_enable = of_get_named_gpio(np, "gpios", 4);
 		gpio_lcd_1v8 = of_get_named_gpio(np, "gpios", 0);
 	} else {
-		//033, 283, 279, 282, 015, 281, 003
 		gpio_lcd_p5v5_enable = of_get_named_gpio(np, "gpios", 0);
 		gpio_lcd_n5v5_enable = of_get_named_gpio(np, "gpios", 1);
 		gpio_lcd_reset = of_get_named_gpio(np, "gpios", 2);
@@ -2104,23 +2043,9 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 	pinfo->bgr_fmt = LCD_RGB;
 	pinfo->bl_set_type = bl_type;
 
-	if (!strncmp(lcd_bl_ic_name_buf, "LM36923YFFR", strlen("LM36923YFFR"))) {
-		pinfo->bl_min = 55;
-		/* 10000stage 7992,2048stage 1973 for 450nit */
-		pinfo->bl_max = 7992;
-		pinfo->bl_default = 4000;
-		pinfo->blpwm_precision_type = BLPWM_PRECISION_2048_TYPE;
-		pinfo->bl_ic_ctrl_mode = REG_ONLY_MODE;
-		gpio_lcd_bl_enable = 0;//GPIO_000 can be used ?
-		HISI_FB_INFO("LM36923, set gpio_lcd_bl_enable[%d], do not ctrl gpio_bl_en.\n", gpio_lcd_bl_enable);
-	} else {
-		pinfo->bl_min = 1;
-		pinfo->bl_max = 255;
-		pinfo->bl_default = 102;
-	}
-
-	HISI_FB_INFO("lcd_bl_ic_name[%s], pinfo->bl_ic_ctrl_mode[%d].\n",
-		lcd_bl_ic_name_buf, pinfo->bl_ic_ctrl_mode);
+	pinfo->bl_min = 1;
+	pinfo->bl_max = 255;
+	pinfo->bl_default = 102;
 
 	pinfo->frc_enable = 0;
 	pinfo->esd_enable = 0;
@@ -2136,7 +2061,7 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 	if (pinfo->current_mode == MODE_10BIT_VIDEO_3X) {
 		pinfo->type = PANEL_MIPI_VIDEO;
 	} else {
-		pinfo->type = PANEL_MIPI_CMD;
+		pinfo->type = lcd_display_type;
 	}
 
 	if (g_lcd_fpga_flag == 1) {
@@ -2159,7 +2084,7 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 			pinfo->pxl_clk_rate = 20* 1000000UL;
 		} else {
 			pinfo->ldi.h_back_porch = 96;//0x6ff
-			pinfo->ldi.h_front_porch = 108; //108
+			pinfo->ldi.h_front_porch = 1068; //108
 			pinfo->ldi.h_pulse_width = 48;
 			pinfo->ldi.v_back_porch = 12;
 			pinfo->ldi.v_front_porch = 14;
@@ -2178,13 +2103,16 @@ static int mipi_sharp_NT36870_probe(struct platform_device *pdev)
 
 	} else {
 		if (pinfo->type == PANEL_MIPI_CMD) {
-			pinfo->ldi.h_back_porch = 30;
-			pinfo->ldi.h_front_porch = 96;
-			pinfo->ldi.h_pulse_width = 30;
-			pinfo->ldi.v_back_porch = 60;
-			pinfo->ldi.v_front_porch = 14;
-			pinfo->ldi.v_pulse_width = 30;
-			pinfo->mipi.dsi_bit_clk = 648;
+			//ldi
+			pinfo->ldi.h_back_porch = 66;//96
+			pinfo->ldi.h_front_porch = 78;//108
+			pinfo->ldi.h_pulse_width = 30;//48
+			pinfo->ldi.v_back_porch = 32;
+			pinfo->ldi.v_front_porch = 30;
+			pinfo->ldi.v_pulse_width = 18;
+
+			//mipi
+			pinfo->mipi.dsi_bit_clk = 750;
 			pinfo->dsi_bit_clk_upt_support = 0;
 			pinfo->mipi.dsi_bit_clk_val1 = 658;
 			pinfo->mipi.dsi_bit_clk_val2 = 645;

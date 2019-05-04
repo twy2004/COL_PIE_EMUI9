@@ -23,12 +23,9 @@
 #include <linux/skbuff.h>
 #include <huawei_platform/log/hw_log.h>
 #include <linux/version.h>
-#include <linux/ktime.h>
-#include <linux/timekeeping.h>
 
 #include "wbc_hw_hook.h"
 #include "chr_netlink.h"
-//#include "../net/netbooster/video_acceleration.h"
 
 #ifndef DEBUG
 #define DEBUG
@@ -60,14 +57,10 @@ static unsigned long abn_stamp_web_fail;
 static unsigned long abn_stamp_web_delay;
 static unsigned long abn_stamp_syn_no_ack;
 
-static bool rtt_flag[RNT_STAT_SIZE];
-static bool web_deley_flag[RNT_STAT_SIZE];
-
 /*tcp protocol use this semaphone to inform chr netlink thread*/
 static struct semaphore g_web_stat_sync_sema;
 static struct timer_list g_web_stat_timer;
 static struct task_struct *g_web_stat_task;
-static struct chr_key_val g_chr_key_val;
 
 /*This parameters lock are used to lock the common parameters*/
 static spinlock_t g_web_stat_lock;
@@ -98,23 +91,15 @@ static unsigned long abnomal_stamp_list_tcp_rtt_large_update(
 static void abnomal_stamp_list_syn_no_ack_print_log(void);
 
 static void save_app_syn_succ(u32 uid, u8 interface_type);
+static void save_app_syn_no_ack(u32 uid, u8 interface_type);
 static void save_app_web_no_ack(u32 uid, u8 interface_type);
 static void save_app_web_delay(u32 uid, int web_delay, u8 interface_type);
 static void save_app_web_fail(u32 uid, u8 interface_type);
 static void save_app_tcp_rtt(u32 uid, u32 tcp_rtt, u8 interface_type);
 static u32 s_report_app_uid_lst[CHR_MAX_REPORT_APP_COUNT] = {0};
-static int data_reg_tech = 0;
-static int RIL_RADIO_TECHNOLOGY_LTE = 13;
-static int RIL_RADIO_TECHNOLOGY_LTE_CA = 19;
 
 static uid_t get_uid_from_sock(struct sock *sk);
-static uid_t get_des_addr_from_sock(struct sock *sk);
 static u32 http_response_code(char *pstr);
-static void web_delay_rtt_flag_reset(void);
-#ifdef CONFIG_HW_NETBOOSTER_MODULE
-static void video_chr_stat_report(void);
-extern int chr_video_stat(struct video_chr_para *report);
-#endif
 
 /*us convert to ms*/
 u32 us_cvt_to_ms(u32 seq_rtt_us)
@@ -125,12 +110,9 @@ u32 us_cvt_to_ms(u32 seq_rtt_us)
 /*To notify thread to update rtt*/
 void notify_chr_thread_to_update_rtt(u32 seq_rtt_us, struct sock *sk, u8 data_net_flag)
 {
-	u8 interface_type;
-	if (seq_rtt_us <= 0)
-		return;
-
 	if (!spin_trylock_bh(&g_web_stat_lock))
 		return;
+	u8 interface_type;
 	if(data_net_flag) {
 		interface_type = RMNET_INTERFACE;
 	}
@@ -142,103 +124,11 @@ void notify_chr_thread_to_update_rtt(u32 seq_rtt_us, struct sock *sk, u8 data_ne
 		stack_rtt[interface_type].tcp_rtt = us_cvt_to_ms(seq_rtt_us);
 		stack_rtt[interface_type].is_valid = IS_USE;
 		stack_rtt[interface_type].uid = get_uid_from_sock(sk);
-		stack_rtt[interface_type].rtt_dst_addr = get_des_addr_from_sock(sk);
 	}
 
-    spin_unlock_bh(&g_web_stat_lock);
-    up(&g_web_stat_sync_sema);
+	spin_unlock_bh(&g_web_stat_lock);
+	up(&g_web_stat_sync_sema);
 
-}
-
-/*Update protocol stack buffer information*/
-void chr_update_buf_time(s64 time, u32 protocal)
-{
-	ktime_t kt;
-	s64 buff;
-	s64 curBuf;
-	unsigned long jif;
-	long difJif;
-
-	if (time == 0)
-		return;
-
-	jif = jiffies;
-	switch (protocal)
-	{
-	case SOL_TCP:
-		kt = ktime_get_real();
-		difJif = (long)(jif - g_chr_key_val.tcp_last);
-		curBuf = kt.tv64 - time;
-		if (curBuf < 0)
-			curBuf = 0;
-
-		if (difJif > FILTER_TIME_LIMIT) {
-			atomic_set(&g_chr_key_val.tcp_buf_time, curBuf);
-		} else {
-			buff = atomic_read(&g_chr_key_val.tcp_buf_time);
-			buff = buff - buff / ALPHA_FILTER_PARA + curBuf / ALPHA_FILTER_PARA;
-			atomic_set(&g_chr_key_val.tcp_buf_time, buff);
-		}
-
-		g_chr_key_val.tcp_last = jif;
-		break;
-	case SOL_UDP:
-		kt = ktime_get_real();
-		difJif = (long)(jif - g_chr_key_val.udp_last);
-		curBuf = kt.tv64 - time;
-		if (curBuf < 0)
-			curBuf = 0;
-
-		if (difJif > FILTER_TIME_LIMIT) {
-			 atomic_set(&g_chr_key_val.udp_buf_time, curBuf);
-		} else {
-			buff = atomic_read(&g_chr_key_val.udp_buf_time);
-			buff = buff - buff / ALPHA_FILTER_PARA + curBuf / ALPHA_FILTER_PARA;
-			atomic_set(&g_chr_key_val.udp_buf_time, buff);
-		}
-
-		g_chr_key_val.udp_last = jif;
-		break;
-	default:
-		break;
-	}
-}
-
-/*This is the buffer time update function of the TCP/IP protocol stack,
-* which is passively obtained from the upper layer.*/
-static u32 reportBuf(void)
-{
-	u16 tmpBuf;
-	u32 bufRtn = 0;
-	s64 buf64;
-	unsigned long jif;
-	long difJif;
-
-	jif = jiffies;
-
-	buf64 = atomic_read(&g_chr_key_val.udp_buf_time);
-	tmpBuf = (u16)(buf64 / NS_CONVERT_TO_MS);
-	if (buf64 > ((s64)MAX_VALID_U16 * (s64)NS_CONVERT_TO_MS))
-		tmpBuf = MAX_VALID_U16;
-
-	difJif = (long)(jif - g_chr_key_val.udp_last);
-	if (difJif > 2*HZ || difJif < -2*HZ)
-		tmpBuf = 0;
-
-	bufRtn = tmpBuf;
-
-	buf64 = atomic_read(&g_chr_key_val.tcp_buf_time);
-	tmpBuf = (u16)(buf64 / NS_CONVERT_TO_MS);
-	if (buf64 > ((s64)MAX_VALID_U16 *(s64)NS_CONVERT_TO_MS))
-		tmpBuf = MAX_VALID_U16;
-
-	difJif = (long)(jif - g_chr_key_val.tcp_last);
-	if (difJif > 2*HZ || difJif < -2*HZ)
-		tmpBuf = 0;
-
-	bufRtn = tmpBuf + (bufRtn << 16);
-
-	return bufRtn;
 }
 
 /*timer's expired process function.
@@ -328,14 +218,10 @@ static void web_stat_timer(unsigned long data)
 		rtn_stat[RMNET_INTERFACE].report_type = WEB_STAT;
 		rtn_stat[WLAN_INTERFACE].report_type = WEB_STAT;
 		spin_unlock_bh(&g_web_stat_lock);
-#ifdef CONFIG_HW_NETBOOSTER_MODULE		
-		video_chr_stat_report();
-#endif
 		chr_notify_event(CHR_WEB_STAT_EVENT,
 			g_user_space_pid, 0, rtn_stat);
 		spin_lock_bh(&g_web_stat_lock);
 		memset(&rtn_stat, 0, sizeof(rtn_stat));
-		web_delay_rtt_flag_reset();
 	}
 
 	/*Check if there are timeout entries and remove them*/
@@ -355,6 +241,7 @@ static void web_stat_timer(unsigned long data)
 u8 hash3(u32 dst, u32 src, u32 port)
 {
 	u32 hash;
+
 	hash = dst + src + port;
 	hash = hash + hash/256 + hash/65536 + hash/16777216;
 	hash = hash%HASH_MAX;
@@ -365,8 +252,6 @@ u8 hash3(u32 dst, u32 src, u32 port)
 void out_proc(void)
 {
 	u8 hash_cnt;
-	u32 http_get_delay = 0;
-	u8 interface_type = http_para_out.interface;
 
 	spin_lock_bh(&g_web_para_out_lock);
 
@@ -396,15 +281,6 @@ void out_proc(void)
 
 				stream_list[hash_cnt].get_time_stamp =
 					http_para_out.time_stamp;
-				if(stream_list[hash_cnt].interface == http_para_out.interface) {
-					if (http_para_out.time_stamp >= stream_list[hash_cnt].ack_time_stamp && 0 != stream_list[hash_cnt].ack_time_stamp) {
-						http_get_delay = (http_para_out.time_stamp - stream_list[hash_cnt].ack_time_stamp) * MULTIPLE;
-					} else if (http_para_out.time_stamp < stream_list[hash_cnt].ack_time_stamp && 0 != stream_list[hash_cnt].ack_time_stamp) {
-						http_get_delay = (MAX_JIFFIES - stream_list[hash_cnt].ack_time_stamp +http_para_out.time_stamp) * MULTIPLE;
-					}
-					rtn_stat[interface_type].http_get_delay += http_get_delay;
-					rtn_stat[interface_type].http_send_get_num++;
-				}
 				stream_list[hash_cnt].type = HTTP_GET;
 
 			}
@@ -436,7 +312,6 @@ void wifi_disconnect_report(void)
 		g_user_space_pid, 0, rtn_stat);
 	spin_lock_bh(&g_web_stat_lock);
 	memset(&rtn_stat, 0, sizeof(rtn_stat));
-	web_delay_rtt_flag_reset();
 	spin_unlock_bh(&g_web_stat_lock);
 }
 
@@ -445,7 +320,6 @@ void in_proc(void)
 {
 	u8 hash_cnt;
 	u32 web_delay;
-	u32 handshake_delay;
 	unsigned long jiffies_tmp;
 	unsigned long abn_stamp;
 	u8 interface_type = http_para_in.interface;
@@ -485,26 +359,10 @@ void in_proc(void)
 			rtn_stat[interface_type].total_num++;
 			rtn_stat[interface_type].succ_num++;
 
-			if (http_para_in.time_stamp >= stream_list[hash_cnt].time_stamp) {
-				web_delay = (http_para_in.time_stamp - stream_list[hash_cnt].time_stamp) * MULTIPLE;
-			} else {
-				web_delay = (MAX_JIFFIES - stream_list[hash_cnt].time_stamp + http_para_in.time_stamp) * MULTIPLE;
-			}
+			web_delay = (http_para_in.time_stamp -
+				stream_list[hash_cnt].time_stamp) * MULTIPLE;
 			rtn_stat[interface_type].web_delay += web_delay;
 
-			if (web_deley_flag[interface_type])
-			{
-				rtn_stat[interface_type].highest_web_delay= web_delay;
-				rtn_stat[interface_type].lowest_web_delay= web_delay;
-				rtn_stat[interface_type].last_web_delay= web_delay;
-				web_deley_flag[interface_type] = false;
-			}
-			/*recording the web_delays value*/
-			if (web_delay > rtn_stat[interface_type].highest_web_delay)
-				rtn_stat[interface_type].highest_web_delay = web_delay;
-			if (web_delay< rtn_stat[interface_type].lowest_web_delay)
-				rtn_stat[interface_type].lowest_web_delay = web_delay;
-			rtn_stat[interface_type].last_web_delay = web_delay;
 			if (web_delay > DELAY_THRESHOLD_L1 &&
 					web_delay <= DELAY_THRESHOLD_L2)
 				rtn_stat[interface_type].delay_num_L1++;
@@ -541,7 +399,6 @@ void in_proc(void)
 				rtn_abn[interface_type].report_type = WEB_DELAY;
 				rtn_abn[interface_type].web_delay = web_delay;
 				rtn_abn[interface_type].uid = stream_list[hash_cnt].uid;
-				rtn_abn[interface_type].server_addr = stream_list[hash_cnt].dst_addr;
 				spin_unlock_bh(&g_web_para_in_lock);
 				spin_unlock_bh(&g_web_stat_lock);
 				chr_notify_event(CHR_WEB_STAT_EVENT,
@@ -554,6 +411,7 @@ void in_proc(void)
 				memset(&rtn_abn, 0, sizeof(rtn_abn));
 				spin_lock_bh(&g_web_para_in_lock);
 				abn_stamp_web_delay = jiffies_tmp + FORBID_TIME;
+
 			}
 			stream_list[hash_cnt].is_valid = IS_UNUSE;
 			break;
@@ -561,7 +419,9 @@ void in_proc(void)
 		case WEB_FAIL:
 			rtn_stat[interface_type].total_num++;
 			rtn_stat[interface_type].fail_num++;
+
 			save_app_web_fail(stream_list[hash_cnt].uid, interface_type);
+
 			abn_stamp =
 			abnomal_stamp_list_web_fail_update(jiffies_tmp);
 			if (time_after(jiffies_tmp, abn_stamp_web_fail) &&
@@ -570,7 +430,6 @@ void in_proc(void)
 				rtn_abn[interface_type].report_type = WEB_FAIL;
 				rtn_abn[interface_type].uid = stream_list[hash_cnt].uid;
 				rtn_abn[interface_type].http_resp = http_para_in.resp_code;
-				rtn_abn[interface_type].server_addr = stream_list[hash_cnt].dst_addr;
 				spin_unlock_bh(&g_web_para_in_lock);
 				spin_unlock_bh(&g_web_stat_lock);
 				chr_notify_event(CHR_WEB_STAT_EVENT,
@@ -590,13 +449,6 @@ void in_proc(void)
 
 		case SYN_SUCC:
 			rtn_stat[interface_type].tcp_succ_num++;
-			if (http_para_in.time_stamp >= stream_list[hash_cnt].time_stamp) {
-				handshake_delay = (http_para_in.time_stamp - stream_list[hash_cnt].time_stamp) * MULTIPLE;
-			} else {
-				handshake_delay = (MAX_JIFFIES - stream_list[hash_cnt].time_stamp + http_para_in.time_stamp) * MULTIPLE;
-			}
-			rtn_stat[interface_type].tcp_handshake_delay += handshake_delay;
-			stream_list[hash_cnt].ack_time_stamp = http_para_in.time_stamp;
 			save_app_syn_succ(stream_list[hash_cnt].uid, interface_type);
 			break;
 
@@ -623,7 +475,6 @@ void in_proc(void)
 			rtn_abn[interface_type].report_type = WEB_NO_ACK;
 			rtn_abn[interface_type].uid = stream_list[hash_cnt].uid;
 			rtn_abn[interface_type].http_resp = 0xffffffff;
-			rtn_abn[interface_type].server_addr = stream_list[hash_cnt].dst_addr;
 			spin_unlock_bh(&g_web_para_in_lock);
 			spin_unlock_bh(&g_web_stat_lock);
 			chr_notify_event(CHR_WEB_STAT_EVENT,
@@ -685,18 +536,6 @@ void rtt_proc(void)
 
 			save_app_tcp_rtt(stack_rtt[idx].uid, stack_rtt[idx].tcp_rtt, idx);
 
-			if (rtt_flag[idx]){
-				rtn_stat[idx].highest_tcp_rtt = stack_rtt[idx].tcp_rtt;
-				rtn_stat[idx].lowest_tcp_rtt = stack_rtt[idx].tcp_rtt;
-				rtn_stat[idx].last_tcp_rtt = stack_rtt[idx].tcp_rtt;
-				rtt_flag[idx] = false;
-			}
-			if (stack_rtt[idx].tcp_rtt > rtn_stat[idx].highest_tcp_rtt)
-				rtn_stat[idx].highest_tcp_rtt = stack_rtt[idx].tcp_rtt;
-			if (stack_rtt[idx].tcp_rtt < rtn_stat[idx].lowest_tcp_rtt)
-				rtn_stat[idx].lowest_tcp_rtt = stack_rtt[idx].tcp_rtt;
-			rtn_stat[idx].last_tcp_rtt = stack_rtt[idx].tcp_rtt;
-
 			abn_stamp = abnomal_stamp_list_tcp_rtt_large_update(jiffies);
 			if (stack_rtt[idx].tcp_rtt > RTT_THRESHOLD &&
 				time_after(jiffies, abn_stamp_rtt_large) &&
@@ -707,7 +546,6 @@ void rtt_proc(void)
 				rtn_abn[idx].report_type = TCP_RTT_LARGE;
 				rtn_abn[idx].tcp_rtt = stack_rtt[idx].tcp_rtt;
 				rtn_abn[idx].uid = stack_rtt[idx].uid;
-				rtn_abn[idx].rtt_abn_server_addr = stack_rtt[idx].rtt_dst_addr;
 				spin_unlock_bh(&g_web_stat_lock);
 				chr_notify_event(CHR_WEB_STAT_EVENT,
 					g_user_space_pid, 0, rtn_abn);
@@ -784,7 +622,7 @@ u32 http_response_code(char *pstr)
 }
 
 /*Local out hook function*/
-static unsigned int hook_local_out(void *priv,
+static unsigned int hook_local_out(const struct nf_hook_ops *ops,
 					struct sk_buff *skb,
 					const struct nf_hook_state *state)
 {
@@ -794,7 +632,6 @@ static unsigned int hook_local_out(void *priv,
 	char *pHttpStr = NULL;
 	bool up_req = false;
 	int dlen;
-
 
 	if (skb == NULL)
 		return NF_ACCEPT;
@@ -826,9 +663,6 @@ static unsigned int hook_local_out(void *priv,
 			http_para_out.interface = WLAN_INTERFACE;
 		}
 		else {
-			if ((data_reg_tech != RIL_RADIO_TECHNOLOGY_LTE)&&
-				(data_reg_tech != RIL_RADIO_TECHNOLOGY_LTE_CA))
-				return NF_ACCEPT;
 			http_para_out.interface = RMNET_INTERFACE;
 			if (skb->sk->sk_state == TCP_ESTABLISHED) {
 				sock = tcp_sk(skb->sk);
@@ -858,8 +692,8 @@ static unsigned int hook_local_out(void *priv,
 				up_req = true;
 
 			} else if (dlen > 5 &&
-			(strncmp(pHttpStr, g_get_str, STR_GET_LEN) == 0 ||
-			strncmp(pHttpStr, g_post_str, STR_POST_LEN) == 0)) {
+			(strncmp(pHttpStr, g_get_str, STR_GET_LEN) ||
+			strncmp(pHttpStr, g_post_str, STR_POST_LEN))) {
 
 				http_para_out.tcp_port = tcph->source;
 				http_para_out.src_addr = iph->saddr;
@@ -882,7 +716,7 @@ static unsigned int hook_local_out(void *priv,
 }
 
 /*Local in hook function*/
-static unsigned int hook_local_in(void *priv,
+static unsigned int hook_local_in(const struct nf_hook_ops *ops,
 					struct sk_buff *skb,
 					const struct nf_hook_state *state)
 {
@@ -891,7 +725,6 @@ static unsigned int hook_local_in(void *priv,
 	char *pHttpStr = NULL;
 	bool up_req = false;
 	u32 dlen;
-
 
 	if (skb == NULL)
 		return NF_ACCEPT;
@@ -917,9 +750,6 @@ static unsigned int hook_local_in(void *priv,
 			http_para_in.interface = WLAN_INTERFACE;
 		}
 		else {
-			if ((data_reg_tech != RIL_RADIO_TECHNOLOGY_LTE)&&
-				(data_reg_tech != RIL_RADIO_TECHNOLOGY_LTE_CA))
-				return NF_ACCEPT;
 			http_para_in.interface = RMNET_INTERFACE;
 		}
 
@@ -985,14 +815,7 @@ static struct nf_hook_ops net_hooks[] = {
 		.priority	= NF_IP_PRI_FILTER - 1,
 	}
 };
-static void web_delay_rtt_flag_reset(void)
-{
-	int flag_index;
-	for (flag_index=0; flag_index<RNT_STAT_SIZE ;flag_index++){
-		rtt_flag[flag_index] = true;
-		web_deley_flag[flag_index] = true;
-	}
-}
+
 /*CHR Initialization function*/
 int web_chr_init(void)
 {
@@ -1017,18 +840,13 @@ int web_chr_init(void)
 	spin_lock_init(&g_web_para_in_lock);
 	spin_lock_init(&g_web_para_out_lock);
 	sema_init(&g_web_stat_sync_sema, 0);
-	/*flag initialization*/
-	web_delay_rtt_flag_reset();
+
 	/*Timestamp initialization*/
 	abn_stamp_no_ack = jiffies;
 	abn_stamp_rtt_large = jiffies;
 	abn_stamp_web_fail = jiffies;
 	abn_stamp_web_delay = jiffies;
 	abn_stamp_syn_no_ack = jiffies;
-	g_chr_key_val.tcp_last = jiffies;
-	g_chr_key_val.udp_last = jiffies;
-	atomic_set(&g_chr_key_val.tcp_buf_time, 0);
-	atomic_set(&g_chr_key_val.udp_buf_time, 0);
 
 	rpt_stamp = jiffies;
 
@@ -1133,12 +951,6 @@ uid_t get_uid_from_sock(struct sock *sk)
 	return from_kuid(&init_user_ns, filp->f_cred->fsuid);
 }
 
-u32 get_des_addr_from_sock(struct sock *sk)
-{
-	if (NULL == sk)
-		return 0;
-	return sk->sk_daddr;
-}
 /* Append time_stamp to the end of the abn_stamp_list */
 unsigned long abnomal_stamp_list_syn_no_ack_update(
 unsigned long time_stamp)
@@ -1155,10 +967,10 @@ void abnomal_stamp_list_syn_no_ack_print_log(void)
 
 	for (idx = 0; idx < SYN_NO_ACK_MAX; idx++) {
 		pr_info("chr:abn_stamp_list_syn_no_ack[%d]=%d\n", idx,
-			(int)abn_stamp_list_syn_no_ack[idx]);
+			abn_stamp_list_syn_no_ack[idx]);
 	}
 	pr_info("chr:abn_stamp_list_syn_no_ack_idx=%d\n",
-		(int)abn_stamp_list_syn_no_ack_idx);
+		abn_stamp_list_syn_no_ack_idx);
 }
 
 unsigned long abnomal_stamp_list_web_no_ack_update(
@@ -1198,25 +1010,15 @@ unsigned long abnomal_stamp_list_tcp_rtt_large_update(
 	return abn_stamp_list_tcp_rtt_large[abn_stamp_list_tcp_rtt_large_idx];
 }
 
-int set_report_app_uid(int tag, u32 paras)
+int set_report_app_uid(int index, u32 uid)
 {
-	if (tag >= 0 && tag < CHR_MAX_REPORT_APP_COUNT) {
-		s_report_app_uid_lst[tag] = paras;
-		return 0;
-	}
-	if (tag == DATA_REG_TECH_TAG) {
-		data_reg_tech = paras;
-		return 0;
-	}
-	if (tag == GET_AP_REPORT_TAG) {
-		if (paras& 0x01)
-			chr_notify_event(CHR_SPEED_SLOW_EVENT, g_user_space_pid,
-				reportBuf(), NULL);
-		return 0;
+	if (index < 0 || index >= CHR_MAX_REPORT_APP_COUNT) {
+		pr_info("chr:appuid set 'index' invaild. index=%d\n", index);
+		return -1;
 	}
 
-	pr_info("chr:set_report_app_uid set 'tag' invaild. tag=%d\n", tag);
-	return -1;
+	s_report_app_uid_lst[index] = uid;
+	return 0;
 }
 
 void save_app_syn_succ(u32 uid, u8 interface_type)
@@ -1333,19 +1135,4 @@ static void save_app_tcp_rtt(u32 uid, u32 tcp_rtt,u8 interface_type)
 	}
 }
 
-#ifdef CONFIG_HW_NETBOOSTER_MODULE
-static void video_chr_stat_report(void)
-{
-	struct video_chr_para video_chr = {0};
-
-	chr_video_stat(&video_chr);
-	rtn_stat[RMNET_INTERFACE].vod_avg_speed = video_chr.vod_avg_speed;
-	rtn_stat[RMNET_INTERFACE].vod_freez_num = video_chr.vod_freez_num;
-	rtn_stat[RMNET_INTERFACE].vod_time = video_chr.vod_time;
-	rtn_stat[RMNET_INTERFACE].uvod_avg_speed = video_chr.uvod_avg_speed;
-	rtn_stat[RMNET_INTERFACE].uvod_freez_num = video_chr.uvod_freez_num;
-	rtn_stat[RMNET_INTERFACE].uvod_time = video_chr.uvod_time;
-	return;
-}
-#endif
 #undef DEBUG

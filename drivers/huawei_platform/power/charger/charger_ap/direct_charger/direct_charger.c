@@ -544,6 +544,7 @@ int get_bat_voltage(void)
 	}
 
 	return btb_vol < package_vol ? btb_vol : package_vol;
+<<<<<<< HEAD
 }
 
 int get_bat_sys_voltage(void)
@@ -561,6 +562,8 @@ int get_bat_sys_voltage(void)
 	} else {
 		return hw_battery_voltage(BAT_ID_ALL);
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 int get_bat_current(void)
@@ -778,6 +781,31 @@ int get_adaptor_current(void)
 			return adaptor_cur;
 	}
 }
+int get_adaptor_current_for_vbat_ovp(void)
+{
+	int adaptor_cur = -1;
+	struct direct_charge_device *di = NULL;
+	if (NULL == g_di)
+	{
+		hwlog_err("%s g_di is NULL\n", __func__);
+		return -1;
+	}
+	di = g_di;
+
+	switch(di->adaptor_vendor_id)
+	{
+		case IWATT_ADAPTER:
+			adaptor_cur = get_ls_ibus();
+			return adaptor_cur;
+		default:
+			if (di->scp_ops->scp_get_adaptor_current)
+			{
+				adaptor_cur = di->scp_ops->scp_get_adaptor_current();
+			}
+			return adaptor_cur;
+	}
+}
+
 
 int get_adaptor_current_set(void)
 {
@@ -1452,6 +1480,24 @@ int do_adpator_antifake_check(void)
 		return 0;
 
 	memset(dc_af_key, 0x00, DC_AF_KEY_LEN);
+<<<<<<< HEAD
+=======
+	memset(random_local, 0x00, SCP_ADAPTOR_RANDOM_NUM_HI_LEN);
+	memset(random_remote, 0x00, SCP_ADAPTOR_RANDOM_NUM_HI_LEN);
+	memset(remote_hash, 0x00, SCP_ADAPTOR_DIGEST_LEN);
+
+	ret = di->scp_ops->scp_set_adaptor_encrypt_enable(di->adaptor_antifake_key_index);
+	if (ret)
+	{
+		return -1;
+	}
+
+	ret = di->scp_ops->scp_get_adaptor_encrypt_enable();
+	if (ret)
+	{
+		goto err;
+	}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	ret = adapter_auth_encrypt_start(di->adaptor_antifake_key_index, dc_af_key, DC_AF_KEY_LEN);
 	if (ret)
@@ -1985,7 +2031,11 @@ void scp_stop_charging(void)
 {
 	int ret;
 	int vbus_vol = 0;
+<<<<<<< HEAD
 	int vbat = 0;
+=======
+	int vbat;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	int voltage_max_threshold = 7500; /*max voltage check threshold  mv*/
 	struct direct_charge_device *lvc_di = NULL;
 	struct direct_charge_device *sc_di = NULL;
@@ -1997,14 +2047,13 @@ void scp_stop_charging(void)
 		return ;
 	}
 	di = g_di;
-	if(SCP_STAGE_CHARGE_DONE != scp_get_stage_status()){
-		di->scp_adaptor_detect_flag = SCP_ADAPTOR_NOT_DETECT;
-	}
+
+	di->scp_adaptor_detect_flag = SCP_ADAPTOR_NOT_DETECT;
 	if (di->scp_stop_charging_flag_error)
 	{
 		di->error_cnt += 1;
 	}
-	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger))
+	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger) ||(0 == di->vbat_ovp_enable_charger))
 	{
 		scp_set_stage_status(SCP_STAGE_DEFAULT);
 	}
@@ -2031,7 +2080,12 @@ void scp_stop_charging(void)
 		direct_charge_restore_adaptor_voltage(di);
 	}
 
+<<<<<<< HEAD
 	ret = adapter_set_default_state();
+=======
+	pd_dpm_notify_direct_charge_status(false);
+	ret = di->scp_ops->scp_exit(di);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (ret)
 	{
 		hwlog_err("[%s]: scp exit fail!\n", __func__);
@@ -3194,7 +3248,7 @@ void charge_control_work(struct work_struct *work)
 	struct direct_charge_device *di = container_of(work,struct direct_charge_device, charge_control_work);
 	int interval = di->charge_control_interval;
 
-	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger))
+	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger) ||(0 == di->vbat_ovp_enable_charger))
 	{
 		hwlog_info("direct charge stop!\n");
 		scp_stop_charging();
@@ -3204,7 +3258,6 @@ void charge_control_work(struct work_struct *work)
 	{
 		hwlog_info("cur_stage = %d vbat = %d ibat = %d\n", di->cur_stage, di->vbat, di->ibat);
 		hwlog_info("direct charge done!\n");
-		scp_set_stage_status(SCP_STAGE_CHARGE_DONE);
 		scp_stop_charging();
 		return;
 	}
@@ -3220,7 +3273,7 @@ void threshold_caculation_work(struct work_struct *work)
 	struct direct_charge_device *di = container_of(work,struct direct_charge_device, threshold_caculation_work);
 	int interval = di->threshold_caculation_interval;
 
-	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger))
+	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger) ||(0 == di->vbat_ovp_enable_charger))
 	{
 		hwlog_info("direct charge stop, stop threshold_caculation!\n");
 		return;
@@ -3242,6 +3295,7 @@ void kick_watchdog_work(struct work_struct *work)
 	struct direct_charge_device *di = container_of(work,struct direct_charge_device, kick_watchdog_work);
 	int interval = KICK_WATCHDOG_TIME;//kich watchdog timer;
 
+<<<<<<< HEAD
 	if (di->can_stop_kick_wdt) {
 		if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger))
 		{
@@ -3253,6 +3307,17 @@ void kick_watchdog_work(struct work_struct *work)
 			hwlog_info("direct charge done, stop kick_watchdog!\n");
 			return;
 		}
+=======
+	if (di->scp_stop_charging_flag_error || di->scp_stop_charging_flag_info || (0 == di->sysfs_enable_charger) ||(0 == di->vbat_ovp_enable_charger))
+	{
+		hwlog_info("direct charge stop, stop kick_watchdog!\n");
+		return;
+	}
+	if (DOUBLE_SIZE * di->stage_size == di->cur_stage)
+	{
+		hwlog_info("direct charge done, stop kick_watchdog!\n");
+		return;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
         if(di->ls_ops->kick_watchdog)
@@ -3351,6 +3416,202 @@ void scp_start_charging(void)
 	hrtimer_start(&di->kick_watchdog_timer, ktime_set(interval/MSEC_PER_SEC, (interval % MSEC_PER_SEC) * USEC_PER_SEC), HRTIMER_MODE_REL);
 }
 /*lint -save -e* */
+void vbat_ovp_exit_direct_charge(int enable_charge)
+{
+	int i = 0;
+	int ibus = 0;
+	struct direct_charge_device *di = NULL;
+	if (NULL == g_di)
+	{
+		hwlog_err("%s g_di is NULL\n", __func__);
+		return ;
+	}
+	di = g_di;
+
+	di->vbat_ovp_enable_charger = enable_charge;
+	hwlog_info("%s: vbat_ovp_enable_charger = %d \n",__func__,di->vbat_ovp_enable_charger);
+}
+
+int vbat_ovp_scp_exit(void)
+{
+	int ret;
+	int val;
+	int vbus_vol = 0;
+	struct direct_charge_device *di = NULL;
+	if (NULL == g_di)
+	{
+		hwlog_err("%s g_di is NULL\n", __func__);
+		return;
+	}
+	di = g_di;
+	val = di->ls_ops->ls_enable(0);
+	if (val)
+	{
+		hwlog_err("[%s]: ls enable fail!\n", __func__);
+	}
+	if (di->ls_ops->ls_discharge)
+	{
+		val = di->ls_ops->ls_discharge(1);
+		if (val)
+		{
+			hwlog_err("[%s]: ls discharge fail!\n", __func__);
+		}
+		else
+		{
+			hwlog_info("[%s]: ls discharge succ!\n", __func__);
+		}
+	}
+	msleep(200);
+	val = di->ls_ops->ls_discharge(0);
+	msleep(20);
+	val = di->bi_ops->get_vbus_voltage(&vbus_vol);
+	if (val)
+	{
+		hwlog_err("[%s]: get vbus vol fail!\n", __func__);
+	}
+	hwlog_info("%s: vbus_vol = %d!\n", __func__, vbus_vol);
+	if (vbus_vol < 3000)
+	{
+		hwlog_info("%s:direct charger disconnect!\n", __func__);
+		ret = 0;
+	}
+	else
+	{
+		hwlog_info("%s:comunication fail!\n", __func__);
+		ret = -1;
+	}
+	val = di->scp_ops->scp_exit(di);
+	if (val)
+	{
+		hwlog_err("[%s]: scp exit fail!\n", __func__);
+	}
+	if (di->scp_work_on_charger)
+	{
+		scp_power_control(DISABLE);
+		charge_set_hiz_enable(HIZ_MODE_ENABLE);
+	}
+	val = di->ls_ops->ls_exit();
+	if (val)
+	{
+		hwlog_err("[%s]: ls exit fail!\n", __func__);
+	}
+	val = di->bi_ops->exit();
+	if (val)
+	{
+		hwlog_err("[%s]: bi exit fail!\n", __func__);
+	}
+	return ret;
+}
+int vbat_ovp_scp_handle(void)
+{
+	int timeout;
+	int ret;
+	int adaptor_vol;
+	int iadaptor;
+	struct direct_charge_device *di = NULL;
+	if (NULL == g_di)
+	{
+		hwlog_err("%s g_di is NULL\n", __func__);
+		return -1;
+	}
+	di = g_di;
+
+	if (0 != is_direct_charge_ops_valid(di))
+	{
+		hwlog_err("%s:bad ops \n", __func__);
+		return -1;
+	}
+	di->adaptor_vendor_id = di->scp_ops->scp_get_adapter_vendor_id();
+	di->adaptor_vset = 4300;
+	di->adaptor_iset = 2000;
+	ret = scp_direct_charge_init();
+	if (ret)
+	{
+		hwlog_err("%s:scp_direct_charge_init fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	ret = di->ls_ops->watchdog_config_ms(0);
+	if (ret)
+	{
+		hwlog_err("%s:watchdog_config_ms fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+
+	adaptor_vol = di->scp_ops->scp_get_adaptor_voltage();
+	if (adaptor_vol < 0)
+	{
+		hwlog_err("%s:scp_get_adaptor_voltage fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	iadaptor= get_adaptor_current_for_vbat_ovp();
+	if (iadaptor < 0)
+	{
+		hwlog_err("%s:scp_get_iadaptor fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	hwlog_info("%s:adaptor_vol1 = %d, adaptor_current1 = %d\n",__func__, adaptor_vol,iadaptor);
+	ret = di->scp_ops->scp_set_adaptor_voltage(di->adaptor_vset);
+	if (ret)
+	{
+		hwlog_err("%s:scp_set_adaptor_voltage fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	ret = di->scp_ops->scp_set_adaptor_current(di->adaptor_iset);
+	if (ret)
+	{
+		hwlog_err("%s:scp_set_adaptor_current\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	ret = di->ls_ops->ls_enable(1);
+	if (ret)
+	{
+		hwlog_err("%s:ls_enable fail\n", __func__);
+		ret = vbat_ovp_scp_exit();
+		return ret;
+	}
+	hwlog_info("%s:set_adaptor_vol = %d, set_adaptor_current = %d\n",__func__, di->adaptor_vset,di->adaptor_iset);
+	while(1)
+	{
+		di->adaptor_vset = 4300;
+		di->adaptor_iset = 2000;
+		ret = di->scp_ops->scp_set_adaptor_voltage(di->adaptor_vset);
+		if (ret)
+		{
+			hwlog_err("%s:scp_set_adaptor_voltage fail\n", __func__);
+			ret = vbat_ovp_scp_exit();
+			return ret;
+		}
+		ret = di->scp_ops->scp_set_adaptor_current(di->adaptor_iset);
+		if (ret)
+		{
+			hwlog_err("%s:scp_set_adaptor_current fail\n", __func__);
+			ret = vbat_ovp_scp_exit();
+			return ret;
+		}
+		adaptor_vol = di->scp_ops->scp_get_adaptor_voltage();
+		if (adaptor_vol < 0)
+		{
+			hwlog_err("%s:scp_get_adaptor_voltage fail\n", __func__);
+			ret = vbat_ovp_scp_exit();
+			return ret;
+		}
+		iadaptor= get_adaptor_current_for_vbat_ovp();
+		if (iadaptor < 0)
+		{
+			hwlog_err("%s:scp_get_iadaptor fail\n", __func__);
+			ret = vbat_ovp_scp_exit();
+			return ret;
+		}
+		hwlog_info("%s:adaptor_vol = %d, adaptor_current = %d\n",__func__, adaptor_vol,iadaptor);
+		msleep(500);
+	}
+}
 int is_direct_charge_failed(void)
 {
 	int lvc_ret = 0;

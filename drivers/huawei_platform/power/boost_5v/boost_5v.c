@@ -92,8 +92,12 @@ static int boost_set_enable(enum boost_ctrl_source_type type)
 		boost_5v_get_ctrl_source(type));
 	return 0;
 }
+<<<<<<< HEAD
 
 static int boost_set_disable(enum boost_ctrl_source_type type)
+=======
+static int boost_set_disable(boost_ctrl_source_type type)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	if (boost_status != 0) {
 		boost_status = boost_status & (~(1 << type));
@@ -138,7 +142,6 @@ unsigned int boost_5v_status(void)
 {
 	return boost_status;
 }
-
 static int boost_5v_gpio_init(struct device_node *np)
 {
 	int ret;
@@ -167,7 +170,6 @@ static int boost_5v_gpio_init(struct device_node *np)
 	boost_initialized = 1;
 	return 0;
 }
-
 #ifdef CONFIG_SYSFS
 static ssize_t boost_5v_sysfs_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -276,7 +278,6 @@ static int boost_5v_probe(struct platform_device *pdev)
 	hwlog_info("probe end\n");
 	return 0;
 }
-
 static int boost_5v_remove(struct platform_device *pdev)
 {
 	hwlog_info("remove begin\n");

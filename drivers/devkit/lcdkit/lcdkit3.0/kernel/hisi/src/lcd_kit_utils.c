@@ -24,7 +24,6 @@
 #include "lcd_kit_effect.h"
 #include "lcd_kit_sysfs_hs.h"
 #include "voltage/ina231.h"
-#include <linux/ctype.h>
 
 struct hisi_fb_data_type* dev_get_hisifd(struct device* dev)
 {
@@ -413,6 +412,7 @@ int lcd_kit_lread_reg(void* pdata, uint32_t* out, struct lcd_kit_dsi_cmd_desc* c
 	return ret;
 }
 
+<<<<<<< HEAD
 #define PROJECTID_LEN 9
 #define PROJECTID_PRD_LEN 4
 static int lcd_kit_check_project_id(void)
@@ -431,16 +431,14 @@ static int lcd_kit_check_project_id(void)
 	return LCD_KIT_OK;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int lcd_kit_read_project_id(void)
 {
+	int ret = LCD_KIT_OK;
 	struct hisi_fb_data_type* hisifd = NULL;
 	struct lcd_kit_panel_ops * panel_ops = NULL;
 
-	if (disp_info->project_id.support == 0) {
-		return LCD_KIT_OK;
-	}
-
-	memset(disp_info->project_id.id, 0, sizeof(disp_info->project_id.id));
 	panel_ops = lcd_kit_panel_get_ops();
 	if (panel_ops && panel_ops->lcd_kit_read_project_id) {
 		return panel_ops->lcd_kit_read_project_id();
@@ -451,17 +449,15 @@ int lcd_kit_read_project_id(void)
 		LCD_KIT_ERR("hisifd is null\n");
 		return LCD_KIT_FAIL;
 	}
-
-	if (LCD_KIT_OK == lcd_kit_dsi_cmds_rx(hisifd, (uint8_t*)disp_info->project_id.id, &disp_info->project_id.cmds)
-			&& LCD_KIT_OK == lcd_kit_check_project_id()) {
-		LCD_KIT_INFO("read project id is %s\n", disp_info->project_id.id);
-		return LCD_KIT_OK;
+	if (disp_info->project_id.support) {
+		ret = lcd_kit_dsi_cmds_rx(hisifd, (uint8_t*)disp_info->project_id.id, &disp_info->project_id.cmds);
+		if (ret) {
+			LCD_KIT_ERR("read reg error\n");
+			return LCD_KIT_FAIL;
+		}
+		LCD_KIT_INFO("disp_info->project_id.id = %s\n", disp_info->project_id.id);
 	}
-	if (disp_info->project_id.default_project_id) {
-		strncpy(disp_info->project_id.id, disp_info->project_id.default_project_id, PROJECTID_LEN+1);
-		LCD_KIT_ERR("use default project id:%s\n", disp_info->project_id.default_project_id);
-	}
-	return LCD_KIT_FAIL;
+	return ret;
 }
 
 int lcd_kit_rgbw_set_mode(struct hisi_fb_data_type* hisifd, int mode)
@@ -1058,8 +1054,11 @@ void lcd_kit_pinfo_init(struct device_node* np, struct hisi_panel_info* pinfo)
 	OF_PROPERTY_READ_U32_RETURN(np, "lcd-kit,sbl-slope-max", &pinfo->smart_bl.slope_max);
 	OF_PROPERTY_READ_U32_RETURN(np, "lcd-kit,sbl-slope-min", &pinfo->smart_bl.slope_min);
 
+<<<<<<< HEAD
 	OF_PROPERTY_READ_U8_RETURN(np, "lcd-kit,dpi01-set-change",
 		&pinfo->dpi01_exchange_flag);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	/*ldi info*/
 	OF_PROPERTY_READ_U32_RETURN(np, "lcd-kit,h-back-porch", &pinfo->ldi.h_back_porch);
 	OF_PROPERTY_READ_U32_RETURN(np, "lcd-kit,h-front-porch", &pinfo->ldi.h_front_porch);
@@ -1134,6 +1133,7 @@ void lcd_kit_pinfo_init(struct device_node* np, struct hisi_panel_info* pinfo)
 	pinfo->mipi.max_tx_esc_clk = pinfo->mipi.max_tx_esc_clk * 1000000; 
 	pinfo->panel_name = common_info->panel_name;
 	pinfo->board_version = disp_info->board_version;
+<<<<<<< HEAD
 
 	/*esd*/
 	if (common_info->esd.support) {
@@ -1141,6 +1141,8 @@ void lcd_kit_pinfo_init(struct device_node* np, struct hisi_panel_info* pinfo)
 		OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,esd-recovery-max-count", &pinfo->esd_recovery_max_count, 10);
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return ;
 }
 
@@ -1388,9 +1390,7 @@ void lcd_kit_parse_util(struct device_node* np)
 	if (disp_info->project_id.support) {
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,project-id-cmds", "lcd-kit,project-id-cmds-state",
 							   &disp_info->project_id.cmds);
-		disp_info->project_id.default_project_id = (char*)of_get_property(np, "lcd-kit,default-project-id", NULL);
 	}
-	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,dsi1-support", &disp_info->dsi1_cmd_support, 0);
 
 	OF_PROPERTY_READ_U8_DEFAULT(np, "lcd-kit,cascade-ic-support",
 				&disp_info->cascade_ic.support, 0);
@@ -1440,6 +1440,7 @@ void lcd_kit_parse_util(struct device_node* np)
 		lcd_kit_parse_dcs_cmds(np, "lcd-kit,otp-gamma-cmds", "lcd-kit,otp-gamma-cmds-state",
 							   &disp_info->otp_gamma.gamma_cmds);
 	}
+<<<<<<< HEAD
 	/*vertical line test*/
 	OF_PROPERTY_READ_U32_DEFAULT(np, "lcd-kit,vertical-line-test-support", &disp_info->vertical_line.support, 0);
 	if (disp_info->vertical_line.support) {
@@ -1474,6 +1475,8 @@ void lcd_kit_parse_util(struct device_node* np)
 			"lcd-kit,errflag-read-cmds-state",
 			&disp_info->pcd_errflag.read_errflag_cmds);
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return;
 }
 /*lint -restore*/
@@ -2183,6 +2186,66 @@ static int lcd_kit_power_monitor_off(void)
 	return ina231_power_monitor_off();
 }
 
+int lcd_kit_write_otp_gamma(u8 *buf)
+{
+	#define GAMMA_MAX	146
+	#define GAMMA_HEAD	0x47
+	#define GAMMA_LEN	0x0a
+	#define GAMMA_HEAD_LEN	2
+	int ret = 0;
+
+	if (disp_info->otp_gamma.support) {
+		struct hisi_fb_data_type* hisifd = NULL;
+		int i = 0;
+
+		hisifd = hisifd_list[PRIMARY_PANEL_IDX];
+		if (hisifd == NULL) {
+			LCD_KIT_ERR("hisifd is null\n");
+			return LCD_KIT_FAIL;
+		}
+		if (buf == NULL) {
+			LCD_KIT_ERR("buf is null\n");
+			return LCD_KIT_FAIL;
+		}
+		/*print gamma head and len*/
+		LCD_KIT_INFO("HEAD:0x%x, LEN:0x%x\n", buf[0], buf[1]);
+		/*verify gamma*/
+		if ((buf[0] != GAMMA_HEAD) || (buf[1] != GAMMA_LEN)) {
+			LCD_KIT_INFO("not otp gamma\n");
+			return 0;
+		}
+		/*set up gamma cmds*/
+		for (i = 0; i < (GAMMA_MAX - GAMMA_HEAD_LEN); i++) {
+			disp_info->otp_gamma.gamma_cmds.cmds->payload[i+1] = buf[i + GAMMA_HEAD_LEN];
+		}
+		down(&hisifd->blank_sem);
+		if (!hisifd->panel_power_on) {
+			LCD_KIT_ERR("panel is power off\n");
+			up(&hisifd->blank_sem);
+			return LCD_KIT_FAIL;
+		}
+		hisifb_activate_vsync(hisifd);
+		/*adjust elvss*/
+		ret = lcd_kit_dsi_cmds_tx(hisifd, &disp_info->otp_gamma.elvss_cmds);
+		if (ret) {
+			LCD_KIT_ERR("send adjust elvss cmd error\n");
+			goto error;
+		}
+		/*send otp gamma*/
+		ret = lcd_kit_dsi_cmds_tx(hisifd, &disp_info->otp_gamma.gamma_cmds);
+		if (ret) {
+			LCD_KIT_ERR("send otp gamma cmd error\n");
+			goto error;
+		}
+		/*copy to gamma buffer*/
+		memcpy(disp_info->otp_gamma.gamma, buf, GAMMA_MAX);
+error:
+		hisifb_deactivate_vsync(hisifd);
+		up(&hisifd->blank_sem);
+	}
+	return ret;
+}
+
 static int lcd_kit_set_vss_by_thermal(void)
 {
 	int ret = 0;
@@ -2283,6 +2346,7 @@ struct lcd_kit_ops g_lcd_ops = {
 	.get_panel_power_status = lcd_kit_get_power_status,
 	.power_monitor_on = lcd_kit_power_monitor_on,
 	.power_monitor_off = lcd_kit_power_monitor_off,
+	.write_otp_gamma = lcd_kit_write_otp_gamma,
 	.set_vss_by_thermal = lcd_kit_set_vss_by_thermal,
 	.write_otp_gamma = lcd_kit_write_otp_gamma,
 };

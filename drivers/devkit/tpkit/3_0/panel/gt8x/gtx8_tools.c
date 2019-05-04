@@ -164,6 +164,7 @@ static int async_read(void __user *arg)
 		TS_LOG_ERR("Read i2c failed\n");
 	}
 
+err_out:
 	if(databuf) {
 		kfree(databuf);
 		databuf = NULL;

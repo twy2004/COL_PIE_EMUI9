@@ -1487,6 +1487,7 @@ static int loadswitch_get_device_id(void)
 		hwlog_info("reg00=%x\n", reg);
 
 		reg = reg & REG0_DEV_ID;
+<<<<<<< HEAD
 		switch (reg) {
 		case DEVICE_ID_RICHTEK:
 			dev_id = loadswitch_rt9748;
@@ -1509,6 +1510,28 @@ static int loadswitch_get_device_id(void)
 		default:
 			dev_id = DEVICE_ID_GET_FAIL;
 			break;
+=======
+		hwlog_info("%s: reg00 = %x\n", __func__,reg);
+		switch(reg)
+		{
+			case DEVICE_ID_RICHTEK:
+				dev_id = loadswitch_rt9748;
+				break;
+			case DEVICE_ID_TI:
+				dev_id = loadswitch_bq25870;
+				break;
+			case DEVICE_ID_FSA:
+				dev_id = loadswitch_fair_child;
+				break;
+			case DEVICE_ID1_NXP:
+			case DEVICE_ID2_NXP:
+				dev_id = loadswitch_nxp;
+				break;
+			default:
+				dev_id = DEVICE_ID_GET_FAIL;
+				hwlog_err("%s: ls get id ERR!\n", __func__,reg);
+				break;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		}
 
 		hwlog_info("dev_id=%d\n", dev_id);
@@ -1519,6 +1542,7 @@ static int loadswitch_get_device_id(void)
 	return di->device_id;
 }
 
+<<<<<<< HEAD
 static int rt9748_charge_status(void)
 {
 	struct rt9748_device_info *di = g_rt9748_dev;
@@ -1535,6 +1559,9 @@ static int rt9748_charge_status(void)
 	return -1;
 }
 
+=======
+/*lint -save -e* */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int chip_init(void)
 {
 	int ret = 0;
@@ -1620,9 +1647,12 @@ static int rt9748_charge_exit(void)
 		hwlog_err("di is null\n");
 		return -1;
 	}
+<<<<<<< HEAD
 
 	di->chip_already_init = 0;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	ret = rt9748_charge_enable(0);
 	if (ret) {
 		hwlog_err("close fail\n");
@@ -1638,7 +1668,11 @@ static int rt9748_charge_exit(void)
 		hwlog_err("reset pull down fail\n");
 		return -1;
 	}
+<<<<<<< HEAD
 
+=======
+	di->chip_already_init = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	rt9748_init_finish_flag = RT9748_NOT_INIT;
 	rt9748_interrupt_notify_enable_flag = RT9748_DISABLE_INTERRUPT_NOTIFY;
 
@@ -1674,7 +1708,6 @@ static struct loadswitch_ops rt9748_sysinfo_ops = {
 	.is_ls_close = rt9748_is_ls_close,
 	.get_ls_id = loadswitch_get_device_id,
 	.watchdog_config_ms = rt9748_watchdog_config,
-	.ls_status = rt9748_charge_status,
 };
 
 static struct batinfo_ops rt9748_batinfo_ops = {
@@ -1810,8 +1843,11 @@ static int rt9748_probe(struct i2c_client *client,
 		return -ENOMEM;
 
 	g_rt9748_dev = di;
+<<<<<<< HEAD
 
 	di->chip_already_init = 0;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	di->dev = &client->dev;
 	np = di->dev->of_node;
 	di->client = client;

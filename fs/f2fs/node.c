@@ -29,21 +29,6 @@ static struct kmem_cache *nat_entry_slab;
 static struct kmem_cache *free_nid_slab;
 static struct kmem_cache *nat_entry_set_slab;
 
-/*
- * Check whether the given nid is within node id range.
- */
-int check_nid_range(struct f2fs_sb_info *sbi, nid_t nid)
-{
-	if (unlikely(nid < F2FS_ROOT_INO(sbi) || nid >= NM_I(sbi)->max_nid)) {
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-		f2fs_msg(sbi->sb, KERN_WARNING,
-				"%s: out-of-range nid=%x, run fsck to fix.",
-				__func__, nid);
-		return -EINVAL;
-	}
-	return 0;
-}
-
 bool available_free_memory(struct f2fs_sb_info *sbi, int type)
 {
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
@@ -1217,8 +1202,7 @@ void ra_node_page(struct f2fs_sb_info *sbi, nid_t nid)
 
 	if (!nid)
 		return;
-	if (check_nid_range(sbi, nid))
-		return;
+	f2fs_bug_on(sbi, check_nid_range(sbi, nid));
 
 	rcu_read_lock();
 	apage = radix_tree_lookup(&NODE_MAPPING(sbi)->page_tree, nid);
@@ -1244,8 +1228,7 @@ struct page *get_node_page_ex(struct f2fs_sb_info *sbi, pgoff_t nid,
 
 	if (!nid)
 		return ERR_PTR(-ENOENT);
-	if (check_nid_range(sbi, nid))
-		return ERR_PTR(-EINVAL);
+	f2fs_bug_on(sbi, check_nid_range(sbi, nid));
 repeat:
 	if (cache_only)
 		page = pch_get_page(NODE_MAPPING(sbi), nid,
@@ -1489,10 +1472,8 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 	}
 
 	if (__is_valid_data_blkaddr(ni.blk_addr) &&
-		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr, DATA_GENERIC)) {
-		up_read(&sbi->node_write);
+		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr, DATA_GENERIC))
 		goto redirty_out;
-	}
 
 	if (atomic && !test_opt(sbi, NOBARRIER))
 		fio.op_flags |= REQ_PREFLUSH | REQ_FUA;
@@ -2504,13 +2485,6 @@ retry:
 			F2FS_FITS_IN_INODE(src, le16_to_cpu(src->i_extra_isize),
 								i_projid))
 			dst->i_projid = src->i_projid;
-		/*lint -save -e574*/
-		if (f2fs_sb_has_inode_crtime(sbi->sb) &&
-			F2FS_FITS_IN_INODE(src, le16_to_cpu(src->i_extra_isize),
-							i_crtime_nsec)) {
-			dst->i_crtime = src->i_crtime;
-			dst->i_crtime_nsec = src->i_crtime_nsec;
-		}/*lint -restore*/
 	}
 
 	new_ni = old_ni;

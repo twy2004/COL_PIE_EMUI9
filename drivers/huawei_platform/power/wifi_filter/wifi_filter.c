@@ -363,9 +363,15 @@ void get_filter_info(
         spin_unlock_bh(&g_item_info.item_lock);
         return;
     }
+<<<<<<< HEAD
     if (hook != NF_INET_LOCAL_IN) {
         FILTER_LOGD("hook is %d", hook);
         spin_unlock_bh(&g_item_info.item_lock);
+=======
+    indev = state->in ? state->in->name : "";
+    if (strcmp(indev, WLAN_NAME) != 0) {
+    	 FILTER_LOGD("indevl name %s", indev);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         return;
     }
 
@@ -409,8 +415,14 @@ void get_filter_infoEx(struct sk_buff *skb)
         //add to doze table
         success = add_to_doze_table(skb);
     }
+<<<<<<< HEAD
     if (!success) {
         spin_unlock_bh(&g_item_info.item_lock);
+=======
+
+    if (strcmp(skb->dev->name, WLAN_NAME) != 0) {
+    	 FILTER_LOGD("indevl name %s", skb->dev->name);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
         return;
     }
     spin_unlock_bh(&g_item_info.item_lock);
@@ -550,6 +562,7 @@ static int __init init_kthread(void)
         WifiFilterThread = NULL;
         return err;
     }
+<<<<<<< HEAD
     reg_fb_notification();
     return 0;
 }
@@ -570,3 +583,23 @@ module_exit(exit_kthread);
 
 MODULE_AUTHOR("z00220931");
 MODULE_LICENSE("GPL");
+=======
+    return 0;  
+}  
+  
+static void __exit exit_kthread(void)  
+{  
+    if(WifiFilterThread)  
+    {  
+        FILTER_LOGI("stop MyThread");  
+        kthread_stop(WifiFilterThread);  
+    }  
+}  
+  
+module_init(init_kthread);  
+module_exit(exit_kthread);  
+  
+  
+MODULE_AUTHOR("z00220931");  
+MODULE_LICENSE("GPL");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

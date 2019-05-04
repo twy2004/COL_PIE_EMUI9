@@ -9,9 +9,12 @@
 #include <linux/hardirq.h>
 
 #include <asm/cacheflush.h>
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_LB
 extern void *lb_page_to_virt(struct page *page);
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #ifndef ARCH_HAS_FLUSH_ANON_PAGE
 static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
@@ -59,10 +62,13 @@ static inline struct page *kmap_to_page(void *addr)
 static inline void *kmap(struct page *page)
 {
 	might_sleep();
+<<<<<<< HEAD
 #ifdef CONFIG_HISI_LB
 	if (PageLB(page))
 		return lb_page_to_virt(page);
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return page_address(page);
 }
 

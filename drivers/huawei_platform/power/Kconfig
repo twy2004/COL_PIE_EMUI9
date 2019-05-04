@@ -3,6 +3,12 @@ source "drivers/huawei_platform/power/power_mesg/Kconfig"
 source "drivers/huawei_platform/power/battery/Kconfig"
 source "drivers/huawei_platform/power/coul/Kconfig"
 source "drivers/huawei_platform/power/hw_kstate/Kconfig"
+<<<<<<< HEAD
+=======
+source "drivers/huawei_platform/power/hw_ptm/Kconfig"
+source "drivers/huawei_platform/power/ate/Kconfig"
+source "drivers/huawei_platform/power/bastet/Kconfig"
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 source "drivers/huawei_platform/power/smpl/Kconfig"
 source "drivers/huawei_platform/power/usb_short_circuit_protect/Kconfig"
 source "drivers/huawei_platform/power/cpu_buck/Kconfig"
@@ -14,5 +20,9 @@ source "drivers/huawei_platform/power/wifi_filter/Kconfig"
 source "drivers/huawei_platform/power/boost_5v/Kconfig"
 source "drivers/huawei_platform/power/batt_acr_detect/Kconfig"
 source "drivers/huawei_platform/power/power_thermalzone/Kconfig"
+<<<<<<< HEAD
 source "drivers/huawei_platform/power/power_debug/Kconfig"
 source "drivers/huawei_platform/power/vsys_switch/Kconfig"
+=======
+source "drivers/huawei_platform/power/battery_temp_fitting/Kconfig"
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

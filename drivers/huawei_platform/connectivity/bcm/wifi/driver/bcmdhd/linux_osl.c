@@ -1907,10 +1907,17 @@ osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_
 	if ((map_addr > ATLANTA_CODE_ADDR_BEGIN) && (map_addr < ATLANTA_CODE_ADDR_END)) {
 		if (dma_error_count < DMA_ERROR_COUNT) {
 			dma_error_count++;
+<<<<<<< HEAD
 			printk("%s: map_addr is error, map_addr = %u, dma_error_count = %d\n", __FUNCTION__, (u32)map_addr, dma_error_count);
 			ret = 1;
 		} else {
 			printk("%s: map_addr is error and more than 5 times, map_addr = %u, dma_error_count = %d\n", __FUNCTION__, (u32)map_addr, dma_error_count);
+=======
+			printk("%s: map_addr is error, map_addr = %x, dma_error_count = %d\n", __FUNCTION__, map_addr, dma_error_count);
+			ret = 1;
+		} else {
+			printk("%s: map_addr is error and more than 5 times, map_addr = %x, dma_error_count = %d\n", __FUNCTION__, map_addr, dma_error_count);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			dma_error_count = 0;
 		}
 #ifdef HW_WIFI_DMD_LOG

@@ -6,10 +6,14 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mfd/hisi_pmic_mntn.h>
+<<<<<<< HEAD
 #include <linux/hisi/rdr_pub.h>
 #include <linux/reboot.h>
 #include <linux/hisi/mmc_trace.h>
 #include <linux/hisi/rdr_hisi_platform.h>
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #include <linux/version.h>
 #include "core.h"
 #include "bus.h"
@@ -482,8 +486,6 @@ void mmc_process_ap_err(struct mmc_card *card)
 int hisi_mmc_reset(struct mmc_host *host)
 {
 	int ret;
-	int retry = 3;
-	unsigned long timeout;
 	struct mmc_card *card = host->card;
 
 	pr_err("%s enter\n", __func__);
@@ -494,22 +496,9 @@ int hisi_mmc_reset(struct mmc_host *host)
 	if (!host->ops->hw_reset)
 		return -EOPNOTSUPP;
 
-	do {
-		if (host->is_coldboot_on_reset_fail) {
-			mmc_set_cold_reset(host);
-			timeout = jiffies + 10*60*HZ;
-			mod_timer(&host->err_handle_timer, timeout);
-		}
+	host->ops->hw_reset(host);
 
-		host->ops->hw_reset(host);
-
-		mmc_power_off(host);
-		mdelay(200);
-		mmc_power_up(host, host->card->ocr);
-
-		ret = host->bus_ops->power_restore(host);
-	} while (--retry && ret);
-
+<<<<<<< HEAD
 	if (ret) {
 		if (host->is_coldboot_on_reset_fail) {
 #ifdef CONFIG_HISI_BB
@@ -521,8 +510,14 @@ int hisi_mmc_reset(struct mmc_host *host)
 			mmc_process_ap_err(card);
 		}
 	}
+=======
+	mmc_power_off(host);
+	mdelay(200);
+	mmc_power_up(host, host->card->ocr);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
-	pr_err("%s exit\n", __func__);
+	ret = host->bus_ops->power_restore(host);
+	pr_err("%s exit,ret=%d\n", __func__, ret);
 #ifdef CONFIG_EMMC_FAULT_INJECT
 	g_mmc_reset_status = false;
 #endif

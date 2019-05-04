@@ -120,9 +120,6 @@
 	&hisi_coul_drv_test {
 		status = "ok";
 	};
-    &chg_watchdog {
-        status = "disabled";
-    };
 	&huawei_charger {
 		pd_support = <1>;
 		status = "ok";
@@ -891,7 +888,6 @@
 		gpio_codec_ssi = <204>;
 		gpio_codec_ssi_func = <1>;
 		gpio_ssi_mux = <16>; /* Chicago only */
-		hisilicon,codec-sel = "hi6403";
 		slimbusclk_io_driver = <0x5>;
 		slimbusdata_io_driver = <0x5>;
 		pm_runtime_support;
@@ -927,11 +923,14 @@
 		status = "ok";
 	};
 
+<<<<<<< HEAD
 	&sound_hi6405 {
 		compatible = "hisilicon,hi3xxx-hi6405";
 		status = "disabled";
 	};
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	&hi6210_hifi {
 		compatible = "hi6210-hifi";
 		status = "ok";
@@ -1014,9 +1013,6 @@
 			interrupts = <0x0 0x0>;
 			interrupt-names = "asp_irq_hdmi";
 		};
-	};
-	&codecssi {
-		status = "ok";
 	};
 	&slimbusmisc {
 		compatible = "candance,slimbus";

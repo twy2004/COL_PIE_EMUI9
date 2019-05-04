@@ -29,8 +29,11 @@ extern "C" {
 *****************************************************************************/
 #include "AppNasComm.h"
 #include "AppRrcInterface.h"
+<<<<<<< HEAD
 #include "NasCommPacketSer.h"
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #if (VOS_OS_VER != VOS_WIN32)
 #pragma pack(4)
@@ -45,7 +48,10 @@ extern "C" {
 /*IP地址长度宏定义*/
 #define APP_MAX_IPV4_ADDR_LEN                               4
 #define APP_MAX_IPV6_ADDR_LEN                               16
+<<<<<<< HEAD
 #define APP_ESM_PCSCF_ADDR_MAX_NUM                          (8)
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define APP_MAX_IPV6_PREFIX_LEN                             8
 
@@ -53,7 +59,10 @@ extern "C" {
 #define APP_ESM_IPV6_ADDR_LEN           (16)
 
 
+<<<<<<< HEAD
 #define APP_ESM_MAX_LENGTH_OF_APN       (100)
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define APP_MAX_APN_LEN                                     99
 #define APP_ESM_MAX_EPSB_NUM                                (11)                /*最大承载数*/
@@ -217,8 +226,11 @@ enum APP_ESM_MSG_TYPE_ENUM
     ID_APP_ESM_PDP_MANAGER_IND       = 0x6A+ESM_APP_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_MANAGER_IND_STRU*/
     ID_APP_ESM_PDP_MANAGER_RSP       = 0x6B+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_PDP_MANAGER_RSP_STRU*/
 
+<<<<<<< HEAD
     ID_APP_ESM_NR_HANDOVER_TO_LTE_IND = 0x6C+APP_ESM_MSG_ID_HEADER,/*_H2ASN_MsgChoice  APP_ESM_NR_HANDOVER_TO_LTE_IND_STRU*/
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_APP_ESM_MSG_TYPE_BUTT
 };
 typedef VOS_UINT32 APP_ESM_MSG_TYPE_ENUM_UINT32;
@@ -563,6 +575,7 @@ enum ESM_DSM_NOTIFICATION_IND_ENUM
 typedef VOS_UINT32 ESM_DSM_NOTIFICATION_IND_ENUM_UINT32;
 
 /*****************************************************************************
+<<<<<<< HEAD
  结构名称   : APP_ESM_BCM_ENUM_UINT8
  协议表格   :
  ASN.1 描述 :
@@ -591,6 +604,8 @@ typedef VOS_UINT32 APP_ESM_HANDOVER_RESULT_ENUM_UINT32;
 
 
 /*****************************************************************************
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
   5 STRUCT
 *****************************************************************************/
 /*****************************************************************************
@@ -833,6 +848,7 @@ typedef struct
 }APP_ESM_APN_INFO_STRU;
 
 /*****************************************************************************
+<<<<<<< HEAD
  结构名称   : APP_ESM_APN_STRU
  协议表格   :
  ASN.1 描述 :
@@ -846,6 +862,8 @@ typedef struct
 } APP_ESM_APN_STRU;
 
 /*****************************************************************************
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
  结构名    : APP_ESM_SET_APN_REQ_STRU
  结构说明  : APN  参数设置
 *****************************************************************************/
@@ -915,8 +933,24 @@ typedef struct
 *****************************************************************************/
 typedef struct
 {
+<<<<<<< HEAD
     VOS_UINT32                          ulDLApnAmbr;/* 上行速率值,单位KBPS */
     VOS_UINT32                          ulULApnAmbr;/* 下行速率值,单位KBPS */
+=======
+    VOS_UINT32                          bitOpDLApnAmbrExt                 : 1;
+    VOS_UINT32                          bitOpULApnAmbrExt                 : 1;
+    VOS_UINT32                          bitOpDLApnAmbrExt2                : 1;
+    VOS_UINT32                          bitOpULApnAmbrExt2                : 1;
+    VOS_UINT32                          bitOpSpare                        : 28;
+
+    VOS_UINT8                           ucDLApnAmbr;
+    VOS_UINT8                           ucULApnAmbr;
+    VOS_UINT8                           ucDLApnAmbrExt;
+    VOS_UINT8                           ucULApnAmbrExt;
+    VOS_UINT8                           ucDLApnAmbrExt2;
+    VOS_UINT8                           ucULApnAmbrExt2;
+    VOS_UINT8                           aucRsv[2];
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 }APP_ESM_APN_AMBR_INFO_STRU;
 
@@ -1048,10 +1082,17 @@ typedef struct
     VOS_UINT8                           aucRsv1[2];
     VOS_UINT8                           auAccessNum[APP_ESM_MAX_ACCESS_NUM_LEN];/*此参数保留，暂时不使用*/
     VOS_UINT8                           ucUserNameLen;
+<<<<<<< HEAD
     VOS_UINT8                           aucRsv2[3];
     VOS_UINT8                           aucUserName[APP_ESM_MAX_USER_NAME_LEN];
     VOS_UINT8                           ucPwdLen;
     VOS_UINT8                           aucRsv3[3];
+=======
+    VOS_UINT8                           aucRsv2[2];
+    VOS_UINT8                           aucUserName[APP_ESM_MAX_USER_NAME_LEN];
+    VOS_UINT8                           ucPwdLen;
+    VOS_UINT8                           aucRsv3[2];
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     VOS_UINT8                           aucPwd[APP_ESM_MAX_PASSWORD_LEN];
 }APP_ESM_GW_AUTH_INFO_STRU;
 
@@ -1673,14 +1714,18 @@ typedef struct
     APP_ESM_PDP_SETUP_TYPE_ENUM_UINT32  enSetupType;        /* 正常PDP激活还是PPP拨号导致 */
 
     VOS_UINT32                          ulCid;              /*上下文序列号，范围:0~31*/
+<<<<<<< HEAD
     VOS_UINT8                           ucPduSessionId;
     VOS_UINT8                           aucRsv[3];
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     APP_ESM_PPP_INFO_STRU               stPppInfo;          /* PPP拨号参数信息*/
     APP_ESM_BEARER_PRIO_ENUM_UINT32     enBearerPrio;       /* NAS signalling low priority标识 */
     VOS_UINT32                          ulPsCallId;         /*呼叫实体ID，范围:0~31*/
 }APP_ESM_PDP_SETUP_REQ_STRU;
 
 
+<<<<<<< HEAD
 typedef struct
 {
     VOS_UINT8                           aucPlmnId[3];
@@ -1694,6 +1739,8 @@ typedef struct
     APP_ESM_PLMN_ID_STRU                stPlmnId;
 }APP_ESM_S_NSSAI_STRU;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
  结构名    : APP_ESM_PDP_SETUP_CNF_STRU
  结构说明  : 承载建立回复消息
@@ -1720,10 +1767,14 @@ typedef struct
     VOS_UINT32                          bitOpGateWayAddrInfo :1;
     VOS_UINT32                          bitOpCustomPco       :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
     VOS_UINT32                          bitOpEpdgInfo        : 1; /* 用于R1定制需求中,把EPDG地址上报给APS时,指示是否要上报给IMSA。 1:需要 0:不需要 */
+<<<<<<< HEAD
     VOS_UINT32                          bitOpSscMode         : 1;
     VOS_UINT32                          bitOpSNssai          : 1;
     VOS_UINT32                          bitOpSessionAmbr     : 1;
     VOS_UINT32                          bitOpSpare           : 15;
+=======
+    VOS_UINT32                          bitOpSpare           : 18;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     VOS_UINT32                          ulRslt;       /*删除操作结果;取值范围:参见附录3.1*/
     VOS_UINT32                          ulLinkCid;
@@ -1742,6 +1793,7 @@ typedef struct
     APP_ESM_EPS_QOS_INFO_STRU           stSdfQosInfo;
 
     VOS_UINT8                           ucExpiredCount;     /* 发起激活的超时次数 */
+<<<<<<< HEAD
     PS_SSC_MODE_ENUM_UINT8              enSscMode;      /* 24501-9.10.4.12 */
     VOS_UINT8                           ucPduSessionId;
     VOS_UINT8                           ucReserve;
@@ -1756,6 +1808,11 @@ typedef struct
     PS_EPS_MAP_QOS_FLOW_LIST_STRU       stMapQosFlowList;
     PS_EPS_MAP_QOS_RULE_LIST_STRU       stMapQosRuleList;
 #endif
+=======
+    VOS_UINT8                           aucReserved[3];
+    APP_ESM_CUSTOM_PCO_INFO_STRU        stCustomPcoInfo;
+    APP_ESM_EPDG_INFO_STRU               stEpdgInfo;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 } APP_ESM_PDP_SETUP_CNF_STRU;
 
 
@@ -1855,8 +1912,11 @@ typedef struct
     VOS_UINT32                          ulEpsbId;
 
     APP_ESM_CUSTOM_PCO_INFO_STRU        stCustomPcoInfo;
+<<<<<<< HEAD
     VOS_UINT8                          ucPduSessionId;
     VOS_UINT8                           ucReserved[3];
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }APP_ESM_PDP_RELEASE_CNF_STRU;
 
 typedef APP_ESM_PDP_RELEASE_CNF_STRU APP_ESM_PDP_RELEASE_IND_STRU;
@@ -1959,9 +2019,12 @@ typedef struct
     VOS_UINT32                                  ulCid;
     VOS_UINT32                                  ulPsCallId;        /*呼叫实体ID，范围:0~31*/
 
+<<<<<<< HEAD
     VOS_UINT8                                   ucPduSessionId;
     VOS_UINT8                                   aucRsv[3];
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     VOS_UINT32                                  bitOpPdnType           :1;
     VOS_UINT32                                  bitOpApn               :1;
     VOS_UINT32                                  bitOpGwAuth            :1;
@@ -2008,10 +2071,14 @@ typedef struct
     VOS_UINT32                                  bitOpGateWayAddrInfo    :1;
     VOS_UINT32                                  bitOpCustomPco      :1; /* 用于VERRIZON定制需求中,把FF00H上报给APS时,指示FF00H是否需要上报。 1:需要 0:不需要 */
     VOS_UINT32                                  bitOpEpdgInfo        : 1; /* 用于R1定制需求中,把EPDG地址上报给APS时,指示是否上报给IMSA。 1:需要 0:不需要 */
+<<<<<<< HEAD
     VOS_UINT32                                  bitOpSscMode         : 1;
     VOS_UINT32                                  bitOpSNssai          : 1;
     VOS_UINT32                                  bitOpSessionAmbr     : 1;
     VOS_UINT32                                  bitOpSpare           : 16;
+=======
+    VOS_UINT32                                  bitOpSpare           : 19;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     VOS_UINT32                                  ulRslt;       /*取值范围:参见附录3.1*/
 
@@ -2030,6 +2097,7 @@ typedef struct
     APP_ESM_EPS_QOS_INFO_STRU                   stSdfQosInfo;
 
     VOS_UINT8                                   ucExpiredCount;     /* 发起激活的超时次数 */
+<<<<<<< HEAD
     PS_SSC_MODE_ENUM_UINT8                      enSscMode;      /* 24501-9.10.4.12 */
     VOS_UINT8                                   ucPduSessionId;
     VOS_UINT8                                   ucReserve;
@@ -2043,6 +2111,11 @@ typedef struct
     PS_EPS_MAP_QOS_FLOW_LIST_STRU               stMapQosFlowList;
     PS_EPS_MAP_QOS_RULE_LIST_STRU               stMapQosRuleList;
 #endif
+=======
+    VOS_UINT8                                   aucReserved[3];
+    APP_ESM_CUSTOM_PCO_INFO_STRU                stCustomPcoInfo;
+    APP_ESM_EPDG_INFO_STRU                      stEpdgInfo;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 } APP_ESM_NDISCONN_CNF_STRU;
 /*****************************************************************************
  结构名    : APP_ESM_SET_CGDCONT_REQ_STRU
@@ -2149,6 +2222,7 @@ typedef struct
     APP_ESM_INTERFACE_MSG_DATA           stMsgData;
 } AppEsmInterface_MSG;
 
+<<<<<<< HEAD
 /*****************************************************************************
  结构名称   : APP_ESM_CID_PF_STRU
  协议表格   :
@@ -2350,6 +2424,11 @@ typedef struct
     APP_ESM_CUSTOM_PCO_INFO_STRU        stCustomPcoInfo;
     APP_ESM_S_NSSAI_STRU                stSnssaiInfo;                       /* 5G S-NASSAI */
 } APP_ESM_NR_HANDOVER_TO_LTE_IND_STRU;
+=======
+
+
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 
 /*****************************************************************************
@@ -2402,6 +2481,7 @@ extern VOS_UINT32 APP_AllocPsCallIdByModemId
     MODEM_ID_ENUM_UINT16                enModemId,
     VOS_UINT8                          *pucPsCallId
 );
+<<<<<<< HEAD
 
 extern VOS_UINT32 APP_AllocPduSessionIdByModemId
 (
@@ -2415,6 +2495,8 @@ extern VOS_VOID APP_FreePduSessionIdByModemId
     VOS_UINT8                           ucPduSessionId
 );
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
   9 OTHERS
 *****************************************************************************/

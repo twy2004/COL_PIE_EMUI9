@@ -43,7 +43,10 @@
         ispsmmu-init-byap   = <0>;          /* Switch 10 for Whether Smmu Init by AP or Not */
         isp-mdc-flag        = <1>;          /* Switch 11 for Whether Use MDC or Not */
         isp-efuse-flag      = <0>;          /* Switch 12 for Whether Use efuse_deskew or Not */
+<<<<<<< HEAD
         useloadbin          = <1>;          /* Switch 13 for Whether Use load binary image or Not */
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
         /* Misc Items */
         isp-names           = "ISPCPU";     /* Name of MPU */
@@ -52,7 +55,6 @@
         mailbox-names       = "isp_mailbox";/* Name of IPC */
         isp-remap-addr      = <0x00000000>; /* Base Address for MPU Remap */
         isp-ipc-addr        = <0xC2020000>; /* Base Address for IPC Buffers(VA) */
-        isp-seckthread-nice = <10>;         /* ISP sec kthread nice value*/
 
         /* Isp Cpu Cfg */
         isp_local_timer     = <19200000>;   /* Isp Cpu Local Timer */
@@ -74,8 +76,7 @@
         clock-value         = <1200000000 480000000 110670000 600000000 480000000 400000000 0>;   	/* Clock Values for CLKLVL_TURBO */
         clkdn-normal        = <1200000000 332000000 110670000 332000000 332000000 332000000 0>;   	/* Clock Values for CLKLVL_NORMINAL, Control by usedvfs */
         clkdn-svs           = <1200000000 276670000 110670000 238000000 207500000 185000000 0>;   	/* Clock Values for CLKLVL_SVS, Control by usedvfs */
-        clkdis-need-div     = <0000000000 000000000 000000000 000000000 000000000 000000000 0>;   	/* Clock Values for CLKLVL_DISCLKDN, Control by usepowerdn_clockdn_need_div */
-        clkdis-dvfs         = <3000000000 166000000 19200000  166000000 166000000 166000000 0>;   	/* Clock Values for CLKLVL_DISCLKDN, Control by usepowerdn_clockdn */
+        clkdis-dvfs         = <300000000  166000000 19200000  166000000 166000000 166000000 0>;   	/* Clock Values for CLKLVL_DISCLKDN, Control by usepowerdn_clockdn */
         ispa7-default-clk   = <800000000>;                                                          /* Default isp Clock */
 
         /* Trusted ISP Items */

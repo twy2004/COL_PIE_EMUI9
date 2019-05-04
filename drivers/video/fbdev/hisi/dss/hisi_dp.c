@@ -30,11 +30,14 @@
 #include "hisi_dpe_utils.h"
 
 #define DTS_COMP_SWING_VALUE "hisilicon,hisi_dp_swing"
+<<<<<<< HEAD
 #define DTS_DP_AUX_SWITCH "huawei,dp_aux_switch"
 #define PERI_VOLTAGE_LEVEL0_060V		(0) // 0.60v
 #define PERI_VOLTAGE_LEVEL1_065V		(1) // 0.65v
 #define PERI_VOLTAGE_LEVEL2_070V		(2) // 0.70v
 #define PERI_VOLTAGE_LEVEL3_080V		(3) // 0.80v
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 struct platform_device *g_dp_pdev = NULL;
 static bool bpress_powerkey = false;
@@ -845,6 +848,7 @@ int dp_get_color_bit_mode(struct hisi_fb_data_type *hisifd, void __user *argp)
 	return ret;
 }
 
+<<<<<<< HEAD
 int dp_get_source_mode(struct hisi_fb_data_type *hisifd, void __user *argp)
 {
 	struct dp_ctrl *dptx;
@@ -877,6 +881,8 @@ int dp_get_source_mode(struct hisi_fb_data_type *hisifd, void __user *argp)
 	return ret;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int dp_wakeup(struct hisi_fb_data_type *hisifd)
 {
 	struct dp_ctrl *dptx;
@@ -1347,23 +1353,6 @@ static int dp_device_init(struct platform_device *pdev)
 	}
 #endif
 
-	np = of_find_compatible_node(NULL, NULL, DTS_DP_AUX_SWITCH);
-	if (!np) {
-		dptx->edid_try_count = MAX_AUX_RETRY_COUNT;
-		dptx->edid_try_delay = AUX_RETRY_DELAY_TIME;
-	} else {
-		ret = of_property_read_u32(np, "edid_try_count", &dptx->edid_try_count);
-		if (ret < 0) {
-			dptx->edid_try_count = MAX_AUX_RETRY_COUNT;
-		}
-
-		ret = of_property_read_u32(np, "edid_try_delay", &dptx->edid_try_delay);
-		if (ret < 0) {
-			dptx->edid_try_delay = AUX_RETRY_DELAY_TIME;
-		}
-	}
-	HISI_FB_INFO("[DP] edid try count=%d, delay=%d ms.\n", dptx->edid_try_count, dptx->edid_try_delay);
-
 	ret = devm_request_threaded_irq(&(pdev->dev),
 		dptx->irq, dptx_irq, dptx_threaded_irq,
 		IRQF_SHARED | IRQ_LEVEL, "dwc_dptx", (void *)hisifd);//lint !e747
@@ -1378,7 +1367,6 @@ static int dp_device_init(struct platform_device *pdev)
 #endif
 	hisifd->dp_device_srs = dp_device_srs;
 	hisifd->dp_get_color_bit_mode = dp_get_color_bit_mode;
-	hisifd->dp_get_source_mode = dp_get_source_mode;
 	hisifd->dp_pxl_ppll7_init = dp_pxl_ppll7_init;
 	hisifd->dp_wakeup = dp_wakeup;
 	HISI_FB_INFO("[DP] fb%d -.\n", hisifd->index);

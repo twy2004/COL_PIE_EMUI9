@@ -225,6 +225,7 @@ void rprocs_strip_whitelist(char *rprocs, ssize_t rprocs_len)
 	char **tokens;
 	char **final_tokens;
 
+<<<<<<< HEAD
 	tokens = kmalloc((ulong)MAX_PROC_NUM * sizeof(char *), GFP_KERNEL);
 	if (tokens == NULL) {
 		RSLogError(TAG, "no enough memory for allocation");
@@ -236,6 +237,19 @@ void rprocs_strip_whitelist(char *rprocs, ssize_t rprocs_len)
 	if (final_tokens == NULL) {
 		RSLogError(TAG, "no enough memory for allocation");
 		kfree(tokens);
+=======
+	tokens = vmalloc((ulong)MAX_PROC_NUM * sizeof(char *));
+	if (NULL == tokens) {
+		RSLogError(TAG, "no enough memory for tokens");
+		return;
+	}
+
+	final_tokens = vmalloc((ulong)MAX_PROC_NUM * sizeof(char *));
+	if (NULL == final_tokens) {
+		RSLogError(TAG, "no enough memory for final_tokens");
+		vfree(tokens);
+		tokens = NULL;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return;
 	}
 

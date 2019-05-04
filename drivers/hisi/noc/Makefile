@@ -21,7 +21,6 @@ obj-$(CONFIG_HISI_NOC) +=  hisi_noc.o             \
                            hisi_noc_info_ATLA_es.o \
                            hisi_noc_info_ATLA.o \
                            hisi_noc_info_ORLA.o \
-                           hisi_noc_info_PHOE_es.o \
-                           hisi_noc_info_PHOE.o \
+                           hisi_noc_info_PHOE_es.o
 
 obj-$(CONFIG_HISI_NOC_DBG) += hisi_noc_dbg.o

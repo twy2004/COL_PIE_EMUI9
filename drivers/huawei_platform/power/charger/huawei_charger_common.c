@@ -161,6 +161,7 @@ enum fcp_check_stage_type fcp_get_stage_status(void)
 }
 
 /**********************************************************
+<<<<<<< HEAD
 *  Function:       charge_get_charger_type
 *  Description:    get the charger type
 *  Parameters:     NULL
@@ -176,6 +177,8 @@ enum huawei_usb_charger_type charge_get_charger_type(void)
 }
 
 /**********************************************************
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 *  Function:       charge_set_charge_state
 *  Description:    set charge stop or enable
 *  Parameters:     state:0 stop 1 enable

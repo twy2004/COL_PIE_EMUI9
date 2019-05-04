@@ -1928,7 +1928,8 @@ static int32_t nvt_tddi_read_fw_open(void)
 	}
 
 	if (FLAG_EXIST == nvt_ts->nvttddi_channel_flag) {
-		if (*(nvt_ts->NvtTddi_X_Channel) > U8_MAX || *(nvt_ts->NvtTddi_Y_Channel) > U8_MAX ) {
+		if (*(nvt_ts->NvtTddi_X_Channel) > U8_MAX || *(nvt_ts->NvtTddi_X_Channel) < U8_MIN ||
+			*(nvt_ts->NvtTddi_Y_Channel) > U8_MAX || *(nvt_ts->NvtTddi_Y_Channel) < U8_MIN) {
 			TS_LOG_ERR("%s: data conversion failed!\n", __func__);
 			return -EINVAL;
 		} else {
@@ -2724,7 +2725,8 @@ int32_t nvt_kit_selftest(struct ts_rawdata_info *info)
 
 	TS_LOG_INFO("%s: nvt_ts->nvttddi_channel_flag=%d\n", __func__, nvt_ts->nvttddi_channel_flag);
 	if (FLAG_EXIST == nvt_ts->nvttddi_channel_flag) {
-		if (*(nvt_ts->NvtTddi_X_Channel) > U8_MAX || *(nvt_ts->NvtTddi_Y_Channel) > U8_MAX ) {
+		if (*(nvt_ts->NvtTddi_X_Channel) > U8_MAX || *(nvt_ts->NvtTddi_X_Channel) < U8_MIN ||
+			*(nvt_ts->NvtTddi_Y_Channel) > U8_MAX || *(nvt_ts->NvtTddi_Y_Channel) < U8_MIN) {
 			TS_LOG_ERR("%s: data conversion failed!\n", __func__);
 			return -EINVAL;
 		}else {

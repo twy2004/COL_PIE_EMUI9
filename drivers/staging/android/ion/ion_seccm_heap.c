@@ -473,7 +473,12 @@ static int ion_seccm_heap_allocate(struct ion_heap *heap,
 	}
 
 	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(paddr)), size, 0);
+<<<<<<< HEAD
 	buffer->sg_table = table;
+=======
+	buffer->priv_virt = table;
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	ion_sec_dbg("out %s paddr 0x%lx size 0x%lx heap id %u\n",
 		    __func__, paddr, size, heap->id);
 
@@ -489,7 +494,11 @@ err_free:
 static void ion_seccm_heap_free(struct ion_buffer *buffer)
 {
 	struct ion_heap *heap = buffer->heap;
+<<<<<<< HEAD
 	struct sg_table *table = buffer->sg_table;
+=======
+	struct sg_table *table = buffer->priv_virt;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	struct page *page = sg_page(table->sgl);
 	phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
 
@@ -506,7 +515,26 @@ static void ion_seccm_heap_free(struct ion_buffer *buffer)
 	ion_sec_dbg("out %s size 0x%lx heap id %u\n", __func__,
 		    buffer->size, heap->id);
 }
+<<<<<<< HEAD
 
+=======
+
+static int ion_seccm_heap_phys(struct ion_heap *heap,
+			       struct ion_buffer *buffer,
+			       ion_phys_addr_t *addr, size_t *len)
+{
+	struct sg_table *table = buffer->priv_virt;
+	struct page *page = sg_page(table->sgl);
+
+	ion_phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
+	*addr = paddr;
+	*len = buffer->size;
+
+	return 0;
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int ion_secmem_heap_phys(struct ion_heap *heap,
 		struct ion_buffer *buffer,
 		phys_addr_t *addr, size_t *len)
@@ -519,14 +547,35 @@ int ion_secmem_heap_phys(struct ion_heap *heap,
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
+=======
+	ion_phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	*addr = paddr;
 	*len = buffer->size;
 
 	return 0;
 }
+<<<<<<< HEAD
 
 static int ion_seccm_heap_map_user(struct ion_heap *heap,
 		struct ion_buffer *buffer,
+=======
+#endif
+
+static struct sg_table *ion_seccm_heap_map_dma(struct ion_heap *heap,
+					       struct ion_buffer *buffer)
+{
+	return buffer->priv_virt;
+}
+
+static void ion_seccm_heap_unmap_dma(struct ion_heap *heap,
+				     struct ion_buffer *buffer)
+{
+}
+
+static int ion_seccm_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		      struct vm_area_struct *vma)
 {
 	if (buffer->flags & ION_FLAG_SECURE_BUFFER)

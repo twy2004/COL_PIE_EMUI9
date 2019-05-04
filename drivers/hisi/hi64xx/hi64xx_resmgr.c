@@ -48,9 +48,6 @@ struct hi64xx_resmgr_priv {
 	struct mutex ibias_mutex;
 	int ibias_ref_count;
 
-	struct mutex supply_mutex;
-	int supply_ref_count;
-
 	wait_queue_head_t pll_rel_wq;
 	enum pll_rel_state pll_wait_rel[PLL_MAX];
 	struct task_struct *pll_rel_thrd;
@@ -114,34 +111,6 @@ static int _release_ibias(struct hi64xx_resmgr_priv *priv)
 		hi_cdcctrl_enable_supply(priv->cdc_ctrl, CDC_SUP_ANLG, false);
 	}
 	mutex_unlock(&priv->ibias_mutex);
-
-	return 0;
-}
-
-static int _request_supply(struct hi64xx_resmgr_priv *priv)
-{
-	mutex_lock(&priv->supply_mutex);
-	if (priv->config.enable_supply && ++priv->supply_ref_count == 1) {
-		priv->config.enable_supply(priv->codec);
-	}
-	mutex_unlock(&priv->supply_mutex);
-
-	return 0;
-}
-
-static int _release_supply(struct hi64xx_resmgr_priv *priv)
-{
-	mutex_lock(&priv->supply_mutex);
-	if (priv->supply_ref_count == 0) {
-		pr_err("release supply when reference counter is 0");
-		mutex_unlock(&priv->supply_mutex);
-		return -EINVAL;
-	}
-
-	if (priv->config.disable_supply && --priv->supply_ref_count == 0) {
-		priv->config.disable_supply(priv->codec);
-	}
-	mutex_unlock(&priv->supply_mutex);
 
 	return 0;
 }
@@ -252,7 +221,6 @@ static int _request_pll_single(struct hi64xx_resmgr_priv *priv, enum hi64xx_pll_
 		_event_notify(priv, PRE_PLL_SWITCH, &event);
 
 		if (priv->curr_pll == PLL_NONE) {
-			_request_supply(priv);
 			_request_ibias(priv);
 		} else {
 			(void)_turn_off_pll(priv, priv->curr_pll);
@@ -287,7 +255,6 @@ static int _request_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 			event.to = pll_type;
 
 			if (priv->curr_pll == PLL_NONE) {
-				_request_supply(priv);
 				_request_ibias(priv);
 				_lock_pll(priv, pll_type);
 				_event_notify(priv, PRE_PLL_SWITCH, &event);
@@ -303,7 +270,6 @@ static int _request_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 		}
 	} else {
 		if (++priv->pll_ref_count[pll_type] == 1) {
-			_request_supply(priv);
 			_request_ibias(priv);
 			_lock_pll(priv, pll_type);
 		}
@@ -351,7 +317,6 @@ static int _release_pll_single(struct hi64xx_resmgr_priv *priv, enum hi64xx_pll_
 
 		if (new_pll == PLL_NONE) {
 			_release_ibias(priv);
-			_release_supply(priv);
 		} else {
 			_lock_pll(priv, new_pll);
 		}
@@ -402,7 +367,6 @@ static int _release_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 				_event_notify(priv, POST_PLL_SWITCH, &event);
 				(void)_turn_off_pll(priv, pll_type);
 				_release_ibias(priv);
-				_release_supply(priv);
 			} else {
 				_lock_pll(priv, new_pll);
 				_event_notify(priv, PRE_PLL_SWITCH, &event);
@@ -416,7 +380,6 @@ static int _release_pll_multiple(struct hi64xx_resmgr_priv *priv, enum hi64xx_pl
 		if (--priv->pll_ref_count[pll_type] == 0) {
 			(void)_turn_off_pll(priv, pll_type);
 			_release_ibias(priv);
-			_release_supply(priv);
 		}
 	}
 
@@ -533,7 +496,6 @@ int hi64xx_resmgr_init(struct snd_soc_codec *codec,
 	mutex_init(&priv->pll_mutex);
 	mutex_init(&priv->micbias_mutex);
 	mutex_init(&priv->ibias_mutex);
-	mutex_init(&priv->supply_mutex);
 
 	wake_lock_init(&priv->wake_lock, WAKE_LOCK_SUSPEND, "hi64xx-resmgr");
 
@@ -557,7 +519,6 @@ error_exit:
 	mutex_destroy(&priv->pll_mutex);
 	mutex_destroy(&priv->micbias_mutex);
 	mutex_destroy(&priv->ibias_mutex);
-	mutex_destroy(&priv->supply_mutex);
 	wake_lock_destroy(&priv->wake_lock);
 
 	kfree(priv);
@@ -579,7 +540,6 @@ void hi64xx_resmgr_deinit(struct hi64xx_resmgr *resmgr)
 	mutex_destroy(&priv->pll_mutex);
 	mutex_destroy(&priv->micbias_mutex);
 	mutex_destroy(&priv->ibias_mutex);
-	mutex_destroy(&priv->supply_mutex);
 	wake_lock_destroy(&priv->wake_lock);
 
 	kfree(priv);

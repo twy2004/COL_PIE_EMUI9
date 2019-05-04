@@ -94,11 +94,14 @@ struct ts_kit_ops thp_ops = {
 	.ts_power_notify = thp_power_control_notify,
 };
 #endif
+<<<<<<< HEAD
 
 static int thp_spi_transfer_one_byte_bootloader(struct thp_core_data *const cd,
 										   const char *const tx_buf,
 										   char *const rx_buf,
 										   const unsigned int len);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 int thp_spi_sync(struct spi_device *spi, struct spi_message *message)
 {
@@ -340,6 +343,7 @@ int is_valid_project_id(char *id)
 	return true;
 }
 
+<<<<<<< HEAD
 
 #define GET_HWLOCK_FAIL   0
 int thp_bus_lock() {
@@ -402,6 +406,8 @@ int thp_set_spi_max_speed(unsigned int speed)
 	return rc;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int thp_wait_frame_waitq(struct thp_core_data *cd)
 {
 	int t;
@@ -451,8 +457,8 @@ int thp_set_status(int type, int status)
 	struct thp_core_data *cd = thp_get_core_data();
 
 	mutex_lock(&cd->status_mutex);
-	status ? __set_bit(type, (volatile unsigned long *)&cd->status) :
-		__clear_bit(type, (volatile unsigned long *)&cd->status);
+	status ? __set_bit(type, &cd->status) :
+		__clear_bit(type, &cd->status);
 	mutex_unlock(&cd->status_mutex);
 
 	thp_mt_wrapper_wakeup_poll();
@@ -504,12 +510,15 @@ static int thp_spi_transfer(struct thp_core_data *cd,
 		.rx_buf = rx_buf,
 		.len    = len,
 	};
-	int rc = 0;
+	int rc;
 
+<<<<<<< HEAD
 	if (cd->suspended && (!cd->need_work_in_suspend)) {
 		THP_LOG_ERR("%s - suspended\n", __func__);
+=======
+	if (cd->suspended)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return 0;
-	}
 
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfer, &msg);
@@ -599,6 +608,7 @@ static int thp_resume(struct thp_core_data *cd)
 	return 0;
 }
 
+<<<<<<< HEAD
 
 static void thp_after_resume_work_fn(struct work_struct *work)
 {
@@ -618,6 +628,8 @@ static void thp_after_resume_work_fn(struct work_struct *work)
 DECLARE_WORK(thp_after_resume_work, thp_after_resume_work_fn);
 
 #ifndef CONFIG_LCD_KIT_DRIVER
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int thp_lcdkit_notifier_callback(struct notifier_block* self,
 			unsigned long event, void* data)
 {
@@ -743,6 +755,8 @@ int thp_power_control_notify(enum lcd_kit_ts_pm_type pm_type, int timeout)
 static int thp_open(struct inode *inode, struct file *filp)
 {
 	struct thp_core_data *cd = thp_get_core_data();
+	struct thp_frame *temp;
+	struct list_head *pos, *n;
 
 	THP_LOG_INFO("%s: called\n", __func__);
 
@@ -765,15 +779,12 @@ static int thp_open(struct inode *inode, struct file *filp)
 	cd->timeout = THP_DEFATULT_TIMEOUT_MS;
 
 	/*Daemon default is  0, setting  to 1 will trigger daemon to init or restore the status.*/
-	__set_bit(THP_STAUTS_WINDOW_UPDATE, (volatile unsigned long *)&cd->status);
-	__set_bit(THP_STAUTS_TOUCH_SCENE, (volatile unsigned long *)&cd->status);
+	__set_bit(THP_STAUTS_WINDOW_UPDATE, &cd->status);
+	__set_bit(THP_STAUTS_TOUCH_SCENE, &cd->status);
 
 	THP_LOG_INFO("%s: cd->status = 0x%x\n", __func__,cd->status);
 
 	thp_clear_frame_buffer(cd);
-
-	/* restore spi config */
-	thp_set_spi_max_speed(cd->spi_config.max_speed_hz);
 
 	return 0;
 }
@@ -1089,6 +1100,7 @@ exit:
 
 static long thp_ioctl_finish_notify(unsigned long arg)
 {
+<<<<<<< HEAD
 	struct thp_core_data *cd = thp_get_core_data();
 	unsigned long event_type = arg;
 	int rc = 0;
@@ -1104,6 +1116,10 @@ static long thp_ioctl_finish_notify(unsigned long arg)
 			rc = -EINVAL;
 	}
 	return rc;
+=======
+	THP_LOG_INFO("%s: called\n", __func__);
+	return 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 static long thp_ioctl_get_frame_count(unsigned long arg)
@@ -1238,7 +1254,7 @@ static long thp_ioctl_reset(unsigned long reset)
 static long thp_ioctl_set_timeout(unsigned long arg)
 {
 	struct thp_core_data *ts = thp_get_core_data();
-	unsigned int timeout_ms = min((unsigned int)arg, THP_WAIT_MAX_TIME);
+	unsigned int timeout_ms = min(arg, THP_WAIT_MAX_TIME);
 
 	THP_LOG_INFO("set wait time %d ms.(current %dms)\n", timeout_ms, ts->timeout);
 
@@ -1275,6 +1291,7 @@ static long thp_ioctl_set_irq(unsigned long arg)
 	return 0;
 }
 
+<<<<<<< HEAD
 static long thp_ioctl_get_irq_gpio_value(unsigned long arg)
 {
 	struct thp_core_data *cd = thp_get_core_data();
@@ -1430,6 +1447,8 @@ static int thp_spi_transfer_one_byte_bootloader(struct thp_core_data *const cd,
 
 	return rc;
 }
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static long thp_ioctl_set_afe_status(void __user *data)
 {
@@ -1515,6 +1534,7 @@ static long thp_ioctl(struct file *filp, unsigned int cmd,
 	case THP_IOCTL_CMD_CLEAR_FRAME_BUFFER:
 		ret = thp_ioctl_clear_frame_buffer();
 		break;
+<<<<<<< HEAD
 
 	case THP_IOCTL_CMD_GET_IRQ_GPIO_VALUE:
 		ret = thp_ioctl_get_irq_gpio_value(arg);
@@ -1532,6 +1552,8 @@ static long thp_ioctl(struct file *filp, unsigned int cmd,
 	case THP_IOCTL_CMD_MUILTIPLE_SPI_XFRE_SYNC:
 		ret = thp_ioctl_multiple_spi_xfer_sync((void __user *)arg);
 		break;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	default:
 		THP_LOG_ERR("cmd unknown.\n");
 		ret = 0;
@@ -1722,13 +1744,15 @@ static struct thp_vendor thp_vendor_table[] = {
 	{"100", "lg"},
 	{"101", "lg"},
 	{"110", "tianma"},
+<<<<<<< HEAD
 	{"111", "tianma"},
 	{"120", "cmi"},
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	{"130", "boe"},
 	{"140", "ctc"},
 	{"160", "sharp"},
 	{"170", "auo"},
-	{"270", "tcl"},
 };
 
 static struct thp_ic_name thp_ic_table[] = {
@@ -1745,8 +1769,6 @@ static struct thp_ic_name thp_ic_table[] = {
 	{"69", "synaptics"},
 	{"71", "novatech"},
 	{"77", "novatech"},
-	{"86", "synaptics"},
-	{"88", "novatech"},
 };
 
 static int thp_projectid_to_vender_name(char *project_id,
@@ -1817,11 +1839,11 @@ static int thp_init_chip_info(struct thp_core_data *cd)
 
 	cd->project_id[THP_PROJECT_ID_LEN] = '\0';
 
-	rc = thp_projectid_to_vender_name(cd->project_id, (char **)&cd->vendor_name);
+	rc = thp_projectid_to_vender_name(cd->project_id, &cd->vendor_name);
 	if (rc)
 		THP_LOG_INFO("%s:vendor name parse fail\n", __func__);
 
-	rc = thp_projectid_to_ic_name(cd->project_id, (char **)&cd->ic_name);
+	rc = thp_projectid_to_ic_name(cd->project_id, &cd->ic_name);
 	if (rc)
 		THP_LOG_INFO("%s:ic name parse fail\n", __func__);
 	return rc;
@@ -1829,6 +1851,7 @@ static int thp_init_chip_info(struct thp_core_data *cd)
 
 static int thp_setup_irq(struct thp_core_data *cd)
 {
+<<<<<<< HEAD
 	int rc = 0;
 	int irq = 0;
 	unsigned long irq_flag_type = 0;
@@ -1849,6 +1872,10 @@ static int thp_setup_irq(struct thp_core_data *cd)
 	 */
 	current_trigger_mode =  cd->irq_flag;
 	THP_LOG_INFO("[%s] current_trigger_mode -> 0x%x\n", __func__, current_trigger_mode);
+=======
+	int rc;
+	int irq = gpio_to_irq(cd->gpios.irq_gpio);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	if (cd->support_gesture_mode) {
 		irq_flag_type = IRQF_ONESHOT | IRQF_NO_SUSPEND | current_trigger_mode;
@@ -1856,8 +1883,15 @@ static int thp_setup_irq(struct thp_core_data *cd)
 		irq_flag_type = IRQF_ONESHOT | current_trigger_mode;
 	}
 	rc = request_threaded_irq(irq, NULL,
+<<<<<<< HEAD
 				thp_irq_thread,irq_flag_type,
 				"thp", cd);
+=======
+			thp_irq_thread,
+			IRQF_TRIGGER_FALLING | IRQF_ONESHOT | cd->irq_flag,
+			"thp", cd);
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (rc) {
 		THP_LOG_ERR("%s: request irq fail\n", __func__);
 		return rc;
@@ -1921,6 +1955,22 @@ static int thp_setup_spi(struct thp_core_data *cd)
 {
 	int rc;
 
+	cd->spi_config.pl022_spi_config.cs_control = thp_spi_cs_set;
+	cd->spi_config.pl022_spi_config.hierarchy = SSP_MASTER;
+
+	if (!cd->spi_config.max_speed_hz)
+		cd->spi_config.max_speed_hz = THP_SPI_SPEED_DEFAULT;
+	if (!cd->spi_config.mode)
+		cd->spi_config.mode = SPI_MODE_0;
+	if (!cd->spi_config.bits_per_word)
+		/*spi_config.bits_per_word default value*/
+		cd->spi_config.bits_per_word = 8;
+
+	cd->sdev->mode = cd->spi_config.mode;
+	cd->sdev->max_speed_hz = cd->spi_config.max_speed_hz;
+	cd->sdev->bits_per_word = cd->spi_config.bits_per_word;
+	cd->sdev->controller_data = &cd->spi_config.pl022_spi_config;
+
 	rc = spi_setup(cd->sdev);
 	if (rc) {
 		THP_LOG_ERR("%s: spi setup fail\n", __func__);
@@ -1938,6 +1988,7 @@ int thp_set_spi_com_mode(struct thp_core_data *cd,u8 spi_com_mode)
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
 	if(spi_com_mode != SPI_DMA_MODE && spi_com_mode != SPI_POLLING_MODE){
 		THP_LOG_ERR("[%s] ->error mode\n",__func__);
 		return -EINVAL;
@@ -1949,6 +2000,57 @@ int thp_set_spi_com_mode(struct thp_core_data *cd,u8 spi_com_mode)
 	return rc;
 
 }
+=======
+int thp_set_spi_max_speed(unsigned int speed)
+{
+	struct thp_core_data *cd = thp_get_core_data();
+	cd->spi_config.max_speed_hz = speed;
+	THP_LOG_INFO("%s:set max_speed_hz %d\n", __func__, cd->spi_config.max_speed_hz);
+	thp_setup_spi(cd);
+	return 0;
+}
+
+#define GET_HWLOCK_FAIL   0
+int thp_bus_lock() {
+	int ret = 0;
+	unsigned long time = 0;
+	unsigned long timeout = 0;
+	struct thp_core_data *cd = thp_get_core_data();
+	struct hwspinlock *hwlock = cd->hwspin_lock;
+
+	mutex_lock(&cd->spi_mutex);
+	if(!cd->use_hwlock) {
+		return 0;
+	}
+
+	timeout = jiffies + msecs_to_jiffies(THP_GET_HARDWARE_TIMEOUT);
+
+	do {
+		ret = hwlock->bank->ops->trylock(hwlock);
+		if (GET_HWLOCK_FAIL == ret) {
+			time = jiffies;
+			if (time_after(time, timeout)) {
+				THP_LOG_ERR("%s:get hardware_mutex for completion timeout\n", __func__);
+				return -ETIME;
+			}
+		}
+	} while (GET_HWLOCK_FAIL == ret);
+
+	return 0;
+}
+
+void thp_bus_unlock() {
+	struct thp_core_data *cd = thp_get_core_data();
+	struct hwspinlock *hwlock = cd->hwspin_lock;
+
+	mutex_unlock(&cd->spi_mutex);
+	if(cd->use_hwlock) {
+		hwlock->bank->ops->unlock(hwlock);
+	}
+
+}
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #if defined (CONFIG_TEE_TUI)
 extern int spi_exit_secos(unsigned int spi_bus_id);
 extern int spi_init_secos(unsigned int spi_bus_id);
@@ -2197,11 +2299,9 @@ static int thp_core_init(struct thp_core_data *cd)
 	atomic_set(&cd->register_flag, 1);
 	thp_set_status(THP_STATUS_POWER, 1);
 	return 0;
-#if 0
+
 err_setip_irq:
 	thp_sysfs_release(cd);
-#endif
-
 err_init_sysfs:
 	thp_mt_wrapper_exit();
 err_init_wrapper:
@@ -2468,23 +2568,6 @@ int thp_parse_spi_config(struct device_node *spi_cfg_node,
 		pl022_spi_config->duplex = value;
 		THP_LOG_INFO("%s:duplex parsed\n", __func__);
 	}
-
-	cd->spi_config.pl022_spi_config.cs_control = thp_spi_cs_set;
-	cd->spi_config.pl022_spi_config.hierarchy = SSP_MASTER;
-
-	if (!cd->spi_config.max_speed_hz)
-		cd->spi_config.max_speed_hz = THP_SPI_SPEED_DEFAULT;
-	if (!cd->spi_config.mode)
-		cd->spi_config.mode = SPI_MODE_0;
-	if (!cd->spi_config.bits_per_word)
-		/*spi_config.bits_per_word default value*/
-		cd->spi_config.bits_per_word = 8;
-
-	cd->sdev->mode = spi_config->mode;
-	cd->sdev->max_speed_hz = spi_config->max_speed_hz;
-	cd->sdev->bits_per_word = spi_config->bits_per_word;
-	cd->sdev->controller_data = &spi_config->pl022_spi_config;
-
 	return 0;
 }
 EXPORT_SYMBOL(thp_parse_spi_config);
@@ -2568,24 +2651,6 @@ int thp_parse_timing_config(struct device_node *timing_cfg_node,
 	return 0;
 }
 EXPORT_SYMBOL(thp_parse_timing_config);
-int thp_parse_trigger_config(struct device_node *thp_node,
-			struct thp_core_data *cd)
-{
-	int rc = 0;
-	unsigned int value = 0;
-	THP_LOG_DEBUG("%s:Enter!\n",__func__);
-
-	rc = of_property_read_u32(thp_node,"irq_flag", &value);
-	if (!rc) {
-		cd->irq_flag = value;
-		THP_LOG_INFO("%s:cd->irq_flag %d\n",__func__, value);
-	}else{
-		cd->irq_flag = IRQF_TRIGGER_FALLING;
-		THP_LOG_INFO("%s:cd->irq_flag defaule =>  %d\n",__func__, cd->irq_flag);
-	}
-	return	0;
-}
-EXPORT_SYMBOL(thp_parse_trigger_config);
 
 
  int thp_parse_feature_config(struct device_node *thp_node,
@@ -2608,7 +2673,7 @@ EXPORT_SYMBOL(thp_parse_trigger_config);
 	}
 
 	cd->project_id_dummy = "dummy";
-	rc = of_property_read_string(thp_node,"project_id_dummy", (const char **)&cd->project_id_dummy);
+	rc = of_property_read_string(thp_node,"project_id_dummy", &cd->project_id_dummy);
 	if (!rc) {
 		THP_LOG_INFO("%s:project_id_dummy configed %s\n",__func__, cd->project_id_dummy);
 	}
@@ -2738,6 +2803,7 @@ static int thp_parse_config(struct thp_core_data *cd,
 {
 	int rc;
 	unsigned int value;
+	struct device_node *spi_cfg_node;
 
 	if (!thp_node) {
 		THP_LOG_ERR("%s:thp not config in dts, exit\n", __func__);
@@ -2826,7 +2892,6 @@ static int thp_probe(struct spi_device *sdev)
 		return -ENOMEM;
 	}
 
-	thp_core->sdev = sdev;
 	rc = thp_parse_config(thp_core, sdev->dev.of_node);
 	if (rc) {
 		THP_LOG_ERR("%s: parse dts fail\n", __func__);
@@ -2857,6 +2922,7 @@ static int thp_probe(struct spi_device *sdev)
 	spi_set_drvdata(sdev, thp_core);
 
 	g_thp_core = thp_core;
+	g_thp_core->sdev = sdev;
 
 	return 0;
 }

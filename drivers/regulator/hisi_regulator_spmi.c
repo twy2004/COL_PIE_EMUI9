@@ -50,12 +50,6 @@
 #define BRAND_DEBUG(args...)
 #endif
 
-#ifdef CONFIG_GCOV_KERNEL
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 struct hisi_regulator_register_info {
 	u32 ctrl_reg;
 	u32 enable_mask;
@@ -739,12 +733,12 @@ static struct spmi_driver hisi_pmic_driver = {
 	.remove	= hisi_regulator_remove,
 };
 
-STATIC int __init hisi_regulator_init(void)
+static int __init hisi_regulator_init(void)
 {
 	return spmi_driver_register(&hisi_pmic_driver);
 }
 
-STATIC void __exit hisi_regulator_exit(void)
+static void __exit hisi_regulator_exit(void)
 {
 	spmi_driver_unregister(&hisi_pmic_driver);
 }

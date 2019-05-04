@@ -24,7 +24,7 @@
 #include <huawei_platform/emcom/network_evaluation.h>
 
 #ifdef CONFIG_HUAWEI_BASTET
-#include <huawei_platform/net/bastet/bastet_utils.h>
+#include <huawei_platform/power/bastet/bastet_utils.h>
 #endif
 #include <huawei_platform/emcom/emcom_xengine.h>
 #include <linux/version.h>
@@ -996,6 +996,7 @@ int Emcom_Xengine_StopFastSyn(uint8_t *pdata, uint16_t len)
 	return 0;
 }
 
+<<<<<<< HEAD
 #ifdef CONFIG_MPTCP
 void Emcom_Xengine_MptcpSocketClosed(void *data, int len)
 {
@@ -1014,6 +1015,193 @@ void Emcom_Xengine_MptcpProxyFallback(void *data, int len)
 	emcom_send_msg2daemon(NETLINK_EMCOM_KD_MPTCP_PROXY_FALLBACK, data, len);
 }
 EXPORT_SYMBOL(Emcom_Xengine_MptcpProxyFallback);
+=======
+#ifdef CONFIG_SMART_MP
+static bool Emcom_Xengine_SmartMpUidInlist(uint32_t uid)
+{
+	struct Emcom_Xengine_SmartMpInfo *node;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(node, &smartmp_list, list) {
+		if (node->uid == uid) {
+			rcu_read_unlock();
+			return true;
+		}
+	}
+	rcu_read_unlock();
+
+	return false;
+}
+
+static uint32_t Emcom_Xengine_SmartMpGetUidByMark(uint32_t mark)
+{
+	struct Emcom_Xengine_SmartMpInfo *node;
+	uint32_t uid;
+
+	if (!mark)
+		return 0;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(node, &smartmp_list, list) {
+		if (node->mark == mark) {
+			uid = node->uid;
+			rcu_read_unlock();
+			return uid;
+		}
+	}
+	rcu_read_unlock();
+
+	return 0;
+}
+
+static void Emcom_Xengine_SmartMpAdd(uint32_t uid, uint32_t mark)
+{
+	struct Emcom_Xengine_SmartMpInfo *node;
+
+	if (!uid || !mark) {
+		EMCOM_LOGI("Para wrong: uid=%u mark=%u\n", uid, mark);
+		return;
+	}
+
+	if (Emcom_Xengine_SmartMpUidInlist(uid)) {
+		EMCOM_LOGI("uid=%u is already in the list\n", uid);
+		return;
+	}
+
+	node = kmalloc(sizeof(*node), GFP_ATOMIC);
+	if (!node) {
+		EMCOM_LOGE("kmalloc fail\n");
+		return;
+	}
+
+	node->uid = uid;
+	node->mark = mark;
+	EMCOM_LOGD("add uid=%u mark=%u\n", uid, mark);
+	list_add_rcu(&node->list, &smartmp_list);
+}
+
+static void Emcom_Xengine_SmartMpDel(uint32_t uid)
+{
+	struct Emcom_Xengine_SmartMpInfo *node;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(node, &smartmp_list, list) {
+		if (node->uid == uid ) {
+			rcu_read_unlock();
+			list_del_rcu(&node->list);
+			EMCOM_LOGD("del uid=%u\n", uid);
+			kfree(node);
+			return;
+		}
+	}
+	rcu_read_unlock();
+}
+
+static void Emcom_Xengine_SmartMpClear(void)
+{
+	struct Emcom_Xengine_SmartMpInfo *node;
+
+	while (node = list_first_or_null_rcu(&smartmp_list, struct Emcom_Xengine_SmartMpInfo, list)) {
+		list_del_rcu(&node->list);
+		EMCOM_LOGD("del uid=%u\n", node->uid);
+		kfree(node);
+	}
+}
+
+static void Emcom_Xengine_StartSmartMp(uint8_t *pdata, uint16_t len)
+{
+	uint32_t *p;
+	uint32_t uid, mark;
+
+	/*input param check*/
+	if( NULL == pdata )
+	{
+		EMCOM_LOGE("Emcom_Xengine_StartSmartMp: pdata is null");
+		return;
+	}
+
+	if (len != 2*sizeof(uint32_t)) {
+		EMCOM_LOGI("Emcom_Xengine_StartSmartMp: len %d is illegal", len);
+		return;
+	}
+
+	p = (uint32_t *)pdata;
+	uid = *p;
+	p++;
+	mark = *p;
+	Emcom_Xengine_SmartMpAdd(uid, mark);
+}
+
+static void Emcom_Xengine_StopSmartMp(uint8_t *pdata, uint16_t len)
+{
+	/*input param check*/
+	if( NULL == pdata )
+	{
+		EMCOM_LOGE("Emcom_Xengine_StopSmartMp: pdata is null");
+		return;
+	}
+
+	if (len != sizeof(uint32_t)) {
+		EMCOM_LOGI("Emcom_Xengine_StopSmartMp: len %d is illegal", len);
+		return;
+	}
+
+	Emcom_Xengine_SmartMpDel(*(uint32_t *)pdata);
+}
+
+bool Emcom_Xengine_CheckUidAccount(const struct sk_buff *skb, uint32_t *uid, const struct sock *alternate_sk, int proto)
+{
+	uint32_t new_uid;
+	const struct sock *full_sk;
+	const struct sock *smart_mp_sk;
+
+	if (!skb || !uid)
+		return false;
+
+	if (proto != IPPROTO_UDP)
+		return true;
+
+	if (Emcom_Xengine_SmartMpUidInlist(*uid)) {
+		return false;
+	} else {
+		full_sk = skb_to_full_sk(skb);
+		smart_mp_sk = full_sk ? full_sk : alternate_sk;
+		new_uid = Emcom_Xengine_SmartMpGetUidByMark(skb->mark);
+		if (!new_uid && smart_mp_sk && sk_fullsock(smart_mp_sk))
+			new_uid = Emcom_Xengine_SmartMpGetUidByMark(smart_mp_sk->sk_mark);
+
+		if (new_uid)
+			*uid = new_uid;
+	}
+	return true;
+}
+EXPORT_SYMBOL(Emcom_Xengine_CheckUidAccount);
+
+bool Emcom_Xengine_CheckIfaceAccount(const struct sock *sk, int proto)
+{
+	if (!sk || proto != IPPROTO_UDP
+	    || !Emcom_Xengine_SmartMpUidInlist(sk->sk_uid.val))
+		return true;
+	else
+		return false;
+}
+EXPORT_SYMBOL(Emcom_Xengine_CheckIfaceAccount);
+
+bool Emcom_Xengine_SmartMpEnable(void)
+{
+	if (list_first_or_null_rcu(&smartmp_list, struct Emcom_Xengine_SmartMpInfo, list))
+		return true;
+	else
+		return false;
+}
+EXPORT_SYMBOL(Emcom_Xengine_SmartMpEnable);
+
+void Emcom_Xengine_SmartMpOnDK_Connect(void)
+{
+	Emcom_Xengine_SmartMpClear();
+}
+EXPORT_SYMBOL(Emcom_Xengine_SmartMpOnDK_Connect);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif
 
 

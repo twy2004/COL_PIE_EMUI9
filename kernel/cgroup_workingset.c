@@ -371,7 +371,6 @@ struct s_readpages_control {
 
 static spinlock_t g_record_list_lock;
 static LIST_HEAD(g_record_list);
-static bool g_module_initialized;
 static unsigned g_record_cnt;
 static unsigned g_max_records_count = MAX_RECORD_COUNT_ON_1G;
 /*use to interrupt prereading process.*/
@@ -1890,6 +1889,7 @@ static void workingset_css_free(struct cgroup_subsys_state *css)
 		free_page((unsigned long)css_workingset(css));
 }
 
+<<<<<<< HEAD
 static int workingset_can_attach(struct cgroup_taskset *tset)
 {
 	return g_module_initialized ? 0 : -ENODEV;
@@ -1943,6 +1943,8 @@ static void workingset_attach(struct cgroup_taskset *tset)
 /*lint +e456*/
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #ifdef CONFIG_TASK_DELAY_ACCT
 static void workingset_blkio_monitor_wslocked(struct s_workingset *ws,
 	unsigned monitor_state)
@@ -2199,9 +2201,6 @@ static ssize_t workingset_state_write(struct kernfs_open_file *of,
 	struct cgroup_subsys_state *css;
 	struct s_workingset *ws;
 
-	if (!g_module_initialized)
-		return -ENODEV;
-
 	if (!of || !buf)
 		return -EINVAL;
 	css = of_css(of);
@@ -2240,9 +2239,6 @@ static ssize_t workingset_state_write(struct kernfs_open_file *of,
 static int workingset_state_read(struct seq_file *m, void *v)
 {
 	struct cgroup_subsys_state *css;
-
-	if (!g_module_initialized)
-		return -ENODEV;
 
 	if (!m)
 		return -EINVAL;
@@ -2313,8 +2309,12 @@ static int workingset_data_parse_owner(struct s_workingset *ws,
 	}
 	ret = strncpy_s(owner_name, len, token, len);
 	if (ret) {
+<<<<<<< HEAD
 		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		ret = -EINVAL;
+=======
+		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		goto parse_path_failed;
 	}
 
@@ -2332,8 +2332,12 @@ static int workingset_data_parse_owner(struct s_workingset *ws,
 	}
 	ret = strncpy_s(record_path, len, str, len);
 	if (ret) {
+<<<<<<< HEAD
 		pr_err("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
 		ret = -EINVAL;
+=======
+		ws_dbg("%s Line%d,ret=%d\n", __func__, __LINE__, ret);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		goto copy_path_failed;
 	}
 
@@ -2363,19 +2367,16 @@ static ssize_t workingset_data_write(struct kernfs_open_file *of,
 	int ret;
 	struct cgroup_subsys_state *css;
 
-	if (!g_module_initialized)
-		return -ENODEV;
-
 	if (!of || !buf)
-		return -EINVAL;
+		return 0;
 	css = of_css(of);
 	if (!css)
-		return -EINVAL;
+		return 0;
 
 	buf = strstrip(buf);
 	ret = workingset_data_parse_owner(css_workingset(css), buf);
 	if (ret)
-		return ret;
+		return 0;
 	else
 		return nbytes;
 }
@@ -2385,9 +2386,6 @@ static int workingset_data_read(struct seq_file *m, void *v)
 	struct cgroup_subsys_state *css;
 	struct s_workingset *ws;
 	struct s_ws_record *record;
-
-	if (!g_module_initialized)
-		return -ENODEV;
 
 	if (!m)
 		return -EINVAL;
@@ -2438,10 +2436,13 @@ struct cgroup_subsys workingset_cgrp_subsys = {
 	.css_online	= workingset_css_online,
 	.css_offline	= workingset_css_offline,
 	.css_free	= workingset_css_free,
+<<<<<<< HEAD
 	.can_attach = workingset_can_attach,
 #if KERNEL_VERSION(4, 14, 0) <= LINUX_VERSION_CODE
 	.attach = workingset_attach,
 #endif
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	.legacy_cftypes	= files,
 };
 
@@ -3804,7 +3805,7 @@ static int __init cgroup_workingset_init(void)
 		g_max_records_count = MAX_RECORD_COUNT_ON_1G;
 	ws_dbg("%s, totalram %lu pages, max count of records = %u\n",
 		__func__, totalram_pages, g_max_records_count);
-	g_module_initialized = true;
+
 	return 0;
 
 create_collector_thread_fail:
@@ -3845,6 +3846,6 @@ static void __exit cgroup_workingset_exit(void)
 	g_tfm = NULL;
 }
 
-late_initcall(cgroup_workingset_init);
+module_init(cgroup_workingset_init);
 module_exit(cgroup_workingset_exit);
 

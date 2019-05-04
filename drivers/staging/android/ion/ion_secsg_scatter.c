@@ -156,12 +156,6 @@ int __secsg_alloc_scatter(struct ion_secsg_heap *secsg_heap,
 	if (sg_alloc_table(table, nents, GFP_KERNEL))
 		goto free_table;
 
-	/*
-	 * DRM memory alloc from CMA pool.
-	 * In order to speed up the allocation, we will apply for memory
-	 * in units of 2MB, and the memory portion of less than 2MB will
-	 * be applied for one time.
-	 */
 	sg = table->sgl;
 	while (size_remaining) {
 		if (size_remaining > SZ_2M)
@@ -176,12 +170,20 @@ int __secsg_alloc_scatter(struct ion_secsg_heap *secsg_heap,
 			       __func__);
 			goto free_pages;
 		}
+<<<<<<< HEAD
 
 		/*
 		 * Before set memory in secure region, we need change kernel
 		 * pgtable from normal to device to avoid big CPU Speculative
 		 * read.
 		 */
+=======
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
+		create_mapping_late(page_to_phys(page),
+				    (unsigned long)page_address(page),
+				    alloc_size, __pgprot(PROT_DEVICE_nGnRE));
+#else
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		change_secpage_range(page_to_phys(page),
 				     (unsigned long)page_address(page),
 				     alloc_size, __pgprot(PROT_DEVICE_nGnRE));
@@ -190,19 +192,11 @@ int __secsg_alloc_scatter(struct ion_secsg_heap *secsg_heap,
 		sg = sg_next(sg);
 		i++;
 	}
-
-	/*
-	 * After change the pgtable prot, we need flush TLB and cache.
-	 */
 	flush_tlb_all();
 	ion_flush_all_cpus_caches();
 
 	buffer->sg_table = table;
 
-	/*
-	 * Send cmd to secos change the memory form normal to protect,
-	 * and record some information of the sg_list for secos va map.
-	 */
 	ret = change_scatter_prop(secsg_heap, buffer, ION_SEC_CMD_ALLOC);
 	if (ret)
 		goto free_pages;

@@ -59,9 +59,12 @@
 #define VERSION_NUM_MAX 10
 /*gamma max len, store tpic*/
 #define GAMMA_MAX	146
+<<<<<<< HEAD
 #define LCD_KIT_PCD_SIZE   3
 #define LCD_KIT_ERRFLAG_SIZE   8
 #define DMD_ERR_INFO_LEN       50
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*enum*/
 enum {
@@ -191,7 +194,6 @@ struct lcd_kit_ldo_check {
 
 struct lcd_kit_project_id {
 	u32 support;
-	char* default_project_id;
 	char id[LCD_DDIC_INFO_LEN];
 	struct lcd_kit_dsi_panel_cmds cmds;
 };
@@ -275,6 +277,7 @@ struct lcd_kit_otp_gamma {
 	struct lcd_kit_dsi_panel_cmds gamma_cmds;
 };
 
+<<<<<<< HEAD
 struct lcd_kit_vertical_line {
 	u32 support;
 	u32 test_period;
@@ -291,6 +294,8 @@ struct lcd_kit_pcd_errflag {
 	struct lcd_kit_dsi_panel_cmds read_errflag_cmds;
 };
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*function declare*/
 extern int mipi_dsi_ulps_cfg(struct hisi_fb_data_type *hisifd, int enable);
 struct hisi_fb_data_type* dev_get_hisifd(struct device* dev);
@@ -333,6 +338,9 @@ void lcd_kit_set_mipi_rx_link(struct hisi_fb_data_type *hisifd, int link_state);
 void lcd_kit_set_mipi_clk(struct hisi_fb_data_type* hisifd, uint32_t clk);
 int lcd_kit_get_value_from_dts(char *compatible, char *dts_name, u32 *value);
 int lcd_kit_write_otp_gamma(u8 *buf);
+<<<<<<< HEAD
 void lcd_frame_refresh(struct hisi_fb_data_type *hisifd);
 void lcd_kit_recovery_display(struct hisi_fb_data_type *hisifd);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif

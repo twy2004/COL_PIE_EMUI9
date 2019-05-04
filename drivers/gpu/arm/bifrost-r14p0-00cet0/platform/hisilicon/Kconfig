@@ -53,6 +53,7 @@ config HISI_GPU_CORESWITCH
 	default n
 	help
 		enable cores shutdown when low utilisation at low frequency to save power
+<<<<<<< HEAD
 
 config MALI_LAST_BUFFER
 	bool "Last buffer"
@@ -60,3 +61,5 @@ config MALI_LAST_BUFFER
 	default n
 	help
 	  Select  this option to enable last buffer support.
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

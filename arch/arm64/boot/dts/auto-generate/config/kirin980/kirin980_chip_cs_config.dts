@@ -66,6 +66,8 @@
 /include/ "huawei_bastet.dtsi"
 /include/ "hisi_soh.dtsi"
 /include/ "kirin980_coresight_noc_stm.dtsi"
+/include/ "desayatl_3900_39k_4400_polar.dtsi"
+/include/ "sunwodasony_3900_110k_4400_15_polar.dtsi"
 /include/ "huawei_antenna_board_match.dtsi"
 /include/ "huawei_vsys_switch.dtsi"
 /include/ "huawei_kb.dtsi"
@@ -177,15 +179,9 @@
 	};
 	desayatl_3900_39k_4400_polar: desayatl_3900_39k_4400_polar {
 	};
-	scudlg_3900_200k_4400_25_polar: scudlg_3900_200k_4400_25_polar {
-	};
-	sunwodasony_3900_110k_4400_15_polar: sunwodasony_3900_110k_4400_15_polar {
-	};
 	desayyatl_3400_22k_4400: desayyatl_3400_22k_4400 {
 	};
 	desaylg_3400_snYL_4400_25: desaylg_3400_snYL_4400_25 {
-	};
-	desayatl_3400_snYA_4400_25: desayatl_3400_snYA_4400_25 {
 	};
 	sunwodaatl_3400_snIA_4400_25: sunwodaatl_3400_snIA_4400_25 {
 	};
@@ -209,12 +205,16 @@
 	};
 	sunwodamurata_4900_110k_4400: sunwodamurata_4900_110k_4400 {
 	};
+<<<<<<< HEAD
 	sunwodamurata_4900_110k_4400_38: sunwodamurata_4900_110k_4400_38 {
 	};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	desayatl_3400_snYT_4400_25: desayatl_3400_snYT_4400_25 {
 	};
 	sunwodaatl_3400_snIT_4400_25: sunwodaatl_3400_snIT_4400_25 {
 	};
+<<<<<<< HEAD
 	scudguangyu_4900_22k_4400: scudguangyu_4900_22k_4400 {
 	};
 	scudguangyu_4900_22k_4400_32: scudguangyu_4900_22k_4400_32 {
@@ -255,16 +255,25 @@
 	};
 	sunwodaguangyu_7350_22k_4400:sunwodaguangyu_7350_22k_4400 {
 	};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	hisi_bci_battery:battery {
 	};
 	coul_core:coul_core {
 	};
 	coul_polar: coul_polar {
+		compatible = "hisi,coul_polar";
+		fifo_interval = <250>;
+		fifo_depth = <10>;
+		polar_batt_cnt = <2>;
+		polar_batt_name = <&desayatl_3900_39k_4400_polar &sunwodasony_3900_110k_4400_15_polar>;
+		status = "ok";
 	};
 	hisi_coul_drv_test:hisi_coul_test {
 	};
 	hw_pmucurr_test: hw,pmucurr_test {
 	};
+<<<<<<< HEAD
 	chg_watchdog: chg_watchdog {
     };
 	vbus_channel_charger: vbus_channel_charger {
@@ -272,6 +281,9 @@
 	vbus_channel_boost_gpio: vbus_channel_boost_gpio {
 	};
     huawei_charger: huawei_charger {
+=======
+	huawei_charger: huawei_charger {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	};
 	charging_core:charging_core {
 	};
@@ -597,8 +609,6 @@
 
 	asp_irq: asp_irq@E804E000{
 	};
-	codecssi: codecssi@0xe82b9000 {
-	};
 	slimbusmisc: slimbusmisc@0xe8050000 {
 	};
 	slimbus_dai: slimbus_dai@0 {
@@ -865,9 +875,6 @@
 	huawei_imx576:huawei,imx576{
 	};
 
-    huawei_imx616:huawei,imx616{
-	};
-
 	huawei_imx386hybrid: huawei,imx386hybrid {
 	};
 
@@ -879,12 +886,8 @@
 
 	huawei_ov08a10: huawei,ov08a10 {
 	};
-	huawei_imx600imx350t:huawei,imx600imx350t{
-	};
-	huawei_imx600hybrid:huawei,imx600hybrid{
-	};
 
-	huawei_imx600imx351hybrid:huawei,imx600imx351hybrid{
+	huawei_imx600hybrid:huawei,imx600hybrid{
 	};
 
 	huawei_imx600front:huawei,imx600front{
@@ -893,19 +896,11 @@
 	huawei_ov9282: huawei,ov9282 {
 	};
 
-	huawei_imx520: huawei,imx520 {
-	};
-
-	huawei_imx316v: huawei,imx316v {
-	};
-
 	huawei_imx355: huawei,imx355 {
 	};
 
-    huawei_ov9286: huawei,ov9286 {
-    };
-	huawei_imx580: huawei,imx580 {
-    };
+        huawei_ov9286: huawei,ov9286 {
+        };
 
 	huawei_imx498imx550hybird: huawei,imx498imx550hybird {
 	};
@@ -1040,9 +1035,6 @@
 
 	/*nfc*/
 	nfc_exist: nfc_exist {
-	};
-
-	ese_config: ese_config {
 	};
 
 	/*antenna boardid*/

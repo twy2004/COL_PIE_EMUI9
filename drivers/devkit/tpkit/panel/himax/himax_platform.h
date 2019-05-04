@@ -32,6 +32,8 @@
 #endif
 
 
+#include <huawei_platform/touchscreen/hw_tp_common.h>
+
 #define CONFIG_TOUCHSCREEN_HIMAX_DEBUG
 
 

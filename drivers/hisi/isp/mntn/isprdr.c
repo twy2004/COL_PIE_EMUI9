@@ -431,6 +431,7 @@ err:
     return -ENOMEM;
 }
 
+
 int rdr_isp_init(void)
 {
     struct rdr_isp_device *dev = &rdr_isp_dev;
@@ -493,4 +494,3 @@ void rdr_isp_exit(void)
 }
 
 MODULE_LICENSE("GPL v2");
-

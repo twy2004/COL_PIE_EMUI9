@@ -30,9 +30,6 @@ const struct trace_print_flags pageflag_names[] = {
 #ifdef CONFIG_TASK_PROTECT_LRU
 	{1UL << PG_protect,		"protect"	},
 #endif
-#ifdef CONFIG_HISI_LB
-	{1UL << PG_lb,                  "lb"            },
-#endif
 	{0, NULL}
 };
 
@@ -101,7 +98,7 @@ EXPORT_SYMBOL(dump_vma);
 
 void dump_mm(const struct mm_struct *mm)
 {
-	pr_emerg("mm %p mmap %p seqnum %llu task_size %lu\n"
+	pr_emerg("mm %p mmap %p seqnum %d task_size %lu\n"
 #ifdef CONFIG_MMU
 		"get_unmapped_area %p\n"
 #endif
@@ -131,7 +128,7 @@ void dump_mm(const struct mm_struct *mm)
 #endif
 		"def_flags: %#lx(%pGv)\n",
 
-		mm, mm->mmap, (long long) mm->vmacache_seqnum, mm->task_size,
+		mm, mm->mmap, mm->vmacache_seqnum, mm->task_size,
 #ifdef CONFIG_MMU
 		mm->get_unmapped_area,
 #endif

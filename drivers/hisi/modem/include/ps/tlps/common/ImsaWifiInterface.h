@@ -58,7 +58,11 @@ extern "C" {
 #define  WIFI_IMSA_SSID_LEN             33
 #define  IMSA_WIFI_MAX_IPV4_EPDG_NUM            2
 #define  IMSA_WIFI_MAX_IPV6_EPDG_NUM            2
+<<<<<<< HEAD
 #define WIFI_PCSCF_ADDR_MAX_NUM                 4
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
   3 Massage Declare
 *****************************************************************************/
@@ -101,8 +105,11 @@ enum WIFI_IMSA_MSG_ID_ENUM
 
     ID_WIFI_IMSA_VOWIFI_SWITCH_IND       = 0x000B,         /* _H2ASN_MsgChoice WIFI_IMSA_VOWIFI_SWITCH_IND_STRU */
     ID_WIFI_IMSA_RTP_FAIL_IND             = 0x000C,         /* _H2ASN_MsgChoice WIFI_IMSA_RTP_FAIL_IND_STRU */
+<<<<<<< HEAD
     ID_WIFI_IMSA_IMS_PDN_MODIFY_IND       = 0X000D,         /* _H2ASN_MsgChoice WIFI_IMSA_IMS_MODIFY_IND_STRU */
     ID_WIFI_IMSA_IMS_PDN_ACTIVATE_CNF_V1  = 0x000E,         /* _H2ASN_MsgChoice WIFI_IMSA_IMS_PDN_ACTIVATE_CNF_V1_STRU*/
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     /* IMSA发给WIFI的消息 */
     ID_IMSA_WIFI_POWERON_CNF            = 0x0100,           /* _H2ASN_MsgChoice IMSA_WIFI_POWERON_CNF_STRU */
@@ -124,7 +131,10 @@ enum WIFI_IMSA_MSG_ID_ENUM
     ID_IMSA_WIFI_THRESHOLD_CONF_NTF     = 0x010C,           /* _H2ASN_MsgChoice IMSA_WIFI_THRESHOLD_CONF_NTF_STRU */
     ID_IMSA_WIFI_RTT_INFO_IND           = 0x010D,
     ID_IMSA_WIFI_NV_REFRESH_IND         = 0x010e,           /* _H2ASN_MsgChoice IMSA_WIFI_NV_REFRESH_IND_STRU*/
+<<<<<<< HEAD
     ID_IMSA_WIFI_IMS_PDN_ACTIVATE_REQ_V1= 0x010f,           /* _H2ASN_MsgChoice IMSA_WIFI_IMS_PDN_ACTIVATE_REQ_V1_STRU*/
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     ID_WIFI_IMSA_MSG_BUTT
 };
 typedef VOS_INT32 WIFI_IMSA_MSG_ID_ENUM_INT32;
@@ -361,7 +371,10 @@ enum WIFI_IMSA_PDN_DEACT_CAUSE_ENUM
     WIFI_IMSA_PDN_DEACT_CAUSE_REKEY_ERROR,                    /* REKEY失败 */
     WIFI_IMSA_PDN_DEACT_CAUSE_MAPCON_TEAR,                    /* MAPCON自主释放隧道 */
     WIFI_IMSA_PDN_DEACT_CAUSE_BEARS_CONCURRENT_NOT_SUPPORT, /*不支持承载并发*/
+<<<<<<< HEAD
     WIFI_IMSA_PDN_DEACT_CAUSE_REACTIVATION_REQUESTED,         /* PCSCF Restoration */
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     WIFI_IMSA_PDN_DEACT_CAUSE_BUTT
 };
@@ -432,6 +445,7 @@ enum IMSA_WIFI_INTER_ROAMING_STATUS_ENUM
 typedef VOS_INT8 IMSA_WIFI_INTER_ROAMING_STATUS_ENUM_INT8;
 
 /*****************************************************************************
+<<<<<<< HEAD
  结构名称: WIFI_IMSA_PDN_MODIFY_TYPE_ENUM
  结构说明: WIFI PDN修改类型
 *****************************************************************************/
@@ -445,6 +459,8 @@ enum WIFI_IMSA_PDN_MODIFY_TYPE_ENUM
 typedef VOS_INT8 WIFI_IMSA_PDN_MODIFY_TYPE_ENUM_INT8;
 
 /*****************************************************************************
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
   5 STRUCT
 *****************************************************************************/
 /*****************************************************************************
@@ -702,6 +718,7 @@ typedef struct
     VOS_INT8                           acReserve[4];
 } IMSA_WIFI_POWEROFF_CNF_STRU;
 
+<<<<<<< HEAD
 /*****************************************************************************
  结构名称: IMSA_WIFI_PDP_IPV4_PCSCF_V1_STRU
  结构说明: IPv4 P-CSCF地址结构体
@@ -792,6 +809,9 @@ typedef struct
     IMSA_WIFI_PDP_IPV6_PCSCF_V1_STRU    stIPv6PcscfV1;
     IMSA_WIFI_AP_MAC_STRU               stApMac;
 }WIFI_IMSA_IMS_PDN_MODIFY_IND_STRU;
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
  结构名称: IMSA_WIFI_IMS_PDN_ACTIVATE_REQ_STRU

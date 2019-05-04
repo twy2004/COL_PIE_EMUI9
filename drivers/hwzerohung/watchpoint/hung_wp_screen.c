@@ -594,7 +594,7 @@ void hung_wp_screen_powerkey_ncb(unsigned long event)
 #ifndef HUNG_WP_FACTORY_MODE
     static int check_off = 0;
     int volkeys = 0;
-    unsigned int vkeys_pressed_tmp = 0;
+	unsigned int vkeys_pressed = 0;
     unsigned long flags;
 
     if (!init_done) {
@@ -616,7 +616,10 @@ void hung_wp_screen_powerkey_ncb(unsigned long event)
 #else
     volkeys = hung_wp_screen_qcom_vkey_get();
 #endif
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     spin_lock_irqsave(&(data.lock), flags);
     if (WP_SCREEN_PWK_PRESS == event) {
         printk(KERN_ERR "%s: hung_wp_screen_%d start ! "
@@ -644,9 +647,9 @@ void hung_wp_screen_powerkey_ncb(unsigned long event)
         del_timer(&data.long_press_timer);
 #endif
         if (WP_SCREEN_PWK_RELEASE == event && 0 == volkeys) {
-			vkeys_pressed_tmp = hung_wp_screen_has_vkeys_pressed();
-			if (vkeys_pressed_tmp)
-				printk(KERN_ERR "%s: vkeys_pressed_tmp:0x%x\n",__func__,vkeys_pressed_tmp);
+			vkeys_pressed = hung_wp_screen_has_vkeys_pressed();
+			if (vkeys_pressed)
+				printk(KERN_ERR "%s: vkeys_pressed:0x%x\n",__func__,vkeys_pressed);
 			else
 				hung_wp_screen_start(ZRHUNG_WP_SCREENOFF);
         }

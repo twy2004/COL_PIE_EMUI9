@@ -39,6 +39,7 @@ static int kcode_verify_ranges(void)
 	g_memrange_size = 0;
 	for (range = ranges; range->start != NULL; range++) {
 		if (range->end <= range->start) {
+<<<<<<< HEAD
 			RSLogError(TAG, "range error 1, start=%pK, end=%pK",
 				range->start, range->end);
 			return 1;
@@ -56,6 +57,24 @@ static int kcode_verify_ranges(void)
 		if ((ptr != NULL) && (range->start <= ptr)) {
 			RSLogError(TAG, "range error 3, prev=%pK, start=%pK",
 				ptr, range->start);
+=======
+			RSLogError(TAG, "range error 1, start=%p, end=%p",
+						range->start, range->end);
+			return 1;
+		}
+
+		if ((unsigned)((range->end - range->start) - 1) > MAX_CODE_SIZE ||
+		    (uintptr_t)range->start % 4 ||
+		    (uintptr_t)range->end % 4) {
+			RSLogError(TAG, "range error 2, start=%p, end=%p",
+						range->start, range->end);
+			return 1;
+		}
+
+		if ((NULL != ptr) && range->start <= ptr) {
+			RSLogError(TAG, "range error 3, prev=%p, start=%p",
+						ptr, range->start);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			return 1;
 		}
 		ptr = range->end;
@@ -74,6 +93,11 @@ int kcode_scan(uint8_t *hash)
 {
 	int i;
 	int err;
+
+	if (memrange_size == 0)
+		if (kcode_verify_ranges())
+			return -ENOMEM;
+
 	struct crypto_shash *tfm = crypto_alloc_shash("sha256", 0, 0);
 
 	SHASH_DESC_ON_STACK(shash, tfm);
@@ -84,6 +108,7 @@ int kcode_scan(uint8_t *hash)
 		return -ENOMEM;
 	}
 
+<<<<<<< HEAD
 	if (g_memrange_size == 0) {
 		if (kcode_verify_ranges()) {
 			crypto_free_shash(tfm);
@@ -91,6 +116,8 @@ int kcode_scan(uint8_t *hash)
 		}
 	}
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	shash->tfm = tfm;
 	shash->flags = 0;
 
@@ -124,7 +151,6 @@ void kcode_copy(char *buffer)
 
 int kcode_syscall_scan(uint8_t *hash)
 {
-	size_t size;
 	void *ptr = (void *)sys_call_table;
 	int err;
 	struct crypto_shash *tfm = crypto_alloc_shash("sha256", 0, 0);
@@ -148,7 +174,7 @@ int kcode_syscall_scan(uint8_t *hash)
 	}
 
 	/* define NR_syscalls as 326 */
-	size = NR_syscalls * sizeof(void *);
+	size_t size = NR_syscalls * sizeof(void *);
 
 	crypto_shash_update(shash, (char *)ptr, (unsigned int)size);
 	err = crypto_shash_final(shash, (u8 *)hash);

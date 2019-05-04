@@ -41,6 +41,7 @@ int check_match_by_adc(void)
 	return ret;
 }
 
+<<<<<<< HEAD
 int get_voltage_by_adc(void)
 {
 	int voltage = 0;
@@ -51,6 +52,8 @@ int get_voltage_by_adc(void)
 	return voltage;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*lint -save -e* */
 static void parse_dts(struct antenna_adc_match_info *di)
 {
@@ -77,8 +80,12 @@ static void parse_dts(struct antenna_adc_match_info *di)
 }
 
 struct antenna_device_ops adc_match_ops = {
+<<<<<<< HEAD
 	.get_antenna_match_status = check_match_by_adc,
 	.get_antenna_board_voltage = get_voltage_by_adc,
+=======
+    .get_antenna_match_status = check_match_by_adc,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 static int antenna_board_adc_probe(struct platform_device *pdev)

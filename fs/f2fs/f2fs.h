@@ -100,13 +100,6 @@ struct need_fsck_work_struct {
 #endif
 #endif
 
-#define f2fs_restart() do { \
-	if (system_state > SYSTEM_RUNNING) \
-		WARN_ON(1); \
-	else \
-		BUG_ON(1); \
-} while (0)
-
 #ifdef CONFIG_F2FS_FAULT_INJECTION
 enum {
 	FAULT_KMALLOC,
@@ -728,7 +721,6 @@ struct extent_tree {
 	struct list_head list;		/* to be used by sbi->zombie_list */
 	rwlock_t lock;			/* protect extent info rb-tree */
 	atomic_t node_cnt;		/* # of extent node in rb-tree*/
-	bool largest_updated;		/* largest extent updated */
 };
 
 /*
@@ -755,7 +747,6 @@ enum {
 	F2FS_GET_BLOCK_DEFAULT,
 	F2FS_GET_BLOCK_FIEMAP,
 	F2FS_GET_BLOCK_BMAP,
-	F2FS_GET_BLOCK_DIO,
 	F2FS_GET_BLOCK_PRE_DIO,
 	F2FS_GET_BLOCK_PRE_AIO,
 };
@@ -909,12 +900,12 @@ static inline bool __is_front_mergeable(struct extent_info *cur,
 }
 
 extern void f2fs_mark_inode_dirty_sync(struct inode *inode, bool sync);
-static inline void __try_update_largest_extent(struct extent_tree *et,
-						struct extent_node *en)
+static inline void __try_update_largest_extent(struct inode *inode,
+			struct extent_tree *et, struct extent_node *en)
 {
 	if (en->ei.len > et->largest.len) {
 		et->largest = en->ei;
-		et->largest_updated = true;
+		f2fs_mark_inode_dirty_sync(inode, true);
 	}
 }
 
@@ -1333,6 +1324,7 @@ struct f2fs_hot_cold_params {
 	unsigned int warm_node_waterline;
 };
 
+<<<<<<< HEAD
 enum gc_test_type {
 	GC_TEST_DISABLE_IO_AWARE,
 	GC_TEST_DISABLE_SYNCFS,
@@ -1342,6 +1334,8 @@ enum gc_test_type {
 };
 #define is_gc_test_set(sbi, type) ((sbi)->gc_test_cond & (1 << (type)))
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 struct f2fs_sb_info {
 	struct super_block *sb;			/* pointer to VFS super block */
 	struct proc_dir_entry *s_proc;		/* proc entry */
@@ -1428,7 +1422,6 @@ struct f2fs_sb_info {
 	int active_logs;			/* # of active logs */
 	int dir_level;				/* directory level */
 	int readdir_ra;				/* readahead in readdir */
-	unsigned int gc_test_cond;		/* condition for gc test */
 	int inline_xattr_size;			/* inline xattr size */
 	unsigned int trigger_ssr_threshold;	/* threshold to trigger ssr */
 
@@ -1985,6 +1978,18 @@ static inline bool __exist_node_summaries(struct f2fs_sb_info *sbi)
 {
 	return (is_set_ckpt_flags(sbi, CP_UMOUNT_FLAG) ||
 			is_set_ckpt_flags(sbi, CP_FASTBOOT_FLAG));
+}
+
+/*
+ * Check whether the given nid is within node id range.
+ */
+static inline int check_nid_range(struct f2fs_sb_info *sbi, nid_t nid)
+{
+	if (unlikely(nid < F2FS_ROOT_INO(sbi)))
+		return -EINVAL;
+	if (unlikely(nid >= NM_I(sbi)->max_nid))
+		return -EINVAL;
+	return 0;
 }
 
 /*
@@ -3211,6 +3216,7 @@ int f2fs_sync_fs(struct super_block *sb, int sync);
 extern __printf(3, 4)
 void f2fs_msg(struct super_block *sb, const char *level, const char *fmt, ...);
 int sanity_check_ckpt(struct f2fs_sb_info *sbi);
+extern void f2fs_add_restart_wq(void);
 
 /*
  * hash.c
@@ -3224,7 +3230,6 @@ f2fs_hash_t f2fs_dentry_hash(const struct qstr *name_info,
 struct dnode_of_data;
 struct node_info;
 
-int check_nid_range(struct f2fs_sb_info *sbi, nid_t nid);
 bool available_free_memory(struct f2fs_sb_info *sbi, int type);
 int need_dentry_mark(struct f2fs_sb_info *sbi, nid_t nid);
 bool is_checkpointed_node(struct f2fs_sb_info *sbi, nid_t nid);
@@ -3330,9 +3335,7 @@ int allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 			int contig_level);
 void f2fs_wait_on_page_writeback(struct page *page,
 			enum page_type type, bool ordered);
-void f2fs_wait_on_block_writeback(struct inode *inode, block_t blkaddr);
-void f2fs_wait_on_block_writeback_range(struct inode *inode, block_t blkaddr,
-								block_t len);
+void f2fs_wait_on_block_writeback(struct f2fs_sb_info *sbi, block_t blkaddr);
 void init_virtual_curseg(struct f2fs_sb_info *sbi);
 void write_data_summaries(struct f2fs_sb_info *sbi, block_t start_blk);
 void write_node_summaries(struct f2fs_sb_info *sbi, block_t start_blk);

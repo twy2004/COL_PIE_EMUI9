@@ -720,8 +720,6 @@
 
 		spi@fff2a000 {
 			status = "ok";
-			hardware-mutex = <0x01>;
-			smc-flag = <0x01>;
 			clock-rate = <0 83000000>;
 			pinctrl-names = "default", "idle";
 			pinctrl-0 = <&gpio233_pmx_func &gpio234_pmx_func &gpio235_pmx_func &gpio236_pmx_func &gpio237_pmx_func &gpio233_cfg_func &gpio234_cfg_func &gpio235_cfg_func &gpio236_cfg_func &gpio237_cfg_func>;
@@ -1382,8 +1380,6 @@
 	&dp_aux_switch {
 		compatible = "huawei,dp_aux_switch";
 		cs-gpios = <&gpio17 1 0>, <&gpio26 0 0>;/*gpio 137, gpio 208*/
-		edid_try_count = <20>;  /* edid read times */
-		edid_try_delay = <100>; /* unit: ms */
 		status = "ok";
 	};
 
@@ -1429,7 +1425,6 @@
 				hisilicon,hs_extern_cable_min_voltage = <2651>;
 				hisilicon,hs_extern_cable_max_voltage = <2700>;
 				hs_detect_extern_cable = <1>;
-				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -1665,16 +1660,18 @@
 
 	&deviceboxID {
 		check_mode = "gpio";
-		box_num = <1>;
-		enable_boxID = <1 0 0 0>;
-		gpio_num = <1 0 0 0>;
-		gpio_speakerID = <&gpio22 5 0>;
-		speaker_map = <6 1>;/*1 means AAC, 2 means GEER*/
+		box_num = <2>;
+		enable_boxID = <1 1 0 0>;
+		gpio_num = <1 1 0 0>;
+		gpio_speakerID = <&gpio22 3 0>;
+		gpio_receiverID = <&gpio22 2 0>;
+		speaker_map = <1 2>;/*1 means AAC, 2 means GEER*/
+		receiver_map = <1 2>;/*1 means AAC, 2 means GEER*/
 		pinctrl-names = "default", "idle";
-		pinctrl-0 = <&gpio181_pmx_func &gpio181_cfg_func>;
-		pinctrl-1 = <&gpio181_pmx_idle &gpio181_cfg_idle>;
+		pinctrl-0 = <&gpio179_pmx_func &gpio179_cfg_func &gpio178_pmx_func &gpio178_cfg_func>;
+		pinctrl-1 = <&gpio179_pmx_idle &gpio179_cfg_idle &gpio178_pmx_idle &gpio178_cfg_idle>;
 		deviceboxID_limit = <500>;
-		status = "ok";
+		status = "disabled";
 	};
 
 	&smartpakit {
@@ -2548,7 +2545,7 @@
 		huawei,phy_work_mode = <0>;
 		clocks = <&clk_gate_rxdphy1_cfg &clk_gate_isp_snclk1>;
 		clock-names = "clk_rxdphy1_cfg", "clk_isp_snclk1";
-		huawei,mclk = <19200000>;
+		huawei,mclk = <24000000>;
 		huawei,rxdphyclk = <80000000>;
 		huawei,phyclk = <80000000>;
 		phy-clock-num = <1>;

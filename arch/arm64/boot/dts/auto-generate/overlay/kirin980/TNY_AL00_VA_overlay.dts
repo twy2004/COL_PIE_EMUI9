@@ -22,7 +22,7 @@
 /include/ "lcdkit3.0/tny/devkit_lcd_kit.dtsi"
 /include/ "desayatl_3400_snYT_4400_25.dtsi"
 /include/ "sunwodaatl_3400_snIT_4400_25.dtsi"
-/include/ "desayatl_3400_snYA_4400_25.dtsi"
+
 
 / {
     board_id = <8911>;
@@ -224,9 +224,9 @@
 };
 
 &fastboot_pmic {
-	hisilicon,init-reg-num = <4>;
-	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E 0x02E9>;
-	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4 0x06>;
+	hisilicon,init-reg-num = <3>;
+	hisilicon,init-reg-addrs = <0x18C 0x1BC 0x19E>;
+	hisilicon,init-reg-vals  = <0x1 0xF5 0xE4>;
 };
 
 	&rootparam {
@@ -380,7 +380,7 @@
 		status = "ok";
 	};
 	&hisi_battery {
-		batt_name = <&sunwodaatl_3400_snIA_4400_25 &desaylg_3400_snYL_4400_25 &desayatl_3400_snYT_4400_25 &sunwodaatl_3400_snIT_4400_25 &desayatl_3400_snYA_4400_25>;
+		batt_name = <&sunwodaatl_3400_snIA_4400_25 &desaylg_3400_snYL_4400_25 &desayatl_3400_snYT_4400_25 &sunwodaatl_3400_snIT_4400_25>;
 		status = "ok";
 	};
 	&hisi_bci_battery {
@@ -1693,7 +1693,6 @@
 			hi6403_codec: hi6403_codec@0{
 				hisilicon,mic_num = <2>;
 				hisilicon,hs_4_pole_min_voltage = <900>;
-				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -2172,7 +2171,6 @@
 		eye_diagram_host_param = <0x37DE7E7>;
 		host-maximum-speed = "high-speed";
 		usb_support_dp = <1>;
-		usb_firmware_es = <0>;
 		quirk_enable_hst_imm_retry;
 		quirk_disable_rx_thres_cfg;
 		quirk_disable_usb2phy_suspend;
@@ -2282,7 +2280,7 @@
 		};
 		proximity{
 			ps1{
-				compatible="huawei,txc-pa224";
+				compatible="huawei,txc_pa224";
 				reg=<0x1e>;
 				chip_id_register=<0x7F>;
 				chip_id_value=<0x11>;
@@ -2303,7 +2301,7 @@
 				vendor="txc";
 			};
 			ps2{
-				compatible="huawei,avago-apds9110";
+				compatible="huawei,avago_apds9110";
 				bus_number=<0>;
 				reg=<0x53>;
 				chip_id_register=<0x6>;
@@ -3232,7 +3230,7 @@
 			"sensor_iovdd",
 			"sensor_dvdd",
 			"sensor_avdd1_en";
-		huawei,cam-power-down-seq-cfg-val = <0 0 1800000 1200000 0>;
+		huawei,cam-power-down-seq-cfg-val = <0 0 1200000 1100000 0>;
 		huawei,cam-power-down-seq-sensor-index = <1 0xFF 0xFF 0xFF 0xFF>;
 		huawei,cam-power-down-seq-delay = <1 1 1 0 0>;
 

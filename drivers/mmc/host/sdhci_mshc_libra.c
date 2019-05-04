@@ -101,7 +101,6 @@ struct sdhci_mshc_data {
 	u32 cmd_data_status;
 	void *data;
 	struct work_struct dsm_work;
-	spinlock_t sdhci_dsm_lock;
 #endif
 };
 
@@ -592,29 +591,28 @@ static void sdhci_mshc_hw_reset(struct sdhci_host *host)
 	sdhci_mshc->need_delay_measure = true;
 }
 
-int sdhci_chk_busy_before_send_cmd(struct sdhci_host *host,
+void sdhci_chk_busy_before_send_cmd(struct sdhci_host *host,
 	struct mmc_command* cmd)
 {
 	unsigned long timeout;
 
 	/* We shouldn't wait for busy for stop commands */
-	if ((cmd->opcode != MMC_STOP_TRANSMISSION) && (cmd->opcode != MMC_SEND_STATUS) &&
-	    (cmd->opcode != MMC_GO_IDLE_STATE)) {
+	if ((cmd->opcode != MMC_STOP_TRANSMISSION) && (cmd->opcode != MMC_SEND_STATUS)) {
 		/* Wait busy max 10 s */
 		timeout = 10000;
 		while (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DATA_0_LVL_MASK)) {
 			if (timeout == 0) {
 				pr_err("%s: wait busy 10s time out.\n", mmc_hostname(host->mmc));
 				sdhci_dumpregs(host);
-				cmd->error = -ENOMSG;
+				cmd->error = -EIO;
 				tasklet_schedule(&host->finish_tasklet);
-				return -ENOMSG;
+				return;
 			}
 			timeout--;
 			mdelay(1);
 		}
 	}
-	return 0;
+	return;
 }
 
 void sdhci_mshc_set_version(struct sdhci_host *host)
@@ -1480,7 +1478,11 @@ int sdhci_coldboot_rdr_regester(void)
 	u32 ret;
 
 	/*本模块初始化失败异常注册. */
+<<<<<<< HEAD
 	memset(&einfo, 0, sizeof(struct rdr_exception_info_s));
+=======
+	memset(&einfo, 0, sizeof(struct rdr_exception_info_s));/* unsafe_function_ignore: memset */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	/*初始化失败RDR_MODID_MMC_COLDBOOT */
 	einfo.e_modid = RDR_MODID_MMC_COLDBOOT;
 	einfo.e_modid_end = RDR_MODID_MMC_COLDBOOT;
@@ -1500,8 +1502,13 @@ int sdhci_coldboot_rdr_regester(void)
 	/* 异常发生在EMMC. */
 	einfo.e_from_core = RDR_EMMC;
 	einfo.e_upload_flag = (u32)RDR_UPLOAD_NO;
+<<<<<<< HEAD
 	memcpy(einfo.e_from_module, "RDR_MMC_COLDBOOT", sizeof("RDR_MMC_COLDBOOT"));
 	memcpy(einfo.e_desc, "RDR_MMC_RESET fail.", sizeof("RDR_MMC_RESET fail."));
+=======
+	memcpy(einfo.e_from_module, "RDR_MMC_COLDBOOT", sizeof("RDR_MMC_COLDBOOT"));/* unsafe_function_ignore: memcpy */
+	memcpy(einfo.e_desc, "RDR_MMC_RESET fail.", sizeof("RDR_MMC_RESET fail."));/* unsafe_function_ignore: memcpy */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	ret = rdr_register_exception(&einfo);
 	if (ret != RDR_MODID_MMC_COLDBOOT) {
@@ -1638,6 +1645,44 @@ void sdhci_dsm_set_host_status(struct sdhci_host *host, u32 error_bits)
 	sdhci_mshc->cmd_data_status |= error_bits;
 }
 
+#ifdef CONFIG_MMC_CQ_HCI
+void sdhci_cmdq_dsm_set_host_status(struct sdhci_host *host, u32 error_bits)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_mshc_data *sdhci_mshc = pltfm_host->priv;
+	if (error_bits != -1U)/*lint !e501*/
+		sdhci_mshc->para = (((u64)error_bits << 16) | 0x8000000000000000ULL);/*lint !e647*/
+	else
+		sdhci_mshc->para = 0;	// timeout
+}
+
+void sdhci_cmdq_dsm_work(struct cmdq_host *cq_host, bool dsm)
+{
+	struct mmc_card *card;
+	struct sdhci_host *host = mmc_priv(cq_host->mmc);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_mshc_data *sdhci_mshc = pltfm_host->priv;
+
+	u32 error_bits, opcode;
+	u64 para;
+	unsigned long flags;
+	spin_lock_irqsave(&cq_host->cmdq_lock, flags);
+	para = sdhci_mshc->para;
+	sdhci_mshc->para = 0;
+	spin_unlock_irqrestore(&cq_host->cmdq_lock, flags);
+	if (!dsm)
+		return;
+	card = host->mmc->card;
+	opcode = para & 0x3f;
+	error_bits = ((para >> 16) & 0xffffffff);
+	if (para & 0x8000000000000000ULL) {
+		DSM_EMMC_LOG(card, DSM_EMMC_HOST_ERR, "opcode:%d failed, status:%x\n", opcode, error_bits);
+	} else {
+		DSM_EMMC_LOG(card, DSM_EMMC_RW_TIMEOUT_ERR, "opcode:%d failed, status:%x\n", opcode, error_bits);
+	}
+}
+#endif
+
 static void sdhci_dsm_work(struct work_struct *work)
 {
 	struct mmc_card *card;
@@ -1646,21 +1691,17 @@ static void sdhci_dsm_work(struct work_struct *work)
 	u32 error_bits, opcode;
 	u64 para;
 	unsigned long flags;
-	spin_lock_irqsave(&sdhci_mshc->sdhci_dsm_lock, flags);
+	spin_lock_irqsave(&host->lock, flags);
 	para = sdhci_mshc->para;
 	sdhci_mshc->para = 0;
-	spin_unlock_irqrestore(&sdhci_mshc->sdhci_dsm_lock, flags);
+	spin_unlock_irqrestore(&host->lock, flags);
 	card = host->mmc->card;
 	opcode = para & 0x3f;
 	error_bits = ((para >> 16) & 0xffffffff);
-	if (error_bits & SDHCI_INT_TIMEOUT) {
-		DSM_EMMC_LOG(card, DSM_EMMC_RW_TIMEOUT_ERR, "opcode:%d failed, status:%x\n", opcode, error_bits);
-	} else if (error_bits & SDHCI_INT_DATA_CRC) {
-		DSM_EMMC_LOG(card, DSM_EMMC_DATA_CRC, "opcode:%d failed, status:%x\n", opcode, error_bits);
-	} else if (error_bits & SDHCI_INT_CRC) {
-		DSM_EMMC_LOG(card, DSM_EMMC_COMMAND_CRC, "opcode:%d failed, status:%x\n", opcode, error_bits);
-	} else {
+	if (para & 0x8000000000000000ULL) {
 		DSM_EMMC_LOG(card, DSM_EMMC_HOST_ERR, "opcode:%d failed, status:%x\n", opcode, error_bits);
+	} else {
+		DSM_EMMC_LOG(card, DSM_EMMC_RW_TIMEOUT_ERR, "opcode:%d failed, status:%x\n", opcode, error_bits);
 	}
 }
 
@@ -1688,17 +1729,10 @@ void sdhci_dsm_handle(struct sdhci_host *host, struct mmc_request *mrq)
 		sdhci_mshc->cmd_data_status = 0;
 		sdhci_dsm_host_error_filter(host, mrq, &error_bits);
 		if (error_bits) {
-			sdhci_mshc->para = (((u64)error_bits << 16) | ((mrq->cmd ? mrq->cmd->opcode : 0) & 0x3f));/*lint !e647*/
+			sdhci_mshc->para = ((error_bits << 16) | ((mrq->cmd ? mrq->cmd->opcode : 0) & 0x3f) | 0x8000000000000000ULL);/*lint !e647*/
 			queue_work(system_freezable_wq, &sdhci_mshc->dsm_work);
 		}
 	}
-}
-
-void sdhci_dsm_report(struct mmc_host *host, struct mmc_request *mrq)
-{
-	struct sdhci_host *sdhci_host = mmc_priv(host);
-	sdhci_dsm_set_host_status(sdhci_host, SDHCI_INT_TIMEOUT);
-	sdhci_dsm_handle(sdhci_host, mrq);
 }
 #endif
 
@@ -1774,7 +1808,6 @@ static int sdhci_mshc_probe(struct platform_device *pdev)
 #ifdef CONFIG_HUAWEI_EMMC_DSM
 	sdhci_mshc->data = (void *)host;
 	INIT_WORK(&sdhci_mshc->dsm_work, sdhci_dsm_work);
-	spin_lock_init(&sdhci_mshc->sdhci_dsm_lock);
 #endif
 
 	ret = sdhci_add_host(host);

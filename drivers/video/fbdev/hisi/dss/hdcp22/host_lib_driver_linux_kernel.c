@@ -151,11 +151,6 @@ static esm_device esm_devices[MAX_ESM_DEVICES];
 //
 static void release_resources(esm_device *esm)
 {
-	if(esm == NULL)
-	{
-		return;
-	}
-
 	if (esm->code)
 	{
 		iounmap(esm->code);
@@ -193,11 +188,6 @@ static long cmd_load_code(esm_device *esm, esm_hld_ioctl_load_code *request)
 {
 	long ret = HL_DRIVER_FAILED;
 	esm_hld_ioctl_load_code krequest;
-
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
 
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_load_code));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_load_code));
@@ -276,11 +266,6 @@ static long cmd_get_code_phys_addr(esm_device *esm, esm_hld_ioctl_get_code_phys_
 	long ret = 0;
 	esm_hld_ioctl_get_code_phys_addr krequest;
 
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_get_code_phys_addr));
 	krequest.returned_status = HL_DRIVER_FAILED;
 	/*krequest.returned_phys_addr = esm->code_base;
@@ -303,11 +288,6 @@ static long cmd_get_data_phys_addr(esm_device *esm, esm_hld_ioctl_get_data_phys_
 {
 	long ret = 0;
 	esm_hld_ioctl_get_data_phys_addr krequest;
-
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
 
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_get_data_phys_addr));
 	krequest.returned_status = HL_DRIVER_FAILED;
@@ -334,11 +314,6 @@ static long cmd_get_data_size(esm_device *esm, esm_hld_ioctl_get_data_size *requ
 	long ret = 0;
 	esm_hld_ioctl_get_data_size krequest;
 
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_get_data_size));
 	krequest.returned_status = HL_DRIVER_FAILED;
 	/*krequest.returned_data_size = esm->data_size;
@@ -363,11 +338,6 @@ static long cmd_hpi_read(esm_device *esm, esm_hld_ioctl_hpi_read *request)
 {
 	long ret = 0;
 	esm_hld_ioctl_hpi_read krequest;
-
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
 
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_hpi_read));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_hpi_read));
@@ -420,11 +390,6 @@ static long cmd_hpi_write(esm_device *esm, esm_hld_ioctl_hpi_write *request)
 {
 	long ret = 0;
 	esm_hld_ioctl_hpi_write krequest;
-
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
 
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_hpi_write));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_hpi_write));
@@ -490,11 +455,6 @@ static long cmd_data_read(esm_device *esm, esm_hld_ioctl_data_read *request)
 	long ret = 0;
 	esm_hld_ioctl_data_read krequest;
 
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_data_read));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_data_read));
 	if (ret) {
@@ -559,11 +519,6 @@ static long cmd_data_write(esm_device *esm, esm_hld_ioctl_data_write *request)
 	long ret = 0;
 	esm_hld_ioctl_data_write krequest;
 
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_data_write));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_data_write));
 	if (ret) {
@@ -627,11 +582,6 @@ static long cmd_data_set(esm_device *esm, esm_hld_ioctl_data_set *request)
 	long ret = 0;
 	esm_hld_ioctl_data_set krequest;
 
-	if((esm == NULL) || (request == NULL)){
-		HISI_FB_ERR("esm or request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_data_set));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_data_set));
 	if (ret) {
@@ -692,11 +642,6 @@ static long cmd_esm_open(struct file *f, esm_hld_ioctl_esm_open *request)
 	int ret_val = HL_DRIVER_SUCCESS;
 	esm_hld_ioctl_esm_open krequest;
 	long ret = 0;
-
-	if((f == NULL) || (request == NULL)){
-		HISI_FB_ERR("f or request is null pointer\n");
-		return -1;
-	}
 
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_esm_open));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_esm_open));
@@ -870,11 +815,6 @@ static long cmd_esm_start(esm_device *esm, esm_hld_ioctl_esm_start *request)
 	long ret = 0;
 	esm_hld_ioctl_esm_start krequest;
 
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_esm_start));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_esm_start));
 	if (ret) {
@@ -941,11 +881,6 @@ static long cmd_get_te_info(esm_device *esm, esm_hld_ioctl_get_te_info*request)
 	esm_hld_ioctl_get_te_info krequest;
 	uint64_t temp;
 
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_get_te_info));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_get_te_info));
 	if (ret) {
@@ -1007,11 +942,6 @@ static long cmd_set_hdcp_state(esm_device *esm, esm_hld_ioctl_state_set *request
 	long ret = 0;
 	esm_hld_ioctl_state_set krequest;
 
-	if(request == NULL){
-		HISI_FB_ERR("request is null pointer\n");
-		return -1;
-	}
-
 	memset(&krequest, 0, sizeof(esm_hld_ioctl_state_set));
 	ret = copy_from_user(&krequest, request, sizeof(esm_hld_ioctl_state_set));
 	if (ret) {
@@ -1053,11 +983,6 @@ int get_hdcp_state(uint32_t *state)
 static int device_open(struct inode *inode, struct file *filp)
 {
 	HISI_FB_INFO( "%sDevice opened.\n", MY_TAG);
-
-	if(filp == NULL){
-		HISI_FB_ERR("filp is null pointer\n");
-		return -1;
-	}
 
 	//
 	// No associated ESM device yet.

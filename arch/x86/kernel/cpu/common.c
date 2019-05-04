@@ -828,6 +828,7 @@ static void identify_cpu_without_cpuid(struct cpuinfo_x86 *c)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 static const __initconst struct x86_cpu_id cpu_no_speculation[] = {
 	{ X86_VENDOR_INTEL,	6, INTEL_FAM6_ATOM_CEDARVIEW,	X86_FEATURE_ANY },
@@ -914,6 +915,8 @@ static void __init cpu_set_bug_bits(struct cpuinfo_x86 *c)
 }
 
 >>>>>>> 24e4dd9... x86/bugs: Expose /sys/../spec_store_bypass
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*
  * Do minimum CPU detection early.
  * Fields really needed: vendor, cpuid_level, family, model, mask,

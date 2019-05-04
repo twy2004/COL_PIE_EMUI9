@@ -31,7 +31,6 @@
 #include <linux/rtc.h>
 #include <linux/syscalls.h>
 #include <linux/semaphore.h>
-#include <linux/wakelock.h>
 #ifdef CONFIG_HUAWEI_CHARGER
 #include <huawei_platform/power/huawei_charger.h>
 #else
@@ -60,10 +59,6 @@
 #ifndef BIT
 #define BIT(x)      (1 << (x))
 #endif
-
-/*fifo max*/
-#define VOL_FIFO_MAX     10
-#define VOL_MAX_DIFF_UV  5000
 
 /*low temp opt*/
 #define LOW_TEMP_OPT_OPEN    1
@@ -378,7 +373,6 @@ enum ocv_level {
 #define ISC_LIMIT_STOP_CHARGING_STAGE   2
 #define ISC_LIMIT_BOOT_STAGE            3
 #define ISC_TRIGGER_WITH_TIME_LIMIT     1
-#define ISC_APP_READY                   1
 #define FATAL_ISC_OCV_UPDATE_THRESHOLD  20
 #define FATAL_ISC_ACTION_DMD_ONLY       0x01 //enable dmd report only
 
@@ -394,12 +388,11 @@ enum ocv_level {
 #define POLAR_OCV_TEMP_LIMIT (100)
 #define POLAR_ECO_IBAT_LIMIT (50)
 #define POLAR_OCV_TSAMPLE_LIMIT (5)
-#define POLAR_SR_VOL0_LIMIT (3500)
-#define POLAR_SR_VOL1_LIMIT (7000)
+#define POLAR_SR_VOL0_LIMIT (5000)
+#define POLAR_SR_VOL1_LIMIT (10000)
 
 #define CURRENT_FULL_TERM_SOC 95
 #define DELTA_MAX_FULL_FCC_PERCENT 10
-
 
 enum ISCD_LEVEL_CONFIG {
     ISCD_ISC_MIN,
@@ -529,7 +522,6 @@ struct coul_device_ops{
     void  (*set_i_in_event_gate)(int ma);
     void  (*set_i_out_event_gate)(int ma);
     int   (*get_chip_temp)(enum CHIP_TEMP_TYPE type);
-    int   (*get_bat_temp)(void);
     int   (*convert_regval2uv)(unsigned int reg_val);
     int   (*convert_regval2ua)(unsigned int reg_val);
     int   (*convert_regval2temp)(unsigned int reg_val);
@@ -539,9 +531,9 @@ struct coul_device_ops{
     void (*get_eco_sample_flag)(u8 *get_val);
     void (*clr_eco_data)(u8 set_val);
     int   (*get_coul_calibration_status)(void);
+    void (*set_bootocv_sample)(u8 set_val);
     int   (*get_drained_battery_flag)(void);
     void  (*clear_drained_battery_flag)(void);
-    void (*set_bootocv_sample)(u8 set_val);
 };
 
 enum coul_fault_type{

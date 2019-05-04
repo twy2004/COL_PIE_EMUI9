@@ -254,6 +254,142 @@ s32 dump_check_cp_reset(u32 modid)
 
     return BSP_OK;
 }
+<<<<<<< HEAD
+=======
+
+
+
+/*****************************************************************************
+* 函 数 名  : bsp_dump_init
+* 功能描述  : modem dump 初始化函数
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+s32 __init dump_mdmcp_init(void)
+{
+    s32 ret ;
+
+    ret = dump_cp_agent_init();
+    if(BSP_OK != ret)
+    {
+        dump_error("dump cp agent init fail\n");
+        return BSP_ERROR;
+    }
+
+    dump_lphy_init();
+
+    dump_cphy_init();
+
+    dump_rfdsp_init();
+
+    dump_sec_init();
+
+    return BSP_OK;
+}
+
+
+/*****************************************************************************
+* 函 数 名  : modem_error_proc
+* 功能描述  : modem异常的特殊处理，主要针对dmss和noc异常
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_callback_dmss_noc_proc(u32 modid)
+{
+    dump_reboot_reason_t reason ;
+
+    if(modid == RDR_MODEM_NOC_MOD_ID)
+    {
+        dump_ok("modem NOC process,timestamp:0x%x\n", bsp_get_slice_value());
+    }
+    else if(modid == RDR_MODEM_DMSS_MOD_ID)
+    {
+        dump_ok("modem DMSS process,timestamp:0x%x\n", bsp_get_slice_value());
+    }
+
+    if (dump_get_init_phase() < DUMP_INIT_FLAG_MDMCP)
+    {
+        dump_ok("modem dump has not init \n");
+        return;
+    }
+
+    bsp_coresight_disable();
+
+    dump_set_exc_flag(true);
+
+    reason = ((modid == RDR_MODEM_NOC_MOD_ID) ?  DUMP_REASON_NOC : DUMP_REASON_DMSS);
+
+    dump_set_reboot_contex(DUMP_CPU_APP, reason);
+
+    dump_save_base_info(modid,0,0,0,0);
+
+    if(DUMP_PHONE == dump_get_product_type())
+    {
+        dump_save_cp_sysctrl();
+        dump_save_balong_rdr_info(modid);
+    }
+
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_callback
+* 功能描述  : modem异常的回调处理函数
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+u32 dump_mdmcp_callback(u32 modid, u32 etype, u64 coreid, char* logpath, pfn_cb_dump_done fndone)
+{
+    if(modid == RDR_MODEM_NOC_MOD_ID || modid == RDR_MODEM_DMSS_MOD_ID  )
+    {
+        dump_callback_dmss_noc_proc(modid);
+    }
+    else
+    {
+        dump_ok("enter dump callback, mod id:0x%x\n", modid);
+    }
+
+    if(bsp_reset_ccore_is_reboot() == 0)
+    {
+        dump_notify_cp(modid);
+    }
+    else
+    {
+        dump_ok("modem is reseting now,do not notify\n");
+    }
+
+    dump_save_rdr_exc_info(modid, etype, coreid, logpath, fndone);
+
+    bsp_dump_save_self_addr();
+
+    bsp_dump_hook_callback();
+
+    dump_save_and_reboot();
+
+    return BSP_OK;
+}
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
 * 函 数 名  : dump_mdmcp_reset
 * 功能描述  : 执行cp的单独复位
@@ -267,8 +403,94 @@ s32 dump_check_cp_reset(u32 modid)
 * 修改记录  : 2016年1月4日17:05:33     creat
 *
 *****************************************************************************/
+<<<<<<< HEAD
 
 RESET_RESULT dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid)
+=======
+void dump_reset_fail_proc(u32 rdr_modid)
+{
+    dump_reboot_reason_t reason = DUMP_REASON_RST_NOT_SUPPORT;
+    u32 fail_id = RDR_MODEM_CP_RESET_REBOOT_REQ_MOD_ID;
+    char* desc = "MDM_RST_OFF";
+
+    if(rdr_modid == RDR_MODEM_CP_RESET_REBOOT_REQ_MOD_ID)
+    {
+        dump_ok("bsp_cp_reset is stub,reset ap\n");
+    }
+    else if(rdr_modid == RDR_MODEM_CP_RESET_FAIL_MOD_ID)
+    {
+        dump_ok("modem signal reset fail, notify rdr\n");
+        reason = DUMP_REASON_RST_FAIL;
+        desc = "MDM_RST_FAIL";
+        fail_id =  modem_reset_fail_id_get();
+    }
+    else
+    {
+        reason = DUMP_REASON_RST_FREQ;
+        desc = "MDM_RST_FREQ";
+        fail_id =  RDR_MODEM_CP_RESET_FREQUENTLY_MOD_ID;
+    }
+
+    dump_set_reboot_contex(DUMP_CPU_APP,reason);
+
+    dump_save_momdem_reset_baseinfo(fail_id,desc);
+
+    dump_save_balong_rdr_info(rdr_modid);
+
+
+    rdr_system_error(rdr_modid, 0, 0);
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_reset_success_proc
+* 功能描述  : 单独复位成功处理
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_reset_success_proc(void)
+{
+    u32 core = DUMP_CPU_BUTTON;
+
+    dump_set_exc_flag(false);
+
+    dump_get_reboot_contex(&core,NULL);
+
+    if(core == DUMP_CPU_COMM)
+    {
+        bsp_wdt_irq_enable(WDT_CCORE_ID);
+        dump_ok("modem reset success enable cp wdt\n");
+
+    }
+
+    dump_base_info_init();
+
+    dump_set_reboot_contex(DUMP_CPU_BUTTON,DUMP_REASON_UNDEF);
+}
+
+
+
+/*****************************************************************************
+* 函 数 名  : dump_reset
+* 功能描述  : modem 复位处理函数
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
     s32 ret;
     dump_ok("enter dump reset, mod id:0x%x\n", modid);
@@ -287,3 +509,8 @@ RESET_RESULT dump_mdmcp_reset(u32 modid, u32 etype, u64 coreid)
     }
     return RESET_NOT_SUPPORT;
 }
+<<<<<<< HEAD
+=======
+EXPORT_SYMBOL(dump_callback_dmss_noc_proc);
+EXPORT_SYMBOL_GPL(system_error);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

@@ -7,7 +7,7 @@
 
 #include "huawei_touchscreen_chips.h"
 
- enum data_type {
+static enum data_type {
 	MUTUAL_RAW_MAX = 1,
 	MUTUAL_RAW_MIN,
 };

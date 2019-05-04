@@ -5,7 +5,7 @@
 /*****************************************************************************
   1 其他头文件包含
 *****************************************************************************/
-#include <linux/if.h>
+
 /*****************************************************************************
   2 宏定义
 *****************************************************************************/
@@ -81,7 +81,6 @@ struct Emcom_Xengine_mpip_config{
 	uid_t     lUid; /* The uid of foreground Application */
 	uint32_t  ulType; /* The type of mpip speed up*/
 };
-
 /*****************************************************************************
   5 类定义
 *****************************************************************************/
@@ -113,12 +112,21 @@ int Emcom_Xengine_GetProxyUid(struct sock *sk, char __user *optval, int __user *
 int Emcom_Xengine_SetSockFlag(struct sock *sk, char __user *optval, int optlen);
 void Emcom_Xengine_NotifySockError(struct sock *sk);
 
+<<<<<<< HEAD
 #ifdef CONFIG_MPTCP
 void Emcom_Xengine_MptcpSocketClosed(void *data, int len);
 void Emcom_Xengine_MptcpSocketSwitch(void *data, int len);
 void Emcom_Xengine_MptcpProxyFallback(void *data, int len);
 #endif
 
+=======
+#ifdef CONFIG_SMART_MP
+bool Emcom_Xengine_CheckUidAccount(const struct sk_buff *skb, uint32_t *uid, const struct sock *alternate_sk, int proto);
+bool Emcom_Xengine_CheckIfaceAccount(const struct sock *sk, int proto);
+bool Emcom_Xengine_SmartMpEnable(void);
+void Emcom_Xengine_SmartMpOnDK_Connect(void);
+#endif
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*****************************************************************************
   9 OTHERS定义
 *****************************************************************************/

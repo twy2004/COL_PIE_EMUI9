@@ -40,6 +40,7 @@ typedef enum {
 	MODID_AP_S_PANIC_SOFTLOCKUP = 0x80000020,
 	MODID_AP_S_PANIC_OTHERCPU_HARDLOCKUP = 0x80000021,
 	MODID_AP_S_PANIC_SP805_HARDLOCKUP = 0x80000022,
+<<<<<<< HEAD
 	MODID_AP_S_PANIC_Storage = 0x80000023,
 	MODID_AP_S_PANIC_ISP = 0x80000025,
 	MODID_AP_S_PANIC_IVP = 0x80000026,
@@ -50,6 +51,8 @@ typedef enum {
 	MODID_AP_S_VENDOR_BEGIN = 0x80100000,
 	MODID_AP_S_VENDOR_END   = 0x801fffff,
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	MODID_AP_END              = HISI_BB_MOD_AP_END
 } modid_ap;
 
@@ -74,6 +77,7 @@ extern int g_bbox_fpga_flag;
 
 void save_module_dump_mem(void);
 void regs_dump(void);
+void last_task_stack_dump(void);
 void hisiap_nmi_notify_lpm3(void);
 int register_module_dump_mem_func(rdr_hisiap_dump_func_ptr func,
 				  char *module_name, dump_mem_module modu);
@@ -97,6 +101,7 @@ char *rdr_get_exec_subtype(void);
 #else
 static inline void save_module_dump_mem(void) {}
 static inline void regs_dump(void) {}
+static inline void last_task_stack_dump(void) {}
 static inline void hisiap_nmi_notify_lpm3(void) {}
 static inline void set_exception_info(unsigned long address){}
 static inline int register_module_dump_mem_func(rdr_hisiap_dump_func_ptr func,
@@ -130,12 +135,6 @@ static inline void show_irq_register(void) {}
 void reentrant_exception(void);
 #else
 static inline void reentrant_exception(void) {}
-#endif
-
-#ifdef CONFIG_HISI_BB_DEBUG
-void last_task_stack_dump(void);
-#else
-static inline void last_task_stack_dump(void) {}
 #endif
 
 #endif

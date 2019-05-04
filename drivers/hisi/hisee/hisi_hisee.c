@@ -418,6 +418,7 @@ int send_smc_process(atf_message_header *p_message_header, phys_addr_t phy_addr,
 	set_errno_and_return(ret);
 }
 
+<<<<<<< HEAD
 /***************************************************************************
 * 函数：int hisee_get_smx_cfg(unsigned int *p_smx_cfg)
 * 参数：无
@@ -435,6 +436,9 @@ void hisee_get_smx_cfg(unsigned int *p_smx_cfg)
 }
 
 static int write_apdu_command_func (const char *apdu_buf, unsigned int apdu_len)
+=======
+static int write_apdu_command_func (char *apdu_buf, unsigned int apdu_len)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	atf_message_header *p_message_header;
 	int ret = HISEE_OK;

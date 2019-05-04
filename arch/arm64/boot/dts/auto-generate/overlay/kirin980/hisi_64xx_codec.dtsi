@@ -13,7 +13,6 @@
 		reg = <0x0 0xe82b9000 0x0 0x800>;
 		/* irq & reset */
 		gpios = <&gpio26 1 0>, <&gpio8 4 0>;
-		gpio_irq = <211>;
 		gpio_reset = <74>; /* GPIO_211*/
 		/* ssi pinctrl */
 		/* select slimbus or ssi */

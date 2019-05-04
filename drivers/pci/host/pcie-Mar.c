@@ -646,8 +646,6 @@ static int kirin_pcie_turn_off(struct kirin_pcie *pcie, enum rc_power_status on_
 		goto MUTEX_UNLOCK;
 	}
 
-	atomic_set(&(pcie->is_power_on), 0);
-
 	ret = kirin_pcie_noc_power(pcie, ENABLE);
 	if (ret)
 		PCIE_PR_ERR("Failed to set noc idle");
@@ -684,7 +682,12 @@ static int kirin_pcie_turn_off(struct kirin_pcie *pcie, enum rc_power_status on_
 
 	kirin_pcie_iso_ctrl(pcie, ENABLE);
 
+<<<<<<< HEAD
 	PCIE_PR_INFO("-OFF-");
+=======
+	atomic_set(&(pcie->is_power_on), 0);
+	PCIE_PR_DEBUG("-OFF-");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 MUTEX_UNLOCK:
 	mutex_unlock(&pcie->power_lock);

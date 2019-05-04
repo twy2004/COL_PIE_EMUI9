@@ -180,6 +180,7 @@ static struct pm_qos_object acpuddr_link_gov_lvl_pm_qos = {
 	.name = "acpuddr_link_governor_level",
 };
 #endif
+<<<<<<< HEAD
 
 #ifdef CONFIG_HISI_NPUFREQ_PM_QOS
 static BLOCKING_NOTIFIER_HEAD(hisi_npu_freq_dnlimit_notifier);
@@ -197,6 +198,8 @@ static struct pm_qos_object hisi_npu_freq_dnlimit_pm_qos = {
 };
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static struct pm_qos_object *pm_qos_array[] = {
 	&null_pm_qos,
 	&cpu_dma_pm_qos,
@@ -210,9 +213,6 @@ static struct pm_qos_object *pm_qos_array[] = {
 #endif
 #ifdef CONFIG_HISI_CPUDDR_FREQ_LINK
 	&acpuddr_link_gov_lvl_pm_qos,
-#endif
-#ifdef CONFIG_HISI_NPUFREQ_PM_QOS
-	&hisi_npu_freq_dnlimit_pm_qos,
 #endif
 };
 

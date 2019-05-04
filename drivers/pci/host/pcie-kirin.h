@@ -48,12 +48,16 @@
 
 #include "pcie-designware.h"
 
+<<<<<<< HEAD
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 69))
 #define to_kirin_pcie(x)	container_of(x, struct kirin_pcie, pp)
 #else
 #define to_kirin_pcie(x)	dev_get_drvdata((x)->dev)
 #endif
 
+=======
+#define to_kirin_pcie(x)	container_of(x, struct kirin_pcie, pp)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define PCIE_LINK_UP_TIME	200
 #define MAX_IRQ_NUM 			5
 #define IRQ_INTA 			0
@@ -85,7 +89,6 @@
 #define SOC_PCIECTRL_CTRL20_ADDR 	0x050
 #define SOC_PCIECTRL_CTRL21_ADDR 	0x054
 #define SOC_PCIECTRL_CTRL22_ADDR 	0x058
-#define SOC_PCIECTRL_CTRL25_ADDR 	0x064
 #define SOC_PCIECTRL_STATE1_ADDR 	0x404
 #define SOC_PCIECTRL_STATE4_ADDR 	0x410
 #define SOC_PCIECTRL_STATE5_ADDR 	0x414
@@ -105,8 +108,6 @@
 #define SOC_PCIEPHY_STATE0_ADDR 	0x400
 #define SOC_PCIEPHY_STATE39_ADDR 	0x049c
 
-#define PHY_TEST_POWERDOWN		(0x1 << 22)
-
 #define PCIE_APB_CLK_REQ		(0x1 << 23)
 #define PERST_FUN_SEC 			0x2006
 #define PERST_ASSERT_EN 		0x1
@@ -116,8 +117,7 @@
 #define APP_DBI_RO_WR_DISABLE		(0x1 << 22)
 #define PME_TURN_OFF_BIT 		(0x1 << 8)
 #define PME_ACK_BIT 			(0x1<<16)
-#define PCIE_CLKREQ_OUT_MASK		(0x1 << 0)
-#define PCIE_CLKREQ_OUT_HIGH		(0x1 << 0)
+#define PCIE_CLKREQ_OUT_CTRL0		(0x1 << 0)
 
 #define PCI_ANY_ID 			(~0)
 #define PCIE_VENDOR_ID_HUAWEI		0x19e5
@@ -218,11 +218,10 @@
 #define PCIE_TYPE_MASK			0xF
 #define PCIE_TYPE_SHIFT			28
 #define PCIE_TYPE_RC			4
-#define PERST_IN_EP			(0x3 << 2)
-#define PERST_IN_RC			(0x1 << 2)
 
 #define PCIE_ENABLE_DBI_READ_FLAG		0x5a5aa5a5
 
+<<<<<<< HEAD
 #define PCIE_PHY_SRAM_SIZE		0x4000
 #define SUP_DIG_LVL_OVRD_IN		0x21
 #define SUP_DIG_LVL_MASK		0xFFFF
@@ -240,6 +239,8 @@
 #define CHIP_TYPE_ES 1
 #define CHIP_TYPE_CS 2
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /*lint -e648 -e750 +esym(648,*) +esym(750,*)*/
 struct kirin_pcie_irq_info {
 	char *name;
@@ -251,7 +252,6 @@ struct kirin_pcie_dtsinfo {
 	u32		chip_type;
 	u32		eco;
 	int 		ep_flag;
-	int 		loopback_flag;
 	u32		ep_ltr_latency;
 	u32		ep_l1ss_ctrl2;
 	u32		l1ss_ctrl1;
@@ -293,24 +293,6 @@ struct pcie_platform_ops {
 	void (*cal_alg_adjust)(void *data, bool clear);
 };
 
-enum link_speed {
-	GEN1 = 0,
-	GEN2 = 1,
-	GEN3 = 2,
-};
-
-#ifdef CONFIG_KIRIN_PCIE_TEST
-enum aspm_ctrl_state{
-	ASPM_STATE_CLOSE = 0,		/* disable aspm L0  L1*/
-	ASPM_STATE_L0 = 1,		/* enable L0  */
-	ASPM_STATE_L0_S = 2,		/* enable L0s  */
-	ASPM_STATE_L1 = 3,		/* enable L1 */
-	ASPM_STATE_L1_1 = 4,		/* aspm L1.1 */
-	ASPM_STATE_L1_2 = 5,		/* aspm L1.2 */
-	ASPM_STATE_ALL = 6,		/* enable aspm L0 L1*/
-};
-#endif
-
 struct kirin_pcie {
 	void __iomem				*apb_base;
 	void __iomem				*phy_base;
@@ -319,6 +301,7 @@ struct kirin_pcie {
 	void __iomem				*pmctrl_base;
 	void __iomem				*pme_base;
 	void __iomem				*crgperiph_base;
+	void __iomem				*hsdtcrg_base;
 	u32					natural_phy_offset;
 	u32					apb_phy_offset;
 	u32					sram_phy_offset;
@@ -340,7 +323,6 @@ struct kirin_pcie {
 	atomic_t				is_ready;  //driver is ready
 	atomic_t				is_power_on;
 	atomic_t				is_enumerated;
-	atomic_t				is_removed;
 	struct mutex				pm_lock;
 	spinlock_t				ep_ltssm_lock;
 	struct mutex				power_lock;
@@ -362,20 +344,19 @@ struct kirin_pcie {
 
 	/* Platform Ops */
 	struct pcie_platform_ops *plat_ops;
-
-#ifdef CONFIG_KIRIN_PCIE_TEST
-	bool                    aspm_ctrl_debug_flag;        /*false=disable,true==enable*/
-	enum aspm_ctrl_state    aspm_mode;
-	bool                    link_speed_debug_flag;       /*false=disable,true==enable*/
-	enum link_speed         speed_limit;
-#endif
 };
 
 enum link_aspm_state {
-	ASPM_CLOSE = 0,         /*disable aspm L0s L1*/
-	ASPM_L0S = 1,           /* enable l0s  */
-	ASPM_L1 = 2,            /* enable l1 */
-	ASPM_L0S_L1 = 3,        /* enable l0s & l1*/
+	ASPM_CLOSE = 0,		/*disable aspm L0s L1*/
+	ASPM_L0S = 1,		/* enable l0s  */
+	ASPM_L1 = 2,		/* enable l1 */
+	ASPM_L0S_L1 = 3,	/* enable l0s & l1*/
+};
+
+enum link_speed {
+	GEN1 = 0,
+	GEN2 = 1,
+	GEN3 = 2,
 };
 
 enum l1ss_ctrl_state {
@@ -415,16 +396,16 @@ enum RST_TYPE{
 };
 
 enum {
-	DEVICE_LINK_MIN         = 0,
-	DEVICE_LINK_UP          = 1,
-	DEVICE_LINK_ABNORMAL    = 2,
-	DEVICE_LINK_MAX         = 3,
+	DEVICE_LINK_MIN		= 0,
+	DEVICE_LINK_UP		= 1,
+	DEVICE_LINK_ABNORMAL	= 2,
+	DEVICE_LINK_MAX		= 3,
 };
 
 enum pcie_test_result {
 	RESULT_OK = 0,
 	ERR_DATA_TRANS,
-	ERR_L0,
+    ERR_L0,
 	ERR_L0S,
 	ERR_L1,
 	ERR_L0S_L1,
@@ -435,6 +416,7 @@ enum pcie_test_result {
 	ERR_OTHER
 };
 enum pcie_voltage {
+<<<<<<< HEAD
 	NORMAL_VOL,
 	LOW_VOL,
 	HIGH_VOL,
@@ -446,6 +428,17 @@ enum {
 	POWEROFF_BUSDOWN        = 0x2,
 	POWERON_CLK		= 0x3,
 	POWER_MAX               = 0x4,
+=======
+      NORMAL_VOL,
+      LOW_VOL
+};
+
+enum {
+	POWEROFF_BUSON		= 0x0,
+	POWERON			= 0x1,
+	POWEROFF_BUSDOWN	= 0x2,
+	POWER_MAX		= 0x3,
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 enum {
@@ -517,8 +510,6 @@ int kirin_pcie_wr_own_conf(struct pcie_port *pp, int where, int size,
 				u32 val);
 int kirin_pcie_power_ctrl(struct kirin_pcie *pcie, enum rc_power_status on_flag);
 int kirin_pcie_enumerate(u32 rc_idx);
-int kirin_pcie_remove_ep(u32 rc_idx);
-int kirin_pcie_rescan_ep(u32 rc_idx);
 bool is_pipe_clk_stable(struct kirin_pcie *pcie);
 void kirin_pcie_iso_ctrl(struct kirin_pcie *pcie, int en_flag);
 int kirin_pcie_lp_ctrl(u32 rc_idx, u32 enable);
@@ -532,6 +523,7 @@ int32_t kirin_pcie_get_dtsinfo(struct kirin_pcie *pcie, struct platform_device *
 int kirin_pcie_get_pcie(struct kirin_pcie **pcie, struct platform_device *pdev);
 void set_phy_eye_param(struct kirin_pcie *pcie);
 
+<<<<<<< HEAD
 #ifdef CONFIG_KIRIN_PCIE_TEST
 void kirin_pcie_aspm_special_state(struct kirin_pcie *pcie);
 int kirin_pcie_debugfs_init(struct kirin_pcie *pcie);
@@ -550,6 +542,21 @@ static inline void kirin_pcie_host_speed_limit(struct kirin_pcie *pcie)
 	return;
 }
 #endif
+=======
+#if defined(CONFIG_PCIE_KIRIN_SLT)
+void pcie_slt_resource_init(struct kirin_pcie *pcie);
+enum pcie_test_result pcie_slt_vary_voltage_test(struct kirin_pcie *pcie);
+#else
+static inline void pcie_slt_resource_init(struct kirin_pcie *pcie)
+{
+	return;
+}
+static inline enum pcie_test_result pcie_slt_vary_voltage_test(struct kirin_pcie *pcie)
+{
+	return RESULT_OK;
+}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
+#endif
 #endif
 

@@ -31,11 +31,12 @@ static int __init wp_reboot_reason_cmdline(char *reboot_reason_cmdline)
 {
 	if (!strcmp(reboot_reason_cmdline, SOCHALT_INFO)) {  /*lint !e421*/
 		printk(KERN_ERR "%s %d: LONGPRESS10S_EVENT happen! should report zerohung. \n", __FUNCTION__, __LINE__);
-		#ifndef CONFIG_MTK_PLATFORM
-		printk(KERN_ERR "%s %d: LONGPRESS10S_EVENT happen! should report zerohung. not mtk platform \n", __FUNCTION__, __LINE__);
 		is_soc_halt = 1;
+<<<<<<< HEAD
 		#endif
 		return 0;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 	if (!strcmp(reboot_reason_cmdline, ZRHUNG_POWERKEY_LONGPRESS_EVENT)) { /*lint !e421*/
 		printk(KERN_ERR "%s %d: LONGPRESS6S_EVENT happen! should report zerohung. \n", __FUNCTION__, __LINE__);

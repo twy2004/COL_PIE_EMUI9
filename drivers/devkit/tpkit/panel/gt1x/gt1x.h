@@ -327,8 +327,8 @@ struct gt1x_ts_roi {
 
 struct roi_matrix {
 	short *data;
-	unsigned int row;
-	unsigned int col;
+	int row;
+	int col;
 };
 
 struct gt1x_ts_data;

@@ -525,6 +525,7 @@ static enum fcp_check_stage_type fcp_get_stage(void)
 }
 /*lint -restore*/
 
+<<<<<<< HEAD
 
 static enum huawei_usb_charger_type huawei_get_charger_type(void)
 {
@@ -535,6 +536,8 @@ static enum huawei_usb_charger_type huawei_get_charger_type(void)
 	return pConfigOnDDr->g_di.charger_type;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /**********************************************************
 *  Function:       set_charge_state
 *  Description:    set charge stop or enable
@@ -1556,7 +1559,6 @@ static struct charge_extra_ops huawei_charge_extra_ops = {
 	.check_ts = charge_check_ts,
 	.check_otg_state = charge_check_otg_state,
 	.get_stage = fcp_get_stage,
-	.get_charger_type = huawei_get_charger_type,
 	.set_state = set_charge_state,
 	.get_charge_current = huawei_get_charge_current_max,
 };

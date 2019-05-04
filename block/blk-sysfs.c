@@ -851,6 +851,7 @@ static struct queue_sysfs_entry queue_hisi_apd_tst_entry = {
 	.show = NULL,
 	.store = hisi_queue_apd_tst_enable_store,
 };
+<<<<<<< HEAD
 
 static struct queue_sysfs_entry queue_hisi_sr_tst_entry = {
 	.attr = {.name = "hisi_queue_sr_tst", .mode = S_IWUSR },
@@ -869,6 +870,8 @@ static struct queue_sysfs_entry queue_idle_state_entry = {
 	.attr = {.name = "idle_state", .mode = S_IRUGO },
 	.show = hisi_queue_idle_state_show,
 };
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #endif /* CONFIG_HISI_DEBUG_FS */
 
 static ssize_t queue_usr_ctrl_store(struct request_queue *q, const char *page, size_t count)
@@ -986,7 +989,6 @@ static struct attribute *default_attrs[] = {
 	&queue_hisi_busy_idle_tst_proc_result_simulate_entry.attr,
 	&queue_hisi_busy_idle_tst_proc_latency_simulate_entry.attr,
 	&queue_hisi_apd_tst_entry.attr,
-	&queue_hisi_sr_tst_entry.attr,
 #endif /* CONFIG_HISI_DEBUG_FS */
 	&queue_usr_ctrl_entry.attr,
 #endif /* CONFIG_HISI_BLK */

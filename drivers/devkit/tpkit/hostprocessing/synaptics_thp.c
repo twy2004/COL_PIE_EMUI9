@@ -92,6 +92,12 @@ static int syna_tcm_spi_read(struct spi_device *client, unsigned char *data,
 {
 	int retval;
 	struct spi_message msg;
+<<<<<<< HEAD
+=======
+	struct thp_core_data *cd = spi_get_drvdata(client);
+	struct thp_device *tdev = cd->thp_dev;
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	spi_message_init(&msg);
 
@@ -126,6 +132,11 @@ static int syna_tcm_spi_write(struct spi_device *client, unsigned char *data,
 {
 	int retval;
 	struct spi_message msg;
+<<<<<<< HEAD
+=======
+	struct thp_core_data *cd = spi_get_drvdata(client);
+	struct thp_device *tdev = cd->thp_dev;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	spi_message_init(&msg);
 

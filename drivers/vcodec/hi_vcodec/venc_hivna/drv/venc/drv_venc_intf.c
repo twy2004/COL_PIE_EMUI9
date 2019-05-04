@@ -413,7 +413,7 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_PMEINFO_LD1_ADDR,pInternalbuffer->u32Size);
 
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
+#ifndef HIVCODEC_V210
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_QPGLD_INF_ADDR,pInternalbuffer->u32Size);
 #endif
 
@@ -444,8 +444,8 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_PMEINFOLD1_ADDR_STR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_PMEINFOLD1_ADDR_END,pInternalbuffer->u32Size);
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-	/* QPMAP register, not used in v210 v310*/
+#ifndef HIVCODEC_V210
+	/* QPMAP register, not used in v210 */
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_QPGLD_ADDR_STR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_QPGLD_ADDR_END,pInternalbuffer->u32Size);
@@ -465,8 +465,8 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REC_CADDR_STR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REC_CADDR_END,pInternalbuffer->u32Size);
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-	/* QPMAP register, not used in v210 v310 */
+#ifndef HIVCODEC_V210
+	/* QPMAP register, not used in v210 */
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REF_YH_ADDR_STR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REF_YH_ADDR_END,pInternalbuffer->u32Size);
@@ -482,7 +482,7 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REF_CADDR_STR,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->MMU_PRE_REF_CADDR_END,pInternalbuffer->u32Size);
-#ifdef HIVCODEC_PLATFORM_ECONOMIC
+#ifdef HIVCODEC_V210
 	/* secure in v200, not check */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[12].bits.va_str,pInternalbuffer->u32Size);
 
@@ -507,8 +507,8 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[18].bits.va_str,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[18].bits.va_end,pInternalbuffer->u32Size);
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-	/* image addr in v200 */
+#ifndef HIVCODEC_V210
+	/* image addr in v210 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[19].bits.va_str,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[19].bits.va_end,pInternalbuffer->u32Size);
@@ -533,8 +533,8 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[24].bits.va_end,pInternalbuffer->u32Size);
 #endif
-#ifdef HIVCODEC_PLATFORM_ECONOMIC
-	/* internal addr in v210 v310*/
+#ifdef HIVCODEC_V210
+	/* internal addr in v210 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[29].bits.va_str,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[29].bits.va_end,pInternalbuffer->u32Size);
@@ -555,8 +555,8 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[33].bits.va_end,pInternalbuffer->u32Size);
 #endif
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-	/* value not setted in v210 v310 */
+#ifndef HIVCODEC_V210
+	/* value not setted in v210 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[39].bits.va_str,pInternalbuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pInternalbuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[39].bits.va_end,pInternalbuffer->u32Size);
@@ -638,7 +638,6 @@ static HI_S32 VENCDRV_CheckInternalAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BU
 
 static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFER_S *pImageBuffer)
 {
-#ifndef HIVCODECV500
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_TUNLCELL_ADDR,pImageBuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_SRC_YADDR,pImageBuffer->u32Size);
@@ -656,14 +655,14 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->MMU_PRE_LOWDLY_ADDR_STR,pImageBuffer->u32Size);
 
 	D_VENC_CHECK_CFG_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->MMU_PRE_LOWDLY_ADDR_END,pImageBuffer->u32Size);
-#ifdef HIVCODEC_PLATFORM_ECONOMIC
-	/* secure in v200 v310*/
+#ifdef HIVCODEC_V210
+	/* secure in v200 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[11].bits.va_str,pImageBuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[11].bits.va_end,pImageBuffer->u32Size);
 #endif
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-	/* internal addr in v210 v310 */
+#ifndef HIVCODEC_V210
+	/* internal addr in v210 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[15].bits.va_str,pImageBuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[15].bits.va_end,pImageBuffer->u32Size);
@@ -676,8 +675,8 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[28].bits.va_end,pImageBuffer->u32Size);
 #endif
-#ifdef HIVCODEC_PLATFORM_ECONOMIC
-	/* internal addr in v200, image addr in v210 v310*/
+#ifdef HIVCODEC_V210
+	/* internal addr in v200, image addr in v210 */
 	D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[19].bits.va_str,pImageBuffer->u32Size);
 
 	D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[19].bits.va_end,pImageBuffer->u32Size);
@@ -692,13 +691,13 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 		D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->MMU_PRE_SRC_VADDR_STR,pImageBuffer->u32Size);
 
 		D_VENC_CHECK_CFG_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->MMU_PRE_SRC_VADDR_END ,pImageBuffer->u32Size);
-#ifndef HIVCODEC_PLATFORM_ECONOMIC
-		/* internal addr in v210 v310*/
+#ifndef HIVCODEC_V210
+		/* internal addr in v210 */
 		D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[29].bits.va_str,pImageBuffer->u32Size);
 
 		D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[29].bits.va_end,pImageBuffer->u32Size);
 #endif
-#ifdef HIVCODEC_PLATFORM_ECONOMIC
+#ifdef HIVCODEC_V210
 		/* VEDU_SRC_VADDR, need in this condition */
 		D_VENC_CHECK_SMRX_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_1[21].bits.va_str,pImageBuffer->u32Size);
 
@@ -727,6 +726,7 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 
 		D_VENC_CHECK_SMRX_REG_ENDADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->SMMU_MSTR_SMRX_2[26].bits.va_end,pImageBuffer->u32Size);
 	}
+<<<<<<< HEAD
 #else
 	D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_TUNLCELL_ADDR_L,pImageBuffer->u32Size);
 
@@ -744,12 +744,14 @@ static HI_S32 VENCDRV_CheckImageAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,MEM_BUFFE
 		D_VENC_CHECK_CFG_REG_ADDR_RET(pImageBuffer->u64StartPhyAddr,pAllReg->VEDU_VCPI_CH_ADDR_L,pImageBuffer->u32Size);
 	}
 #endif
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	return HI_SUCCESS;
 }
 
 static HI_S32 VENCDRV_CheckStreamAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,VENC_MEM_INFO* pMemMap)
 {
-#ifndef HIVCODECV500
 	if (pAllReg->VEDU_VCPI_STRFMT.bits.vcpi_str_fmt == YUV420_SEMIPLANAR_CMP) {
 		D_VENC_CHECK_CFG_REG_STREAMADDR_RET(pMemMap->streamheadbuffer.u64StartPhyAddr,
 			pAllReg->MMU_PRE_PPS_ADDR_STR,pMemMap->streamheadbuffer.u32Size,pMemMap->streamheadbuffer.u32ShareFd);
@@ -900,7 +902,7 @@ static HI_S32 VENCDRV_CheckStreamAddr(S_HEVC_AVC_REGS_TYPE_CFG *pAllReg,VENC_MEM
 
 	D_VENC_CHECK_CFG_REG_STREAMADDR_RET(pMemMap->streambuffer[15].u64StartPhyAddr,
 		pAllReg->VEDU_VLCST_STRMADDR15,pMemMap->streambuffer[15].u32Size,pMemMap->streambuffer[15].u32ShareFd);
-#endif
+
 	return HI_SUCCESS;
 }
 
@@ -1022,7 +1024,7 @@ static struct file_operations VENC_FOPS =
 };/*lint !e785 */
 
 static const struct of_device_id venc_of_match[] = {
-       { .compatible = VENC_COMPATIBLE, },/*lint !e785 !e651 */
+       { .compatible = VENC_COMPATIBLE, },/*lint !e785 */
        { }/*lint !e785 */
 };
 

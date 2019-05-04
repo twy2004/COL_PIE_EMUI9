@@ -78,7 +78,6 @@
 #define SET_BIT     1
 
 #define CHAR_0 48
-#define CHAR_9 57
 extern int nfc_record_dmd_info(long dmd_no, const char *dmd_info);
 
 typedef struct pmu_reg_control {

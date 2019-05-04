@@ -598,12 +598,21 @@ static int dwc3_ep0_delegate_req(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 	return ret;//lint !e454
 }
 
+ATOMIC_NOTIFIER_HEAD(setconfig_nh);
 
+int dwc3_setconfig_notifier_register(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&setconfig_nh, nb);
+}
+
+int dwc3_setconfig_notifier_unregister(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&setconfig_nh, nb);
+}
 
 static void dwc3_setconfig_notify(enum usb_device_speed speed)
 {
-	atomic_notifier_call_chain(&device_event_nh, DEVICE_EVENT_SETCONFIG,
-		(void *)&speed);
+	atomic_notifier_call_chain(&setconfig_nh, (unsigned long)speed, NULL);
 }
 
 static int dwc3_ep0_set_config(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)

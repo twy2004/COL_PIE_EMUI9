@@ -270,7 +270,40 @@ static int idtp9221_clear_interrupt(u16 itr)
 	return 0;
 
 }
+<<<<<<< HEAD
 
+=======
+static int idtp9221_set_interrupt(u16 itr)
+{
+	int ret;
+	u8 itrs[IDT9221_ADDR_LEN + IDT9221_RX_INT_CLEAR_LEN];
+	struct idtp9221_device_info *di = g_idtp9221_di;
+	if (NULL == di) {
+		hwlog_err("%s para is null\n", __func__);
+		return -1;
+	}
+
+	ret = idtp9221_read_block(di, IDT9221_RX_INT_ENABLE_ADDR,
+			itrs+IDT9221_RX_INT_ENABLE_LEN, IDT9221_RX_INT_ENABLE_LEN);
+	if(ret) {
+		hwlog_err("%s:read interrupt enable register failed!\n", __func__);
+		return -1;
+	}
+
+	itrs[IDT9221_ADDR_LEN] = itrs[IDT9221_ADDR_LEN] |(itr & BYTE_MASK);
+	itrs[IDT9221_ADDR_LEN+1] = itrs[IDT9221_ADDR_LEN+1] |(itr >> BITS_PER_BYTE);
+
+
+	ret = idtp9221_write_block(di, IDT9221_RX_INT_ENABLE_ADDR, itrs,
+			IDT9221_RX_INT_ENABLE_LEN);
+	if(ret) {
+		hwlog_err("%s:write interrupt  enable register failed!\n", __func__);
+		return -1;
+	}
+	hwlog_info("%s:set interrupt success!\n", __func__);
+	return 0;
+}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int idtp9221_send_msg(u8 cmd, u8 *data, int data_len)
 {
 	int ret;
@@ -2376,6 +2409,7 @@ static bool idtp9221_check_ask_header(u8 head)
 }
 static void idtp9221_handle_ask_packet(struct idtp9221_device_info *di)
 {
+	int i;
 	u16 tx_id = 0;
 	u8 chrg_stage = 0;
 	u8 packet_data[IDT9221_RX_TO_TX_PACKET_LEN] = {0};

@@ -76,10 +76,7 @@ struct hisp_cfg_data {
 	int cfgtype;
 	int mode;
 	int isSecure;
-	union {
-		addr_param_t param;
-		uint32_t cfgdata[4];
-	};
+	addr_param_t param;
 };
 
 enum hisp_config_type {
@@ -98,8 +95,11 @@ enum hisp_config_type {
     HISP_CONFIG_R8_TURBO,
     HISP_CONFIG_R8_NORMAL,
     HISP_CONFIG_R8_LOWPOWER,
+<<<<<<< HEAD
     HISP_CONFIG_R8_ULTRALOW,
     HISP_CONFIG_PROC_TIMEOUT,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     HISP_CONFIG_MAX_INDEX
 };
 

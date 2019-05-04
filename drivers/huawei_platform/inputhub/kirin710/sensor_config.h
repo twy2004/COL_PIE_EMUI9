@@ -48,8 +48,11 @@ extern int vishay_vcnl36832_als_flag;
 #define VCNL36658_PARA_SIZE (31)
 #define TSL2591_PARA_SIZE (14)
 #define BH1726_PARA_SIZE (16)
+<<<<<<< HEAD
 #define MAX_PARA_SIZE (33)
 #define APDS9308_PARA_SIZE (14)
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define ACC_OFFSET_NV_NUM	307
 #define ACC_OFFSET_NV_SIZE	(60)
 #define MAG_CALIBRATE_DATA_NV_NUM 233
@@ -199,6 +202,7 @@ typedef struct _BH1726_ALS_PARA_TABLE {
 	s16 bh1726_para[BH1726_PARA_SIZE];
 } BH1726_ALS_PARA_TABLE;
 
+<<<<<<< HEAD
 typedef struct _APDS9308_ALS_PARA_TABLE {
 	uint8_t phone_type;
 	uint8_t phone_version;
@@ -214,6 +218,8 @@ typedef struct {
 	s16 als_para[MAX_PARA_SIZE];
 } als_para_normal_table;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 extern int fill_extend_data_in_dts(struct device_node *dn, const char *name, unsigned char *dest, size_t max_size, int flag);
 extern int mcu_i2c_rw(uint8_t bus_num, uint8_t i2c_add, uint8_t *tx, uint32_t tx_len, uint8_t *rx_out, uint32_t rx_len);
 extern int mcu_spi_rw(uint8_t bus_num, union SPI_CTRL ctrl, uint8_t *tx, uint32_t tx_len, uint8_t *rx_out, uint32_t rx_len);

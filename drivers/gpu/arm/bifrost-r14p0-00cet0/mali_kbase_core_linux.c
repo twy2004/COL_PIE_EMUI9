@@ -19,9 +19,6 @@
  * SPDX-License-Identifier: GPL-2.0
  *
  */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat="
-#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
 
 #include <mali_kbase.h>
 #include <mali_kbase_config_defaults.h>
@@ -143,8 +140,7 @@ static int kbase_api_handshake(struct kbase_context *kctx,
 	}
 
 	/* save the proposed version number for later use */
-	kctx->api_version = KBASE_API_VERSION(version->major, version->minor);//lint !e647
-
+	kctx->api_version = KBASE_API_VERSION(version->major, version->minor);
 
 	return 0;
 }
@@ -247,19 +243,17 @@ static int assign_irqs(struct platform_device *pdev)
  * API to acquire device list mutex and
  * return pointer to the device list head
  */
-/*lint -e454*/
 const struct list_head *kbase_dev_list_get(void)
 {
-	mutex_lock(&kbase_dev_list_lock);//lint !e454
+	mutex_lock(&kbase_dev_list_lock);
 	return &kbase_dev_list;
 }
-/*lint +e454*/
 KBASE_EXPORT_TEST_API(kbase_dev_list_get);
 
 /* API to release the device list mutex */
 void kbase_dev_list_put(const struct list_head *dev_list)
 {
-	mutex_unlock(&kbase_dev_list_lock);//lint !e455
+	mutex_unlock(&kbase_dev_list_lock);
 }
 KBASE_EXPORT_TEST_API(kbase_dev_list_put);
 
@@ -399,8 +393,7 @@ static const struct file_operations kbase_force_same_va_fops = {
 	.write = write_ctx_force_same_va,
 	.read = read_ctx_force_same_va,
 };
-/*lint -e648*/
-/*lint -e429*/
+
 static int kbase_open(struct inode *inode, struct file *filp)
 {
 	struct kbase_device *kbdev = NULL;
@@ -479,14 +472,14 @@ static int kbase_open(struct inode *inode, struct file *filp)
 			/* we don't treat this as a fail - just warn about it */
 			dev_warn(kbdev->dev, "couldn't add kctx to kctx_list\n");
 		}
-	}
+	}//lint !e429
 	return 0;
 
  out:
 	kbase_release_device(kbdev);
 	return ret;
 }
-/*lint +e429*/
+
 static int kbase_release(struct inode *inode, struct file *filp)
 {
 	struct kbase_context *kctx = filp->private_data;
@@ -494,8 +487,7 @@ static int kbase_release(struct inode *inode, struct file *filp)
 	struct kbasep_kctx_list_element *element, *tmp;
 	bool found_element = false;
 
-	KBASE_TLSTREAM_TL_DEL_CTX(kctx);
-	//!e648
+	KBASE_TLSTREAM_TL_DEL_CTX(kctx);//lint !e648
 
 #ifdef CONFIG_HISI_DEBUG_FS
 	kbasep_mem_profile_debugfs_remove(kctx);
@@ -534,7 +526,7 @@ static int kbase_release(struct inode *inode, struct file *filp)
 	kbase_release_device(kbdev);
 	return 0;
 }
-/*lint +e648*/
+
 static int kbase_api_set_flags(struct kbase_context *kctx,
 		struct kbase_ioctl_set_flags *flags)
 {
@@ -704,15 +696,15 @@ static int kbase_api_disjoint_query(struct kbase_context *kctx,
 
 	return 0;
 }
-/*lint -e574*/
+
 static int kbase_api_get_ddk_version(struct kbase_context *kctx,
 		struct kbase_ioctl_get_ddk_version *version)
 {
 	int ret;
 	int len = sizeof(KERNEL_SIDE_DDK_VERSION_STRING);
 
-	if (version->version_buffer == 0)//lint !e574
-		return len;//lint !e574
+	if (version->version_buffer == 0)
+		return len;
 
 	if (version->size < len)
 		return -EOVERFLOW;
@@ -730,7 +722,7 @@ static int kbase_api_get_ddk_version(struct kbase_context *kctx,
 /* Defaults for legacy JIT init ioctl */
 #define DEFAULT_MAX_JIT_ALLOCATIONS 255
 #define JIT_LEGACY_TRIM_LEVEL (0) /* No trimming */
-/*lint +e574*/
+
 static int kbase_api_mem_jit_init_old(struct kbase_context *kctx,
 		struct kbase_ioctl_mem_jit_init_old *jit_init)
 {
@@ -740,7 +732,7 @@ static int kbase_api_mem_jit_init_old(struct kbase_context *kctx,
 			DEFAULT_MAX_JIT_ALLOCATIONS,
 			JIT_LEGACY_TRIM_LEVEL);
 }
-/*lint -e574*/
+
 static int kbase_api_mem_jit_init(struct kbase_context *kctx,
 		struct kbase_ioctl_mem_jit_init *jit_init)
 {
@@ -759,7 +751,7 @@ static int kbase_api_mem_jit_init(struct kbase_context *kctx,
 	return kbase_region_tracker_init_jit(kctx, jit_init->va_pages,
 			jit_init->max_allocations, jit_init->trim_level);
 }
-/*lint +e574*/
+
 static int kbase_api_mem_sync(struct kbase_context *kctx,
 		struct kbase_ioctl_mem_sync *sync)
 {
@@ -948,9 +940,7 @@ static int kbase_api_get_profiling_controls(struct kbase_context *kctx,
 		return -EFAULT;
 	return 0;
 }
-/*lint -e613*/
-/*lint -e429*/
-/*lint -e668*/
+
 static int kbase_api_mem_profile_add(struct kbase_context *kctx,
 		struct kbase_ioctl_mem_profile_add *data)
 {
@@ -963,8 +953,7 @@ static int kbase_api_mem_profile_add(struct kbase_context *kctx,
 	}
 
 	buf = kmalloc(data->len, GFP_KERNEL);
-
-	if (ZERO_OR_NULL_PTR(buf))//lint !e668
+	if (ZERO_OR_NULL_PTR(buf))
 		return -ENOMEM;
 
 	err = copy_from_user(buf, u64_to_user_ptr(data->buffer),
@@ -976,9 +965,7 @@ static int kbase_api_mem_profile_add(struct kbase_context *kctx,
 
 	return kbasep_mem_profile_debugfs_insert(kctx, buf, data->len);
 }
-/*lint +e668*/
-/*lint +e429*/
-/*lint +e613*/
+
 static int kbase_api_soft_event_update(struct kbase_context *kctx,
 		struct kbase_ioctl_soft_event_update *update)
 {
@@ -1198,7 +1185,7 @@ static int kbase_api_tlstream_stats(struct kbase_context *kctx,
 			return -EFAULT;                                \
 		return ret;                                            \
 	} while (0)
-/*lint -e527*/
+
 static long kbase_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct kbase_context *kctx = filp->private_data;
@@ -1436,7 +1423,7 @@ static long kbase_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	return -ENOIOCTLCMD;
 }
-/*lint +e527*/
+
 static ssize_t kbase_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	struct kbase_context *kctx = filp->private_data;
@@ -1533,7 +1520,6 @@ static const struct file_operations kbase_fops = {
  *
  * Return: The number of bytes output to @buf.
  */
-/*lint -e574*/
 static ssize_t show_policy(struct device *dev, struct device_attribute *attr, char *const buf)
 {
 	struct kbase_device *kbdev;
@@ -1551,6 +1537,7 @@ static ssize_t show_policy(struct device *dev, struct device_attribute *attr, ch
 	current_policy = kbase_pm_get_policy(kbdev);
 
 	policy_count = kbase_pm_list_policies(&policy_list);
+
 	for (i = 0; i < policy_count && ret < PAGE_SIZE; i++) {
 		if (policy_list[i] == current_policy)
 			ret += scnprintf(buf + ret, PAGE_SIZE - ret, "[%s] ", policy_list[i]->name);
@@ -1568,7 +1555,7 @@ static ssize_t show_policy(struct device *dev, struct device_attribute *attr, ch
 
 	return ret;
 }
-/*lint +e574*/
+
 /**
  * set_policy - Store callback for the power_policy sysfs file.
  *
@@ -1944,7 +1931,6 @@ static unsigned long get_js_timeout_in_ms(
  *
  * Return: The number of bytes output to @buf.
  */
-/*lint -e574*/
 static ssize_t show_js_timeouts(struct device *dev, struct device_attribute *attr, char * const buf)
 {
 	struct kbase_device *kbdev;
@@ -1984,7 +1970,8 @@ static ssize_t show_js_timeouts(struct device *dev, struct device_attribute *att
 			js_soft_stop_ms, js_soft_stop_ms_cl,
 			js_hard_stop_ms_ss, js_hard_stop_ms_cl,
 			js_hard_stop_ms_dumping, js_reset_ms_ss,
-			js_reset_ms_cl, js_reset_ms_dumping);//lint !e574
+			js_reset_ms_cl, js_reset_ms_dumping);
+
 	if (ret >= PAGE_SIZE) {
 		buf[PAGE_SIZE - 2] = '\n';
 		buf[PAGE_SIZE - 1] = '\0';
@@ -1993,7 +1980,7 @@ static ssize_t show_js_timeouts(struct device *dev, struct device_attribute *att
 
 	return ret;
 }
-/*lint +e574*/
+
 /*
  * The sysfs file js_timeouts.
  *
@@ -2413,7 +2400,6 @@ static DEVICE_ATTR(debug_command, S_IRUGO | S_IWUSR, show_debug, issue_debug);
  *
  * Return: The number of bytes output to @buf.
  */
-/*lint -e648*/
 static ssize_t kbase_show_gpuinfo(struct device *dev,
 				  struct device_attribute *attr, char *buf)
 {
@@ -2459,7 +2445,7 @@ static ssize_t kbase_show_gpuinfo(struct device *dev,
 	product_id_mask =
 		(is_new_format ?
 			GPU_ID2_PRODUCT_MODEL :
-			GPU_ID_VERSION_PRODUCT_ID) >>
+			GPU_ID_VERSION_PRODUCT_ID) >>//lint !e648
 		GPU_ID_VERSION_PRODUCT_ID_SHIFT;
 
 	for (i = 0; i < ARRAY_SIZE(gpu_product_id_names); ++i) {
@@ -2479,7 +2465,6 @@ static ssize_t kbase_show_gpuinfo(struct device *dev,
 		(gpu_id & GPU_ID_VERSION_MINOR) >> GPU_ID_VERSION_MINOR_SHIFT,
 		product_id);
 }
-/*lint +e648*/
 static DEVICE_ATTR(gpuinfo, S_IRUGO, kbase_show_gpuinfo, NULL);
 
 /**
@@ -3260,8 +3245,21 @@ static int kbase_common_reg_map(struct kbase_device *kbdev)
 		err = -EINVAL;
 		goto out_pctrl_ioremap;
 	}
+#ifdef CONFIG_MALI_TRYM
+	kbdev->sctrlreg = ioremap(SYS_REG_SCTRL_BASE_ADDR, SYS_REG_SCTRL_SIZE);
+	if (!kbdev->sctrlreg) {
+		dev_err(kbdev->dev, "Can't remap sctrl register window on platform trym\n");
+		err = -EINVAL;
+		goto out_sctrl_ioremap;
+	}
+#endif/*CONFIG_MALI_TRYM*/
 
 	return err;
+
+#ifdef CONFIG_MALI_TRYM
+out_sctrl_ioremap:
+	iounmap(kbdev->pctrlreg);
+#endif/*CONFIG_MALI_TRYM*/
 
 out_pctrl_ioremap:
 	iounmap(kbdev->pmctrlreg);
@@ -3284,7 +3282,9 @@ static void kbase_common_reg_unmap(struct kbase_device * const kbdev)
 
 	iounmap(kbdev->pmctrlreg);
 	iounmap(kbdev->pctrlreg);
-
+#ifdef CONFIG_MALI_TRYM
+	iounmap(kbdev->sctrlreg);
+#endif/*CONFIG_MALI_TRYM*/
 	if (kbdev->reg) {
 		iounmap(kbdev->reg);
 		release_mem_region(kbdev->reg_start, kbdev->reg_size);
@@ -3934,6 +3934,17 @@ static int kbase_platform_device_probe(struct platform_device *pdev)
 		return err;
 	}
 
+
+#ifdef CONFIG_MALI_TRYM
+	/*if logic is B010, do not load GPU kernel.because fpga-gpu-exist is not exist in trym B010*/
+	if(readl(kbdev->sctrlreg+ SCTRL_OFFSET) == MASK_TRYM_FPGA_VERSION_B010 )
+	{
+		dev_err(&pdev->dev, "logic is B010, do not load GPU kernel\n");
+               kbase_platform_device_remove(pdev);
+		return -ENODEV;
+	}
+#endif /* CONFIG_MALI_TRYM */
+
 	const void *fpga_gpu_exist_override_dts;
 	u32 override_fpga_gpu_exist;
 	fpga_gpu_exist_override_dts = of_get_property(kbdev->dev->of_node,
@@ -4217,7 +4228,6 @@ static int kbase_platform_device_probe(struct platform_device *pdev)
 		value = readl(kbdev->pctrlreg + PERI_CTRL93) | MASK_PERI_CTRL93;
 		writel(value, kbdev->pctrlreg + PERI_CTRL93);
 	}
-	/* cs */
 	if (kbase_has_hi_feature(kbdev, KBASE_FEATURE_HI0015)) {
 		unsigned int value = 0;
 		/* read PERI_CTRL93 and set it's [31]bit to 1, enable auto shutdown by hardware */

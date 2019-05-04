@@ -190,9 +190,8 @@ static int secsg_cma_alloc(struct ion_secsg_heap *secsg_heap,
 	cma_size = cma_get_size(secsg_heap->cma);
 	cma_remain = cma_size - (allocated_size + size_remain);
 	if (secsg_heap->heap_size <= (allocated_size + size_remain)) {
-		pr_err("heap full! allocated_size(0x%lx), remain_size(0x%lx),"
-		       " heap_size(0x%lx), cma_remain(0x%lx)\n", allocated_size,
-		       size_remain, secsg_heap->heap_size, cma_remain);
+		pr_err("heap full! allocated(0x%lx), heap_size(0x%lx))\n",
+		       allocated_size, secsg_heap->heap_size);
 		return -ENOMEM;
 	}
 

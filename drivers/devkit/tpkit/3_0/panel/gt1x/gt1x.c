@@ -47,11 +47,16 @@
 #define GT1X_EXIST				1
 #define GT1X_NOT_EXIST			0
 
+<<<<<<< HEAD
 #define GT1X_RESET_SLEEP_TIME	80 /* 80ms */
 #define GT1X_RESET_PIN_D_U_TIME	150 /* 150us */
 #define GT1X_DELAY_10	10 /* 10ms */
 #define GT1X_DELAY_80	80 /* 80ms */
 #define GT1X_DELAY_INIT 55 /* 55ms */
+=======
+#define GT1X_RESET_SLEEP_TIME	80	/* 80ms */
+#define GT1X_RESET_PIN_D_U_TIME	150	/* 150us */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define GT1X_ROI_SRC_STATUS_INDEX		2
 #define GT1X_BIT_AND_0x0F		0x0f
@@ -71,7 +76,6 @@ static void gt1x_pinctrl_select_suspend(void);
 static void gt1x_resume_chip_reset(void);
 static int gt1x_reset_output(int level);
 static void gt1x_irq_output(int level);
-static int gt1x_power_release(void);
 /**
  * gt1x_i2c_write - i2c write.
  * @addr: register address.
@@ -368,17 +372,11 @@ static int gt1x_switch_wrokmode(int wrokmode)
 static int gt1x_feature_switch(struct gt1x_ts_data *ts,
 		enum gt1x_ts_feature fea, int on)
 {
+	struct ts_feature_info *info = &ts->dev_data->ts_platform_data->feature_info;
 	struct gt1x_ts_config *config = NULL;
 	int ret = 0;
 
-	if (!ts ){
-		TS_LOG_ERR("%s:invalid param\n", __func__);
-		return -EINVAL;
-	}
-
-	struct ts_feature_info *info = &ts->dev_data->ts_platform_data->feature_info;
-
-	if (!info){
+	if (!ts || !info){
 		TS_LOG_ERR("%s:invalid param\n", __func__);
 		return -EINVAL;
 	}
@@ -843,10 +841,7 @@ static int gt1x_request_evt_handler(struct gt1x_ts_data *ts)
 		TS_LOG_INFO("%s: Request Reset.\n", __func__);
 		gt1x_i2c_read(0x5097, &rqst_data, 1);
 		TS_LOG_INFO("%s: Reason code[0x5097]:0x%02x\n", __func__, rqst_data);
-		ret = gt1x_chip_reset();
-		if(ret < 0){
-			TS_LOG_ERR("%s, failed to chip_reset, ret = %d\n", __func__, ret);
-		}
+		gt1x_chip_reset();
 		gt1x_feature_resume(ts);
 		rqst_data = GTP_RQST_RESPONDED;
 		gt1x_i2c_write(GTP_REG_RQST, &rqst_data, 1);
@@ -1006,8 +1001,8 @@ static int gt1x_touch_evt_handler(struct gt1x_ts_data  *ts,
 		info->fingers[id].pressure = w;
 		info->fingers[id].status = TP_FINGER;
 		cur_index |= 1 << id;
-		TS_LOG_DEBUG("%s:[%d](ewx = %d, ewy =  %d, xer=%d, yer=%d, wx=%d, wy=%d)\n", __func__,
-			id, info->fingers[id].ewx, info->fingers[id].ewy, xer, yer,touch_wxy[2 * id], touch_wxy[2 * id + 1]);
+		TS_LOG_DEBUG("%s:[%d](%d, %d, %d,ewx = %d, ewy =  %d, xer=%d, yer=%d, wx=%d, wy=%d)\n", __func__,
+			id, x, y, w, info->fingers[id].ewx, info->fingers[id].ewy, xer, yer,touch_wxy[2 * id], touch_wxy[2 * id + 1]);
 	}
 	info->cur_finger_number = touch_num;
 exit:
@@ -1067,6 +1062,7 @@ static void gt1x_double_tap_event(struct gt1x_ts_data *ts, struct ts_fingers *in
 		*/
 		x = get_unaligned_le16(&buf[i * 4]);
 		y = get_unaligned_le16(&buf[ i *4 + 2]);
+		TS_LOG_DEBUG("%s: x=%d, y = %d\n", __func__, x, y);
 		ts->dev_data->ts_platform_data->chip_data->easy_wakeup_info.easywake_position[i] = 
 				x << 16 |y;
 	}
@@ -1217,24 +1213,6 @@ static void gt1x_power_on_gpio_set(void)
 #endif
 }
 
-static void gt1x_power_off_gpio_set(void)
-{
-	struct gt1x_ts_data *ts = gt1x_ts;
-	int ret =0;
-#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
-	gt1x_pinctrl_select_normal();
-	gpio_direction_input(ts->dev_data->ts_platform_data->irq_gpio);
-	gpio_direction_output(ts->dev_data->ts_platform_data->reset_gpio, 0);
-#else
-	ret = gt1x_reset_output(0);
-	if (ret) {
-		TS_LOG_ERR("%s:gpio direction output to 1 fail, ret=%d\n",
-				   __func__, ret);
-		return;
-	}
-#endif
-}
-
 /**
  * gt1x_pinctrl_init - pinctrl init
  */
@@ -1301,6 +1279,15 @@ static int gt1x_pinctrl_init(void)
 	}
 
 	pinctrl_select_state(ts->pinctrl, ts->pinctrl_state_int_high);
+	gt1x_irq_output(1);
+
+	ret = pinctrl_select_state(ts->pinctrl, ts->pinctrl_state_as_int);
+	if (ret < 0){
+		TS_LOG_ERR("set gpio as int faild \n");
+		ret = -EINVAL;
+		goto err_pinctrl_put;
+	}
+
 #endif
 	return ret;
 
@@ -1574,9 +1561,8 @@ static int gt1x_get_lcd_module_name(void)
 	strncpy(temp, gt1x_ts->lcd_panel_info, LCD_PANEL_INFO_MAX_LEN-1);
 	for(i=0;i<MAX_STR_LEN-1;i++)
 	{
-		if(temp[i] == '_'){
-			break;
-		} else if(temp[i] == '-'){
+		if(temp[i] == '_')
+		{
 			break;
 		}
 		gt1x_ts->lcd_module_name[i] = tolower(temp[i]);
@@ -2071,36 +2057,31 @@ static int gt1x_init_configs(struct gt1x_ts_data *ts)
 }
 static int gt1x_power_parameter_config(void)
 {
+	int ret = 0;
 
 	TS_LOG_INFO("%s called\n" , __func__);
-	return ts_kit_power_supply_get(TS_KIT_VCC);
+	ret = ts_kit_power_supply_get(TS_KIT_VCC);
+	if(ret){
+		goto out;
+	}
+out:
+	return ret;
 }
 
 static int gt1x_power_on(void)
 {
 	int ret = 0;
 
-	ret = gt1x_reset_output(0);
-	if(ret){
-		TS_LOG_ERR("%s:gpio direction output fail, ret=%d\n",__func__, ret);
-	}
 	ret = ts_kit_power_supply_ctrl(TS_KIT_VCC, TS_KIT_POWER_ON, 10);
 	if(ret){
-		goto exit_regulator_put;
+		goto out;
 	}
 	gt1x_power_on_gpio_set();
-
-	return 0;
-exit_regulator_put:
-	gt1x_power_release();
+out:
 	return ret;
 }
 static void gt1x_power_off(void)
 {
-	if(gt1x_reset_output(0)){
-		TS_LOG_ERR("%s:gpio direction output to fail.\n",__func__);
-	}
-	udelay(GT1X_RESET_PIN_D_U_TIME);
 	ts_kit_power_supply_ctrl(TS_KIT_VCC, TS_KIT_POWER_OFF, 5);
 }
 static int gt1x_power_release(void)
@@ -2114,13 +2095,8 @@ static int gt1x_chip_detect(struct ts_kit_platform_data *pdata)
 	int ret = NO_ERR;
 
 	TS_LOG_INFO("%s : Chip detect.\n", __func__);
-
-	if (!pdata){
-		TS_LOG_ERR("%s device, ts_kit_platform_data *data is NULL \n", __func__);
-		ret = -ENOMEM;
-		goto exit;
-	}else if(!pdata->ts_dev){
-		TS_LOG_ERR("%s device, ts_kit_platform_data data->ts_dev is NULL \n", __func__);
+	if ((!pdata) &&(!pdata->ts_dev)){
+		TS_LOG_ERR("%s device, ts_kit_platform_data *data or data->ts_dev is NULL \n", __func__);
 		ret = -ENOMEM;
 		goto exit;
 	}
@@ -2158,14 +2134,14 @@ static int gt1x_chip_detect(struct ts_kit_platform_data *pdata)
 	ret = gt1x_power_parameter_config();
 	if (ret < 0){
 		TS_LOG_ERR("%s : get regulators fail!\n", __func__);
-		goto exit;
+		goto err_power_off;
 	}
 
 	/* power on */
 	ret = gt1x_power_on();
 	if (ret < 0){
 		TS_LOG_ERR("%s, failed to enable power, ret = %d\n", __func__, ret);
-		goto err_pinctrl_init;
+		goto err_power_off;
 	}
 
 	/* reset chip */
@@ -2185,8 +2161,7 @@ static int gt1x_chip_detect(struct ts_kit_platform_data *pdata)
 	return ret;
 
 err_power_off:
-	gt1x_power_off();
-	gt1x_power_release();
+	//gt1x_power_off();
 err_pinctrl_init:
 	gt1x_pinctrl_release();
 exit:
@@ -2342,12 +2317,9 @@ static int gt1x_chip_resume(void)
 {
 	struct gt1x_ts_data *ts = gt1x_ts;
 	int tskit_pt_station_flag = 0;
-	int rc = NO_ERR;
 
 	TS_LOG_INFO(" %s enter\n", __func__);
-
-	ts_kit_get_pt_station_status(&tskit_pt_station_flag);
-
+	//ts_kit_get_pt_station_status(&tskit_pt_station_flag);
 	switch (ts->dev_data->easy_wakeup_info.sleep_mode) {
 	case TS_POWER_OFF_MODE:
 		gt1x_pinctrl_select_normal();
@@ -2361,10 +2333,7 @@ static int gt1x_chip_resume(void)
 		gt1x_pinctrl_select_normal();
 		break;
 	}
-	rc = gt1x_chip_reset();
-	if(rc){
-		TS_LOG_ERR("%s chip_reset fail\n", __func__);
-	}
+	gt1x_resume_chip_reset();
 
 	TS_LOG_INFO(" %s:exit\n", __func__);
 	return NO_ERR;
@@ -2386,8 +2355,7 @@ static int gt1x_chip_suspend(void)
 	int tskit_pt_station_flag = 0;
 
 	TS_LOG_INFO(" %s enter\n", __func__);
-
-	ts_kit_get_pt_station_status(&tskit_pt_station_flag);
+	//ts_kit_get_pt_station_status(&tskit_pt_station_flag);
 
 	switch (ts->dev_data->easy_wakeup_info.sleep_mode) {
 	case TS_POWER_OFF_MODE:
@@ -2514,7 +2482,7 @@ static void gt1x_irq_output(int level)
 	if (error < 0)
 			TS_LOG_ERR("%s:Set irq pin state error:%d\n", __func__, error);
 }
-#endif
+
 static int gt1x_reset_output(int level)
 {
 	int error = 0;
@@ -2537,7 +2505,7 @@ static int gt1x_reset_output(int level)
 			TS_LOG_ERR("%s:Set reset pin state error:%d\n", __func__, error);
 	return error;
 }
-
+#endif
 static int gt1x_gpio_reset(void)
 {
 	int ret = 0;
@@ -2567,6 +2535,7 @@ static int gt1x_gpio_reset(void)
 	return 0;
 }
 
+<<<<<<< HEAD
 static void gt1x_select_addrs(void)
 {
 	int ret = 0;
@@ -2594,31 +2563,30 @@ static void gt1x_select_addrs(void)
 	return;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /**
  * gt1x_chip_reset - reset chip
  */
 int gt1x_chip_reset(void)
 {
-#ifndef CONFIG_HUAWEI_DEVKIT_MTK_3_0
 	int ret = 0;
 
-	ret = gt1x_reset_output(PULL_DOWN);
+	ret = gt1x_reset_output(0);
 	if (ret) {
 		TS_LOG_ERR("%s:gpio direction output to 0 fail, ret=%d\n",
 				   __func__, ret);
 		return ret;
 	}
-	udelay(GT1X_RESET_PIN_D_U_TIME);
-	ret = gt1x_reset_output(PULL_UP);
+	udelay(150);
+	ret = gt1x_reset_output(1);
 	if (ret) {
 		TS_LOG_ERR("%s:gpio direction output to 1 fail, ret=%d\n",
 				   __func__, ret);
 		return ret;
 	}
-	msleep(GT1X_RESET_SLEEP_TIME); /* chip initialize */
-#else
-	gt1x_select_addrs();
-#endif
+	msleep(80); /* chip initialize */
+
 	return gt1x_init_watchdog();
 }
 
@@ -3095,99 +3063,6 @@ exit:
 }
 
 #define GT1X_DOZE_MAX_INPUT_SEPARATE_NUM 2
-static void gt1x_set_doze_mode(unsigned int soper, unsigned char param)
-{
-	struct gt1x_ts_data *ts = gt1x_ts;
-	int error = 0;
-
-	if ((NULL == ts) || (NULL == ts->dev_data)){
-		TS_LOG_ERR("%s, error chip data\n",__func__);
-		goto out;
-	}
-
-	if (TS_SWITCH_TYPE_DOZE != (ts->dev_data->touch_switch_flag & TS_SWITCH_TYPE_DOZE)){
-		TS_LOG_ERR("%s, doze mode does not suppored by this chip\n",__func__);
-		goto out;
-	}
-
-	switch (soper){
-		case TS_SWITCH_DOZE_ENABLE:
-			TS_LOG_INFO("%s:enter doze_mode[param:%d]\n", __func__, param);
-			error = gt1x_send_cmd(GTP_CMD_DOZE_CONFIG, param, 1);
-			if (error) {
-				TS_LOG_ERR("%s: Failed send doze enable cmd: error%d\n", __func__, error);
-			}
-			break;
-		case TS_SWITCH_DOZE_DISABLE:
-			TS_LOG_INFO("%s:exit doze_mode\n", __func__);
-			/*holdoff > 100 means always at active status*/
-			error = gt1x_send_cmd(GTP_CMD_DOZE_CONFIG, 0xFF, 1);
-			if (error) {
-				TS_LOG_ERR("%s: Failed send doze disable cmd: error%d\n", __func__, error);
-			}
-			break;
-		default:
-			TS_LOG_ERR("%s: soper unknown:%u, invalid\n", __func__, soper);
-			break;
-		}
-out:
-	return;
-}
-
-static void gt1x_set_game_mode(unsigned int soper)
-{
-	struct gt1x_ts_data *ts = gt1x_ts;
-	int error = 0;
-	struct gt1x_ts_config *config = NULL;
-	struct ts_feature_info *info = NULL;
-
-	if ((NULL == ts) || (NULL == ts->dev_data) || (NULL == ts->dev_data->ts_platform_data)){
-		TS_LOG_ERR("%s, error chip data\n", __func__);
-		goto out;
-	}
-
-	info = &ts->dev_data->ts_platform_data->feature_info;
-	if (TS_SWITCH_TYPE_GAME != (ts->dev_data->touch_switch_flag & TS_SWITCH_TYPE_GAME)){
-		TS_LOG_ERR("%s, game mode does not suppored by this chip\n",__func__);
-		goto out;
-	}
-
-	switch (soper){
-		case TS_SWITCH_GAME_ENABLE:
-			TS_LOG_INFO("%s: enter game_mode\n", __func__);
-			error = gt1x_send_cfg(&ts->game_scene_config);
-			if (error) {
-				TS_LOG_ERR("%s: Send game ENABLE config error\n", __func__);
-			}
-			break;
-		case TS_SWITCH_GAME_DISABLE:
-			if (!info) {
-				TS_LOG_ERR("%s, error info data\n",__func__);
-				goto out;
-			}
-
-			TS_LOG_INFO("%s: exit game_mode to [holster_switch:%d][glove_switch:%d]\n", __func__,
-			info->holster_info.holster_switch,info->glove_info.glove_switch);
-			if (info->holster_info.holster_switch)
-				config = &ts->holster_config;
-			else if (info->glove_info.glove_switch)
-				config = &ts->glove_config;
-			else
-				config = &ts->normal_config;
-
-			error = gt1x_send_cfg(config);
-			if (error) {
-				TS_LOG_ERR("%s: Send DISABLE config error\n", __func__);
-			}
-			break;
-		default:
-			TS_LOG_ERR("%s: soper unknown:%u, invalid\n", __func__, soper);
-			break;
-	}
-out:
-	return;
-}
-
 static void gt1x_chip_touch_switch(void)
 {
 	char in_data[MAX_STR_LEN] = {0};
@@ -3196,7 +3071,8 @@ static void gt1x_chip_touch_switch(void)
 	int error = 0;
 	unsigned int i = 0, cnt = 0;
 	struct gt1x_ts_data *ts = gt1x_ts;
-
+	struct ts_feature_info *info = &ts->dev_data->ts_platform_data->feature_info;
+	struct gt1x_ts_config *config = NULL;
 
 	TS_LOG_INFO("%s enter\n", __func__);
 
@@ -3235,14 +3111,70 @@ static void gt1x_chip_touch_switch(void)
 
 	switch (stype) {
 		case TS_SWITCH_TYPE_DOZE:
-			gt1x_set_doze_mode(soper, param);
+			if (TS_SWITCH_TYPE_DOZE != (ts->dev_data->touch_switch_flag & TS_SWITCH_TYPE_DOZE)){
+				TS_LOG_ERR("%s, doze mode does not suppored by this chip\n",__func__);
+				goto out;
+			}
+
+			switch (soper){
+				case TS_SWITCH_DOZE_ENABLE:
+					TS_LOG_INFO("%s:enter doze_mode[param:%d]\n", __func__, param);
+					error = gt1x_send_cmd(GTP_CMD_DOZE_CONFIG, param, 1);
+					if (error) {
+						TS_LOG_ERR("%s: Failed send doze enable cmd: error%d\n", __func__, error);
+					}
+					break;
+				case TS_SWITCH_DOZE_DISABLE:
+					TS_LOG_INFO("%s:exit doze_mode\n", __func__);
+					/*holdoff > 100 means always at active status*/
+					error = gt1x_send_cmd(GTP_CMD_DOZE_CONFIG, 0xFF, 1);
+					if (error) {
+						TS_LOG_ERR("%s: Failed send doze disable cmd: error%d\n", __func__, error);
+					}
+					break;
+				default:
+					TS_LOG_ERR("%s: soper unknown:%u, invalid\n", __func__, soper);
+					break;
+			}
 			break;
-		case TS_SWITCH_SCENE_3:
-		case TS_SWITCH_SCENE_4:
-			TS_LOG_INFO("%s : does not suppored\n", __func__);
-			break;
-		case TS_SWITCH_SCENE_5:
-			gt1x_set_game_mode(soper);
+		case TS_SWITCH_TYPE_GAME:
+			if (TS_SWITCH_TYPE_GAME != (ts->dev_data->touch_switch_flag & TS_SWITCH_TYPE_GAME)){
+				TS_LOG_ERR("%s, game mode does not suppored by this chip\n",__func__);
+				goto out;
+			}
+
+			switch (soper){
+				case TS_SWITCH_GAME_ENABLE:
+					TS_LOG_INFO("%s: enter game_mode\n", __func__);
+					error = gt1x_send_cfg(&ts->game_scene_config);
+					if (error) {
+						TS_LOG_ERR("%s: Send game ENABLE config error\n", __func__);
+					}
+					break;
+				case TS_SWITCH_GAME_DISABLE:
+					if (!info) {
+						TS_LOG_ERR("%s, error info data\n",__func__);
+						goto out;
+					}
+
+					TS_LOG_INFO("%s: exit game_mode to [holster_switch:%d][glove_switch:%d]\n", __func__,
+						info->holster_info.holster_switch,info->glove_info.glove_switch);
+					if (info->holster_info.holster_switch)
+						config = &ts->holster_config;
+					else if (info->glove_info.glove_switch)
+						config = &ts->glove_config;
+					else
+						config = &ts->normal_config;
+
+					error = gt1x_send_cfg(config);
+					if (error) {
+						TS_LOG_ERR("%s: Send DISABLE config error\n", __func__);
+					}
+					break;
+				default:
+					TS_LOG_ERR("%s: soper unknown:%u, invalid\n", __func__, soper);
+					break;
+			}
 			break;
 		default:
 			TS_LOG_ERR("%s: stype unknown:%u, invalid\n", __func__, stype);

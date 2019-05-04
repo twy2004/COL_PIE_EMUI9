@@ -66,10 +66,9 @@ typedef enum _dynamic_ddr_sec_type {
 
 typedef struct tag_atfd_data {
 	phys_addr_t  buf_phy_addr;
-	size_t buf_size;
-	u8 *buf_virt_addr;
+	unsigned char *buf_virt_addr;
 	struct mutex atfd_mutex;
-	u32 module_init_success_flg;
+	unsigned int module_init_success_flg;
 } ATFD_DATA;
 
 typedef struct {
@@ -81,45 +80,34 @@ typedef struct {
 
 
 #ifdef CONFIG_DRMDRIVER
-noinline s32 atfd_hisi_service_access_register_smc(u64 main_fun_id,
-						   u64 buff_addr_phy,
-						   u64 data_len,
-						   u64 sub_fun_id);
-void configure_master_security(u32 is_security, s32 master_id);
-void configure_dss_register_security(u32 addr, u32 val, u8 bw, u8 bs);
-s32 configure_dss_service_security(u32 master_op_type, u32 channel, u32 mode);
-s32 hisi_sec_ddr_set(DRM_SEC_CFG *sec_cfg, DYNAMIC_DDR_SEC_TYPE type);
-s32 hisi_sec_ddr_clr(DYNAMIC_DDR_SEC_TYPE type);
+noinline int atfd_hisi_service_access_register_smc(u64 main_fun_id, u64 buff_addr_phy, u64 data_len, u64 sub_fun_id);
+void configure_master_security(unsigned int is_security, int master_id);
+void configure_dss_register_security(uint32_t addr, uint32_t val, uint8_t bw, uint8_t bs);
+int configure_dss_service_security(unsigned int master_op_type, unsigned int channel, unsigned int mode);
+int hisi_sec_ddr_set(DRM_SEC_CFG *sec_cfg, DYNAMIC_DDR_SEC_TYPE type);
+int hisi_sec_ddr_clr(DYNAMIC_DDR_SEC_TYPE type);
 #else /* !CONFIG_DRMDRIVER */
-static inline s32 atfd_hisi_service_access_register_smc(u64 main_fun_id,
-							u64 buff_addr_phy,
-							u64 data_len,
-							u64 sub_fun_id)
+static inline int atfd_hisi_service_access_register_smc(u64 main_fun_id, u64 buff_addr_phy, u64 data_len, u64 sub_fun_id)
 {
 	return 0;
 }
 
-static inline void configure_master_security(u32 is_security, s32 master_id)
+static inline void configure_master_security(unsigned int is_security, int master_id)
 {
 }
 
-static inline void configure_dss_register_security(u32 addr, u32 val, u8 bw, u8 bs)
+static inline void configure_dss_register_security(uint32_t addr, uint32_t val, uint8_t bw, uint8_t bs)
 {
 }
 
-static inline s32 configure_dss_service_security(u32 master_op_type,
-						 u32 channel, u32 mode)
+static inline int configure_dss_service_security(unsigned int master_op_type, unsigned int channel, unsigned int mode)
 {
-	return 0;
 }
-
-static inline s32 hisi_sec_ddr_clr(DYNAMIC_DDR_SEC_TYPE type)
+static inline int hisi_sec_ddr_clr(DYNAMIC_DDR_SEC_TYPE type)
 {
 	return 0;
 }
-
-static inline s32 hisi_sec_ddr_set(DRM_SEC_CFG *sec_cfg,
-				   DYNAMIC_DDR_SEC_TYPE type)
+static inline int hisi_sec_ddr_set(DRM_SEC_CFG *sec_cfg, DYNAMIC_DDR_SEC_TYPE type)
 {
 	return 0;
 }

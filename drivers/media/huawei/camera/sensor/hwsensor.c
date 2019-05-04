@@ -121,10 +121,14 @@ hwsensor_subdev_get_info(
     }
     info->vcm_enable= sensor->board_info->vcm_enable;
 
+<<<<<<< HEAD
     memset(info->extend_name, 0, DEVICE_NAME_SIZE);
 
     memset(info->vcm_name, 0, DEVICE_NAME_SIZE);
 
+=======
+    memset_s(info->vcm_name, DEVICE_NAME_SIZE, 0, DEVICE_NAME_SIZE);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     if(info->vcm_enable) {
         rc = strncpy_s(info->vcm_name, DEVICE_NAME_SIZE -1,sensor->board_info->vcm_name,
             strlen(sensor->board_info->vcm_name)+1);

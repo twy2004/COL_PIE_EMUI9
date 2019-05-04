@@ -819,10 +819,9 @@ static int FUSB3601_scp_init(void)
 {
 	int ret;
 	FSC_U8 data;
+	FUSB3601_scp_error_flag = 0;
 	struct fusb3601_chip* chip = fusb3601_GetChip();
 	struct Port* port;
-
-	FUSB3601_scp_error_flag = 0;
 	if (!chip) {
 		hwlog_err("FUSB  %s - Chip structure is NULL!\n", __func__);
 		return -1;

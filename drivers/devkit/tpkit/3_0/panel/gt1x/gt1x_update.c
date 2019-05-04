@@ -130,7 +130,7 @@ void gt1x_leave_update_mode(void);
 
 static int gt1x_i2c_write_with_readback(u16 addr, u8 * buffer, int length)
 {
-	u8 buf[100] = {0};
+	u8 buf[100];
 	int ret;
 	if (buffer == NULL || length > sizeof(buf)) {
 	   return  ERROR_CHECK;
@@ -239,7 +239,7 @@ int gt1x_update_firmware(void)
 	for (i = 1; i < update_info.firmware_info->subsystem_count; i++) {
 		TS_LOG_INFO("subsystem: %d\n", update_info.firmware_info->subsystem[i].type);
 		TS_LOG_INFO("Length: %d\n", update_info.firmware_info->subsystem[i].length);
-		TS_LOG_INFO("Address: 0x%x\n", update_info.firmware_info->subsystem[i].address);
+		TS_LOG_INFO("Address: %d\n", update_info.firmware_info->subsystem[i].address);
 
 		ret = gt1x_burn_subsystem(&(update_info.firmware_info->subsystem[i]));
 		if (ret) {
@@ -250,10 +250,7 @@ int gt1x_update_firmware(void)
 	}
 
 #if GTP_FW_UPDATE_VERIFY
-	ret = gt1x_chip_reset();
-	if(ret < 0){
-		TS_LOG_ERR("%s, failed to chip_reset, ret = %d\n", __func__, ret);
-	}
+	gt1x_chip_reset();
 
 	subsystem_info =&update_info.fw->data[update_info.firmware_info->subsystem[0].offset];
 	if(subsystem_info==NULL){
@@ -487,10 +484,7 @@ static int gt1x_update_judge(void)
 		}
 		break;
 _reset:
-		ret = gt1x_chip_reset();
-		if(ret < 0){
-			TS_LOG_ERR("%s, failed to chip_reset, ret = %d\n", __func__, ret);
-		}
+		gt1x_chip_reset();
 	} while (--retry);
 
 	if (retry <= 0) {
@@ -577,14 +571,11 @@ static int __gt1x_hold_ss51_dsp_20(void)
 static int gt1x_hold_ss51_dsp(void)
 {
 	int ret = ERROR, retry = GT1X_RETRY_FIVE;
-	u8 buffer[2] = {0};
+	u8 buffer[2];
 
 	do {
-		ret = gt1x_chip_reset();
-		if(ret){
-			TS_LOG_ERR("%s: chip_reset fail\n", __func__);
-		}
-		ret = gt1x_i2c_read(GTP_REG_HW_INFO, buffer, 1);
+		gt1x_select_addr();
+		ret =  gt1x_i2c_read(GTP_REG_HW_INFO, buffer, 1);
 	} while (retry-- && ret < 0);
 
 	if (ret < 0)
@@ -674,9 +665,13 @@ static int gt1x_run_ss51_isp(u8 * ss51_isp, int length)
 	//clear version
 	memset(buffer, 0xAA, 10);
 	ret = gt1x_i2c_write_with_readback(GTP_REG_VERSION, buffer, 10);
+<<<<<<< HEAD
 	if (ret) {
 		TS_LOG_ERR("write readback fail!\n");
 	}
+=======
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	// disable patch area access
 	buffer[0] = 0x00;
 	ret = gt1x_i2c_write_with_readback(_bRW_MISCTL__PATCH_AREA_EN_, buffer, 1);
@@ -728,7 +723,7 @@ static u16 gt1x_calc_checksum(u8 * fw, u32 length)
 
 static int gt1x_recall_check(u8 * chk_src, u16 start_addr, u16 chk_length)
 {
-	u8 rd_buf[PACK_SIZE] = {0};
+	u8 rd_buf[PACK_SIZE];
 	s32 ret = 0;
 	u16 len = 0;
 	u32 compared_length = 0;
@@ -755,44 +750,7 @@ static int gt1x_recall_check(u8 * chk_src, u16 start_addr, u16 chk_length)
 	TS_LOG_DEBUG("Recall check %d bytes(address: 0x%04X) success.\n", compared_length, start_addr);
 	return NO_ERR;
 }
-#ifdef CONFIG_HUAWEI_DEVKIT_MTK_3_0
-#define MTK_IIC_MAX_TRANSFER_SIZE 8
-static int gt1x_write_block_data(u32 addr, u8 * buffer, int len)
-{
-	int ret =0;
-	int package_count = 0;
-	int i;
-	u32 start_write_addr = addr;
-	u32 data_size = 0;
-	u32 copy_offset = 0;
 
-	/* computer package count*/
-	package_count = len / MTK_IIC_MAX_TRANSFER_SIZE;
-	if (len % MTK_IIC_MAX_TRANSFER_SIZE != 0)
-		package_count += 1;
-
-	for(i =0 ; i < package_count ; i++){
-		/* the last package to write size*/
-		if ((i + 1 == package_count) && (len % MTK_IIC_MAX_TRANSFER_SIZE != 0)) {
-			data_size = len % MTK_IIC_MAX_TRANSFER_SIZE;
-		} else {
-			data_size = MTK_IIC_MAX_TRANSFER_SIZE;
-		}
-
-		copy_offset = start_write_addr - addr;
-		ret = gt1x_i2c_write(start_write_addr, &buffer[copy_offset], data_size);
-		if (ret) {
-			TS_LOG_ERR("%s : write fw data fail !\n", __func__);
-			goto out;
-		}
-
-		start_write_addr += data_size;	
-	}
-	return NO_ERR;
-out :
-	return ret;
-}
-#endif
 static int gt1x_burn_subsystem(struct fw_subsystem_info *subsystem)
 {
 	int block_len;
@@ -818,6 +776,9 @@ static int gt1x_burn_subsystem(struct fw_subsystem_info *subsystem)
 
 		TS_LOG_INFO("Burn block ==> length: %d, address: 0x%08X\n", block_len, subsystem->address + burn_len);
 		fw =(u8 *)(&update_info.fw->data[subsystem->offset + burn_len]);
+		if (fw == NULL) {
+			return ERROR_FW;
+		}
 
 		cur_addr = ((subsystem->address + burn_len) >> 8);
 
@@ -838,20 +799,11 @@ static int gt1x_burn_subsystem(struct fw_subsystem_info *subsystem)
 			continue;
 		}
 		//write block data
-#ifdef CONFIG_HUAWEI_DEVKIT_MTK_3_0
-
-		ret = gt1x_write_block_data(0x8100 + 4, fw, block_len);
-		if (ret) {
-			TS_LOG_ERR("write fw data fail!\n");
-			continue;
-		}
-#else
 		ret = gt1x_i2c_write(0x8100 + 4, fw, block_len);
 		if (ret) {
 			TS_LOG_ERR("write fw data fail!\n");
 			continue;
 		}
-#endif
 		//write block checksum
 		buffer[0] = ((checksum >> 8) & 0xFF);
 		buffer[1] = (checksum & 0xFF);
@@ -943,16 +895,18 @@ static int gt1x_check_subsystem_in_flash(struct fw_subsystem_info *subsystem)
 
 		TS_LOG_INFO("Check block ==> length: %d, address: 0x%08X\n", block_len, subsystem->address + checked_len);
 		fw =(u8 *)(&update_info.fw->data[subsystem->offset + checked_len]);
-
+		if (fw == NULL) {
+			return ERROR_FW;
+		}
 		ret = gt1x_read_flash(subsystem->address + checked_len, block_len);
 		if (ret) {
-			check_state |= (u32)ret;
+			check_state |= ret;
 		}
 
 		ret = gt1x_recall_check(fw, 0x8100, block_len);
 		if (ret) {
 			TS_LOG_ERR("Block in flash is broken!\n");
-			check_state |= (u32)ret;
+			check_state |= ret;
 		}
 
 		length -= block_len;
@@ -1015,21 +969,18 @@ static int gt1x_read_flash(u32 addr, int length)
 
 static int gt1x_error_erase(void)
 {
-	int block_len = 0;
-	u16 checksum = 0;
-	u16 erase_addr = 0;
-	u8 buffer[10] = {0};
-	int ret = 0;
-	int wait_time = 0;
+	int block_len;
+	u16 checksum;
+	u16 erase_addr;
+	u8 buffer[10];
+	int ret;
+	int wait_time;
 	int burn_state = ERROR;
 	int retry = 5;
 	u8 *fw = NULL;
 
 	TS_LOG_INFO("Erase flash area of ss51.\n");
-	ret = gt1x_chip_reset();
-	if(ret < 0){
-		TS_LOG_ERR("%s, failed to chip_reset, ret = %d\n", __func__, ret);
-	}
+	gt1x_chip_reset();
 	fw = (u8 *)(&update_info.fw->data[update_info.firmware_info->subsystem[0].offset]);
 	if (fw == NULL) {
 		TS_LOG_ERR("get isp fail\n");

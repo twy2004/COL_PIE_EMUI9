@@ -50,16 +50,19 @@
 #define TMD3702_MAX_ThRESHOLD_NUM    27
 #define TMD3702_MIN_ThRESHOLD_NUM    28
 
+<<<<<<< HEAD
 #define TCS3701_MAX_ThRESHOLD_NUM    30
 #define TCS3701_MIN_ThRESHOLD_NUM    31
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define VCNL36658_MAX_ThRESHOLD_NUM    28
 #define VCNL36658_MIN_ThRESHOLD_NUM    29
 
 #define TP_COORDINATE_THRESHOLD      (4)
 
-#define TSL2591_MAX_ThRESHOLD_NUM    13
-#define TSL2591_MIN_ThRESHOLD_NUM    14
+#define TSL2591_MAX_ThRESHOLD_NUM    12
+#define TSL2591_MIN_ThRESHOLD_NUM    13
 
 #define BH1726_MAX_ThRESHOLD_NUM    14
 #define BH1726_MIN_ThRESHOLD_NUM    15
@@ -422,6 +425,7 @@ struct tp_ud_platform_data {
 	uint32_t i2c_max_speed_hz;
 	uint32_t spi_max_speed_hz;
 	uint8_t spi_mode;
+<<<<<<< HEAD
 	uint16_t fw_power_config_reg;
 	uint16_t fw_touch_data_reg;
 	uint16_t fw_touch_command_reg;
@@ -432,6 +436,8 @@ struct tp_ud_platform_data {
 	uint16_t fw_addr_7;
 	uint16_t tp_sensorhub_irq_flag;
 	uint16_t tp_sensor_spi_sync_cs_low_delay_us;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	struct tp_ud_algo_config algo_conf;
 };
 

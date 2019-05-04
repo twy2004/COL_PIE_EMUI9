@@ -18,6 +18,7 @@
 		hisi,modem_id = <0x37014000>;
 	};
 
+<<<<<<< HEAD
 	&fastboot_battery {
 		iin_limit_usb = <475>;
 		status = "ok";
@@ -136,3 +137,5 @@
 	&devcheck {
 		charge_switchcap = <0>;
 	};
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

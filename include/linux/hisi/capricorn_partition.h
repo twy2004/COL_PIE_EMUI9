@@ -6,6 +6,7 @@
 
 static const struct partition partition_table_emmc[] =
 {
+<<<<<<< HEAD
   {PART_XLOADER,                           0,           2*1024,        EMMC_BOOT_MAJOR_PART},
   {PART_RESERVED0,                         0,           2*1024,        EMMC_BOOT_BACKUP_PART},
   {PART_PTABLE,                            0,              512,        EMMC_USER_PART},/* ptable          512K */
@@ -51,6 +52,51 @@ static const struct partition partition_table_emmc[] =
   {PART_FW_HIFI,                    538*1024,          12*1024,        EMMC_USER_PART},/* hifi              12M    p40*/
   {PART_TEEOS,                      550*1024,           8*1024,        EMMC_USER_PART},/* teeos              8M    p41*/
   {PART_SENSORHUB,                  558*1024,          16*1024,        EMMC_USER_PART},/* sensorhub         16M    p42*/
+=======
+  {PART_XLOADER_A,				       0,           2*1024,        EMMC_BOOT_MAJOR_PART},
+  {PART_XLOADER_B,				       0,           2*1024,        EMMC_BOOT_BACKUP_PART},
+  {PART_PTABLE,					       0,              512,        EMMC_USER_PART},/* ptable          512K */
+  {PART_FRP,     				     512,              512,        EMMC_USER_PART},/* frp             512K   p1*/
+  {PART_PERSIST,				    1024,           6*1024,        EMMC_USER_PART},/* persist           6M   p2*/
+  {PART_RESERVED1,        			  7*1024,             1024,        EMMC_USER_PART},/* reserved1      1024K   p3*/
+  {PART_RESERVED6,        			  8*1024,              512,        EMMC_USER_PART},/* reserved6       512K   p4*/
+  {PART_VRL,              			    8704,              512,        EMMC_USER_PART},/* vrl             512K   p5*/
+  {PART_VRL_BACKUP,       			  9*1024,              512,        EMMC_USER_PART},/* vrl backup      512K   p6*/
+  {PART_MODEM_SECURE,     			    9728,             8704,        EMMC_USER_PART},/* modem_secure   8704K   p7*/
+  {PART_NVME,             			 18*1024,           5*1024,        EMMC_USER_PART},/* nvme              5M   p8*/
+  {PART_CTF,              			 23*1024,           1*1024,        EMMC_USER_PART},/* ctf               1M   p9*/
+  {PART_OEMINFO,          			 24*1024,          96*1024,        EMMC_USER_PART},/* oeminfo          96M   p10*/
+  {PART_SECURE_STORAGE,   			120*1024,          32*1024,        EMMC_USER_PART},/* secure storage   32M   p11*/
+  {PART_MODEMNVM_FACTORY, 			152*1024,          16*1024,        EMMC_USER_PART},/* modemnvm factory 16M   p12*/
+  {PART_MODEMNVM_BACKUP,  			168*1024,          16*1024,        EMMC_USER_PART},/* modemnvm backup  16M   p13*/
+  {PART_MODEMNVM_IMG,     			184*1024,          34*1024,        EMMC_USER_PART},/* modemnvm img     34M   p14*/
+  {PART_HISEE_ENCOS,      			218*1024,           4*1024,        EMMC_USER_PART},/* hisee_encos       4M   p15*/
+  {PART_VERITYKEY,        			222*1024,           1*1024,        EMMC_USER_PART},/* veritykey         1M   p16*/
+  {PART_DDR_PARA,         			223*1024,           1*1024,        EMMC_USER_PART},/* DDR_PARA          1M   p17*/
+  {PART_LOWPOWER_PARA,          		224*1024,           1*1024,        EMMC_USER_PART},/* lowpower_para     1M   p18*/
+  {PART_BATT_TP_PARA,           		225*1024,           1*1024,        EMMC_USER_PART},/* batt_tp_para      1M   p19*/
+  {PART_RESERVED2,        			226*1024,          25*1024,        EMMC_USER_PART},/* reserved2        25M   p20*/
+  {PART_SPLASH2,          			251*1024,          80*1024,        EMMC_USER_PART},/* splash2          80M   p21*/
+  {PART_BOOTFAIL_INFO,    			331*1024,           2*1024,        EMMC_USER_PART},/* bootfail info     2M   p22*/
+  {PART_MISC,             			333*1024,           2*1024,        EMMC_USER_PART},/* misc              2M   p23*/
+  {PART_DFX,              			335*1024,          16*1024,        EMMC_USER_PART},/* dfx              16M   p24*/
+  {PART_RRECORD,          			351*1024,          16*1024,        EMMC_USER_PART},/* rrecord          16M   p25*/
+  {PART_CACHE,                  		367*1024,         104*1024,        EMMC_USER_PART},/* cache           104M   p26*/
+  {PART_FW_LPM3_A,        			471*1024,              256,        EMMC_USER_PART},/* fw_lpm3_a       256K   p27*/
+  {PART_RESERVED3_A,      			  482560,             7936,        EMMC_USER_PART},/* reserved3A     7936K   p28*/
+  {PART_IVP,              			479*1024,           2*1024,        EMMC_USER_PART},/* ivp               2M   p29*/
+  {PART_HDCP_A,           			481*1024,           1*1024,        EMMC_USER_PART},/* PART_HDCP_A       1M   p30*/
+  {PART_HISEE_IMG_A,      			482*1024,           4*1024,        EMMC_USER_PART},/* part_hisee_img_a  4M   p31*/
+  {PART_HHEE_A,           			486*1024,           4*1024,        EMMC_USER_PART},/* hhee_a            4M   p32*/
+  {PART_HISEE_FS_A,       			490*1024,           8*1024,        EMMC_USER_PART},/* hisee_fs          8M   p33*/
+  {PART_FASTBOOT_A,       			498*1024,          12*1024,        EMMC_USER_PART},/* fastboot         12M   p34*/
+  {PART_VECTOR_A,         			510*1024,           4*1024,        EMMC_USER_PART},/* vector_a          4M   p35*/
+  {PART_ISP_BOOT_A,       			514*1024,           2*1024,        EMMC_USER_PART},/* isp_boot          2M   p36*/
+  {PART_ISP_FIRMWARE_A,   			516*1024,          14*1024,        EMMC_USER_PART},/* isp_firmware     14M   p37*/
+  {PART_FW_HIFI_A,        			530*1024,          12*1024,        EMMC_USER_PART},/* hifi             12M   p38*/
+  {PART_TEEOS_A,          			542*1024,           8*1024,        EMMC_USER_PART},/* teeos             8M   p39*/
+  {PART_SENSORHUB_A,      			550*1024,          16*1024,        EMMC_USER_PART},/* sensorhub        16M   p40*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #ifdef CONFIG_SANITIZER_ENABLE
   {PART_ERECOVERY_KERNEL,           574*1024,          24*1024,        EMMC_USER_PART},/* erecovery_kernel  24M    p43*/
   {PART_ERECOVERY_RAMDISK,          598*1024,          32*1024,        EMMC_USER_PART},/* erecovery_ramdisk 32M    p44*/
@@ -169,6 +215,7 @@ static const struct partition partition_table_emmc[] =
 #ifdef CONFIG_HISI_STORAGE_UFS_PARTITION
 static const struct partition partition_table_ufs[] =
 {
+<<<<<<< HEAD
   {PART_XLOADER,                           0,           2*1024,        UFS_PART_0},
   {PART_RESERVED0,                         0,           2*1024,        UFS_PART_1},
   {PART_PTABLE,                            0,              512,        UFS_PART_2},/* ptable                    512K    */
@@ -214,6 +261,51 @@ static const struct partition partition_table_ufs[] =
   {PART_FW_HIFI,                    530*1024,          12*1024,        UFS_PART_3},/* hifi                       12M    p36*/
   {PART_TEEOS,                      542*1024,           8*1024,        UFS_PART_3},/* teeos                       8M    p37*/
   {PART_SENSORHUB,                  550*1024,          16*1024,        UFS_PART_3},/* sensorhub                  16M    p38*/
+=======
+  {PART_XLOADER_A,        			0,        		 2*1024,        UFS_PART_0},
+  {PART_XLOADER_B,        			0,        		 2*1024,        UFS_PART_1},
+  {PART_PTABLE,           			0,        		    512,        UFS_PART_2},/* ptable           		 512K     */
+  {PART_FRP,              			512,      		    512,        UFS_PART_2},/* frp              		 512K    p1*/
+  {PART_PERSIST,          			1*1024,   		 6*1024,        UFS_PART_2},/* persist          		6144K    p2*/
+  {PART_RESERVED1,        			7*1024,   		   1024,        UFS_PART_2},/* reserved1        		1024K    p3*/
+  {PART_PTABLE_LU3,       			0,        		    512,        UFS_PART_3},/* ptable_lu3       		 512K    p0*/
+  {PART_VRL,              			512,      		    512,        UFS_PART_3},/* vrl              		 512K    p1*/
+  {PART_VRL_BACKUP,       			1024,     		    512,        UFS_PART_3},/* vrl backup       		 512K    p2*/
+  {PART_MODEM_SECURE,     			1536,     		   8704,        UFS_PART_3},/* modem_secure     		8704K    p3*/
+  {PART_NVME,             			10*1024,  		 5*1024,       	UFS_PART_3},/* nvme             		   5M    p4*/
+  {PART_CTF,              			15*1024,  		 1*1024,       	UFS_PART_3},/* PART_CTF         		   1M    p5*/
+  {PART_OEMINFO,          			16*1024,  		96*1024,       	UFS_PART_3},/* oeminfo          		  96M    p6*/
+  {PART_SECURE_STORAGE,   			112*1024, 		32*1024,       	UFS_PART_3},/* secure storage   		  32M    p7*/
+  {PART_MODEMNVM_FACTORY, 			144*1024, 		16*1024,       	UFS_PART_3},/* modemnvm factory 		  16M    p8*/
+  {PART_MODEMNVM_BACKUP,  			160*1024, 		16*1024,       	UFS_PART_3},/* modemnvm backup  		  16M    p9*/
+  {PART_MODEMNVM_IMG,     			176*1024, 		34*1024,       	UFS_PART_3},/* modemnvm img     		  34M    p10*/
+  {PART_HISEE_ENCOS,      			210*1024, 		 4*1024,       	UFS_PART_3},/* hisee_encos      		   4M    p11*/
+  {PART_VERITYKEY,        			214*1024, 		 1*1024,       	UFS_PART_3},/* veritykey        		   1M    p12*/
+  {PART_DDR_PARA,         			215*1024, 		 1*1024,       	UFS_PART_3},/* ddr_para         		   1M    p13*/
+  {PART_LOWPOWER_PARA,    			216*1024, 		 1*1024,       	UFS_PART_3},/* lowpower_para    		   1M    p14*/
+  {PART_BATT_TP_PARA,     			217*1024, 		 1*1024,       	UFS_PART_3},/* batt_tp_para     		   1M    p15*/
+  {PART_RESERVED2,        			218*1024, 		25*1024,       	UFS_PART_3},/* reserved2        		  25M    p16*/
+  {PART_SPLASH2,          			243*1024, 		80*1024,       	UFS_PART_3},/* splash2          		  80M    p17*/
+  {PART_BOOTFAIL_INFO,    			323*1024, 		 2*1024,       	UFS_PART_3},/* bootfail info    		  2MB    p18*/
+  {PART_MISC,             			325*1024, 		 2*1024,       	UFS_PART_3},/* misc             		   2M    p19*/
+  {PART_DFX,              			327*1024, 		16*1024,       	UFS_PART_3},/* dfx              		  16M    p20*/
+  {PART_RRECORD,          			343*1024, 		16*1024,       	UFS_PART_3},/* rrecord          		  16M    p21*/
+  {PART_CACHE,            			359*1024,    	       104*1024,       	UFS_PART_3},/* cache            		 104M    p22*/
+  {PART_FW_LPM3_A,        			463*1024, 		    256,       	UFS_PART_3},/* fw_lpm3_a        		 256K    p23*/
+  {PART_RESERVED3_A,      			474368,   		   7936,       	UFS_PART_3},/* reserved3A       		7936K    p24*/
+  {PART_IVP,              			471*1024, 		 2*1024,       	UFS_PART_3},/* ivp              		   2M    p25*/
+  {PART_HDCP_A,           			473*1024, 		 1*1024,       	UFS_PART_3},/* PART_HDCP_A      		   1M    p26*/
+  {PART_HISEE_IMG_A,      			474*1024, 		 4*1024,       	UFS_PART_3},/* part_hisee_img_a 		   4M    p27*/
+  {PART_HHEE_A,           			478*1024, 		 4*1024,       	UFS_PART_3},/* hhee_a           		   4M    p28*/
+  {PART_HISEE_FS_A,       			482*1024, 		 8*1024,       	UFS_PART_3},/* hisee_fs         		   8M    p29*/
+  {PART_FASTBOOT_A,       			490*1024, 		12*1024,       	UFS_PART_3},/* fastboot         		  12M    p30*/
+  {PART_VECTOR_A,         			502*1024, 		 4*1024,       	UFS_PART_3},/* avs vector       		   4M    p31*/
+  {PART_ISP_BOOT_A,       			506*1024, 		 2*1024,       	UFS_PART_3},/* isp_boot         		   2M    p32*/
+  {PART_ISP_FIRMWARE_A,   			508*1024, 		14*1024,       	UFS_PART_3},/* isp_firmware     		  14M    p33*/
+  {PART_FW_HIFI_A,        			522*1024, 		12*1024,       	UFS_PART_3},/* hifi             		  12M    p34*/
+  {PART_TEEOS_A,          			534*1024, 		 8*1024,       	UFS_PART_3},/* teeos            		   8M    p35*/
+  {PART_SENSORHUB_A,      			542*1024, 		16*1024,       	UFS_PART_3},/* sensorhub        		  16M    p36*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #ifdef CONFIG_SANITIZER_ENABLE
   {PART_ERECOVERY_KERNEL,           566*1024,          24*1024,        UFS_PART_3},/* erecovery_kernel           24M    p39*/
   {PART_ERECOVERY_RAMDISK,          590*1024,          32*1024,        UFS_PART_3},/* erecovery_ramdisk          32M    p40*/

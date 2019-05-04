@@ -63,8 +63,13 @@ int pmu_dcxo_get(uint16_t *dcxo_ctrim, uint16_t *dcxo_c2_fix);
 
 int __init pmic_dcxo_init(void)
 {
+<<<<<<< HEAD
 	u16 c1_value=0;
 	u16 c2_value=0;
+=======
+	u16 c1_value;
+	u16 c2_value;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	int iret;
     u16 dcxo_ctrim = 0;
     u16 dcxo_c2_fix = 0;

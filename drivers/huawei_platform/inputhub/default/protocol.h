@@ -127,9 +127,12 @@ typedef enum {
     TAG_SENSOR_CALI,
     TAG_CELL,
     TAG_BIG_DATA,
+<<<<<<< HEAD
     TAG_SWING,
     TAG_SWING_DBG,
     TAG_KB,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     TAG_END = 0xFF
 }obj_tag_t;
 
@@ -372,12 +375,6 @@ typedef enum{
 	SUB_CMD_FLP_WIFENCE_STATUS_REQ,
 	SUB_CMD_FLP_COMMON_DEBUG_CONFIG_REQ,
 
-	SUB_CMD_FLP_CELL_CELLBATCHING_CFG_REQ,
-	SUB_CMD_FLP_CELL_CELLBATCHING_REQ,
-	SUB_CMD_FLP_CELL_CELLBATCHING_REPORT_REQ,
-	SUB_CMD_FLP_DIAG_SEND_CMD_REQ,
-	SUB_CMD_FLP_DIAG_DATA_REPORT_REQ,
-
 	//Always On Display
 	SUB_CMD_AOD_START_REQ = 0x20,
 	SUB_CMD_AOD_STOP_REQ,
@@ -402,6 +399,7 @@ typedef enum{
 	SUB_CMD_VIBRATOR_ON_REQ,
 	SUB_CMD_VIBRATOR_SET_AMPLITUDE_REQ,
 
+<<<<<<< HEAD
 	//swing
 	SUB_CMD_SWING_LOAD_MODEL = 0x20,
 	SUB_CMD_SWING_UNLOAD_MODEL,
@@ -443,6 +441,8 @@ typedef enum{
 	SUB_CMD_KB_PARAMET_REQ ,
 	SUB_CMD_KB_PARAMET_RESP ,
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	SUB_CMD_MAX = 0xff,
 }obj_sub_cmd_t;
 
@@ -911,12 +911,6 @@ typedef struct {
 	uint8_t res[2];
 	uint8_t data[];
 } chre_req_t;
-typedef struct {
-	pkt_header_t hd;
-	uint8_t core;
-	uint8_t cmd;
-	uint8_t data[];
-} swing_req_t;
 
 typedef struct{
 	uint32_t sample_start_time;
@@ -1107,6 +1101,7 @@ enum {
 	FILE_GOODIX3658_FP,//114
 	FILE_FPC1511_FP,//115
 	FILE_PA224_PS_VER2,//116
+<<<<<<< HEAD
 	FILE_TCS3701_ALS,//117
 	FILE_TCS3701_PS,//118
 	FILE_GOODIX_UD_G2_FP,//119
@@ -1128,6 +1123,9 @@ enum {
 	FILE_GOODIX3216_FP, // 135
 	FILE_ET525_FP, // 136
 	FILE_ID_MAX = 137, // MAX VALID FILE ID
+=======
+	FILE_ID_MAX = 117,                       // MAX VALID FILE ID
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 #endif

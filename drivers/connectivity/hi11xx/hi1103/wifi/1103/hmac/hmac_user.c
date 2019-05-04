@@ -554,6 +554,7 @@ mac_ap_type_enum_uint16 hmac_compability_ap_tpye_identify_etc(mac_vap_stru *pst_
             }
         }
 #endif
+<<<<<<< HEAD
 
 #ifdef _PRE_WLAN_FEATURE_160M
         /* 关联ASUS AX88U时关联请求帧不携带OP MODE IE字段 */
@@ -570,6 +571,8 @@ mac_ap_type_enum_uint16 hmac_compability_ap_tpye_identify_etc(mac_vap_stru *pst_
             OAM_WARNING_LOG0(pst_mac_vap->uc_vap_id, OAM_SF_ROAM, "hmac_compability_ap_tpye_identify_etc: aggr blacklist!");
             en_ap_type |= MAC_AP_TYPE_AGGR_BLACKLIST;
         }
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     }
 
     /* 打桩1102逻辑 */
@@ -1088,8 +1091,6 @@ oal_uint32  hmac_user_add_etc(mac_vap_stru *pst_mac_vap, oal_uint8 *puc_mac_addr
         OAM_WARNING_LOG1(pst_mac_vap->uc_vap_id, OAM_SF_UM, "{hmac_user_add_etc::pst_hmac_user[%d] null.}", us_user_idx);
         return OAL_ERR_CODE_PTR_NULL;
     }
-
-    pst_hmac_user->en_user_ap_type = en_ap_type;  /* AP类型 */
 
     /* 初始化mac_user_stru */
     mac_user_init_etc(&(pst_hmac_user->st_user_base_info), us_user_idx, puc_mac_addr,

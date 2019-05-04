@@ -2042,16 +2042,11 @@ static int add_default_attributes(void)
 		return 0;
 
 	if (transaction_run) {
-		struct parse_events_error errinfo;
-
 		if (pmu_have_event("cpu", "cycles-ct") &&
 		    pmu_have_event("cpu", "el-start"))
-			err = parse_events(evsel_list, transaction_attrs,
-					   &errinfo);
+			err = parse_events(evsel_list, transaction_attrs, NULL);
 		else
-			err = parse_events(evsel_list,
-					   transaction_limited_attrs,
-					   &errinfo);
+			err = parse_events(evsel_list, transaction_limited_attrs, NULL);
 		if (err) {
 			fprintf(stderr, "Cannot set up transaction events\n");
 			return -1;

@@ -225,10 +225,7 @@ static int32_t Check_CheckSum(void)
 	size_t len_in_blk = 0;
 	int32_t retry = 0;
 
-	ret = Nova_Resume_PD();
-	if (ret) {
-		TS_LOG_ERR("%s:Nova_Resume_PD fail\n",__func__);
-	}
+	Nova_Resume_PD();
 
 	fw_bin_size = fw_entry->size;
 
@@ -898,10 +895,7 @@ int32_t nvt_kit_fw_update_boot(char *file_name)
 
 	//get project id and fw version
 	novatek_kit_read_projectid();
-	ret = nvt_kit_get_fw_info();
-	if (ret) {
-		TS_LOG_ERR("nvt_kit_get_fw_info failed. (%d)\n", ret);
-	}
+	nvt_kit_get_fw_info();
 	TS_LOG_INFO("%s: new fw version=%02x\n", __func__, nvt_fw_ver);
 
 	return ret;

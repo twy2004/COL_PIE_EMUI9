@@ -92,10 +92,6 @@ source "drivers/media/Kconfig"
 
 source "drivers/vcodec/hi_vcodec/Kconfig"
 
-source "drivers/vcodec/imagination/D5500/Kconfig"
-
-source "drivers/vcodec/imagination/D5500_DRM/Kconfig"
-
 source "drivers/video/Kconfig"
 
 source "sound/Kconfig"
@@ -184,7 +180,9 @@ source "drivers/ipack/Kconfig"
 
 source "drivers/reset/Kconfig"
 
-source "drivers/gpu/Kconfig"
+source "drivers/gpu/gmc/Kconfig"
+
+source "drivers/gpu/arm/Kconfig"
 
 source "drivers/fmc/Kconfig"
 
@@ -236,7 +234,6 @@ source "drivers/hwbfm/Kconfig"
 
 source "drivers/hwzerohung/Kconfig"
 source "drivers/hwfdleak/Kconfig"
-source "drivers/hwerecovery/Kconfig"
 source "drivers/hwnet/Kconfig"
 
 source "drivers/devkit/audiokit/Kconfig"

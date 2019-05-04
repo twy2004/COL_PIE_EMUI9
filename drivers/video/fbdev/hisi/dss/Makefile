@@ -262,13 +262,13 @@ hisifb-objs += \
 	hisi_overlay_mediacommon.o \
 	hisi_mediacommon_panel.o \
 	hisi_fb_video_idle.o \
-	backlight/lm36923.o \
 	panel/dssv501/mipi_cmi_NT35521.o \
 	panel/dssv501/mipi_jdi_R63452.o \
 	panel/kirin970/mipi_sharp_NT36870.o \
 	panel/kirin970/mipi_samsung_EA8074.o \
 	panel/kirin970/mipi_lcd_external_panel.o
 
+<<<<<<< HEAD
 hisifb-objs += voltage/ina231.o
 hisifb-objs += voltage/tps65132.o
 
@@ -284,6 +284,8 @@ hisifb-objs += \
 
 hisifb-objs += hdcp22/host_lib_driver_linux_kernel.o \
 			hdcp22/hdcp13.o
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 endif
 
 ifeq ($(CONFIG_HISI_FB_V320),y)

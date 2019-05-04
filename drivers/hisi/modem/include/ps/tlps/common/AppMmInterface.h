@@ -105,9 +105,14 @@ enum    APP_MM_MSG_TYPE_ENUM
     ID_MM_APP_UE_CAP_INFO_CNF           = 0x4c + MM_APP_COMM_MSG_ID_HEADER,   /* _H2ASN_MsgChoice MM_APP_UE_CAP_INFO_CNF_STRU */
 
     /* 普通命令 流程类消息  0x50 ~ 0x8F*/
+<<<<<<< HEAD
     ID_APP_MM_REG_STAT_REQ              = 0x5c + APP_MM_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice ID_APP_MM_REG_STAT_REQ_STRU */
     ID_APP_MM_REG_STAT_CNF              = 0x5c + MM_APP_COMM_MSG_ID_HEADER,    /* _H2ASN_MsgChoice ID_APP_MM_REG_STAT_CNF_STRU */
     ID_APP_MM_REG_STAT_IND              = 0x5D+MM_APP_COMM_MSG_ID_HEADER,      /* _H2ASN_MsgChoice APP_MM_REG_STAT_IND_STRU */
+=======
+
+    ID_APP_MM_REG_STAT_IND              = 0x5D+MM_APP_COMM_MSG_ID_HEADER,   /* _H2ASN_MsgChoice APP_MM_REG_STAT_IND_STRU */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     ID_APP_MM_MSG_TYPE_BUTT
 };
@@ -265,7 +270,10 @@ enum NAS_DT_REPORT_ITEM_ENUM
     NAS_DT_REPORT_TYPE_GUTI,
     NAS_DT_REPORT_TYPE_IMSI,
     NAS_DT_REPORT_TYPE_EMM_STATE,
+<<<<<<< HEAD
     NAS_DT_REPORT_TYPE_EMM_REG_STATE,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     NAS_DT_REPORT_TYPE_BUTT
 };
 typedef VOS_UINT32 NAS_DT_REPORT_ITEM_ENUM_UINT32;
@@ -1252,6 +1260,7 @@ typedef struct
 } APP_MM_INQ_EMM_STATE_IND_STRU;
 
 /*niuxiufan DT end */
+<<<<<<< HEAD
 typedef APP_MM_INQ_CMD_REQ_STRU           APP_MM_INQ_EMM_REG_STATE_REQ_STRU;
 
 typedef struct
@@ -1262,6 +1271,10 @@ typedef struct
     VOS_UINT32                            ulOpId;
     VOS_UINT32                            ulRslt;   /*0成功，1失败*/
 } APP_MM_INQ_EMM_REG_STATE_CNF_STRU;
+=======
+
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 typedef struct
 {

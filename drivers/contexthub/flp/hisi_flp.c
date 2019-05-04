@@ -45,14 +45,11 @@
 #define FLP_OFFLINEDB       (BIT(4))
 #endif
 #define FLP_WIFIFENCE       (BIT(5))
-#define FLP_CELLBATCHING    (BIT(7))
-#define FLP_DIAG            (BIT(9))
 
-#define IOMCU_APP_FLP       (FLP_BATCHING|FLP_GEOFENCE|FLP_CELLFENCE|FLP_CELLTRAJECTORY|FLP_WIFIFENCE|FLP_CELLBATCHING|FLP_DIAG)
+#define IOMCU_APP_FLP       (FLP_BATCHING|FLP_GEOFENCE|FLP_CELLFENCE|FLP_CELLTRAJECTORY|FLP_WIFIFENCE)
 
 #define FLP_PDR_DATA        (BIT(8))
 
-#define FLP_DIAG_MAX_CMD_LEN (64)
 #define PDR_INTERVAL_MIN    1000
 #define PDR_INTERVAL_MXN    (3600*1000)
 #define PDR_PRECISE_MIN     PDR_INTERVAL_MIN
@@ -69,7 +66,6 @@
 #define OFFLINE_INDOOR_MMAP_ADDR  (DDR_SHMEMEXT_ADDR_AP + DDR_SHMEMEXT_SIZE - OFFLINE_INDOOR_MMAP_SIZE)
 #define OFFLINE_INDOOR_MMAP_SIZE  (0x80000)
 #define OFFLINE_CELL_MMAP_SIZE    (0x100000)
-#define MMAP_OFFSET_CHECK_BIT     (8)
 #endif
 #endif
 enum {
@@ -84,6 +80,8 @@ enum {
     LOC_STATUS_OFF,
     LOC_STATUS_ON
 };
+
+#define MMAP_OFFSET_CHECK_BIT   (8)
 
 /*lint +e750 +esym(750,*) */
 
@@ -766,6 +764,7 @@ static int get_pdr_data_from_mcu(const pkt_header_t *head)
 #ifdef CONFIG_HISI_GEOFENCE_TRAJECTORY_FEATURE
 /*lint +e845 */
 #ifdef CONFIG_INPUTHUB_20
+<<<<<<< HEAD
 static void flp_resort_cellbatching_data(char * data, unsigned int len)
 {
     cell_batching_data_t * temp1 = (cell_batching_data_t *)data;
@@ -820,6 +819,8 @@ static void flp_resort_cellbatching_data(char * data, unsigned int len)
     }
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static void flp_send_data_to_uplayer(flp_port_t *flp_port, char *msg, unsigned int len, unsigned int check_type, unsigned int cmd)
 {
     if (flp_port->channel_type & check_type) {
@@ -861,7 +862,6 @@ static int get_common_data_from_mcu(const pkt_header_t *head)
                 flp_send_data_to_uplayer(flp_port, data, len, FLP_CELLFENCE, FLP_GENL_CMD_CELLTRANSITION);
                 break;
             case SUB_CMD_FLP_CELLTRAJECTORY_REPORT_REQ:
-                flp_resort_cellbatching_data(data, len);
                 flp_send_data_to_uplayer(flp_port, data, len, FLP_CELLTRAJECTORY, FLP_GENL_CMD_TRAJECTORY_REPORT);
                 break;
             case SUB_CMD_FLP_CELLDB_LOCATION_REPORT_REQ:
@@ -875,13 +875,6 @@ static int get_common_data_from_mcu(const pkt_header_t *head)
                 break;
             case SUB_CMD_FLP_WIFENCE_STATUS_REQ:
                 flp_send_data_to_uplayer(flp_port, data, len, FLP_WIFIFENCE, FLP_GENL_CMD_WIFIFENCE_MONITOR);
-                break;
-            case SUB_CMD_FLP_DIAG_DATA_REPORT_REQ:
-                flp_send_data_to_uplayer(flp_port, data, len, FLP_DIAG, FLP_GENL_CMD_DIAG_DATA_REPORT);
-                break;
-            case SUB_CMD_FLP_CELL_CELLBATCHING_REPORT_REQ:
-                flp_resort_cellbatching_data(data, len);
-                flp_send_data_to_uplayer(flp_port, data, len, FLP_CELLBATCHING, FLP_GENL_CMD_CELLBATCHING_REPORT);
                 break;
             default:
                 pr_err("flp:%s cmd[0x%x] error\n", __func__, head->cmd);
@@ -964,8 +957,6 @@ static int get_data_from_mcu(const pkt_header_t *head)
     case SUB_CMD_FLP_GEOF_GET_LOCATION_REPORT_REQ:
     case SUB_CMD_FLP_WIFENCE_TRANSITION_REQ:
     case SUB_CMD_FLP_WIFENCE_STATUS_REQ:
-    case SUB_CMD_FLP_CELL_CELLBATCHING_REPORT_REQ:
-    case SUB_CMD_FLP_DIAG_DATA_REPORT_REQ:
         return get_common_data_from_mcu(head);
     default:
         hwlog_err("FLP[%s]uncorrect subcmd 0x%x.\n", __func__, ((pkt_subcmd_req_t *)head)->subcmd);
@@ -1078,7 +1069,6 @@ static bool flp_check_cmd(flp_port_t *flp_port, unsigned int cmd, int type)
     case FLP_GEOFENCE:
     case FLP_BATCHING:
     case FLP_CELLFENCE:
-    case FLP_DIAG:
     case FLP_WIFIFENCE:
         if ((!(flp_port->channel_type & IOMCU_APP_FLP)) && (g_flp_dev.service_type & IOMCU_APP_FLP)) {
             pr_err("FLP[%s] ERR: FLP APP not support multi process!\n", __func__);
@@ -1930,63 +1920,6 @@ static int celltrajectory_request(flp_port_t *flp_port)
                                    SUB_CMD_FLP_CELLTRAJECTORY_REQUEST_REQ, NULL, (size_t)0);
 }
 
-static int flp_cellbatching_cfg(flp_port_t *flp_port, unsigned long arg)
-{
-    int ret;
-    cell_batching_start_config_t ct_cfg;
-
-    if (!arg) {
-        pr_err("[flperr][%s] invalid param\n", __func__);
-        return -EFAULT;
-    }
-
-    if (copy_from_user(&ct_cfg, (void *)arg, sizeof(cell_batching_start_config_t))) {
-        pr_err("[%s]copy_from_user error\n", __func__);
-        return -EIO;
-    }
-
-    if (!(flp_port->channel_type & IOMCU_APP_FLP)) {
-        ret = send_cmd_from_kernel(TAG_FLP, CMD_CMN_OPEN_REQ, 0, NULL, (size_t)0);
-        if (ret) {
-            pr_err("[%s]CMD_CMN_OPEN_REQ error\n", __func__);
-            return ret;
-        }
-    }
-
-    ret = send_cmd_from_kernel(TAG_FLP, CMD_CMN_CONFIG_REQ,
-        SUB_CMD_FLP_CELL_CELLBATCHING_CFG_REQ, (char *)&ct_cfg, sizeof(cell_batching_start_config_t));
-    if (ret) {
-        if (!(g_flp_dev.service_type & IOMCU_APP_FLP))  {
-            (void)send_cmd_from_kernel(TAG_FLP, CMD_CMN_CLOSE_REQ, 0, NULL, (size_t)0);
-        }
-        pr_err("[%s]GEOFENCE_RM_REQ error\n", __func__);
-        return ret;
-    }
-
-    printk(HISI_FLP_DEBUG "flp:[%s]cfg[%d]\n", __func__, ct_cfg.cmd);
-    if (ct_cfg.cmd) {
-        flp_port->channel_type |= FLP_CELLBATCHING;
-        g_flp_dev.service_type |= FLP_CELLBATCHING;
-    } else {
-        flp_port->channel_type &= ~FLP_CELLBATCHING;
-        g_flp_dev.service_type &= ~FLP_CELLBATCHING;
-    }
-
-    return ret;
-}
-
-
-static int flp_cellbatching_request(flp_port_t *flp_port)
-{
-    if (!(flp_port->channel_type & FLP_CELLBATCHING)) {
-        pr_err("[%s] ERR: you must cellbatching_cfg first \n", __func__);
-        return -EINVAL;
-    }
-
-    return send_cmd_from_kernel(TAG_FLP, CMD_CMN_CONFIG_REQ,
-        SUB_CMD_FLP_CELL_CELLBATCHING_REQ, NULL, (size_t)0);
-}
-
 static int cellfence_ioctl(flp_port_t *flp_port, unsigned int cmd, unsigned long arg)
 {
     if (!flp_check_cmd(flp_port, (int)cmd, (int)FLP_CELLFENCE))
@@ -2004,10 +1937,6 @@ static int cellfence_ioctl(flp_port_t *flp_port, unsigned int cmd, unsigned long
         return celltrajectory_request(flp_port);
     case FD_IOCTL_CELLFENCE_INJECT_RESULT:
         return cellfence_inject_result(flp_port, arg);
-    case FD_IOCTL_CELLBATCHING_CONFIG:
-        return flp_cellbatching_cfg(flp_port, arg);
-    case FD_IOCTL_CELLBATCHING_REQUEST:
-        return flp_cellbatching_request(flp_port);
     default:
         pr_err("[%s]cmd err[%u] \n", __func__, cmd);
         return -EINVAL;
@@ -2098,77 +2027,6 @@ static int flp_wififence_ioctl(flp_port_t *flp_port, unsigned int cmd, unsigned 
     }
 }
 
-static int flp_diag_send_cmd(flp_port_t *flp_port, unsigned long arg)
-{
-    unsigned int data_len;
-    char *data_buf;
-    int ret;
-
-    if (!arg) {
-        pr_err("[flperr][%s] invalid param\n", __func__);
-        return -EFAULT;
-    }
-
-    if (copy_from_user(&data_len, (void *)arg, sizeof(data_len))) {
-        pr_err("[flperr][%s] copy_from_user error\n", __func__);
-        return -EFAULT;
-    }
-
-    if (data_len > FLP_DIAG_MAX_CMD_LEN || !data_len) {
-        pr_err("[flperr][%s] invalid data_len=%d\n", __func__, data_len);
-        return -EFAULT;
-    }
-    data_buf = kzalloc(data_len + sizeof(unsigned int), GFP_KERNEL);
-    if (!data_buf) {
-        pr_err("[flperr]%s kzalloc fail\n", __func__);
-        return -ENOMEM;
-    }
-    if (copy_from_user(data_buf, (void *)arg, data_len + sizeof(unsigned int))) {
-        pr_err("[flperr][%s] copy_from_user error\n", __func__);
-        ret = -EFAULT;
-        goto FLP_DIAG_EXIT;
-    }
-
-    if (!(flp_port->channel_type & IOMCU_APP_FLP)) {
-        ret = send_cmd_from_kernel(TAG_FLP, CMD_CMN_OPEN_REQ, 0, NULL, (size_t)0);
-        if (ret) {
-            pr_err("[%s]CMD_CMN_OPEN_REQ error\n", __func__);
-            goto FLP_DIAG_EXIT;
-        }
-    }
-
-    ret = send_cmd_from_kernel(TAG_FLP, CMD_CMN_CONFIG_REQ,
-        SUB_CMD_FLP_DIAG_SEND_CMD_REQ, (char *)(data_buf + sizeof(unsigned int)), (size_t)data_len);
-    if (ret) {
-        pr_err("[%s]GEOFENCE_RM_REQ error\n", __func__);
-        goto FLP_DIAG_EXIT;
-    }
-
-    printk(HISI_FLP_DEBUG "flp:[%s]data_len[%d]\n", __func__, data_len);
-    flp_port->channel_type |= FLP_DIAG;
-    g_flp_dev.service_type |= FLP_DIAG;
-
-FLP_DIAG_EXIT:
-    if (!(g_flp_dev.service_type & IOMCU_APP_FLP))  {
-        (void)send_cmd_from_kernel(TAG_FLP, CMD_CMN_CLOSE_REQ, 0, NULL, (size_t)0);
-    }
-    kfree(data_buf);
-    return ret;
-}
-
-static int flp_diag_ioctl(flp_port_t *flp_port, unsigned int cmd, unsigned long arg)
-{
-    if (!flp_check_cmd(flp_port, (int)cmd, (int)FLP_DIAG))
-        return -EPERM;
-    switch (cmd) {
-    case FD_IOCTL_DIAG_SEND_CMD:
-         return flp_diag_send_cmd(flp_port, arg);
-    default:
-         pr_err("[%s]cmd err[%u] \n", __func__, cmd);
-         return -EINVAL;
-    }
-}
-
 #endif
 /*lint -e732*/
 static long flp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -2215,9 +2073,6 @@ static long flp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         break;
     case FLP_IOCTL_TYPE_WIFIFENCE:
         ret = (long)flp_wififence_ioctl(flp_port, cmd, arg);
-        break;
-    case FLP_IOCTL_TYPE_DIAG:
-        ret = (long)flp_diag_ioctl(flp_port, cmd, arg);
         break;
     #endif
 

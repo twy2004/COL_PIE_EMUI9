@@ -996,8 +996,8 @@ static int gt1x_touch_evt_handler(struct gt1x_ts_data  *ts,
 		info->fingers[id].pressure = w;
 		info->fingers[id].status = TP_FINGER;
 		cur_index |= 1 << id;
-		TS_LOG_DEBUG("%s:[%d](ewx = %d, ewy =  %d, xer=%d, yer=%d, wx=%d, wy=%d)\n", __func__,
-			id, info->fingers[id].ewx, info->fingers[id].ewy, xer, yer,touch_wxy[2 * id], touch_wxy[2 * id + 1]);
+		TS_LOG_DEBUG("%s:[%d](%d, %d, %d,ewx = %d, ewy =  %d, xer=%d, yer=%d, wx=%d, wy=%d)\n", __func__,
+			id, x, y, w, info->fingers[id].ewx, info->fingers[id].ewy, xer, yer,touch_wxy[2 * id], touch_wxy[2 * id + 1]);
 	}
 	info->cur_finger_number = touch_num;
 exit:
@@ -1057,6 +1057,7 @@ static void gt1x_double_tap_event(struct gt1x_ts_data *ts, struct ts_fingers *in
 		*/
 		x = get_unaligned_le16(&buf[i * 4]);
 		y = get_unaligned_le16(&buf[ i *4 + 2]);
+		TS_LOG_DEBUG("%s: x=%d, y = %d\n", __func__, x, y);
 		ts->dev_data->ts_platform_data->chip_data->easy_wakeup_info.easywake_position[i] = 
 				x << 16 |y;
 	}
@@ -2609,7 +2610,7 @@ static int gt1x_chip_resume(void)
 	switch (ts->dev_data->easy_wakeup_info.sleep_mode) {
 	case TS_POWER_OFF_MODE:
 		gt1x_pinctrl_select_normal();
-		if (!g_tskit_pt_station_flag && (GT1X_POWER_CONTRL_BY_SELF == ts->power_self_ctrl)){
+		if (!g_tskit_pt_station_flag){
 			gt1x_power_switch(SWITCH_ON);
 		}
 		break;
@@ -2642,7 +2643,7 @@ static int gt1x_chip_suspend(void)
 	switch (ts->dev_data->easy_wakeup_info.sleep_mode) {
 	case TS_POWER_OFF_MODE:
 		gt1x_pinctrl_select_suspend();
-		if (!g_tskit_pt_station_flag && (GT1X_POWER_CONTRL_BY_SELF == ts->power_self_ctrl)){
+		if (!g_tskit_pt_station_flag){
 			TS_LOG_INFO("%s: enter power_off mode\n", __func__);
 			gt1x_power_switch(SWITCH_OFF);
 		}else{
@@ -2751,18 +2752,6 @@ static int gt1x_chip_get_info(struct ts_chip_info_param *info)
 	return NO_ERR;
 }
 
-static void goodix_reset_select_addr(void)
-{
-	TS_LOG_DEBUG("%s: Start to make chip-selection for 0x14 slave sddress!\n", __func__);
-	gpio_direction_output(gt1x_ts->dev_data->ts_platform_data->reset_gpio, 0);
-	mdelay(5);
-	//Here to pull up irq for chip-selection  with 0x14 slave address.
-	gpio_direction_output(gt1x_ts->dev_data->ts_platform_data->irq_gpio,1);
-	mdelay(10);
-	gpio_direction_output(gt1x_ts->dev_data->ts_platform_data->reset_gpio, 1);
-	return;
-}
-
 /**
  * gt1x_chip_reset - reset chip
  */
@@ -2775,6 +2764,7 @@ int gt1x_chip_reset(void)
 	reset_gpio = gt1x_ts->dev_data->ts_platform_data->reset_gpio;
 	irq_gpio = gt1x_ts->dev_data->ts_platform_data->irq_gpio;
 	TS_LOG_INFO("%s: Chip reset\n", __func__);
+<<<<<<< HEAD
 	/* chip select for 0x14 slave address */
 	if(gt1x_ts->qcom_adapter_flag)
 	{
@@ -2792,6 +2782,13 @@ int gt1x_chip_reset(void)
 		gpio_direction_output(reset_gpio, 1);
 		msleep(80); /* chip initialize */
 	}
+=======
+
+	gpio_direction_output(reset_gpio, 0);
+	udelay(150);
+	gpio_direction_output(reset_gpio, 1);
+	msleep(80); /* chip initialize */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	return gt1x_init_watchdog();
 }

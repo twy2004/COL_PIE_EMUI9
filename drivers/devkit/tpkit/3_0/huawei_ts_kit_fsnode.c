@@ -2254,7 +2254,7 @@ out:
 /*lint -restore*/
 static DEVICE_ATTR(touch_chip_info, (S_IRUSR | S_IWUSR | S_IRGRP),
 		   ts_chip_info_show, ts_chip_info_store);
-static DEVICE_ATTR(calibrate, (S_IRUSR|S_IRGRP), ts_calibrate_show, NULL);
+static DEVICE_ATTR(calibrate, S_IRUSR, ts_calibrate_show, NULL);
 static DEVICE_ATTR(calibrate_wakeup_gesture, S_IRUSR,
 		   ts_calibrate_wakeup_gesture_show, NULL);
 static DEVICE_ATTR(touch_glove, (S_IRUSR | S_IWUSR), ts_glove_mode_show,
@@ -2264,7 +2264,7 @@ static DEVICE_ATTR(touch_sensitivity, (S_IRUSR | S_IWUSR), ts_sensitivity_show,
 static DEVICE_ATTR(hand_detect, S_IRUSR, ts_hand_detect_show, NULL);
 static DEVICE_ATTR(loglevel, (S_IRUSR | S_IWUSR), ts_loglevel_show,
 		   ts_loglevel_store);
-static DEVICE_ATTR(supported_func_indicater, (S_IRUSR|S_IRGRP),
+static DEVICE_ATTR(supported_func_indicater, (S_IRUSR),
 		   ts_supported_func_indicater_show, NULL);
 static DEVICE_ATTR(touch_window, (S_IRUSR | S_IWUSR), ts_touch_window_show,
 		   ts_touch_window_store);

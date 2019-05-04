@@ -795,8 +795,6 @@ return:
 *******************************************************/
 static int32_t nvt_diff_open(struct inode *inode, struct file *file)
 {
-	int ret = 0;
-
 	if (mutex_lock_interruptible(&nvt_ts->lock)) {
 		return -ERESTARTSYS;
 	}
@@ -813,10 +811,7 @@ static int32_t nvt_diff_open(struct inode *inode, struct file *file)
 		return -EAGAIN;
 	}
 
-	ret = nvt_kit_get_fw_info();
-	if (ret) {
-		TS_LOG_ERR("nvt_kit_get_fw_info failed. (%d)\n", ret);
-	}
+	nvt_kit_get_fw_info();
 
 	if (nvt_kit_get_fw_pipe() == 0)
 		nvt_kit_read_mdata(nvt_ts->mmap->DIFF_PIPE0_ADDR);

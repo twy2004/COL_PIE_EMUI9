@@ -46,6 +46,7 @@
 #define CMD_HOVER               0x91
 #define CMD_FORCE               0x92
 #define CMD_SLEEP               0x96
+<<<<<<< HEAD
 #define CMD_SCREEN_ON_OFF       0x96
 
 #define CMD_PT_MODE             0x05
@@ -57,6 +58,8 @@
 #define IC_STATUS_PT_TEST       0x08
 
 #define PT_MODE                 0
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #define FEATURE_ENABLE          1
 #define FEATURE_DISABLE         0
@@ -117,6 +120,7 @@ struct goodix_module_info {
 #pragma pack()
 
 struct goodix_module_info module_info;
+<<<<<<< HEAD
 static int goodix_frame_addr = GOODIX_FRAME_ADDR_DEFAULT;
 static int goodix_frame_len;
 static int goodix_cmd_addr = GOODIX_CMD_ADDR_DEFAULT;
@@ -138,9 +142,24 @@ static int thp_goodix_spi_read(struct thp_device *tdev, unsigned int addr,
 	u8 *tx_buf = NULL;
 	u8 start_cmd_buf[READ_CMD_BUF_LEN];
 	struct spi_transfer xfers[GOODIX_SPI_READ_XFER_LEN];
+=======
+static int goodix_frame_addr;
+static int goodix_frame_len;
+static int goodix_cmd_addr;
+
+static int thp_goodix_spi_read(struct thp_device *tdev, unsigned int addr,
+			   u8 *data, unsigned int len)
+{
+	struct spi_device *spi = tdev->thp_core->sdev;
+	u8 *rx_buf = tdev->rx_buff;
+	u8 *tx_buf = tdev->tx_buff;
+	u8 start_cmd_buf[3];
+	struct spi_transfer xfers[2];
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	struct spi_message spi_msg;
 	int ret;
 
+<<<<<<< HEAD
 	if ((tdev == NULL) || (data == NULL) || (tdev->tx_buff == NULL) ||
 		(tdev->rx_buff == NULL) || (tdev->thp_core == NULL) ||
 		(tdev->thp_core->sdev == NULL)) {
@@ -155,6 +174,8 @@ static int thp_goodix_spi_read(struct thp_device *tdev, unsigned int addr,
 	rx_buf = tdev->rx_buff;
 	tx_buf = tdev->tx_buff;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	spi_message_init(&spi_msg);
 	memset(xfers, 0, sizeof(xfers));
 
@@ -192,12 +213,13 @@ static int thp_goodix_spi_read(struct thp_device *tdev, unsigned int addr,
 static int thp_goodix_spi_write(struct thp_device *tdev,
 		unsigned int addr, u8 *data, unsigned int len)
 {
-	struct spi_device *spi = NULL;
-	u8 *tx_buf = NULL;
+	struct spi_device *spi = tdev->thp_core->sdev;
+	u8 *tx_buf = tdev->tx_buff;
 	struct spi_transfer xfers;
 	struct spi_message spi_msg;
 	int ret;
 
+<<<<<<< HEAD
 	if ((tdev == NULL) || (data == NULL) || (tdev->tx_buff == NULL) ||
 		(tdev->rx_buff == NULL) || (tdev->thp_core == NULL) ||
 		(tdev->thp_core->sdev == NULL)) {
@@ -207,6 +229,8 @@ static int thp_goodix_spi_write(struct thp_device *tdev,
 	spi = tdev->thp_core->sdev;
 	tx_buf = tdev->tx_buff;
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	spi_message_init(&spi_msg);
 	memset(&xfers, 0, sizeof(xfers));
 
@@ -245,6 +269,7 @@ static int thp_goodix_switch_cmd(struct thp_device *tdev,
 	u8 cmd_buf[COMMAND_BUF_LEN];
 	u8 cmd_ack = 0;
 
+<<<<<<< HEAD
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
@@ -253,6 +278,8 @@ static int thp_goodix_switch_cmd(struct thp_device *tdev,
 		THP_LOG_ERR("failed wakeup idle before send command\n");
 		return -EINVAL;
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	cmd_buf[0] = cmd;
 	cmd_buf[1] = status;
 	cmd_buf[2] = 0 - cmd_buf[1] - cmd_buf[0]; /* checksum */
@@ -295,6 +322,7 @@ static int thp_goodix_switch_cmd(struct thp_device *tdev,
 static int thp_goodix_init(struct thp_device *tdev)
 {
 	int rc;
+<<<<<<< HEAD
 	struct thp_core_data *cd = NULL;
 	struct device_node *goodix_node = NULL;
 
@@ -305,6 +333,11 @@ static int thp_goodix_init(struct thp_device *tdev)
 	cd = tdev->thp_core;
 	goodix_node = of_get_child_by_name(cd->thp_node,
 					THP_GOODIX_DEV_NODE_NAME);
+=======
+	struct thp_core_data *cd = tdev->thp_core;
+	struct device_node *goodix_node = of_get_child_by_name(cd->thp_node,
+						THP_GOODIX_DEV_NODE_NAME);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	THP_LOG_INFO("%s: called\n", __func__);
 
@@ -355,11 +388,14 @@ static int thp_goodix_communication_check(struct thp_device *tdev)
 	int retry;
 	u8 temp_buf[GOODIX_MASK_ID_LEN + 1] = {0};
 	u8 checksum = 0;
+<<<<<<< HEAD
 
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	len = sizeof(module_info);
 	memset(&module_info, 0, len);
@@ -424,10 +460,13 @@ static int goodix_power_on(struct thp_device *tdev)
 {
 	int ret;
 
+<<<<<<< HEAD
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
 	}
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	THP_LOG_INFO("%s:called\n", __func__);
 	gpio_set_value(tdev->gpios->cs_gpio, GPIO_HIGH);
 
@@ -444,11 +483,14 @@ static int goodix_power_off(struct thp_device *tdev)
 {
 	int ret;
 
+<<<<<<< HEAD
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
 	}
 	THP_LOG_INFO(" =>Pull down tp ic reset\n");
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	gpio_set_value(tdev->gpios->rst_gpio, GPIO_LOW);
 	thp_do_time_delay(tdev->timing_config.suspend_reset_after_delay_ms);
 
@@ -461,6 +503,7 @@ static int goodix_power_off(struct thp_device *tdev)
 	return ret;
 }
 
+<<<<<<< HEAD
 static void thp_goodix_timing_work(struct thp_device *tdev)
 {
 	if (tdev == NULL) {
@@ -476,6 +519,8 @@ static u16 checksum_16(u8 *data, int size)
 	int i;
 	int non_zero_count = 0;
 	u16 checksum = 0;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	if ((data == NULL) || (size <= sizeof(u16))) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
@@ -522,11 +567,28 @@ static int thp_goodix_get_afe_info(struct thp_device *tdev)
 	int afe_data_len = 0;
 	u8 buf[INFO_ADDR_BUF_LEN] = {0};
 	u8 afe_data_buf[GOODIX_MAX_AFE_LEN] = {0};
+<<<<<<< HEAD
 
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
 	}
+=======
+	u8 debug_buf[108] = {0};
+
+	ret = thp_goodix_spi_read(tdev, GOODIX_AFE_INFO_ADDR,
+			buf, sizeof(buf));
+	if (ret) {
+		THP_LOG_ERR("%s: failed read afe data length, ret %d\n", __func__, ret);
+		return ret;
+	}
+
+	afe_data_len = (buf[0] << 8) | buf[1];
+	/* data len must be equal or less than GOODIX_MAX_AFE_LEN */
+	if ((afe_data_len == 0) || (afe_data_len > GOODIX_MAX_AFE_LEN)
+		|| (afe_data_len & 0x1)) {
+		THP_LOG_ERR("%s: invalied afe_data_len %d\n", __func__, afe_data_len);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	for (retry = 0; retry < FW_INFO_READ_RETRY; retry++) {
 		ret = thp_goodix_spi_read(tdev, GOODIX_AFE_INFO_ADDR,
@@ -626,8 +688,6 @@ int thp_goodix_chip_detect(struct thp_device *tdev)
 	if (ret)
 		THP_LOG_ERR("%s: power on failed\n", __func__);
 
-	thp_goodix_timing_work(tdev);
-
 	if (thp_goodix_communication_check(tdev)) {
 		THP_LOG_ERR("%s:communication check fail\n", __func__);
 		goodix_power_off(tdev);
@@ -643,7 +703,11 @@ int thp_goodix_chip_detect(struct thp_device *tdev)
 static int thp_goodix_get_frame(struct thp_device *tdev,
 			char *buf, unsigned int len)
 {
+<<<<<<< HEAD
 	if ((tdev == NULL) || (buf == NULL)) {
+=======
+	if (!tdev) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		THP_LOG_INFO("%s: input dev null\n", __func__);
 		return -ENOMEM;
 	}
@@ -817,6 +881,7 @@ static int thp_goodix_resume(struct thp_device *tdev)
 	int ret = 0;
 
 	THP_LOG_INFO("%s: called\n", __func__);
+<<<<<<< HEAD
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
@@ -849,6 +914,16 @@ static int thp_goodix_after_resume(struct thp_device *tdev)
 		ret = thp_goodix_switch_cmd(tdev, CMD_TOUCH_REPORT, 0);
 		if (ret)
 			THP_LOG_ERR("failed send CMD_TOUCH_REPORT mode\n");
+=======
+
+	if (thp_get_status(THP_STAUTS_UDFP)) {
+		THP_LOG_INFO("enable frame data report\n");
+		ret =  thp_goodix_switch_cmd(tdev, CMD_FRAME_DATA, FEATURE_ENABLE);
+		if (ret)
+			THP_LOG_ERR("failed enable frame data report\n");
+	} else {
+		goodix_power_on(tdev);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
 	return ret;
@@ -859,6 +934,7 @@ static int thp_goodix_suspend(struct thp_device *tdev)
 	int ret = 0;
 
 	THP_LOG_INFO("%s: called\n", __func__);
+<<<<<<< HEAD
 	if (tdev == NULL) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
@@ -886,6 +962,17 @@ static int thp_goodix_suspend(struct thp_device *tdev)
 	} else {
 		ret = goodix_power_off(tdev);
 		THP_LOG_INFO("enter poweroff mode: ret = %d\n", ret);
+=======
+
+	if (thp_get_status(THP_STAUTS_UDFP) || is_pt_test_mode(tdev)) {
+		THP_LOG_INFO("disable frame data report\n");
+		ret =  thp_goodix_switch_cmd(tdev, CMD_FRAME_DATA, FEATURE_DISABLE);
+		if (ret)
+			THP_LOG_ERR("failed disable frame data report\n");
+	} else {
+		goodix_power_off(tdev);
+		THP_LOG_INFO("enter poweroff mode\n");
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 	return ret;
 }
@@ -896,11 +983,20 @@ static int goodix_get_project_id(struct thp_device *tdev, char *buf, unsigned in
 	int retry;
 	char proj_id[GOODIX_CUSTOME_INFO_LEN + 1] = {0};
 	int ret = 0;
+<<<<<<< HEAD
 
 	if ((tdev == NULL) || (buf == NULL)) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return -EINVAL;
 	}
+=======
+	ret = thp_goodix_spi_read(tdev, GOODIX_PROJECT_ID_ADDR, proj_id, THP_PROJECT_ID_LEN);
+	if(ret){
+		THP_LOG_ERR("Project_id Read ERR\n");
+	}
+	proj_id[THP_PROJECT_ID_LEN] = '\0';
+	THP_LOG_INFO("PROJECT_ID[0-9] %*ph\n", 10, proj_id);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	for (retry = 0; retry < GOODIX_GET_PROJECT_ID_RETRY; retry++) {
 		ret = thp_goodix_spi_read(tdev, GOODIX_PROJECT_ID_ADDR,
@@ -932,6 +1028,7 @@ static int goodix_get_project_id(struct thp_device *tdev, char *buf, unsigned in
 static void thp_goodix_exit(struct thp_device *tdev)
 {
 	THP_LOG_INFO("%s: called\n", __func__);
+<<<<<<< HEAD
 	if (!tdev) {
 		THP_LOG_ERR("%s: tdev null\n", __func__);
 		return;
@@ -949,6 +1046,11 @@ static int thp_goodix_afe_notify_callback(struct thp_device *tdev,
 		return -EINVAL;
 	}
 	return thp_goodix_get_afe_info(tdev);
+=======
+	kfree(tdev->tx_buff);
+	kfree(tdev->rx_buff);
+	kfree(tdev);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 
 #define GOODIX_SPI_ACTIVE_DELAY 1000
@@ -1051,10 +1153,13 @@ struct thp_device_ops goodix_dev_ops = {
 	.suspend = thp_goodix_suspend,
 	.get_project_id = goodix_get_project_id,
 	.exit = thp_goodix_exit,
+<<<<<<< HEAD
 	.afe_notify = thp_goodix_afe_notify_callback,
 	.chip_wakeup_gesture_enable_switch = goodix_wakeup_gesture_enable_switch,
 	.chip_wrong_touch = goodix_wrong_touch,
 	.chip_gesture_report = goodix_gesture_report,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 static int __init thp_goodix_module_init(void)

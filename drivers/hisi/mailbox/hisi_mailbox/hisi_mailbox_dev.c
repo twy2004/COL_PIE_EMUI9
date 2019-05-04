@@ -63,14 +63,12 @@
 
 #define ISP_RPROC_NUMBER  0x2
 #define AO_RPROC_NUMBER  0x3
-#define NPU_RPROC_NUMBER  0x3
 #define STATE_NUMBER  0x4
 
 #define MAILBOX_ASYNC_UDELAY_CNT   (1000)
 
 #define ISP_INDEX_BASE				100
 #define AO_INDEX_BASE				200
-#define NPU_INDEX_BASE				300
 #define DEFAULT_MAILBOX_TIMEOUT	300
 #define DEFAULT_FIFO_SIZE			256
 #define DEFAULT_SCHED_PRIORITY	20
@@ -118,9 +116,8 @@ typedef enum {
 	IVP32,
 	ISP,
 	UNCERTAIN_REMOTE_PROCESSOR,
-	NPU_IPC_GIC = 2,/*lint !e488*/
-	HI3XXX_RP_TYPES/*lint !e488*/
-} remote_processor_type_t;/*lint !e488*/
+	HI3XXX_RP_TYPES
+} remote_processor_type_t;
 
 
 struct hisi_common_mbox_info {
@@ -201,12 +198,6 @@ char *ao_rproc_name[AO_RPROC_NUMBER] = {
 	"ACPU",
 	"ISP"
 };
-/*on lite*/
-char * npu_rproc_name[NPU_RPROC_NUMBER] = {
-	"AICPU",
-	"TSCPU",
-	"AP_LIT_CLUSTER"
-};
 /*
 **HiIPCV230 have a state machine, the state machine have 4 status:
 **4'b0001:IDLE_STATE
@@ -230,22 +221,18 @@ enum IPC_STATE_MACHINE {
 
 extern int hisi_rproc_init(void);
 
-unsigned char _rproc_find_index(const char *mdev_name, unsigned int pro_code)
+char *rproc_analysis(const char *mdev_name, unsigned int pro_code)
 {
 	unsigned char index = 0;
 	while (pro_code) {
 		index++;
 		pro_code >>= 1;
 	}
-	return index;
-}
-
-char *rproc_analysis(const char *mdev_name, unsigned int pro_code)
-{
-	unsigned char index = _rproc_find_index(mdev_name, pro_code);
-
-	if (0 == index)
+	if (likely(0 != index))
+		index--;
+	else
 		return "ERR_RPROC";
+<<<<<<< HEAD
 	index--;
 	/*npu ipc's mailbox channel */
     if (NULL != strstr(mdev_name, "npu-mailbox")) {
@@ -254,6 +241,10 @@ char *rproc_analysis(const char *mdev_name, unsigned int pro_code)
 		else
 			return "ERR_RPROC";
 	}else if (NULL != strstr(mdev_name, "isp")) {
+=======
+	/*sys ips's mailbox channel */
+	if (NULL != strstr(mdev_name, "isp")) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (likely(index < ISP_RPROC_NUMBER))
 			return isp_rproc_name[index];
 		else
@@ -466,11 +457,15 @@ static int hisi_mdev_check(struct hisi_mbox_device *mdev, mbox_mail_type_t mtype
 	}
 	if (NULL != strstr(mdev->name, "ao")) {
 		index = index + AO_INDEX_BASE;
+<<<<<<< HEAD
 		MDEV_DEBUG("ao-index is %d\n",index);
 	}
 	if (NULL != strstr(mdev->name, "npu-mailbox")) {
 		index = index + NPU_INDEX_BASE;
 		MDEV_DEBUG("npu-index is %d\n",index);
+=======
+		MDEV_DEBUG("ao-index is %d",index);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
 
@@ -489,11 +484,8 @@ static void hisi_mdev_clr_ack(struct hisi_mbox_device *mdev)
 	unsigned int toclr;
 
 	imask = __ipc_cpu_imask_get(priv->idev->base, priv->mbox_channel);
-	if (NULL != strstr(mdev->name, "npu-mailbox"))
-	{
-		toclr = IPCBITMASK(NPU_IPC_GIC) & (~imask);
-	}
-	else if (NULL != strstr(mdev->name, "ao")) {
+
+	if (NULL != strstr(mdev->name, "ao")) {
 		toclr = IPCBITMASK(GIC_2) & (~imask);
 	} else {
 		toclr = (IPCBITMASK(GIC_1) | IPCBITMASK(GIC_2)) & (~imask);
@@ -521,11 +513,8 @@ static void hisi_mdev_clr_irq_and_ack(struct hisi_mbox_device *mdev)
 	/*get the irq unmask core bits, and clear the irq according to the unmask core bits,
 	 * because the irq to be sure triggered to the unmasked cores
 	 */
-	if (NULL != strstr(mdev->name, "npu-mailbox"))
-	{
-		todo = IPCBITMASK(NPU_IPC_GIC) & (~imask);
-	}
-	else if (NULL != strstr(mdev->name, "ao")) {
+
+	if (NULL != strstr(mdev->name, "ao")) {
 		todo = IPCBITMASK(GIC_2) & (~imask);
 	} else {
 		todo = (IPCBITMASK(GIC_1) | IPCBITMASK(GIC_2)) & (~imask);
@@ -786,12 +775,11 @@ static int hisi_mdev_irq_request(struct hisi_mbox_device *mdev, irq_handler_t ha
 			#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
 			ret = request_irq(priv->irq, handler, IRQF_DISABLED, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
 			#else
-			if(!strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
-			} else if(!strncmp("mailbox-4", mdev->name, strlen("mailbox-4"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
-			} else {
+			if(strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
 				ret = request_irq(priv->irq, handler, 0, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
+			}
+			else {
+				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
 			}
 			#endif
 			if (ret) {
@@ -807,12 +795,11 @@ static int hisi_mdev_irq_request(struct hisi_mbox_device *mdev, irq_handler_t ha
 			#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
 			ret = request_irq(priv->irq, handler, IRQF_DISABLED, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
 			#else
-			if(!strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
-			} else if(!strncmp("mailbox-4", mdev->name, strlen("mailbox-4"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
-			} else {
+			if(strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
 				ret = request_irq(priv->irq, handler, 0, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
+			}
+			else {
+				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, (void *)priv->idev->cmbox_info->cmdev);
 			}
 			#endif
 			if (ret) {
@@ -827,12 +814,11 @@ static int hisi_mdev_irq_request(struct hisi_mbox_device *mdev, irq_handler_t ha
 		#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
 		ret = request_irq(priv->irq, handler, IRQF_DISABLED, mdev->name, p);
 		#else
-			if(!strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, p);
-			} else if(!strncmp("mailbox-4", mdev->name, strlen("mailbox-4"))) {
-				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, p);
-			} else {
+			if(strncmp("ao-mailbox", mdev->name, strlen("ao-mailbox"))) {
 				ret = request_irq(priv->irq, handler, 0, mdev->name, p);
+			}
+			else {
+				ret = request_irq(priv->irq, handler, IRQF_NO_SUSPEND, mdev->name, p);
 			}
 		#endif
 		if (ret) {
@@ -895,10 +881,7 @@ static struct hisi_mbox_device *hisi_mdev_irq_to_mdev(struct hisi_mbox_device *_
 		goto out;
 	}
 
-	if (NULL != strstr(_mdev->name, "npu-mailbox")) {
-		src = NPU_IPC_GIC;
-	}
-	else if (NULL != strstr(_mdev->name, "ao")) {
+	if (NULL != strstr(_mdev->name, "ao")) {
 		src = GIC_2;
 	} else {
 		/* fast source & common mailboxes share GIC_1 & GIC_2 irq number */

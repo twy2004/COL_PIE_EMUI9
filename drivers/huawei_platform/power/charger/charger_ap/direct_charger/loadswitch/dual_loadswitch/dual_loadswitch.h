@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * dual_loadswitch.h
  *
@@ -18,15 +19,33 @@
 
 #ifndef _DUAL_LOADSWITCH_H_
 #define _DUAL_LOADSWITCH_H_
+=======
+#ifndef __DUAL_LOADSWITCH_H_
+#define __DUAL_LOADSWITCH_H_
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #include <huawei_platform/power/direct_charger.h>
-
-struct dual_loadswitch_info {
-	struct platform_device *pdev;
-	struct device *dev;
+enum dual_loadswitch_sysfs_type {
+	DUAL_LOADSWITCH_SYSFS_ENABLE_MAIN = 0,
+	DUAL_LOADSWITCH_SYSFS_ENABLE_AUX,
 };
 
+struct dual_loadswitch_info {
+	struct device *dev;
+	int loadswitch_main_enable_sysfs;
+	int loadswitch_aux_enable_sysfs;
+};
+
+<<<<<<< HEAD
 int loadswitch_main_ops_register(struct loadswitch_ops *ops);
 int loadswitch_aux_ops_register(struct loadswitch_ops *ops);
 
 #endif /* _DUAL_LOADSWITCH_H_ */
+=======
+#ifdef CONFIG_LLT_TEST
+#endif
+int loadswitch_main_ops_register(struct loadswitch_ops *);
+int loadswitch_aux_ops_register(struct loadswitch_ops *);
+
+#endif
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29

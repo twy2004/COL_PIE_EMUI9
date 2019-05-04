@@ -34,7 +34,7 @@ enum HIMOS_STATS_REPORT_CMD
     //kernel->user
     HIMOS_STATS_UDP_THROUGHPUT_NOTIFY,
 	HIMOS_STATS_AWEME_DETECTION_NOTIFY,
-
+	
 	__MAX_HIMOS_STATS_REPORT_CMD
 };
 #define		MAX_HIMOS_STATS_REPORT_CMD		(__MAX_HIMOS_STATS_REPORT_CMD - 1)
@@ -46,14 +46,12 @@ enum HIMOS_STATS_TYPE
 
 	HIMOS_STATS_TYPE_UDP = 1,
 
-	HIMOS_STATS_TYPE_AWEME = 2,
-
-	HIMOS_STATS_TYPE_KWAI = 3,
-
+	HIMOS_STATS_TYPE_AWEME,
+	
 	HW_UDP_STATS_TYPE_MAX
 };
 
-#define		AWEME_SEARCH_KEY_MAX		25
+#define		AWEME_SEARCH_KEY_MAX		30
 struct himos_aweme_search_key
 {
 	char ul_key1[AWEME_SEARCH_KEY_MAX];
@@ -65,8 +63,6 @@ struct himos_aweme_search_key
 	char ul_key7[AWEME_SEARCH_KEY_MAX];
 	char ul_key8[AWEME_SEARCH_KEY_MAX];
 	char ul_key9, ul_key10, ul_key11;
-	char ul_key12[AWEME_SEARCH_KEY_MAX];
-	char ul_key13[AWEME_SEARCH_KEY_MAX];
 
 	char dl_key1[AWEME_SEARCH_KEY_MAX];
 	char dl_key2[AWEME_SEARCH_KEY_MAX];

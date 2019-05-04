@@ -253,7 +253,6 @@ int check_new_cosimage(unsigned int cos_id, int *is_new_cosimage)
 	return HISEE_OK;
 }
 
-
 int misc_image_upgrade_func(void *buf, unsigned int cos_id)
 {
 	char *buff_virt;
@@ -264,8 +263,6 @@ int misc_image_upgrade_func(void *buf, unsigned int cos_id)
 	hisee_img_file_type type;
 	unsigned int misc_image_cnt = 1;
 	unsigned int result_offset;
-	unsigned int max_misc_num = HISEE_MAX_MISC_IMAGE_NUMBER;
-	unsigned int misc_id = cos_id;
 
 	if (MAX_COS_IMG_ID <= cos_id) {
 		pr_err("%s(): cos_id=%d invalid\n", __func__, cos_id);
@@ -277,8 +274,8 @@ int misc_image_upgrade_func(void *buf, unsigned int cos_id)
 		pr_err("%s(): dma_alloc_coherent failed\n", __func__);
 		set_errno_and_return(HISEE_NO_RESOURCES);
 	}
-	type = MISC0_IMG_TYPE + misc_id * max_misc_num;
-	misc_image_cnt = g_hisee_data.hisee_img_head.misc_image_cnt[misc_id];
+	type = MISC0_IMG_TYPE + cos_id * HISEE_MAX_MISC_IMAGE_NUMBER;
+	misc_image_cnt = g_hisee_data.hisee_img_head.misc_image_cnt[cos_id];
 	pr_err("%s(): cos_id=%d,misc_image_cnt=%d\n", __func__, cos_id, misc_image_cnt);
 do_loop:
 	memset(buff_virt, 0, HISEE_SHARE_BUFF_SIZE);
@@ -287,7 +284,8 @@ do_loop:
 	ret = filesys_hisee_read_image(type, (buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN));
 	if (ret < HISEE_OK) {
 		pr_err("%s(): filesys_hisee_read_image failed, ret=%d\n", __func__, ret);
-		goto exit;
+		dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
+		set_errno_and_return(ret);
 	}
 
 	image_size = (unsigned int)(ret + HISEE_ATF_MESSAGE_HEADER_LEN);
@@ -303,13 +301,14 @@ do_loop:
 		if (result_offset + SMC_TEST_RESULT_SIZE <= HISEE_SHARE_BUFF_SIZE) {
 			pr_err("%s(): hisee reported fail code=%d\n", __func__, *((int *)(void *)(buff_virt + result_offset)));
 		}
-		goto exit;
+		dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
+		set_errno_and_return(ret);
 	}
 	if ((--misc_image_cnt) > 0) {
 		type++;
 		goto do_loop;
 	}
-exit:
+
 	dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, buff_virt, buff_phy);
 	check_and_print_result();
 	set_errno_and_return(ret);
@@ -377,112 +376,102 @@ char *g_patch_buff_virt;
 phys_addr_t g_patch_buff_phy;
 int hisee_cos_patch_read(hisee_img_file_type img_type) //MISC4_IMG_TYPE
 {
-	int ret = HISEE_OK;
+	int ret;
 	char *buff_virt;
 	phys_addr_t buff_phy = 0;
 	unsigned int image_size;
 	unsigned int timeout;
 	atf_message_header *p_message_header;
-	unsigned int is_smx_0 = 0;
 
-	hisee_get_smx_cfg(&is_smx_0);
-
-	if (SMX_PROCESS_0 != is_smx_0) {
-		pr_err("%s(): enter, img_type=%d.\n", __func__, (int)img_type);
-		if (HISEE_COS_PATCH_FREE_CNT != atomic_inc_return(&g_is_patch_free)) {
-			atomic_dec(&g_is_patch_free);
-			ret = HISEE_ERROR;
-			set_errno_and_return(ret); /*lint !e1058*/
-		}
-
-		if (!g_patch_buff_virt) {
-			pr_err("%s(): alloc HISEE_SHARE_BUFF_SIZE\n", __func__);
-			buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, HISEE_SHARE_BUFF_SIZE,
-												&buff_phy, GFP_KERNEL);
-			g_patch_buff_virt = buff_virt;
-			g_patch_buff_phy = buff_phy;
-		} else {
-			buff_virt = g_patch_buff_virt;
-			buff_phy = g_patch_buff_phy;
-		}
-
-		if (buff_virt == NULL) {
-			pr_err("%s(): dma_alloc_coherent failed\n", __func__);
-			atomic_dec(&g_is_patch_free);
-			ret = HISEE_NO_RESOURCES;
-			set_errno_and_return(ret); /*lint !e1058*/
-		}
-
-		memset(buff_virt, 0, HISEE_SHARE_BUFF_SIZE);
-		p_message_header = (atf_message_header *)buff_virt;
-		set_message_header(p_message_header, CMD_UPGRADE_COS_PATCH);
-		ret = filesys_hisee_read_image(img_type, (buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN));
-		if (ret < HISEE_OK) {
-			pr_err("%s(): filesys_hisee_read_image failed, ret=%d\n", __func__, ret);
-			dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, g_patch_buff_virt, g_patch_buff_phy);
-			g_patch_buff_virt = NULL;
-			g_patch_buff_phy = 0;
-			atomic_dec(&g_is_patch_free);
-			set_errno_and_return(ret); /*lint !e1058*/
-		}
-		image_size = (unsigned int)(ret + HISEE_ATF_MESSAGE_HEADER_LEN);
-
-		timeout = (unsigned int)HISEE_ATF_COS_TIMEOUT;
-
-		pr_err("%s(): send_smc_process-->CMD_UPGRADE_COS_PATCH\n", __func__);
-		ret = send_smc_process(p_message_header, buff_phy, image_size,
-								timeout, CMD_UPGRADE_COS_PATCH);
-
-		/*free is in hisee_check_ready_show()*/
-
+	pr_err("%s(): enter, img_type=%d.\n", __func__, (int)img_type);
+	if (HISEE_COS_PATCH_FREE_CNT != atomic_inc_return(&g_is_patch_free)) {
 		atomic_dec(&g_is_patch_free);
-		pr_err("%s(): exit, img_type=%d.\n", __func__, (int)img_type);
+		ret = HISEE_ERROR;
+		set_errno_and_return(ret); /*lint !e1058*/
 	}
+
+	if (!g_patch_buff_virt) {
+		pr_err("%s(): alloc HISEE_SHARE_BUFF_SIZE\n", __func__);
+		buff_virt = (void *)dma_alloc_coherent(g_hisee_data.cma_device, HISEE_SHARE_BUFF_SIZE,
+											&buff_phy, GFP_KERNEL);
+		g_patch_buff_virt = buff_virt;
+		g_patch_buff_phy = buff_phy;
+	} else {
+		buff_virt = g_patch_buff_virt;
+		buff_phy = g_patch_buff_phy;
+	}
+
+	if (buff_virt == NULL) {
+		pr_err("%s(): dma_alloc_coherent failed\n", __func__);
+		atomic_dec(&g_is_patch_free);
+		ret = HISEE_NO_RESOURCES;
+		set_errno_and_return(ret); /*lint !e1058*/
+	}
+
+	memset(buff_virt, 0, HISEE_SHARE_BUFF_SIZE);
+	p_message_header = (atf_message_header *)buff_virt;
+	set_message_header(p_message_header, CMD_UPGRADE_COS_PATCH);
+	ret = filesys_hisee_read_image(img_type, (buff_virt + HISEE_ATF_MESSAGE_HEADER_LEN));
+	if (ret < HISEE_OK) {
+		pr_err("%s(): filesys_hisee_read_image failed, ret=%d\n", __func__, ret);
+		dma_free_coherent(g_hisee_data.cma_device, (unsigned long)HISEE_SHARE_BUFF_SIZE, g_patch_buff_virt, g_patch_buff_phy);
+		g_patch_buff_virt = NULL;
+		g_patch_buff_phy = 0;
+		atomic_dec(&g_is_patch_free);
+		set_errno_and_return(ret); /*lint !e1058*/
+	}
+	image_size = (unsigned int)(ret + HISEE_ATF_MESSAGE_HEADER_LEN);
+
+	timeout = (unsigned int)HISEE_ATF_COS_TIMEOUT;
+
+	pr_err("%s(): send_smc_process-->CMD_UPGRADE_COS_PATCH\n", __func__);
+	ret = send_smc_process(p_message_header, buff_phy, image_size,
+							timeout, CMD_UPGRADE_COS_PATCH);
+
+	/*free is in hisee_check_ready_show()*/
+
+	atomic_dec(&g_is_patch_free);
+	pr_err("%s(): exit, img_type=%d.\n", __func__, (int)img_type);
 	return ret;
 }
 
 void cos_patch_upgrade(void *buf)
 {
-	int ret = HISEE_OK;
+	int ret;
 	unsigned int cos_id = COS_IMG_ID_0;
 	unsigned int process_id;
-	unsigned int is_smx_0 = 0;
 
-	hisee_get_smx_cfg(&is_smx_0);
+	ret = hisee_get_cosid_processid(buf, &cos_id, &process_id);
+	if (HISEE_OK != ret) {
+		pr_err("%s(): hisee_get_cosid_processid failed\n", __func__);
+		return;
+	}
 
-	if (SMX_PROCESS_0 != is_smx_0) {
-		ret = hisee_get_cosid_processid(buf, &cos_id, &process_id);
-		if (HISEE_OK != ret) {
-			pr_err("%s(): hisee_get_cosid_processid failed\n", __func__);
-			return;
-		}
+	if (COS_IMG_ID_0 != cos_id) {
+		/*TODO:can do more action in future if necessary*/
+		pr_err("%s(): cos_id=%d bypass cos_patch_upgrade.\n", __func__, cos_id);
+		return;
+	}
 
-		if (COS_IMG_ID_0 != cos_id) {
-			/*TODO:can do more action in future if necessary*/
-			pr_err("%s(): cos_id=%d bypass cos_patch_upgrade.\n", __func__, cos_id);
-			return;
-		}
+	ret = hisee_poweroff_func(buf, HISEE_PWROFF_LOCK);
+	if (HISEE_OK != ret) {
+		pr_err("%s() hisee_poweroff_func failed. ret=%d\n", __func__, ret);
+	}
 
-		ret = hisee_poweroff_func(buf, HISEE_PWROFF_LOCK);
-		if (HISEE_OK != ret) {
-			pr_err("%s() hisee_poweroff_func failed. ret=%d\n", __func__, ret);
-		}
+	ret = hisee_cos_patch_read(MISC3_IMG_TYPE);
+	if (HISEE_OK != ret) {
+		pr_err("%s(): hisee_cos_patch_read failed ret=%x\n", __func__, ret);
+	}
 
-		ret = hisee_cos_patch_read(MISC3_IMG_TYPE);
-		if (HISEE_OK != ret) {
-			pr_err("%s(): hisee_cos_patch_read failed ret=%x\n", __func__, ret);
-		}
+	ret = hisee_poweron_booting_func(buf, 0);
+	if (HISEE_OK != ret) {
+		pr_err("%s(): hisee_poweron_booting_func failed ret=%x\n", __func__, ret);
+	}
 
-		ret = hisee_poweron_booting_func(buf, 0);
-		if (HISEE_OK != ret) {
-			pr_err("%s(): hisee_poweron_booting_func failed ret=%x\n", __func__, ret);
-		}
-
-		/* wait hisee cos ready for later process */
-		ret = wait_hisee_ready(HISEE_STATE_COS_READY, HISEE_ATF_GENERAL_TIMEOUT);
-		if (HISEE_OK != ret) {
-			pr_err("%s(): wait_hisee_ready failed ret=%x\n", __func__, ret);
-		}
+	/* wait hisee cos ready for later process */
+	ret = wait_hisee_ready(HISEE_STATE_COS_READY, HISEE_ATF_GENERAL_TIMEOUT);
+	if (HISEE_OK != ret) {
+		pr_err("%s(): wait_hisee_ready failed ret=%x\n", __func__, ret);
 	}
 	check_and_print_result_with_cosid();
 }/*lint !e715 !e838*/
@@ -556,16 +545,6 @@ int cos_upgrade_image_read(unsigned int cos_id, hisee_img_file_type img_type)
 	return ret;
 }
 
-static int cos_upgrade_basic_check_param(unsigned int cos_id, hisee_img_file_type img_type)
-{
-	if (OTP_IMG_TYPE <= img_type || MAX_COS_IMG_ID <= cos_id) {
-		pr_err("hisee:%s(): params is invalid\n", __func__);
-		return HISEE_COS_IMG_ID_ERROR;
-	}
-
-	return HISEE_OK;
-}
-
 /*************************************************************
 º¯ÊýÔ­ÐÍ£ºint cos_image_upgrade_basic_process(void *buf, int para,
 							unsigned int cos_id, hisee_img_file_type img_type)
@@ -589,9 +568,9 @@ static int cos_image_upgrade_basic_process(void *buf, int para,
 	multicos_upgrade_info *p_upgrade_info = NULL;
 	hisee_partition_version_info curr = { 0 };
 
-	ret = cos_upgrade_basic_check_param(cos_id, img_type);
-	if (HISEE_OK != ret) {
-		return ret;
+	if (OTP_IMG_TYPE <= img_type || MAX_COS_IMG_ID <= cos_id) {
+		pr_err("hisee:%s(): params is invalid\n", __func__);
+		return HISEE_COS_IMG_ID_ERROR;
 	}
 
 	memset((void *)&store_upgrade_info, 0, sizeof(multicos_upgrade_info));

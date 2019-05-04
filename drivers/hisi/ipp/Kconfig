@@ -1,12 +1,12 @@
 menu "Hisilicon ISP IPP"
 
 config HISPIPP
-	bool "Hisilicon ISP IPP Drivers"
+	tristate "Hisilicon ISP IPP Drivers"
 	depends on IOMMU_API
-	default n
 	help
 		Hisilicon isp IPP drivers.
 
+<<<<<<< HEAD
 config HISPIPP_V200
 	bool "Hisilicon ISP IPP Drivers for V200"
 	depends on HISPIPP
@@ -27,5 +27,7 @@ config HISPIPP_V250
     default n
     help
         Hisilicon ISP IPP Drivers for V250
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 endmenu
 

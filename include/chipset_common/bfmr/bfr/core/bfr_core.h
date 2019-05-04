@@ -324,7 +324,6 @@ typedef enum
 #define BFR_ENTER_SAFE_MODE_CMD "boot-safemode"
 #define BFR_ENTER_BOPD_MODE_CMD "boot-bopd"
 #define BFR_MISC_PART_NAME "misc"
-#define BFR_VALID_LONG_PRESS_LOG "valid_long_press"
 
 /* 0x72656364-'r' 'e' 'c' 'd' */
 #define BFR_RRECORD_MAGIC_NUMBER ((unsigned int)0x72656364)

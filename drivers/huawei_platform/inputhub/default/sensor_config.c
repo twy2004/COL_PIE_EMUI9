@@ -104,7 +104,6 @@ int gyro1_sensor_offset[GYRO1_CALIBRATE_DATA_LENGTH];
 
 
 struct airpress_touch_calibrate_data pressure_touch_calibrate_data;
-struct als_under_tp_calidata als_under_tp_cal_data;
 
 extern int first_start_flag;
 extern int ps_first_start_flag;
@@ -139,11 +138,14 @@ extern int  vishay_vcnl36658_ps_flag;
 extern int ams_tof_flag;
 extern int sharp_tof_flag;
 extern int apds9253_006_ps_flag;
+<<<<<<< HEAD
 extern int ams_tcs3701_rgb_flag;
 extern int ams_tcs3701_ps_flag;
 extern int acc1_first_start_flag;
 extern int gyro1_first_start_flag;
 extern uint64_t als_rgb_pa_to_sh;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 extern struct airpress_platform_data airpress_data;
 extern struct sar_platform_data sar_pdata;
@@ -930,17 +932,22 @@ void reset_calibrate_data(void)
 	} else {
 		send_calibrate_data_to_mcu(TAG_MAG, SUB_CMD_SET_OFFSET_REQ, msensor_calibrate_data, MAG_CALIBRATE_DATA_NV_SIZE, true);
 	}
-	if (txc_ps_flag == 1 || ams_tmd2620_ps_flag == 1 || avago_apds9110_ps_flag == 1 || ams_tmd3725_ps_flag == 1
+	if (txc_ps_flag == 1 || ams_tmd2620_ps_flag == 1 || avago_apds9110_ps_flag == 1 || ams_tmd3725_ps_flag == 1 
 		|| liteon_ltr582_ps_flag == 1 || apds9999_ps_flag == 1 || ams_tmd3702_ps_flag == 1 || vishay_vcnl36658_ps_flag == 1
-		|| apds9253_006_ps_flag ==1 || ams_tcs3701_ps_flag == 1) {
+		|| apds9253_006_ps_flag ==1) {
 		send_calibrate_data_to_mcu(TAG_PS, SUB_CMD_SET_OFFSET_REQ, ps_sensor_calibrate_data, PS_CALIDATA_NV_SIZE, true);
 	}
 	if (ams_tof_flag == 1 || sharp_tof_flag == 1) {
 		send_calibrate_data_to_mcu(TAG_TOF, SUB_CMD_SET_OFFSET_REQ, tof_sensor_calibrate_data, TOF_CALIDATA_NV_SIZE, true);
 	}
+<<<<<<< HEAD
 	if (rohm_rgb_flag == 1 || avago_rgb_flag == 1 || ams_tmd3725_rgb_flag == 1 || liteon_ltr582_rgb_flag == 1 ||
 	    is_cali_supported == 1 || apds9999_rgb_flag == 1 || ams_tmd3702_rgb_flag == 1 || apds9253_rgb_flag == 1 ||
 	    vishay_vcnl36658_als_flag == 1 || tsl2591_flag == 1 || ams_tcs3701_rgb_flag == 1 || bh1749_flag == 1) {
+=======
+	if (rohm_rgb_flag == 1 || avago_rgb_flag == 1 || ams_tmd3725_rgb_flag == 1 || liteon_ltr582_rgb_flag == 1 || is_cali_supported == 1
+		|| apds9999_rgb_flag == 1 || ams_tmd3702_rgb_flag == 1 || apds9253_rgb_flag == 1|| vishay_vcnl36658_als_flag ==1) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		if (als_data.als_phone_type == LAYA)
 			send_calibrate_data_to_mcu(TAG_ALS, SUB_CMD_SET_OFFSET_REQ, als_sensor_calibrate_data, ALS_CALIDATA_NV_SIZE_WITH_DARK_NOISE_OFFSET, true);
 		else if(als_data.als_phone_type == ELLE || als_data.als_phone_type == VOGUE){
@@ -1526,6 +1533,7 @@ static void select_ams_tmd3702_als_data(void)
 		     als_para_table, phone_color, als_data.als_phone_type, als_data.als_phone_version);
 }
 
+<<<<<<< HEAD
 static void select_ams_tcs3701_als_data(void)
 {
 	int i = 0;
@@ -1550,6 +1558,8 @@ static void select_ams_tcs3701_als_data(void)
 		     als_para_table, phone_color, als_data.als_phone_type, als_data.als_phone_version, tplcd_manufacture);
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static void select_vishay_vcnl36658_als_data(void)
 {
 	int i = 0;
@@ -1617,8 +1627,6 @@ void select_als_para(struct device_node *dn)
 		select_ams_tmd3725_als_data();
 	}else if (ams_tmd3702_rgb_flag == 1) {
 		select_ams_tmd3702_als_data();
-	}else if (ams_tcs3701_rgb_flag == 1) {
-		select_ams_tcs3701_als_data();
 	}else if (liteon_ltr582_rgb_flag == 1) {
 		select_liteon_ltr582_als_data();
 	}else if (vishay_vcnl36658_als_flag ==1){

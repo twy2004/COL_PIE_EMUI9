@@ -5,7 +5,6 @@
 
 #include <huawei_platform/log/hw_log.h>
 
-#define EVENT_CTS_HOME	172
 #define EVENT_HOLD	28
 #define EVENT_CLICK		174
 #define EVENT_DCLICK	111
@@ -105,6 +104,7 @@ typedef struct {
 
 struct fp_data
 {
+<<<<<<< HEAD
 	struct device* dev;
 	struct cdev     cdev;
 	struct class*    class;
@@ -153,6 +153,55 @@ struct fp_data
 	unsigned int irq_custom_scheme;
 	fingerprint_bigdata_t fingerprint_bigdata;
 	int cts_home;
+=======
+    struct device* dev;
+    struct cdev     cdev;
+    struct class*    class;
+    struct device*   device;
+    dev_t             devno;
+    struct platform_device* pf_dev;
+    unsigned long finger_num;
+    unsigned int nav_stat;
+    struct wake_lock ttw_wl;
+    int irq_gpio;
+    int cs0_gpio;//UG
+    int cs1_gpio;//UD
+    int rst_gpio;//UG
+    int rst1_gpio;//UD
+    int power_en_gpio;
+    int moduleID_gpio;
+    char extern_ldo_name[32];
+    char product_name[20];
+    int extern_ldo_num;
+    int extern_vol;
+    int module_vendor_info;
+    int navigation_adjust1;
+    int navigation_adjust2;
+    struct input_dev* input_dev;
+    int irq_num;
+    int qup_id;
+    char idev_name[32];
+    int event_type;
+    int event_code;
+    struct mutex lock;
+    bool prepared;
+    bool wakeup_enabled;
+    bool read_image_flag;
+    unsigned int sensor_id;
+    char sensor_id_ud[MAX_SENSOR_ID_UD_LENGTH];
+    struct pinctrl* pctrl;
+    struct pinctrl_state* pins_default;
+    struct pinctrl_state* pins_idle;
+    char module_id[64];
+    char module_id_ud[64];
+    bool irq_enabled;
+    bool irq_sensorhub_enabled;
+    unsigned int pen_anti_enable;
+    int hbm_status;
+    wait_queue_head_t hbm_queue;
+    unsigned int irq_custom_scheme;
+    fingerprint_bigdata_t fingerprint_bigdata;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 };
 
 #ifdef CONFIG_LLT_TEST

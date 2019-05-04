@@ -3822,8 +3822,7 @@ typedef struct
     oal_uint8                            uc_is_open_zf;
     oal_int8                             c_evm_ant0;
     oal_int8                             c_evm_ant1;
-    oal_uint8                            auc_resv2[1];
-    oal_bool_enum_uint8                  en_rx_bcn_flag;
+    oal_uint8                            auc_resv2[2];
 #ifdef _PRE_WLAN_FEATURE_TAS_ANT_SWITCH
     hal_tas_rssi_measure_stru            st_tas_rssi_report_status;
 #endif

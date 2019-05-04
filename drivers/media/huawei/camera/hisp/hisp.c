@@ -12,8 +12,6 @@
 #include <media/huawei/hisp200_cfg.h>
 #elif defined( HISP250_CAMERA  )
 #include <media/huawei/hisp250_cfg.h>
-#elif defined( HISP210_CAMERA  )
-#include <media/huawei/hisp210_cfg.h>
 #else
 #include <media/huawei/hisp_cfg.h>
 #endif
@@ -183,12 +181,22 @@ hisp_vo_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		}
 		break;
 	case HISP_IOCTL_POWER_ON:
+<<<<<<< HEAD
+=======
+		/* cam_info("Enter HISP_IOCTL_POWER_ON!\n"); */
+		/* rc = isp->hw->vtbl->power_on(isp->hw); */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		break;
     case HISP_IOCTL_GET_SYSTEM_TIME:
         cam_debug("Enter HISP_IOCTL_GET_SYSTEM_TIME!\n");
         hisp_subdev_get_system_timestamp((hisp_system_time_t*) arg);
         break;
 	case HISP_IOCTL_POWER_OFF:
+<<<<<<< HEAD
+=======
+		/* cam_info("Enter HISP_IOCTL_POWER_OFF!\n"); */
+		/* rc = isp->hw->vtbl->power_off(isp->hw); */
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		break;
 	case HISP_IOCTL_SEND_RPMSG:
 		cam_debug("Enter HISP_IOCTL_SEND_RPMSG!\n");

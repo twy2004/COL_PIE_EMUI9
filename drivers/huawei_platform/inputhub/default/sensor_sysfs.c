@@ -191,9 +191,6 @@ extern int vishay_vcnl36658_ps_flag;
 extern int ams_tof_flag;
 extern int sharp_tof_flag;
 extern int apds9253_006_ps_flag;
-extern int ams_tcs3701_ps_flag;
-extern int ams_tcs3701_rgb_flag;
-
 extern struct hisi_nve_info_user user_info;
 extern struct airpress_platform_data airpress_data;
 extern union sar_calibrate_data sar_calibrate_datas;
@@ -1675,8 +1672,8 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 	memset(&ps_test,0,sizeof(ps_test));
 	#endif
 
-	if((txc_ps_flag != 1) && (ams_tmd2620_ps_flag != 1) &&	(avago_apds9110_ps_flag != 1) && (ams_tmd3725_ps_flag != 1)
-		&& (liteon_ltr582_ps_flag != 1) && (apds9999_ps_flag != 1) && (ams_tmd3702_ps_flag != 1) && (ams_tcs3701_ps_flag != 1)
+	if((txc_ps_flag != 1) && (ams_tmd2620_ps_flag != 1) &&	(avago_apds9110_ps_flag != 1) && (ams_tmd3725_ps_flag != 1) 
+		&& (liteon_ltr582_ps_flag != 1) && (apds9999_ps_flag != 1) && (ams_tmd3702_ps_flag != 1)
 		&& (ams_tof_flag != 1) && (sharp_tof_flag != 1)&& (vishay_vcnl36658_ps_flag != 1 )&&(apds9253_006_ps_flag != 1)) {
 		hwlog_info("ps sensor is not txc_ps_224 or ams_tmd2620 or avago_apds9110 or ams_tmd3725 or liteon_ltr582,no need calibrate\n");
 		return count;
@@ -1684,15 +1681,25 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 
 	if (strict_strtoul(buf, 10, &val))
 		return -EINVAL;
+<<<<<<< HEAD
 	hwlog_info("ps or tof calibrate order is %lu\n", val);
 	if ((val < PS_XTALK_CALIBRATE)||(val > PS_SCREEN_ON_3CM_CALIBRATE)) {
+=======
+	hwlog_info("ps or tof calibrate order is %d\n", val);
+	if((val < PS_XTALK_CALIBRATE)||(val > TOF_CALI_FOR_FIX)){
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		hwlog_err("set ps or tof calibrate val invalid,val=%lu\n", val);
 		ps_calibration_res = EXEC_FAIL;
 		return count;
 	}
 	calibrate_order = (uint8_t)val;
+<<<<<<< HEAD
 	if(((val >= PS_XTALK_CALIBRATE && val <= PS_3CM_CALIBRATE) || val == PS_MINPDATA_MODE || val == PS_SAVE_MINPDATA || val >= PS_SCREEN_ON_XTALK_CALIBRATE)
 		&& (ams_tof_flag != 1) && (sharp_tof_flag != 1)){//ps calibrate
+=======
+
+	if(val >= PS_XTALK_CALIBRATE && val <= PS_3CM_CALIBRATE && (ams_tof_flag != 1) && (sharp_tof_flag != 1)){//ps calibrate
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		pkg_mcu = send_calibrate_cmd(TAG_PS, val, &ps_calibration_res);
 		if (ps_calibration_res == COMMU_FAIL || ps_calibration_res == EXEC_FAIL)//COMMU_FAIL=4	EXEC_FAIL=2
 			goto save_log;
@@ -1706,6 +1713,7 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 				ps_sensor_offset[1] = 0;//clear NV 5cm calibrated value
 				ps_sensor_offset[2] = 0;//clear NV 3cm calibrated value
 				//ps_calib_data[val-1] = ps_calibate_offset_3;
+<<<<<<< HEAD
 				hwlog_info("ps calibrate success, ps_calibate_offset_0=%d, ps_calibate_offset_3=%d\n",
 					ps_calibate_offset_0, ps_calibate_offset_3);
 				hwlog_info("ps calibrate success, data=%d, len=%d val=%lu\n", ps_sensor_offset[val-1],
@@ -1731,15 +1739,29 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 				hwlog_info("ps calibrate success, data=%d, len=%d val=%lu\n", ps_sensor_offset[5], pkg_mcu.data_length, val);
 			} else if (val != PS_MINPDATA_MODE) {
 				ps_sensor_offset[val-1] = *((int32_t *)pkg_mcu.data);
+=======
+				hwlog_info("ps calibrate success, ps_calibate_offset_0=%d, ps_calibate_offset_3=%d\n", ps_calibate_offset_0,ps_calibate_offset_3);
+				hwlog_info("ps calibrate success, data=%d, len=%d val=%d\n", ps_calib_data[val-1],pkg_mcu.data_length,val);
+			}else{
+				ps_calib_data[val-1] = *((int32_t *)pkg_mcu.data);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 				ps_calib_data_for_data_collect[val-1] = *((int32_t *)pkg_mcu.data);
 				hwlog_info("ps calibrate success, data=%d, len=%d val=%lu\n", ps_sensor_offset[val-1], pkg_mcu.data_length, val);
 			}
 		}
 
+<<<<<<< HEAD
 		if ((val == PS_5CM_CALIBRATE)||(val == PS_MINPDATA_MODE)||(val == PS_SCREEN_ON_5CM_CALIBRATE))
 			ps_calibration_res = SUC;
 		else
 			ps_calibrate_save(ps_sensor_offset, sizeof(ps_sensor_offset));
+=======
+		if(val == 2){
+			ps_calibration_res=SUC;
+		}else{
+			ps_calibrate_save(ps_calib_data, 3*pkg_mcu.data_length);
+		}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}else{//TOF calibrate
 		if((TOF_ZERO_CALIBRATE == val) && sharp_tof_flag && (tof_register_value == 0x1f))
 		{
@@ -1758,6 +1780,7 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 			goto save_log;
 		else if(pkg_mcu.errno == 0) {
 			if((TOF_ZERO_CALIBRATE == val) && (tof_register_value != 0x1f) && sharp_tof_flag){
+<<<<<<< HEAD
 				goto save_log;
 			}
 			if(TOF_CALI_FOR_FIX == val){
@@ -1765,6 +1788,15 @@ static ssize_t attr_ps_calibrate_write(struct device *dev, struct device_attribu
 				ps_calibration_res = SUC;
 				goto save_log;
 			}
+=======
+				goto save_log;
+			}
+			if(TOF_CALI_FOR_FIX == val){
+				hwlog_info("tof fix calibrate succ\n");
+				ps_calibration_res = SUC;
+				goto save_log;
+			}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			tof_calibrate_save(pkg_mcu.data, pkg_mcu.data_length,calibrate_order);
 		}
 	}
@@ -1969,6 +2001,7 @@ static ssize_t attr_als_calibrate_write(struct device *dev, struct device_attrib
 	#ifdef SENSOR_DATA_ACQUISITION
 	memset(&als_test,0,sizeof(als_test));
 	#endif
+<<<<<<< HEAD
 	bh1749_flag = sensor_get_als_bh1749_flag();
 	if (rohm_rgb_flag != 1 && avago_rgb_flag != 1 && ams_tmd3725_rgb_flag != 1 && liteon_ltr582_rgb_flag != 1 &&
 	    is_cali_supported != 1 && apds9999_rgb_flag != 1 && ams_tmd3702_rgb_flag != 1 && apds9253_rgb_flag != 1 &&
@@ -1976,13 +2009,19 @@ static ssize_t attr_als_calibrate_write(struct device *dev, struct device_attrib
 		hwlog_info("als sensor is not rohm_bh1745 or avago apds9251 or ams_tmd3725 or liteon_ltr582 , "
 			   "is_cali_supported = %d, no need calibrate\n",
 			   is_cali_supported);
+=======
+
+	if (rohm_rgb_flag != 1 && avago_rgb_flag != 1 && ams_tmd3725_rgb_flag != 1  && liteon_ltr582_rgb_flag != 1 && is_cali_supported !=1
+		&& apds9999_rgb_flag != 1 && ams_tmd3702_rgb_flag != 1 && apds9253_rgb_flag != 1 && vishay_vcnl36658_als_flag != 1) {
+		hwlog_info("als sensor is not rohm_bh1745 or avago apds9251 or ams_tmd3725 or liteon_ltr582 , is_cali_supported = %d, no need calibrate\n", is_cali_supported);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return count;
 	}
 
 	if (strict_strtoul(buf, 10, &val))
 		return -EINVAL;
 
-	if (1 != val && !(2 == val && (als_data.als_phone_type == LAYA_PHONE_TYPE || is_cali_supported)))
+	if (1 != val && !(2 == val && als_data.als_phone_type == LAYA_PHONE_TYPE))
 		return count;
 
 	if (sensor_status.opened[TAG_ALS] == 0) { /*if ALS is not opened, open first*/
@@ -2025,7 +2064,7 @@ static ssize_t attr_als_calibrate_write(struct device *dev, struct device_attrib
 	get_test_time(date_str, sizeof(date_str));
 	als_cali_data = (int32_t *)pkg_mcu.data;
 
-	if (2 == val && (als_data.als_phone_type == LAYA_PHONE_TYPE || is_cali_supported)){
+	if (2 == val && als_data.als_phone_type == LAYA_PHONE_TYPE){
 		#ifdef SENSOR_DATA_ACQUISITION
 		cali_data_u16 = (uint16_t *)pkg_mcu.data;
 		als_dark_noise_offset_enq_notify_work(ALS_CALI_DARK_OFFSET_MSG, *cali_data_u16,

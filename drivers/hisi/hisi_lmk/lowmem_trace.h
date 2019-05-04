@@ -1,7 +1,11 @@
 #undef TRACE_SYSTEM
+<<<<<<< HEAD
 /*lint -e773*/
 #define TRACE_INCLUDE_PATH ../../drivers/hisi/hisi_lmk
 /*lint +e773*/
+=======
+#define TRACE_INCLUDE_PATH ../../drivers/hisi/hisi_lmk /*lint !e773*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #define TRACE_SYSTEM hisi_lowmem
 #define TRACE_INCLUDE_FILE lowmem_trace
 

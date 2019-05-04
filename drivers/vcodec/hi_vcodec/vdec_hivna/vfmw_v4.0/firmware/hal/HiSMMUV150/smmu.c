@@ -329,6 +329,18 @@ static SINT32 alloc_smmu_tlb_miss_addr(VOID)
 }
 #endif
 
+<<<<<<< HEAD
+=======
+VOID SMMU_ConfigSMR(VOID)
+{
+	UINT32 i = 0;
+	for(i = 0; i < SMRx_ID_SIZE; i++)
+	{
+		set_common_reg(SMMU_SMRx_P + i * 0x4, 0x0, 32, 0); //smmu_smrx_p.smr_prtectec_en=1
+	}
+}
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /**
  *function: init SMMU global registers.
  */
@@ -352,11 +364,11 @@ VOID SMMU_InitGlobalReg(VOID)
 	//SMRX_S had set default value. Only need to set SMMU_SMRx_NS secure SID  bypass
 
 	for (i = 0; i < SMRx_ID_SIZE; i += 2) {
-		set_common_reg(SMMU_SMRx_NS + i * 0x4, 0x1C, 32, 0);
+		set_common_reg(SMMU_SMRx_NS + i * 0x4, 0x1C, 32, 0);//0x00000003 none secure
 	}
 
 	for (i = 1; i < SMRx_ID_SIZE; i += 2) {
-		set_common_reg(SMMU_SMRx_NS + i * 0x4, 0x1D, 32, 0);
+		set_common_reg(SMMU_SMRx_NS + i * 0x4, 0x1D, 32, 0);//0x00000002 secure
 	}
 	set_common_reg(SMMU_CB_TTBR0, gSmmuPageBase, 32, 0);
 

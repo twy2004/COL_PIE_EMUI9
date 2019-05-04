@@ -108,7 +108,7 @@
 	interval = <5000>;
 	bias = <50000>;
 	count = <5>;
-	tsensor_para = "4000","100000","0";
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
@@ -142,37 +142,35 @@
 &shell_front {
 	compatible = "hisi,shell-temp";
 	interval = <5000>;
-	bias = <0>;
-	count = <7>;
-	shell_temp_step = <200>;
-	shell_temp_step_range = <400>;
-	tsensor_para = "4000","100000","0";
+	bias = <500>;
+	count = <6>;
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
 		sensor0 {
-			type = "usb_port";
-			coef = "-7669","-7637","-6580","-5847","-5602","-3840","-2316";
+			type = "system_h";
+			coef = "1244","-7351","-7466","-7933","-1254","11946";
 		};
 		sensor1 {
-			type = "Battery";
-			coef = "-1600","-549","79","52","636","-190","3952";
+			type = "charger";
+			coef = "6341","-1875","-1051","1003","5172","8908";
 		};
 		sensor2 {
-			type = "system_h";
-			coef = "17102","3964","3875","3108","228","-376","34123";
+			type = "pa_0";
+			coef = "-7432","-40651","-37671","-22890","-16316","-75046";
 		};
 		sensor3 {
-			type = "charger";
-			coef = "-1997","-1670","430","673","449","-99","6558";
+			type = "pa_1";
+			coef = "111742","83051","68522","48240","27123","-13888";
 		};
 		sensor4 {
-			type = "rfboard";
-			coef = "11869","11736","11142","10444","10912","11577","11950";
+			type = "ir";
+			coef = "19478","4240","-6632","-13852","-10510","-9050";
 		};
 		sensor5 {
-			type = "ir";
-			coef = "-26444","9100","2880","-7108","-8991","-12265","35485";
+			type = "dot";
+			coef = "3839","-2773","-1833","-1211","-3900","-11607";
 		};
 	};
 };
@@ -180,37 +178,31 @@
 &shell_back {
 	compatible = "hisi,shell-temp";
 	interval = <5000>;
-	bias = <0>;
+	bias = <500>;
 	count = <6>;
-	shell_temp_step = <200>;
-	shell_temp_step_range = <400>;
-	tsensor_para = "4000","100000","0";
+	tsensor_para = "10000","100000","0";
 	ntc_para = "2000","80000","-20000";
 	status = "ok";
 	sensors {
 		sensor0 {
-			type = "usb_port";
-			coef = "15012","8521","2693","-3258","-8972","-13103";
+			type = "system_h";
+			coef = "-6244","-15339","-13905","-12331","-1845","18756";
 		};
 		sensor1 {
-			type = "Battery";
-			coef = "1026","-504","435","-1141","-592","-4000";
+			type = "pa_0";
+			coef = "6630","-23289","-23554","-14701","108","-12482";
 		};
 		sensor2 {
-			type = "system_h";
-			coef = "21647","4411","6719","5982","9716","27656";
+			type = "pa_1";
+			coef = "64763","40698","30948","17447","-2459","-41495";
 		};
 		sensor3 {
-			type = "charger";
-			coef = "277","-3625","241","1292","784","-12522";
+			type = "ir";
+			coef = "104251","64346","31777","1974","-30108","-68329";
 		};
 		sensor4 {
-			type = "rfboard";
-			coef = "7390","6972","6481","6257","6227","7013";
-		};
-		sensor5 {
-			type = "ir";
-			coef = "17460","-2931","-1804","1021","1821","-16122";
+			type = "dot";
+			coef = "6777","-722","-2260","-970","-3031","-16029";
 		};
 	};
 };
@@ -558,7 +550,11 @@
 		cc_cable_detect_enable = <1>;
 		full_path_res_max = <450>;
 		scp_work_on_charger = <1>;
+<<<<<<< HEAD
 		standard_cable_full_path_res_max = <450>;
+=======
+		standard_cable_full_path_res_max = <250>;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		first_cc_stage_timer_in_min = <5>;
 		stage_need_to_jump = "1";
 		temp_para =
@@ -577,6 +573,12 @@
 	&huawei_smpl {
 		status = "ok";
 	};
+
+    &fastboot_pmic {
+                   hisilicon,init-reg-num = <1>;
+                   hisilicon,init-reg-addrs = <0x02E9>;
+                   hisilicon,init-reg-vals  = <0x06>;
+    };
 
 	&vbat_ovp {
 		status = "disabled";
@@ -997,7 +999,7 @@
 				spi-max-frequency = <25000000>;
 				spi-bus-id = <3>;
 				reg = <1>;
-				pl022,com-mode = <2>;
+				pl022,com-mode = <0>;
 				pl022,interface = <0>;
 				pl022,rx-level-trig = <3>;
 				pl022,tx-level-trig = <3>;
@@ -1043,7 +1045,7 @@
 			};
 			bq25970: bq25970@65 {
 				compatible = "bq25970";
-				gpio_int = <&gpio27 5 0>;
+				switchcap_int = <&gpio27 5 0>;
 				reg = <0x65>;
 				tsbus_high_r_kohm = <100>;
 				tsbus_low_r_kohm = <100>;
@@ -2179,7 +2181,6 @@
 				hisilicon,hs_extern_cable_max_voltage = <2700>;
 				hs_detect_extern_cable = <1>;
 				fm_enable = <1>;
-				hisilicon,wakeup_hisi_algo_support = <1>;
 				status = "ok";
 			};
 
@@ -3400,7 +3401,7 @@
 		iovdd-supply = <&ldo21>;
 		huawei,ldo-names = "iovdd";
 
-		gpios = <&gpio0 7 0 &gpio1 4 0 &gpio17 0 0  &gpio4 3 0>;
+		gpios = <&gpio0 7 0 &gpio1 4 0 &gpio17 0 0 &gpio4 3 0>;
 		huawei,gpio-ctrl-types = "reset2", "reset", "vcm_pwdn","laser_xshut";  /*laser_xshut need to configed to avoid i2c conflict with pmic. need to take carefully*/
 		module_type = <0>;/*bit0=enable ,other bits=type*/
 		status = "ok";
@@ -3505,42 +3506,6 @@
 		huawei,topology_type = <0>;
 		status = "ok";
 	};
-
-
-	&huawei_imx580 {
-		compatible = "huawei,imx580";
-		huawei,sensor_name = "IMX580";
-		huawei,is_fpga = <0>;
-		huawei,pd_valid = <1>;
-		huawei,sensor_index = <10>;//HWSENSOR_POSITION_IR4STRUCTURELIGHT = 10
-		huawei,csi_index = <1>;
-		huawei,i2c_index = <0>;
-		huawei,reset_valid = <1>;
-		huawei,vcmpd_valid = <0>;
-		/*cdphy-csi2*/
-		huawei,phyinfo_valid = <1>;
-		huawei,is_master_sensor = <1>;
-		huawei,phy_id = <3>;
-		huawei,phy_mode = <0>;
-		huawei,phy_freq_mode = <0>;
-		huawei,phy_freq = <80000000>;
-		huawei,phy_work_mode = <1>;
-		clocks = <&clk_gate_rxdphy0_cfg &clk_gate_rxdphy1_cfg &clk_gate_rxdphy2_cfg &clk_gate_rxdphy3_cfg &clk_gate_isp_snclk0>;
-		clock-names = "clk_rxdphy0_cfg", "clk_rxdphy1_cfg", "clk_rxdphy2_cfg", "clk_rxdphy3_cfg", "clk_isp_snclk0";
-		huawei,mclk = <19200000>;
-		huawei,rxdphyclk = <80000000>;
-		huawei,phyclk = <80000000>;
-		phy-clock-num = <4>;
-		dvdd-supply = <&ldo32>;
-		iovdd-supply = <&ldo21>;
-		huawei,ldo-names = "dvdd", "iovdd";
-		gpios = <&gpio21 1 0>;
-		huawei,gpio-ctrl-types = "reset";
-		module_type = <0>;/*bit0=enable ,other bits=type*/
-		huawei,topology_type = <0>;
-		status = "ok";
-	};
-
 
 	&huawei_drvic_mp3336{
 		compatible = "huawei,drv_ic_mp3336";

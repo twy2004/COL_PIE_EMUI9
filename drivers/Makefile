@@ -57,8 +57,11 @@ obj-y				+= char/
 # iommu/ comes before gpu as gpu are using iommu controllers
 obj-$(CONFIG_IOMMU_SUPPORT)	+= iommu/
 
+obj-$(CONFIG_GPU_GMC_GENERIC)	+= gpu/gmc/
+
 # gpu/ comes after char for AGP vs DRM startup and after iommu
-obj-y				+= gpu/
+obj-y				+= gpu/drm/ gpu/host1x/ gpu/ipu-v3/ gpu/vga/
+obj-$(CONFIG_MALI_MIDGARD)	+= gpu/arm/
 
 obj-$(CONFIG_CONNECTOR)		+= connector/
 
@@ -204,7 +207,6 @@ obj-$(CONFIG_HW_GADGET) += hwusb/
 obj-$(CONFIG_HUAWEI_BFM) += hwbfm/
 obj-$(CONFIG_HW_ZEROHUNG) += hwzerohung/
 obj-$(CONFIG_HW_FDLEAK) += hwfdleak/
-obj-$(CONFIG_HW_ERECOVERY) += hwerecovery/
 obj-$(CONFIG_HW_WIFI)       += hwnet/
 obj-y += devkit/tpkit/
 obj-$(CONFIG_AUDIOKIT) += devkit/audiokit/

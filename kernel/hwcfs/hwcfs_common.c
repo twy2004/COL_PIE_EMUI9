@@ -161,11 +161,15 @@ static inline void dynamic_vip_inc(struct task_struct *task, int type)
 
 static void __dynamic_vip_dequeue(struct task_struct *task, int type)
 {
+<<<<<<< HEAD
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         unsigned long flags;
 #else
         struct rq_flags flags;
 #endif
+=======
+	unsigned long flags;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	bool exist = false;
 	struct rq *rq = NULL;
 	u64 dynamic_vip = 0;
@@ -204,11 +208,15 @@ void dynamic_vip_dequeue(struct task_struct *task, int type)
 extern const struct sched_class fair_sched_class;
 static void __dynamic_vip_enqueue(struct task_struct *task, int type, int depth)
 {
+<<<<<<< HEAD
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0)
         unsigned long flags;
 #else
         struct rq_flags flags;
 #endif
+=======
+	unsigned long flags;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	bool exist = false;
 	struct rq *rq = NULL;
 
@@ -338,9 +346,7 @@ static int vip_can_migrate(struct task_struct *p, struct rq *src_rq, struct rq *
 
 extern void hisi_get_fast_cpus(struct cpumask *cpumask);
 extern void hisi_get_slow_cpus(struct cpumask *cpumask);
-#ifdef CONFIG_HISI_EAS_SCHED
 static struct cpumask hisi_slow_cpu_mask;
-#endif
 
 static int __do_vip_balance(void *data)
 {
@@ -349,10 +355,8 @@ static int __do_vip_balance(void *data)
 	int src_cpu = cpu_of(src_rq);
 	int i;
 	struct task_struct *p = NULL;
-#ifdef CONFIG_HISI_EAS_SCHED
 	struct cpumask cluster = CPU_MASK_NONE;
 	struct cpumask cpus_allowed = CPU_MASK_NONE;
-#endif
 	bool is_mig = false;
 
 	/*find a delayed vip task*/

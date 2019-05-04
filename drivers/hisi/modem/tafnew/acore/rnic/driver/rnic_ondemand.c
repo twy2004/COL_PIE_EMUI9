@@ -107,7 +107,7 @@ STATIC ssize_t rnic_ondemand_read_config(char __user *user_buf,
 		return 0;
 	}
 
-	memset(buf, 0, sizeof(buf)); /* unsafe_function_ignore: memset */
+	memset(buf, 0, sizeof(buf));
 	scnprintf(buf, sizeof(buf), "%u", ondemand_ctx->cfg_value[cfg_type]);
 
 	bytes_read = simple_read_from_buffer(user_buf, count, ppos, buf, strlen(buf));
@@ -143,7 +143,7 @@ STATIC ssize_t rnic_ondemand_write_config(const char __user *user_buf,
 		return 0;
 	}
 
-	memset(buf, 0, sizeof(buf)); /* unsafe_function_ignore: memset */
+	memset(buf, 0, sizeof(buf));
 	buf_size = count < (sizeof(buf) - 1) ? count : (sizeof(buf) - 1);
 
 	bytes_written = simple_write_to_buffer(buf, buf_size, ppos, user_buf, count);

@@ -552,6 +552,42 @@ static int hi64xx_read_mlib_para(unsigned char *arg, const unsigned int len)
 	return OK;
 }
 
+<<<<<<< HEAD
+=======
+unsigned int hi64xx_read_mlib_test_para(unsigned char *arg, unsigned int len)
+{
+	unsigned int addr = 0;
+	unsigned int count;
+	unsigned int value;
+	IN_FUNCTION;
+
+	addr = HI64xx_MLIB_TO_AP_MSG_ADDR;
+
+	if (hi64xx_hifi_read_reg(addr) != UCOM_PROTECT_WORD) {
+		HI64XX_DSP_ERROR("mlib test cannot find parameters!\n");
+		return 0;
+	}
+
+	for (count = 1; count < (HI64xx_MLIB_TO_AP_MSG_LEN / sizeof(unsigned int)); count++) {
+		value = hi64xx_hifi_read_reg(addr + count * sizeof(unsigned int));
+		if(count * sizeof(unsigned int) >= len) {
+			HI64XX_DSP_ERROR("input not enough space!\n");
+			return 0;
+		}
+
+		if(value == UCOM_PROTECT_WORD && count > 0) {
+			break;
+		}
+
+		memcpy(arg + (count - 1) * sizeof(unsigned int), &value, sizeof(value));/* unsafe_function_ignore: memcpy */
+		HI64XX_DSP_INFO("mlib test para[0x%x]\n", value);
+	}
+
+	OUT_FUNCTION;
+	return (count - 1) * sizeof(unsigned int);
+}
+
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static int hi64xx_write_msg(const void *arg, const unsigned int len)
 {
 	int ret = OK;
@@ -727,6 +763,7 @@ static bool hi64xx_error_detect(void)
 	unsigned int version = 0;
 	unsigned int retry_count = 0;
 
+<<<<<<< HEAD
 	while (retry_count < 3) {
 		version = hi64xx_hifi_read_reg(HI64xx_VERSION);
 		if (version != HI64XX_VERSION_CS && version != HI64XX_VERSION_ES) {
@@ -738,6 +775,14 @@ static bool hi64xx_error_detect(void)
 
 		udelay(1000);
 		retry_count++;
+=======
+	if (HI64XX_VERSION_CS != version
+		&& HI64XX_VERSION_ES != version) {
+		HI64XX_DSP_ERROR("Codec err,ver 0x%x,pll 0x%x\n",
+			version, hi64xx_hifi_read_reg(HI64xx_CODEC_ANA_PLL));
+		audio_dsm_report_info(AUDIO_CODEC, DSM_CODEC_HIFI_RESET, "DSM_HI6402_CRASH, version: 0x%x\n", version);
+		return true;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	}
 
 
@@ -781,7 +826,7 @@ static void hi64xx_release_state_mutex(void)
 static void hi64xx_watchdog_process(void)
 {
 	/* stop codec om asp dma */
-	if (HI64XX_CODEC_TYPE_6402 != dsp_priv->dsp_config.codec_type)
+	if (HI64XX_CODEC_TYPE_6403 == dsp_priv->dsp_config.codec_type)
 		hi64xx_hifi_om_hook_stop();
 
 	/* stop soundtrigger asp dma */
@@ -1087,6 +1132,15 @@ static void hi64xx_hifi_cfg_after_pll_switch(enum pll_state state)
 	return;
 }
 
+/* dsp_if io sample rate config */
+static unsigned int hi6402_sc_fs_ctrls_h[] = {
+	HI64xx_SC_FS_S1_CTRL_H,
+	HI64xx_SC_FS_S2_CTRL_H,
+	HI64xx_SC_FS_S3_CTRL_H,
+	HI64xx_SC_FS_S4_CTRL_H,
+	HI64xx_SC_FS_MISC_CTRL,
+};
+
 /* check for parameters used by misc, only for if_open/if_close */
 static int hi64xx_dsp_if_para_check(const struct krn_param_io_buf *param)
 {
@@ -1094,7 +1148,6 @@ static int hi64xx_dsp_if_para_check(const struct krn_param_io_buf *param)
 	unsigned int message_size = 0;
 	DSP_IF_OPEN_REQ_STRU *dsp_if_open_req = NULL;
 	PCM_PROCESS_DMA_MSG_STRU *dma_msg_stru = NULL;
-	unsigned int max_if_id;
 
 	if (!param) {
 		HI64XX_DSP_ERROR("input param is null\n");
@@ -1110,15 +1163,18 @@ static int hi64xx_dsp_if_para_check(const struct krn_param_io_buf *param)
 		HI64XX_DSP_ERROR("input size:%u invalid\n", param->buf_size_in);
 		return -EINVAL;
 	}
+<<<<<<< HEAD
 	if (HI64XX_CODEC_TYPE_6405 == dsp_priv->dsp_config.codec_type)
 		max_if_id = HI64XX_HIFI_DSP_IF_PORT_9;
 	else
 		max_if_id = HI64XX_HIFI_DSP_IF_PORT_8;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	dsp_if_open_req = (DSP_IF_OPEN_REQ_STRU *)(param->buf_in);
 	dma_msg_stru = &dsp_if_open_req->stProcessDMA;
 
-	if (dma_msg_stru->uwIFCount > max_if_id) {
+	if (dma_msg_stru->uwIFCount >= HI6402_HIFI_DSP_IF_PORT_BUTT) {
 		HI64XX_DSP_ERROR("try to open too many ifs\n");
 		return -EINVAL;
 	}
@@ -1133,7 +1189,7 @@ static int hi64xx_dsp_if_para_check(const struct krn_param_io_buf *param)
 	for (i = 0; i < dma_msg_stru->uwIFCount; i++) {
 		PCM_IF_MSG_STRU *pcm_if_msg = &dma_msg_stru->stIFCfgList[i];
 
-		if (pcm_if_msg->uwIFId > max_if_id) {
+		if (pcm_if_msg->uwIFId >= HI6402_HIFI_DSP_IF_PORT_BUTT) {
 			HI64XX_DSP_ERROR("dsp if ID %d is out of range\n",
 					pcm_if_msg->uwIFId);
 			return -EINVAL;
@@ -1160,44 +1216,95 @@ static int hi64xx_dsp_if_para_check(const struct krn_param_io_buf *param)
 	return OK;
 }
 
-bool hi64xx_get_sample_rate_index(unsigned int sample_rate, unsigned char *index)
+static int hi64xx_dsp_if_set_sample_rate(unsigned int dsp_if_id,
+						unsigned int sample_rate)
 {
+	unsigned int addr = 0;
+	unsigned char mask = 0;
+	unsigned char sample_rate_index = 0;
+
+	unsigned int i2s_id = dsp_if_id / 2;
+	unsigned int direct =
+		(dsp_if_id & 0x1) ? HI6402_HIFI_PCM_OUT : HI6402_HIFI_PCM_IN;
+
+	IN_FUNCTION;
+
+	BUG_ON(i2s_id >= ARRAY_SIZE(hi6402_sc_fs_ctrls_h));
+	addr = hi6402_sc_fs_ctrls_h[i2s_id];
+
 	switch (sample_rate) {
 	case 0:
 		HI64XX_DSP_INFO("DATA_HOOK_PROCESS, sample_rate=0\n");
 		break;
 	case 8000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_8K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_8K;
 		break;
 	case 16000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_16K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_16K;
 		break;
 	case 32000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_32K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_32K;
 		break;
 	case 48000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_48K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_48K;
 		break;
 	case 96000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_96K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_96K;
 		break;
 	case 192000:
-		*index = HI64XX_HIFI_PCM_SAMPLE_RATE_192K;
+		sample_rate_index = HI6402_HIFI_PCM_SAMPLE_RATE_192K;
 		break;
 	default:
 		/* shouldn't be here */
 		HI64XX_DSP_ERROR("unsupport sample_rate %d!! \n", sample_rate);
-		return false;
+		return 0;
 	}
 
-	return true;
+	if (HI6402_HIFI_DSP_IF_PORT_8 != dsp_if_id) {
+		mask = (direct == HI6402_HIFI_PCM_IN) ? 0xf : 0xf0;
+		sample_rate_index = (direct == HI6402_HIFI_PCM_IN)
+							? sample_rate_index : sample_rate_index << 4;
+	} else {
+		switch (dsp_priv->dsp_config.codec_type) {
+		case HI64XX_CODEC_TYPE_6403:
+			mask = (direct == HI6402_HIFI_PCM_IN) ? 0xe0 : 0x1c;
+			if (HI6402_HIFI_PCM_SAMPLE_RATE_48K > sample_rate_index) {
+				HI64XX_DSP_ERROR("unsupport sample_rate %d!! \n", sample_rate);
+				return 0;
+			}
+			sample_rate_index = sample_rate_index - HI6402_HIFI_PCM_SAMPLE_RATE_48K;
+			sample_rate_index = (direct == HI6402_HIFI_PCM_IN)
+								? sample_rate_index << 5 : sample_rate_index << 2;
+			break;
+		case HI64XX_CODEC_TYPE_6402:
+			mask = (direct == HI6402_HIFI_PCM_IN) ? 0x70 : 0xc;
+			if (HI6402_HIFI_PCM_OUT == direct) {
+				if (HI6402_HIFI_PCM_SAMPLE_RATE_48K > sample_rate_index) {
+					HI64XX_DSP_ERROR("unsupport sample_rate %d!! \n", sample_rate);
+					return 0;
+				}
+				sample_rate_index = sample_rate_index - HI6402_HIFI_PCM_SAMPLE_RATE_48K;
+			}
+			sample_rate_index = (direct == HI6402_HIFI_PCM_IN)
+								? sample_rate_index << 4 : sample_rate_index << 2;
+			break;
+		default:
+			HI64XX_DSP_ERROR("unsupport codec_type %d!! \n", dsp_priv->dsp_config.codec_type);
+			return 0;
+		}
+	}
+
+	hi64xx_hifi_reg_write_bits(addr, sample_rate_index, mask);
+
+	OUT_FUNCTION;
+
+	return 0;
 }
 
 /* now we'v alread check the para, so don't do it again */
 static void hi64xx_dsp_if_sample_rate_set(const char *arg)
 {
 	unsigned int i = 0;
-	int ret = 0;
 
 	DSP_IF_OPEN_REQ_STRU *dsp_if_open_req = (DSP_IF_OPEN_REQ_STRU *)arg;
 	PCM_PROCESS_DMA_MSG_STRU *dma_msg_stru = &dsp_if_open_req->stProcessDMA;
@@ -1207,14 +1314,8 @@ static void hi64xx_dsp_if_sample_rate_set(const char *arg)
 	for (i = 0; i < dma_msg_stru->uwIFCount; i++) {
 		PCM_IF_MSG_STRU *pcm_if_msg = &dma_msg_stru->stIFCfgList[i];
 
-		if (dsp_priv->dsp_config.dsp_ops.set_sample_rate) {
-			ret = dsp_priv->dsp_config.dsp_ops.set_sample_rate(pcm_if_msg->uwIFId,
-				pcm_if_msg->uwSampleRateIn, pcm_if_msg->uwSampleRateOut);
-			if (ret) {
-				HI64XX_DSP_ERROR("set sample rate error, fid = %u, sample rate in = %u, sample rate out = %u\n",
-					pcm_if_msg->uwIFId, pcm_if_msg->uwSampleRateIn, pcm_if_msg->uwSampleRateOut);
-			}
-		}
+		hi64xx_dsp_if_set_sample_rate(pcm_if_msg->uwIFId,
+				pcm_if_msg->uwSampleRateIn);
 	}
 
 	OUT_FUNCTION;
@@ -1441,13 +1542,16 @@ void hi64xx_hifi_pwr_off(void)
 
 static int check_dp_clk(void)
 {
-	if (!dsp_priv->dsp_config.dsp_ops.check_dp_clk) {
-		HI64XX_DSP_WARNING("cannot check dp clk\n");
-		return OK;
-	}
-
-	if (dsp_priv->dsp_config.dsp_ops.check_dp_clk()) {
-		return OK;
+	/* waiting 100ms at most before send if_open cmd, when dpclk is disable */
+	unsigned int uwCnt = HI64XX_IFOPEN_WAIT4DPCLK;
+	while(--uwCnt) {
+		if(1 == hi64xx_hifi_read_reg(HI64xx_CODEC_DP_CLK_EN)) {
+			HI64XX_DSP_INFO("DP clk is enable, goto send if_open\n");
+			return OK;
+		} else {
+			/* wait 100 to 110us every cycle, if dpclk is disable. */
+			usleep_range(100, 110);
+		}
 	}
 
 	return -EPERM;
@@ -1607,7 +1711,7 @@ static void hi64xx_msg_proc_work(struct work_struct *work)
 static void hi64xx_wakeup_dsp_res_handle(void)
 {
 	if (dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass)
-		dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass(HI64XX_HIFI_DSP_IF_PORT_1, false);
+		dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass(HI6402_HIFI_DSP_IF_PORT_1, false);
 
 	if (dsp_priv->dsp_config.dsp_ops.mad_enable)
 		dsp_priv->dsp_config.dsp_ops.mad_enable();
@@ -1639,7 +1743,7 @@ static int hi64xx_wakeup_res_handle(int scene)
 				return ret;
 			}
 			if (dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass)
-				dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass(HI64XX_HIFI_DSP_IF_PORT_1, true);
+				dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass(HI6402_HIFI_DSP_IF_PORT_1, true);
 			if (dsp_priv->dsp_config.dsp_ops.mad_disable)
 				dsp_priv->dsp_config.dsp_ops.mad_disable();
 		}
@@ -1846,9 +1950,45 @@ static int hi64xx_func_if_close(struct krn_param_io_buf *param)
 	if (dma_msg_stru->uwProcessId == MLIB_PATH_WAKEUP) {
 		if (hi64xx_wakeup_res_handle(WAKEUP_SCENE_DSP_CLOSE) != 0)
 			goto end;
+<<<<<<< HEAD
 	} else {
 		ret = if_close_high_freq_common(dma_msg_stru->uwProcessId);
 		if (ret) {
+=======
+// current not support HOOK
+	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_SMARTPA) {
+		if ((dsp_priv->high_freq_scene_status & (1 << HI_FREQ_SCENE_PA)) == 0) {
+			HI64XX_DSP_WARNING("scene smartpa is NOT opened.\n");
+			ret = REDUNDANT;
+			goto end;
+		}
+	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_ANC) {
+		HI64XX_DSP_INFO("stop anc\n");
+		if ((dsp_priv->high_freq_scene_status & (1 << HI_FREQ_SCENE_ANC)) == 0) {
+			HI64XX_DSP_WARNING("scene ANC is NOT opened.\n");
+			ret = REDUNDANT;
+			goto end;
+		}
+	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_ANC_DEBUG) {
+		HI64XX_DSP_INFO("stop anc debug\n");
+		if ((dsp_priv->high_freq_scene_status & (1 << HI_FREQ_SCENE_ANC_DEBUG)) == 0) {
+			HI64XX_DSP_WARNING("scene anc debug is NOT opened.\n");
+			ret = REDUNDANT;
+			goto end;
+		}
+	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_IR_LEARN) {
+		HI64XX_DSP_INFO("stop hi64xx ir learn\n");
+		if ((dsp_priv->high_freq_scene_status & (1 << HI_FREQ_SCENE_IR_LEARN)) == 0) {
+			HI64XX_DSP_WARNING("scene ir is NOT opened.\n");
+			ret = REDUNDANT;
+			goto end;
+		}
+	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_IR_TRANS) {
+		HI64XX_DSP_INFO("stop hi64xx ir transmit\n");
+		if ((dsp_priv->high_freq_scene_status & (1 << HI_FREQ_SCENE_IR_TRANS)) == 0) {
+			HI64XX_DSP_WARNING("scene ir is NOT opened.\n");
+			ret = REDUNDANT;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 			goto end;
 		}
 	}
@@ -1861,6 +2001,7 @@ static int hi64xx_func_if_close(struct krn_param_io_buf *param)
 
 	if (dma_msg_stru->uwProcessId == MLIB_PATH_WAKEUP) {
 		(void)hi64xx_wakeup_res_handle(WAKEUP_SCENE_PLL_CLOSE);
+// current not support HOOK
 	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_SMARTPA) {
 		hi64xx_release_pll_resource(HI_FREQ_SCENE_PA);
 	} else if (dma_msg_stru->uwProcessId == MLIB_PATH_ANC) {
@@ -2150,6 +2291,7 @@ static void hi64xx_clear_log_region(void)
 	hi64xx_memset(codec_log_addr, (size_t)codec_log_size);
 }
 
+<<<<<<< HEAD
 static void hi64xx_config_usb(void)
 {
 	if (dsp_priv->dsp_config.dsp_ops.config_usb_low_power)
@@ -2157,6 +2299,9 @@ static void hi64xx_config_usb(void)
 }
 
 static int hi64xx_check_fw_param(struct krn_param_io_buf *param)
+=======
+static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	FW_DOWNLOAD_STRU *dsp_fw_download = NULL;
 
@@ -2219,13 +2364,13 @@ static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
 	/* release all requeseted PLL first beacuse codec dsp maybe request PLL but didn't release when exception */
 	release_requested_pll();
 
-	if (HI64XX_CODEC_TYPE_6402 != dsp_priv->dsp_config.codec_type)
+	if (HI64XX_CODEC_TYPE_6403 == dsp_priv->dsp_config.codec_type)
 		hi64xx_hifi_om_hook_stop();
 
 	hi64xx_hifi_set_pll(true);
 
 	/* restore dsp_if work status */
-	for(i = 0; i < HI64XX_HIFI_DSP_IF_PORT_BUTT;i++) {
+	for(i = 0; i < HI6402_HIFI_DSP_IF_PORT_BUTT;i++) {
 		if (dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass) {
 			dsp_priv->dsp_config.dsp_ops.dsp_if_set_bypass(i, true);
 		}
@@ -2253,8 +2398,6 @@ static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
 		hi64xx_hifi_download(fw, dsp_priv->dsp_config.bus_sel);
 	}
 
-	hi64xx_config_usb();
-
 	release_firmware(fw);
 
 	if (dsp_priv->dsp_config.msg_state_addr != 0)
@@ -2266,10 +2409,10 @@ static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
 	dsp_priv->dsp_pwron_done = HIFI_STATE_UNINIT;
 
 	/* irq clr,unmask*/
-	if (hi64xx_hifi_read_reg(HI64xx_REG_IRQ_2)  & 0x1) {
-		hi64xx_hifi_write_reg(HI64xx_REG_IRQ_2, 0x1);
+	if (hi64xx_hifi_read_reg(0x20007016)&0x1) {
+		hi64xx_hifi_write_reg(0x20007016, 0x1);
 	}
-	hi64xx_hifi_reg_clr_bit(HI64xx_REG_IRQM_2, 0x0);
+	hi64xx_hifi_reg_clr_bit(0x20007019, 0x0);
 
 	if (dsp_priv->dsp_config.dsp_ops.runstall)
 		dsp_priv->dsp_config.dsp_ops.runstall(true);
@@ -2283,12 +2426,12 @@ static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
 
 		HI64XX_DSP_ERROR("wait for dsp pwron error, ret:%ld\n", ret_l);
 
-		read_res[0] = hi64xx_hifi_read_reg(HI64xx_REG_IRQ_0);
-		read_res[1] = hi64xx_hifi_read_reg(HI64xx_REG_IRQ_1);
-		read_res[2] = hi64xx_hifi_read_reg(HI64xx_REG_IRQ_2);
-		read_res[3] = hi64xx_hifi_read_reg(HI64xx_REG_IRQM_0);
-		read_res[4] = hi64xx_hifi_read_reg(HI64xx_REG_IRQM_1);
-		read_res[5] = hi64xx_hifi_read_reg(HI64xx_REG_IRQM_2);
+		read_res[0] = hi64xx_hifi_read_reg(0x20007014);
+		read_res[1] = hi64xx_hifi_read_reg(0x20007015);
+		read_res[2] = hi64xx_hifi_read_reg(0x20007016);
+		read_res[3] = hi64xx_hifi_read_reg(0x20007017);
+		read_res[4] = hi64xx_hifi_read_reg(0x20007018);
+		read_res[5] = hi64xx_hifi_read_reg(0x20007019);
 		HI64XX_DSP_ERROR("14:%#x, 15:%#x, 16:%#x, 17:%#x, 18:%#x, 19:%#x\n",read_res[0],read_res[1],read_res[2],read_res[3],read_res[4],read_res[5]);
 
 		if (dsp_priv->dsp_config.msg_state_addr != 0)
@@ -2331,14 +2474,6 @@ static int hi64xx_func_fw_download(struct krn_param_io_buf *param)
 	return ret;
 }
 
-
-bool hi64xx_check_i2s2_clk(void)
-{
-	if (dsp_priv->dsp_config.dsp_ops.check_i2s2_clk)
-		return dsp_priv->dsp_config.dsp_ops.check_i2s2_clk();
-
-	return false;
-}
 
 int hi64xx_func_start_hook(struct krn_param_io_buf *param)
 {

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 ifneq ($(TARGET_BUILD_VARIANT),user)
 EXTRA_CFLAGS += -DLCD_KIT_DEBUG_ENABLE
@@ -11,6 +12,9 @@ ifeq ($(CONFIG_HUAWEI_DEVKIT_HISI),y)
 	EXTRA_CFLAGS += -DLV_GET_LCDBK_ON
 endif
 
+=======
+obj-$(CONFIG_LCD_KIT_COMMON)	+= lcd_kit_debug.o
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 obj-$(CONFIG_LCD_KIT_COMMON)	+= lcd_kit_sysfs.o
 obj-$(CONFIG_LCD_KIT_COMMON)	+= lcd_kit_common.o
 obj-$(CONFIG_LCD_KIT_COMMON)	+= lcd_kit_parse.o

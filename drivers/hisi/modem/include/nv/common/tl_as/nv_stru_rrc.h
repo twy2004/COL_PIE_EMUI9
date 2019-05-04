@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * Copyright (C) Huawei Technologies Co., Ltd. 2012-2018. All rights reserved.
  * foss@huawei.com
@@ -45,6 +46,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+=======
+/******************************************************************************
+
+    Copyright(C)2008,Hisilicon Co. LTD.
+
+ ******************************************************************************
+  File Name       : RrcNvInterface.h
+  Description     : RrcNvInterface.h header file
+  History           :
+     1.Name+ID      yyyy-mm-dd  Draft Enact 
+******************************************************************************/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 #ifndef __NV_STRU_RRC_H__
 #define __NV_STRU_RRC_H__
@@ -376,7 +389,7 @@ typedef VOS_UINT8 RRC_UE_CAP_DEVICE_TYPE_R9_ENUM_UINT8;
 /*****************************************************************************
   5 STRU
 *****************************************************************************/
-
+/* add by lishangfeng for NorStandard begin */
 /*****************************************************************************
  结构名    : LTE_NON_STANDARD_BAND_STRU
  协议表格  :
@@ -442,7 +455,7 @@ typedef struct
     VOS_UINT32                                  aulReservered[16];
 }LTE_COMM_NON_STANDARD_BAND_COMM_STRU;
 
-
+/* add by lishangfeng for NorStandard end */
 
 /*****************************************************************************
  结构名    : RRC_UE_CAP_SUPP_ROH_CPROFILES_STRU
@@ -923,4 +936,4 @@ typedef struct
     #endif
 #endif
 
-#endif /* end of nv_stru_rrc.h */
+#endif /* end of RrcNvInterface.h */

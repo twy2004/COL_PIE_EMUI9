@@ -42,13 +42,13 @@
 #define MAX_BUF_SIZE   (128)
 
 #define FPGA_GPIO_CLK_CFG (9600000)
-#define LOAD_FW_MAX_TIME  (100000) /*3s*/
+
 /*
  * only support ov9282 ov9286,
  * if add, please modify here:
  */
-#define LOADFW_MAX_TIME   (3)
-#define POWERUP_MAX_TIME  (3)
+#define LOADFW_MAX_TIME   (2)
+#define POWERUP_MAX_TIME  (2)
 #define ENABLE_MAX_TIME   (1)
 
 #define ICE40_DEVICE_NAME        "ice40_spi"
@@ -749,20 +749,13 @@ static irqreturn_t fpga_irq_thread(int irq, void *handle)
         cam_err("%s no driver data.", __func__);
         return IRQ_HANDLED;
     }
+    cam_info("%s enter...", __func__);
 
-    drv_data->load_fw_number ++;
     if (drv_data->load_fw_state != LOAD_FW_DONE) {
-        if ((drv_data->load_fw_number % LOAD_FW_MAX_TIME) == 0) {
-            cam_info("%s load_fw_state = %d, will exit.",
-                __func__, drv_data->load_fw_state);
-            drv_data->load_fw_number = 0;
-        }
+        cam_info("%s load_fw_state = %d, will exit.", __func__, drv_data->load_fw_state);
         return IRQ_HANDLED;
     }
 
-    cam_info("%s enter...", __func__);
-
-    drv_data->load_fw_number = 0;
     ret =  ice40_spi_read_reg(drv_data, FPGA_IRQ_STATE_REG, &val);
     if(ret)
     {
@@ -1058,26 +1051,6 @@ static int ice40_spi_get_dt_data(struct device *dev, struct ice40_spi_plat_data 
     return ret;
 }
 
-int ice40_spi_checkdevice(void)
-{
-    int ret = 0;
-    struct ice40_spi_priv_data *drv_data = spi_drv_data;
-    if (drv_data == NULL) {
-        cam_err("spi_drv_data is null,maybe probe is wrong,ret = -1");
-        return -1;
-    }
-    if (drv_data->load_fw_state == LOAD_FW_FAIL) {
-        ret = 1;//LOAD_FW_FAIL
-        cam_err("fpga load fw fail,ret = 1");
-    }
-    if ((drv_data->last_err_code & 0x01) == 0x01) {
-        ret = 2;//9 frame error
-        cam_err("fpga 9 frame error,ret = 2");
-    }
-    return ret;
-}
-EXPORT_SYMBOL(ice40_spi_checkdevice);
-
 static int ice40_spi_probe(struct spi_device *spi)
 {
     struct ice40_spi_priv_data *drv_data = NULL;
@@ -1183,9 +1156,7 @@ static int ice40_spi_probe(struct spi_device *spi)
     drv_data->enable_number = 0;
     drv_data->power_number = 0;
     drv_data->power_up_times = 0;
-    drv_data->load_fw_number = 0;
     drv_data->load_fw_state = LOAD_FW_NOT_START;
-    drv_data->last_err_code = 0;
 
     ret = gpio_request(plat_data->irq_gpio, "ice40_spi_irq");
     if (ret) {

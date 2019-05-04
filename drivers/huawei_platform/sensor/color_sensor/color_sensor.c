@@ -42,8 +42,11 @@ HWLOG_REGIST();
 
 static struct class *color_sensor_class;
 struct hisi_nve_info_user nv_user_info;
+<<<<<<< HEAD
 int color_report_val[MAX_REPORT_LEN] = {0};
 UINT32 g_flicker_support = 0;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 int read_color_calibrate_data_from_nv(int nv_number, int nv_size, char *nv_name, char *temp)
 {
@@ -158,6 +161,7 @@ static ssize_t color_calibrate_store(struct device *dev, struct device_attribute
 
 	return size;
 }
+<<<<<<< HEAD
 static ssize_t at_color_calibrate_store(struct device *dev, struct device_attribute *attr,
 			      const char *buf, size_t size)
 {
@@ -223,6 +227,10 @@ static ssize_t at_color_calibrate_show(struct device *dev, struct device_attribu
 }
 
 static ssize_t color_enable_show(struct device *dev, struct device_attribute *attr, char *buf)
+=======
+static ssize_t color_enable_show(struct device *dev, struct device_attribute *attr,
+			      const char *buf)
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 {
 	struct colorDriver_chip *chip = NULL;
 	int state;
@@ -249,6 +257,7 @@ static ssize_t color_enable_show(struct device *dev, struct device_attribute *at
 static ssize_t color_enable_store(struct device *dev, struct device_attribute *attr,
 			      const char *buf, size_t size)
 {
+	color_sensor_input_para in_data;
 	struct colorDriver_chip *chip = NULL;
 	bool state = true;
 
@@ -406,6 +415,7 @@ static ssize_t color_gain_store(struct device *dev,
 	chip->color_sensor_setGain(chip->deviceCtx, gain_value);
 	return size;
 }
+<<<<<<< HEAD
 
 static ssize_t color_data_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -462,26 +472,34 @@ static ssize_t report_type_show(struct device *dev,
     return snprintf(buf, PAGE_SIZE, "%d\n", AWB_SENSOR_RAW_SEQ_TYPE_INVALID);
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 DEVICE_ATTR(calibrate, 0660, color_calibrate_show, color_calibrate_store);
 DEVICE_ATTR(color_enable, 0660, color_enable_show, color_enable_store);
 DEVICE_ATTR(gain, 0660, color_gain_show, color_gain_store);
 DEVICE_ATTR(calibrate_timeout, 0440, calibrate_timeout_show, NULL);
+<<<<<<< HEAD
 DEVICE_ATTR(color_data, 0660, color_data_show, NULL);
 DEVICE_ATTR(color_cali, 0660, at_color_calibrate_show, at_color_calibrate_store);
 DEVICE_ATTR(flicker_enable, 0660, NULL, flicker_enable_store);
 DEVICE_ATTR(flicker_data, 0660, flicker_data_show, NULL);
 DEVICE_ATTR(report_type, 0660, report_type_show, NULL);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 static struct attribute *color_sensor_attributes[] = {
 	&dev_attr_calibrate.attr,
 	&dev_attr_color_enable.attr,
 	&dev_attr_gain.attr,
 	&dev_attr_calibrate_timeout.attr,
+<<<<<<< HEAD
 	&dev_attr_color_data.attr,
 	&dev_attr_color_cali.attr,
 	&dev_attr_flicker_enable.attr,
 	&dev_attr_flicker_data.attr,
     &dev_attr_report_type.attr,
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	NULL,
 };
 static const struct attribute_group color_sensor_attr_group = {

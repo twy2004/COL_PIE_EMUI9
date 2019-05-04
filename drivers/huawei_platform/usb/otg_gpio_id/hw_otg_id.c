@@ -20,10 +20,13 @@
 #include <pmic_interface.h>
 #include <linux/hisi/hisi_adc.h>
 
+<<<<<<< HEAD
 #ifdef CONFIG_HUAWEI_YCABLE
 #include <huawei_platform/usb/hw_ycable.h>
 #endif
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static struct otg_gpio_id_dev *otg_gpio_id_dev_p = NULL;
 static int startup_otg_sample = SAMPLE_DOING;
 
@@ -35,6 +38,8 @@ static int startup_otg_sample = SAMPLE_DOING;
 #define SMAPLING_TIME_OPTIMIZE 5
 #define VBATT_AVR_MAX_COUNT    10
 #define ADC_VOLTAGE_LIMIT      150    //mV
+#define YCABLE_CHG_THRESHOLD_VOLTAGE_MIN    (200)    //mV
+#define YCABLE_CHG_THRESHOLD_VOLTAGE_MAX    (420)    //mV
 #define ADC_VOLTAGE_MAX        1250   //mV
 #define ADC_VOLTAGE_NEGATIVE   2000   //mV
 #define USB_CHARGER_INSERTED   1
@@ -194,12 +199,28 @@ static void hw_otg_id_intb_work(struct work_struct *work)
 	static bool is_otg_has_inserted = false;
 
 	/* Fix the different of schager V200 and V300 */
+<<<<<<< HEAD
 	if (!is_otg_has_inserted) {
 		if (VBUS_IS_CONNECTED == !hw_is_usb_cable_connected()) {
 			hw_usb_err("%s Vbus is inerted!\n", __func__);
 #ifdef CONFIG_HUAWEI_YCABLE
 			avgvalue = hw_otg_id_adc_sampling(otg_gpio_id_dev_p);
 			if (!ycable_is_charge_connect(avgvalue)) {
+=======
+	if (otg_gpio_id_dev_p->ycable_support) {
+		avgvalue = hw_otg_id_adc_sampling(otg_gpio_id_dev_p);
+		if (!is_otg_has_inserted && ((avgvalue <= YCABLE_CHG_THRESHOLD_VOLTAGE_MIN) ||
+			(avgvalue >= YCABLE_CHG_THRESHOLD_VOLTAGE_MAX))) {
+			if (VBUS_IS_CONNECTED == !hw_is_usb_cable_connected()) {
+				hw_usb_err("%s Vbus is inerted!\n", __func__);
+				return;
+			}
+		}
+	} else {
+		if (!is_otg_has_inserted) {
+			if (VBUS_IS_CONNECTED == !hw_is_usb_cable_connected()) {
+				hw_usb_err("%s Vbus is inerted!\n", __func__);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 				return;
 			}
 #else
@@ -223,10 +244,16 @@ static void hw_otg_id_intb_work(struct work_struct *work)
 		else {
 			hw_usb_err("%s avgvalue is %d.\n", __func__, avgvalue);
 			is_otg_has_inserted = true;
+<<<<<<< HEAD
 #ifdef CONFIG_HUAWEI_YCABLE
 			if (ycable_is_charge_connect(avgvalue)) {
 				/* last cable plug out will call completion, so here reinit it */
 				ycable_init_devoff_completion();
+=======
+			if (otg_gpio_id_dev_p->ycable_support && (avgvalue >= YCABLE_CHG_THRESHOLD_VOLTAGE_MIN) &&
+				(avgvalue <= YCABLE_CHG_THRESHOLD_VOLTAGE_MAX)){
+				hw_usb_err("%s ycable avgvalue is %d.\n", __func__, avgvalue);
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 				hisi_usb_otg_event(CHARGER_DISCONNECT_EVENT);
 				hisi_usb_otg_event(ID_FALL_EVENT);
 				ycable_handle_otg_event(ID_FALL_EVENT, YCABLE_NEED_WAIT);
@@ -277,8 +304,7 @@ static irqreturn_t hw_otg_id_irq_handle(int irq, void *dev_id)
 static int hw_otg_id_probe(struct platform_device *pdev)
 {
     int ret = 0;
-    int avgvalue = 0;
-    int adc_voltage_min = ADC_VOLTAGE_LIMIT;
+	int avgvalue = 0;
     struct device_node *np = NULL;
     struct device* dev = NULL;
 
@@ -334,6 +360,11 @@ static int hw_otg_id_probe(struct platform_device *pdev)
         goto err_of_get_named_gpio;
     }
 
+    otg_gpio_id_dev_p->ycable_support = of_property_read_bool(np, "ycable_support");
+    if (otg_gpio_id_dev_p->ycable_support) {
+        hw_usb_err("ycable is support\n");
+    }
+
     /*init otg intr handle work funtion*/
     INIT_WORK(&otg_gpio_id_dev_p->otg_intb_work, hw_otg_id_intb_work);
 
@@ -348,6 +379,7 @@ static int hw_otg_id_probe(struct platform_device *pdev)
 
     avgvalue = hw_otg_id_adc_sampling(otg_gpio_id_dev_p);
     startup_otg_sample = SAMPLE_DONE;
+<<<<<<< HEAD
 #ifdef CONFIG_HUAWEI_YCABLE
     if (ycable_is_support()) {
         adc_voltage_min = ycable_get_gpio_adc_min();
@@ -356,11 +388,29 @@ static int hw_otg_id_probe(struct platform_device *pdev)
     if ((avgvalue > adc_voltage_min) && (avgvalue <= ADC_VOLTAGE_MAX)) {
         hw_usb_err("%s Set gpio_direction_output, avgvalue is %d.\n", __func__, avgvalue);
         ret = gpio_direction_output(otg_gpio_id_dev_p->gpio,1);
+=======
+    if (otg_gpio_id_dev_p->ycable_support) {
+        if ((avgvalue > YCABLE_CHG_THRESHOLD_VOLTAGE_MAX) && (avgvalue <= ADC_VOLTAGE_MAX)) {
+            hw_usb_err("%s Set gpio_direction_output, avgvalue is %d.\n", __func__, avgvalue);
+            ret = gpio_direction_output(otg_gpio_id_dev_p->gpio,1);
+        } else {
+            ret = gpio_direction_input(otg_gpio_id_dev_p->gpio);
+            if (ret < 0) {
+                hw_usb_err("%s gpio_direction_input error!!! ret=%d. gpio=%d.\n", __func__, ret, otg_gpio_id_dev_p->gpio);
+                goto err_detect_otg_id;
+            }
+        }
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
     } else {
-        ret = gpio_direction_input(otg_gpio_id_dev_p->gpio);
-        if (ret < 0) {
-            hw_usb_err("%s gpio_direction_input error!!! ret=%d. gpio=%d.\n", __func__, ret, otg_gpio_id_dev_p->gpio);
-            goto err_detect_otg_id;
+        if ((avgvalue > ADC_VOLTAGE_LIMIT) && (avgvalue <= ADC_VOLTAGE_MAX)) {
+            hw_usb_err("%s Set gpio_direction_output, avgvalue is %d.\n", __func__, avgvalue);
+            ret = gpio_direction_output(otg_gpio_id_dev_p->gpio,1);
+        } else {
+            ret = gpio_direction_input(otg_gpio_id_dev_p->gpio);
+            if (ret < 0) {
+                hw_usb_err("%s gpio_direction_input error!!! ret=%d. gpio=%d.\n", __func__, ret, otg_gpio_id_dev_p->gpio);
+                goto err_set_gpio_direction;
+            }
         }
     }
 
@@ -370,11 +420,21 @@ static int hw_otg_id_probe(struct platform_device *pdev)
         goto err_gpio_to_irq;
     } else {
         hw_usb_err("%s otg irq is %d.\n", __func__, otg_gpio_id_dev_p->irq);
-        if (0 == !hw_is_usb_cable_connected()) {
-            hw_otg_id_notifier_call(NULL, !USB_CHARGER_INSERTED, NULL);
-        }
-        else {
-            hw_otg_id_notifier_call(NULL, !USB_CHARGER_REMOVE, NULL);
+        if (otg_gpio_id_dev_p->ycable_support) {
+            if ((0 == !hw_is_usb_cable_connected()) && ((avgvalue <= YCABLE_CHG_THRESHOLD_VOLTAGE_MIN) ||
+                        (avgvalue >= YCABLE_CHG_THRESHOLD_VOLTAGE_MAX))) {
+                hw_otg_id_notifier_call(NULL, !USB_CHARGER_INSERTED, NULL);
+            }
+            else {
+                hw_otg_id_notifier_call(NULL, !USB_CHARGER_REMOVE, NULL);
+            }
+        } else {
+            if (0 == !hw_is_usb_cable_connected()) {
+                hw_otg_id_notifier_call(NULL, !USB_CHARGER_INSERTED, NULL);
+            }
+            else {
+                hw_otg_id_notifier_call(NULL, !USB_CHARGER_REMOVE, NULL);
+            }
         }
     }
 

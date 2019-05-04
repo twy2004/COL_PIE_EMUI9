@@ -336,6 +336,11 @@ int wireless_charge_set_tx_vout(int tx_vout)
 			__func__, di->pwroff_reset_flag, TX_DEFAULT_VOUT);
 		return -1;
 	}
+	if (di->pwroff_reset_flag && tx_vout > TX_DEFAULT_VOUT) {
+		hwlog_err("%s: pwroff_reset_flag = %d, tx_vout should be set to %dmV at most\n",
+			__func__, di->pwroff_reset_flag, TX_DEFAULT_VOUT);
+		return -1;
+	}
 	hwlog_info("[%s] tx_vout is set to %dmV\n", __func__, tx_vout);
 	return di->ops->set_tx_vout(tx_vout);
 }
@@ -825,8 +830,11 @@ static int wireless_charge_get_rx_hash(struct wireless_charge_device_info *di)
 		recheck_tx_cert_flag = 0;
 		return AF_SRV_NO_RESPONSE;
 	}
+<<<<<<< HEAD
 
 	return AF_SRV_NOT_READY;
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 }
 static int wireless_charge_tx_certification(struct wireless_charge_device_info *di)
 {
@@ -950,10 +958,14 @@ void wireless_charge_update_max_vout_and_iout(bool ignore_cnt_flag)
 	di->tx_vout_max = min(di->tx_vout_max, di->sysfs_data.tx_vout_max);
 	di->rx_vout_max = min(di->rx_vout_max, di->sysfs_data.rx_vout_max);
 	di->rx_iout_max = min(di->rx_iout_max, di->sysfs_data.rx_iout_max);
+<<<<<<< HEAD
 	vbus_ch_get_mode(VBUS_CH_USER_WR_TX,
 		VBUS_CH_TYPE_BOOST_GPIO, &mode);
 	if (mode == VBUS_CH_IN_OTG_MODE || di->pwroff_reset_flag
 		|| !di->extra_pwr_good_flag) {
+=======
+	if (IN_OTG_MODE == wireless_otg_get_mode() || di->pwroff_reset_flag) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		di->tx_vout_max = min(di->tx_vout_max, TX_DEFAULT_VOUT);
 		di->rx_vout_max = min(di->rx_vout_max, RX_DEFAULT_VOUT);
 		di->rx_iout_max = min(di->rx_iout_max, RX_DEFAULT_IOUT);
@@ -1607,9 +1619,13 @@ static void wireless_charge_para_init(struct wireless_charge_device_info *di)
 	di->curr_icon_type = 0;
 	di->curr_power_time_out = 0;
 	di->pwroff_reset_flag = 0;
+<<<<<<< HEAD
 	di->supported_rx_vout = RX_DEFAULT_VOUT;
 	di->extra_pwr_good_flag = 1;
 	g_rx_vrect_restore_cnt = 0;
+=======
+	g_rx_vrect_low_cnt = 0;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	g_rx_vout_err_cnt = 0;
 	g_rx_ocp_cnt = 0;
 	g_rx_ovp_cnt = 0;

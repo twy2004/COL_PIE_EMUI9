@@ -550,6 +550,132 @@ DUMP_MOD_ID g_dump_cp_mod_id[] ={
 
 
 /*****************************************************************************
+* 函 数 名  : bsp_dump_get_reboot_contex
+* 功能描述  : 为apr提供的接口用于获取当前的异常核以及异常原因
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_get_reboot_contex(u32* core ,u32* reason)
+{
+    if(core != NULL)
+    {
+        *core = (u32)g_dump_reboot_contex.reboot_core;
+    }
+    if(reason != NULL)
+    {
+        *reason = (u32)g_dump_reboot_contex.reboot_reason;
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_set_reboot_contex
+* 功能描述  : 设定异常原因和异常核
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_set_reboot_contex(dump_reboot_cpu_t core ,dump_reboot_reason_t reason)
+{
+    g_dump_reboot_contex.reboot_core = core;
+    g_dump_reboot_contex.reboot_reason = reason;
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_save_modem_exc_info
+* 功能描述  : 保存rdr传递的参数
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_rdr_exc_info(u32 modid, u32 etype, u64 coreid, char* logpath, pfn_cb_dump_done fndone)
+{
+
+    g_rdr_exc_info.modid  = modid;
+    g_rdr_exc_info.coreid = coreid;
+    g_rdr_exc_info.dump_done = fndone;
+
+    if((strlen(logpath) + strlen(RDR_DUMP_FILE_CP_PATH)) >= RDR_DUMP_FILE_PATH_LEN - 1)
+    {
+        dump_error("log path is too long,logpath=%s\n", logpath);
+        return ;
+    }
+    /*coverity[secure_coding]*/
+    memset_s(g_rdr_exc_info.log_path,sizeof(g_rdr_exc_info.log_path),'\0',sizeof(g_rdr_exc_info.log_path));
+    /*coverity[secure_coding]*/
+    memcpy_s(g_rdr_exc_info.log_path,sizeof(g_rdr_exc_info.log_path) ,logpath, strlen(logpath));
+    /*coverity[secure_coding]*/
+    memcpy_s(g_rdr_exc_info.log_path + strlen(logpath) ,(sizeof(g_rdr_exc_info.log_path)-strlen(logpath)), RDR_DUMP_FILE_CP_PATH, strlen(RDR_DUMP_FILE_CP_PATH));
+
+    dump_ok("log path is %s\n", g_rdr_exc_info.log_path);
+
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_get_rdr_exc_info
+* 功能描述  : 获取rdr的异常变量地址
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+
+rdr_exc_info_s* dump_get_rdr_exc_info(void)
+{
+    return &g_rdr_exc_info;
+}
+/*****************************************************************************
+* 函 数 名  : dump_get_exception_info_node
+* 功能描述  : 根据错误码查找对应的异常节点
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+struct rdr_exception_info_s* dump_get_exception_info_node(u32 mod_id)
+{
+    u32 i = 0;
+    struct rdr_exception_info_s* rdr_exc_info = NULL;
+
+    for(i = 0; i < (sizeof(g_modem_exc_info)/sizeof(g_modem_exc_info[0]));i++)
+    {
+        if(g_modem_exc_info[i].e_modid == mod_id)
+        {
+            rdr_exc_info = &g_modem_exc_info[i];
+        }
+    }
+    return rdr_exc_info;
+}
+
+/*****************************************************************************
 * 函 数 名  : dump_convert_id_mdmcp2rdr
 * 功能描述  : 转换mdmcp与rdr之间的错误码
 *
@@ -696,10 +822,7 @@ void dump_reset(u32 modid, u32 etype, u64 coreid)
 s32 dump_register_modem_exc_info(void)
 {
     u32 i = 0;
-    struct rdr_module_ops_pub soc_ops = {
-    .ops_dump = NULL,
-    .ops_reset = NULL
-    };
+    struct rdr_module_ops_pub   soc_ops = {NULL,NULL};
 
     for(i=0; i<sizeof(g_modem_exc_info)/sizeof(struct rdr_exception_info_s); i++)
     {

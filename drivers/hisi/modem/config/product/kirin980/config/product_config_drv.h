@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /* MD5: f83e34538d0423abe5051d7595edb619*/
+=======
+/* MD5: f815b76007c133db6163b71281a95f25*/
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 #if !defined(__PRODUCT_CONFIG_DRV_H__)
 #define __PRODUCT_CONFIG_DRV_H__
 
@@ -409,6 +413,10 @@
 
 #ifndef CONFIG_WATCHPOINT
 #define CONFIG_WATCHPOINT 
+#endif 
+
+#ifndef CONFIG_MODEM_MINI_DUMP
+#define CONFIG_MODEM_MINI_DUMP 
 #endif 
 
 #ifndef CONFIG_DSPDVS

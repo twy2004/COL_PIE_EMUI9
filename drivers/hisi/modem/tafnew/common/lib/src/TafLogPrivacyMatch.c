@@ -324,6 +324,7 @@ VOS_VOID* AT_PrivacyMatchProcessUssMsg(
 }
 
 
+<<<<<<< HEAD
 VOS_VOID* AT_PrivacyMatchInterRogateMsg(
     MsgBlock                           *pstMsg
 )
@@ -533,6 +534,8 @@ VOS_VOID* AT_PrivacyMatchRegPwdMsg(
     return (VOS_VOID *)pstRegpwdss;
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 VOS_VOID* AT_PrivacyMatchCallAppOrigReq(
     MsgBlock                           *pstMsg
 )
@@ -1239,6 +1242,7 @@ VOS_VOID*  AT_PrivacyMatchCposSetReq(
     return (VOS_VOID *)pstMatchAppMsgCposSetReq;
 }
 
+<<<<<<< HEAD
 
 VOS_VOID*  AT_PrivacyMatchSimLockWriteExSetReq(
     MsgBlock                           *pstMsg
@@ -1352,6 +1356,8 @@ VOS_VOID* AT_PrivacyMatchImsaNickNameSetReq(
 }
 
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 VOS_VOID*  AT_PrivacyMatchMeidSetReq(
     MsgBlock                           *pstMsg
 )

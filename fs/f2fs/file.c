@@ -113,7 +113,8 @@ mapped:
 	f2fs_wait_on_page_writeback(page, DATA, false);
 
 	/* wait for GCed encrypted page writeback */
-	f2fs_wait_on_block_writeback(inode, dn.data_blkaddr);
+	if (f2fs_encrypted_file(inode))
+		f2fs_wait_on_block_writeback(sbi, dn.data_blkaddr);
 
 out_sem:
 	up_read(&F2FS_I(inode)->i_mmap_sem);

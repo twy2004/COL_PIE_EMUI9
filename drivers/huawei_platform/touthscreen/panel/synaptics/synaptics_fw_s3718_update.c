@@ -112,7 +112,7 @@ short get_oem_data_info( void );
 int get_oem_data(unsigned char *oem_data, unsigned short leng);
 int set_oem_data(unsigned char *oem_data, unsigned short leng);
 #endif
-//static int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng);
+static int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng);
 extern void synaptics_parse_chip_specific_dts(struct ts_device_data *chip_data);
 
 enum f34_version {
@@ -2376,7 +2376,7 @@ static int fwu_read_f34_blocks(unsigned short block_cnt, unsigned char cmd)
 
 	return retval;
 }
-#if 0
+
 static int fwu_get_image_firmware_id(unsigned int *fw_id)
 {
 	int retval;
@@ -2422,7 +2422,7 @@ static int fwu_get_image_firmware_id(unsigned int *fw_id)
 
 	return 0;
 }
-#endif
+
 static enum flash_area fwu_go_nogo(void)
 {
 	int retval;
@@ -2877,7 +2877,7 @@ static int fwu_erase_guest_code(void)
 
 	return 0;
 }
-#if 0
+
 static int fwu_erase_lockdown_data(void)
 {
 	int retval;
@@ -2903,7 +2903,7 @@ static int fwu_erase_lockdown_data(void)
 
 	return 0;
 }
-#endif
+
 
 static int fwu_erase_all(void)
 {
@@ -3068,7 +3068,7 @@ static int fwu_write_dp_configuration(void)
 
 	return fwu_write_configuration();
 }
-#if 0
+
 static int fwu_write_lockdown_data(void)
 {
 	int retval;
@@ -3081,7 +3081,7 @@ static int fwu_write_lockdown_data(void)
 	rmi4_data->reset_device(rmi4_data);
 	return 0;
 }
-#endif
+
 static int fwu_write_flash_configuration(void)
 {
 	int retval;
@@ -3134,7 +3134,7 @@ static int fwu_write_guest_code(void)
 
 	return 0;
 }
-#if 0
+
 static int fwu_write_lockdown(void)
 {
 	unsigned short lockdown_block_count;
@@ -3144,7 +3144,7 @@ static int fwu_write_lockdown(void)
 	return fwu_write_f34_blocks((unsigned char *)fwu->img.lockdown.data,
 				    lockdown_block_count, CMD_WRITE_LOCKDOWN);
 }
-#endif
+
 static int fwu_write_partition_table(void)
 {
 	int retval;
@@ -4049,13 +4049,12 @@ short get_oem_data_info(void)
 {
 	int retval=0;
 	unsigned short oem_data_max_size = 0;
-	struct synaptics_rmi4_data *rmi4_data;
 
 	if(!fwu || !fwu->rmi4_data){
 		TS_LOG_ERR("%s: fwu or  fwu->rmi4_data is null  \n", __func__);
 		return -EIO;
 	}
-	rmi4_data = fwu->rmi4_data;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	retval = synaptics_fw_data_s3718_init(rmi4_data);
 	if(retval){
@@ -4087,7 +4086,6 @@ int get_oem_data(unsigned char *oem_data, unsigned short leng)
 	unsigned long checksum;
 	unsigned short block_count;
 	unsigned short config_area;
-	struct synaptics_rmi4_data *rmi4_data;
 
 
 	if(!fwu || !fwu->rmi4_data){
@@ -4095,7 +4093,7 @@ int get_oem_data(unsigned char *oem_data, unsigned short leng)
 		return -EIO;
 	}
 
-	rmi4_data = fwu->rmi4_data;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	retval = synaptics_fw_data_s3718_init(rmi4_data);
 	if (retval) {
@@ -4184,14 +4182,13 @@ int set_oem_data(unsigned char *oem_data, unsigned short leng)
 	unsigned long checksum;
 	unsigned short block_count;
 	unsigned short config_area;
-	struct synaptics_rmi4_data *rmi4_data;
 
 	if(!fwu || !fwu->rmi4_data){
 		TS_LOG_ERR("%s: fwu or  fwu->rmi4_data is null  \n", __func__);
 		return -EIO;
 	}
 
-	rmi4_data = fwu->rmi4_data;
+	struct synaptics_rmi4_data *rmi4_data = fwu->rmi4_data;
 
 	retval = synaptics_fw_data_s3718_init(rmi4_data);
 	if (retval) {
@@ -4390,7 +4387,7 @@ int get_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 	memcpy(lockdown_data, fwu->read_config_buf + 4, leng);
 	return retval;
 }
-#if 0
+
 int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 {
 	int retval = -EINVAL;
@@ -4418,6 +4415,7 @@ int set_lockdown_data(unsigned char *lockdown_data, unsigned short leng)
 exit:
 	return retval;
 }
+<<<<<<< HEAD
 #endif
 
 int synaptics_get_project_id(unsigned char *projectid, int plen)
@@ -4425,6 +4423,10 @@ int synaptics_get_project_id(unsigned char *projectid, int plen)
 	unsigned char *project_id =
 		fwu->rmi4_data->rmi4_mod_info.project_id_string;
 
+=======
+
+int synaptics_get_project_id(unsigned char *projectid, int plen){
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (!projectid || !fwu || !fwu->rmi4_data){
 		TS_LOG_ERR("%s error!", __func__);
 		return -1;
@@ -4799,4 +4801,5 @@ void synaptics_fw_data_s3718_release(void)
 {
 	TS_LOG_INFO("s3718 release fw resource\n");
 	//Do not need to release hw data during the test
+	return 0;
 }

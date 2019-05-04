@@ -24,14 +24,3 @@
     &hi110x {
         hi110x,pmu_clk_req = <1>;
     };
-
-	&amba {
-
-		i2c@FDF0D000 {
-			nfc@28{
-				nfc_chip_type = "pn80t";
-				nfc_ese_type = "p61";
-				nfc_ese_num = <0x2>;
-			};
-		};
-	};

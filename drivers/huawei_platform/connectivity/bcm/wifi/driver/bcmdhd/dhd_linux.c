@@ -2118,7 +2118,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 						DHD_ERROR(("nd_ra_filter :%d\n",
 							   ret));
 				}
-				dhd_dev_get_drop_pkt(dhd, 0);
 				dhd_os_suppress_logging(dhd, TRUE);
 #ifdef BCM_PATCH_GC_WAKE_BY_NOA
 				host_suspend = 1;
@@ -2133,7 +2132,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 #endif
 				/* Kernel resumed  */
 				DHD_ERROR(("%s: Remove extra suspend setting \n", __FUNCTION__));
-				dhd_dev_get_drop_pkt(dhd, 1);
 #ifdef HW_WATCHDOG_MS
 				dhd_os_wd_timer(dhd, dhd_watchdog_ms);
 #endif
@@ -10969,6 +10967,7 @@ void dhd_apf_unlock(struct net_device *dev)
 	_dhd_apf_unlock_local(dhd);
 }
 
+<<<<<<< HEAD
 void
 dhd_dev_get_drop_pkt(dhd_pub_t *dhd, uint32 enable)
 {
@@ -10989,6 +10988,8 @@ dhd_dev_get_drop_pkt(dhd_pub_t *dhd, uint32 enable)
 
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 int
 dhd_dev_apf_get_version(struct net_device *ndev, uint32 *version)
 {

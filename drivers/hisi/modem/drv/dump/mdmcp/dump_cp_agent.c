@@ -82,6 +82,408 @@
 #undef	THIS_MODU
 #define THIS_MODU mod_dump
 
+<<<<<<< HEAD
+=======
+
+modem_cp_exc_desc  g_dump_cp_desc[]= {
+    {RDR_MODEM_CP_DRV_MOD_ID,"modem cp drv err"},
+    {RDR_MODEM_CP_OSA_MOD_ID,"modem cp osa err"},
+    {RDR_MODEM_CP_OAM_MOD_ID,"modem cp oam err"},
+    {RDR_MODEM_CP_GUL2_MOD_ID,"modem cp gul2 err"},
+    {RDR_MODEM_CP_CTTF_MOD_ID,"modem cp cttf err"},
+    {RDR_MODEM_CP_GUWAS_MOD_ID,"modem cp guwas err"},
+    {RDR_MODEM_CP_CAS_MOD_ID,"modem cp cas err"},
+    {RDR_MODEM_CP_CPROC_MOD_ID,"modem cp cproc err"},
+    {RDR_MODEM_CP_GUGAS_MOD_ID,"modem cp gas err"},
+    {RDR_MODEM_CP_GUCNAS_MOD_ID,"modem cp gucnas err"},
+    {RDR_MODEM_CP_GUDSP_MOD_ID,"modem cp gudsp err"},
+    {RDR_MODEM_CP_LPS_MOD_ID,"modem cp tlps err"},
+    {RDR_MODEM_CP_LMSP_MOD_ID,"modem cp tlmsp err"},
+    {RDR_MODEM_CP_TLDSP_MOD_ID,"modem cp tldsp err"},
+    {RDR_MODEM_CP_CPHY_MOD_ID,"modem cp cphy err"},
+    {RDR_MODEM_CP_IMS_MOD_ID,"modem cp ims err"},};
+
+
+/*****************************************************************************
+* 函 数 名  : dump_get_mdmcp_save_done
+* 功能描述  : 判断c核log是否保存完成
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+s32 dump_get_mdmcp_save_done(void)
+{
+    s32  flag = 0;
+    struct dump_area_mntn_addr_info_s area_info= {NULL,};
+
+    flag = dump_get_level1_area_info(DUMP_AREA_LR,&area_info);
+    if(flag == BSP_ERROR)
+    {
+        dump_error("fail to find cp area head\n");
+        return BSP_ERROR;
+    }
+
+    if(area_info.vaddr == NULL)
+    {
+        return BSP_ERROR;
+    }
+    /*coverity[secure_coding]*/
+    memcpy_s(&flag,sizeof(flag),(u32*)(((dump_area_head_t*)(area_info.vaddr))->version),sizeof(flag));
+
+    /*lint -e650 -esym(650,*)*/
+    if((flag == DUMP_SAVE_SUCCESS ))
+    {
+        return BSP_OK;
+    }
+    /*lint -e650 +esym(650,*)*/
+
+    return BSP_ERROR;
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_clear_cpboot_area
+* 功能描述  : 清除c核启动阶段的区域
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_clear_cpboot_area(void)
+{
+    unsigned long offset,base;
+    offset = MNTN_AREA_CBOOT_ADDR - MNTN_BASE_ADDR;
+    base = (unsigned long)dump_get_mntn_base_addr();
+    if(base == 0)
+    {
+        return ;
+    }
+    /* coverity[secure_coding] */
+    (void)memset_s( (void*)(base+offset),MNTN_AREA_CBOOT_SIZE,0, MNTN_AREA_CBOOT_SIZE);
+}
+
+
+/*****************************************************************************
+* 函 数 名  : dump_save_cp_sysctrl
+* 功能描述  : 保存modem的系统控制寄存器
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_save_cp_sysctrl(void)
+{
+    u32 * field_addr = NULL;
+    u32 * reg_addr = NULL;
+    u32 reg_size = 0;
+
+    field_addr = (u32 *)bsp_dump_get_field_addr(DUMP_CP_SYSCTRL);
+    if(field_addr == NULL)
+    {
+        dump_error("fail to read  DUMP_CP_SYSCTRL field\n");
+        return;
+    }
+
+    /* sysctrl mdm */
+    reg_addr = (u32 *)bsp_sysctrl_addr_byindex(sysctrl_mdm);
+    reg_size = 0x1000;
+
+    /* coverity[dereference] */
+    dump_memcpy(field_addr, reg_addr, reg_size >> 2);
+    *(field_addr + (reg_size >> 2) - 4) = (u32)OM_SYSCTRL_MAGIC;
+    *(field_addr + (reg_size >> 2) - 3) = (uintptr_t)bsp_sysctrl_addr_phy_byindex(sysctrl_mdm);
+    *(field_addr + (reg_size >> 2) - 2) = reg_size;
+    *(field_addr + (reg_size >> 2) - 1) = 0;
+    //field_addr = field_addr + (reg_size >> 2);
+
+    dump_ok("save modem sysctrl ok\n");
+}
+
+
+
+
+
+/*****************************************************************************
+* 函 数 名  : dump_get_cp_task_name_by_id
+* 功能描述  : 通过任务id查找任务名
+*
+* 输入参数  :task_id
+* 输出参数  :task_name
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_get_cp_task_name_by_id(u32 task_id, char* task_name,u32 task_name_len)
+{
+    dump_task_info_s * temp_task_name = NULL;
+    dump_queue_t* task_name_table = NULL;
+    u32 task_cnt = 0;
+    u32 task_index = 0;
+
+
+    /*CP存储任务名的区域*/
+    task_name_table = (dump_queue_t*)bsp_dump_get_field_addr(DUMP_CP_ALLTASK_NAME);
+    if(NULL == task_name_table)
+    {
+        dump_error("fail to get cp task name field\n");
+        return;
+    }
+
+    task_cnt = task_name_table->num / 4;
+
+    /* 偏移字节，去掉队列头 */
+    task_name_table += 1;
+    temp_task_name = (dump_task_info_s *)task_name_table;
+
+    /*查找任务名*/
+    for(task_index = 0;task_index < task_cnt; task_index++)
+    {
+        if(temp_task_name->task_id == task_id)
+        {
+            dump_error("reboot task:%s\n", temp_task_name->task_name);
+            /*coverity[secure_coding]*/
+            memcpy_s(task_name,task_name_len,temp_task_name->task_name,12);
+            break;
+        }
+        temp_task_name++;
+    }
+
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_save_cp_base_info
+* 功能描述  : 保存modem ap的基本信息
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+/*看门狗异常要重新考虑怎么处理*/
+void dump_save_cp_base_info(u32 mod_id, u32 arg1, u32 arg2, char *data, u32 length)
+{
+
+    dump_base_info_t* modem_cp_base_info = NULL;
+    dump_cpu_info_t* modem_cp_cpuinfo = NULL;
+    u8* addr = NULL;
+    u32 i = 0;
+    dump_cp_reboot_contex* reboot_contex= NULL;
+    addr = bsp_dump_get_field_addr(DUMP_CP_BASE_INFO_SMP);
+    if(addr == NULL)
+    {
+        dump_error("fail to get cp base info\n");
+        return;
+    }
+    modem_cp_base_info = (dump_base_info_t*)addr;
+
+    modem_cp_base_info->modId = mod_id;
+    modem_cp_base_info->arg1 = arg1;
+    modem_cp_base_info->arg2 = arg2;
+    modem_cp_base_info->arg3 = (u32)(uintptr_t)data;
+    modem_cp_base_info->arg3_length = length;
+    modem_cp_base_info->reboot_time = bsp_get_slice_value();
+
+    if(modem_cp_base_info->cpu_max_num == 1)
+    {
+        dump_ok("modem cp is single core \n");
+        modem_cp_base_info->reboot_cpu = 0;
+
+        modem_cp_cpuinfo = (dump_cpu_info_t*)bsp_dump_get_field_addr(DUMP_CP_CPUINFO);
+        if(modem_cp_cpuinfo == NULL)
+        {
+            dump_error("get modem_cp_cpuinfo fail\n");
+            return;
+        }
+
+        if(modem_cp_cpuinfo->current_ctx == DUMP_CTX_TASK)
+        {
+            modem_cp_base_info->reboot_task = modem_cp_cpuinfo->current_task;
+            dump_get_cp_task_name_by_id( modem_cp_base_info->reboot_task,(char*)(modem_cp_base_info->taskName),sizeof(modem_cp_base_info->taskName));
+            modem_cp_base_info->reboot_int = (u32)(-1);
+            modem_cp_base_info->reboot_context = DUMP_CTX_TASK;
+        }
+        else
+        {
+            modem_cp_base_info->reboot_task = (u32)(-1);
+            modem_cp_base_info->reboot_int = modem_cp_cpuinfo->current_int;
+            modem_cp_base_info->reboot_context = DUMP_CTX_INT;
+
+        }
+
+    }
+    else
+    {
+        dump_ok("modem has %d core \n",modem_cp_base_info->cpu_max_num);
+        addr = (u8*)bsp_dump_get_field_addr(DUMP_CP_REBOOTCONTEX);
+        if(addr == NULL)
+        {
+            dump_error("fail to get cp reboot field\n");
+            return;
+        }
+        /*coverity[tainted_data]*/
+        for(i = 0;i<modem_cp_base_info->cpu_max_num;i++ )
+        {
+            modem_cp_cpuinfo = (dump_cpu_info_t*)bsp_dump_get_field_addr(DUMP_CP_CPUINFO +i);
+            if(modem_cp_cpuinfo == NULL)
+            {
+                dump_error("fail to get modem_cp_cpuinfo field\n");
+                return;
+            }
+            reboot_contex = (dump_cp_reboot_contex*)((uintptr_t)(addr) + i *sizeof(dump_cp_reboot_contex));
+            if(modem_cp_cpuinfo->current_ctx == DUMP_CTX_TASK)
+            {
+                reboot_contex->reboot_context = DUMP_CTX_TASK;
+                reboot_contex->reboot_task = modem_cp_cpuinfo->current_task;
+                dump_get_cp_task_name_by_id( reboot_contex->reboot_task,(char*)(reboot_contex->taskName),sizeof(modem_cp_base_info->taskName));
+                reboot_contex->reboot_int = (u32)(-1);
+            }
+            else
+            {
+                reboot_contex->reboot_context = (u32)(-1);
+                reboot_contex->reboot_int = modem_cp_cpuinfo->current_int;
+                reboot_contex->reboot_context = DUMP_CTX_INT;
+            }
+            dump_ok("reboot_context = 0x%x",reboot_contex->reboot_context);
+            dump_ok("reboot_int = 0x%x",reboot_contex->reboot_int);
+            dump_ok("reboot_task = 0x%x",reboot_contex->reboot_task);
+            reboot_contex->taskName[15] = '\0';
+            dump_ok("taskname is %s",reboot_contex->taskName);
+
+        }
+    }
+
+
+    dump_ok("save cp base info ok\n");
+    return;
+}
+
+
+/*****************************************************************************
+* 函 数 名  : dump_wait_cp_save_done
+* 功能描述  : 保存modem cp的区域
+*
+* 输入参数  : u32 ms  等待的毫秒数
+              bool wait 是否循环等待
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+s32 dump_wait_cp_save_done(u32 ms,bool wait)
+{
+    u32 time_start = 0;
+
+    time_start = bsp_get_elapse_ms();
+
+    do{
+
+        if( BSP_OK == dump_get_mdmcp_save_done())
+        {
+            dump_ok("cp save done\n");
+            return BSP_OK;
+        }
+
+        if(ms <= (bsp_get_elapse_ms()-time_start))
+        {
+            dump_error("dump wait cp done time out\n");
+            return BSP_ERROR;
+        }
+
+        if(wait)
+        {
+            msleep(5);
+        }
+
+    }while(1);
+    /*lint -e527 -esym(527,*)*/
+    return BSP_ERROR;
+    /*lint -e527 +esym(527,*)*/
+}
+/*****************************************************************************
+* 函 数 名  : dump_print_mdmcp_error
+* 功能描述  : 打印CP的异常类型
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+
+void dump_print_mdmcp_error(u32 rdr_id)
+{
+    u32 i = 0;
+    for(i = 0; i < sizeof(g_dump_cp_desc)/sizeof(g_dump_cp_desc[0]);i++)
+    {
+        if(rdr_id == g_dump_cp_desc[i].modem_cp_modid)
+        {
+            dump_ok("%s\n",g_dump_cp_desc[i].desc);
+            return;
+        }
+    }
+    dump_ok("modem cp drv err\n");
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_noc_modid_match
+* 功能描述  : 匹配NOC的异常类型
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+
+int dump_noc_modid_match(u32 modid, u32 arg)
+{
+    if((modid == DRV_ERRNO_MODEM_NOC) || (modid == NOC_RESET_GUC_MODID) || (modid == NOC_RESET_NXP_MODID)
+         || (modid == NOC_RESET_BBP_DMA0_MODID) || (modid == NOC_RESET_BBP_DMA1_MODID) || (modid == NOC_RESET_HARQ_MODID)
+          || (modid == NOC_RESET_CPHY_MODID) || (modid == NOC_RESET_GUL2_MODID))
+    {
+        if(arg == NOC_AP_RESET)
+        {
+            return NOC_AP_RESET;
+        }
+        else if(arg == NOC_CP_RESET)
+        {
+            return NOC_CP_RESET;
+        }
+    }
+    return BSP_ERROR;
+}
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 /*****************************************************************************
 * 函 数 名  : dump_int_handle
@@ -98,20 +500,240 @@
 *****************************************************************************/
 void dump_cp_agent_handle(s32 param)
 {
+<<<<<<< HEAD
     dump_exception_info_s exception_info_s = {0, DUMP_REASON_NORMAL};
+=======
+    dump_base_info_t* modem_cp_base_info = NULL;
+    u32 rdr_mod_id = 0;
+    dump_reboot_reason_t reboot_reason ;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     dump_ok("modem ccore enter system error! timestamp:0x%x\n", bsp_get_slice_value());
 
     bsp_wdt_irq_disable(WDT_CCORE_ID);
     dump_ok("stop cp wdt\n");
 
+<<<<<<< HEAD
     dump_fill_excption_info(&exception_info_s,DRV_ERRNO_DUMP_ARM_EXC,0,0,NULL,0,
                              DUMP_CPU_LRCCPU,DUMP_REASON_NORMAL,NULL,0,0,0,NULL);
+=======
+    bsp_wdt_irq_disable(WDT_CCORE_ID);
+    dump_ok("stop cp wdt\n");
+
+    bsp_coresight_disable();
+
+    modem_cp_base_info = (dump_base_info_t*)bsp_dump_get_field_addr(DUMP_CP_BASE_INFO_SMP);
+
+    if(modem_cp_base_info == NULL)
+    {
+       dump_error("modem_cp_base_info is NULL\n");
+       return;
+    }
+
+    reboot_reason = modem_cp_base_info->modId != DRV_ERRNO_DUMP_ARM_EXC ? DUMP_REASON_NORMAL : DUMP_REASON_ARM;
+
+    dump_set_reboot_contex(DUMP_CPU_COMM, reboot_reason);
+
+    dump_ok("exc core is = 0x%x,exc reason is 0x%x,modid = 0x%x\n",DUMP_CPU_COMM,reboot_reason,modem_cp_base_info->modId);
+
+    if(DUMP_MBB == dump_get_product_type())
+    {
+
+    }
+    if(NOC_AP_RESET == dump_noc_modid_match(modem_cp_base_info->modId, modem_cp_base_info->arg2))
+    {
+        dump_error("noc reset ap,arg = 0x%x!\n",modem_cp_base_info->arg2);
+        rdr_mod_id = RDR_MODEM_AP_NOC_MOD_ID;
+    }
+    else if(NOC_CP_RESET == dump_noc_modid_match(modem_cp_base_info->modId, modem_cp_base_info->arg2))
+    {
+        dump_error("noc reset cp,arg = 0x%x!n",modem_cp_base_info->arg2);
+        rdr_mod_id = RDR_MODEM_CP_NOC_MOD_ID;
+    }
+    else
+    {
+        rdr_mod_id = dump_convert_id_mdmcp2rdr(modem_cp_base_info->modId);
+        dump_print_mdmcp_error(rdr_mod_id);
+    }
+
+
+    dump_save_base_info(BSP_MODU_OTHER_CORE,0,0,0,0);
+
+    if(DUMP_PHONE == dump_get_product_type())
+    {
+        dump_save_cp_sysctrl();
+
+        dump_save_balong_rdr_info(rdr_mod_id);
+    }
+
+    g_rdr_mod_id = rdr_mod_id;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
     dump_register_exception(&exception_info_s);
 
     return;
 }
+
+/*****************************************************************************
+* 函 数 名  : dump_notify_cp
+* 功能描述  : 通知modem cp
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_notify_cp(u32 mod_id)
+{
+    s32 ret ;
+    dump_reboot_cpu_t core =  DUMP_CPU_BUTTON;
+    dump_reboot_reason_t reason = DUMP_REASON_UNDEF;
+
+    dump_get_reboot_contex((u32*)&core, (u32*)&reason);
+
+    if(core == DUMP_CPU_COMM && (reason != DUMP_REASON_WDT && reason != DUMP_REASON_DLOCK))
+    {
+        dump_ok("CP exception ,no need to notify C core 0x%x\n", mod_id);
+    }
+    else
+    {
+        ret = bsp_ipc_int_send(IPC_CORE_CCORE, IPC_CCPU_SRC_ACPU_DUMP);
+        if(ret == BSP_OK)
+        {
+            dump_ok("notify modem ccore success \n");
+        }
+        else
+        {
+            dump_error("notify modem ccore fail,please let ipc check \n");
+        }
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_cp_wdt_proc
+* 功能描述  : 看门狗异常处理
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_cp_wdt_proc(void)
+{
+    bsp_coresight_stop_cp();
+    dump_save_cp_base_info(DRV_ERRNO_DUMP_CP_WDT, DUMP_REASON_WDT, 0, NULL, 0);
+    dump_set_reboot_contex(DUMP_CPU_COMM,DUMP_REASON_WDT);
+    dump_ok("cp wdt exception handle ok \n");
+}
+/*****************************************************************************
+* 函 数 名  : dump_cp_wdt_proc
+* 功能描述  : 看门狗异常处理
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_cp_dlock_proc(void)
+{
+    bsp_coresight_stop_cp();
+    dump_save_cp_base_info(DRV_ERRNO_DLOCK, DUMP_REASON_DLOCK, 0, NULL, 0);
+    dump_set_reboot_contex(DUMP_CPU_COMM,DUMP_REASON_DLOCK);
+    dump_ok("cp dlock exception handle ok \n");
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_cp_timeout_proc
+* 功能描述  : IPC中断超时的处理
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+void dump_cp_timeout_proc(void)
+{
+    s32 ret ;
+    dump_reboot_cpu_t core =  DUMP_CPU_BUTTON;
+    dump_reboot_reason_t reason = DUMP_REASON_UNDEF;
+
+    dump_get_reboot_contex((u32*)&core, (u32*)&reason);
+
+    if(core == DUMP_CPU_COMM && (reason != DUMP_REASON_WDT && reason != DUMP_REASON_DLOCK))
+    {
+        dump_ok("CP exception ,no need send fiq 0x%x\n", reason);
+        return;
+    }
+
+    ret = bsp_send_cp_fiq(FIQ_DUMP);
+    if(ret == BSP_ERROR)
+    {
+       /*切到安全os使能数据传输*/
+       dump_sec_enable_trans();
+       dump_error("fail to send fiq\n");
+       return ;
+    }
+    else
+    {
+        dump_ok("trig fiq process success\n");
+    }
+    ret = dump_wait_cp_save_done(15000, true);
+    if(ret == BSP_ERROR)
+    {
+        /*切到安全os使能数据传输*/
+        dump_sec_enable_trans();
+        dump_error("ipc fiq save log both fail\n");
+    }
+    else
+    {
+        dump_ok("fiq save log success\n");
+    }
+}
+
+/*****************************************************************************
+* 函 数 名  : dump_wait_mdmcp_done
+* 功能描述  : 等待mdmcp log保存完成
+*
+* 输入参数  :
+* 输出参数  :
+
+* 返 回 值  :
+
+*
+* 修改记录  : 2016年1月4日17:05:33   lixiaofan  creat
+*
+*****************************************************************************/
+
+s32 dump_wait_mdmcp_done(void)
+{
+    s32 ret;
+    dump_ok("begin to wait cp log save done\n");
+
+    ret = dump_wait_cp_save_done(5000, (bool)true);
+    if(ret == BSP_ERROR)
+    {
+        dump_cp_timeout_proc();
+    }
+    return BSP_OK;
+
+}
+
 /*****************************************************************************
 * 函 数 名  : dump_cp_wdt_dlock_handle
 * 功能描述  : c核异常但是错误要上报到ap的异常

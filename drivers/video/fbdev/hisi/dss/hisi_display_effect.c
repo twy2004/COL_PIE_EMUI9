@@ -97,11 +97,6 @@ static int hisifb_effect_module_init_handler(void __user *argp)
 		goto err_out;
 	}
 
-	if(argp == NULL){
-		HISI_FB_ERR("argp is null pointer\n");
-		return -1;
-	}
-
 	ret = copy_to_user(argp, &(hisifd_primary->effect_ctl), sizeof(struct dss_effect));
 	if (ret) {
 		HISI_FB_ERR("failed to copy result of ioctl to user space.\n");
@@ -116,11 +111,6 @@ static int hisifb_effect_module_deinit_handler(const void __user *argp)
 {
 	int ret;
 	struct dss_effect init_status;
-
-	if(argp == NULL){
-		HISI_FB_ERR("argp is null pointer\n");
-		return -1;
-	}
 
 	ret = copy_from_user(&init_status, argp, sizeof(struct dss_effect));
 	if (ret) {
@@ -137,11 +127,6 @@ static int hisifb_effect_info_get_handler(void __user *argp)
 	int ret = -EINVAL;
 	struct dss_effect_info effect_info;
 	struct hisi_fb_data_type *hisifd_primary = NULL;
-
-	if(argp == NULL){
-		HISI_FB_ERR("argp is null pointer\n");
-		return -1;
-	}
 
 	ret = copy_from_user(&effect_info, argp, sizeof(struct dss_effect_info));
 	if (ret) {
@@ -224,11 +209,6 @@ static int hisifb_effect_info_set_handler(const void __user *argp)
 	struct dss_effect_info effect_info;
 	struct hisi_fb_data_type *hisifd_primary = NULL;
 
-	if(argp == NULL){
-		HISI_FB_ERR("argp is null pointer\n");
-		return -1;
-	}
-
 	ret = copy_from_user(&effect_info, argp, sizeof(struct dss_effect_info));
 	if (ret) {
 		HISI_FB_ERR("failed to copy data to kernel space.\n");
@@ -241,7 +221,6 @@ static int hisifb_effect_info_set_handler(const void __user *argp)
 		ret = -EBADRQC;
 		goto err_out;
 	}
-
 	spin_lock(&hisifd_primary->effect_lock);
 
 	if (effect_info.modules & DSS_EFFECT_MODULE_ARSR2P) {
@@ -1157,6 +1136,7 @@ int hisifb_param_check(struct fb_info *info, void __user *argp)
 
 int hisifb_runmode_check(display_engine_param_t* de_param)
 {
+<<<<<<< HEAD
 	if(de_param == NULL){
 		HISI_FB_ERR("de_param is null pointer\n");
 		return -1;
@@ -1164,6 +1144,9 @@ int hisifb_runmode_check(display_engine_param_t* de_param)
 	if (de_param->modules & DISPLAY_ENGINE_DDIC_RGBW ||
 		de_param->modules & DISPLAY_ENGINE_HBM||
 		de_param->modules & DISPLAY_ENGINE_BLC) {
+=======
+	if (de_param->modules & DISPLAY_ENGINE_DDIC_RGBW || de_param->modules & DISPLAY_ENGINE_HBM) {
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 		return 0;
 	} else if (runmode_is_factory()) {
 		return -EINVAL;
@@ -1184,10 +1167,6 @@ int hisifb_display_engine_param_set(struct fb_info *info, void __user *argp)
 	}
 
 	hisifd = (struct hisi_fb_data_type *)info->par;
-	if(hisifd == NULL){
-		HISI_FB_ERR("hisifd is null pointer\n");
-		return -1;
-	}
 
 	ret = (int)copy_from_user(&de_param, argp, sizeof(display_engine_param_t));
 	if (ret) {
@@ -1307,11 +1286,6 @@ ssize_t hisifb_display_effect_bl_ctrl_store(struct fb_info *info, const char *bu
 	hisifd = (struct hisi_fb_data_type *)info->par;
 	if (NULL == hisifd) {
 		HISI_FB_ERR("[effect] hisifd is NULL\n");
-		return -1;
-	}
-
-	if (NULL == buf) {
-		HISI_FB_ERR("[effect] buf is NULL\n");
 		return -1;
 	}
 

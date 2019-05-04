@@ -190,7 +190,10 @@ static void init_header(struct ctl_table_header *head,
 	head->set = set;
 	head->parent = NULL;
 	head->node = node;
+<<<<<<< HEAD
 	INIT_HLIST_HEAD(&head->inodes);
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 	if (node) {
 		struct ctl_table *entry;
 		for (entry = table; entry->procname; entry++, node++)
@@ -260,6 +263,7 @@ static void unuse_table(struct ctl_table_header *p)
 			complete(p->unregistering);
 }
 
+<<<<<<< HEAD
 static void proc_sys_prune_dcache(struct ctl_table_header *head)
 {
 	struct inode *inode;
@@ -298,6 +302,8 @@ static void proc_sys_prune_dcache(struct ctl_table_header *head)
 	rcu_read_unlock();
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 /* called under sysctl_lock, will reacquire if has to wait */
 static void start_unregistering(struct ctl_table_header *p)
 {
@@ -311,22 +317,31 @@ static void start_unregistering(struct ctl_table_header *p)
 		p->unregistering = &wait;
 		spin_unlock(&sysctl_lock);
 		wait_for_completion(&wait);
+		spin_lock(&sysctl_lock);
 	} else {
 		/* anything non-NULL; we'll never dereference it */
 		p->unregistering = ERR_PTR(-EINVAL);
-		spin_unlock(&sysctl_lock);
 	}
-	/*
-	 * Prune dentries for unregistered sysctls: namespaced sysctls
-	 * can have duplicate names and contaminate dcache very badly.
-	 */
-	proc_sys_prune_dcache(p);
 	/*
 	 * do not remove from the list until nobody holds it; walking the
 	 * list in do_sysctl() relies on that.
 	 */
-	spin_lock(&sysctl_lock);
 	erase_header(p);
+}
+
+static void sysctl_head_get(struct ctl_table_header *head)
+{
+	spin_lock(&sysctl_lock);
+	head->count++;
+	spin_unlock(&sysctl_lock);
+}
+
+void sysctl_head_put(struct ctl_table_header *head)
+{
+	spin_lock(&sysctl_lock);
+	if (!--head->count)
+		kfree_rcu(head, rcu);
+	spin_unlock(&sysctl_lock);
 }
 
 static struct ctl_table_header *sysctl_head_grab(struct ctl_table_header *head)
@@ -470,7 +485,9 @@ static struct inode *proc_sys_make_inode(struct super_block *sb,
 
 	inode->i_ino = get_next_ino();
 
+	sysctl_head_get(head);
 	ei = PROC_I(inode);
+<<<<<<< HEAD
 
 	spin_lock(&sysctl_lock);
 	if (unlikely(head->unregistering)) {
@@ -483,6 +500,10 @@ static struct inode *proc_sys_make_inode(struct super_block *sb,
 	hlist_add_head_rcu(&ei->sysctl_inodes, &head->inodes);
 	head->count++;
 	spin_unlock(&sysctl_lock);
+=======
+	ei->sysctl = head;
+	ei->sysctl_entry = table;
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 
 	inode->i_mtime = inode->i_atime = inode->i_ctime = current_time(inode);
 	inode->i_mode = table->mode;
@@ -504,6 +525,7 @@ static struct inode *proc_sys_make_inode(struct super_block *sb,
 	return inode;
 }
 
+<<<<<<< HEAD
 void proc_sys_evict_inode(struct inode *inode, struct ctl_table_header *head)
 {
 	spin_lock(&sysctl_lock);
@@ -513,6 +535,8 @@ void proc_sys_evict_inode(struct inode *inode, struct ctl_table_header *head)
 	spin_unlock(&sysctl_lock);
 }
 
+=======
+>>>>>>> parent of a33e705ac... PCT-AL10-TL10-L29
 static struct ctl_table_header *grab_header(struct inode *inode)
 {
 	struct ctl_table_header *head = PROC_I(inode)->sysctl;
@@ -708,10 +732,7 @@ static bool proc_sys_link_fill_cache(struct file *file,
 				    struct ctl_table *table)
 {
 	bool ret = true;
-
 	head = sysctl_head_grab(head);
-	if (IS_ERR(head))
-		return false;
 
 	if (S_ISLNK(table->mode)) {
 		/* It is not an error if we can not follow the link ignore it */
